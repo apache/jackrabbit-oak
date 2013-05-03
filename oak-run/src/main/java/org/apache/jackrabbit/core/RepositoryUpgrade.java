@@ -65,7 +65,6 @@ import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
-import org.apache.jackrabbit.core.RepositoryImpl.WorkspaceInfo;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.api.Type;
@@ -128,11 +127,11 @@ public class RepositoryUpgrade {
      */
     public static void copy(RepositoryConfig source, NodeStore target)
             throws RepositoryException {
-        RepositoryImpl repository = RepositoryImpl.create(source);
+        RepositoryContext context = RepositoryContext.create(source);
         try {
-            copy(repository, target);
+            new RepositoryUpgrade(context, target).copy();
         } finally {
-            repository.shutdown();
+            context.getRepository().shutdown();
         }
     }
 
@@ -150,7 +149,7 @@ public class RepositoryUpgrade {
      */
     public static void copy(RepositoryImpl source, NodeStore target)
             throws RepositoryException {
-        new RepositoryUpgrade(source, target).copy();
+        new RepositoryUpgrade(source.getRepositoryContext(), target).copy();
     }
 
     /**
@@ -158,11 +157,11 @@ public class RepositoryUpgrade {
      * to the given target repository. Any existing content in the target
      * repository will be overwritten.
      *
-     * @param source source repository
+     * @param source source repository context
      * @param target target node store
      */
-    public RepositoryUpgrade(RepositoryImpl source, NodeStore target) {
-        this.source = source.getRepositoryContext();
+    public RepositoryUpgrade(RepositoryContext source, NodeStore target) {
+        this.source = source;
         this.target = target;
     }
 
@@ -183,7 +182,7 @@ public class RepositoryUpgrade {
     public void copy() throws RepositoryException {
         logger.info(
                 "Copying repository content from {} to Oak",
-                source.getRepository().repConfig.getHomeDir());
+                source.getRepositoryConfig().getHomeDir());
         try {
             NodeStoreBranch branch = target.branch();
             NodeBuilder builder = branch.getHead().builder();
@@ -378,7 +377,7 @@ public class RepositoryUpgrade {
         logger.info("Copying version histories");
         NodeBuilder system = root.child(JCR_SYSTEM);
         NodeBuilder versionStorage = system.child(JCR_VERSIONSTORAGE);
-        NodeBuilder activities = system.child("rep:activities");
+        NodeBuilder activities = system.child("jcr:activities");
 
         PersistenceCopier copier = new PersistenceCopier(
                 source.getInternalVersionManager().getPersistenceManager(),
@@ -392,14 +391,10 @@ public class RepositoryUpgrade {
         logger.info("Copying default workspace");
 
         // Copy all the default workspace content
-        
-        RepositoryImpl repository = source.getRepository();
-        RepositoryConfig config = repository.getConfig();
+        RepositoryConfig config = source.getRepositoryConfig();
         String name = config.getDefaultWorkspaceName();
-        WorkspaceInfo workspace = repository.getWorkspaceInfo(name);
-
         PersistenceCopier copier = new PersistenceCopier(
-                workspace.getPersistenceManager(),
+                source.getWorkspaceInfo(name).getPersistenceManager(),
                 source.getNamespaceRegistry(), target);
         copier.excludeNode(RepositoryImpl.SYSTEM_ROOT_NODE_ID);
         copier.copy(RepositoryImpl.ROOT_NODE_ID, root);
