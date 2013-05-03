@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.ArrayList;
@@ -30,7 +23,6 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
@@ -65,10 +57,17 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 /**
  * CompiledPermissionImplTest... TODO
  */
-public class CompiledPermissionImplTest extends AbstractSecurityTest implements PermissionConstants, PrivilegeConstants {
+public class CompiledPermissionImplTest extends AbstractSecurityTest implements PermissionConstants, PrivilegeConstants, AccessControlConstants {
 
     private Principal userPrincipal;
     private Principal group1;
@@ -161,7 +160,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         allow(userPrincipal, "/", 0, JCR_READ);
         deny(group1, "/", 0, JCR_READ);
 
-        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal));
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal,group1));
         assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
     }
 
@@ -293,7 +292,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         assertReadStatus(ReadStatus.ALLOW_THIS, cp, rootAndUsers);
         assertReadStatus(ReadStatus.ALLOW_NODES, cp, node1Path);
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, node2Path);
     }
 
     @Ignore("OAK-774")
@@ -320,7 +319,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
         assertReadStatus(ReadStatus.ALLOW_THIS, cp, "/");
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, UserConstants.DEFAULT_USER_PATH);
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, UserConstants.DEFAULT_USER_PATH);
         assertReadStatus(ReadStatus.DENY_THIS, cp, node1Path);
         assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, node2Path);
     }
@@ -356,23 +355,66 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         assertReadStatus(ReadStatus.ALLOW_ALL, cp, node2Path);
     }
 
+    @Ignore("OAK-774")
+    @Test
+    public void testGetReadStatusWithRestrictions() throws Exception {
+        setupPermission(group1, node1Path, true, 0, new String[] {JCR_READ}, createGlobRestriction("/*"));
+        allow(group2, node1Path, 1, JCR_READ);
+        deny(group3, node1Path, 2, JCR_READ);
+
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
+        assertReadStatus(ReadStatus.DENY_THIS, cp, nodePaths);
+
+        cp = createPermissions(ImmutableSet.of(group1, group2));
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
+
+        cp = createPermissions(ImmutableSet.of(group1, group2, group3));
+        assertReadStatus(ReadStatus.DENY_ALL_REGULAR, cp, nodePaths);
+    }
+
+    @Ignore("OAK-774")
+    @Test
+    public void testGetReadStatusWithRestrictions2() throws Exception {
+        allow(group2, node1Path, 1, JCR_READ);
+        deny(group3, node1Path, 2, JCR_READ);
+        setupPermission(group1, node1Path, true, 0, new String[] {JCR_READ}, createGlobRestriction("/*"));
+
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
+        assertReadStatus(ReadStatus.DENY_THIS, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
+
+        cp = createPermissions(ImmutableSet.of(group1, group2));
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
+
+        cp = createPermissions(ImmutableSet.of(group1, group2, group3));
+        assertReadStatus(ReadStatus.DENY_THIS, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
+    }
+
+    // TODO: more tests with restrictions
+    // TODO: complex tests with entries for paths outside of the tested hierarchy
+    // TODO: tests for isGranted
+    // TODO: tests for hasPrivilege/getPrivileges
+    // TODO: tests for path based evaluation
+
     @Test
     public void testGetReadStatusForReadPaths() throws Exception {
         CompiledPermissionImpl cp = createPermissions(Collections.singleton(userPrincipal));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, ReadStatus.ALLOW_ALL_REGULAR, cp, new ArrayList<String>(AccessControlConstants.DEFAULT_READ_PATHS));
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, ReadStatus.ALLOW_ALL_REGULAR, cp, new ArrayList<String>(DEFAULT_READ_PATHS));
     }
 
     @Test
     public void testIsGrantedForReadPaths() throws Exception {
         CompiledPermissionImpl cp = createPermissions(Collections.singleton(userPrincipal));
-        for (String path : AccessControlConstants.DEFAULT_READ_PATHS) {
+        for (String path : DEFAULT_READ_PATHS) {
             assertTrue(cp.isGranted(path, Permissions.READ));
             assertTrue(cp.isGranted(path, Permissions.READ_NODE));
             assertTrue(cp.isGranted(path + '/' + JcrConstants.JCR_PRIMARYTYPE, Permissions.READ_PROPERTY));
             assertFalse(cp.isGranted(path, Permissions.READ_ACCESS_CONTROL));
         }
 
-        for (String path : AccessControlConstants.DEFAULT_READ_PATHS) {
+        for (String path : DEFAULT_READ_PATHS) {
             Tree tree = root.getTree(path);
             assertTrue(cp.isGranted(tree, null, Permissions.READ));
             assertTrue(cp.isGranted(tree, null, Permissions.READ_NODE));
@@ -389,7 +431,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     @Test
     public void testGetPrivilegesForReadPaths() throws Exception {
         CompiledPermissionImpl cp = createPermissions(Collections.singleton(userPrincipal));
-        for (String path : AccessControlConstants.DEFAULT_READ_PATHS) {
+        for (String path : DEFAULT_READ_PATHS) {
             Tree tree = root.getTree(path);
             assertEquals(Collections.singleton(PrivilegeConstants.JCR_READ), cp.getPrivileges(tree));
         }
@@ -400,7 +442,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     @Test
     public void testHasPrivilegesForReadPaths() throws Exception {
         CompiledPermissionImpl cp = createPermissions(Collections.singleton(userPrincipal));
-        for (String path : AccessControlConstants.DEFAULT_READ_PATHS) {
+        for (String path : DEFAULT_READ_PATHS) {
             Tree tree = root.getTree(path);
             assertTrue(cp.hasPrivileges(tree, PrivilegeConstants.JCR_READ));
             assertTrue(cp.hasPrivileges(tree, PrivilegeConstants.REP_READ_NODES));
@@ -411,15 +453,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         assertFalse(cp.hasPrivileges(null, PrivilegeConstants.JCR_READ));
     }
 
-    // TODO: tests with restrictions
-    // TODO: complex tests with entries for paths outside of the tested hierarchy
-    // TODO: tests for isGranted
-    // TODO: tests for hasPrivilege/getPrivileges
-    // TODO: tests for path base evaluation
-
     private CompiledPermissionImpl createPermissions(Set<Principal> principals) {
         ImmutableTree permissionsTree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTree(PERMISSIONS_STORE_PATH);
-        return new CompiledPermissionImpl(principals, permissionsTree, pbp, rp, AccessControlConstants.DEFAULT_READ_PATHS);
+        return new CompiledPermissionImpl(principals, permissionsTree, pbp, rp, DEFAULT_READ_PATHS);
     }
 
     private void allow(Principal principal, String path, int index, String... privilegeNames) throws CommitFailedException {
@@ -467,6 +503,10 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
             assertSame("Tree " + path, expectedTrees, cp.getReadStatus(node, null));
             assertSame("Property jcr:primaryType " + path, expectedProperties, cp.getReadStatus(node, node.getProperty(JCR_PRIMARYTYPE)));
         }
+    }
+
+    private Set<Restriction> createGlobRestriction(String globValue) throws Exception {
+        return Collections.singleton(rp.createRestriction(node1Path, REP_GLOB, getValueFactory().createValue(globValue)));
     }
 
     private class GroupImpl implements Group {
