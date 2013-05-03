@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.IOException;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -41,13 +38,18 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.jcr.security.AccessManager;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * TODO document
  */
 public class SessionDelegate {
+
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
     private final ContentSession contentSession;
@@ -216,7 +218,7 @@ public class SessionDelegate {
      * @param destPath  oak path to the destination
      * @throws RepositoryException
      */
-    public void copy(String srcPath, String destPath) throws RepositoryException {
+    public void copy(String srcPath, String destPath, AccessManager accessManager) throws RepositoryException {
         // check destination
         Tree dest = root.getTree(destPath);
         if (dest.exists()) {
@@ -236,6 +238,8 @@ public class SessionDelegate {
             throw new PathNotFoundException(srcPath);
         }
 
+        accessManager.checkPermissions(destPath, Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
+
         try {
             Root currentRoot = contentSession.getLatestRoot();
             currentRoot.copy(srcPath, destPath);
@@ -252,7 +256,7 @@ public class SessionDelegate {
      * @param transientOp  whether or not to perform the move in transient space
      * @throws RepositoryException
      */
-    public void move(String srcPath, String destPath, boolean transientOp)
+    public void move(String srcPath, String destPath, boolean transientOp, AccessManager accessManager)
             throws RepositoryException {
 
         Root moveRoot = transientOp ? root : contentSession.getLatestRoot();
@@ -275,6 +279,8 @@ public class SessionDelegate {
         if (!src.exists()) {
             throw new PathNotFoundException(srcPath);
         }
+
+        accessManager.checkPermissions(destPath, Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
 
         try {
             moveRoot.move(srcPath, destPath);
@@ -306,8 +312,7 @@ public class SessionDelegate {
      * @param exception typed commit failure exception
      * @return matching repository exception
      */
-    private static RepositoryException newRepositoryException(
-            CommitFailedException exception) {
+    private static RepositoryException newRepositoryException(CommitFailedException exception) {
         checkNotNull(exception);
         if (exception.isConstraintViolation()) {
             return new ConstraintViolationException(exception);

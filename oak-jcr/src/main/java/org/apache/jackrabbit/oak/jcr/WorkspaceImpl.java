@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
@@ -49,6 +46,8 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager
 import org.apache.jackrabbit.util.Text;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
+
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * TODO document
@@ -136,7 +135,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         sessionDelegate.copy(
                 getOakPathOrThrowNotFound(srcAbsPath),
-                getOakPathOrThrowNotFound(destAbsPath));
+                getOakPathOrThrowNotFound(destAbsPath),
+                sessionContext.getAccessManager());
     }
 
     @Override
@@ -164,7 +164,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         sessionDelegate.move(
                 getOakPathOrThrowNotFound(srcAbsPath),
                 getOakPathOrThrowNotFound(destAbsPath),
-                false);
+                false, sessionContext.getAccessManager());
     }
 
     @Override

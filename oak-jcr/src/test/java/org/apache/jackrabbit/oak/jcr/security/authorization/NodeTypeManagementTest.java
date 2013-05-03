@@ -183,7 +183,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         }
     }
 
-    @Ignore("OAK-711") // FIXME
     @Test
     public void testCopy() throws Exception {
         Workspace wsp = testSession.getWorkspace();
@@ -212,7 +211,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         wsp.copy(srcPath, destPath);
     }
 
-    @Ignore("OAK-711") // FIXME
     @Test
     public void testWorkspaceMove() throws Exception {
         Workspace wsp = testSession.getWorkspace();
@@ -241,7 +239,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         wsp.move(srcPath, destPath);
     }
 
-    @Ignore("OAK-711") // FIXME
     @Test
     public void testSessionMove() throws Exception {
         String parentPath = childNode.getParent().getPath();
