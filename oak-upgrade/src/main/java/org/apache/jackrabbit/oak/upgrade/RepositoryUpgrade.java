@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.core;
+package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Arrays.asList;
@@ -133,23 +133,6 @@ public class RepositoryUpgrade {
         } finally {
             context.getRepository().shutdown();
         }
-    }
-
-    /**
-     * Copies the contents of the given source repository to the given
-     * target node store.
-     * <p>
-     * The source repository <strong>must not be modified</strong> while
-     * the copy operation is running to avoid an inconsistent copy.
-     *
-     * @param source source repository directory
-     * @param target target node store
-     * @throws RepositoryException if the copy operation fails
-     * @throws IOException if the target repository can not be initialized
-     */
-    public static void copy(RepositoryImpl source, NodeStore target)
-            throws RepositoryException {
-        new RepositoryUpgrade(source.getRepositoryContext(), target).copy();
     }
 
     /**
