@@ -16,22 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -56,6 +49,11 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
@@ -93,18 +91,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
     @Nonnull
     private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder) {
-        NodeBuilder permissionStore = rootBuilder.child(JCR_SYSTEM).child(REP_PERMISSION_STORE);
-        if (!permissionStore.hasProperty(JCR_PRIMARYTYPE)) {
-            permissionStore.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
-        }
-        NodeBuilder permissionRoot;
-        if (!permissionStore.hasChildNode(workspaceName)) {
-            permissionRoot = permissionStore.child(workspaceName)
-                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
-        } else {
-            permissionRoot = permissionStore.child(workspaceName);
-        }
-        return permissionRoot;
+        // permission root has been created during workspace initialization
+        return rootBuilder.child(JCR_SYSTEM).child(REP_PERMISSION_STORE).child(workspaceName);
     }
 
     @CheckForNull
