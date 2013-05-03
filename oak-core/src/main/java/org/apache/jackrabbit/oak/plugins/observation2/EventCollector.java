@@ -42,13 +42,20 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 /**
  * TODO document
  * FIXME this implementation needs read/write access to /jcr:system/rep:observation
  */
 class EventCollector implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(EventCollector.class);
+
+    private static final Logger log =
+            LoggerFactory.getLogger(EventCollector.class);
+
+    private static final Marker DEPRECATED =
+            MarkerFactory.getMarker("deprecated");
 
     private final ObservationManagerImpl2 observationManager;
     private final EventQueueReader eventQueueReader;
@@ -56,6 +63,12 @@ class EventCollector implements Runnable {
     private volatile boolean running;
     private ScheduledFuture<?> future;
     private String id;
+
+    private boolean userIDAccessed = false;
+    private boolean userDataAccessed = false;
+    private boolean isExternalAccessed = false;
+    private boolean userInfoAccessedWithoutExternalsCheck = false;
+    private boolean userInfoAccessedFromExternalEvent = false;
 
     public EventCollector(ObservationManagerImpl2 observationManager, EventListener listener, EventFilter filter)
             throws CommitFailedException {
@@ -120,7 +133,8 @@ class EventCollector implements Runnable {
     public void run() {
         running = true;
         try {
-            Iterator<Event> bundle = eventQueueReader.getEventBundle(getId());
+            Iterator<Event> bundle =
+                    eventQueueReader.getEventBundle(this, getId());
             // FIXME filter by session specific access restrictions
             if (bundle != null) {
                 observationManager.setHasEvents();
@@ -133,6 +147,37 @@ class EventCollector implements Runnable {
                 running = false;
                 notifyAll();
             }
+        }
+    }
+
+    synchronized void userIDAccessed() {
+        userIDAccessed = true;
+    }
+
+    synchronized void userDataAccessed() {
+        userDataAccessed = true;
+    }
+
+    synchronized void externalAccessed() {
+        isExternalAccessed = true;
+    }
+
+    synchronized void userInfoAccessedWithoutExternalCheck() {
+        if (!userInfoAccessedWithoutExternalsCheck) {
+            log.warn(DEPRECATED,
+                    "Event listener " + listener + " is trying to access"
+                    + " event user information without checking for whether"
+                    + " the event is external");
+            userInfoAccessedWithoutExternalsCheck = true;
+        }
+    }
+
+    synchronized void userInfoAccessedFromExternalEvent() {
+        if (!userInfoAccessedFromExternalEvent) {
+            log.warn(DEPRECATED,
+                    "Event listener " + listener + " is trying to access"
+                    + " event user information from an external event");
+            userInfoAccessedFromExternalEvent = true;
         }
     }
 

@@ -42,13 +42,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 /**
  * TODO document
  */
 class ChangeProcessor implements Runnable {
 
-    private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(ChangeProcessor.class);
+
+    private static final Marker DEPRECATED =
+            MarkerFactory.getMarker("deprecated");
 
     private static final String DUMMY_USER_ID = TODO.dummyImplementation().returnValueOrNull("oak:unknown");
     private final ObservationManagerImpl observationManager;
@@ -59,6 +65,12 @@ class ChangeProcessor implements Runnable {
     private volatile boolean running;
     private volatile boolean stopping;
     private ScheduledFuture<?> future;
+
+    private boolean userIDAccessed = false;
+    private boolean userDataAccessed = false;
+    private boolean isExternalAccessed = false;
+    private boolean userInfoAccessedWithoutExternalsCheck = false;
+    private boolean userInfoAccessedFromExternalEvent = false;
 
     public ChangeProcessor(ObservationManagerImpl observationManager, EventListener listener, ChangeFilter filter) {
         this.observationManager = observationManager;
@@ -125,6 +137,37 @@ class ChangeProcessor implements Runnable {
                 running = false;
                 notifyAll();
             }
+        }
+    }
+
+    synchronized void userIDAccessed() {
+        userIDAccessed = true;
+    }
+
+    synchronized void userDataAccessed() {
+        userDataAccessed = true;
+    }
+
+    synchronized void externalAccessed() {
+        isExternalAccessed = true;
+    }
+
+    synchronized void userInfoAccessedWithoutExternalCheck() {
+        if (!userInfoAccessedWithoutExternalsCheck) {
+            log.warn(DEPRECATED,
+                    "Event listener " + listener + " is trying to access"
+                    + " event user information without checking for whether"
+                    + " the event is external");
+            userInfoAccessedWithoutExternalsCheck = true;
+        }
+    }
+
+    synchronized void userInfoAccessedFromExternalEvent() {
+        if (!userInfoAccessedFromExternalEvent) {
+            log.warn(DEPRECATED,
+                    "Event listener " + listener + " is trying to access"
+                    + " event user information from an external event");
+            userInfoAccessedFromExternalEvent = true;
         }
     }
 
@@ -240,7 +283,7 @@ class ChangeProcessor implements Runnable {
             String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
 
             // TODO support userId, identifier, info, date
-            return new EventImpl(eventType, jcrPath, DUMMY_USER_ID, null, null, 0);
+            return new EventImpl(ChangeProcessor.this, eventType, jcrPath, DUMMY_USER_ID, null, null, 0, null, false);
         }
 
         private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String name, NodeState node) {
@@ -252,7 +295,7 @@ class ChangeProcessor implements Runnable {
             Iterator<Event> nodeEvent;
             if (filter.include(eventType, jcrParentPath, associatedParentNode)) {
                 // TODO support userId, identifier, info, date
-                Event event = new EventImpl(eventType, jcrPath, DUMMY_USER_ID, null, null, 0);
+                Event event = new EventImpl(ChangeProcessor.this, eventType, jcrPath, DUMMY_USER_ID, null, null, 0, null, false);
                 nodeEvent = Iterators.singletonIterator(event);
             } else {
                 nodeEvent = Iterators.emptyIterator();

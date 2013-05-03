@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
@@ -20,18 +22,16 @@ import java.util.Collections;
 import java.util.Map;
 
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.observation.Event;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MarkerFactory;
+import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 
 /**
  * TODO document
  */
-public class EventImpl implements Event {
-    private static final Logger log = LoggerFactory.getLogger(EventImpl.class);
+public class EventImpl implements JackrabbitEvent {
+
+    private final ChangeProcessor collector;
+    private boolean externalAccessed = false;
 
     private final int type;
     private final String path;
@@ -39,14 +39,22 @@ public class EventImpl implements Event {
     private final String identifier;
     private final Map<?, ?> info;
     private final long date;
+    private final String userData;
+    private final boolean external;
 
-    public EventImpl(int type, String path, String userID, String identifier, Map<?, ?> info, long date) {
+    public EventImpl(
+            ChangeProcessor collector,
+            int type, String path, String userID, String identifier,
+            Map<?, ?> info, long date, String userData, boolean external) {
+        this.collector = collector;
         this.type = type;
         this.path = path;
         this.userID = userID;
         this.identifier = identifier;
         this.info = info == null ? Collections.emptyMap() : info;
         this.date = date;
+        this.userData = userData;
+        this.external = external;
     }
 
     @Override
@@ -60,8 +68,14 @@ public class EventImpl implements Event {
     }
 
     @Override
-    public String getUserID() {
-        log.warn(MarkerFactory.getMarker("deprecation"), "Call to deprecated method getUserId");
+    public synchronized String getUserID() {
+        if (!externalAccessed) {
+            collector.userInfoAccessedWithoutExternalCheck();
+        }
+        if (external) {
+            collector.userInfoAccessedFromExternalEvent();
+        }
+        collector.userIDAccessed();
         return userID;
     }
 
@@ -77,13 +91,26 @@ public class EventImpl implements Event {
 
     @Override
     public String getUserData() throws RepositoryException {
-        log.warn(MarkerFactory.getMarker("deprecation"), "Call to deprecated method getUserData");
-        throw new UnsupportedRepositoryOperationException("User data not supported");
+        if (!externalAccessed) {
+            collector.userInfoAccessedWithoutExternalCheck();
+        }
+        if (external) {
+            collector.userInfoAccessedFromExternalEvent();
+        }
+        collector.userDataAccessed();
+        return userData;
     }
 
     @Override
     public long getDate() throws RepositoryException {
         return date;
+    }
+
+    @Override
+    public synchronized boolean isExternal() {
+        externalAccessed = true;
+        collector.externalAccessed();
+        return external;
     }
 
     @Override
@@ -100,7 +127,9 @@ public class EventImpl implements Event {
                 (identifier == null ? that.identifier == null : identifier.equals(that.identifier)) &&
                 (info == null ? that.info == null : info.equals(that.info)) &&
                 (path == null ? that.path == null : path.equals(that.path)) &&
-                (userID == null ? that.userID == null : userID.equals(that.userID));
+                (userID == null ? that.userID == null : userID.equals(that.userID)) &&
+                (userData == null ? that.userData == null : userData.equals(that.userData)) &&
+                external == that.external;
 
     }
 
@@ -112,6 +141,7 @@ public class EventImpl implements Event {
         result = 31 * result + (identifier == null ? 0 : identifier.hashCode());
         result = 31 * result + (info == null ? 0 : info.hashCode());
         result = 31 * result + (int) (date ^ (date >>> 32));
+        result = 31 * result + (userData == null ? 0 :  userData.hashCode());
         return result;
     }
 
@@ -124,6 +154,9 @@ public class EventImpl implements Event {
                 ", identifier='" + identifier + '\'' +
                 ", info=" + info +
                 ", date=" + date +
+                ", userData=" + userData +
+                ", external=" + external +
                 '}';
     }
+
 }
