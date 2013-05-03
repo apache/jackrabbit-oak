@@ -188,6 +188,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         }
         return sb.toString();
     }
+
     protected Map<String, Value> createGlobRestriction(String value) throws RepositoryException {
         return Collections.singletonMap("rep:glob", testSession.getValueFactory().createValue(value));
     }
@@ -223,7 +224,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         return modify(path, testUser.getPrincipal(), privilegesFromName(privilege), isAllow, EMPTY_RESTRICTIONS);
     }
 
-    private JackrabbitAccessControlList modify(String path, Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws Exception {
+    protected JackrabbitAccessControlList modify(String path, Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws Exception {
         JackrabbitAccessControlList tmpl = AccessControlUtils.getAccessControlList(acMgr, path);
         tmpl.addEntry(principal, privileges, isAllow, restrictions);
 

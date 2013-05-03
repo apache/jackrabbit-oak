@@ -16,12 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Session;
+import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -318,5 +323,59 @@ public class ReadTest extends AbstractEvaluationTest {
         propPath = childNPath + '/' + jcrPrimaryType;
         assertFalse(testSession.hasPermission(propPath, javax.jcr.Session.ACTION_READ));
         assertFalse(testSession.propertyExists(propPath));
+    }
+
+    @Test
+    public void testGlobRestriction2() throws Exception {
+        Group group2 = getUserManager(superuser).createGroup("group2");
+        Group group3 = getUserManager(superuser).createGroup("group3");
+        superuser.save();
+
+        try {
+            Privilege[] readPrivs = privilegesFromName(Privilege.JCR_READ);
+
+            modify(path, getTestGroup().getPrincipal(), readPrivs, true, createGlobRestriction("/*"));
+            allow(path, group2.getPrincipal(), readPrivs);
+            deny(path, group3.getPrincipal(), readPrivs);
+
+            Set<Principal> principals = new HashSet();
+            principals.add(getTestGroup().getPrincipal());
+            principals.add(group2.getPrincipal());
+            principals.add(group3.getPrincipal());
+
+            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals, readPrivs));
+            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals, readPrivs));
+        } finally {
+            group2.remove();
+            group3.remove();
+            superuser.save();
+        }
+    }
+
+    @Test
+    public void testGlobRestriction3() throws Exception {
+        Group group2 = getUserManager(superuser).createGroup("group2");
+        Group group3 = getUserManager(superuser).createGroup("group3");
+        superuser.save();
+
+        try {
+            Privilege[] readPrivs = privilegesFromName(Privilege.JCR_READ);
+
+            allow(path, group2.getPrincipal(), readPrivs);
+            deny(path, group3.getPrincipal(), readPrivs);
+            modify(path, getTestGroup().getPrincipal(), readPrivs, true, createGlobRestriction("/*"));
+
+            Set<Principal> principals = new HashSet();
+            principals.add(getTestGroup().getPrincipal());
+            principals.add(group2.getPrincipal());
+            principals.add(group3.getPrincipal());
+
+            assertFalse(((JackrabbitAccessControlManager) acMgr).hasPrivileges(path, principals, readPrivs));
+            assertTrue(((JackrabbitAccessControlManager) acMgr).hasPrivileges(childNPath, principals, readPrivs));
+        } finally {
+            group2.remove();
+            group3.remove();
+            superuser.save();
+        }
     }
 }
