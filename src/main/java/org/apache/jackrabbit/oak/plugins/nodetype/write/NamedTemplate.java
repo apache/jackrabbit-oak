@@ -132,7 +132,7 @@ abstract class NamedTemplate {
      */
     @Nonnull
     protected String getOakNameOrThrowConstraintViolation(
-            @Nonnull String jcrName) throws ConstraintViolationException {
+            @CheckForNull String jcrName) throws ConstraintViolationException {
         if (jcrName == null) {
             throw new ConstraintViolationException("Missing JCR name");
         }
@@ -175,7 +175,7 @@ abstract class NamedTemplate {
      */
     @Nonnull
     protected String[] getOakNamesOrThrowConstraintViolation(
-            @Nonnull String[] jcrNames) throws ConstraintViolationException {
+            @CheckForNull String[] jcrNames) throws ConstraintViolationException {
         if (jcrNames != null) {
             String[] oakNames = new String[jcrNames.length];
             for (int i = 0; i < jcrNames.length; i++) {
