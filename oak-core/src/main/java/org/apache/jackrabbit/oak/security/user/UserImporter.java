@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,7 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
@@ -54,6 +50,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
@@ -63,6 +60,9 @@ import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * {@code UserImporter} implements both {@code ode>ProtectedPropertyImporter}
@@ -120,11 +120,6 @@ import org.slf4j.LoggerFactory;
 class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, UserConstants {
 
     private static final Logger log = LoggerFactory.getLogger(UserImporter.class);
-
-    /**
-     * Parameter name for the import behavior configuration option.
-     */
-    public static final String PARAM_IMPORT_BEHAVIOR = "importBehavior";
 
     private final int importBehavior;
 
@@ -220,12 +215,14 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     public boolean handlePropInfo(Tree parent, PropInfo propInfo, PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
-        //TODO remove hack that processes principal name first
+        // FIXME: remove hack that processes principal name first
         String propName = propInfo.getName();
         Authorizable a = null;
+        // FIXME: remove try/catch that ignores exception
         try {
             a = userManager.getAuthorizable(parent);
         } catch (RepositoryException ignore) {}
+
         if (a == null && !REP_PRINCIPAL_NAME.equals(propName)) {
             log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
             return false;
@@ -623,61 +620,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 // and write back the complete list including those principal
                 // names that are unknown to principal provider.
                 userTree.setProperty(REP_IMPERSONATORS, nonExisting, Type.STRINGS);
-            }
-        }
-    }
-
-    /**
-     * Inner class defining the treatment of membership or impersonator
-     * values pointing to non-existing authorizables.
-     */
-    public static final class ImportBehavior {
-
-        /**
-         * If a member or impersonator value cannot be set due to constraints
-         * enforced by the API implementation, the failure is logged as
-         * warning but otherwise ignored.
-         */
-        public static final int IGNORE = 1;
-        /**
-         * Same as {@link #IGNORE} but in addition tries to circumvent the
-         * problem. This option should only be used with validated and trusted
-         * XML passed to the SessionImporter.
-         */
-        public static final int BESTEFFORT = 2;
-        /**
-         * Aborts the import as soon as invalid values are detected throwing
-         * a {@code ConstraintViolationException}.
-         */
-        public static final int ABORT = 3;
-
-        public static final String NAME_IGNORE = "ignore";
-        public static final String NAME_BESTEFFORT = "besteffort";
-        public static final String NAME_ABORT = "abort";
-
-        public static int valueFromString(String behaviorString) {
-            if (NAME_IGNORE.equalsIgnoreCase(behaviorString)) {
-                return IGNORE;
-            } else if (NAME_BESTEFFORT.equalsIgnoreCase(behaviorString)) {
-                return BESTEFFORT;
-            } else if (NAME_ABORT.equalsIgnoreCase(behaviorString)) {
-                return ABORT;
-            } else {
-                log.error("Invalid behavior " + behaviorString + " -> Using default: ABORT.");
-                return ABORT;
-            }
-        }
-
-        public static String nameFromValue(int importBehavior) {
-            switch (importBehavior) {
-                case ImportBehavior.IGNORE:
-                    return NAME_IGNORE;
-                case ImportBehavior.ABORT:
-                    return NAME_ABORT;
-                case ImportBehavior.BESTEFFORT:
-                    return NAME_BESTEFFORT;
-                default:
-                    throw new IllegalArgumentException("Invalid import behavior: " + importBehavior);
             }
         }
     }

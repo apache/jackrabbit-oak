@@ -322,7 +322,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
      *
      * @throws Exception
      */
-    @Ignore("") // FIXME
+    @Ignore("OAK-414") // FIXME
     public void testImportACLUnknown() throws Exception {
         try {
             Node target = testRootNode.addNode(nodeName1);
@@ -366,13 +366,8 @@ public class AccessControlImporterTest extends AbstractJCRTest {
      *
      * @throws Exception
      */
+    @Ignore("OAK-414") // FIXME
     public void testImportPolicyExists() throws Exception {
-        // FIXME this test does not work anymore, since the normal behavior is replace
-        // FIXME all ACEs for an import. maybe control this behavior via uuid-flag.
-        if (true) {
-            return;
-        }
-
         Node target = testRootNode;
         target = target.addNode("test", "test:sameNameSibsFalseChildNodeDefinition");
         AccessControlManager acMgr = superuser.getAccessControlManager();
