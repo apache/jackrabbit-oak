@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -24,7 +25,9 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -33,37 +36,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
-import com.google.common.collect.ImmutableList;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
-
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} and
  * registers built-in node types when the micro kernel becomes available.
  */
 @Component
 @Service(RepositoryInitializer.class)
-public class InitialContent implements RepositoryInitializer {
+public class InitialContent implements RepositoryInitializer, NodeTypeConstants {
 
     @Override
     public NodeState initialize(NodeState state) {
         NodeBuilder root = state.builder();
-        root.setProperty(JCR_PRIMARYTYPE, "rep:root", Type.NAME);
+        root.setProperty(JCR_PRIMARYTYPE, NT_REP_ROOT, Type.NAME);
 
         if (!root.hasChildNode(JCR_SYSTEM)) {
             NodeBuilder system = root.child(JCR_SYSTEM);
-            system.setProperty(JCR_PRIMARYTYPE, "rep:system", Type.NAME);
+            system.setProperty(JCR_PRIMARYTYPE, NT_REP_SYSTEM, Type.NAME);
 
             system.child(JCR_VERSIONSTORAGE)
-                    .setProperty(JCR_PRIMARYTYPE, "rep:versionStorage", Type.NAME);
-            system.child("jcr:nodeTypes")
-                    .setProperty(JCR_PRIMARYTYPE, "rep:nodeTypes", Type.NAME);
-            system.child("jcr:activities")
-                    .setProperty(JCR_PRIMARYTYPE, "rep:Activities", Type.NAME);
+                    .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_VERSIONSTORAGE, Type.NAME);
+            system.child(JCR_NODE_TYPES)
+                    .setProperty(JCR_PRIMARYTYPE, NT_REP_NODE_TYPES, Type.NAME);
+            system.child(VersionConstants.JCR_ACTIVITIES)
+                    .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_ACTIVITIES, Type.NAME);
         }
 
         if (!root.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
