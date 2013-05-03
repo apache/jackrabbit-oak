@@ -19,19 +19,25 @@ package org.apache.jackrabbit.oak.security.authorization;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+
 /**
  * Implementation of the {@code WorkspaceInitializer} interface that creates
  * a property index definitions for {@link #REP_PRINCIPAL_NAME rep:principalName}
  * properties defined with ACE nodes.
  */
-class AccessControlInitializer implements WorkspaceInitializer, AccessControlConstants {
+class AccessControlInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {
 
     @Nonnull
     @Override
@@ -44,6 +50,15 @@ class AccessControlInitializer implements WorkspaceInitializer, AccessControlCon
             IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
                     ImmutableList.<String>of(REP_PRINCIPAL_NAME),
                     ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
+        }
+
+        // create the permission store and the root for this workspace.
+        NodeBuilder permissionStore = root.child(JCR_SYSTEM).child(REP_PERMISSION_STORE);
+        if (!permissionStore.hasProperty(JCR_PRIMARYTYPE)) {
+            permissionStore.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+        }
+        if (!permissionStore.hasChildNode(workspaceName)) {
+            permissionStore.child(workspaceName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         }
         return root.getNodeState();
     }
