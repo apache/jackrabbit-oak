@@ -178,6 +178,24 @@ public final class Permissions {
         return permissions & ~otherPermissions;
     }
 
+    /**
+     * Returns the permissions that correspond the given jcr actions such as
+     * specified in {@link Session#hasPermission(String, String)}. Note that
+     * in addition to the regular JCR actions ({@link Session#ACTION_READ},
+     * {@link Session#ACTION_ADD_NODE}, {@link Session#ACTION_REMOVE} and
+     * {@link Session#ACTION_SET_PROPERTY}) the string may also contain
+     * the names of all permissions defined by this class.
+     *
+     * @param jcrActions A comma separated string of JCR actions and permission
+     * names.
+     * @param location The tree location for which the permissions should be
+     * calculated.
+     * @param isAccessControlContent Flag to mark the given location as access
+     * control content.
+     * @return The permissions.
+     * @throws IllegalArgumentException If the string contains unknown actions
+     * or permission names.
+     */
     public static long getPermissions(String jcrActions, TreeLocation location,
                                       boolean isAccessControlContent) {
         Set<String> actions = new HashSet<String>(Arrays.asList(jcrActions.split(",")));
@@ -223,6 +241,13 @@ public final class Permissions {
                 }
             }
         }
+
+        for (Map.Entry<Long, String> entry : PERMISSION_NAMES.entrySet()) {
+            if (actions.remove(entry.getValue())) {
+                permissions |= entry.getKey();
+            }
+        }
+
         if (!actions.isEmpty()) {
             throw new IllegalArgumentException("Unknown actions: " + actions);
         }
