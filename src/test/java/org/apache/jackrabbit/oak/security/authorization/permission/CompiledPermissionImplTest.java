@@ -306,7 +306,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         assertReadStatus(ReadStatus.ALLOW_NODES, cp, rootAndUsers);
         assertReadStatus(ReadStatus.ALLOW_NODES, cp, node1Path);
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, node2Path);
     }
 
     @Ignore("OAK-774")
