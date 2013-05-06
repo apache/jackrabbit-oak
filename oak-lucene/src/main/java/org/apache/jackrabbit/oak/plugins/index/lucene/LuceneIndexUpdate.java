@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
@@ -23,12 +25,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
-
-import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -49,8 +48,6 @@ import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
 
@@ -78,6 +75,7 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
      * text indexing.
      */
     private final Parser parser;
+
     /**
      * The media types supported by the parser used.
      */
@@ -85,68 +83,89 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
 
     private final String path;
 
-    private final NodeBuilder index;
+    private final Set<String> updates = new TreeSet<String>();
 
-    private final Map<String, NodeState> insert = new TreeMap<String, NodeState>();
+    private final IndexWriter writer;
 
-    private final Set<String> remove = new TreeSet<String>();
+    private final Set<Integer> propertyTypes;
 
-    public LuceneIndexUpdate(String path, NodeBuilder index, Parser parser) {
+    public LuceneIndexUpdate(String path, NodeBuilder index, Parser parser)
+            throws CommitFailedException {
         this.path = path;
-        this.index = index;
         this.parser = parser;
-    }
-
-    public void insert(String path, NodeBuilder value) {
-        Preconditions.checkArgument(path.startsWith(this.path));
-        if (!insert.containsKey(path)) {
-            String key = path.substring(this.path.length());
-            if ("".equals(key)) {
-                key = "/";
-            }
-            // null value can come from a deleted node, followed by a deleted
-            // property event which would trigger an update on the previously
-            // deleted node
-            if (value != null) {
-                insert.put(key, value.getNodeState());
-            }
-        }
-    }
-
-    public void remove(String path) {
-        Preconditions.checkArgument(path.startsWith(this.path));
-        remove.add(path.substring(this.path.length()));
-    }
-
-    public void apply() throws CommitFailedException {
-        if(remove.isEmpty() && insert.isEmpty()){
-            return;
-        }
-        IndexWriter writer = null;
+        this.propertyTypes = buildPropertyTypes(index);
         try {
             writer = new IndexWriter(new ReadWriteOakDirectory(
                     index.child(INDEX_DATA_CHILD_NAME)), config);
-            for (String p : remove) {
-                deleteSubtreeWriter(writer, p);
-            }
-            for (String p : insert.keySet()) {
-                NodeState ns = insert.get(p);
-                addSubtreeWriter(writer, p, ns);
-            }
         } catch (IOException e) {
-            e.printStackTrace();
-            throw new CommitFailedException(
-                    "Lucene", 1,
+            throw new CommitFailedException("Lucene", 1,
                     "Failed to update the full text search index", e);
-        } finally {
-            remove.clear();
-            insert.clear();
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException e) {
-                    //
-                }
+        }
+    }
+
+    private Set<Integer> buildPropertyTypes(NodeBuilder index) {
+        PropertyState ps = index.getProperty(INCLUDE_PROPERTY_TYPES);
+        if (ps == null) {
+            return new HashSet<Integer>();
+        }
+        Set<Integer> includes = new HashSet<Integer>();
+        for (String inc : ps.getValue(Type.STRINGS)) {
+            // TODO add more types as needed
+            if (Type.STRING.toString().equalsIgnoreCase(inc)) {
+                includes.add(Type.STRING.tag());
+            } else if (Type.BINARY.toString().equalsIgnoreCase(inc)) {
+                includes.add(Type.STRING.tag());
+            }
+        }
+        return includes;
+    }
+
+    public void insert(String path, NodeBuilder value)
+            throws CommitFailedException {
+        // null value can come from a deleted node, followed by a deleted
+        // property event which would trigger an update on the previously
+        // deleted node
+        if (value == null) {
+            return;
+        }
+        checkArgument(path.startsWith(this.path));
+        String key = path.substring(this.path.length());
+        if ("".equals(key)) {
+            key = "/";
+        }
+        if (!key.startsWith("/")) {
+            key = "/" + key;
+        }
+        if (updates.contains(key)) {
+            return;
+        }
+        updates.add(key);
+        try {
+            writer.updateDocument(newPathTerm(key),
+                    makeDocument(key, value.getNodeState()));
+        } catch (IOException e) {
+            throw new CommitFailedException("Lucene", 1,
+                    "Failed to update the full text search index", e);
+        }
+    }
+
+    public void remove(String path) throws CommitFailedException {
+        checkArgument(path.startsWith(this.path));
+        try {
+            deleteSubtreeWriter(writer, path.substring(this.path.length()));
+        } catch (IOException e) {
+            throw new CommitFailedException("Lucene", 1,
+                    "Failed to update the full text search index", e);
+        }
+    }
+
+    public void apply() throws CommitFailedException {
+        if (writer != null) {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                throw new CommitFailedException("Lucene", 1,
+                        "Failed to update the full text search index", e);
             }
         }
     }
@@ -164,28 +183,20 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
         writer.deleteDocuments(new PrefixQuery(newPathTerm(path)));
     }
 
-    private void addSubtreeWriter(IndexWriter writer, String path,
-            NodeState state) throws IOException {
-        if (!path.startsWith("/")) {
-            path = "/" + path;
-        }
-        writer.updateDocument(newPathTerm(path), makeDocument(path, state));
-    }
-
     private Document makeDocument(String path, NodeState state) {
         Document document = new Document();
         document.add(newPathField(path));
         for (PropertyState property : state.getProperties()) {
-            switch (property.getType().tag()) {
-            case PropertyType.BINARY:
-                addBinaryValue(document, property, state);
-                break;
-            default:
-                String pname = property.getName();
-                for (String v : property.getValue(Type.STRINGS)) {
-                    document.add(newPropertyField(pname, v));
+            if (propertyTypes.isEmpty()
+                    || propertyTypes.contains(property.getType().tag())) {
+                if (Type.BINARY.tag() == property.getType().tag()) {
+                    addBinaryValue(document, property, state);
+                } else {
+                    String pname = property.getName();
+                    for (String v : property.getValue(Type.STRINGS)) {
+                        document.add(newPropertyField(pname, v));
+                    }
                 }
-                break;
             }
         }
         return document;
@@ -193,14 +204,14 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
 
     private void addBinaryValue(Document doc, PropertyState property,
             NodeState state) {
-        String type = getOrNull(state, JcrConstants.JCR_MIMETYPE);
+        String type = getString(state, JcrConstants.JCR_MIMETYPE);
         if (type == null || !isSupportedMediaType(type)) {
             return;
         }
         Metadata metadata = new Metadata();
         metadata.set(Metadata.CONTENT_TYPE, type);
         // jcr:encoding is not mandatory
-        String encoding = getOrNull(state, JcrConstants.JCR_ENCODING);
+        String encoding = getString(state, JcrConstants.JCR_ENCODING);
         if (encoding != null) {
             metadata.set(Metadata.CONTENT_ENCODING, encoding);
         }
@@ -211,19 +222,11 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
         }
     }
 
-    private static String getOrNull(NodeState state, String name) {
-        PropertyState p = state.getProperty(name);
-        if (p != null) {
-            return p.getValue(Type.STRING);
-        }
-        return null;
-    }
-
     /**
      * Returns <code>true</code> if the provided type is among the types
      * supported by the Tika parser we are using.
      *
-     * @param type  the type to check.
+     * @param type the type to check.
      * @return whether the type is supported by the Tika parser we are using.
      */
     private boolean isSupportedMediaType(final String type) {
@@ -263,13 +266,12 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
 
     @Override
     public void close() throws IOException {
-        remove.clear();
-        insert.clear();
-    }
-
-    @Override
-    public String toString() {
-        return "LuceneIndexUpdate [path=" + path + ", insert=" + insert
-                + ", remove=" + remove + "]";
+        if (writer != null) {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                //
+            }
+        }
     }
 }

@@ -16,42 +16,36 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
+
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class LuceneInitializerHelper implements RepositoryInitializer {
 
-    private final String path;
+    private final String name;
 
-    public LuceneInitializerHelper(String path) {
-        this.path = path;
+    private final Set<String> propertyTypes;
+
+    public LuceneInitializerHelper(String name, Set<String> propertyTypes) {
+        this.name = name;
+        this.propertyTypes = propertyTypes;
     }
 
     @Override
     public NodeState initialize(NodeState state) {
-        NodeBuilder root = state.builder();
-        boolean dirty = false;
-
-        NodeBuilder index = root;
-        for (String p : PathUtils.elements(path)) {
-            if (!index.hasChildNode(p)) {
-                dirty = true;
-            }
-            index = index.child(p);
+        if (state.hasChildNode(INDEX_DEFINITIONS_NAME)
+                && state.getChildNode(INDEX_DEFINITIONS_NAME)
+                        .hasChildNode(name)) {
+            return state;
         }
-
-        if (dirty) {
-            index.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                    "oak:queryIndexDefinition", Type.NAME).setProperty("type",
-                    "lucene");
-            index.setProperty("reindex", true);
-            return root.getNodeState();
-        }
-        return state;
+        NodeBuilder builder = state.builder();
+        newLuceneIndexDefinition(builder, name, propertyTypes);
+        return builder.getNodeState();
     }
 
 }

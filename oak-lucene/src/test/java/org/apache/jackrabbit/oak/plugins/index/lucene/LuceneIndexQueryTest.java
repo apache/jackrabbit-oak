@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -61,11 +62,6 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     @Test
     public void sql2() throws Exception {
         test("sql2.txt");
-    }
-
-    @Test
-    public void xpath() throws Exception {
-        test("xpath.txt");
     }
 
     @Test
@@ -116,5 +112,20 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         assertEquals("/, /oak:index", result.next());
         assertEquals("/, /parents", result.next());
         assertFalse(result.hasNext());
+    }
+    
+    @Test
+    public void contains() throws Exception {
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("/jcr:root").append("/test").append("/*");
+        stmt.append("[jcr:contains(., '").append("token");
+        stmt.append("')]");
+        System.out.println(stmt.toString());
+
+        List<String> result = executeQuery(stmt.toString(), "xpath");
+        System.out.println(result);
+        for (String h : result) {
+            System.out.println(h);
+        }
     }
 }

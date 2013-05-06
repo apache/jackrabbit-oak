@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.util.Version;
 
-public interface LuceneIndexConstants extends IndexConstants {
+public interface LuceneIndexConstants {
 
     String TYPE_LUCENE = "lucene";
 
@@ -30,5 +29,10 @@ public interface LuceneIndexConstants extends IndexConstants {
     Version VERSION = Version.LUCENE_41;
 
     Analyzer ANALYZER = new StandardAnalyzer(VERSION);
+
+    /**
+     * include only certain property types in the index
+     */
+    String INCLUDE_PROPERTY_TYPES = "includePropertyTypes";
 
 }

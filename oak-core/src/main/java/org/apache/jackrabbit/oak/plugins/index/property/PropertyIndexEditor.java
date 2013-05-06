@@ -20,14 +20,11 @@ import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
@@ -46,6 +43,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -109,7 +107,7 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
     }
 
     private PropertyIndexEditor(PropertyIndexEditor parent, String nodeName) {
-        this(parent, getChildNode(parent.node, nodeName), nodeName, null);
+        this(parent, IndexUtils.getChildOrNull(parent.node, nodeName), nodeName, null);
     }
 
     private PropertyIndexEditor(PropertyIndexEditor parent, NodeBuilder node,
@@ -131,14 +129,6 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
         } else {
             this.indexMap = parent.indexMap;
             this.types = parent.types;
-        }
-    }
-
-    private static NodeBuilder getChildNode(NodeBuilder node, String name) {
-        if (node != null && node.hasChildNode(name)) {
-            return node.child(name);
-        } else {
-            return null;
         }
     }
 
@@ -221,19 +211,6 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
         }
     }
 
-    private static boolean isIndexNode(NodeState node) {
-        PropertyState ps = node.getProperty(JCR_PRIMARYTYPE);
-        boolean isNodeType = ps != null && !ps.isArray()
-                && ps.getValue(Type.STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
-        if (!isNodeType) {
-            return false;
-        }
-        PropertyState type = node.getProperty(TYPE_PROPERTY_NAME);
-        boolean isIndexType = type != null && !type.isArray()
-                && type.getValue(Type.STRING).equals(TYPE);
-        return isIndexType;
-    }
-
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
@@ -241,7 +218,7 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
             NodeState index = after.getChildNode(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
                 NodeState child = index.getChildNode(indexName);
-                if (isIndexNode(child)) {
+                if (IndexUtils.isIndexNodeType(child, TYPE)) {
                     addIndexes(child, indexName);
                 }
             }

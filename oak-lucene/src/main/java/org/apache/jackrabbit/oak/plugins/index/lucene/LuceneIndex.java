@@ -16,6 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,13 +37,12 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.index.DirectoryReader;
@@ -51,15 +63,6 @@ import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
@@ -93,26 +96,47 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  * @see QueryIndex
  * 
  */
-public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
+public class LuceneIndex implements QueryIndex {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndex.class);
 
-    private final IndexDefinition index;
-
-    public LuceneIndex(IndexDefinition indexDefinition) {
-        this.index = indexDefinition;
+    public LuceneIndex() {
     }
 
     @Override
     public String getIndexName() {
-        return index.getName();
+        return "lucene";
     }
 
     @Override
     public double getCost(Filter filter, NodeState root) {
         // TODO: proper cost calculation
-        return 1.0;
+        NodeState index = getIndexDataNode(root);
+        if (index == null) {
+            // unusable index
+            return Double.POSITIVE_INFINITY;
+        }
+        if (!filter.getFulltextConditions().isEmpty()) {
+            return 0.5;
+        }
+        // no fulltext, don't use this index
+        return Double.POSITIVE_INFINITY;
+    }
+
+    private static NodeState getIndexDataNode(NodeState node) {
+        NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            NodeState ns = entry.getNodeState();
+            if (TYPE_LUCENE.equals(getString(ns, TYPE_PROPERTY_NAME))) {
+                if (ns.hasChildNode(INDEX_DATA_CHILD_NAME)) {
+                    return ns.getChildNode(INDEX_DATA_CHILD_NAME);
+                }
+                // unusable index (not initialized yet)
+                return null;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -122,18 +146,12 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-
-        NodeBuilder builder = new ReadOnlyBuilder(root);
-        for (String name : elements(index.getPath())) {
-            builder = builder.child(name);
-        }
-        if (!builder.hasChildNode(INDEX_DATA_CHILD_NAME)) {
-            // index not initialized yet
+        NodeState index = getIndexDataNode(root);
+        if (index == null) {
             return Cursors.newPathCursor(Collections.<String> emptySet());
         }
-        builder = builder.child(INDEX_DATA_CHILD_NAME);
-
-        Directory directory = new ReadOnlyOakDirectory(builder);
+        Directory directory = new ReadOnlyOakDirectory(new ReadOnlyBuilder(
+                index));
         long s = System.currentTimeMillis();
 
         try {
@@ -316,11 +334,6 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             bq.add(new TermQuery(new Term(JCR_MIXINTYPES, type)), SHOULD);
         }
         qs.add(bq);
-    }
-
-    @Override
-    public String toString() {
-        return "LuceneIndex [index=" + index + "]";
     }
 
 }
