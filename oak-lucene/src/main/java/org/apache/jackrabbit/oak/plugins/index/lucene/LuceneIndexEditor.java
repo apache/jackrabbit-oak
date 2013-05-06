@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getChildOrNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -31,12 +32,10 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.parser.AutoDetectParser;
@@ -49,9 +48,9 @@ import org.apache.tika.parser.Parser;
  * @see LuceneIndex
  * 
  */
-public class LuceneIndexDiff implements IndexEditor, Closeable {
+public class LuceneIndexEditor implements IndexEditor, Closeable {
 
-    private final LuceneIndexDiff parent;
+    private final LuceneIndexEditor parent;
 
     private final NodeBuilder node;
 
@@ -69,7 +68,7 @@ public class LuceneIndexDiff implements IndexEditor, Closeable {
     private final Parser parser = new AutoDetectParser(
             TikaConfig.getDefaultConfig());
 
-    private LuceneIndexDiff(LuceneIndexDiff parent, NodeBuilder node,
+    private LuceneIndexEditor(LuceneIndexEditor parent, NodeBuilder node,
             String name, String path, Map<String, LuceneIndexUpdate> updates,
             boolean isRoot) {
         this.parent = parent;
@@ -80,22 +79,14 @@ public class LuceneIndexDiff implements IndexEditor, Closeable {
         this.isRoot = isRoot;
     }
 
-    private LuceneIndexDiff(LuceneIndexDiff parent, String name) {
-        this(parent, getChildNode(parent.node, name), name, null,
+    private LuceneIndexEditor(LuceneIndexEditor parent, String name) {
+        this(parent, getChildOrNull(parent.node, name), name, null,
                 parent.updates, false);
     }
 
-    public LuceneIndexDiff(NodeBuilder root) {
+    public LuceneIndexEditor(NodeBuilder root) {
         this(null, root, null, "/", new HashMap<String, LuceneIndexUpdate>(),
                 true);
-    }
-
-    private static NodeBuilder getChildNode(NodeBuilder node, String name) {
-        if (node != null && node.hasChildNode(name)) {
-            return node.child(name);
-        } else {
-            return null;
-        }
     }
 
     public String getPath() {
@@ -106,16 +97,7 @@ public class LuceneIndexDiff implements IndexEditor, Closeable {
     }
 
     private static boolean isIndexNode(NodeBuilder node) {
-        PropertyState ps = node.getProperty(JCR_PRIMARYTYPE);
-        boolean isNodeType = ps != null && !ps.isArray()
-                && ps.getValue(Type.STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
-        if (!isNodeType) {
-            return false;
-        }
-        PropertyState type = node.getProperty(TYPE_PROPERTY_NAME);
-        boolean isIndexType = type != null && !type.isArray()
-                && type.getValue(Type.STRING).equals(TYPE_LUCENE);
-        return isIndexType;
+        return TYPE_LUCENE.equals(getString(node, TYPE_PROPERTY_NAME));
     }
 
     @Override
@@ -131,7 +113,7 @@ public class LuceneIndexDiff implements IndexEditor, Closeable {
                 }
             }
         }
-        if (node != null && name != null && !NodeStateUtils.isHidden(name)) {
+        if (node != null && name != null && !isHidden(name)) {
             for (LuceneIndexUpdate update : updates.values()) {
                 update.insert(getPath(), node);
             }
@@ -147,24 +129,27 @@ public class LuceneIndexDiff implements IndexEditor, Closeable {
         for (LuceneIndexUpdate update : updates.values()) {
             update.apply();
         }
+        updates.clear();
     }
 
     @Override
-    public void propertyAdded(PropertyState after) {
+    public void propertyAdded(PropertyState after) throws CommitFailedException {
         for (LuceneIndexUpdate update : updates.values()) {
             update.insert(getPath(), node);
         }
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
+    public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
         for (LuceneIndexUpdate update : updates.values()) {
             update.insert(getPath(), node);
         }
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
+    public void propertyDeleted(PropertyState before)
+            throws CommitFailedException {
         for (LuceneIndexUpdate update : updates.values()) {
             update.insert(getPath(), node);
         }
@@ -173,7 +158,7 @@ public class LuceneIndexDiff implements IndexEditor, Closeable {
     @Override
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        if (NodeStateUtils.isHidden(name)) {
+        if (isHidden(name)) {
             return null;
         }
         for (LuceneIndexUpdate update : updates.values()) {
@@ -185,16 +170,16 @@ public class LuceneIndexDiff implements IndexEditor, Closeable {
     @Override
     public Editor childNodeChanged(String name, NodeState before,
             NodeState after) throws CommitFailedException {
-        if (NodeStateUtils.isHidden(name)) {
+        if (isHidden(name)) {
             return null;
         }
-        return new LuceneIndexDiff(this, name);
+        return new LuceneIndexEditor(this, name);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        if (NodeStateUtils.isHidden(name)) {
+        if (isHidden(name)) {
             return null;
         }
         for (LuceneIndexUpdate update : updates.values()) {

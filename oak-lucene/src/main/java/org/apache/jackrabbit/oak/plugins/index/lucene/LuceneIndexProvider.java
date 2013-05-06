@@ -16,21 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefinitions;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * A provider for Lucene indexes.
@@ -43,21 +39,15 @@ import org.slf4j.LoggerFactory;
 public class LuceneIndexProvider implements QueryIndexProvider,
         LuceneIndexConstants {
 
-    private static final Logger LOG = LoggerFactory
-            .getLogger(LuceneIndexProvider.class);
-
     @Override @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
-        List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
-        for (IndexDefinition child : buildIndexDefinitions(nodeState, "/",
-                TYPE_LUCENE)) {
-            LOG.debug("found a lucene index definition {}", child);
-            tempIndexes.add(newLuceneIndex(child));
-        }
-        return tempIndexes;
+        return ImmutableList.<QueryIndex>of(newLuceneIndex());
     }
 
-    protected LuceneIndex newLuceneIndex(IndexDefinition child) {
-        return new LuceneIndex(child);
+    /**
+     * testing purposes
+     */
+    protected LuceneIndex newLuceneIndex() {
+        return new LuceneIndex();
     }
 }

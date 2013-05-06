@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
@@ -40,7 +39,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-public class LuceneIndexTest implements LuceneIndexConstants {
+import com.google.common.collect.ImmutableSet;
+
+public class LuceneIndexTest {
 
     private NodeState root = new InitialContent().initialize(EMPTY_NODE);
 
@@ -48,20 +49,16 @@ public class LuceneIndexTest implements LuceneIndexConstants {
 
     @Test
     public void testLucene() throws Exception {
-        builder.child("oak:index").child("lucene")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE)
-                .setProperty("type", TYPE_LUCENE);
+        newLuceneIndexDefinition(builder, "lucene", null);
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new LuceneIndexDiff(builder), before, after);
+        EditorDiff.process(new LuceneIndexEditor(builder), before, after);
         NodeState indexed = builder.getNodeState();
 
-        IndexDefinition testDef = new IndexDefinitionImpl("lucene",
-                TYPE_LUCENE, "/oak:index/lucene");
-        QueryIndex queryIndex = new LuceneIndex(testDef);
+        QueryIndex queryIndex = new LuceneIndex();
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -74,9 +71,7 @@ public class LuceneIndexTest implements LuceneIndexConstants {
 
     @Test
     public void testLucene2() throws Exception {
-        builder.child("oak:index").child("lucene")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE)
-                .setProperty("type", TYPE_LUCENE);
+        newLuceneIndexDefinition(builder, "lucene", null);
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -86,12 +81,10 @@ public class LuceneIndexTest implements LuceneIndexConstants {
 
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new LuceneIndexDiff(builder), before, after);
+        EditorDiff.process(new LuceneIndexEditor(builder), before, after);
         NodeState indexed = builder.getNodeState();
 
-        IndexDefinition testDef = new IndexDefinitionImpl("lucene",
-                TYPE_LUCENE, "/oak:index/lucene");
-        QueryIndex queryIndex = new LuceneIndex(testDef);
+        QueryIndex queryIndex = new LuceneIndex();
         FilterImpl filter = createFilter(NT_BASE);
         // filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -103,6 +96,34 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         assertEquals("/a", cursor.next().getPath());
         assertEquals("/a/b", cursor.next().getPath());
         assertEquals("/a/b/c", cursor.next().getPath());
+        assertFalse(cursor.hasNext());
+    }
+
+    @Test
+    public void testLucene3() throws Exception {
+        newLuceneIndexDefinition(builder, "lucene", ImmutableSet.of(Type.STRING.toString()));
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        builder.child("a").setProperty("foo", "bar");
+        builder.child("a").child("b").setProperty("foo", "bar", Type.NAME);
+        builder.child("a").child("b").child("c").setProperty("foo", "bar", Type.NAME);
+
+        NodeState after = builder.getNodeState();
+
+        EditorDiff.process(new LuceneIndexEditor(builder), before, after);
+        NodeState indexed = builder.getNodeState();
+
+        QueryIndex queryIndex = new LuceneIndex();
+        FilterImpl filter = createFilter(NT_BASE);
+        // filter.restrictPath("/", Filter.PathRestriction.EXACT);
+        filter.restrictProperty("foo", Operator.EQUAL,
+                PropertyValues.newString("bar"));
+        Cursor cursor = queryIndex.query(filter, indexed);
+
+        assertTrue(cursor.hasNext());
+        assertEquals("/", cursor.next().getPath());
+        assertEquals("/a", cursor.next().getPath());
         assertFalse(cursor.hasNext());
     }
 

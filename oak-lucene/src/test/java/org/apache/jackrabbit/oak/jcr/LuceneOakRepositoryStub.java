@@ -33,7 +33,7 @@ public class LuceneOakRepositoryStub extends OakRepositoryStubBase {
 
     @Override
     protected void preCreateRepository(Jcr jcr) {
-        jcr.with(new LuceneInitializerHelper("/oak:index/luceneGlobal"))
+        jcr.with(new LuceneInitializerHelper("luceneGlobal", null))
                 .with(new LowCostLuceneIndexProvider())
                 .with(new LuceneIndexEditorProvider());
     }

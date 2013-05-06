@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
-import java.util.List;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**

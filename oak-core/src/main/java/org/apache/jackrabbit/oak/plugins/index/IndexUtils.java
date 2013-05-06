@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -177,8 +178,17 @@ public class IndexUtils {
 
     public static boolean isIndexNodeType(NodeState state) {
         PropertyState ps = state.getProperty(JCR_PRIMARYTYPE);
-        return ps != null && !ps.isArray()
+        return ps != null
                 && ps.getValue(STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
+    }
+
+    public static boolean isIndexNodeType(NodeState state, String typeIn) {
+        if (!isIndexNodeType(state)) {
+            return false;
+        }
+        PropertyState type = state.getProperty(TYPE_PROPERTY_NAME);
+        return type != null && !type.isArray()
+                && type.getValue(Type.STRING).equals(typeIn);
     }
 
     public static String getString(NodeBuilder builder, String name) {
@@ -209,6 +219,14 @@ public class IndexUtils {
         PropertyState property = state.getProperty(name);
         return property != null && property.getType() == BOOLEAN
                 && property.getValue(BOOLEAN);
+    }
+
+    public static NodeBuilder getChildOrNull(NodeBuilder node, String name) {
+        if (node != null && node.hasChildNode(name)) {
+            return node.child(name);
+        } else {
+            return null;
+        }
     }
 
 }

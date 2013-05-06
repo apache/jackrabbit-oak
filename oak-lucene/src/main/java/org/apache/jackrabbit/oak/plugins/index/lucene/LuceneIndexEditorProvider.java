@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 /**
  * Service that provides Lucene based {@link IndexEditor}s
  * 
- * @see LuceneIndexDiff
+ * @see LuceneIndexEditor
  * @see IndexEditorProvider
  * 
  */
@@ -39,7 +39,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     @Override
     public Editor getIndexEditor(String type, NodeBuilder builder) {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexDiff(builder);
+            return new LuceneIndexEditor(builder);
         }
         return null;
     }

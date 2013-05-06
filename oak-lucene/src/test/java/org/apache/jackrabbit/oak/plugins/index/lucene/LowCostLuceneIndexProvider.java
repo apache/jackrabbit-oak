@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -28,14 +27,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
 
     @Override
-    protected LuceneIndex newLuceneIndex(IndexDefinition child) {
-        return new LowCostLuceneIndex(child);
+    protected LuceneIndex newLuceneIndex() {
+        return new LowCostLuceneIndex();
     }
 
     private static class LowCostLuceneIndex extends LuceneIndex {
 
-        public LowCostLuceneIndex(IndexDefinition indexDefinition) {
-            super(indexDefinition);
+        public LowCostLuceneIndex() {
+            super();
         }
 
         @Override
