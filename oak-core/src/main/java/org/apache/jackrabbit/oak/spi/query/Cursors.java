@@ -25,7 +25,6 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
-import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -190,7 +189,7 @@ public class Cursors {
      */
     private static class TraversingCursor extends AbstractCursor {
 
-        private static final Logger LOG = LoggerFactory.getLogger(TraversingIndex.class);
+        private static final Logger LOG = LoggerFactory.getLogger(TraversingCursor.class);
 
         private final Filter filter;
 

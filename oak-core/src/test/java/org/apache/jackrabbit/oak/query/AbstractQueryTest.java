@@ -45,6 +45,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -223,6 +225,19 @@ public abstract class AbstractQueryTest {
             fail("Query took too long: " + query + " took " + time + " ms");
         }
         return lines;
+    }
+
+    protected List<String> assertQuery(String sql, List<String> expected) {
+        List<String> paths = executeQuery(sql, SQL2);
+        assertEquals(expected.size(), paths.size());
+        for (String p : expected) {
+            assertTrue(paths.contains(p));
+        }
+        return paths;
+    }
+
+    protected void setTravesalFallback(boolean traversal) {
+        ((QueryEngineImpl) qe).setTravesalFallback(traversal);
     }
 
     protected static String readRow(ResultRow row) {

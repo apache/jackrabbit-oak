@@ -154,7 +154,7 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
         }
         List<PropertyIndexUpdate> filtered = new ArrayList<PropertyIndexUpdate>();
         for (PropertyIndexUpdate pi : indexes) {
-            if (node == null || pi.matchesNodeType(node)) {
+            if (node == null || pi.matchesNodeType(node, getPath())) {
                 filtered.add(pi);
             }
         }
