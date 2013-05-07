@@ -33,6 +33,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
@@ -42,8 +43,6 @@ import org.junit.Test;
 
 /**
  * Testing user/group import with default {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}
- *
- * TODO: add tests specifying 'rep:authorizableID' and nodeName != userId
  */
 public class UserImportTest extends AbstractImportTest {
 
@@ -63,12 +62,12 @@ public class UserImportTest extends AbstractImportTest {
                     "   <sv:property sv:name=\"rep:disabled\" sv:type=\"String\"><sv:value>disabledUser</sv:value></sv:property>" +
                     "</sv:node>";
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(superuser.hasPendingChanges());
+            assertTrue(adminSession.hasPendingChanges());
 
             Authorizable newUser = userMgr.getAuthorizable("t");
             assertNotNull(newUser);
@@ -78,7 +77,7 @@ public class UserImportTest extends AbstractImportTest {
             assertTrue(((User) newUser).isDisabled());
             assertEquals("disabledUser", ((User) newUser).getDisabledReason());
 
-            Node n = superuser.getNode(newUser.getPath());
+            Node n = adminSession.getNode(newUser.getPath());
             assertTrue(n.isNew());
             assertTrue(n.getParent().isSame(target));
 
@@ -89,13 +88,13 @@ public class UserImportTest extends AbstractImportTest {
 
             // saving changes of the import -> must succeed. add mandatory
             // props should have been created.
-            superuser.save();
+            adminSession.save();
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -109,12 +108,12 @@ public class UserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g</sv:value></sv:property>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(GROUPPATH);
+        Node target = adminSession.getNode(GROUPPATH);
         try {
             doImport(GROUPPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(superuser.hasPendingChanges());
+            assertTrue(adminSession.hasPendingChanges());
 
             Authorizable newGroup = userMgr.getAuthorizable("g");
             assertNotNull(newGroup);
@@ -122,7 +121,7 @@ public class UserImportTest extends AbstractImportTest {
             assertEquals("g", newGroup.getPrincipal().getName());
             assertEquals("g", newGroup.getID());
 
-            Node n = superuser.getNode(newGroup.getPath());
+            Node n = adminSession.getNode(newGroup.getPath());
             assertTrue(n.isNew());
             assertTrue(n.getParent().isSame(target));
 
@@ -131,13 +130,13 @@ public class UserImportTest extends AbstractImportTest {
 
             // saving changes of the import -> must succeed. add mandatory
             // props should have been created.
-            superuser.save();
+            adminSession.save();
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("g")) {
                 target.getNode("g").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -163,12 +162,12 @@ public class UserImportTest extends AbstractImportTest {
          - saving changes must fail with ConstraintViolationEx.
          */
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(superuser.hasPendingChanges());
+            assertTrue(adminSession.hasPendingChanges());
 
             Authorizable newGroup = userMgr.getAuthorizable("g");
             //assertNull(newGroup); TODO: adjust test to oak requirements
@@ -178,17 +177,17 @@ public class UserImportTest extends AbstractImportTest {
 
             // saving changes of the import -> must fail
             try {
-                superuser.save();
+                adminSession.save();
                 fail("Import must be incomplete. Saving changes must fail.");
             } catch (ConstraintViolationException e) {
                 // success
             }
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("g")) {
                 target.getNode("g").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -208,12 +207,12 @@ public class UserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property></sv:node>";
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(superuser.hasPendingChanges());
+            assertTrue(adminSession.hasPendingChanges());
 
             // node must be present:
             assertTrue(target.hasNode("t"));
@@ -226,7 +225,7 @@ public class UserImportTest extends AbstractImportTest {
             assertNull(newUser);
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
         }
 
     }
@@ -234,7 +233,7 @@ public class UserImportTest extends AbstractImportTest {
     @Test
     public void testExistingPrincipal() throws Exception {
         Principal existing = null;
-        PrincipalIterator principalIterator = ((JackrabbitSession) superuser).getPrincipalManager().getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
+        PrincipalIterator principalIterator = ((JackrabbitSession) adminSession).getPrincipalManager().getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
         while (principalIterator.hasNext()) {
             Principal p = principalIterator.nextPrincipal();
             if (userMgr.getAuthorizable(p) != null) {
@@ -256,13 +255,13 @@ public class UserImportTest extends AbstractImportTest {
 
         try {
             doImport(USERPATH, xml);
-            superuser.save();
+            adminSession.save();
 
             fail("Import must detect conflicting principals.");
         } catch (RepositoryException e) {
             // success
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
         }
     }
 
@@ -287,13 +286,13 @@ public class UserImportTest extends AbstractImportTest {
 
         try {
             doImport(GROUPPATH, xml);
-            superuser.save();
+            adminSession.save();
 
             fail("Import must detect conflicting principals.");
         } catch (RepositoryException e) {
             // success
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
         }
     }
 
@@ -312,12 +311,12 @@ public class UserImportTest extends AbstractImportTest {
          - saving changes must fail with ConstraintViolationEx. as the protected
            mandatory property rep:principalName is missing
          */
-        Node target = superuser.getNode(GROUPPATH);
+        Node target = adminSession.getNode(GROUPPATH);
         try {
             doImport(GROUPPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(superuser.hasPendingChanges());
+            assertTrue(adminSession.hasPendingChanges());
 
             Authorizable newGroup = userMgr.getAuthorizable("g");
             assertNotNull(newGroup);
@@ -328,17 +327,17 @@ public class UserImportTest extends AbstractImportTest {
 
             // saving changes of the import -> must fail as mandatory prop is missing
             try {
-                superuser.save();
+                adminSession.save();
                 fail("Import must be incomplete. Saving changes must fail.");
             } catch (ConstraintViolationException e) {
                 // success
             }
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("g")) {
                 target.getNode("g").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -354,22 +353,22 @@ public class UserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(superuser.hasPendingChanges());
+            assertTrue(adminSession.hasPendingChanges());
 
             Authorizable newUser = userMgr.getAuthorizable("t");
-            Node n = superuser.getNode(newUser.getPath());
+            Node n = adminSession.getNode(newUser.getPath());
 
             String pwValue = n.getProperty(UserConstants.REP_PASSWORD).getString();
             assertFalse(plainPw.equals(pwValue));
             assertTrue(pwValue.toLowerCase().startsWith("{sha"));
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
         }
     }
 
@@ -392,12 +391,12 @@ public class UserImportTest extends AbstractImportTest {
          - nonProtected node rep:User must be created.
          - property rep:password must be created regularly without being protected
          */
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(superuser.hasPendingChanges());
+            assertTrue(adminSession.hasPendingChanges());
 
             Authorizable newUser = userMgr.getAuthorizable("t");
             assertNotNull(newUser);
@@ -406,10 +405,10 @@ public class UserImportTest extends AbstractImportTest {
             assertTrue(target.hasProperty("t/rep:password"));
             assertFalse(target.getProperty("t/rep:password").getDefinition().isProtected());
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -430,21 +429,21 @@ public class UserImportTest extends AbstractImportTest {
                 "</sv:node>");
 
         for (String xml : incompleteXml) {
-            Node target = superuser.getNode(USERPATH);
+            Node target = adminSession.getNode(USERPATH);
             try {
                 doImport(USERPATH, xml);
                 // saving changes of the import -> must fail as mandatory prop is missing
                 try {
-                    superuser.save();
+                    adminSession.save();
                     fail("Import must be incomplete. Saving changes must fail.");
                 } catch (ConstraintViolationException e) {
                     // success
                 }
             } finally {
-                superuser.refresh(false);
+                adminSession.refresh(false);
                 if (target.hasNode("t")) {
                     target.getNode("t").remove();
-                    superuser.save();
+                    adminSession.save();
                 }
             }
         }
@@ -462,19 +461,19 @@ public class UserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
             Authorizable user = userMgr.getAuthorizable("t");
             assertNotNull(user);
             assertFalse(user.isGroup());
-            assertFalse(superuser.propertyExists(user.getPath()+"/rep:password"));
+            assertFalse(adminSession.propertyExists(user.getPath()+"/rep:password"));
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -491,22 +490,22 @@ public class UserImportTest extends AbstractImportTest {
          importing a group without rep:principalName property
          - saving changes must fail with ConstraintViolationEx.
          */
-        Node target = superuser.getNode(GROUPPATH);
+        Node target = adminSession.getNode(GROUPPATH);
         try {
             doImport(GROUPPATH, xml);
             // saving changes of the import -> must fail as mandatory prop is missing
             try {
-                superuser.save();
+                adminSession.save();
                 fail("Import must be incomplete. Saving changes must fail.");
             } catch (ConstraintViolationException e) {
                 // success
             }
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("g")) {
                 target.getNode("g").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -533,12 +532,12 @@ public class UserImportTest extends AbstractImportTest {
                     "</sv:node>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(superuser.hasPendingChanges());
+            assertTrue(adminSession.hasPendingChanges());
 
             Authorizable newUser = userMgr.getAuthorizable("t3");
             assertNotNull(newUser);
@@ -546,7 +545,7 @@ public class UserImportTest extends AbstractImportTest {
             assertEquals("t3", newUser.getPrincipal().getName());
             assertEquals("t3", newUser.getID());
 
-            Node n = superuser.getNode(newUser.getPath());
+            Node n = adminSession.getNode(newUser.getPath());
             assertTrue(n.isNew());
 
             Node parent = n.getParent();
@@ -558,7 +557,7 @@ public class UserImportTest extends AbstractImportTest {
             assertTrue(target.hasNode("some/intermediate/path"));
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
         }
     }
 
@@ -582,7 +581,7 @@ public class UserImportTest extends AbstractImportTest {
                 "</sv:node>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(GROUPPATH);
+        Node target = adminSession.getNode(GROUPPATH);
         try {
             doImport(GROUPPATH, xml);
 
@@ -591,20 +590,20 @@ public class UserImportTest extends AbstractImportTest {
             Group g1 = (Group) userMgr.getAuthorizable("g1");
             assertNotNull(g1);
 
-            Node n = superuser.getNode(g1.getPath());
+            Node n = adminSession.getNode(g1.getPath());
             assertTrue(n.hasProperty(UserConstants.REP_MEMBERS) || n.hasNode(UserConstants.NT_REP_MEMBERS));
 
             // getWeakReferences only works upon save.
-            superuser.save();
+            adminSession.save();
 
             assertTrue(g1.isMember(g));
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("gFolder")) {
                 target.getNode("gFolder").remove();
             }
-            superuser.save();
+            adminSession.save();
         }
     }
 
@@ -627,7 +626,7 @@ public class UserImportTest extends AbstractImportTest {
                 "   </sv:node>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(GROUPPATH);
+        Node target = adminSession.getNode(GROUPPATH);
         try {
             doImport(GROUPPATH, xml);
 
@@ -636,20 +635,20 @@ public class UserImportTest extends AbstractImportTest {
             Group g1 = (Group) userMgr.getAuthorizable("g1");
             assertNotNull(g1);
 
-            Node n = superuser.getNode(g1.getPath());
+            Node n = adminSession.getNode(g1.getPath());
             assertTrue(n.hasProperty(UserConstants.REP_MEMBERS) || n.hasNode(UserConstants.NT_REP_MEMBERS));
 
             // getWeakReferences only works upon save.
-            superuser.save();
+            adminSession.save();
 
             assertTrue(g1.isMember(g));
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("gFolder")) {
                 target.getNode("gFolder").remove();
             }
-            superuser.save();
+            adminSession.save();
         }
     }
 
@@ -660,7 +659,7 @@ public class UserImportTest extends AbstractImportTest {
             throw new NotExecutableException();
         }
 
-        String uuid = superuser.getNode(admin.getPath()).getUUID();
+        String uuid = adminSession.getNode(admin.getPath()).getUUID();
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
                 "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:AuthorizableFolder</sv:value></sv:property>" +
@@ -672,7 +671,7 @@ public class UserImportTest extends AbstractImportTest {
                 "   </sv:node>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(GROUPPATH);
+        Node target = adminSession.getNode(GROUPPATH);
         try {
             doImport(GROUPPATH, xml);
 
@@ -680,7 +679,7 @@ public class UserImportTest extends AbstractImportTest {
             assertNotNull(g1);
 
             // getWeakReferences only works upon save.
-            superuser.save();
+            adminSession.save();
 
             assertTrue(g1.isMember(admin));
 
@@ -691,9 +690,9 @@ public class UserImportTest extends AbstractImportTest {
             assertTrue(found);
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             target.getNode("gFolder").remove();
-            superuser.save();
+            adminSession.save();
         }
     }
 
@@ -730,7 +729,7 @@ public class UserImportTest extends AbstractImportTest {
             assertTrue(imp.allows(subj));
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
         }
     }
 
@@ -744,7 +743,7 @@ public class UserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
@@ -754,13 +753,13 @@ public class UserImportTest extends AbstractImportTest {
 
             // saving changes of the import -> must succeed. add mandatory
             // props should have been created.
-            superuser.save();
+            adminSession.save();
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -781,10 +780,10 @@ public class UserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
-            superuser.save();
+            adminSession.save();
 
             //TODO different IgnoreBehavior needed?
             // re-import should succeed if UUID-behavior is set accordingly
@@ -792,13 +791,13 @@ public class UserImportTest extends AbstractImportTest {
 
             // saving changes of the import -> must succeed. add mandatory
             // props should have been created.
-            superuser.save();
+            adminSession.save();
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -813,7 +812,7 @@ public class UserImportTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
                 "</sv:node>";
 
-        Node target = superuser.getNode(USERPATH);
+        Node target = adminSession.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
 
@@ -823,10 +822,10 @@ public class UserImportTest extends AbstractImportTest {
         } catch (ItemExistsException e) {
             // success.
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                superuser.save();
+                adminSession.save();
             }
         }
     }
@@ -839,7 +838,7 @@ public class UserImportTest extends AbstractImportTest {
                      "\"WeakReference\"><sv:value>16d5d24f-5b09-3199-9bd4-e5f57bf11237</sv:value></sv:property><sv:property sv:name=\"susi\" sv:type=\"WeakReference\"><sv:value>536931d8-0dec-318c-b3db-9612bdd004d4</sv:value></sv:property></sv:node></sv:node></sv:node></sv:node></sv:node></sv:node>";
 
         List<String> createdUsers = new LinkedList<String>();
-        Node target = superuser.getNode(GROUPPATH);
+        Node target = adminSession.getNode(GROUPPATH);
         try {
             String[] users = {"angi", "adi", "hansi", "lisi", "luzi", "susi", "pipi", "hari", "gabi", "eddi",
                               "debbi", "cati", "admin", "anonymous"};
@@ -851,12 +850,12 @@ public class UserImportTest extends AbstractImportTest {
                 }
             }
             if (!userMgr.isAutoSave()) {
-                superuser.save();
+                adminSession.save();
             }
 
             doImport(GROUPPATH, xml);
             if (!userMgr.isAutoSave()) {
-                superuser.save();
+                adminSession.save();
             }
 
             Authorizable aShrimps = userMgr.getAuthorizable("shrimps");
@@ -870,7 +869,7 @@ public class UserImportTest extends AbstractImportTest {
 
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             for (String user : createdUsers) {
                 Authorizable a = userMgr.getAuthorizable(user);
                 if (a != null && !a.isGroup()) {
@@ -878,14 +877,196 @@ public class UserImportTest extends AbstractImportTest {
                 }
             }
             if (!userMgr.isAutoSave()) {
-                superuser.save();
+                adminSession.save();
             }
             for (NodeIterator it = target.getNodes(); it.hasNext(); ) {
                 it.nextNode().remove();
             }
             if (!userMgr.isAutoSave()) {
-                superuser.save();
+                adminSession.save();
             }
+        }
+    }
+
+    /**
+     * @since OAK 1.0 : Importing rep:authorizableId
+     */
+    @Test
+    public void testImportUserWithAuthorizableId() throws Exception {
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:authorizableId\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "</sv:node>";
+
+        doImport(USERPATH, xml);
+
+        Authorizable newUser = userMgr.getAuthorizable("t");
+        assertNotNull(newUser);
+        assertFalse(newUser.isGroup());
+        assertEquals("t", newUser.getID());
+        assertTrue(adminSession.propertyExists(newUser.getPath() + "/rep:authorizableId"));
+        assertEquals("t", adminSession.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
+        adminSession.save();
+    }
+
+    /**
+     * @since OAK 1.0 : Importing rep:authorizableId
+     */
+    @Test
+    public void testImportGroupWithAuthorizableId() throws Exception  {
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<sv:node sv:name=\"g\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Group</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>b2f5ff47-4366-31b6-a533-d8dc3614845d</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:authorizableId\" sv:type=\"String\"><sv:value>g</sv:value></sv:property>" +
+                "</sv:node>";
+
+        doImport(GROUPPATH, xml);
+
+        Authorizable newGroup = userMgr.getAuthorizable("g");
+        assertNotNull(newGroup);
+        assertTrue(newGroup.isGroup());
+        assertEquals("g", newGroup.getID());
+        assertTrue(adminSession.propertyExists(newGroup.getPath() + "/rep:authorizableId"));
+        assertEquals("g", adminSession.getProperty(newGroup.getPath() + "/rep:authorizableId").getString());
+
+        adminSession.save();
+    }
+
+    /**
+     * @since OAK 1.0 : Importing rep:authorizableId
+     */
+    @Test
+    public void testImportUserWithIdDifferentFromNodeName() throws Exception {
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<sv:node sv:name=\"t_diff\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:authorizableId\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "</sv:node>";
+
+        String userPath = USERPATH + "t_diff";
+        try {
+            doImport(USERPATH, xml);
+
+            Authorizable newUser = userMgr.getAuthorizable("t");
+            userPath = newUser.getPath();
+
+            assertNotNull(newUser);
+            assertFalse(newUser.isGroup());
+            assertEquals("t", newUser.getID());
+            assertTrue(adminSession.propertyExists(newUser.getPath() + "/rep:authorizableId"));
+            assertEquals("t", adminSession.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
+            adminSession.save();
+
+        } finally {
+            adminSession.refresh(false);
+            if (adminSession.nodeExists(userPath)) {
+                adminSession.getNode(userPath).remove();
+                adminSession.save();
+            }
+        }
+    }
+
+    /**
+     * Same as {@link #testImportUserWithIdDifferentFromNodeName} but with
+     * different order of properties.
+     * @since OAK 1.0 : Importing rep:authorizableId
+     */
+    @Test
+    public void testImportUserWithIdDifferentFromNodeName2() throws Exception {
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<sv:node sv:name=\"t_diff\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:authorizableId\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "</sv:node>";
+        String userPath = USERPATH + "t_diff";
+        try {
+            doImport(USERPATH, xml);
+
+            Authorizable newUser = userMgr.getAuthorizable("t");
+            userPath = newUser.getPath();
+
+            assertNotNull(newUser);
+            assertFalse(newUser.isGroup());
+            assertEquals("t", newUser.getID());
+            assertTrue(adminSession.propertyExists(newUser.getPath() + "/rep:authorizableId"));
+            assertEquals("t", adminSession.getProperty(newUser.getPath() + "/rep:authorizableId").getString());
+            adminSession.save();
+        } finally {
+            adminSession.refresh(false);
+            if (adminSession.nodeExists(userPath)) {
+                adminSession.getNode(userPath).remove();
+                adminSession.save();
+            }
+        }
+    }
+
+    /**
+     * @since OAK 1.0 : Importing rep:authorizableId
+     */
+    @Test
+    public void testImportUserWithExistingId() throws Exception {
+        String existingId = "admin";
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<sv:node sv:name=\"t_diff\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:authorizableId\" sv:type=\"String\"><sv:value>"+existingId+"</sv:value></sv:property>" +
+                "</sv:node>";
+        try {
+            doImport(USERPATH, xml);
+            fail("Reuse of existing ID must be detected.");
+        } catch (AuthorizableExistsException e) {
+            // success
+        } finally {
+            adminSession.refresh(false);
+        }
+    }
+
+    /**
+     * @since OAK 1.0 : Importing rep:authorizableId
+     */
+    @Test
+    public void testImportUserWithIdCollision() throws Exception {
+        String collidingId = "t";
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<sv:node sv:name=\"uFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:AuthorizableFolder</sv:value></sv:property>" +
+                    "<sv:node sv:name=\"t1\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                    "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"rep:authorizableId\" sv:type=\"String\"><sv:value>"+collidingId+"</sv:value></sv:property>" +
+                    "</sv:node>"+
+                    "<sv:node sv:name=\"t2\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                    "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>0f826a89-cf68-3399-85f4-cf320c1a5842</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"rep:authorizableId\" sv:type=\"String\"><sv:value>"+collidingId+"</sv:value></sv:property>" +
+                    "</sv:node>"+
+                "</sv:node>";
+        try {
+            doImport(USERPATH, xml);
+            fail("Reuse of existing ID must be detected.");
+        } catch (AuthorizableExistsException e) {
+            // success
+        } finally {
+            adminSession.refresh(false);
         }
     }
 }
