@@ -37,6 +37,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
@@ -227,7 +228,18 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return false;
         }
 
-        if (REP_PRINCIPAL_NAME.equals(propName)) {
+        if (REP_AUTHORIZABLE_ID.equals(propName)) {
+            if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
+                return false;
+            }
+            String id = propInfo.getTextValue().getString();
+            Authorizable existing = userManager.getAuthorizable(id);
+            if (a.getPath().equals(existing.getPath())) {
+                parent.setProperty(REP_AUTHORIZABLE_ID, id);
+            } else {
+                throw new AuthorizableExistsException(id);
+            }
+        } else if (REP_PRINCIPAL_NAME.equals(propName)) {
             if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
                 return false;
             }
