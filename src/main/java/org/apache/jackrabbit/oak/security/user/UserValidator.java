@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -36,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Validator that enforces user management specific constraints. Please note that
@@ -207,8 +207,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private static CommitFailedException constraintViolation(
-            int code, @Nonnull String message) {
+    private static CommitFailedException constraintViolation(int code, @Nonnull String message) {
         return new CommitFailedException("Constraint", code, message);
     }
 }
