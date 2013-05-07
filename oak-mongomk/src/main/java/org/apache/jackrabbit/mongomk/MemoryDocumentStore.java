@@ -301,4 +301,9 @@ public class MemoryDocumentStore implements DocumentStore {
         return false;
     }
 
+    @Override
+    public void invalidateCache(Collection collection, String key) {
+        // ignore
+    }
+
 }

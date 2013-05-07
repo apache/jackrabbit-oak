@@ -141,6 +141,17 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
+    
+    @Override
+    public void invalidateCache(Collection collection, String key) {
+        try {
+            logMethod("invalidateCache", collection, key);
+            store.invalidateCache(collection, key);
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
 
     @Override
     public void dispose() {
@@ -209,4 +220,5 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
         LOG.info(message);
     }
+
 }

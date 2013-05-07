@@ -156,6 +156,14 @@ public interface DocumentStore {
     void invalidateCache();
 
     /**
+     * Invalidate the document cache for the given key.
+     * 
+     * @param collection the collection
+     * @param key the key
+     */
+    void invalidateCache(Collection collection, String key);
+
+    /**
      * Dispose this instance.
      */
     void dispose();

@@ -23,6 +23,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -51,6 +52,29 @@ public class ClusterTest {
         c2 = ClusterNodeInfo.getInstance(store, "m1", null);
         assertEquals(1, c2.getId());
     }
+    
+    @Test
+    @Ignore
+    public void openCloseOpen() {
+        MemoryDocumentStore ds = new MemoryDocumentStore();
+        MemoryBlobStore bs = new MemoryBlobStore();
+        MongoMK.Builder builder;
+        
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs);
+        MongoMK mk1 = builder.setClusterId(1).open();
+        mk1.commit("/", "+\"a\": {}", null, null);
+        mk1.commit("/", "-\"a\"", null, null);
+        
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs);
+        MongoMK mk2 = builder.setClusterId(2).open();
+        mk2.commit("/", "+\"a\": {}", null, null);
+        mk2.commit("/", "-\"a\"", null, null);
+        
+        mk1.dispose();
+        mk2.dispose();
+    }    
     
     @Test
     public void clusterNodeId() {
@@ -132,6 +156,11 @@ public class ClusterTest {
         } catch (MicroKernelException e) {
             // expected
         }
+        // now, after the conflict, both cluster nodes see the node
+        // (before the conflict, this isn't necessarily the case for mk2)
+        String n1 = mk1.getNodes("/", mk1.getHeadRevision(), 0, 0, 10, null);
+        String n2 = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 10, null);
+        assertEquals(n1, n2);
         
         mk1.dispose();
         mk2.dispose();
@@ -145,12 +174,11 @@ public class ClusterTest {
         String m2h;
         m2h = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 2, null);
         assertEquals("{\":childNodeCount\":0}", m2h);
+        String oldHead = mk2.getHeadRevision();
         
         mk1.commit("/", "+\"test\":{}", null, null);
         String m1h = mk1.getNodes("/", mk1.getHeadRevision(), 0, 0, 1, null);
         assertEquals("{\"test\":{},\":childNodeCount\":1}", m1h);
-        
-        m2h = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 2, null);
         
         // not available yet...
         assertEquals("{\":childNodeCount\":0}", m2h);
@@ -162,7 +190,7 @@ public class ClusterTest {
             if (mk1.getPendingWriteCount() > 0) {
                 continue;
             }
-            if (mk2.isCached("/")) {
+            if (mk2.getHeadRevision().equals(oldHead)) {
                 continue;
             }
             break;

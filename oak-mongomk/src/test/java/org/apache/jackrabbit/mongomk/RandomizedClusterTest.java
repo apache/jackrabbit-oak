@@ -21,16 +21,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -49,43 +50,48 @@ public class RandomizedClusterTest {
     private MemoryBlobStore bs;
     
     private MongoMK[] mkList = new MongoMK[MK_COUNT];
-    private MicroKernelImpl[] mkListGold = new MicroKernelImpl[MK_COUNT];
     private String[] revList = new String[MK_COUNT];
-    private String[] revListGold = new String[MK_COUNT];
+    @SuppressWarnings({ "unchecked", "cast" })
+    private HashSet<Integer>[] unseenChanges = (HashSet<Integer>[]) new HashSet[MK_COUNT];
+    private HashMap<Integer, List<Op>> changes = new HashMap<Integer, List<Op>>();
 
     private int opId;
     
     private int mkId;
     
     private StringBuilder log;
+    
+    /**
+     * The map of changes. Key: node name; value: the last operation that
+     * changed the node.
+     */
+    private HashMap<String, Integer> nodeChange = new HashMap<String, Integer>();
 
     @Test
-    @Ignore
     public void addRemoveSet() throws Exception {
-        MicroKernelImpl mkG = new MicroKernelImpl();
         for (int i = 0; i < MK_COUNT; i++) {
+            unseenChanges[i] = new HashSet<Integer>();
             mkList[i] = createMK(i);
             revList[i] = mkList[i].getHeadRevision();
-            mkListGold[i] = mkG;
-            revListGold[i] = mkListGold[i].getHeadRevision();
         }
         HashMap<Integer, ClusterRev> revs = 
                 new HashMap<Integer, ClusterRev>();
         
         Random r = new Random(1);
         int operations = 1000, nodeCount = 10;
-        int propertyCount = 5, valueCount = 10;
+        int valueCount = 10;
         int maxBackRev = 20;
         log = new StringBuilder();
         try {
             int maskOk = 0, maskFail = 0;
             int opCount = 6;
+            nodeChange.clear();
             for (int i = 0; i < operations; i++) {
                 opId = i;
                 mkId = r.nextInt(mkList.length);
                 String node = "t" + r.nextInt(nodeCount);
                 String node2 = "t" + r.nextInt(nodeCount);
-                String property = "p" + r.nextInt(propertyCount);
+                String property = "x";
                 String value = "" + r.nextInt(valueCount);
                 String diff;
                 int op = r.nextInt(opCount);
@@ -94,65 +100,131 @@ public class RandomizedClusterTest {
                     // there are enough nodes to operate on
                     op = 0;
                 }
-                boolean result;
+                String result;
+                boolean conflictExpected;
                 switch(op) {
                 case 0:
                     diff = "+ \"" + node + "\": { \"" + property + "\": " + value + "}";
                     log(diff);
-                    result = commit(diff);
+                    if (exists(node)) {
+                        log("already exists");
+                        result = null;
+                    } else {
+                        conflictExpected = isConflict(node);
+                        result = commit(diff, conflictExpected);
+                        if (result != null) {
+                            changes.put(i, Arrays.asList(new Op(mkId, node, value)));
+                            nodeChange.put(node, i);
+                        }
+                    }
                     break;
                 case 1:
                     diff = "- \"" + node + "\"";
                     log(diff);
-                    result = commit(diff);
+                    if (exists(node)) {
+                        conflictExpected = isConflict(node);
+                        result = commit(diff, conflictExpected);
+                        if (result != null) {
+                            changes.put(i, Arrays.asList(new Op(mkId, node, null)));
+                            nodeChange.put(node, i);
+                        }
+                    } else {
+                        log("doesn't exist");
+                        result = null;
+                    }
                     break;
                 case 2:
                     diff = "^ \"" + node + "/" + property + "\": " + value;
                     log(diff);
-                    result = commit(diff);
+                    if (exists(node)) {
+                        conflictExpected = isConflict(node);
+                        result = commit(diff, conflictExpected);
+                        if (result != null) {
+                            changes.put(i, Arrays.asList(new Op(mkId, node, value)));
+                            nodeChange.put(node, i);
+                        }
+                    } else {
+                        log("doesn't exist");
+                        result = null;
+                    }
                     break;
                 case 3:
                     diff = "> \"" + node + "\": \"" + node2 + "\"";
                     log(diff);
-                    result = commit(diff);
+                    if (exists(node) && !exists(node2)) {
+                        conflictExpected = isConflict(node) | isConflict(node2);
+                        result = commit(diff, conflictExpected);
+                        if (result != null) {
+                            value = getValue(mkId, i, node);
+                            changes.put(i, Arrays.asList(
+                                    new Op(mkId, node, null), new Op(mkId, node2, value)));
+                            nodeChange.put(node, i);
+                            nodeChange.put(node2, i);
+                        }
+                    } else {
+                        log("source doesn't exist or target exists");
+                        result = null;
+                    }
                     break;
                 case 4:
-                    diff = "* \"" + node + "\": \"" + node2 + "\"";
-                    log(diff);
-                    result = commit(diff);
+                    if (isConflict(node)) {
+                        // the MicroKernelImpl would report a conflict
+                        result = null;
+                    } else {
+                        diff = "* \"" + node + "\": \"" + node2 + "\"";
+                        log(diff);
+                        if (exists(node) && !exists(node2)) {
+                            conflictExpected = isConflict(node2);
+                            result = commit(diff, conflictExpected);
+                            if (result != null) {
+                                value = getValue(mkId, i, node);
+                                changes.put(i, Arrays.asList(new Op(mkId, node2, value)));
+                                nodeChange.put(node2, i);
+                            }
+                        } else {
+                            log("source doesn't exist or target exists");
+                            result = null;
+                        }
+                    }
                     break;
                 case 5:
-                    revList[mkId] = mkList[mkId].getHeadRevision();
-                    revListGold[mkId] = mkListGold[mkId].getHeadRevision();
+                    log("sync/refresh");
+                    syncAndRefreshAllClusterNodes();
+                    // go to head revision
+                    result = revList[mkId] = mkList[mkId].getHeadRevision();
                     // fake failure
-                    result = i % 2 == 0;
+                    maskFail |= 1 << op;
                     break;
                 default:
                     fail();
-                    result = false;
+                    result = null;
                 }
-                if (result) {
-                    maskOk |= 1 << op;
-                } else {
+                if (result == null) {
                     maskFail |= 1 << op;
+                    log(" -> fail " + Integer.toBinaryString(maskFail));
+                } else {
+                    maskOk |= 1 << op;
+                    log(" -> " + result);
+                    // all other cluster nodes didn't see this particular change yet
+                    for (int j = 0; j < unseenChanges.length; j++) {
+                        if (j != mkId) {
+                            unseenChanges[j].add(i);
+                        }
+                    }
                 }
                 log("get " + node);
-                get(node);
+                boolean x = get(i, node);
+                log("get " + node + " returns " + x);
                 log("get " + node2);
-                get(node2);
+                x = get(i, node2);
+                log("get " + node2 + " returns " + x);
                 MongoMK mk = mkList[mkId];
-                MicroKernelImpl mkGold = mkListGold[mkId];
                 ClusterRev cr = new ClusterRev();
                 cr.mkId = mkId;
                 cr.rev = mk.getHeadRevision();
-                cr.revGold = mkGold.getHeadRevision();
                 revs.put(i, cr);
                 revs.remove(i - maxBackRev);
-                int revId = i - r.nextInt(maxBackRev);
-                cr = revs.get(revId);
-                if (cr != null) {
-                    get(node, cr.revGold, cr.rev);
-                }
+                log.append('\n');
             }
             if (Integer.bitCount(maskOk) != opCount) {
                 fail("Not all operations were at least once successful: " + Integer.toBinaryString(maskOk));
@@ -167,10 +239,34 @@ public class RandomizedClusterTest {
         }
         for (int i = 0; i < MK_COUNT; i++) {
             mkList[i].dispose();
-            mkListGold[i].dispose();
         }
         // System.out.println(log);
         // System.out.println();
+    }
+    
+    private String getValue(int clusterId, int maxOp, String nodeName) {
+        for (int i = maxOp; i >= 0; i--) {
+            List<Op> ops = changes.get(i);
+            if (ops != null) {
+                for (Op o : ops) {
+                    if (o.clusterId != clusterId && unseenChanges[clusterId].contains(i)) {
+                        continue;
+                    }
+                    if (o.nodeName.equals(nodeName)) {
+                        return o.value;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
+    private boolean isConflict(String node) {
+        Integer change = nodeChange.get(node);
+        if (change == null || !unseenChanges[mkId].contains(change)) {
+            return false;
+        }
+        return true;
     }
     
     private void log(String msg) {
@@ -178,34 +274,56 @@ public class RandomizedClusterTest {
         log.append(msg);
     }
     
-    private void get(String node) {
-        String headGold = mkListGold[mkId].getHeadRevision();
+    private void syncClusterNode() {
         for (int i = 0; i < mkList.length; i++) {
             MongoMK mk = mkList[i];
             mk.backgroundWrite();
         }
         MongoMK mk = mkList[mkId];
         mk.backgroundRead();
-        String head = mk.getHeadRevision();
-        get(node, headGold, head);
+    }
+    
+    private void syncAndRefreshAllClusterNodes() {
+        syncClusterNode();
+        for (int i = 0; i < mkList.length; i++) {
+            MongoMK mk = mkList[i];
+            mk.backgroundRead();
+            revList[i] = mk.getHeadRevision();
+            unseenChanges[i].clear();
+        }
+        log("sync");
+    }
+    
+    private boolean get(int maxOp, String node) {
+        String head = revList[mkId];
+        return get(maxOp, node, head);
+    }
+    
+    private boolean exists(String node) {
+        String head = revList[mkId];
+        MongoMK mk = mkList[mkId];
+        return mk.nodeExists("/" + node, head);
     }
         
-    private void get(String node, String headGold, String head) {
+    private boolean get(int maxOp, String node, String head) {
         String p = "/" + node;
-        MicroKernelImpl mkGold = mkListGold[mkId];
         MongoMK mk = mkList[mkId];
-        if (!mkGold.nodeExists(p, headGold)) {
-            assertFalse(mk.nodeExists(p, head));
-            return;
+        String value = getValue(mkId, maxOp, node);
+        if (value == null) {
+            assertFalse("path: " + p + " is supposed to not exist", 
+                    mk.nodeExists(p, head));
+            return false;
         }
         if (!mk.nodeExists(p, head)) {
-            assertTrue("path: " + p, mk.nodeExists(p, head));
+            assertTrue("path: " + p + " is supposed to exist", 
+                    mk.nodeExists(p, head));
         }
-        String resultGold = mkGold.getNodes(p, headGold, 0, 0, Integer.MAX_VALUE, null);
+        String expected = "{\":childNodeCount\":0,\"x\":" + value + "}";
         String result = mk.getNodes(p, head, 0, 0, Integer.MAX_VALUE, null);
-        resultGold = normalize(resultGold);
+        expected = normalize(expected);
         result = normalize(result);
-        assertEquals(resultGold, result);
+        assertEquals(expected, result);
+        return true;
     }
     
     private static String normalize(String json) {
@@ -217,32 +335,45 @@ public class RandomizedClusterTest {
         return w.toString();
     }
 
-    private boolean commit(String diff) {
+    private String commit(String diff, boolean conflictExpected) {
         boolean ok = false;
-        MicroKernelImpl mkGold = mkListGold[mkId];
-        String revGold = revListGold[mkId];
         MongoMK mk = mkList[mkId];
         String rev = revList[mkId];
-        try {
-            mkGold.commit("/", diff, revGold, null);
+        String result = null;
+        String ex = null;
+        if (conflictExpected) {
+            ok = false;
+            ex = "conflict expected";
+            // afterwards, this cluster node should synchronize
+            unseenChanges[mkId].clear();
+        } else {
             ok = true;
-        } catch (MicroKernelException e) {
+        }
+        if (ok) {
+            result = mk.commit("/", diff, rev, null);
+            revList[mkId] = result;
+        } else {
             // System.out.println("--> fail " + e.toString());            
             try {
                 mk.commit("/", diff, rev, null);
-                fail("Should fail: " + diff + " with exception " + e);
+                fail("Should fail: " + diff + " with " + ex);
             } catch (MicroKernelException e2) {
                 // expected
+                revList[mkId] = mk.getHeadRevision();
+                // it might have been not a conflict with another cluster node
+                // TODO test two cases: conflict with other cluster node
+                // (this should auto-synchronize until the given conflict)
+                // and conflict with a previous change that was already seen,
+                // which shouldn't synchronize
+                syncAndRefreshAllClusterNodes();
             }
         }
-        if (ok) {
-            mk.commit("/", diff, rev, null);
-        }
-        return ok;
+        return result;
     }
     
     private MongoMK createMK(int clusterId) {
         MongoMK.Builder builder = new MongoMK.Builder();
+        builder.setAsyncDelay(0);
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
@@ -264,7 +395,21 @@ public class RandomizedClusterTest {
      */
     static class ClusterRev {
         int mkId;
-        String rev, revGold;
+        String rev;
+    }
+    
+    /**
+     * An operation.
+     */
+    static class Op {
+        final int clusterId;
+        final String nodeName;
+        final String value;
+        public Op(int clusterId, String nodeName, String value) {
+            this.clusterId = clusterId;
+            this.nodeName = nodeName;
+            this.value = value;
+        }
     }
 
 }

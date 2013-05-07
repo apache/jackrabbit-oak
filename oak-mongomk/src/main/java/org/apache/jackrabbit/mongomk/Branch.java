@@ -62,7 +62,7 @@ class Branch {
         return commits.contains(r);
     }
 
-    synchronized public void removeCommit(@Nonnull Revision rev) {
+    public synchronized void removeCommit(@Nonnull Revision rev) {
         commits.remove(rev);
     }
 }

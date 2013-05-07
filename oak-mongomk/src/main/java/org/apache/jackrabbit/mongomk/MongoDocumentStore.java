@@ -111,6 +111,13 @@ public class MongoDocumentStore implements DocumentStore {
     public void invalidateCache() {
         nodesCache.invalidateAll();
     }
+    
+    @Override
+    public void invalidateCache(Collection collection, String key) {
+        if (collection == Collection.NODES) {
+            nodesCache.invalidate(key);
+        }
+    }
 
     public Map<String, Object> find(Collection collection, String key) {
         return find(collection, key, Integer.MAX_VALUE);
@@ -123,6 +130,9 @@ public class MongoDocumentStore implements DocumentStore {
         }
         try {
             CachedDocument doc;
+            if (maxCacheAge == 0) {
+                nodesCache.invalidate(key);
+            }
             while (true) {
                 doc = nodesCache.get(key, new Callable<CachedDocument>() {
                     @Override
@@ -131,7 +141,7 @@ public class MongoDocumentStore implements DocumentStore {
                         return new CachedDocument(map);
                     }
                 });
-                if (maxCacheAge == Integer.MAX_VALUE) {
+                if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
                     break;
                 }
                 if (System.currentTimeMillis() - doc.time < maxCacheAge) {

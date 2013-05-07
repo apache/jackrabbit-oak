@@ -222,7 +222,19 @@ public class Revision {
          * When comparing revisions that occurred before, the timestamp is ignored.
          */
         private long oldestTimestamp;
+        
+        /**
+         * The cluster node id of the current cluster node. Revisions 
+         * from this cluster node that are newer than the newest range
+         * (new local revisions) 
+         * are considered to be the newest revisions overall.
+         */
+        private final int currentClusterNodeId;
 
+        RevisionComparator(int currentClusterNodId) {
+            this.currentClusterNodeId = currentClusterNodId;
+        }
+        
         /**
          * Forget the order of older revisions. After calling this method, when comparing
          * revisions that happened before the given value, the timestamp order is used
@@ -287,7 +299,11 @@ public class Revision {
                 } else {
                     RevisionRange last = list.get(list.size() - 1);
                     if (last.timestamp == timestamp) {
-                        last.revision = r;
+                        // replace existing
+                        if (r.compareRevisionTime(last.revision) > 0) {
+                            // but only if newer
+                            last.revision = r;
+                        }
                         return;
                     }
                     newList = new ArrayList<RevisionRange>(list);
@@ -313,13 +329,25 @@ public class Revision {
             if (o1.getClusterId() == o2.getClusterId()) {
                 return o1.compareRevisionTime(o2);
             }
-            RevisionRange range1 = getRevisionRange(o1);
-            RevisionRange range2 = getRevisionRange(o2);
-            if (range1 == null || range2 == null) {
+            long range1 = getRevisionRangeTimestamp(o1);
+            long range2 = getRevisionRangeTimestamp(o2);
+            if (range1 == 0 || range2 == 0) {
                 return o1.compareRevisionTime(o2);
             }
-            if (range1.timestamp != range2.timestamp) {
-                return range1.timestamp < range2.timestamp ? -1 : 1;
+            if (range1 != range2) {
+                return range1 < range2 ? -1 : 1;
+            }
+            if (range1 == Long.MAX_VALUE) {
+                // in this case, both must be Long.MAX_VALUE, otherwise
+                // the previous check would have been true; and additionally
+                // the revisions are from different cluster nodes
+                if (o1.getClusterId() == currentClusterNodeId) {
+                    return 1;
+                } else if (o2.getClusterId() == currentClusterNodeId) {
+                    return -1;
+                }
+                // both revisions are new revisions of other cluster nodes
+                // (in reality this doesn't actually happen I believe)
             }
             int result = o1.compareRevisionTime(o2);
             if (result != 0) {
@@ -328,31 +356,59 @@ public class Revision {
             return o1.getClusterId() < o2.getClusterId() ? -1 : 1;
         }
         
-        private RevisionRange getRevisionRange(Revision r) {
+        /**
+         * Get the timestamp from the revision range, if found. If no range was
+         * found for this cluster instance, or if the revision is older than the
+         * earliest range, then 0 is returned. If the revision is newer than the
+         * newest range for this cluster instance, then Long.MAX_VALUE is
+         * returned.
+         * 
+         * @param r the revision
+         * @return the timestamp, 0 if not found, 
+         *      the timestamp plus 1 second for new local revisions;
+         *      Long.MAX_VALUE for new non-local revisions (meaning 'in the future')
+         */
+        private long getRevisionRangeTimestamp(Revision r) {
             List<RevisionRange> list = map.get(r.getClusterId());
             if (list == null) {
-                return null;
+                return 0;
             }
             // search from latest backward
             // (binary search could be used, but we expect most queries
             // at the end of the list)
+            long result = 0;
             for (int i = list.size() - 1; i >= 0; i--) {
                 RevisionRange range = list.get(i);
-                if (r.compareRevisionTime(range.revision) >= 0) {
-                    return range;
+                int compare = r.compareRevisionTime(range.revision);
+                if (compare > 0) {
+                    if (i == list.size() - 1) {
+                        // newer than the newest range
+                        if (r.getClusterId() == currentClusterNodeId) {
+                            // newer than all 
+                            return range.timestamp + 1000;
+                        }
+                        // happenes in the future (not visible yet)
+                        return Long.MAX_VALUE;
+                    }
+                    break;
                 }
+                result = range.timestamp;
             }
-            return null;
+            return result;
         }
         
         public String toString() {
             StringBuilder buff = new StringBuilder();
             for (int clusterId : new TreeSet<Integer>(map.keySet())) {
-                buff.append(clusterId).append(':');
+                int i = 0;
+                buff.append(clusterId).append(":");
                 for (RevisionRange r : map.get(clusterId)) {
-                    buff.append(' ').append(r);
+                    if (i++ % 4 == 0) {
+                        buff.append('\n');
+                    }
+                    buff.append(" ").append(r);
                 }
-                buff.append("; ");
+                buff.append("\n");
             }
             return buff.toString();
         }
