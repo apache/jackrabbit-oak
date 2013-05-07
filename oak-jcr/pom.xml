@@ -249,7 +249,20 @@
       org.apache.jackrabbit.test.api.version.VersionTest#testLock
       org.apache.jackrabbit.test.api.version.VersionTest#testLockJcr2
       org.apache.jackrabbit.test.api.version.VersionTest#testMerge
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testRestore
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUnlock
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUnlockJcr2
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUpdate
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitialNumberOfVersions
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetCorrespondingNodePath
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLock
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLockJcr2
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testLock
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testLockJcr2
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testMerge
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitialNumberOfLinearVersions
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitiallyGetAllLinearVersionsContainsTheRootAndTheBaseVersion
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetAllFrozenNodes
       org.apache.jackrabbit.test.api.version.VersionLabelTest
       org.apache.jackrabbit.test.api.version.CheckinTest
       org.apache.jackrabbit.test.api.version.CopyTest
