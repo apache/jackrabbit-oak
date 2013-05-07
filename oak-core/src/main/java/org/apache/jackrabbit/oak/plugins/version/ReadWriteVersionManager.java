@@ -66,6 +66,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     private final NodeBuilder versionStorageNode;
     private final NodeBuilder workspaceRoot;
+    private ReadOnlyNodeTypeManager ntMgr;
 
     ReadWriteVersionManager(NodeBuilder versionStorageNode,
                             NodeBuilder workspaceRoot) {
@@ -88,8 +89,11 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
     @Nonnull
     @Override
     protected ReadOnlyNodeTypeManager getNodeTypeManager() {
-        return ReadOnlyNodeTypeManager.getInstance(
-                getWorkspaceRoot(), NamePathMapper.DEFAULT);
+        if (ntMgr == null) {
+            ntMgr = ReadOnlyNodeTypeManager.getInstance(
+                    getWorkspaceRoot(), NamePathMapper.DEFAULT);
+        }
+        return ntMgr;
     }
 
     /**
