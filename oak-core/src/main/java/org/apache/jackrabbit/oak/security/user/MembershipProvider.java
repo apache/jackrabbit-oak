@@ -229,6 +229,29 @@ class MembershipProvider extends AuthorizableBaseProvider {
         return false;
     }
 
+    /**
+     * Returns {@code true} if the given {@code newMember} is a Group
+     * and contains {@code this} Group as declared or inherited member.
+     *
+     * @param newMemberTree The new member to be tested for cyclic membership.
+     * @param groupContentId The content ID of the group.
+     * @return true if the 'newMember' is a group and 'this' is an declared or
+     * inherited member of it.
+     */
+    boolean isCyclicMembership(Tree newMemberTree, String groupContentId) {
+        if (UserUtility.isType(newMemberTree, AuthorizableType.GROUP)) {
+            for (Iterator<String> it = getMembers(newMemberTree, AuthorizableType.GROUP, true); it.hasNext(); ) {
+                Tree tree = root.getTree(it.next());
+                String contentId = getContentID(tree);
+                if (groupContentId.equals(contentId)) {
+                    // found cyclic group membership
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     //-----------------------------------------< private MembershipProvider >---
 
     private PropertyBuilder<String> getMembersPropertyBuilder(Tree groupTree) {

@@ -16,32 +16,38 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
-
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 /**
  * @since OAK 1.0
  */
-public class UserValidatorTest extends AbstractSecurityTest {
+public class UserValidatorTest extends AbstractSecurityTest implements UserConstants {
 
     private String userPath;
 
@@ -55,7 +61,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void removePassword() throws Exception {
         try {
             Tree userTree = root.getTree(userPath);
-            userTree.removeProperty(UserConstants.REP_PASSWORD);
+            userTree.removeProperty(REP_PASSWORD);
             root.commit();
             fail("removing password should fail");
         } catch (CommitFailedException e) {
@@ -69,7 +75,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void removePrincipalName() throws Exception {
         try {
             Tree userTree = root.getTree(userPath);
-            userTree.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
+            userTree.removeProperty(REP_PRINCIPAL_NAME);
             root.commit();
             fail("removing principal name should fail");
         } catch (CommitFailedException e) {
@@ -83,7 +89,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void removeAuthorizableId() throws Exception {
         try {
             Tree userTree = root.getTree(userPath);
-            userTree.removeProperty(UserConstants.REP_AUTHORIZABLE_ID);
+            userTree.removeProperty(REP_AUTHORIZABLE_ID);
             root.commit();
             fail("removing authorizable id should fail");
         } catch (CommitFailedException e) {
@@ -98,7 +104,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
         try {
             User user = getUserManager().createUser("withoutPrincipalName", "pw");
             Tree tree = root.getTree(userPath);
-            tree.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
+            tree.removeProperty(REP_PRINCIPAL_NAME);
             root.commit();
 
             fail("creating user with invalid jcr:uuid should fail");
@@ -143,7 +149,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void changePrincipalName() throws Exception {
         try {
             Tree userTree = root.getTree(userPath);
-            userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, "another");
+            userTree.setProperty(REP_PRINCIPAL_NAME, "another");
             root.commit();
             fail("changing the principal name should fail");
         } catch (CommitFailedException e) {
@@ -157,7 +163,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void changeAuthorizableId() throws Exception {
         try {
             Tree userTree = root.getTree(userPath);
-            userTree.setProperty(UserConstants.REP_AUTHORIZABLE_ID, "modified");
+            userTree.setProperty(REP_AUTHORIZABLE_ID, "modified");
             root.commit();
             fail("changing the authorizable id should fail");
         } catch (CommitFailedException e) {
@@ -171,7 +177,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void changePasswordToPlainText() throws Exception {
         try {
             Tree userTree = root.getTree(userPath);
-            userTree.setProperty(UserConstants.REP_PASSWORD, "plaintext");
+            userTree.setProperty(REP_PASSWORD, "plaintext");
             root.commit();
             fail("storing a plaintext password should fail");
         } catch (CommitFailedException e) {
@@ -184,7 +190,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void testRemoveAdminUser() throws Exception {
         try {
-            String adminId = getConfig().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+            String adminId = getConfig().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
             UserManager userMgr = getUserManager();
             Authorizable admin = userMgr.getAuthorizable(adminId);
             if (admin == null) {
@@ -205,7 +211,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void testDisableAdminUser() throws Exception {
         try {
-            String adminId = getConfig().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+            String adminId = getConfig().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
             UserManager userMgr = getUserManager();
             Authorizable admin = userMgr.getAuthorizable(adminId);
             if (admin == null) {
@@ -213,7 +219,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
                 root.commit();
             }
 
-            root.getTree(admin.getPath()).setProperty(UserConstants.REP_DISABLED, "disabled");
+            root.getTree(admin.getPath()).setProperty(REP_DISABLED, "disabled");
             root.commit();
             fail("Admin user cannot be disabled");
         } catch (CommitFailedException e) {
@@ -228,9 +234,9 @@ public class UserValidatorTest extends AbstractSecurityTest {
         List<String> invalid = new ArrayList<String>();
         invalid.add("/");
         invalid.add("/jcr:system");
-        String groupRoot = getConfig().getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+        String groupRoot = getConfig().getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
         invalid.add(groupRoot);
-        String userRoot = getConfig().getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+        String userRoot = getConfig().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH);
         invalid.add(Text.getRelativeParent(userRoot, 1));
         invalid.add(userPath);
         invalid.add(userPath + "/folder");
@@ -245,15 +251,15 @@ public class UserValidatorTest extends AbstractSecurityTest {
                         Tree next = parent.getChild(segment);
                         if (!next.exists()) {
                             next = parent.addChild(segment);
-                            next.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_AUTHORIZABLE_FOLDER, Type.NAME);
+                            next.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_AUTHORIZABLE_FOLDER, Type.NAME);
                             parent = next;
                         }
                     }
                 }
                 Tree userTree = parent.addChild("testUser");
-                userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER, Type.NAME);
+                userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
                 userTree.setProperty(JcrConstants.JCR_UUID, UserProvider.getContentID("testUser"));
-                userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, "testUser");
+                userTree.setProperty(REP_PRINCIPAL_NAME, "testUser");
                 root.commit();
                 fail("Invalid hierarchy should be detected");
 
@@ -262,6 +268,46 @@ public class UserValidatorTest extends AbstractSecurityTest {
             } finally {
                 root.refresh();
             }
+        }
+    }
+
+    
+    /**
+     * @since oak 1.0 cyclic group membership added in a single set of transient
+     *        modifications must be detected upon save.
+     */
+    @Ignore("OAK-615")
+    @Test
+    public void testDetectCyclicMembership() throws Exception {
+        Group group1 = null;
+        Group group2 = null;
+        Group group3 = null;
+        
+        UserManager userMgr = getUserManager();
+        try {
+            group1 = userMgr.createGroup("group1");
+            group2 = userMgr.createGroup("group2");
+            group3 = userMgr.createGroup("group3");
+
+            group1.addMember(group2);
+            group2.addMember(group3);
+            
+            assertFalse(group3.addMember(group1));
+            
+            Tree group3Tree = root.getTree(group3.getPath());
+            Set<String> values = Collections.singleton(root.getTree(group1.getPath()).getProperty(JcrConstants.JCR_UUID).getValue(Type.STRING));
+            PropertyState prop = PropertyStates.createProperty(REP_MEMBERS, values, Type.WEAKREFERENCES);
+            group3Tree.setProperty(prop);
+            root.commit();
+            fail("Cyclic group membership must be detected");
+        } catch (CommitFailedException e) {
+            // success
+        } finally {
+            root.refresh();
+            if (group1 != null) group1.remove();
+            if (group2 != null) group2.remove();
+            if (group3 != null) group3.remove();
+            root.commit();
         }
     }
 

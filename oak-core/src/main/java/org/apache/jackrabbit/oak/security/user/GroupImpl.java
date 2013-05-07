@@ -108,8 +108,8 @@ class GroupImpl extends AuthorizableImpl implements Group {
                 log.debug(msg);
                 return false;
             }
-            if (((Group) authorizableImpl).isMember(this)) {
-                log.debug("Attempt to create circular group membership.");
+            if (isCyclicMembership(authorizableImpl)) {
+                log.warn("Attempt to create circular group membership.");
                 return false;
             }
         }
@@ -120,6 +120,26 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         return getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
+    }
+
+    /**
+     * Returns {@code true} if the given {@code newMember} is a Group
+     * and contains {@code this} Group as declared or inherited member.
+     *
+     * @param newMember The new member to be tested for cyclic membership.
+     * @return true if the 'newMember' is a group and 'this' is an declared or
+     * inherited member of it.
+     */
+    private boolean isCyclicMembership(AuthorizableImpl newMember) {
+        if (newMember.isGroup()) {
+            MembershipProvider mProvider = getMembershipProvider();
+            String contentId = mProvider.getContentID(getTree());
+            if (mProvider.isCyclicMembership(newMember.getTree(), contentId)) {
+                // found cyclic group membership
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
