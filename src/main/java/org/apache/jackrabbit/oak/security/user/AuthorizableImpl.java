@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
 import java.util.Collections;
 import java.util.Iterator;
-
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -37,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 /**
  * Base class for {@code User} and {@code Group} implementations.
  */
@@ -49,9 +48,9 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     private final String id;
     private final Tree tree;
-    private final String principalName;
     private final UserManagerImpl userManager;
 
+    private String principalName;
     private AuthorizableProperties properties;
     private int hashCode;
 
@@ -62,15 +61,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         this.id = id;
         this.tree = tree;
         this.userManager = userManager;
-
-        PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
-        if (pNameProp != null) {
-            principalName = pNameProp.getValue(STRING);
-        } else {
-            String msg = "Authorizable without principal name " + id;
-            log.warn(msg);
-            throw new RepositoryException(msg);
-        }
     }
 
     abstract void checkValidTree(Tree tree) throws RepositoryException;
@@ -191,6 +181,16 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     @Nonnull
     String getPrincipalName() throws RepositoryException {
+        if (principalName == null) {
+            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
+            if (pNameProp != null) {
+                principalName = pNameProp.getValue(STRING);
+            } else {
+                String msg = "Authorizable without principal name " + id;
+                log.warn(msg);
+                throw new RepositoryException(msg);
+            }
+        }
         return principalName;
     }
 
