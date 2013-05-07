@@ -286,6 +286,21 @@
       org.apache.jackrabbit.test.api.version.MergeShallowTest
       org.apache.jackrabbit.test.api.version.MergeNonVersionableSubNodeTest
       org.apache.jackrabbit.test.api.version.MergeSubNodeTest
+      <!-- Versioning related (OAK-168) -->
+      org.apache.jackrabbit.test.api.NodeCanAddMixinTest#testCheckedIn
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testValue
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testNode
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testValueArray
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testString
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testStringArray
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testInputStream
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testLong
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testDouble
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testCalendar
+      org.apache.jackrabbit.test.api.SetValueVersionExceptionTest#testBoolean
+      org.apache.jackrabbit.test.api.lock.LockTest#testCheckedIn
+      org.apache.jackrabbit.test.api.lock.LockTest#testCheckedInUnlock
+      org.apache.jackrabbit.test.api.observation.GetUserDataTest#testVersioning
 
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups2                               <!-- OAK-615 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLRemoveACE <!-- OAK-414 -->
