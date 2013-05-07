@@ -143,8 +143,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      */
     private Map<String, String> currentPw = new HashMap<String, String>(1);
 
+    /**
+     * Remember all new principals for impersonation handling.
+     */
+    private Map<String, Principal> principals;
+
     UserImporter(ConfigurationParameters config) {
-        // TODO: review definition of import-behavior configuration
         String importBehaviorStr = config.getConfigValue(PARAM_IMPORT_BEHAVIOR, ImportBehavior.nameFromValue(ImportBehavior.IGNORE));
         importBehavior = ImportBehavior.valueFromString(importBehaviorStr);
     }
@@ -215,25 +219,33 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     public boolean handlePropInfo(Tree parent, PropInfo propInfo, PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
-        // FIXME: remove hack that processes principal name first
         String propName = propInfo.getName();
-        Authorizable a = null;
-        // FIXME: remove try/catch that ignores exception
-        try {
-            a = userManager.getAuthorizable(parent);
-        } catch (RepositoryException ignore) {}
+        Authorizable a = userManager.getAuthorizable(parent);
 
-        if (a == null && !REP_PRINCIPAL_NAME.equals(propName)) {
+        if (a == null) {
             log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
             return false;
         }
+
         if (REP_PRINCIPAL_NAME.equals(propName)) {
             if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
                 return false;
             }
 
             String principalName = propInfo.getTextValue().getString();
-            userManager.setPrincipal(parent, new TreeBasedPrincipal(principalName, parent, namePathMapper));
+            Principal principal = new PrincipalImpl(principalName);
+            userManager.checkValidPrincipal(principal, a.isGroup());
+            userManager.setPrincipal(parent, principal);
+
+            /*
+             Remember principal of new user/group for further processing
+             of impersonators
+             */
+            if (principals == null) {
+                principals = new HashMap<String, Principal>();
+            }
+            principals.put(principalName, a.getPrincipal());
+
             /*
             Execute authorizable actions for a NEW group as this is the
             same place in the userManager#createGroup that the actions
@@ -284,6 +296,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 log.warn("Unexpected authorizable or definition for property rep:impersonators");
                 return false;
             }
+
             // since impersonators may be imported later on, postpone processing
             // to the end.
             // see -> process References
@@ -598,7 +611,10 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             }
             List<String> nonExisting = new ArrayList<String>();
             for (String principalName : toAdd) {
-                if (!imp.grantImpersonation(new PrincipalImpl(principalName))) {
+                Principal principal = (principals.containsKey(principalName)) ?
+                        principals.get(principalName) :
+                        new PrincipalImpl(principalName);
+                if (!imp.grantImpersonation(principal)) {
                     handleFailure("Failed to grant impersonation for " + principalName + " on " + a);
                     if (importBehavior == ImportBehavior.BESTEFFORT &&
                             getPrincipalManager().getPrincipal(principalName) == null) {

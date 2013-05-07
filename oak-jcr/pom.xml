@@ -291,17 +291,8 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLRemoveACE <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLUnknown   <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportPolicyExists <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupIntoUsersTree               <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testExistingPrincipal                      <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testConflictingPrincipalsWithinImport      <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testMultiValuedPrincipalName               <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testMultiValuedPassword                    <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testIncompleteUser                         <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportImpersonation                    <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportNonExistingMemberAbort           <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportSelfAsGroupAbort                 <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportInvalidImpersonationAbort        <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupMembersFromNodesBestEffort  <!-- OAK-414 -->
+      org.apache.jackrabbit.oak.jcr.security.user.UserImportBestEffortTest#testImportNonExistingMemberBestEffort   <!-- OAK-414 -->
+      org.apache.jackrabbit.oak.jcr.security.user.UserImportBestEffortTest#testImportNonExistingMemberBestEffort2  <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                                      <!-- OAK-414, OAK-482 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlManagementTest#testRemoveMixin              <!-- OAK-767 -->
