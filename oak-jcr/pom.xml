@@ -291,7 +291,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLRemoveACE <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLUnknown   <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportPolicyExists <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportBestEffortTest#testImportNonExistingMemberBestEffort   <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserImportBestEffortTest#testImportNonExistingMemberBestEffort2  <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                                      <!-- OAK-414, OAK-482 -->
 
