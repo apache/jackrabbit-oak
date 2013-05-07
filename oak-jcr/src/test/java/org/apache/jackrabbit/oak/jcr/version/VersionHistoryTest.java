@@ -23,11 +23,9 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.junit.Ignore;
-import org.junit.Test;
 
 /**
- * VersionHistoryTest... TODO
+ * Contains {@link VersionHistory} related tests.
  */
 public class VersionHistoryTest extends AbstractJCRTest {
 
@@ -40,55 +38,56 @@ public class VersionHistoryTest extends AbstractJCRTest {
         versionManager = superuser.getWorkspace().getVersionManager();
     }
 
-    @Test
     public void testJcrVersionHistoryProperty() throws Exception {
-        testRootNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(JcrConstants.MIX_VERSIONABLE);
         superuser.save();
 
-        assertTrue(testRootNode.hasProperty(JcrConstants.JCR_VERSIONHISTORY));
+        assertTrue(n.hasProperty(JcrConstants.JCR_VERSIONHISTORY));
     }
 
-    @Ignore("OAK-601")
-    @Test
     public void testGetVersionHistoryFromNode() throws Exception {
-        testRootNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(JcrConstants.MIX_VERSIONABLE);
         superuser.save();
 
-        VersionHistory vh = testRootNode.getVersionHistory();
+        VersionHistory vh = n.getVersionHistory();
+        assertNotNull(vh);
     }
 
-    @Ignore("OAK-602")
-    @Test
     public void testGetVersionHistory() throws Exception {
-        testRootNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(JcrConstants.MIX_VERSIONABLE);
         superuser.save();
 
-        VersionHistory vh = versionManager.getVersionHistory(testRoot);
+        VersionHistory vh = versionManager.getVersionHistory(n.getPath());
+        assertNotNull(vh);
     }
 
-    @Test
     public void testGetVersionHistory2() throws Exception {
-        testRootNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(JcrConstants.MIX_VERSIONABLE);
         superuser.save();
 
         Session s = getHelper().getSuperuserSession();
         try {
-            VersionHistory vh = s.getWorkspace().getVersionManager().getVersionHistory(testRoot);
+            VersionHistory vh = s.getWorkspace().getVersionManager().getVersionHistory(n.getPath());
+            assertNotNull(vh);
         } finally {
             s.logout();
         }
     }
 
-    @Test
     public void testGetVersionHistoryNodeByUUID() throws Exception {
-        testRootNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(JcrConstants.MIX_VERSIONABLE);
         superuser.save();
 
-        Node vh = superuser.getNodeByUUID(testRootNode.getProperty(JcrConstants.JCR_VERSIONHISTORY).getString());
+        Node vh = superuser.getNodeByUUID(n.getProperty(
+                JcrConstants.JCR_VERSIONHISTORY).getString());
+        assertNotNull(vh);
     }
 
-    @Ignore("OAK-602")
-    @Test
     public void testGetVersionHistoryAfterMove() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
         node1.addMixin(JcrConstants.MIX_VERSIONABLE);

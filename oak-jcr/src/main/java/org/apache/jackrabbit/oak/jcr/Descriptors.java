@@ -195,7 +195,7 @@ public class Descriptors {
                 trueValue, true, true));
         put(new Descriptor(
                 OPTION_VERSIONING_SUPPORTED,
-                falseValue, true, true));
+                trueValue, true, true));
         put(new Descriptor(
                 OPTION_WORKSPACE_MANAGEMENT_SUPPORTED,
                 trueValue, true, true));

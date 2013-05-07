@@ -881,7 +881,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public Boolean perform() throws RepositoryException {
                 PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, singleton(oakTypeName), NAMES);
-                return sessionContext.getAccessManager().hasPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT) && dlg.canAddMixin(oakTypeName);
+                return sessionContext.getAccessManager().hasPermissions(
+                    dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT)
+                        && !dlg.isProtected()
+                        && dlg.canAddMixin(oakTypeName);
             }
         });
     }

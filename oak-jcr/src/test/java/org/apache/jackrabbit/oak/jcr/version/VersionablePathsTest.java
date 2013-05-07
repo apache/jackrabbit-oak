@@ -18,37 +18,20 @@ package org.apache.jackrabbit.oak.jcr.version;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.junit.Test;
 
 /**
  * VersionablePathsTest... TODO
- * <p/>
- * FIXME: versionablePath only adjusted AFTER move/rename has been persisted.
  */
 public class VersionablePathsTest extends AbstractJCRTest {
 
-    // FIXME: shouldn't be needed (OAK-602)
-    private Session tmpSession;
-
-    @Override
-    protected void tearDown() throws Exception {
-        if (tmpSession != null) {
-            tmpSession.logout();
-        }
-        super.tearDown();
-    }
-
     private VersionManager getVersionManager() throws RepositoryException {
-        tmpSession = getHelper().getSuperuserSession();
-        return tmpSession.getWorkspace().getVersionManager();
+        return superuser.getWorkspace().getVersionManager();
     }
 
-    @Test
     public void testVersionablePaths() throws Exception {
         testRootNode.addMixin(JcrConstants.MIX_VERSIONABLE);
         superuser.save();
@@ -61,7 +44,6 @@ public class VersionablePathsTest extends AbstractJCRTest {
         assertEquals(testRootNode.getPath(), vh.getProperty(workspaceName).getString());
     }
 
-    @Test
     public void testVersionablePathsAfterRename() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
         node1.addMixin(JcrConstants.MIX_VERSIONABLE);
@@ -71,8 +53,6 @@ public class VersionablePathsTest extends AbstractJCRTest {
         superuser.move(node1.getPath(), destPath);
         superuser.save();
 
-        // FIXME: test node is stale after move
-        node1 = testRootNode.getNode(nodeName2);
         Node vh = getVersionManager().getVersionHistory(node1.getPath());
         assertTrue(vh.isNodeType("rep:VersionablePaths"));
         String workspaceName = superuser.getWorkspace().getName();
@@ -80,7 +60,6 @@ public class VersionablePathsTest extends AbstractJCRTest {
         assertEquals(node1.getPath(), vh.getProperty(workspaceName).getString());
     }
 
-    @Test
     public void testVersionablePathsAfterMove() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
         Node node2 = testRootNode.addNode(nodeName2);
@@ -91,8 +70,6 @@ public class VersionablePathsTest extends AbstractJCRTest {
         superuser.move(node1.getPath(), destPath);
         superuser.save();
 
-        // FIXME: node1 is stale after move
-        node1 = node2.getNode(nodeName1);
         assertEquals(destPath, node1.getPath());
 
         Node vh = getVersionManager().getVersionHistory(node1.getPath());
@@ -102,7 +79,6 @@ public class VersionablePathsTest extends AbstractJCRTest {
         assertEquals(node1.getPath(), vh.getProperty(workspaceName).getString());
     }
 
-    @Test
     public void testVersionablePathsAfterParentMove() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
         Node node3 = node1.addNode(nodeName3);
@@ -114,8 +90,6 @@ public class VersionablePathsTest extends AbstractJCRTest {
         superuser.move(node1.getPath(), destPath);
         superuser.save();
 
-        // FIXME: node3 is stale after move
-        node3 = node2.getNode(nodeName1 + '/' + nodeName3);
         assertEquals(destPath + '/' + nodeName3, node3.getPath());
 
         Node vh = getVersionManager().getVersionHistory(node3.getPath());
