@@ -16,19 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
@@ -44,6 +41,9 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
 /**
  * {@code MembershipProvider} implementation storing group membership information
@@ -130,12 +130,12 @@ class MembershipProvider extends AuthorizableBaseProvider {
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             if (property != null) {
                 Iterable<String> vs = property.getValue(STRINGS);
-                memberPaths = Iterables.transform(vs, new Function<String, String>() {
+                memberPaths = Iterables.filter(Iterables.transform(vs, new Function<String, String>() {
                     @Override
                     public String apply(@Nullable String value) {
                         return identifierManager.getPath(PropertyStates.createProperty("", value, WEAKREFERENCE));
                     }
-                });
+                }), Predicates.<String>notNull());
             }
         }
 
