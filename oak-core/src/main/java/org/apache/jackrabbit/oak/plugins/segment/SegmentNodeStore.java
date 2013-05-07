@@ -22,6 +22,8 @@ import java.io.InputStream;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -34,24 +36,37 @@ public class SegmentNodeStore extends AbstractNodeStore {
 
     private final SegmentReader reader;
 
+    private final Observer observer;
+
+    private SegmentNodeState root;
+
     public SegmentNodeStore(SegmentStore store, String journal) {
         this.store = store;
         this.journal = store.getJournal(journal);
         this.reader = new SegmentReader(store);
+        this.observer = EmptyObserver.INSTANCE;
+        this.root = new SegmentNodeState(store, this.journal.getHead());
     }
 
     public SegmentNodeStore(SegmentStore store) {
         this(store, "root");
     }
 
+    boolean setHead(SegmentNodeState base, SegmentNodeState head) {
+        return journal.setHead(base.getRecordId(), head.getRecordId());
+    }
+
     @Override @Nonnull
-    public NodeState getRoot() {
-        return new SegmentNodeState(store, journal.getHead());
+    public synchronized SegmentNodeState getRoot() {
+        NodeState before = root;
+        root = new SegmentNodeState(store, journal.getHead());
+        observer.contentChanged(before, root);
+        return root;
     }
 
     @Override @Nonnull
     public NodeStoreBranch branch() {
-        return new SegmentNodeStoreBranch(store, journal);
+        return new SegmentNodeStoreBranch(this, new SegmentWriter(store));
     }
 
     @Override

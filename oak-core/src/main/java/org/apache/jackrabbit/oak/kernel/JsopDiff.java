@@ -22,12 +22,9 @@ import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -35,50 +32,36 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
 class JsopDiff implements NodeStateDiff {
-    private static final Logger log = LoggerFactory.getLogger(JsopDiff.class);
 
-    private final MicroKernel kernel;
+    private final KernelNodeStore store;
 
     protected final JsopBuilder jsop;
 
     protected final String path;
 
-    public JsopDiff(MicroKernel kernel, JsopBuilder jsop, String path) {
-        this.kernel = kernel;
+    JsopDiff(KernelNodeStore store, JsopBuilder jsop, String path) {
+        this.store = store;
         this.jsop = jsop;
         this.path = path;
     }
 
-    public JsopDiff(MicroKernel kernel) {
-        this(kernel, new JsopBuilder(), "/");
+    JsopDiff(KernelNodeStore store) {
+        this(store, new JsopBuilder(), "/");
     }
 
     public static void diffToJsop(
-            MicroKernel kernel, NodeState before, NodeState after,
+            KernelNodeStore store, NodeState before, NodeState after,
             String path, JsopBuilder jsop) {
-        after.compareAgainstBaseState(before, new JsopDiff(kernel, jsop, path));
-    }
-
-    public static String diffToJsop(NodeState before, NodeState after) {
-        JsopDiff diff = new JsopDiff(null) {
-            @Override
-            protected String writeBlob(Blob blob) {
-                return "Blob{" + Arrays.toString(blob.sha256()) + '}';
-            }
-        };
-        after.compareAgainstBaseState(before, diff);
-        return diff.toString();
+        after.compareAgainstBaseState(before, new JsopDiff(store, jsop, path));
     }
 
     protected JsopDiff createChildDiff(JsopBuilder jsop, String path) {
-        return new JsopDiff(kernel, jsop, path);
+        return new JsopDiff(store, jsop, path);
     }
 
     //-----------------------------------------------------< NodeStateDiff >--
@@ -194,24 +177,18 @@ class JsopDiff implements NodeStateDiff {
      * @param blob  blob to persist
      * @return  id of the persisted blob
      */
-    protected String writeBlob(Blob blob) {
-        String blobId;
+    private String writeBlob(Blob blob) {
+        KernelBlob kernelBlob;
         if (blob instanceof KernelBlob) {
-            blobId = ((KernelBlob) blob).getBinaryID();
+            kernelBlob = (KernelBlob) blob;
         } else {
-            InputStream is = blob.getNewStream();
-            blobId = kernel.write(is);
-            close(is);
+            try {
+                kernelBlob = store.createBlob(blob.getNewStream());
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
         }
-        return blobId;
+        return kernelBlob.getBinaryID();
     }
 
-    private static void close(InputStream stream) {
-        try {
-            stream.close();
-        }
-        catch (IOException e) {
-            log.warn("Error closing stream", e);
-        }
-    }
 }
