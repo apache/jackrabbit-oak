@@ -159,7 +159,9 @@ public class Commit {
         }
         ArrayList<UpdateOp> newNodes = new ArrayList<UpdateOp>();
         ArrayList<UpdateOp> changedNodes = new ArrayList<UpdateOp>();
-        ArrayList<UpdateOp> done = new ArrayList<UpdateOp>();
+        // operations are added to this list before they are executed,
+        // so that all operations can be rolled back if there is a conflict
+        ArrayList<UpdateOp> opLog = new ArrayList<UpdateOp>();
         for (String p : operations.keySet()) {
             markChanged(p);
             if (commitRootPath == null) {
@@ -220,7 +222,7 @@ public class Commit {
             for (UpdateOp op : changedNodes) {
                 // set commit root on changed nodes
                 op.setMapEntry(UpdateOp.COMMIT_ROOT, revision.toString(), commitRootDepth);
-                done.add(op);
+                opLog.add(op);
                 createOrUpdateNode(store, op);
             }
             // finally write the commit root, unless it was already written
@@ -229,12 +231,12 @@ public class Commit {
             // the revision, with the revision property set)
             if (changedNodes.size() > 0 || !commitRoot.isNew) {
                 commitRoot.setMapEntry(UpdateOp.REVISIONS, revision.toString(), commitValue);
-                done.add(commitRoot);
+                opLog.add(commitRoot);
                 createOrUpdateNode(store, commitRoot);
                 operations.put(commitRootPath, commitRoot);
             }
         } catch (MicroKernelException e) {
-            rollback(newNodes, done);
+            rollback(newNodes, opLog);
             String msg = "Exception committing " + diff.toString();
             LOG.error(msg, e);
             throw new MicroKernelException(msg, e);
@@ -273,25 +275,31 @@ public class Commit {
                     collisions.get().add(uncommitted);
                 }
             });
+            MicroKernelException conflict = null;
             if (newestRev == null) {
                 if (op.isDelete || !op.isNew) {
-                    throw new MicroKernelException("The node " + 
+                    conflict = new MicroKernelException("The node " + 
                             op.path + " does not exist or is already deleted " + 
                             "before " + revision + "; document " + map);
                 }
             } else {
                 if (op.isNew) {
-                    throw new MicroKernelException("The node " + 
+                    conflict = new MicroKernelException("The node " + 
                             op.path + " was already added in revision " + 
                             newestRev + "; before " + revision + "; document " + map);
-                }
-                if (mk.isRevisionNewer(newestRev, baseRevision)
+                } else if (mk.isRevisionNewer(newestRev, baseRevision)
                         && (op.isDelete || isConflicting(map, op))) {
-                    throw new MicroKernelException("The node " + 
+                    conflict = new MicroKernelException("The node " + 
                             op.path + " was changed in revision " + newestRev +
                             ", which was applied after the base revision " + 
                             baseRevision + "; before " + revision + "; document " + map);
                 }
+            }
+            if (conflict != null) {
+                if (newestRev != null) {
+                    mk.publishRevision(newestRev);
+                }
+                throw conflict;
             }
             // if we get here the modification was successful
             // -> check for collisions and conflict (concurrent updates
@@ -484,10 +492,6 @@ public class Commit {
     
     public void copyNode(String sourcePath, String targetPath) {
         diff.tag('*').key(sourcePath).value(targetPath);
-    }
-
-    public JsopWriter getDiff() {
-        return diff;
     }
 
     private void markChanged(String path) {

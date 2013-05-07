@@ -72,7 +72,7 @@ public class SimpleTest {
     @Test
     public void addNodeGetNode() {
         MongoMK mk = new MongoMK.Builder().open();
-        Revision rev = mk.newRevision();
+        Revision rev = Revision.fromString(mk.getHeadRevision());
         Node n = new Node("/test", rev);
         n.setProperty("name", "Hello");
         UpdateOp op = n.asOperation(true);

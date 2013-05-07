@@ -33,7 +33,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 class Collision {
 
-    private static final Logger log = LoggerFactory.getLogger(Collision.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Collision.class);
 
     private final Map<String, Object> document;
     private final String theirRev;
@@ -87,7 +87,7 @@ class Collision {
                 // TODO: detect concurrent commit of previously un-merged changes
                 // TODO: check _commitRoot for revision is not 'true'
                 store.createOrUpdate(DocumentStore.Collection.NODES, op);
-                log.debug("Marked collision on: {} for {} ({})",
+                LOG.debug("Marked collision on: {} for {} ({})",
                         new Object[]{commitRootPath, p, revision});
                 return true;
             }

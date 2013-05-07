@@ -43,7 +43,7 @@ import static org.junit.Assert.assertEquals;
 public class ConcurrentConflictTest extends BaseMongoMKTest {
 
     private static final boolean USE_LOGGER = true;
-    private static final Logger log = LoggerFactory.getLogger(ConcurrentConflictTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConcurrentConflictTest.class);
     private static final int NUM_WRITERS = 3;
     private static final int NUM_NODES = 10;
     private static final int NUM_TRANSFERS_PER_THREAD = 10;
@@ -81,7 +81,7 @@ public class ConcurrentConflictTest extends BaseMongoMKTest {
     }
 
     private void concurrentUpdates(final boolean useBranch) throws Exception {
-        log.info("====== Start test =======");
+        LOG.info("====== Start test =======");
         final AtomicInteger conflicts = new AtomicInteger();
         final List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
@@ -144,7 +144,7 @@ public class ConcurrentConflictTest extends BaseMongoMKTest {
                         long value = (Long) entry.getValue().get("value");
                         jsop.append("^\"/node-").append(entry.getKey());
                         jsop.append("/value\":");
-                        if (value >= 20 && ! withdrawn) {
+                        if (value >= 20 && !withdrawn) {
                             jsop.append(value - 20);
                             withdrawn = true;
                         } else {
@@ -189,9 +189,9 @@ public class ConcurrentConflictTest extends BaseMongoMKTest {
         }
     }
 
-    private void log(String msg) {
+    void log(String msg) {
         if (USE_LOGGER) {
-            log.info(msg);
+            LOG.info(msg);
         } else {
             synchronized (logBuffer) {
                 logBuffer.append(msg).append("\n");
