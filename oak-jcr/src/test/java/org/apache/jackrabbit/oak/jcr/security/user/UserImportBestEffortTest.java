@@ -48,7 +48,6 @@ public class UserImportBestEffortTest extends AbstractImportTest {
         return ImportBehavior.NAME_BESTEFFORT;
     }
 
-    @Ignore("OAK-414") // FIXME
     @Test
     public void testImportNonExistingMemberBestEffort() throws Exception {
         List<String> invalid = new ArrayList<String>();
