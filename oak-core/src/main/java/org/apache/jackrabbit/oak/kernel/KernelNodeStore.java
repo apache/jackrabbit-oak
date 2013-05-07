@@ -64,7 +64,6 @@ public class KernelNodeStore extends AbstractNodeStore {
      */
     private KernelNodeState root;
 
-
     public KernelNodeStore(final MicroKernel kernel, long cacheSize) {
         this.kernel = checkNotNull(kernel);
         this.cache = CacheBuilder.newBuilder()
@@ -158,6 +157,14 @@ public class KernelNodeStore extends AbstractNodeStore {
         } catch (ExecutionException e) {
             throw new MicroKernelException(e);
         }
+    }
+
+    NodeState commit(String jsop, String baseRevision) {
+        return getRootState(kernel.commit("", jsop, baseRevision, null));
+    }
+
+    NodeState merge(String headRevision) {
+        return getRootState(kernel.merge(headRevision, null));
     }
 
 }

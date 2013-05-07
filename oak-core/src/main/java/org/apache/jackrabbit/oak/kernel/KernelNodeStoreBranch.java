@@ -43,10 +43,7 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     private final KernelNodeStore store;
 
     /** Root state of the base revision of this branch */
-    private NodeState base;
-
-    /** Revision of the base state of this branch*/
-    private String baseRevision;
+    private KernelNodeState base;
 
     /** Root state of the transient head revision on top of persisted branch, null if merged. */
     private NodeState head;
@@ -60,7 +57,6 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     KernelNodeStoreBranch(KernelNodeStore store, KernelNodeState root) {
         this.store = store;
         this.base = root;
-        this.baseRevision = root.getRevision();
         this.head = root;
     }
 
@@ -151,25 +147,25 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
                 head = null;  // Mark as merged
                 return base;
             } else {
-                MicroKernel kernel = store.getKernel();
-                String newRevision;
-                JsopDiff diff = new JsopDiff(kernel);
+                NodeState newRoot;
+                JsopDiff diff = new JsopDiff(store);
                 if (headRevision == null) {
                     // no branch created yet, commit directly
                     head.compareAgainstBaseState(base, diff);
-                    newRevision = kernel.commit("", diff.toString(), baseRevision, null);
+                    newRoot = store.commit(diff.toString(), base.getRevision());
                 } else {
                     // commit into branch and merge
                     head.compareAgainstBaseState(store.getRootState(headRevision), diff);
                     String jsop = diff.toString();
                     if (!jsop.isEmpty()) {
-                        headRevision = kernel.commit("", jsop, headRevision, null);
+                        headRevision = store.getKernel().commit(
+                                "", jsop, headRevision, null);
                     }
-                    newRevision = kernel.merge(headRevision, null);
+                    newRoot = store.merge(headRevision);
                     headRevision = null;
                 }
                 head = null;  // Mark as merged
-                return store.getRootState(newRevision);
+                return newRoot;
             }
         } catch (MicroKernelException e) {
             head = oldRoot;
@@ -186,7 +182,6 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
             // Nothing was written to this branch: set new base revision
             head = root;
             base = root;
-            baseRevision = root.getRevision();
         } else if (headRevision == null) {
             // Nothing written to persistent branch yet
             // perform rebase in memory
@@ -194,14 +189,12 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
             getHead().compareAgainstBaseState(getBase(), new ConflictAnnotatingRebaseDiff(builder));
             head = builder.getNodeState();
             base = root;
-            baseRevision = root.getRevision();
         } else {
             // perform rebase in kernel
             persistTransientHead();
             headRevision = store.getKernel().rebase(headRevision, root.getRevision());
             head = store.getRootState(headRevision);
             base = root;
-            baseRevision = root.getRevision();
         }
     }
 
@@ -224,7 +217,7 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
         MicroKernel kernel = store.getKernel();
         if (headRevision == null) {
             // create the branch if this is the first commit
-            headRevision = kernel.branch(baseRevision);
+            headRevision = kernel.branch(base.getRevision());
         }
 
         // persist transient changes first
@@ -235,14 +228,13 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     }
 
     private void persistTransientHead() {
-        NodeState oldBase = base;
-        String oldBaseRevision = baseRevision;
+        KernelNodeState oldBase = base;
         NodeState oldHead = head;
         String oldHeadRevision = headRevision;
         boolean success = false;
         try {
             MicroKernel kernel = store.getKernel();
-            JsopDiff diff = new JsopDiff(store.getKernel());
+            JsopDiff diff = new JsopDiff(store);
             if (headRevision == null) {
                 // no persistent branch yet
                 if (head.equals(base)) {
@@ -251,7 +243,7 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
                     return;
                 } else {
                     // create branch
-                    headRevision = kernel.branch(baseRevision);
+                    headRevision = kernel.branch(base.getRevision());
                     head.compareAgainstBaseState(base, diff);
                 }
             } else {
@@ -274,7 +266,6 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
             // revert to old state if unsuccessful
             if (!success) {
                 base = oldBase;
-                baseRevision = oldBaseRevision;
                 head = oldHead;
                 headRevision = oldHeadRevision;
             }

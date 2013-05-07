@@ -32,49 +32,46 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
 
     private static final Random RANDOM = new Random();
 
-    private final SegmentStore store;
-
-    private final Journal journal;
+    private final SegmentNodeStore store;
 
     private final SegmentWriter writer;
 
-    private RecordId baseId;
+    private SegmentNodeState base;
 
-    private RecordId rootId;
+    private SegmentNodeState head;
 
-    SegmentNodeStoreBranch(SegmentStore store, Journal journal) {
+    SegmentNodeStoreBranch(SegmentNodeStore store, SegmentWriter writer) {
         this.store = store;
-        this.journal = journal;
-        this.writer = new SegmentWriter(store);
-        this.baseId = journal.getHead();
-        this.rootId = baseId;
+        this.writer = writer;
+        this.base = store.getRoot();
+        this.head = base;
     }
 
     @Override @Nonnull
     public NodeState getBase() {
-        return new SegmentNodeState(store, baseId);
+        return base;
     }
 
     @Override @Nonnull
     public synchronized NodeState getHead() {
-        return new SegmentNodeState(store, rootId);
+        return head;
     }
 
     @Override
     public synchronized void setRoot(NodeState newRoot) {
-        this.rootId = writer.writeNode(newRoot).getRecordId();
+        head = writer.writeNode(newRoot);
         writer.flush();
     }
 
     @Override
     public synchronized void rebase() {
-        RecordId newBaseId = journal.getHead();
-        if (!baseId.equals(newBaseId)) {
-            NodeBuilder builder =
-                    new SegmentNodeState(store, newBaseId).builder();
-            getHead().compareAgainstBaseState(getBase(), new ConflictAnnotatingRebaseDiff(builder));
-            this.baseId = newBaseId;
-            this.rootId = writer.writeNode(builder.getNodeState()).getRecordId();
+        SegmentNodeState newBase = store.getRoot();
+        if (!base.getRecordId().equals(newBase.getRecordId())) {
+            NodeBuilder builder = newBase.builder();
+            head.compareAgainstBaseState(
+                    base, new ConflictAnnotatingRebaseDiff(builder));
+            base = newBase;
+            head = writer.writeNode(builder.getNodeState());
             writer.flush();
         }
     }
@@ -82,23 +79,23 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
     @Override @Nonnull
     public synchronized NodeState merge(CommitHook hook)
             throws CommitFailedException {
-        RecordId originalBaseId = baseId;
-        RecordId originalRootId = rootId;
+        SegmentNodeState originalBase = base;
+        SegmentNodeState originalHead = head;
         long backoff = 1;
-        while (baseId != rootId) {
+        while (base != head) {
             // apply commit hooks on the rebased changes
-            RecordId headId = writer.writeNode(
-                    hook.processCommit(getBase(), getHead())).getRecordId();
+            SegmentNodeState root = writer.writeNode(
+                    hook.processCommit(base, head));
             writer.flush();
 
             // use optimistic locking to update the journal
-            if (journal.setHead(baseId, headId)) {
-                baseId = headId;
-                rootId = headId;
+            if (store.setHead(base, root)) {
+                base = root;
+                head = root;
             } else {
                 // someone else was faster, so restore state and retry later
-                baseId = originalBaseId;
-                rootId = originalRootId;
+                base = originalBase;
+                head = originalHead;
 
                 // use exponential backoff to reduce contention
                 if (backoff < 10000) {
