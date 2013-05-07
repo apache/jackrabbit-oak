@@ -18,7 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getOrCreateOakIndex;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.query.Query;
@@ -27,34 +30,34 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-/**
- * <code>RelativePathTest</code>...
- */
-public class RelativePathTest extends AbstractQueryTest {
+public class MultipleIndicesTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak().with(new InitialContent())
+        return new Oak()
+                .with(new InitialContent())
                 .with(new RepositoryInitializer() {
                     @Override
                     public NodeState initialize(NodeState state) {
                         NodeBuilder root = state.builder();
-                        NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
-                        IndexUtils.createIndexDefinition(index, "myProp", true,
-                                false, ImmutableList.<String>of("myProp"), null);
+                        createIndexDefinition(getOrCreateOakIndex(root), "pid",
+                                true, false, ImmutableList.of("pid"), null);
+                        createIndexDefinition(
+                                getOrCreateOakIndex(root.child("content")),
+                                "pid", true, false, ImmutableList.of("pid"),
+                                null);
                         return root.getNodeState();
                     }
-                })
-                .with(new OpenSecurityProvider())
+                }).with(new OpenSecurityProvider())
                 .with(new PropertyIndexProvider())
                 .with(new PropertyIndexEditorProvider())
                 .createContentRepository();
@@ -62,26 +65,32 @@ public class RelativePathTest extends AbstractQueryTest {
 
     @Test
     public void query() throws Exception {
+
         Tree t = root.getTree("/");
-        t.addChild("a").addChild("n").setProperty("myProp", "foo");
-        t.addChild("b").addChild("n").setProperty("myProp", "bar");
-        t.addChild("c").addChild("x").setProperty("myProp", "foo");
-        t.setProperty("myProp", "foo");
+        t.setProperty("pid", "foo");
+        t.addChild("a").setProperty("pid", "foo");
+        t.addChild("b").setProperty("pid", "bar");
+        t.addChild("c").setProperty("pid", "foo");
+        t.addChild("d").setProperty("cid", "foo");
+
+        Tree content = t.addChild("content");
+        content.addChild("x").setProperty("pid", "foo");
+        content.addChild("y").setProperty("pid", "baz");
+        content.addChild("z").setProperty("pid", "bar");
         root.commit();
-        setTravesalFallback(false);
-        assertQuery("select [jcr:path] from [nt:base] where [n/myProp] is not null",
-                ImmutableList.of("/a", "/b"));
 
-        List<String> lines = executeQuery(
-                "explain select [jcr:path] from [nt:base] where [n/myProp] is not null",
-                Query.JCR_SQL2);
-        assertEquals(1, lines.size());
-        // make sure it used the property index
-        assertTrue(lines.get(0).contains("property myProp"));
-
-        assertQuery(
-                "select [jcr:path] from [nt:base] where [n/myProp] = 'foo'",
-                ImmutableList.of("/a"));
         setTravesalFallback(false);
+        assertQuery("select [jcr:path] from [nt:base] where [cid] = 'foo'",
+                new ArrayList<String>());
+
+        assertQuery("select [jcr:path] from [nt:base] where [pid] = 'foo'",
+                ImmutableList.of("/", "/a", "/c", "/content/x"));
+
+        assertQuery("select [jcr:path] from [nt:base] where [pid] = 'bar'",
+                ImmutableList.of("/b", "/content/z"));
+
+        assertQuery("select [jcr:path] from [nt:base] where [pid] = 'baz'",
+                ImmutableList.of("/content/y"));
+        setTravesalFallback(true);
     }
 }
