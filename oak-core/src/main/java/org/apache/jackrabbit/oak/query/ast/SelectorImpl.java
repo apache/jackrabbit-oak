@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_N
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
+import java.util.ArrayList;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -160,14 +162,23 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public void execute(NodeState rootState) {
-        cursor = index.query(createFilter(false), rootState);
+        if (index != null) {
+            cursor = index.query(createFilter(false), rootState);
+        } else {
+            cursor = Cursors.newPathCursor(new ArrayList<String>());
+        }
     }
 
     @Override
     public String getPlan(NodeState rootState) {
         StringBuilder buff = new StringBuilder();
         buff.append(toString());
-        buff.append(" /* ").append(index.getPlan(createFilter(true), rootState));
+        buff.append(" /* ");
+        if (index != null) {
+            buff.append(index.getPlan(createFilter(true), rootState));
+        } else {
+            buff.append("no-index");
+        }
         if (selectorCondition != null) {
             buff.append(" where ").append(selectorCondition);
         }

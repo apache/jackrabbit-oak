@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -154,13 +155,28 @@ public abstract class QueryEngineImpl implements QueryEngine {
         return q.executeQuery();
     }
 
+    /**
+     * testing purposes only
+     */
+    private boolean traversalFallback = true;
+
+    protected void setTravesalFallback(boolean traversal) {
+        this.traversalFallback = traversal;
+    }
+
     public QueryIndex getBestIndex(Query query, NodeState rootState, Filter filter) {
         QueryIndex best = null;
         if (LOG.isDebugEnabled()) {
             LOG.debug("cost using filter " + filter);
         }
+        List<QueryIndex> indexes = new ArrayList<QueryIndex>(
+                indexProvider.getQueryIndexes(rootState));
+        if (traversalFallback) {
+            indexes.add(new TraversingIndex());
+        }
+
         double bestCost = Double.POSITIVE_INFINITY;
-        for (QueryIndex index : getIndexes(rootState)) {
+        for (QueryIndex index : indexes) {
             double cost = index.getCost(filter, rootState);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("cost for " + index.getIndexName() + " is " + cost);
@@ -170,20 +186,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 best = index;
             }
         }
-        QueryIndex index = new TraversingIndex();
-        double cost = index.getCost(filter, rootState);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("cost for " + index.getIndexName() + " is " + cost);
-        }
-        if (cost < bestCost) {
-            bestCost = cost;
-            best = index;
-        }
         return best;
-    }
-
-    private List<? extends QueryIndex> getIndexes(NodeState rootState) {
-        return indexProvider.getQueryIndexes(rootState);
     }
 
 }

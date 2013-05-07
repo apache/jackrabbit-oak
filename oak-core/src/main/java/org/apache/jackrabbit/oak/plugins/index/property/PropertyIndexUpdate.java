@@ -173,7 +173,10 @@ class PropertyIndexUpdate {
         }
     }
 
-    public boolean matchesNodeType(NodeBuilder node) {
+    public boolean matchesNodeType(NodeBuilder node, String path) {
+        if (!path.startsWith(this.path)) {
+            return false;
+        }
         if (primaryTypes == null
                 || primaryTypes.contains(node.getName(JCR_PRIMARYTYPE))) {
             return true;
