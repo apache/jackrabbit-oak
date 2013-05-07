@@ -592,11 +592,6 @@ public class GroupTest extends AbstractUserTest {
         }
     }
 
-    /**
-     * @since oak 1.0 cyclic group membership added in a single set of transient
-     *        modifications must be detected upon save.
-     */
-    @Ignore("OAK-615")
     @Test
     public void testCyclicGroups2() throws AuthorizableExistsException, RepositoryException, NotExecutableException {
         Group group1 = null;
@@ -609,9 +604,7 @@ public class GroupTest extends AbstractUserTest {
 
             assertTrue(group1.addMember(group2));
             assertTrue(group2.addMember(group3));
-            assertTrue(group3.addMember(group1));
-            superuser.save();
-            fail("Cyclic group membership must be detected");
+            assertFalse("Cyclic group membership must be detected.", group3.addMember(group1));
         } catch (RepositoryException e) {
             // success
         } finally {

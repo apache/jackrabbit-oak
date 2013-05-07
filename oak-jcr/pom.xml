@@ -302,11 +302,9 @@
       org.apache.jackrabbit.test.api.lock.LockTest#testCheckedInUnlock
       org.apache.jackrabbit.test.api.observation.GetUserDataTest#testVersioning
 
-      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups2                               <!-- OAK-615 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLRemoveACE <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLUnknown   <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportPolicyExists <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportBestEffortTest#testImportNonExistingMemberBestEffort2  <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                                      <!-- OAK-414, OAK-482 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlManagementTest#testRemoveMixin              <!-- OAK-767 -->
