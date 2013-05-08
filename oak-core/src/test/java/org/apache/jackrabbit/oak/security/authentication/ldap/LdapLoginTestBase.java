@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
@@ -34,6 +38,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
@@ -56,8 +61,10 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     protected static String GROUP_DN;
 
+    protected static int CONCURRENT_LOGINS = 10;
+
     //initialize LDAP server only once (fast, but might turn out to be not sufficiently flexible in the future)
-    protected static final boolean USE_COMMON_LDAP_FIXTURE = true;
+    protected static final boolean USE_COMMON_LDAP_FIXTURE = false;
 
     protected final HashMap<String, Object> options = new HashMap<String, Object>();
 
@@ -352,6 +359,60 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
                 cs.close();
             }
             options.clear();
+        }
+    }
+
+    @Ignore
+    @Test
+    public void testConcurrentLogin() throws Exception {
+
+        concurrentLogin(false);
+    }
+
+    @Ignore
+    @Test
+    public void testConcurrentLoginSameGroup() throws Exception {
+
+        concurrentLogin(true);
+    }
+
+    private void concurrentLogin(boolean sameGroup) throws Exception {
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            createLdapFixture();
+        }
+
+        final List<Exception> exceptions = new ArrayList<Exception>();
+        List<Thread> workers = new ArrayList<Thread>();
+        for (int i = 0; i < CONCURRENT_LOGINS; i++) {
+            final String userId = "user-" + i;
+            final String pass = "secret";
+            String userDN = LDAP_SERVER.addUser(userId, "test", userId, pass);
+            if (sameGroup) {
+                LDAP_SERVER.addMember(GROUP_DN, userDN);
+            }
+            workers.add(new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        login(new SimpleCredentials(
+                                userId, pass.toCharArray())).close();
+                    } catch (Exception e) {
+                        exceptions.add(e);
+                    }
+                }
+            }));
+        }
+        for (Thread t : workers) {
+            t.start();
+        }
+        for (Thread t : workers) {
+            t.join();
+        }
+        for (Exception e : exceptions) {
+            e.printStackTrace();
+        }
+        if (!exceptions.isEmpty()) {
+            throw exceptions.get(0);
         }
     }
 
