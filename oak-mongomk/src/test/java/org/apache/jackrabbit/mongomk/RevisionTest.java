@@ -134,27 +134,27 @@ public class RevisionTest {
         assertEquals(-1, comp.compare(r3c1, r3c2));
 
         // now we declare r2+r3 of c1 to be after r2+r3 of c2
-        comp.add(r2c1, 20);
-        comp.add(r2c2, 10);
+        comp.add(r2c1, new Revision(0x20, 0, 0));
+        comp.add(r2c2, new Revision(0x10, 0, 0));
 
         assertEquals(
-                "1:\n r120-0-1:20\n" + 
-                "2:\n r200-0-2:10\n", comp.toString());
+                "1:\n r120-0-1:r20-0-0\n" + 
+                "2:\n r200-0-2:r10-0-0\n", comp.toString());
 
         assertEquals(1, comp.compare(r1c1, r1c2));
         assertEquals(1, comp.compare(r2c1, r2c2));
-        // r3c2 is still "in the future"
+        // both r3cx are still "in the future"
         assertEquals(-1, comp.compare(r3c1, r3c2));
         
         // now we declare r3 of c1 to be before r3 of c2
         // (with the same range timestamp, 
         // the revision timestamps are compared)
-        comp.add(r3c1, 30);
-        comp.add(r3c2, 30);
+        comp.add(r3c1, new Revision(0x30, 0, 0));
+        comp.add(r3c2, new Revision(0x30, 0, 0));
 
         assertEquals(
-                "1:\n r120-0-1:20 r130-0-1:30\n" + 
-                "2:\n r200-0-2:10 r300-0-2:30\n", comp.toString());
+                "1:\n r120-0-1:r20-0-0 r130-0-1:r30-0-0\n" + 
+                "2:\n r200-0-2:r10-0-0 r300-0-2:r30-0-0\n", comp.toString());
 
         assertEquals(1, comp.compare(r1c1, r1c2));
         assertEquals(1, comp.compare(r2c1, r2c2));
@@ -165,22 +165,22 @@ public class RevisionTest {
         assertEquals(1, comp.compare(r3c2, r3c1));
         
         // get rid of old timestamps
-        comp.purge(10);
+        comp.purge(0x10);
         assertEquals(
-                "1:\n r120-0-1:20 r130-0-1:30\n" + 
-                "2:\n r300-0-2:30\n", comp.toString());
-        comp.purge(20);
+                "1:\n r120-0-1:r20-0-0 r130-0-1:r30-0-0\n" + 
+                "2:\n r300-0-2:r30-0-0\n", comp.toString());
+        comp.purge(0x20);
         assertEquals(
-                "1:\n r130-0-1:30\n" + 
-                "2:\n r300-0-2:30\n", comp.toString());
+                "1:\n r130-0-1:r30-0-0\n" + 
+                "2:\n r300-0-2:r30-0-0\n", comp.toString());
         
         // update an entry
-        comp.add(new Revision(0x301, 1, 2), 30);
+        comp.add(new Revision(0x301, 1, 2), new Revision(0x30, 0, 0));
         assertEquals(
-                "1:\n r130-0-1:30\n" + 
-                "2:\n r301-1-2:30\n", comp.toString());
+                "1:\n r130-0-1:r30-0-0\n" + 
+                "2:\n r301-1-2:r30-0-0\n", comp.toString());
         
-        comp.purge(30);
+        comp.purge(0x30);
         assertEquals("", comp.toString());
 
     }

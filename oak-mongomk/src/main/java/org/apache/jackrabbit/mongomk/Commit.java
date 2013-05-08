@@ -265,7 +265,7 @@ public class Commit {
         Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
         if (baseRevision != null) {
             final AtomicReference<List<Revision>> collisions = new AtomicReference<List<Revision>>();
-            Revision newestRev = mk.getNewestRevision(map, revision, true,
+            Revision newestRev = mk.getNewestRevision(map, revision,
                     new CollisionHandler() {
                 @Override
                 void uncommittedModification(Revision uncommitted) {
@@ -296,9 +296,6 @@ public class Commit {
                 }
             }
             if (conflict != null) {
-                if (newestRev != null) {
-                    mk.publishRevision(newestRev);
-                }
                 throw conflict;
             }
             // if we get here the modification was successful

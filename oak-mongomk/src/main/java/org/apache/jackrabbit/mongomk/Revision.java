@@ -195,13 +195,13 @@ public class Revision {
         Revision revision;
 
         /**
-         * The (local) timestamp; the time when this revision was seen by this
+         * The (local) revision; the time when this revision was seen by this
          * cluster instance.
          */
-        long timestamp;
+        Revision seenAt;
         
         public String toString() {
-            return revision + ":" + timestamp;
+            return revision + ":" + seenAt;
         }
         
     }
@@ -211,6 +211,10 @@ public class Revision {
      * It contains a map of revision ranges.
      */
     public static class RevisionComparator implements Comparator<Revision> {
+
+        private static final Revision NEWEST = new Revision(Long.MAX_VALUE, 0, 0);
+
+        private static final Revision FUTURE = new Revision(Long.MAX_VALUE, Integer.MAX_VALUE, 0);
         
         /**
          * The map of cluster instances to lists of revision ranges.
@@ -270,7 +274,7 @@ public class Revision {
             int i = 0;
             for (; i < list.size(); i++) {
                 RevisionRange r = list.get(i);
-                if (r.timestamp > oldestTimestamp) {
+                if (r.seenAt.getTimestamp() > oldestTimestamp) {
                     break;
                 }
             }
@@ -287,9 +291,9 @@ public class Revision {
          * If an entry for this timestamp already exists, it is replaced.
          * 
          * @param r the revision
-         * @param timestamp the timestamp
+         * @param seenAt the (local) revision where this revision was seen here
          */
-        public void add(Revision r, long timestamp) {
+        public void add(Revision r, Revision seenAt) {
             int clusterId = r.getClusterId();
             while (true) {
                 List<RevisionRange> list = map.get(clusterId);
@@ -298,7 +302,7 @@ public class Revision {
                     newList = new ArrayList<RevisionRange>();
                 } else {
                     RevisionRange last = list.get(list.size() - 1);
-                    if (last.timestamp == timestamp) {
+                    if (last.seenAt.equals(seenAt)) {
                         // replace existing
                         if (r.compareRevisionTime(last.revision) > 0) {
                             // but only if newer
@@ -306,10 +310,13 @@ public class Revision {
                         }
                         return;
                     }
+                    if (last.revision.compareRevisionTime(r) > 0) {
+                        throw new IllegalArgumentException("Can not add an earlier revision");
+                    }
                     newList = new ArrayList<RevisionRange>(list);
                 }
                 RevisionRange range = new RevisionRange();
-                range.timestamp = timestamp;
+                range.seenAt = seenAt;
                 range.revision = r;
                 newList.add(range);
                 if (list == null) {
@@ -329,31 +336,16 @@ public class Revision {
             if (o1.getClusterId() == o2.getClusterId()) {
                 return o1.compareRevisionTime(o2);
             }
-            long range1 = getRevisionRangeTimestamp(o1);
-            long range2 = getRevisionRangeTimestamp(o2);
-            if (range1 == 0 || range2 == 0) {
+            Revision range1 = getRevisionSeen(o1);
+            Revision range2 = getRevisionSeen(o2);
+            if (range1 == null || range2 == null) {
                 return o1.compareRevisionTime(o2);
             }
-            if (range1 != range2) {
-                return range1 < range2 ? -1 : 1;
+            int comp = range1.compareRevisionTime(range2);
+            if (comp != 0) {
+                return comp;
             }
-            if (range1 == Long.MAX_VALUE) {
-                // in this case, both must be Long.MAX_VALUE, otherwise
-                // the previous check would have been true; and additionally
-                // the revisions are from different cluster nodes
-                if (o1.getClusterId() == currentClusterNodeId) {
-                    return 1;
-                } else if (o2.getClusterId() == currentClusterNodeId) {
-                    return -1;
-                }
-                // both revisions are new revisions of other cluster nodes
-                // (in reality this doesn't actually happen I believe)
-            }
-            int result = o1.compareRevisionTime(o2);
-            if (result != 0) {
-                return result;
-            }
-            return o1.getClusterId() < o2.getClusterId() ? -1 : 1;
+            return Integer.signum(o1.getClusterId() - o2.getClusterId());
         }
         
         /**
@@ -364,19 +356,19 @@ public class Revision {
          * returned.
          * 
          * @param r the revision
-         * @return the timestamp, 0 if not found, 
+         * @return the revision where it was seen, null if not found, 
          *      the timestamp plus 1 second for new local revisions;
          *      Long.MAX_VALUE for new non-local revisions (meaning 'in the future')
          */
-        private long getRevisionRangeTimestamp(Revision r) {
+        private Revision getRevisionSeen(Revision r) {
             List<RevisionRange> list = map.get(r.getClusterId());
             if (list == null) {
-                return 0;
+                return null;
             }
             // search from latest backward
             // (binary search could be used, but we expect most queries
             // at the end of the list)
-            long result = 0;
+            Revision result = null;
             for (int i = list.size() - 1; i >= 0; i--) {
                 RevisionRange range = list.get(i);
                 int compare = r.compareRevisionTime(range.revision);
@@ -384,15 +376,15 @@ public class Revision {
                     if (i == list.size() - 1) {
                         // newer than the newest range
                         if (r.getClusterId() == currentClusterNodeId) {
-                            // newer than all 
-                            return range.timestamp + 1000;
+                            // newer than all others, except for FUTURE
+                            return NEWEST;
                         }
                         // happenes in the future (not visible yet)
-                        return Long.MAX_VALUE;
+                        return FUTURE;
                     }
                     break;
                 }
-                result = range.timestamp;
+                result = range.seenAt;
             }
             return result;
         }
