@@ -16,17 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
@@ -36,6 +31,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
@@ -47,7 +44,14 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Testing the {@code PermissionHook}
@@ -55,6 +59,8 @@ import org.junit.Test;
 public class PermissionHookTest extends AbstractAccessControlTest implements AccessControlConstants, PermissionConstants {
 
     private String testPath = "/testPath";
+    private String childPath = "/testPath/childNode";
+
     private String testPrincipalName;
     private PrivilegeBitsProvider bitsProvider;
     private List<Principal> principals = new ArrayList<Principal>();
@@ -66,7 +72,8 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
 
         Principal testPrincipal = getTestPrincipal();
         NodeUtil rootNode = new NodeUtil(root.getTree("/"), namePathMapper);
-        rootNode.addChild("testPath", JcrConstants.NT_UNSTRUCTURED);
+        NodeUtil testNode = rootNode.addChild("testPath", JcrConstants.NT_UNSTRUCTURED);
+        testNode.addChild("childNode", JcrConstants.NT_UNSTRUCTURED);
 
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
@@ -318,5 +325,40 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
                 // success
             }
         }
+    }
+
+    @Ignore() // FIXME
+    @Test
+    public void testImplicitAceRemoval() throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+        acl.addAccessControlEntry(getTestPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE));
+        acMgr.setPolicy(testPath, acl);
+
+        acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ));
+        acMgr.setPolicy(childPath, acl);
+        root.commit();
+
+        assertTrue(root.getTree(childPath+"/rep:policy").exists());
+
+        Tree principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
+        assertEquals(2, principalRoot.getChildrenCount());
+
+        ContentSession testSession = createTestSession();
+        Root testRoot = testSession.getLatestRoot();
+
+        assertTrue(testRoot.getTree(childPath).exists());
+        assertFalse(testRoot.getTree(childPath+"/rep:policy").exists());
+
+        testRoot.getTree(childPath).remove();
+        testRoot.commit();
+
+        root.refresh();
+        assertFalse(root.getTree(childPath+"/rep:policy").exists());
+        // aces must be removed in the permission store even if the editing
+        // session wasn't able to access them.
+        principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
+        assertEquals(1, principalRoot.getChildrenCount());
     }
 }
