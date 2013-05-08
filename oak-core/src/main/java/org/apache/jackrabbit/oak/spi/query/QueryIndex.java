@@ -42,10 +42,21 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public interface QueryIndex {
     
     /**
-     * Estimate the cost to query with the given filter. The returned
+     * Estimate the worst-case cost to query with the given filter. The returned
      * cost is a value between 1 (very fast; lookup of a unique node) and the
-     * estimated number of nodes to traverse.
-     *
+     * estimated number of entries to traverse, if the cursor would be fully
+     * read, and if there could in theory be one network roundtrip or disk read
+     * operation per node (this method may return a lower number if the data is
+     * known to be fully in memory).
+     * <p>
+     * The returned value is supposed to be an estimate and doesn't have to be
+     * very accurate. Please note this method is called on each index whenever a
+     * query is run, so the method should be reasonably fast (not read any data
+     * itself, or at least not read too much data).
+     * <p>
+     * If an index implementation can not query the data, it has to return
+     * {@code Double.MAX_VALUE}.
+     * 
      * @param filter the filter
      * @param rootState root state of the current repository snapshot
      * @return the estimated cost in number of read nodes
@@ -53,8 +64,21 @@ public interface QueryIndex {
     double getCost(Filter filter, NodeState rootState);
 
     /**
-     * Start a query.
-     *
+     * Query the index. The returned cursor is supposed to return as few nodes
+     * as possible, but may return more nodes than necessary.
+     * <p>
+     * An implementation should only filter the result if it can do so easily
+     * and efficiently; the query engine will verify the data again (in memory)
+     * and check for access rights.
+     * <p>
+     * The method is only called if this index is used for the given query and
+     * selector, which is only the case if the given index implementation
+     * returned the lowest cost for the given filter. If the implementation
+     * returned {@code Double.MAX_VALUE} in the getCost method for the given
+     * filter, then this method is not called. If it is still called, then it is
+     * supposed to throw an exception (as it would be an internal error of the
+     * query engine).
+     * 
      * @param filter the filter
      * @param rootState root state of the current repository snapshot
      * @return a cursor to iterate over the result
@@ -62,8 +86,10 @@ public interface QueryIndex {
     Cursor query(Filter filter, NodeState rootState);
 
     /**
-     * Get the query plan for the given filter.
-     *
+     * Get the query plan for the given filter. This method is called when
+     * running an {@code EXPLAIN SELECT} query, or for logging purposes. The
+     * result should be human readable.
+     * 
      * @param filter the filter
      * @param rootState root state of the current repository snapshot
      * @return the query plan
@@ -114,14 +140,14 @@ public interface QueryIndex {
 //        /**
 //         * The cost to execute the query once. The returned value should
 //         * approximately match the number of disk read operations plus the
-//         * number of network roundtrips.
+//         * number of network roundtrips (worst case).
 //         */
 //        double costPerExecution;
 //        
 //        /**
 //         * The cost to read one entry from the cursor. The returned value should
 //         * approximately match the number of disk read operations plus the
-//         * number of network roundtrips.
+//         * number of network roundtrips (worst case).
 //         */
 //        double costPerEntry;
 //        
@@ -135,11 +161,6 @@ public interface QueryIndex {
 //         * The filter to use.
 //         */
 //        Filter filter;
-//        
-//        /**
-//         * Whether transient (unsaved) changes are included.
-//         */
-//        boolean includeTransient;
 //
 //        /**
 //         * Whether the index is not always up-to-date.
