@@ -27,6 +27,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Ignore;
@@ -157,11 +158,15 @@ public class WriteTest extends AbstractEvaluationTest {
          - both remove_node and remove_childNodes privilege present at childNPath
          */
         assertFalse(testSession.hasPermission(path, javax.jcr.Session.ACTION_REMOVE));
-        assertTrue(testSession.hasPermission(childNPath, javax.jcr.Session.ACTION_REMOVE));
 
+        assertTrue(testSession.hasPermission(childNPath, javax.jcr.Session.ACTION_REMOVE));
         assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[] {rmChildNodes[0], rmNode[0]}));
+
+        testSession.getNode(childNPath).remove();
+        testSession.save();
     }
 
+    @Ignore("OAK-781") // FIXME
     @Test
     public void testRemove5() throws Exception {
         // add 'remove_node' privilege at 'childNPath'
@@ -172,8 +177,39 @@ public class WriteTest extends AbstractEvaluationTest {
          - node at childNPath can't be removed since REMOVE_CHILD_NODES is missing.
          */
         assertFalse(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+        try {
+            testSession.getNode(childNPath).remove();
+            testSession.save();
+            fail("Removal must fail");
+        } catch (AccessDeniedException e) {
+            // success
+        }
     }
 
+    @Test
+    public void testRemove51() throws Exception {
+        Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+        superuser.save();
+
+        // add 'remove_node' privilege at 'childNPath'
+        Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+        allow(childNPath, rmNode);
+        /*
+         expected result:
+         - node at subtree path can't be removed since REMOVE_CHILD_NODES is missing.
+         */
+        String subtreePath = subtree.getPath();
+        assertFalse(testSession.hasPermission(subtreePath, Session.ACTION_REMOVE));
+        try {
+            testSession.getNode(subtreePath).remove();
+            testSession.save();
+            fail("Removal must fail");
+        } catch (AccessDeniedException e) {
+            // success
+        }
+    }
+
+    @Ignore("OAK-781") // FIXME
     @Test
     public void testRemove6() throws Exception {
         // add 'remove_child_nodes' and 'remove_node' privilege at 'path'
@@ -195,8 +231,47 @@ public class WriteTest extends AbstractEvaluationTest {
 
         assertTrue(testAcMgr.hasPrivileges(childNPath, privilegesFromNames(new String[] {Privilege.JCR_READ, Privilege.JCR_REMOVE_CHILD_NODES})));
         assertFalse(testAcMgr.hasPrivileges(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE)));
+        try {
+            testSession.getNode(childNPath).remove();
+            testSession.save();
+            fail("Removal must fail");
+        } catch (AccessDeniedException e) {
+            // success
+        }
     }
 
+    @Test
+    public void testRemove61() throws Exception {
+        Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+        superuser.save();
+
+        // add 'remove_child_nodes' and 'remove_node' privilege at 'path'
+        Privilege[] privs = privilegesFromNames(new String[]{
+                Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE
+        });
+        allow(path, privs);
+        // ... but deny 'remove_node' at childNPath
+        Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+        deny(childNPath, rmNode);
+        /*
+         expected result:
+         - subtree node can't be remove
+         */
+        String subtreePath = subtree.getPath();
+        assertFalse(testSession.hasPermission(subtreePath, Session.ACTION_REMOVE));
+
+        assertTrue(testAcMgr.hasPrivileges(subtreePath, privilegesFromNames(new String[] {Privilege.JCR_READ, Privilege.JCR_REMOVE_CHILD_NODES})));
+        assertFalse(testAcMgr.hasPrivileges(subtreePath, privilegesFromName(Privilege.JCR_REMOVE_NODE)));
+        try {
+            testSession.getNode(subtreePath).remove();
+            testSession.save();
+            fail("Removal must fail");
+        } catch (AccessDeniedException e) {
+            // success
+        }
+    }
+
+    @Ignore("OAK-781") // FIXME
     @Test
     public void testRemove7() throws Exception {
         Privilege[] rmChildNodes = privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES);
@@ -220,8 +295,45 @@ public class WriteTest extends AbstractEvaluationTest {
          - but both privileges (remove_node, remove_child_nodes) are present.
          */
         assertFalse(testSession.hasPermission(childNPath, javax.jcr.Session.ACTION_REMOVE));
-
         assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[] {rmChildNodes[0], rmNode[0]}));
+        try {
+            testSession.getNode(childNPath).remove();
+            superuser.save();
+            fail("Removal must fail");
+        } catch (AccessDeniedException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testRemove71() throws Exception {
+        Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+        superuser.save();
+
+        Privilege[] rmChildNodes = privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES);
+        Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+
+        // deny 'remove_child_nodes' at 'path'
+        deny(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
+        // ... but allow 'remove_node' at childNPath
+        allow(childNPath, rmNode);
+        /*
+         expected result:
+         - node at subtreePath can't be removed.
+         */
+        String subtreePath = subtree.getPath();
+        assertFalse(testSession.hasPermission(subtreePath, Session.ACTION_REMOVE));
+
+        // additionally add remove_child_nodes privilege at 'childNPath'
+        allow(childNPath, rmChildNodes);
+        /*
+         expected result:
+         - node at subtreePath can be removed.
+         */
+        assertTrue(testSession.hasPermission(subtreePath, javax.jcr.Session.ACTION_REMOVE));
+        assertTrue(testAcMgr.hasPrivileges(subtreePath, new Privilege[] {rmChildNodes[0], rmNode[0]}));
+        testSession.getNode(subtreePath).remove();
+        superuser.save();
     }
 
     public void testRemove8() throws Exception {
@@ -240,6 +352,8 @@ public class WriteTest extends AbstractEvaluationTest {
          */
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
         assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[]{rmChildNodes[0], rmNode[0]}));
+        testSession.getNode(childNPath).remove();
+        testSession.save();
     }
 
     @Test
@@ -504,6 +618,27 @@ public class WriteTest extends AbstractEvaluationTest {
         n.save();
     }
 
+    @Ignore("OAK-813: Removal needs read access on the parent") // FIXME
+    @Test
+    public void testRemoveIfReadingParentIsDenied() throws Exception {
+        /* deny READ privilege for testUser at 'path' */
+        deny(path, testUser.getPrincipal(), readPrivileges);
+        /* allow WRITE privileges at path */
+        allow(path, testUser.getPrincipal(), repWritePrivileges);
+        /* allow READ/WRITE privilege for testUser at 'childNPath' */
+        allow(childNPath, testUser.getPrincipal(), readWritePrivileges);
+
+        assertFalse(testSession.nodeExists(path));
+
+        // reading the node and it's definition must succeed.
+        assertTrue(testSession.nodeExists(childNPath));
+        assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+
+        Node n = testSession.getNode(childNPath);
+        n.remove();
+        superuser.save();
+    }
+
     @Test
     public void testRemoveNodeWithPolicy() throws Exception {
         /* allow READ/WRITE privilege for testUser at 'path' */
@@ -539,13 +674,17 @@ public class WriteTest extends AbstractEvaluationTest {
 
         // removing the child node must succeed as both remove-node and
         // remove-child-nodes are granted to testsession.
-        // the policy node underneath childNPath should silently be removed
-        // as the editing session has no knowledge about it's existence.
+        // the policy node underneath childNPath and the invisible child node
+        // should silently be removed as the editing session has no knowledge
+        // about it's existence.
         testSession.getNode(childNPath).remove();
         testSession.save();
     }
 
-    @Ignore("OAK-51 : Removal of Node with non-writable child -> diff to jr-core")
+    /**
+     * @since OAK 1.0 : removal of node doesn't require remove permission on
+     * all child nodes (diff to jackrabbit core)
+     */
     @Test
     public void testRemoveNodeWithInvisibleNonRemovableChild() throws Exception {
         Node invisible = superuser.getNode(childNPath).addNode(nodeName3);
@@ -553,21 +692,119 @@ public class WriteTest extends AbstractEvaluationTest {
 
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
-        /* deny READ privilege at invisible node. (removal is still granted) */
+        /* deny READ/WRITE privilege at invisible node. */
         deny(invisible.getPath(), testUser.getPrincipal(), readWritePrivileges);
 
         assertTrue(testSession.nodeExists(childNPath));
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
 
-        // removing the child node must fail as a hidden child node cannot
-        // be removed.
-        try {
-            testSession.getNode(childNPath).remove();
-            testSession.save();
-            fail();
-        } catch (AccessDeniedException e) {
-            // success
-        }
+        // removing the child node succeed even if hidden subtree cannot be removed.
+        testSession.getNode(childNPath).remove();
+        testSession.save();
+    }
+
+    /**
+     * @since OAK 1.0 : removal of node doesn't require remove permission on
+     * all child nodes (diff to jackrabbit core)
+     */
+    @Test
+    public void testRemoveNodeWithNonRemovableChild() throws Exception {
+        Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+        superuser.save();
+
+        /* allow READ/WRITE privilege for testUser at 'path' */
+        allow(path, testUser.getPrincipal(), readWritePrivileges);
+        /* deny WRITE privilege at child node. */
+        deny(subtree.getPath(), testUser.getPrincipal(), repWritePrivileges);
+
+        assertTrue(testSession.nodeExists(childNPath));
+        assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+
+        // removing the child node succeed even if subtree cannot be removed.
+        testSession.getNode(childNPath).remove();
+        testSession.save();
+    }
+
+    @Test
+    public void testRemoveNodeWithInvisibleProperty() throws Exception {
+        Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+        subtree.setProperty("invisible", 14);
+        superuser.save();
+
+        String subtreePath = subtree.getPath();
+
+        /* allow READ/WRITE privilege for testUser at 'path' */
+        allow(path, testUser.getPrincipal(), readWritePrivileges);
+        /* deny READ privilege at invisible property. (removal is still granted) */
+        deny(subtreePath, testUser.getPrincipal(), privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+
+        assertTrue(testSession.nodeExists(childNPath));
+        assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+
+        assertTrue(testSession.nodeExists(subtreePath));
+        assertFalse(testSession.propertyExists(subtreePath + "/invisible"));
+
+        // removing the child node succeed even if there exists an invisible property
+        testSession.getNode(childNPath).remove();
+        testSession.save();
+    }
+
+    /**
+     * @since OAK 1.0 : removal of node doesn't require remove permission on
+     * all child items (diff to jackrabbit core)
+     */
+    @Test
+    public void testRemoveNodeWithInvisibleNonRemovableProperty() throws Exception {
+        Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+        subtree.setProperty("invisible", 14);
+        superuser.save();
+
+        String subtreePath = subtree.getPath();
+
+        /* allow READ/WRITE privilege for testUser at 'path' */
+        allow(path, testUser.getPrincipal(), readWritePrivileges);
+        /* deny READ/REMOVE property privileges at subtree. */
+        deny(subtreePath, testUser.getPrincipal(),
+                privilegesFromNames(new String[] {
+                        PrivilegeConstants.REP_READ_PROPERTIES,
+                        PrivilegeConstants.REP_REMOVE_PROPERTIES}));
+
+        assertTrue(testSession.nodeExists(childNPath));
+        assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+
+        assertTrue(testSession.nodeExists(subtreePath));
+        assertFalse(testSession.propertyExists(subtreePath + "/invisible"));
+
+        // removing the child node succeed even if hidden subtree cannot be removed.
+        testSession.getNode(childNPath).remove();
+        testSession.save();
+    }
+
+    /**
+     * @since OAK 1.0 : removal of node doesn't require remove permission on
+     * all child items (diff to jackrabbit core)
+     */
+    @Test
+    public void testRemoveNodeWithNonRemovableProperty() throws Exception {
+        Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+        subtree.setProperty("property", "visibleButNotRemovable");
+        superuser.save();
+
+        String subtreePath = subtree.getPath();
+
+        /* allow READ/WRITE privilege for testUser at 'path' */
+        allow(path, testUser.getPrincipal(), readWritePrivileges);
+        /* deny REMOVE_PROPERTY privilege at subtree. */
+        deny(subtreePath, testUser.getPrincipal(), privilegesFromName(PrivilegeConstants.REP_REMOVE_PROPERTIES));
+
+        assertTrue(testSession.nodeExists(childNPath));
+        assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+        assertTrue(testSession.nodeExists(subtreePath));
+        assertTrue(testSession.propertyExists(subtreePath + "/property"));
+
+        // removing the child node succeed even if subtree cannot be removed.
+        testSession.getNode(childNPath).remove();
+        testSession.save();
     }
 
     /**
