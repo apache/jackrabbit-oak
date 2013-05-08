@@ -302,13 +302,17 @@
       org.apache.jackrabbit.test.api.lock.LockTest#testCheckedInUnlock
       org.apache.jackrabbit.test.api.observation.GetUserDataTest#testVersioning
 
+      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemove5    <!-- OAK-781 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemove6    <!-- OAK-781 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemove7    <!-- OAK-781 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemoveIfReadingParentIsDenied      <!-- OAK-813 -->
+
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLRemoveACE <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLUnknown   <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportPolicyExists <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                                      <!-- OAK-414, OAK-482 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlManagementTest#testRemoveMixin              <!-- OAK-767 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemoveNodeWithInvisibleNonRemovableChild   <!-- OAK-51 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixin                   <!-- OAK-767 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixinWithoutPermission  <!-- OAK-767 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testCopy                          <!-- OAK-711 -->
