@@ -23,7 +23,6 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -54,7 +53,6 @@ public class ClusterTest {
     }
     
     @Test
-    @Ignore
     public void openCloseOpen() {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
@@ -71,9 +69,29 @@ public class ClusterTest {
         MongoMK mk2 = builder.setClusterId(2).open();
         mk2.commit("/", "+\"a\": {}", null, null);
         mk2.commit("/", "-\"a\"", null, null);
-        
+
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs);
+        MongoMK mk3 = builder.setClusterId(3).open();
+        mk3.commit("/", "+\"a\": {}", null, null);
+        mk3.commit("/", "-\"a\"", null, null);
+
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs);
+        MongoMK mk4 = builder.setClusterId(4).open();
+        mk4.commit("/", "+\"a\": {}", null, null);
+
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs);
+        MongoMK mk5 = builder.setClusterId(5).open();
+        mk5.commit("/", "-\"a\"", null, null);
+        mk5.commit("/", "+\"a\": {}", null, null);
+
         mk1.dispose();
         mk2.dispose();
+        mk3.dispose();
+        mk4.dispose();
+        mk5.dispose();
     }    
     
     @Test

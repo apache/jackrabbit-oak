@@ -215,7 +215,7 @@ public class MongoMK implements MicroKernel {
         init();
         // initial reading of the revisions of other cluster nodes
         backgroundRead();
-        revisionComparator.add(headRevision, Revision.getCurrentTimestamp() + 1);
+        revisionComparator.add(headRevision, Revision.newRevision(0));
         headRevision = newRevision();
         LOG.info("Initialized MongoMK with clusterNodeId: {}", clusterId);
     }
@@ -301,7 +301,10 @@ public class MongoMK implements MicroKernel {
         Map<String, String> lastRevMap = (Map<String, String>) map.get(UpdateOp.LAST_REV);
         
         boolean hasNewRevisions = false;
-        long timestamp = Revision.getCurrentTimestamp();
+        // the (old) head occurred first
+        Revision headSeen = Revision.newRevision(0);
+        // then we saw this new revision (from another cluster node) 
+        Revision otherSeen = Revision.newRevision(0);
         for (Entry<String, String> e : lastRevMap.entrySet()) {
             int machineId = Integer.parseInt(e.getKey());
             if (machineId == clusterId) {
@@ -312,7 +315,7 @@ public class MongoMK implements MicroKernel {
             if (last == null || r.compareRevisionTime(last) > 0) {
                 lastKnownRevision.put(machineId, r);
                 hasNewRevisions = true;
-                revisionComparator.add(r, timestamp);
+                revisionComparator.add(r, otherSeen);
             }
         }
         if (hasNewRevisions) {
@@ -323,44 +326,13 @@ public class MongoMK implements MicroKernel {
             Revision r = Revision.newRevision(clusterId);
             // the latest revisions of the current cluster node
             // happened before the latest revisions of other cluster nodes
-            revisionComparator.add(r, timestamp - 1);
+            revisionComparator.add(r, headSeen);
             // the head revision is after other revisions
             headRevision = Revision.newRevision(clusterId);
         }
-        revisionComparator.purge(timestamp - REMEMBER_REVISION_ORDER_MILLIS);
+        revisionComparator.purge(Revision.getCurrentTimestamp() - REMEMBER_REVISION_ORDER_MILLIS);
     }
     
-    /**
-     * Ensure the revision visible from now on, possibly by updating the head
-     * revision, so that the changes that occurred are visible.
-     * 
-     * @param revision the revision
-     */
-    void publishRevision(Revision revision) {  
-        if (revisionComparator.compare(headRevision, revision) >= 0) {
-            // already visible
-            return;
-        }
-        int clusterNodeId = revision.getClusterId();
-        if (clusterNodeId == this.clusterId) {
-            return;
-        }
-        long timestamp = Revision.getCurrentTimestamp();
-        revisionComparator.add(revision, timestamp);
-        // TODO invalidating the whole cache is not really needed,
-        // but how to ensure we invalidate the right part of the cache?
-        // possibly simply wait for the background thread to pick
-        // up the changes, but this depends on how often this method is called
-        store.invalidateCache();
-        // add a new revision, so that changes are visible
-        headRevision = Revision.newRevision(clusterId);
-        // the latest revisions of the current cluster node
-        // happened before the latest revisions of other cluster nodes
-        revisionComparator.add(headRevision, timestamp - 1);
-        // the head revision is after other revisions
-        headRevision = Revision.newRevision(clusterId);
-    }
-
     void backgroundWrite() {
         if (unsavedLastRevisions.size() == 0) {
             return;
@@ -1143,8 +1115,7 @@ public class MongoMK implements MicroKernel {
      * Get the revision of the latest change made to this node.
      * 
      * @param nodeMap the document
-     * @param readRevision the returned value is guaranteed to _not_ match this revision,
-     *              but it might be in this branch
+     * @param changeRev the revision of the current change
      * @param onlyCommitted whether only committed changes should be considered
      * @param handler the conflict handler, which is called for un-committed revisions
      *                preceding <code>before</code>.
@@ -1152,12 +1123,10 @@ public class MongoMK implements MicroKernel {
      */
     @SuppressWarnings("unchecked")
     @Nullable Revision getNewestRevision(Map<String, Object> nodeMap,
-                                         Revision except, boolean onlyCommitted,
-                                         CollisionHandler handler) {
+                                         Revision changeRev, CollisionHandler handler) {
         if (nodeMap == null) {
             return null;
         }
-        // TODO remove "except"
         SortedSet<String> revisions = new TreeSet<String>(Collections.reverseOrder());
         if (nodeMap.containsKey(UpdateOp.REVISIONS)) {
             revisions.addAll(((Map<String, String>) nodeMap.get(UpdateOp.REVISIONS)).keySet());
@@ -1173,10 +1142,16 @@ public class MongoMK implements MicroKernel {
         Revision newestRev = null;
         for (String r : revisions) {
             Revision propRev = Revision.fromString(r);
+            if (isRevisionNewer(propRev, changeRev)) {
+                // we have seen a previous change from another cluster node
+                // (which might be conflicting or not) - we need to make
+                // sure this change is visible from now on
+                publishRevision(propRev, changeRev);
+            }
             if (newestRev == null || isRevisionNewer(propRev, newestRev)) {
-                if (!propRev.equals(except)) {
-                    if (onlyCommitted && !isValidRevision(
-                            propRev, except, nodeMap, new HashSet<Revision>())) {
+                if (!propRev.equals(changeRev)) {
+                    if (!isValidRevision(
+                            propRev, changeRev, nodeMap, new HashSet<Revision>())) {
                         handler.uncommittedModification(propRev);
                     } else {
                         newestRev = propRev;
@@ -1195,6 +1170,42 @@ public class MongoMK implements MicroKernel {
             }
         }
         return newestRev;
+    }
+    
+    /**
+     * Ensure the revision visible from now on, possibly by updating the head
+     * revision, so that the changes that occurred are visible.
+     * 
+     * @param foreignRevision the revision from another cluster node
+     * @param changeRevision the local revision that is sorted after the foreign revision
+     */
+    private void publishRevision(Revision foreignRevision, Revision changeRevision) {  
+        if (revisionComparator.compare(headRevision, foreignRevision) >= 0) {
+            // already visible
+            return;
+        }
+        int clusterNodeId = foreignRevision.getClusterId();
+        if (clusterNodeId == this.clusterId) {
+            return;
+        }
+        // the (old) head occurred first
+        Revision headSeen = Revision.newRevision(0);
+        // then we saw this new revision (from another cluster node) 
+        Revision otherSeen = Revision.newRevision(0);
+        // and after that, the current change
+        Revision changeSeen = Revision.newRevision(0);
+        revisionComparator.add(foreignRevision, otherSeen);
+        // TODO invalidating the whole cache is not really needed,
+        // but how to ensure we invalidate the right part of the cache?
+        // possibly simply wait for the background thread to pick
+        // up the changes, but this depends on how often this method is called
+        store.invalidateCache();
+        // the latest revisions of the current cluster node
+        // happened before the latest revisions of other cluster nodes
+        revisionComparator.add(headRevision, headSeen);
+        revisionComparator.add(changeRevision, changeSeen);
+        // the head revision is after other revisions
+        headRevision = Revision.newRevision(clusterId);
     }
     
     private static String stripBranchRevMarker(String revisionId) {
