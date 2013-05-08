@@ -261,6 +261,100 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
         }
     }
 
+    @Test
+    public void testDefaultSync() throws Exception {
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            createLdapFixture();
+        }
+
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, null);
+
+        // create user upfront in order to test update mode
+        userManager.createUser(USER_ID, null);
+        root.commit();
+
+        ContentSession cs = null;
+        try {
+            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+
+            root.refresh();
+            Authorizable user = userManager.getAuthorizable(USER_ID);
+            assertNotNull(user);
+            assertTrue(user.hasProperty(USER_PROP));
+            Authorizable group = userManager.getAuthorizable(GROUP_DN);
+            assertTrue(group.hasProperty(GROUP_PROP));
+            assertNotNull(group);
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
+    }
+
+    @Test
+    public void testSyncUpdate() throws Exception {
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            createLdapFixture();
+        }
+
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.UPDATE);
+
+        // create user upfront in order to test update mode
+        userManager.createUser(USER_ID, null);
+        root.commit();
+
+        ContentSession cs = null;
+        try {
+            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+
+            root.refresh();
+            Authorizable user = userManager.getAuthorizable(USER_ID);
+            assertNotNull(user);
+            assertTrue(user.hasProperty(USER_PROP));
+            assertNull(userManager.getAuthorizable(GROUP_DN));
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
+    }
+
+    @Test
+    public void testSyncUpdateAndGroups() throws Exception {
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            createLdapFixture();
+        }
+
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.UPDATE, SyncMode.CREATE_GROUP});
+
+        // create user upfront in order to test update mode
+        userManager.createUser(USER_ID, null);
+        root.commit();
+
+        ContentSession cs = null;
+        try {
+            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+
+            root.refresh();
+            Authorizable user = userManager.getAuthorizable(USER_ID);
+            assertNotNull(user);
+            assertTrue(user.hasProperty(USER_PROP));
+            Authorizable group = userManager.getAuthorizable(GROUP_DN);
+            assertTrue(group.hasProperty(GROUP_PROP));
+            assertNotNull(group);
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
+    }
+
     protected static void createLdapFixture() throws Exception {
         LDAP_SERVER.addMember(
                 GROUP_DN = LDAP_SERVER.addGroup(GROUP_NAME),

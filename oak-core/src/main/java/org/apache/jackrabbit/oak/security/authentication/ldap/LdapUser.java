@@ -52,6 +52,10 @@ public class LdapUser implements ExternalUser {
 
     @Override
     public String getPassword() {
+        return null;
+    }
+
+    public String getLdapPassword() {
         return pwd;
     }
 

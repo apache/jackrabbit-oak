@@ -228,7 +228,7 @@ public class JndiLdapSearch implements LdapSearch {
         try {
             Hashtable<String,String> env = new Hashtable<String,String>(ldapEnvironment);
             env.put(Context.SECURITY_PRINCIPAL, user.getDN());
-            env.put(Context.SECURITY_CREDENTIALS, user.getPassword());
+            env.put(Context.SECURITY_CREDENTIALS, user.getLdapPassword());
             //TODO
             env.put(Context.SECURITY_AUTHENTICATION, "simple");
             new InitialDirContext(env).close();
