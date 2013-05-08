@@ -327,7 +327,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         }
     }
 
-    @Ignore() // FIXME
+    @Ignore("OAK-781") // FIXME
     @Test
     public void testImplicitAceRemoval() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
@@ -353,8 +353,10 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
 
         testRoot.getTree(childPath).remove();
         testRoot.commit();
+        testSession.close();
 
         root.refresh();
+        assertFalse(root.getTree(testPath).hasChild("childNode"));
         assertFalse(root.getTree(childPath+"/rep:policy").exists());
         // aces must be removed in the permission store even if the editing
         // session wasn't able to access them.
