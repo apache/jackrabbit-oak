@@ -46,6 +46,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -58,6 +59,7 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
@@ -196,12 +198,13 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Nonnull
-    private ACL setupPolicy(@Nullable String path) throws RepositoryException {
+    private ACL setupPolicy(@Nullable String path, @Nullable Privilege... privileges) throws RepositoryException {
+        Privilege[] privs = (privileges == null || privileges.length == 0) ? testPrivileges : privileges;
         ACL policy = getApplicablePolicy(path);
         if (path == null) {
-            policy.addAccessControlEntry(testPrincipal, testPrivileges);
+            policy.addAccessControlEntry(testPrincipal, privs);
         } else {
-            policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
+            policy.addEntry(testPrincipal, privs, true, getGlobRestriction("*"));
         }
         acMgr.setPolicy(path, policy);
         return policy;
@@ -963,7 +966,38 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     //---------------------------------------< getEffectivePolicies(String) >---
     @Test
     public void testGetEffectivePolicies() throws Exception {
-        // TODO
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(testPath);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+
+        setupPolicy(testPath);
+        policies = acMgr.getEffectivePolicies(testPath);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+
+        root.commit();
+        policies = acMgr.getEffectivePolicies(testPath);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+
+        policies = acMgr.getEffectivePolicies(childPath);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+
+        setupPolicy(childPath);
+
+        policies = acMgr.getEffectivePolicies(childPath);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+
+        root.commit();
+
+        policies = acMgr.getEffectivePolicies(childPath);
+        assertNotNull(policies);
+        assertEquals(2, policies.length);
     }
 
     @Test
@@ -1007,6 +1041,77 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
                 acMgr.getEffectivePolicies(path);
                 fail("Getting effective policies for access control content should fail.");
             } catch (AccessControlException e) {
+                // success
+            }
+        }
+    }
+
+    /**
+     * @since OAK 1.0
+     */
+    @Test
+    public void testTestSessionGetEffectivePolicies() throws Exception {
+        // grant 'testUser' READ + READ_AC privileges at 'path'
+        Privilege[] privileges = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        setupPolicy(testPath, privileges);
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        AccessControlManager testAcMgr = getTestAccessControlManager();
+
+        assertTrue(testAcMgr.hasPrivileges(testPath, privileges));
+
+        // diff to jr core: getEffectivePolicies will just return the policies
+        // accessible for the editing session but not throw an exception.
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(testPath);
+        assertNotNull(effective);
+        assertEquals(1, effective.length);
+    }
+
+    /**
+     * @since OAK 1.0
+     */
+    @Test
+    public void testTestSessionGetEffectivePolicies2() throws Exception {
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+
+        setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ));
+        setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        AccessControlManager testAcMgr = getTestAccessControlManager();
+
+        assertTrue(testAcMgr.hasPrivileges(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
+
+        // diff to jr core: getEffectivePolicies will just return the policies
+        // accessible for the editing session but not throw an exception.
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(childPath);
+        assertNotNull(effective);
+        assertEquals(1, effective.length);
+    }
+
+    @Test
+    public void testTestSessionGetEffectivePoliciesWithoutPrivilege() throws Exception {
+        // grant 'testUser' READ + READ_AC privileges at 'path'
+        Privilege[] privileges = privilegesFromNames(PrivilegeConstants.JCR_READ);
+        setupPolicy(testPath, privileges);
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        AccessControlManager testAcMgr = getTestAccessControlManager();
+
+        List<String> paths = ImmutableList.of(testPath, NodeTypeConstants.NODE_TYPES_PATH);
+        for (String path : paths) {
+            assertFalse(testAcMgr.hasPrivileges(path, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
+            try {
+                testAcMgr.getEffectivePolicies(path);
+                fail("READ_ACCESS_CONTROL is not granted at " + path);
+            } catch (AccessDeniedException e) {
                 // success
             }
         }
@@ -1554,20 +1659,170 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
             assertNotNull(policies);
             assertEquals(0, policies.length);
         }
+
+        setupPolicy(testPath);
+        // changes not yet persisted -> no effecitve policies found for testprincipal
+        for (Set<Principal> principals : principalSets) {
+            AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
+            assertNotNull(policies);
+            assertEquals(0, policies.length);
+        }
+
+        root.commit();
+        // after persisting changes -> the policy must be found
+        for (Set<Principal> principals : principalSets) {
+            AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
+            assertNotNull(policies);
+            if (principals.contains(getTestPrincipal())) {
+                assertEquals(1, policies.length);
+            } else {
+                assertEquals(0, policies.length);
+            }
+        }
+
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+        setupPolicy(childPath);
+        // changes not yet persisted -> no effecitve policies found for testprincipal
+        for (Set<Principal> principals : principalSets) {
+            AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
+            assertNotNull(policies);
+            if (principals.contains(getTestPrincipal())) {
+                assertEquals(1, policies.length);
+            } else {
+                assertEquals(0, policies.length);
+            }
+        }
+
+        root.commit();
+        // after persisting changes -> the policy must be found
+        for (Set<Principal> principals : principalSets) {
+            AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
+            assertNotNull(policies);
+            if (principals.contains(getTestPrincipal())) {
+                assertEquals(2, policies.length);
+            } else {
+                assertEquals(0, policies.length);
+            }
+        }
+
     }
 
     @Test
-    public void testGetEffectivePoliciesByPrincipal2() throws Exception {
-        setupPolicy(testPath);
+    public void testTestSessionGetEffectivePoliciesByPrincipal() throws Exception {
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
 
-        // changes not yet persisted -> no effecitve policies found for testprincipal
-        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
-        assertNotNull(policies);
-        assertEquals(0, policies.length);
-
-        // after persisting changes -> the policy must be found
+        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        setupPolicy(testPath, privs);
+        setupPolicy(childPath, privs);
         root.commit();
-        policies = acMgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
+
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(getTestPrincipal()));
+        assertNotNull(effective);
+        assertEquals(2, effective.length);
+    }
+
+    /**
+     * @since OAK 1.0 Policy at testPath not accessible -> getEffectivePolicies
+     * only returns the readable policy but doesn't fail.
+     */
+    @Test
+    public void testTestSessionGetEffectivePoliciesByPrincipal2() throws Exception {
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+
+        // policy at testPath: ac content was visible but the policy can't be
+        // retrieved from AcMgr as the accesscontrolled node is not visible.
+        setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        // policy at childPath: will be found by the getEffectivePolicies
+        setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
+
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(getTestPrincipal()));
+        assertNotNull(effective);
+        assertEquals(1, effective.length);
+    }
+
+    /**
+     * @since OAK 1.0 Policy at testPath not accessible -> getEffectivePolicies
+     * only returns the readable policy but doesn't fail.
+     */
+    @Test
+    public void testTestSessionGetEffectivePoliciesByPrincipal3() throws Exception {
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+
+        setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ));
+        setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
+
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(getTestPrincipal()));
+        assertNotNull(effective);
+        assertEquals(1, effective.length);
+    }
+
+    @Test
+    public void testTestSessionGetEffectivePoliciesByPrincipals() throws Exception {
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+
+        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+
+        JackrabbitAccessControlList acl = getApplicablePolicy(childPath);
+        acl.addEntry(EveryonePrincipal.getInstance(), privs, true);
+        acMgr.setPolicy(childPath, acl);
+
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
+
+        Set<Principal> principals = ImmutableSet.of(getTestPrincipal(), EveryonePrincipal.getInstance());
+        AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
+        assertNotNull(policies);
+        assertEquals(2, policies.length);
+    }
+
+    /**
+     * @since OAK 1.0 : only accessible policies are returned by call succeeds
+     */
+    @Test
+    public void testTestSessionGetEffectivePoliciesByPrincipals2() throws Exception {
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+
+        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+
+        // create policy on testPath -> but deny access to test session
+        JackrabbitAccessControlList acl = getApplicablePolicy(testPath);
+        acl.addEntry(getTestPrincipal(), privs, false);
+        acMgr.setPolicy(testPath, acl);
+
+        // grant access at childpath
+        setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
+
+        Set<Principal> principals = ImmutableSet.of(getTestPrincipal(), EveryonePrincipal.getInstance());
+        AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
         assertNotNull(policies);
         assertEquals(1, policies.length);
     }
