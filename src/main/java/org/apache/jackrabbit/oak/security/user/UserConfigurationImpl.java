@@ -83,15 +83,15 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     //--------------------------------------------------< UserConfiguration >---
     @Nonnull
     @Override
-    public AuthorizableActionProvider getAuthorizableActionProvider() {
-        // TODO OAK-521: add proper implementation
-        AuthorizableActionProvider defProvider = new DefaultAuthorizableActionProvider(securityProvider, config);
-        return config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, defProvider);
+    public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
+        return new UserManagerImpl(root, namePathMapper, securityProvider);
     }
 
     @Nonnull
     @Override
-    public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
-        return new UserManagerImpl(root, namePathMapper, securityProvider);
+    public AuthorizableActionProvider getAuthorizableActionProvider() {
+        // TODO OAK-521: add proper implementation
+        AuthorizableActionProvider defProvider = new DefaultAuthorizableActionProvider(securityProvider, config);
+        return config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, defProvider);
     }
 }
