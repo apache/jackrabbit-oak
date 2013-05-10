@@ -24,12 +24,15 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 
 /**
- * AuthenticationConfiguration... TODO
+ * Interface for the authentication setup.
  */
 public interface AuthenticationConfiguration extends SecurityConfiguration {
 
     String PARAM_AUTHENTICATION_OPTIONS = "org.apache.jackrabbit.oak.authentication.options";
+    String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.authentication.token.options";
+
     String PARAM_APP_NAME = "org.apache.jackrabbit.oak.auth.appName";
+    String DEFAULT_APP_NAME = "jackrabbit.oak";
 
     @Nonnull
     LoginContextProvider getLoginContextProvider(ContentRepository contentRepository);
