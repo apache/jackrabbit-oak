@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 /**
- * OpenPermissionProvider... TODO
+ * Permission provider implementation that grants full access everywhere.
  */
 public final class OpenPermissionProvider implements PermissionProvider {
 

@@ -39,7 +39,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Jr2CompatibilityTest... TODO
+ * Test compatibility with Jackrabbit 2.x using the
+ * {@link AccessControlConstants#PARAM_PERMISSIONS_JR2} configuration parameter.
  */
 public class Jr2CompatibilityTest extends AbstractOakCoreTest {
 
