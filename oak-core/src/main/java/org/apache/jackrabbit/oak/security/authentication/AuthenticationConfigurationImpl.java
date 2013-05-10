@@ -33,15 +33,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * AuthenticationConfigurationImpl... TODO
+ * Default implementation of the {@code AuthenticationConfiguration} with the
+ * following characteristics:
+ *
+ * <ul>
+ * <li>
+ *     {@link LoginContextProvider}: Returns the default implementation of
+ *     {@code LoginContextProvider} that handles standard JAAS based logins and
+ *     deals with pre-authenticated subjects.</li>
+ * <li>
+ *     {@link TokenProvider}: Returns the default implementation of the token
+ *     provider interface that stores information in the content repository.
+ * </li>
+ * </ul>
+ *
  */
 public class AuthenticationConfigurationImpl extends SecurityConfiguration.Default implements AuthenticationConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);
-
-    private static final String DEFAULT_APP_NAME = "jackrabbit.oak";
-
-    public static final String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.token.options";
 
     private final SecurityProvider securityProvider;
     private final ConfigurationParameters config;
@@ -51,6 +60,30 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
         this.config = securityProvider.getConfiguration(PARAM_AUTHENTICATION_OPTIONS);
     }
 
+    /**
+     * Create a {@code LoginContextProvider} using standard
+     * {@link javax.security.auth.login.Configuration#getConfiguration() JAAS}
+     * functionality. In case no login configuration for the specified app name
+     * can be retrieve this implementation uses the default as defined by
+     * {@link ConfigurationUtil#getDefaultConfiguration(ConfigurationParameters)}.
+     * <p>
+     * The {@link LoginContextProvider} implementation is intended to be used with
+     * <ul>
+     *     <li>Regular login using JAAS {@link javax.security.auth.spi.LoginModule} or</li>
+     *     <li>Pre-authenticated subjects in which case any authentication
+     *     related validation is omitted</li>
+     * </ul>
+     *
+     * <h4>Configuration Options</h4>
+     * <ul>
+     *     <li>{@link #PARAM_APP_NAME}: The appName passed to
+     *     {@code Configuration#getAppConfigurationEntry(String)}. The default
+     *     value is {@link #DEFAULT_APP_NAME}.</li>
+     * </ul>
+     *
+     * @param contentRepository The content repository.
+     * @return An new instance of {@link LoginContextProviderImpl}.
+     */
     @Nonnull
     @Override
     public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
@@ -60,20 +93,31 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
             loginConfig = Configuration.getConfiguration();
             // FIXME: workaround for Java7 behavior. needs clean up (see OAK-497)
             if (loginConfig.getAppConfigurationEntry(appName) == null) {
-                log.debug("No login configuration available for {}; using default", appName);
                 loginConfig = null;
             }
         } catch (SecurityException e) {
             log.info("Failed to retrieve login configuration: using default. " + e);
         }
         if (loginConfig == null) {
-            // TODO: define configuration structure
-            // TODO: review if having a default is desirable or if login should fail without valid login configuration.
+            log.debug("No login configuration available for {}; using default", appName);
             loginConfig = ConfigurationUtil.getDefaultConfiguration(config);
         }
         return new LoginContextProviderImpl(appName, loginConfig, contentRepository, securityProvider);
     }
 
+    /**
+     * Returns a new instance of {@link TokenProviderImpl}.
+     *
+     * <h4>Configuration Options</h4>
+     * <ul>
+     *     <li>{@link #PARAM_TOKEN_OPTIONS}: The configuration parameters for
+     *     the token provider which allows to change the default expiration time
+     *     and the length of the generated token.</li>
+     * </ul>
+     *
+     * @param root The target root.
+     * @return A new instance of {@link TokenProviderImpl}.
+     */
     @Nonnull
     @Override
     public TokenProvider getTokenProvider(Root root) {
