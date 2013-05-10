@@ -74,7 +74,12 @@
               <exclude>.git/**</exclude>
               <exclude>.idea/**</exclude>
               <exclude>.gitignore</exclude>
+              <exclude>doc/*.uxf</exclude>
               <exclude>oak-js/package.json</exclude>
+              <exclude>oak-mk-perf/.*/**</exclude>
+              <exclude>oak-mk-perf/target/**</exclude>
+              <exclude>oak-mongomk-perf/.*/**</exclude>
+              <exclude>oak-mongomk-perf/target/**</exclude>
             </excludes>
           </configuration>
         </plugin>
