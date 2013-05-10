@@ -229,7 +229,7 @@ abstract class ACL extends AbstractAccessControlList {
         return true;
     }
 
-    // TODO
+    // TODO: OAK-814
     private boolean isRedundantOrExtending(ACE existing, ACE entry) {
         return existing.isAllow() == entry.isAllow()
                 && (!(existing.getPrincipal() instanceof Group) || entries.indexOf(existing) == entries.size() - 1);

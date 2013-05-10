@@ -489,21 +489,20 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @CheckForNull
     private JackrabbitAccessControlList createACL(@Nullable String oakPath,
                                                   @Nonnull Tree accessControlledTree,
-                                                  boolean isReadOnly) throws RepositoryException {
+                                                  boolean isEffectivePolicy) throws RepositoryException {
         JackrabbitAccessControlList acl = null;
         String aclName = AccessControlUtils.getAclName(oakPath);
-        String mixinName = AccessControlUtils.getMixinName(oakPath);
-
         if (accessControlledTree.exists() && AccessControlUtils.isAccessControlled(oakPath, accessControlledTree, ntMgr)) {
             Tree aclTree = accessControlledTree.getChild(aclName);
-            if (aclTree.exists()) {
+            // TODO: effective policies: add proper handling for modified ACLs
+            if (aclTree.exists() && (!isEffectivePolicy || aclTree.getStatus() != Tree.Status.NEW)) {
                 List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
                 for (Tree child : aclTree.getChildren()) {
                     if (AccessControlUtils.isACE(child, ntMgr)) {
                         entries.add(createACE(oakPath, child, restrictionProvider));
                     }
                 }
-                if (isReadOnly) {
+                if (isEffectivePolicy) {
                     acl = new ImmutableACL(oakPath, entries, restrictionProvider, namePathMapper);
                 } else {
                     acl = new NodeACL(oakPath, entries);
