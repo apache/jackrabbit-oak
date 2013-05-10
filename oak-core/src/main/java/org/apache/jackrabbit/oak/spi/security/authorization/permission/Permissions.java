@@ -32,7 +32,8 @@ import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 /**
- * Permissions... TODO
+ * Provides constants for permissions used in the OAK access evaluation as well
+ * as permission related utility methods.
  */
 public final class Permissions {
 
@@ -79,6 +80,9 @@ public final class Permissions {
 
     public static final long PRIVILEGE_MANAGEMENT = WORKSPACE_MANAGEMENT << 1;
 
+    /**
+     * @since OAK 1.0
+     */
     public static final long USER_MANAGEMENT = PRIVILEGE_MANAGEMENT << 1;
 
     public static final long READ = READ_NODE | READ_PROPERTY;
