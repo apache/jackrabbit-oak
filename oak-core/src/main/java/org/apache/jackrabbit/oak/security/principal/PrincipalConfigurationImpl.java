@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 
 /**
- * PrincipalConfigurationImpl... TODO
+ * Default implementation of the {@code PrincipalConfiguration}
  */
 public class PrincipalConfigurationImpl extends SecurityConfiguration.Default implements PrincipalConfiguration {
 
