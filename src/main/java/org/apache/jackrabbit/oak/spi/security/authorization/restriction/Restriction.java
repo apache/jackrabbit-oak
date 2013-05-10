@@ -22,13 +22,27 @@ import javax.jcr.Value;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * Restriction... TODO
+ * A {@code Restriction} object represents a "live" restriction object that
+ * has been created using the Jackrabbit specific extensions of the
+ * {@link javax.jcr.security.AccessControlEntry AccessControlEntry} interface.
+ *
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlList#addEntry(java.security.Principal, javax.jcr.security.Privilege[], boolean, java.util.Map)
  */
 public interface Restriction extends RestrictionDefinition {
 
+    /**
+     * The OAK property state associated with this restriction.
+     *
+     * @return An {@code PropertyState}.
+     */
     @Nonnull
     PropertyState getProperty();
 
+    /**
+     * The JCR value of this restriction object contained in {@link #getProperty()}.
+     *
+     * @return The JCR value of this restriction.
+     */
     @Nonnull
     Value getValue();
 }

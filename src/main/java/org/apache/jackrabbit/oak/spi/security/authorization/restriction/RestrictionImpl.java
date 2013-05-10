@@ -64,7 +64,7 @@ public class RestrictionImpl extends RestrictionDefinitionImpl implements Restri
         }
         if (o instanceof RestrictionImpl) {
             RestrictionImpl other = (RestrictionImpl) o;
-            return super.equals(other) && getValue().equals(other.getValue());
+            return super.equals(other) && property.equals(property);
         }
 
         return false;

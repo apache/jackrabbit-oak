@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
- * {@code AccessControlContextProvider}...
+ * Configuration for access control management and permission evaluation.
  */
 public interface AccessControlConfiguration extends SecurityConfiguration {
 

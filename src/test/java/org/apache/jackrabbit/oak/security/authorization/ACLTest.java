@@ -417,7 +417,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         assertFalse(acl.getEntries().get(0).isAllow());
     }
 
-    @Ignore("OAK-51") // TODO
+    @Ignore("OAK-814") // TODO
     @Test
     public void testUpdateGroupEntry() throws Exception {
         Privilege[] readPriv = privilegesFromNames(JCR_READ);
@@ -439,7 +439,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         assertACE(princ2AllowEntry, true, privilegesFromNames(JCR_READ, JCR_WRITE));
     }
 
-    @Ignore("OAK-51") // TODO
+    @Ignore("OAK-814") // TODO
     @Test
     public void testComplementaryGroupEntry() throws Exception {
         Privilege[] readPriv = privilegesFromNames(JCR_READ);
@@ -466,7 +466,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         assertACE(second, false, privilegesFromNames(JCR_READ, JCR_WRITE));
     }
 
-    @Ignore("OAK-51") // TODO
+    @Ignore("OAK-814") // TODO
     @Test
     public void testAllowWriteDenyRemoveGroupEntries() throws Exception {
         Principal everyone = principalManager.getEveryone();
