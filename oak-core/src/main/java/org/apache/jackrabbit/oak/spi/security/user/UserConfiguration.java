@@ -25,16 +25,15 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 
 /**
- * UserConfiguration...
- * TODO: OAK-522
+ * Configuration interface for user management.
  */
 public interface UserConfiguration extends SecurityConfiguration {
 
     String PARAM_USER_OPTIONS = "org.apache.jackrabbit.oak.user.options";
 
     @Nonnull
-    AuthorizableActionProvider getAuthorizableActionProvider();
+    UserManager getUserManager(Root root, NamePathMapper namePathMapper);
 
     @Nonnull
-    UserManager getUserManager(Root root, NamePathMapper namePathMapper);
+    AuthorizableActionProvider getAuthorizableActionProvider();
 }
