@@ -34,6 +34,9 @@ select [jcr:path], [jcr:score], * from [nt:base] as a where [foo1] is not null a
 xpath2sql testroot//child[@foo1]
 select [jcr:path], [jcr:score], * from [nt:base] as a where [foo1] is not null and name(a) = 'child' and isdescendantnode(a, '/testroot') /* xpath: testroot//child[@foo1] */
 
+xpath2sql test.root//ch.ild[@fo.o1]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [fo.o1] is not null and name(a) = 'ch.ild' and isdescendantnode(a, '/test.root') /* xpath: test.root//ch.ild[@fo.o1] */
+
 xpath2sql /jcr:root/testroot/node11
 select [jcr:path], [jcr:score], * from [nt:base] as a where issamenode(a, '/testroot/node11') /* xpath: /jcr:root/testroot/node11 */
 

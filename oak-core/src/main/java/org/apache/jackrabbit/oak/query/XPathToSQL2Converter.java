@@ -837,7 +837,11 @@ public class XPathToSQL2Converter {
                 type = types[i];
                 // the '-' can be part of a name,
                 // for example in "fn:lower-case"
-                if (type != CHAR_NAME && type != CHAR_VALUE && chars[i] != '-') {
+                // the '.' can be part of a name,
+                // for example in "@offloading.status"
+                if (type != CHAR_NAME && type != CHAR_VALUE 
+                        && chars[i] != '-'
+                        && chars[i] != '.') {
                     break;
                 }
                 i++;
