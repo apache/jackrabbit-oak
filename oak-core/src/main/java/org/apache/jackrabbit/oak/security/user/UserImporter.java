@@ -150,7 +150,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     private Map<String, Principal> principals;
 
     UserImporter(ConfigurationParameters config) {
-        String importBehaviorStr = config.getConfigValue(PARAM_IMPORT_BEHAVIOR, ImportBehavior.nameFromValue(ImportBehavior.IGNORE));
+        String importBehaviorStr = config.getConfigValue(PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
         importBehavior = ImportBehavior.valueFromString(importBehaviorStr);
     }
 
