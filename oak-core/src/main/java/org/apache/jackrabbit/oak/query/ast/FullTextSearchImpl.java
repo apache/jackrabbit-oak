@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 
 /**
  * A fulltext "contains(...)" condition.
@@ -100,6 +101,10 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
+        if (selector.index instanceof FulltextQueryIndex) {
+            return true;
+        }
+        
         StringBuilder buff = new StringBuilder();
         if (relativePath == null && propertyName != null) {
             PropertyValue p = selector.currentProperty(propertyName);
