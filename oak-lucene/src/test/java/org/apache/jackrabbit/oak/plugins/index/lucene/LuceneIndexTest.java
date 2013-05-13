@@ -21,6 +21,7 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
@@ -49,7 +50,8 @@ public class LuceneIndexTest {
 
     @Test
     public void testLucene() throws Exception {
-        newLuceneIndexDefinition(builder, "lucene", null);
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLuceneIndexDefinition(index, "lucene", null);
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -71,7 +73,8 @@ public class LuceneIndexTest {
 
     @Test
     public void testLucene2() throws Exception {
-        newLuceneIndexDefinition(builder, "lucene", null);
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLuceneIndexDefinition(index, "lucene", null);
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -101,7 +104,8 @@ public class LuceneIndexTest {
 
     @Test
     public void testLucene3() throws Exception {
-        newLuceneIndexDefinition(builder, "lucene", ImmutableSet.of(Type.STRING.toString()));
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLuceneIndexDefinition(index, "lucene", ImmutableSet.of(Type.STRING.toString()));
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
