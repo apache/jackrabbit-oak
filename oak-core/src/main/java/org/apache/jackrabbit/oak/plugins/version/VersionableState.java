@@ -125,7 +125,7 @@ class VersionableState {
         // add the frozen children and histories
         for (String name : src.getChildNodeNames()) {
             NodeBuilder child = src.getChildNode(name);
-            int opv = getOPV(src, child);
+            int opv = getOPV(src, child, name);
 
             if (opv == OnParentVersionAction.ABORT) {
                 throw new CommitFailedException(CommitFailedException.VERSION, 1,
@@ -192,10 +192,12 @@ class VersionableState {
         }
     }
 
-    private int getOPV(NodeBuilder parent, NodeBuilder child)
+    private int getOPV(NodeBuilder parent, NodeBuilder child, String childName)
             throws RepositoryException {
-        return ntMgr.getDefinition(new ReadOnlyTree(parent.getNodeState()),
-                new ReadOnlyTree(child.getNodeState())).getOnParentVersion();
+        ReadOnlyTree parentTree = new ReadOnlyTree(parent.getNodeState());
+        ReadOnlyTree childTree = new ReadOnlyTree(
+                parentTree, childName, child.getNodeState());
+        return ntMgr.getDefinition(parentTree, childTree).getOnParentVersion();
     }
 
     private int getOPV(NodeBuilder node, PropertyState property)
