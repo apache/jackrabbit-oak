@@ -27,18 +27,16 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * AccessControlUtils... TODO
+ * Access control specific utility methods
  */
 public final class AccessControlUtils extends org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils implements AccessControlConstants {
 
     /**
-     * logger instance
+     *  Private constructor to avoid instantiation
      */
-    private static final Logger log = LoggerFactory.getLogger(AccessControlUtils.class);
+    private AccessControlUtils() {}
 
     public static void checkValidPrincipal(Principal principal, PrincipalManager principalManager) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();

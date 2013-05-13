@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
- * {@code AccessControlConfigurationImpl} ... TODO
+ * Default implementation of the {@code AccessControlConfiguration}.
  */
 public class AccessControlConfigurationImpl extends SecurityConfiguration.Default implements AccessControlConfiguration {
 
