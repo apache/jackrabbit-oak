@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
@@ -96,7 +97,7 @@ import org.slf4j.LoggerFactory;
  * @see QueryIndex
  * 
  */
-public class LuceneIndex implements QueryIndex {
+public class LuceneIndex implements FulltextQueryIndex {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndex.class);
