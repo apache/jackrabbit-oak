@@ -185,6 +185,15 @@ public class XPathToSQL2Converter {
             } else if (readIf("@")) {
                 Property p = readProperty();
                 columnList.add(p);
+            } else if (readIf("rep:excerpt")) {
+                read("(");
+                if (!readIf(")")) {
+                    // only rep:excerpt(.) and rep:excerpt() are currently supported
+                    read(".");
+                    read(")");
+                }
+                Property p = new Property(currentSelector, "rep:excerpt");
+                columnList.add(p);
             } else if (readIf("(")) {
                 // special case: ".../(@prop)" is actually not a child node, 
                 // but the same node (selector) as before 
