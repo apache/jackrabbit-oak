@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import javax.annotation.Nonnull;
@@ -55,7 +58,12 @@ public class VersionablePathHook implements CommitHook {
         NodeBuilder rootBuilder = after.builder();
         NodeBuilder vsRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(NodeTypeConstants.JCR_VERSIONSTORAGE);
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(vsRoot, rootBuilder);
-        after.compareAgainstBaseState(before, new Diff(vMgr, new Node(rootBuilder)));
+        List<CommitFailedException> exceptions = new ArrayList<CommitFailedException>();
+        after.compareAgainstBaseState(before,
+                new Diff(vMgr, new Node(rootBuilder), exceptions));
+        if (!exceptions.isEmpty()) {
+            throw exceptions.get(0);
+        }
         return rootBuilder.getNodeState();
     }
 
@@ -63,17 +71,28 @@ public class VersionablePathHook implements CommitHook {
 
         private final ReadWriteVersionManager versionManager;
         private final Node nodeAfter;
+        private final List<CommitFailedException> exceptions;
 
-        private Diff(@Nonnull ReadWriteVersionManager versionManager, @Nonnull Node node) {
+        private Diff(@Nonnull ReadWriteVersionManager versionManager,
+                     @Nonnull Node node,
+                     @Nonnull List<CommitFailedException> exceptions) {
             this.versionManager = versionManager;
             this.nodeAfter = node;
+            this.exceptions = exceptions;
         }
 
         @Override
         public boolean propertyAdded(PropertyState after) {
             if (VersionConstants.JCR_VERSIONHISTORY.equals(after.getName())
                     && nodeAfter.isVersionable(versionManager)) {
-                NodeBuilder vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder);
+                NodeBuilder vhBuilder;
+                try {
+                    vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder);
+                } catch (CommitFailedException e) {
+                    exceptions.add(e);
+                    // stop further comparison
+                    return false;
+                }
 
                 if (!vhBuilder.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
                     vhBuilder.setProperty(
@@ -98,7 +117,7 @@ public class VersionablePathHook implements CommitHook {
                 String name, NodeState before, NodeState after) {
             Node node = new Node(nodeAfter, name);
             return after.compareAgainstBaseState(
-                    before, new Diff(versionManager, node));
+                    before, new Diff(versionManager, node, exceptions));
         }
     }
 

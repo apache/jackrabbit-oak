@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.version;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -46,6 +47,9 @@ class VersionEditor implements Editor {
     private final ReadWriteVersionManager vMgr;
     private final NodeBuilder node;
     private Boolean isVersionable = null;
+    private NodeState before;
+    private NodeState after;
+    private boolean wasReadOnly;
 
     public VersionEditor(@Nonnull NodeBuilder versionStore,
             @Nonnull NodeBuilder workspaceRoot) {
@@ -63,20 +67,29 @@ class VersionEditor implements Editor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
+        this.before = before;
+        this.after = after;
         if (isVersionable()) {
             vMgr.getOrCreateVersionHistory(node);
+        }
+        // calculate wasReadOnly state
+        if (after.exists() || isVersionable()) {
+            // deleted or versionable -> check if it was checked in
+            wasReadOnly = wasCheckedIn();
+        } else {
+            // otherwise inherit from parent
+            wasReadOnly = parent != null && parent.wasReadOnly;
         }
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-
     }
 
     @Override
     public void propertyAdded(PropertyState after) {
-        if (!isVersionable()) {
+        if (!wasReadOnly) {
             return;
         }
         // JCR allows to put a lock on a checked in node.
@@ -84,14 +97,13 @@ class VersionEditor implements Editor {
                 || after.getName().equals(JcrConstants.JCR_LOCKISDEEP)) {
             return;
         }
-        if (wasCheckedIn()) {
-            throwCheckedIn("Cannot add property " + after.getName()
-                    + " on checked in node");
-        }
+        throwCheckedIn("Cannot add property " + after.getName()
+                + " on checked in node");
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
+    public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
         if (!isVersionable()) {
             if (!isVersionProperty(after) && wasCheckedIn()) {
                 throwCheckedIn("Cannot change property " + after.getName()
@@ -110,7 +122,7 @@ class VersionEditor implements Editor {
             vMgr.restore(node);
         } else if (isVersionProperty(after)) {
             throwProtected(after.getName());
-        } else if (wasCheckedIn()) {
+        } else if (wasReadOnly) {
             throwCheckedIn("Cannot change property " + after.getName()
                     + " on checked in node");
         }
@@ -118,8 +130,8 @@ class VersionEditor implements Editor {
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        if (!isVersionable()) {
-            if (!isVersionProperty(before) && wasCheckedIn()) {
+        if (wasReadOnly) {
+            if (!isVersionProperty(before)) {
                 throwProtected("Cannot delete property on checked in node");
             }
         }
@@ -127,7 +139,7 @@ class VersionEditor implements Editor {
 
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return childNodeChanged(name, EMPTY_NODE, after);
+        return childNodeChanged(name, MISSING_NODE, after);
     }
 
     @Override
@@ -138,7 +150,7 @@ class VersionEditor implements Editor {
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before) {
-        return new VersionEditor(this, vMgr, EMPTY_NODE.builder());
+        return new VersionEditor(this, vMgr, MISSING_NODE.builder());
     }
 
     /**
@@ -150,9 +162,9 @@ class VersionEditor implements Editor {
     private boolean isVersionable() {
         if (isVersionable == null) {
             // this is not 100% correct, because t.getPath() will
-            // not return the correct path for nodeAfter, but is
+            // not return the correct path for node after, but is
             // sufficient to check if it is versionable
-            Tree t = new ReadOnlyTree(node.getNodeState());
+            Tree t = new ReadOnlyTree(after);
             isVersionable = vMgr.isVersionable(t);
         }
         return isVersionable;
@@ -169,13 +181,10 @@ class VersionEditor implements Editor {
      *         property.
      */
     private boolean wasCheckedIn() {
-        NodeState state = node.getBaseState();
-        if (state != null) {
-            PropertyState prop = state
-                    .getProperty(VersionConstants.JCR_ISCHECKEDOUT);
-            if (prop != null) {
-                return !prop.getValue(Type.BOOLEAN);
-            }
+        PropertyState prop = before
+                .getProperty(VersionConstants.JCR_ISCHECKEDOUT);
+        if (prop != null) {
+            return !prop.getValue(Type.BOOLEAN);
         }
         // new node or not versionable, check parent
         return parent != null && parent.wasCheckedIn();
@@ -194,6 +203,7 @@ class VersionEditor implements Editor {
 
     private static void throwUnchecked(RepositoryException e)
             throws UncheckedRepositoryException {
+        // TODO: still necessary?
         throw new UncheckedRepositoryException(e);
     }
 
