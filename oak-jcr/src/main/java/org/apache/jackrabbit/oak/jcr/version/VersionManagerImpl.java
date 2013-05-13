@@ -193,7 +193,10 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public Version checkpoint(String absPath) throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        // FIXME: atomic?
+        Version v = checkin(absPath);
+        checkout(absPath);
+        return v;
     }
 
     @Nonnull
