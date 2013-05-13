@@ -16,19 +16,21 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test {@code AllPermissions}.
@@ -45,7 +47,9 @@ public class AllPermissionsTest extends AbstractSecurityTest {
         super.before();
 
         paths.add("/");
-        // TODO
+        paths.add(VersionConstants.VERSION_STORE_PATH);
+        paths.add(NodeTypeConstants.NODE_TYPES_PATH);
+        paths.add(getTestUser().getPath());
     }
 
     @Test

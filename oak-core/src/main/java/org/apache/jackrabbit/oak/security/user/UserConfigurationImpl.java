@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableAct
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
- * UserConfigurationImpl... TODO
+ * Default implementation of the {@link UserConfiguration}.
  */
 public class UserConfigurationImpl extends SecurityConfiguration.Default implements UserConfiguration {
 

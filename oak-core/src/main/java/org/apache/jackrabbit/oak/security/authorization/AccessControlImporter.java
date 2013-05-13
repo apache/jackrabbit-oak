@@ -16,14 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -51,8 +48,11 @@ import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
- * AccessControlImporter... TODO
+ * {@link ProtectedNodeImporter} implementation that handles access control lists,
+ * entries and restrictions.
  */
 class AccessControlImporter implements ProtectedNodeImporter, AccessControlConstants {
 
@@ -233,7 +233,6 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
         private void setPrincipal(TextValue txtValue) {
             String principalName = txtValue.getString();
             principal = principalManager.getPrincipal(principalName);
-            // TODO: review handling of unknown principals
             if (principal == null) {
                 principal = new PrincipalImpl(principalName);
             }
