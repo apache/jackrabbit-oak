@@ -38,6 +38,10 @@ public interface AccessControlConstants {
     /**
      * @since OAK 1.0
      */
+    String REP_NT_NAMES = "rep:ntNames";
+    /**
+     * @since OAK 1.0
+     */
     String REP_RESTRICTIONS = "rep:restrictions";
 
     String MIX_REP_ACCESS_CONTROLLABLE = "rep:AccessControllable";

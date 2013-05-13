@@ -37,6 +37,7 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
@@ -971,11 +972,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(0, policies.length);
 
         setupPolicy(testPath);
-        policies = acMgr.getEffectivePolicies(testPath);
-        assertNotNull(policies);
-        assertEquals(0, policies.length);
-
         root.commit();
+
         policies = acMgr.getEffectivePolicies(testPath);
         assertNotNull(policies);
         assertEquals(1, policies.length);
@@ -988,16 +986,53 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(1, policies.length);
 
         setupPolicy(childPath);
-
-        policies = acMgr.getEffectivePolicies(childPath);
-        assertNotNull(policies);
-        assertEquals(1, policies.length);
-
         root.commit();
 
         policies = acMgr.getEffectivePolicies(childPath);
         assertNotNull(policies);
         assertEquals(2, policies.length);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesNewPolicy() throws Exception {
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(testPath);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+
+        setupPolicy(testPath);
+        policies = acMgr.getEffectivePolicies(testPath);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+
+        policies = acMgr.getEffectivePolicies(childPath);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+
+        setupPolicy(childPath);
+        policies = acMgr.getEffectivePolicies(childPath);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+    }
+
+    @Test
+    public void testGetEffectiveModifiedPolicy() throws Exception {
+        ACL acl = setupPolicy(testPath);
+        AccessControlEntry[] aces = acl.getAccessControlEntries();
+        root.commit();
+
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT));
+        acMgr.setPolicy(testPath, acl);
+
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(testPath);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+        assertTrue(policies[0] instanceof AccessControlList);
+        AccessControlEntry[] effectiveAces = ((AccessControlList) policies[0]).getAccessControlEntries();
+        assertArrayEquals(aces, effectiveAces);
+        assertFalse(Arrays.equals(effectiveAces, acl.getAccessControlEntries()));
     }
 
     @Test
@@ -1444,7 +1479,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         while (unknown != null) {
             unknown = getPrincipalManager().getPrincipal("unknown"+i);
         }
-        unknown = new InvalidPrincipal("unknown" + i);
+        unknown = new InvalidTestPrincipal("unknown" + i);
         try {
             acMgr.getApplicablePolicies(unknown);
             fail("Unknown principal should be detected.");
@@ -1533,7 +1568,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         while (unknown != null) {
             unknown = getPrincipalManager().getPrincipal("unknown"+i);
         }
-        unknown = new InvalidPrincipal("unknown" + i);
+        unknown = new InvalidTestPrincipal("unknown" + i);
         try {
             acMgr.getPolicies(unknown);
             fail("Unknown principal should be detected.");
@@ -1630,7 +1665,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         while (unknown != null) {
             unknown = getPrincipalManager().getPrincipal("unknown"+i);
         }
-        unknown = new InvalidPrincipal("unknown" + i);
+        unknown = new InvalidTestPrincipal("unknown" + i);
         try {
             acMgr.getEffectivePolicies(Collections.singleton(unknown));
             fail("Unknown principal should be detected.");
