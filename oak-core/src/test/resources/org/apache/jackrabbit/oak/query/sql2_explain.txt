@@ -23,6 +23,8 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# TODO current not used, as property and prefix indexes are no longer supported
+
 # property type (value prefix) index
 
 commit / + "test": { "a": { "id": "ref:123" }, "b": { "id" : "str:123" }}

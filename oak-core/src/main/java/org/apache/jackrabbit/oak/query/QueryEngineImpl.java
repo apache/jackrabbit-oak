@@ -52,15 +52,22 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
     static final String NO_LITERALS = "-noLiterals";
 
+    static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
+    
     private static final Set<String> SUPPORTED_LANGUAGES = of(
             SQL2,  SQL2  + NO_LITERALS,
             SQL,   SQL   + NO_LITERALS,
             XPATH, XPATH + NO_LITERALS,
             JQOM);
 
-    static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
-
     private final QueryIndexProvider indexProvider;
+    
+    /**
+     * Whether fallback to the traversing index is supported if no other index
+     * is available. This is enabled by default and can be disabled for testing
+     * purposes.
+     */
+    private boolean traversalFallback = true;
 
     public QueryEngineImpl(QueryIndexProvider indexProvider) {
         this.indexProvider = indexProvider;
@@ -154,11 +161,6 @@ public abstract class QueryEngineImpl implements QueryEngine {
         q.prepare();
         return q.executeQuery();
     }
-
-    /**
-     * testing purposes only
-     */
-    private boolean traversalFallback = true;
 
     protected void setTravesalFallback(boolean traversal) {
         this.traversalFallback = traversal;
