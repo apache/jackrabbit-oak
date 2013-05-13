@@ -198,6 +198,16 @@ public class SelectorImpl extends SourceImpl {
         if (joinCondition != null) {
             joinCondition.restrict(f);
         }
+        // rep:excerpt handling: create a (fake) restriction
+        // "rep:excerpt is not null" to let the index know that
+        // we will need the excerpt
+        for (ColumnImpl c : query.getColumns()) {
+            if (c.getSelector() == this) {
+                if (c.getColumnName().equals("rep:excerpt")) {
+                    f.restrictProperty("rep:excerpt", Operator.NOT_EQUAL, null);
+                }
+            }
+        }
         
         // all conditions can be pushed to the selectors -
         // except in some cases to "outer joined" selectors,
@@ -257,8 +267,8 @@ public class SelectorImpl extends SourceImpl {
                 }
             }
         }
-
-        return false; // no matches found
+        // no matches found
+        return false; 
     }
 
     /**
