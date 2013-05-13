@@ -393,7 +393,10 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                     Value[] values = getValues();
                     if (values.length == 0) {
                         // retrieve the type from the property definition
-                        PropertyDefinition definition = internalGetDefinition();
+                        // do not require exact match (see OAK-815)
+                        PropertyDefinition definition = getDefinitionProvider()
+                                .getDefinition(dlg.getParent().getTree(),
+                                        dlg.getPropertyState(), false);
                         if (definition.getRequiredType() == PropertyType.UNDEFINED) {
                             return PropertyType.STRING;
                         } else {
