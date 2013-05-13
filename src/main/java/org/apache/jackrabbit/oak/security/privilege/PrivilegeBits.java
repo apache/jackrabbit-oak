@@ -201,12 +201,17 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * TODO
+     * Calculate the granted permissions by evaluating the given privileges. Note,
+     * that only built-in privileges can be mapped to permissions. Any other
+     * privileges will be ignored.
      *
-     * @param bits
-     * @param parentBits
-     * @param isAllow
-     * @return
+     * @param bits The set of privileges present at given tree.
+     * @param parentBits The privileges present on the parent tree. These are
+     * required in order to determine permissions that include a modification
+     * of the parent tree (add_child_nodes, remove_child_nodes).
+     * @param isAllow {@code true} if the privileges are granted; {@code false}
+     * otherwise.
+     * @return the resulting permissions.
      */
     public static long calculatePermissions(@Nonnull PrivilegeBits bits,
                                             @Nonnull PrivilegeBits parentBits,

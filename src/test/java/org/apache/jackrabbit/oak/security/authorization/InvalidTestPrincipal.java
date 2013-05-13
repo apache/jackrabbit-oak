@@ -18,11 +18,9 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
- * InvalidPrincipal... TODO
+ * Test principal implementation which doesn't implement the OAK specific
+ * principal marker interface.
  */
 public final class InvalidTestPrincipal implements Principal {
 

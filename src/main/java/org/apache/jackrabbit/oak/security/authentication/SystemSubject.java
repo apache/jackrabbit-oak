@@ -22,11 +22,16 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 
 /**
- * SystemSubject... TODO
+ * Internal utility providing access to a system internal subject instance.
  */
 public final class SystemSubject {
 
     public static final Subject INSTANCE = createSystemSubject();
+
+    /**
+     * Private constructor
+     */
+    private SystemSubject() {}
 
     private static Subject createSystemSubject() {
         return new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
