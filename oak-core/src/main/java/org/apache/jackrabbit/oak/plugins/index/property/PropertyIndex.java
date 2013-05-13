@@ -119,8 +119,8 @@ class PropertyIndex implements QueryIndex {
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     return lookup.getCost(filter, propertyName, pr.first);
-                } else if (pr.first == null && pr.last == null) {
-                    // "[property] is not null"
+                } else {
+                    // processed as "[property] is not null"
                     return lookup.getCost(filter, propertyName, null);
                 }
             }
@@ -147,8 +147,8 @@ class PropertyIndex implements QueryIndex {
                     // "[property] = $value"
                     paths = lookup.query(filter, propertyName, pr.first);
                     break;
-                } else if (pr.first == null && pr.last == null) {
-                    // "[property] is not null"
+                } else {
+                    // processed as "[property] is not null"
                     paths = lookup.query(filter, propertyName, null);
                     break;
                 }
@@ -167,6 +167,7 @@ class PropertyIndex implements QueryIndex {
     @Override
     public String getPlan(Filter filter, NodeState root) {
         StringBuilder buff = new StringBuilder("property");
+        StringBuilder notIndexed = new StringBuilder();
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);
@@ -176,10 +177,18 @@ class PropertyIndex implements QueryIndex {
                 if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
                     buff.append(' ').append(propertyName).append('=').append(pr.first);
-                } else if (pr.first == null && pr.last == null) {
+                } else {
                     buff.append(' ').append(propertyName);
                 }
+            } else {
+                notIndexed.append(' ').append(propertyName);
+                if (!pr.toString().isEmpty()) {
+                    notIndexed.append(':').append(pr);
+                }
             }
+        }
+        if (notIndexed.length() > 0) {
+            buff.append(" (").append(notIndexed.toString().trim()).append(")");
         }
         return buff.toString();
     }
