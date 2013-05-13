@@ -45,7 +45,10 @@
         <configuration>
           <instructions>
             <!-- TODO: Should only provide services, not export packages  -->
-            <Export-Package>org.apache.jackrabbit.oak.plugins.index.lucene</Export-Package>
+            <Export-Package>
+              org.apache.jackrabbit.oak.plugins.index.lucene,
+              org.apache.jackrabbit.oak.plugins.index.lucene.util
+            </Export-Package>
             <Embed-Dependency>lucene-*;inline=true</Embed-Dependency>
           </instructions>
         </configuration>

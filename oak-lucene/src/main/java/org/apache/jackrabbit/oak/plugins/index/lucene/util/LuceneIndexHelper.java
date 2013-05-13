@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
@@ -45,9 +44,8 @@ public class LuceneIndexHelper {
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
-            @Nonnull NodeBuilder node, @Nonnull String name,
+            @Nonnull NodeBuilder index, @Nonnull String name,
             @Nullable Set<String> propertyTypes) {
-        NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
         if (index.hasChildNode(name)) {
             return index.child(name);
         }

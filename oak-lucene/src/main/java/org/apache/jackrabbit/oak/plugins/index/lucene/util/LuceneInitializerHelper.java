@@ -44,7 +44,7 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
             return state;
         }
         NodeBuilder builder = state.builder();
-        newLuceneIndexDefinition(builder, name, propertyTypes);
+        newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), name, propertyTypes);
         return builder.getNodeState();
     }
 
