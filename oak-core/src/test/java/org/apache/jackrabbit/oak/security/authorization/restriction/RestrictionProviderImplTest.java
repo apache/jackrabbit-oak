@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.Set;
 
-import javax.jcr.PropertyType;
-
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -30,6 +29,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link RestrictionProviderImpl}
@@ -51,16 +51,28 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
 
         Set<RestrictionDefinition> defs = provider.getSupportedRestrictions("/testPath");
         assertNotNull(defs);
-        assertEquals(1, defs.size());
+        assertEquals(2, defs.size());
 
-        RestrictionDefinition def = defs.iterator().next();
-        assertEquals(REP_GLOB, def.getName());
-        assertEquals(PropertyType.STRING, def.getRequiredType());
-        assertFalse(def.isMandatory());
+        for (RestrictionDefinition def : defs) {
+            if (REP_GLOB.equals(def.getName())) {
+                assertEquals(Type.STRING, def.getRequiredType());
+                assertFalse(def.isMandatory());
+            } else if (REP_NT_NAMES.equals(def.getName())) {
+                assertEquals(Type.NAMES, def.getRequiredType());
+                assertFalse(def.isMandatory());
+            } else {
+                fail("unexpected restriction "+def.getName());
+            }
+        }
     }
 
     @Test
     public void testCreateRestriction() {
+        // TODO
+    }
+
+    @Test
+    public void testCreateMvRestriction() {
         // TODO
     }
 
@@ -79,4 +91,8 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
         // TODO
     }
 
+    @Test
+    public void testGetRestrictionPattern() {
+        // TODO
+    }
 }

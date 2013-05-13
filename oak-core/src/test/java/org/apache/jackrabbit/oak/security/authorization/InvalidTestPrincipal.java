@@ -24,11 +24,11 @@ import org.slf4j.LoggerFactory;
 /**
  * InvalidPrincipal... TODO
  */
-public final class InvalidPrincipal implements Principal {
+public final class InvalidTestPrincipal implements Principal {
 
     private final String name;
 
-    public InvalidPrincipal(String name) {
+    public InvalidTestPrincipal(String name) {
         this.name = name;
     }
 

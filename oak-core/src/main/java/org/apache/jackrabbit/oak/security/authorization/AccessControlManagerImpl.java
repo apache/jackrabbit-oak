@@ -171,6 +171,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL);
 
+        Root r = root.getContentSession().getLatestRoot();
+        tree = r.getTree(tree.getPath());
+
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
         AccessControlPolicy policy = createACL(oakPath, tree, true);
         if (policy != null) {
@@ -179,7 +182,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (oakPath != null) {
             String parentPath = Text.getRelativeParent(oakPath, 1);
             while (!parentPath.isEmpty()) {
-                Tree t = root.getTree(parentPath);
+                Tree t = r.getTree(parentPath);
                 AccessControlPolicy plc = createACL(parentPath, t, true);
                 if (plc != null) {
                     effective.add(plc);
@@ -366,13 +369,15 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Override
     public AccessControlPolicy[] getEffectivePolicies(@Nonnull Set<Principal> principals) throws RepositoryException {
         AccessControlUtils.checkValidPrincipals(principals, principalManager);
-        Result aceResult = searchAces(principals);
+        Root r = root.getContentSession().getLatestRoot();
+
+        Result aceResult = searchAces(principals, r);
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
         for (ResultRow row : aceResult.getRows()) {
             String acePath = row.getPath();
             String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
-            Tree accessControlledTree = root.getTree(Text.getRelativeParent(acePath, 2));
 
+            Tree accessControlledTree = r.getTree(Text.getRelativeParent(acePath, 2));
             if (aclName.isEmpty() || !accessControlledTree.exists()) {
                 log.debug("Isolated access control entry -> ignore query result at " + acePath);
                 continue;
@@ -435,7 +440,6 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
             }
         }
-
         return tree;
     }
 
@@ -494,8 +498,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         String aclName = AccessControlUtils.getAclName(oakPath);
         if (accessControlledTree.exists() && AccessControlUtils.isAccessControlled(oakPath, accessControlledTree, ntMgr)) {
             Tree aclTree = accessControlledTree.getChild(aclName);
-            // TODO: effective policies: add proper handling for modified ACLs
-            if (aclTree.exists() && (!isEffectivePolicy || aclTree.getStatus() != Tree.Status.NEW)) {
+            if (aclTree.exists()) {
                 List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
                 for (Tree child : aclTree.getChildren()) {
                     if (AccessControlUtils.isACE(child, ntMgr)) {
@@ -515,7 +518,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Nullable
     private JackrabbitAccessControlList createPrincipalACL(@Nullable String oakPath,
                                                            @Nonnull Principal principal) throws RepositoryException {
-        Result aceResult = searchAces(Collections.<Principal>singleton(principal));
+        Result aceResult = searchAces(Collections.<Principal>singleton(principal), root);
         RestrictionProvider restrProvider = new PrincipalRestrictionProvider(restrictionProvider, namePathMapper);
         List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
         for (ResultRow row : aceResult.getRows()) {
@@ -549,7 +552,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
-    private Result searchAces(@Nonnull Set<Principal> principals) throws RepositoryException {
+    private static Result searchAces(@Nonnull Set<Principal> principals, @Nonnull Root root) throws RepositoryException {
         // TODO: specify sort order
         StringBuilder stmt = new StringBuilder("/jcr:root");
         stmt.append("//element(*,");

@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Objects;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -30,7 +31,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class RestrictionDefinitionImpl implements RestrictionDefinition {
 
     private final String name;
-    private final int type;
+    private final Type type;
     private final boolean isMandatory;
     private final NamePathMapper namePathMapper;
 
@@ -44,10 +45,10 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
      * @param isMandatory    A boolean indicating if the restriction is mandatory.
      * @param namePathMapper The name path mapper used to calculate the JCR name.
      */
-    public RestrictionDefinitionImpl(@Nonnull String name, int type, boolean isMandatory,
+    public RestrictionDefinitionImpl(@Nonnull String name, Type type, boolean isMandatory,
                                      @Nonnull NamePathMapper namePathMapper) {
         this.name = checkNotNull(name);
-        if (type == PropertyType.UNDEFINED) {
+        if (type.tag() == PropertyType.UNDEFINED) {
             throw new IllegalArgumentException("'undefined' is not a valid required definition type.");
         }
         this.type = type;
@@ -73,7 +74,7 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
     }
 
     @Override
-    public int getRequiredType() {
+    public Type getRequiredType() {
         return type;
     }
 

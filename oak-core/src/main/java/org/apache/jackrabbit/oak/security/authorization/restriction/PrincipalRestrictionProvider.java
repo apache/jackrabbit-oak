@@ -57,7 +57,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
         Set<RestrictionDefinition> definitions = new HashSet<RestrictionDefinition>(base.getSupportedRestrictions(oakPath));
-        definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, PropertyType.PATH, true, namePathMapper));
+        definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, Type.PATH, true, namePathMapper));
         return definitions;
     }
 
@@ -70,6 +70,12 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
         } else {
             return base.createRestriction(oakPath, jcrName, value);
         }
+    }
+
+    @Nonnull
+    @Override
+    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String jcrName, @Nonnull Value... values) throws RepositoryException {
+        return base.createRestriction(oakPath, jcrName, values);
     }
 
     @Override

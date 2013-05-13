@@ -634,6 +634,7 @@
  */
 [rep:Restrictions]
   - * (UNDEFINED) protected
+  - * (UNDEFINED) protected multiple
 
 /**
  * @since oak 1.0

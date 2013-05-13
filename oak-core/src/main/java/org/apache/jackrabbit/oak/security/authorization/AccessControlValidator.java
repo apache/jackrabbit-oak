@@ -16,14 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
@@ -39,6 +35,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * Validation for access control information changed by regular JCR (and Jackrabbit)

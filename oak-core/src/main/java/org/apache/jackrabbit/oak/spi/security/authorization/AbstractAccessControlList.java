@@ -113,7 +113,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     public int getRestrictionType(String restrictionName) throws RepositoryException {
         for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             if (definition.getJcrName().equals(restrictionName)) {
-                return definition.getRequiredType();
+                return definition.getRequiredType().tag();
             }
         }
         // for backwards compatibility with JR2 return undefined type for an
