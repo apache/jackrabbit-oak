@@ -103,6 +103,16 @@ public interface QueryIndex {
      */
     String getIndexName();
 
+    /**
+     * A maker interface which means this index supports may support more than
+     * just the minimal fulltext query syntax. If this index is used, then the
+     * query engine does not verify the fulltext constraint(s) for the given
+     * selector.
+     */
+    public interface FulltextQueryIndex extends QueryIndex {
+        // marker interface
+    }
+
 //    /**
 //     * Return the possible index plans for the given filter and sort order.
 //     * Please note this method is supposed to run quickly. That means it should
