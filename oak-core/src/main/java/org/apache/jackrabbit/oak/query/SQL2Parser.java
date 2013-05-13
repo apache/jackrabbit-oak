@@ -98,7 +98,8 @@ public class SQL2Parser {
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
-     *
+     * 
+     * @param types the node with the node type information
      */
     public SQL2Parser(NodeState types) {
         this.types = checkNotNull(types);

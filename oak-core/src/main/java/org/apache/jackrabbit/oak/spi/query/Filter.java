@@ -108,14 +108,6 @@ public interface Filter {
     Set<String> getMixinTypes();
 
     /**
-     * Get the node type.
-     * 
-     * @return the node type restriction or <code>null</code> if none is set.
-     */
-//    @CheckForNull
-//    String getNodeType();
-
-    /**
      * Get the complete query statement. The statement should only be used for
      * logging purposes.
      * 
