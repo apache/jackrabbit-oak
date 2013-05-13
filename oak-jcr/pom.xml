@@ -238,7 +238,6 @@
       org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
       <!-- Versioning -->
-      org.apache.jackrabbit.test.api.version.VersionTest#testGetUUID
       org.apache.jackrabbit.test.api.version.VersionTest#testRestore
       org.apache.jackrabbit.test.api.version.VersionTest#testUnlock
       org.apache.jackrabbit.test.api.version.VersionTest#testUnlockJcr2
@@ -253,7 +252,6 @@
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUnlock
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUnlockJcr2
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUpdate
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitialNumberOfVersions
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetCorrespondingNodePath
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLock
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLockJcr2
@@ -262,20 +260,16 @@
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testMerge
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitialNumberOfLinearVersions
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitiallyGetAllLinearVersionsContainsTheRootAndTheBaseVersion
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetAllFrozenNodes
       org.apache.jackrabbit.test.api.version.VersionLabelTest
-      org.apache.jackrabbit.test.api.version.CheckinTest
       org.apache.jackrabbit.test.api.version.CopyTest
       org.apache.jackrabbit.test.api.version.RestoreTest
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
-      org.apache.jackrabbit.test.api.version.OnParentVersionAbortTest
       org.apache.jackrabbit.test.api.version.OnParentVersionComputeTest
       org.apache.jackrabbit.test.api.version.OnParentVersionCopyTest
       org.apache.jackrabbit.test.api.version.OnParentVersionIgnoreTest
       org.apache.jackrabbit.test.api.version.OnParentVersionInitializeTest
       org.apache.jackrabbit.test.api.version.GetPredecessorsTest
-      org.apache.jackrabbit.test.api.version.GetContainingHistoryTest
-      org.apache.jackrabbit.test.api.version.GetVersionableUUIDTest
+      org.apache.jackrabbit.test.api.version.GetReferencesNodeTest#testGetReferencesNeverFromVersions <!-- Node.getReferences must not return references from version storage -->
       org.apache.jackrabbit.test.api.version.SessionMoveVersionExceptionTest
       org.apache.jackrabbit.test.api.version.WorkspaceMoveVersionExceptionTest
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest

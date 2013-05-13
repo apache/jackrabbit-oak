@@ -51,7 +51,8 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public VersionHistory getContainingHistory() throws RepositoryException {
         return new VersionHistoryImpl(
-                getVersionManagerDelegate().getVersionHistory(dlg.getParent()), sessionContext);
+                getVersionManagerDelegate().createVersionHistory(
+                        dlg.getParent()), sessionContext);
     }
 
     @Override

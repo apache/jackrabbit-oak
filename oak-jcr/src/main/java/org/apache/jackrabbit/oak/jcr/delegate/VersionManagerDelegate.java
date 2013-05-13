@@ -78,23 +78,29 @@ public class VersionManagerDelegate {
     }
 
     @Nonnull
-    public VersionHistoryDelegate getVersionHistory(@Nonnull NodeDelegate nodeDelegate)
+    public VersionHistoryDelegate createVersionHistory(@Nonnull NodeDelegate versionHistory)
             throws RepositoryException {
-        Tree vh = versionManager.getVersionHistory(getTree(nodeDelegate));
+        return new VersionHistoryDelegate(sessionDelegate, getTree(versionHistory));
+    }
+
+    @Nonnull
+    public VersionHistoryDelegate getVersionHistory(@Nonnull NodeDelegate versionable)
+            throws RepositoryException {
+        Tree vh = versionManager.getVersionHistory(getTree(versionable));
         if (vh == null) {
             throw new UnsupportedRepositoryOperationException("Node does not" +
-                    " have a version history: " + nodeDelegate.getPath());
+                    " have a version history: " + versionable.getPath());
         }
         return new VersionHistoryDelegate(sessionDelegate, vh);
     }
 
     @Nonnull
-    public VersionDelegate getBaseVersion(@Nonnull NodeDelegate nodeDelegate)
+    public VersionDelegate getBaseVersion(@Nonnull NodeDelegate versionable)
             throws RepositoryException {
-        Tree v = versionManager.getBaseVersion(getTree(nodeDelegate));
+        Tree v = versionManager.getBaseVersion(getTree(versionable));
         if (v == null) {
             throw new UnsupportedRepositoryOperationException("Node does not" +
-                    " have a base version: " + nodeDelegate.getPath());
+                    " have a base version: " + versionable.getPath());
         }
         return VersionDelegate.create(sessionDelegate, v);
     }

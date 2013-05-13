@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -111,7 +112,13 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 refresh();
             } catch (CommitFailedException e) {
                 getWorkspaceRoot().refresh();
-                throw new RepositoryException(e);
+                // FIXME: hardcoded exception code
+                if (e.getType().equals(CommitFailedException.VERSION)
+                        && e.getCode() == 1) {
+                    throw new VersionException(e.getMessage());
+                } else {
+                    throw new RepositoryException(e);
+                }
             }
         }
         return getBaseVersion(getWorkspaceRoot().getTree(versionable.getPath()));

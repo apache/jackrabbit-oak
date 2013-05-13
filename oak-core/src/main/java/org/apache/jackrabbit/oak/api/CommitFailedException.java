@@ -39,6 +39,11 @@ public class CommitFailedException extends Exception {
      */
     public static final String CONSTRAINT = "Constraint";
 
+    /**
+     * Type name for version violation errors.
+     */
+    public static final String VERSION = "Version";
+
     /** Serial version UID */
     private static final long serialVersionUID = 2727602333350620918L;
 
