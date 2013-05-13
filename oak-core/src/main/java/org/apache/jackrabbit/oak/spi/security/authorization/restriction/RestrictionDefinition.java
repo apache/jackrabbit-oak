@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Type;
+
 /**
  * The {@code RestrictionDefinition} interface provides methods for
  * discovering the static definition of any additional policy-internal refinements
@@ -58,7 +60,7 @@ public interface RestrictionDefinition {
      *
      * @return The required type which must be a valid {@link javax.jcr.PropertyType}.
      */
-    int getRequiredType();
+    Type getRequiredType();
 
     /**
      * Indicates if this restriction is mandatory.

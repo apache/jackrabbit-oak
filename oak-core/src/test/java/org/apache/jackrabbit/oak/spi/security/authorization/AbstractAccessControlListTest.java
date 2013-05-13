@@ -212,7 +212,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
             int reqType = acl.getRestrictionType(def.getJcrName());
 
             assertTrue(reqType > PropertyType.UNDEFINED);
-            assertEquals(def.getRequiredType(), reqType);
+            assertEquals(def.getRequiredType().tag(), reqType);
         }
     }
 

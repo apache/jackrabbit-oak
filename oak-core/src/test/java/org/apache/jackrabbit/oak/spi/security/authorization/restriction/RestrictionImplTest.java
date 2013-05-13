@@ -16,14 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
@@ -39,6 +33,11 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link RestrictionImpl}
@@ -76,7 +75,7 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
 
     @Test
     public void testGetRequiredType() {
-        assertEquals(PropertyType.NAME, restriction.getRequiredType());
+        assertEquals(Type.NAME, restriction.getRequiredType());
     }
 
     @Test
@@ -132,8 +131,8 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
                 throw new UnsupportedOperationException();
             }
             @Override
-            public int getRequiredType() {
-                return PropertyType.NAME;
+            public Type getRequiredType() {
+                return Type.NAME;
             }
             @Override
             public boolean isMandatory() {

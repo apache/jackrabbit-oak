@@ -35,7 +35,13 @@ public interface RestrictionProvider {
 
     @Nonnull
     Restriction createRestriction(@Nullable String oakPath,
-                                  @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException;
+                                  @Nonnull String jcrName,
+                                  @Nonnull Value value) throws RepositoryException;
+
+    @Nonnull
+    Restriction createRestriction(@Nullable String oakPath,
+                                  @Nonnull String jcrName,
+                                  @Nonnull Value... values) throws RepositoryException;
 
     @Nonnull
     Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree);

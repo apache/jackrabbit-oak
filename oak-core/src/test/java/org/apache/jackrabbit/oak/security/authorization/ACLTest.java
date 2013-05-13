@@ -43,6 +43,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
@@ -62,6 +63,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -74,7 +76,7 @@ import static org.junit.Assert.fail;
  * TODO: test restrictions
  * TODO: add test with multiple entries
  */
-public class ACLTest extends AbstractAccessControlListTest implements PrivilegeConstants {
+public class ACLTest extends AbstractAccessControlListTest implements PrivilegeConstants, AccessControlConstants {
 
     private PrivilegeManager privilegeManager;
     private PrincipalManager principalManager;
@@ -132,7 +134,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
     @Test
     public void testAddInvalidEntry() throws Exception {
-        Principal unknownPrincipal = new InvalidPrincipal("unknown");
+        Principal unknownPrincipal = new InvalidTestPrincipal("unknown");
         try {
             acl.addAccessControlEntry(unknownPrincipal, privilegesFromNames(JCR_READ));
             fail("Adding an ACE with an unknown principal should fail");
@@ -554,7 +556,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
         Privilege[] addNodePriv = privilegesFromNames(JCR_ADD_CHILD_NODES);
 
-        Map<String, Value> restrictions = Collections.singletonMap(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/.*"));
+        Map<String, Value> restrictions = Collections.singletonMap(REP_GLOB, getValueFactory().createValue("/.*"));
 
         acl.addEntry(testPrincipal, readPriv, true);
         acl.addEntry(testPrincipal, writePriv, false);
@@ -572,7 +574,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
         Privilege[] addNodePriv = privilegesFromNames(JCR_ADD_CHILD_NODES);
 
-        Map<String, Value> restrictions = Collections.singletonMap(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/.*"));
+        Map<String, Value> restrictions = Collections.singletonMap(REP_GLOB, getValueFactory().createValue("/.*"));
 
         acl.addEntry(testPrincipal, readPriv, true);
         acl.addEntry(testPrincipal, addNodePriv, true, restrictions);
@@ -588,9 +590,10 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
     public void testRestrictions() throws Exception {
         String[] names = acl.getRestrictionNames();
         assertNotNull(names);
-        assertEquals(1, names.length);
-        assertEquals(AccessControlConstants.REP_GLOB, names[0]);
+        assertEquals(2, names.length);
+        assertArrayEquals(new String[] {REP_GLOB, REP_NT_NAMES}, names);
         assertEquals(PropertyType.STRING, acl.getRestrictionType(names[0]));
+        assertEquals(PropertyType.NAME, acl.getRestrictionType(names[1]));
 
         Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
 
@@ -611,7 +614,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         assertEquals(1, acl.getAccessControlEntries().length);
 
         // add an entry with a restrictions:
-        Map<String, Value> restrictions = Collections.singletonMap(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/.*"));
+        Map<String, Value> restrictions = Collections.singletonMap(REP_GLOB, getValueFactory().createValue("/.*"));
         assertTrue(acl.addEntry(testPrincipal, writePriv, false, restrictions));
         assertEquals(2, acl.getAccessControlEntries().length);
 
@@ -637,7 +640,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
     @Test
     public void testUnsupportedRestrictions2() throws Exception {
-        RestrictionProvider rp = new TestRestrictionProvider("restr", PropertyType.NAME, false);
+        RestrictionProvider rp = new TestRestrictionProvider("restr", Type.NAME, false);
 
         JackrabbitAccessControlList acl = createACL(getTestPath(), new ArrayList(), namePathMapper, rp);
         try {
@@ -650,7 +653,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
     @Test
     public void testInvalidRestrictionType() throws Exception {
-        RestrictionProvider rp = new TestRestrictionProvider("restr", PropertyType.NAME, false);
+        RestrictionProvider rp = new TestRestrictionProvider("restr", Type.NAME, false);
 
         JackrabbitAccessControlList acl = createACL(getTestPath(), new ArrayList(), namePathMapper, rp);
         try {
@@ -663,7 +666,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
     @Test
     public void testMandatoryRestrictions() throws Exception {
-        RestrictionProvider rp = new TestRestrictionProvider("mandatory", PropertyType.NAME, true);
+        RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
 
         JackrabbitAccessControlList acl = createACL(getTestPath(), new ArrayList(), namePathMapper, rp);
         try {
@@ -708,7 +711,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
         private final RestrictionDefinition supported;
 
-        private TestRestrictionProvider(String name, int type, boolean isMandatory) {
+        private TestRestrictionProvider(String name, Type type, boolean isMandatory) {
             supported = new RestrictionDefinitionImpl(name, type, isMandatory, namePathMapper);
         }
 
@@ -724,10 +727,25 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
             if (!supported.getJcrName().equals(jcrName)) {
                 throw new AccessControlException();
             }
-            if (supported.getRequiredType() != value.getType()) {
+            if (supported.getRequiredType().tag() != value.getType()) {
                 throw new AccessControlException();
             }
             PropertyState property = PropertyStates.createProperty(namePathMapper.getOakName(jcrName), value.getString(), value.getType());
+            return new RestrictionImpl(property, supported.isMandatory(), namePathMapper);
+        }
+
+        @Nonnull
+        @Override
+        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String jcrName, @Nonnull Value... values) throws RepositoryException {
+            if (!supported.getJcrName().equals(jcrName)) {
+                throw new AccessControlException();
+            }
+            for (Value v : values) {
+                if (supported.getRequiredType().tag() != v.getType()) {
+                    throw new AccessControlException();
+                }
+            }
+            PropertyState property = PropertyStates.createProperty(namePathMapper.getOakName(jcrName), Arrays.asList(values), supported.getRequiredType());
             return new RestrictionImpl(property, supported.isMandatory(), namePathMapper);
         }
 
@@ -738,12 +756,12 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         }
 
         @Override
-        public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
+        public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException {
+        public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
             throw new UnsupportedOperationException();
         }
 

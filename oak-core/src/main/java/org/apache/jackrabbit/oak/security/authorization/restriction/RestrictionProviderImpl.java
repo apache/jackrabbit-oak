@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -28,6 +30,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -36,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositePattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
@@ -56,8 +60,9 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     public RestrictionProviderImpl(NamePathMapper namePathMapper) {
         this.namePathMapper = namePathMapper;
 
-        RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, PropertyType.STRING, false, namePathMapper);
-        this.supported = ImmutableMap.of(REP_GLOB, glob);
+        RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false, namePathMapper);
+        RestrictionDefinition nts = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false, namePathMapper);
+        this.supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts);
     }
 
     //------------------------------------------------< RestrictionProvider >---
@@ -82,11 +87,46 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
         if (definition == null) {
             throw new AccessControlException("Unsupported restriction: " + oakName);
         }
-        int requiredType = definition.getRequiredType();
-        if (requiredType != PropertyType.UNDEFINED && requiredType != value.getType()) {
-            throw new AccessControlException("Unsupported restriction: Expected value of type " + PropertyType.nameFromValue(definition.getRequiredType()));
+        Type requiredType = definition.getRequiredType();
+        if (requiredType.tag() != PropertyType.UNDEFINED && requiredType.tag() != value.getType()) {
+            throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType);
         }
-        PropertyState propertyState = PropertyStates.createProperty(oakName, value);
+        PropertyState propertyState;
+        if (requiredType.isArray()) {
+            propertyState = PropertyStates.createProperty(oakName, ImmutableList.of(value));
+        } else {
+            propertyState = PropertyStates.createProperty(oakName, value);
+        }
+        return createRestriction(propertyState, definition);
+    }
+
+    @Override
+    public Restriction createRestriction(String oakPath, String jcrName, Value... values) throws RepositoryException {
+        if (isUnsupportedPath(oakPath)) {
+            throw new AccessControlException("Unsupported restriction at " + oakPath);
+        }
+
+        String oakName = namePathMapper.getOakName(jcrName);
+        RestrictionDefinition definition = supported.get(oakName);
+        if (definition == null) {
+            throw new AccessControlException("Unsupported restriction: " + oakName);
+        }
+        Type requiredType = definition.getRequiredType();
+        for (Value v : values) {
+            if (requiredType.tag() != PropertyType.UNDEFINED && requiredType.tag() != v.getType()) {
+                throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType);
+            }
+        }
+
+        PropertyState propertyState;
+        if (requiredType.isArray()) {
+            propertyState = PropertyStates.createProperty(oakName, ImmutableList.of(values));
+        } else {
+            if (values.length != 1) {
+                throw new AccessControlException("Unsupported restriction: Expected single value.");
+            }
+            propertyState = PropertyStates.createProperty(oakName, values[0]);
+        }
         return createRestriction(propertyState, definition);
     }
 
@@ -100,7 +140,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
                 String propName = propertyState.getName();
                 if (isRestrictionProperty(propName) && supported.containsKey(propName)) {
                     RestrictionDefinition def = supported.get(propName);
-                    if (def.getRequiredType() == propertyState.getType().tag()) {
+                    if (def.getRequiredType() == propertyState.getType()) {
                         restrictions.add(createRestriction(propertyState, def));
                     }
                 }
@@ -134,9 +174,9 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
             if (def == null) {
                 throw new AccessControlException("Unsupported restriction: " + restrName);
             }
-            int type = entry.getValue().getType().tag();
+            Type type = entry.getValue().getType();
             if (type != def.getRequiredType()) {
-                throw new AccessControlException("Invalid restriction type '" + PropertyType.nameFromValue(type) + "'. Expected " + PropertyType.nameFromValue(def.getRequiredType()));
+                throw new AccessControlException("Invalid restriction type '" + type + "'. Expected " + def.getRequiredType());
             }
         }
         for (RestrictionDefinition def : supported.values()) {
@@ -148,13 +188,26 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
 
     @Override
     public RestrictionPattern getPattern(String oakPath, Tree tree) {
-        if (oakPath != null) {
+        if (oakPath == null) {
+            return RestrictionPattern.EMPTY;
+        } else {
             PropertyState glob = tree.getProperty(REP_GLOB);
+
+            List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>(2);
             if (glob != null) {
-                return GlobPattern.create(oakPath, glob.getValue(Type.STRING));
+                patterns.add(GlobPattern.create(oakPath, glob.getValue(Type.STRING)));
+            }
+            PropertyState ntNames = tree.getProperty(REP_NT_NAMES);
+            if (ntNames != null) {
+                patterns.add(new NodeTypePattern(ntNames.getValue(Type.NAMES)));
+            }
+
+            switch (patterns.size()) {
+                case 1 : return patterns.get(0);
+                case 2 : return new CompositePattern(patterns);
+                default : return  RestrictionPattern.EMPTY;
             }
         }
-        return RestrictionPattern.EMPTY;
     }
 
     //------------------------------------------------------------< private >---
