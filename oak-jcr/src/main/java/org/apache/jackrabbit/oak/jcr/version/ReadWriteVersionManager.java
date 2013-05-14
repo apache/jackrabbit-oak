@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -32,6 +33,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code ReadWriteVersionManager}...
@@ -112,13 +115,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 refresh();
             } catch (CommitFailedException e) {
                 getWorkspaceRoot().refresh();
-                // FIXME: hardcoded exception code
-                if (e.getType().equals(CommitFailedException.VERSION)
-                        && e.getCode() == 1) {
-                    throw new VersionException(e.getMessage());
-                } else {
-                    throw new RepositoryException(e);
-                }
+                throw newRepositoryException(e);
             }
         }
         return getBaseVersion(getWorkspaceRoot().getTree(versionable.getPath()));
@@ -155,10 +152,34 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 refresh();
             } catch (CommitFailedException e) {
                 getWorkspaceRoot().refresh();
-                throw new RepositoryException(e);
+                throw newRepositoryException(e);
             }
         }
     }
 
     // TODO: more methods that modify versions
+
+    /**
+     * Wraps the given {@link CommitFailedException} instance using the
+     * appropriate {@link RepositoryException} subclass based on the
+     * {@link CommitFailedException#getType() type} of the given exception.
+     *
+     * @param exception typed commit failure exception
+     * @return matching repository exception
+     */
+    private static RepositoryException newRepositoryException(@Nonnull CommitFailedException exception) {
+        if (exception.isConstraintViolation()) {
+            return new ConstraintViolationException(exception);
+        } else if (exception.isAccessViolation()) {
+            return new AccessDeniedException(exception);
+        } else if (exception.isOfType("State")) {
+            return new InvalidItemStateException(exception);
+        } else if (exception.isOfType(CommitFailedException.VERSION) && exception.getCode() == 1) { // FIXME: hardcoded exception code
+            return new VersionException(exception);
+        } else if (exception.isOfType("Lock")) {
+            return new LockException(exception);
+        } else {
+            return new RepositoryException(exception);
+        }
+    }
 }
