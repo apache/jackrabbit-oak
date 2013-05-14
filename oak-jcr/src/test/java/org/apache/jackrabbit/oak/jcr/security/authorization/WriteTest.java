@@ -802,7 +802,7 @@ public class WriteTest extends AbstractEvaluationTest {
         assertTrue(testSession.nodeExists(subtreePath));
         assertTrue(testSession.propertyExists(subtreePath + "/property"));
 
-        // removing the child node succeed even if subtree cannot be removed.
+        // removing the child node succeed even if a property in the subtree cannot be removed.
         testSession.getNode(childNPath).remove();
         testSession.save();
     }
