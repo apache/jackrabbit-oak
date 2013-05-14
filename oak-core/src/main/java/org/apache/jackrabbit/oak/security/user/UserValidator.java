@@ -144,7 +144,6 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        // TODO: anything to do here?
         return new UserValidator(parentBefore.getChild(name), parentAfter.getChild(name), provider);
     }
 

@@ -23,9 +23,6 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
-/**
- * PrivilegeContext... TODO
- */
 final class PrivilegeContext implements Context, PrivilegeConstants {
 
     private static final Context INSTANCE = new PrivilegeContext();
