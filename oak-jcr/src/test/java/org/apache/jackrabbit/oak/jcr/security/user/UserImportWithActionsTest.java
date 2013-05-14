@@ -65,14 +65,6 @@ public class UserImportWithActionsTest extends AbstractUserTest {
         jrSession = (JackrabbitSession) superuser;
     }
 
-    @Override
-    protected void tearDown() throws Exception {
-        //TODO
-        try {
-            super.tearDown();
-        } catch (Exception ignore) {}
-    }
-
     private void setAuthorizableActions(AuthorizableAction action) {
         // TODO clarify how to test AuthorizableActions in Oak
         // userMgr.setAuthorizableActions(new AuthorizableAction[] {testAction});

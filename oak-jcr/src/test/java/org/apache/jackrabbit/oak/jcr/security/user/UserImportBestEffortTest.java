@@ -35,7 +35,6 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.test.NotExecutableException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -139,7 +138,6 @@ public class UserImportBestEffortTest extends AbstractImportTest {
         }
     }
 
-    @Ignore("OAK-615") // FIXME
     @Test
     public void testImportCircularMembership() throws Exception {
 

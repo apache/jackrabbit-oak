@@ -39,6 +39,7 @@ import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -145,6 +146,7 @@ public class UserImportTest extends AbstractImportTest {
      * @since OAK 1.0 : constraintviolation is no longer detected during import
      * but only upon save.
      */
+    @Ignore("OAK-821")
     @Test
     public void testImportGroupIntoUsersTree() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -747,7 +749,6 @@ public class UserImportTest extends AbstractImportTest {
         try {
             doImport(USERPATH, xml);
 
-            //TODO different IgnoreBehavior needed?
             // re-import should succeed if UUID-behavior is set accordingly
             doImport(USERPATH, xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
@@ -785,7 +786,6 @@ public class UserImportTest extends AbstractImportTest {
             doImport(USERPATH, xml);
             adminSession.save();
 
-            //TODO different IgnoreBehavior needed?
             // re-import should succeed if UUID-behavior is set accordingly
             doImport(USERPATH, xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
