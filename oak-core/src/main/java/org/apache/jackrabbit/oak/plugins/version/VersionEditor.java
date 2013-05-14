@@ -19,14 +19,10 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -88,7 +84,8 @@ class VersionEditor implements Editor {
     }
 
     @Override
-    public void propertyAdded(PropertyState after) {
+    public void propertyAdded(PropertyState after)
+            throws CommitFailedException {
         if (!wasReadOnly) {
             return;
         }
@@ -129,7 +126,8 @@ class VersionEditor implements Editor {
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
+    public void propertyDeleted(PropertyState before)
+            throws CommitFailedException {
         if (wasReadOnly) {
             if (!isVersionProperty(before)) {
                 throwProtected("Cannot delete property on checked in node");
@@ -191,32 +189,14 @@ class VersionEditor implements Editor {
     }
 
     private static void throwCheckedIn(String msg)
-            throws UncheckedRepositoryException {
-        throwUnchecked(new VersionException(msg));
+            throws CommitFailedException {
+        throw new CommitFailedException(CommitFailedException.VERSION,
+                VersionExceptionType.NODE_CHECKED_IN.ordinal(), msg);
     }
 
     private static void throwProtected(String name)
-            throws UncheckedRepositoryException {
-        throwUnchecked(new ConstraintViolationException(
-                "Property is protected: " + name));
-    }
-
-    private static void throwUnchecked(RepositoryException e)
-            throws UncheckedRepositoryException {
-        // TODO: still necessary?
-        throw new UncheckedRepositoryException(e);
-    }
-
-    private static class UncheckedRepositoryException extends RuntimeException {
-
-        private static final long serialVersionUID = 5220620245610340169L;
-
-        public UncheckedRepositoryException(RepositoryException cause) {
-            super(cause);
-        }
-
-        public RepositoryException getCause() {
-            return (RepositoryException) super.getCause();
-        }
+            throws CommitFailedException {
+        throw new CommitFailedException(CommitFailedException.CONSTRAINT, 100,
+                "Property is protected: " + name);
     }
 }

@@ -884,6 +884,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 return sessionContext.getAccessManager().hasPermissions(
                     dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT)
                         && !dlg.isProtected()
+                        && sessionContext.getVersionManager().isCheckedOut(toJcrPath(dlg.getPath()))
                         && dlg.canAddMixin(oakTypeName);
             }
         });

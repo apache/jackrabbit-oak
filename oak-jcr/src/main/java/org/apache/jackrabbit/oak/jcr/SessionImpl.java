@@ -40,6 +40,7 @@ import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -53,6 +54,9 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
+import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
+import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.util.TODO;
@@ -114,8 +118,21 @@ public class SessionImpl implements JackrabbitSession {
         return sessionContext.getOakPathOrThrowNotFound(absPath);
     }
 
-    private NodeImpl<?> createNodeOrNull(NodeDelegate nd) {
-        return nd == null ? null : new NodeImpl<NodeDelegate>(nd, sessionContext);
+    private NodeImpl<?> createNodeOrNull(NodeDelegate nd) throws RepositoryException {
+        if (nd == null) {
+            return null;
+        }
+        PropertyDelegate pd = nd.getPropertyOrNull(JcrConstants.JCR_PRIMARYTYPE);
+        String type = pd != null ? pd.getString() : null;
+        if (JcrConstants.NT_VERSION.equals(type)) {
+            VersionManagerDelegate delegate = VersionManagerDelegate.create(sd);
+            return new VersionImpl(delegate.createVersion(nd), sessionContext);
+        } else if (JcrConstants.NT_VERSIONHISTORY.equals(type)) {
+            VersionManagerDelegate delegate = VersionManagerDelegate.create(sd);
+            return new VersionHistoryImpl(delegate.createVersionHistory(nd), sessionContext);
+        } else {
+            return new NodeImpl<NodeDelegate>(nd, sessionContext);
+        }
     }
 
     private PropertyImpl createPropertyOrNull(PropertyDelegate pd) {
@@ -123,7 +140,8 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @CheckForNull
-    private ItemImpl<?> getItemInternal(@Nonnull String oakPath) {
+    private ItemImpl<?> getItemInternal(@Nonnull String oakPath)
+            throws RepositoryException {
         NodeDelegate nd = sd.getNode(oakPath);
         if (nd != null) {
             return createNodeOrNull(nd);
@@ -244,7 +262,7 @@ public class SessionImpl implements JackrabbitSession {
     public Node getRootNode() throws RepositoryException {
         return perform(new CheckedSessionOperation<Node>() {
             @Override
-            protected Node perform() throws AccessDeniedException {
+            protected Node perform() throws AccessDeniedException, RepositoryException {
                 NodeDelegate nd = sd.getRootNode();
                 if (nd == null) {
                     throw new AccessDeniedException("Root node is not accessible.");
@@ -272,7 +290,7 @@ public class SessionImpl implements JackrabbitSession {
     private Node getNodeById(final String id) throws RepositoryException {
         return perform(new CheckedSessionOperation<Node>() {
             @Override
-            public Node perform() throws ItemNotFoundException {
+            public Node perform() throws ItemNotFoundException, RepositoryException {
                 NodeDelegate nd = sd.getNodeByIdentifier(id);
                 if (nd == null) {
                     throw new ItemNotFoundException("Node with id " + id + " does not exist.");
