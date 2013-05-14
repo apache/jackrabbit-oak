@@ -283,7 +283,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
      *
      * @throws Exception
      */
-    @Ignore("") // FIXME
+    @Ignore("OAK-414") // FIXME
     public void testImportACLRemoveACE() throws Exception {
         try {
             Node target = testRootNode.addNode(nodeName1);
