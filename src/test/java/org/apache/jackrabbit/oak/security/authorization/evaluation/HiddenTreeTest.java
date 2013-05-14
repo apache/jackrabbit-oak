@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Test to make sure hidden trees are never exposed.
- *
- * TODO: review if this should rather be moved to o.a.jackrabbit.oak.core tests.
  */
 public class HiddenTreeTest extends AbstractOakCoreTest {
 
