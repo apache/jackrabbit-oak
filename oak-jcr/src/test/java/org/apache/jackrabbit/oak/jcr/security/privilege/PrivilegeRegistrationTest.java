@@ -44,9 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * CustomPrivilegeTest...
- *
- * TODO: more tests for cyclic aggregation
+ * Test privilege registration.
  */
 public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
 
