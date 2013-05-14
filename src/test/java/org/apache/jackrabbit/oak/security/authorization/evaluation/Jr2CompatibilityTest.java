@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
 import java.util.Collections;
 import java.util.Map;
-
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
@@ -36,7 +36,12 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfigu
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test compatibility with Jackrabbit 2.x using the
@@ -77,7 +82,7 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        Map<String, Boolean> map = Collections.singletonMap(AccessControlConstants.PARAM_PERMISSIONS_JR2, Boolean.TRUE);
+        Map<String, String> map = Collections.singletonMap(AccessControlConstants.PARAM_PERMISSIONS_JR2, AccessControlConstants.VALUE_PERMISSIONS_JR2);
         ConfigurationParameters acConfig = new ConfigurationParameters(map);
 
         return new ConfigurationParameters(ImmutableMap.of(AccessControlConfiguration.PARAM_ACCESS_CONTROL_OPTIONS, acConfig));
@@ -105,6 +110,54 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
                 user.remove();
                 root.commit();
             }
+        }
+    }
+
+    @Ignore("OAK-781") // FIXME
+    @Test
+    public void testRemoveNodeWithJr2Flag() throws Exception {
+        /* allow READ/WRITE privilege for testUser at 'path' */
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        /* deny REMOVE_NODE privilege at subtree. */
+        setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.JCR_REMOVE_NODE);
+
+        Root testRoot = getTestRoot();
+        AccessControlManager acMgr = getAccessControlManager(testRoot);
+        assertTrue(acMgr.hasPrivileges("/a", privilegesFromNames(PrivilegeConstants.REP_WRITE)));
+        assertFalse(acMgr.hasPrivileges("/a/b", privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE)));
+
+        // removing the tree must fail
+        try {
+            testRoot.getTree("/a").remove();
+            testRoot.commit();
+            fail();
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isAccessViolation());
+        }
+    }
+
+    @Ignore("OAK-781") // FIXME
+    @Test
+    public void testRemoveNodeWithJr2Flag2() throws Exception {
+        /* allow READ/WRITE privilege for testUser at 'path' */
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        /* deny REP_REMOVE_PROPERTIES privilege at subtree. */
+        setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.REP_REMOVE_PROPERTIES);
+
+        Root testRoot = getTestRoot();
+        AccessControlManager acMgr = getAccessControlManager(testRoot);
+        assertTrue(acMgr.hasPrivileges("/a", privilegesFromNames(PrivilegeConstants.REP_WRITE)));
+        assertFalse(acMgr.hasPrivileges("/a/b", privilegesFromNames(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
+
+        // removing the tree must fail
+        try {
+            testRoot.getTree("/a").remove();
+            testRoot.commit();
+            fail();
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isAccessViolation());
         }
     }
 }

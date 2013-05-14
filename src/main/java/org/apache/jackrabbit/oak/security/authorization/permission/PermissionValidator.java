@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,15 +35,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
+
 /**
  * Validator implementation that checks for sufficient permission for all
  * write operations executed by a given content session.
  */
 class PermissionValidator extends DefaultValidator {
-
-    /* TODO
-     * - OAK-710: Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling
-     */
 
     private final Tree parentBefore;
     private final Tree parentAfter;
@@ -201,7 +197,7 @@ class PermissionValidator extends DefaultValidator {
         if (provider.getAccessControlContext().definesTree(tree)) {
             perm = Permissions.MODIFY_ACCESS_CONTROL;
         } else if (provider.getUserContext().definesTree(tree)
-                && !provider.jr2Permissions()) {
+                && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT)) {
             perm = Permissions.USER_MANAGEMENT;
         } else {
             // FIXME: OAK-710 (identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission)
@@ -238,7 +234,7 @@ class PermissionValidator extends DefaultValidator {
         } else if (provider.getAccessControlContext().definesProperty(parent, propertyState)) {
             perm = Permissions.MODIFY_ACCESS_CONTROL;
         } else if (provider.getUserContext().definesProperty(parent, propertyState)
-                 && !provider.jr2Permissions()) {
+                 && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT)) {
             perm = Permissions.USER_MANAGEMENT;
         } else {
             perm = defaultPermission;
@@ -250,12 +246,15 @@ class PermissionValidator extends DefaultValidator {
         return JcrConstants.JCR_LOCKISDEEP.equals(name) || JcrConstants.JCR_LOCKOWNER.equals(name);
     }
 
-    // TODO
-    public static boolean noTraverse(long permission, long defaultPermission) {
-        return permission == Permissions.MODIFY_ACCESS_CONTROL ||
-                permission == Permissions.VERSION_MANAGEMENT ||
-                permission == Permissions.REMOVE_NODE ||
-                defaultPermission == Permissions.REMOVE_NODE;
+    public boolean noTraverse(long permission, long defaultPermission) {
+        if (defaultPermission == Permissions.REMOVE_NODE && provider.requiresJr2Permissions(Permissions.REMOVE_NODE)) {
+            return false;
+        } else {
+            return permission == Permissions.MODIFY_ACCESS_CONTROL ||
+                    permission == Permissions.VERSION_MANAGEMENT ||
+                    permission == Permissions.REMOVE_NODE ||
+                    defaultPermission == Permissions.REMOVE_NODE;
+        }
     }
 
     // TODO

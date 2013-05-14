@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -38,7 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class PermissionValidatorProvider extends ValidatorProvider {
 
     private final SecurityProvider securityProvider;
-    private final boolean jr2Permissions;
+    private final long jr2Permissions;
 
     private Context acCtx;
     private Context userCtx;
@@ -47,7 +48,8 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         this.securityProvider = securityProvider;
 
         ConfigurationParameters params = securityProvider.getAccessControlConfiguration().getConfigurationParameters();
-        jr2Permissions = params.getConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, false);
+        String compatValue = params.getConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, null);
+        jr2Permissions = Permissions.getPermissions(params.getConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, compatValue));
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -74,8 +76,8 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         return userCtx;
     }
 
-    boolean jr2Permissions() {
-        return jr2Permissions;
+    boolean requiresJr2Permissions(long permission) {
+        return Permissions.includes(jr2Permissions, permission);
     }
 
     private ImmutableTree createTree(NodeState root) {
