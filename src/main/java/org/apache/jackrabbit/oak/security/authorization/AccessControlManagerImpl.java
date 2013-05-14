@@ -690,7 +690,6 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     //--------------------------------------------------------------------------
-    // TODO review again
     private class NodeACL extends ACL {
 
         NodeACL(@Nullable String oakPath) {
