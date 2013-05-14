@@ -18,18 +18,21 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.util.TreeLocation;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.util.TreeLocation;
 
 /**
  * Provides constants for permissions used in the OAK access evaluation as well
@@ -136,6 +139,21 @@ public final class Permissions {
         PERMISSION_NAMES.put(USER_MANAGEMENT, "USER_MANAGEMENT");
     }
 
+    public static Set<String> getNames(long permissions) {
+        if (PERMISSION_NAMES.containsKey(permissions)) {
+            return ImmutableSet.of(PERMISSION_NAMES.get(permissions));
+        } else {
+            Set<String> names = new HashSet<String>();
+            for (Map.Entry<Long, String> entry : PERMISSION_NAMES.entrySet()) {
+                long key = entry.getKey();
+                if ((permissions & key) == key) {
+                    names.add(entry.getValue());
+                }
+            }
+            return names;
+        }
+    }
+
     public static String getString(long permissions) {
         if (PERMISSION_NAMES.containsKey(permissions)) {
             return PERMISSION_NAMES.get(permissions);
@@ -202,8 +220,8 @@ public final class Permissions {
      */
     public static long getPermissions(String jcrActions, TreeLocation location,
                                       boolean isAccessControlContent) {
-        Set<String> actions = new HashSet<String>(Arrays.asList(jcrActions.split(",")));
-        int permissions = 0;
+        Set<String> actions = Sets.newHashSet(Arrays.asList(jcrActions.split(",")));
+        long permissions = NO_PERMISSION;
         if (actions.remove(Session.ACTION_READ)) {
             if (isAccessControlContent) {
                 permissions |= READ_ACCESS_CONTROL;
@@ -246,14 +264,38 @@ public final class Permissions {
             }
         }
 
-        for (Map.Entry<Long, String> entry : PERMISSION_NAMES.entrySet()) {
-            if (actions.remove(entry.getValue())) {
-                permissions |= entry.getKey();
-            }
-        }
+        permissions |= getPermissions(actions);
 
         if (!actions.isEmpty()) {
             throw new IllegalArgumentException("Unknown actions: " + actions);
+        }
+        return permissions;
+    }
+
+    /**
+     * Returns the permissions that correspond the given permission names.
+     *
+     * @param permissionNames A comma separated string of permission names.
+     * @return The permissions.
+     * @throws IllegalArgumentException If the string contains unknown actions
+     * or permission names.
+     */
+    public static long getPermissions(@Nullable String permissionNames) {
+        if (permissionNames == null || permissionNames.isEmpty()) {
+            return NO_PERMISSION;
+        } else {
+            return getPermissions(Sets.newHashSet(Arrays.asList(permissionNames.split(","))));
+        }
+    }
+
+    private static long getPermissions(@Nonnull Set<String> permissionNames) {
+        long permissions = NO_PERMISSION;
+        Iterator<Map.Entry<Long, String>> entryItr = PERMISSION_NAMES.entrySet().iterator();
+        while (entryItr.hasNext() && !permissionNames.isEmpty()) {
+            Map.Entry<Long,String> entry = entryItr.next();
+            if (permissionNames.remove(entry.getValue())) {
+                permissions |= entry.getKey();
+            }
         }
         return permissions;
     }

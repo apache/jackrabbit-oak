@@ -24,9 +24,6 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
-/**
- * AccessControlContext... TODO
- */
 final class AccessControlContext implements Context, AccessControlConstants, PermissionConstants {
 
     private static final Context INSTANCE = new AccessControlContext();
