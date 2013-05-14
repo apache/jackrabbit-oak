@@ -77,7 +77,7 @@ public class ACETest extends AbstractAccessControlTest {
     }
 
     private ACE createEntry(Principal principal, Privilege[] privileges, boolean isAllow) throws AccessControlException {
-        return new ACE(principal, privileges, isAllow, null);
+        return new ACE(principal, privileges, isAllow, null, namePathMapper);
     }
 
     @Test

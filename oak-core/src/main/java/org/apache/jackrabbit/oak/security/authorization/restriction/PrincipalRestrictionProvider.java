@@ -30,7 +30,6 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -46,36 +45,33 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 public class PrincipalRestrictionProvider implements RestrictionProvider, AccessControlConstants {
 
     private final RestrictionProvider base;
-    private final NamePathMapper namePathMapper;
 
-    public PrincipalRestrictionProvider(RestrictionProvider base, NamePathMapper namePathMapper) {
+    public PrincipalRestrictionProvider(RestrictionProvider base) {
         this.base = base;
-        this.namePathMapper = namePathMapper;
     }
 
     @Nonnull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
         Set<RestrictionDefinition> definitions = new HashSet<RestrictionDefinition>(base.getSupportedRestrictions(oakPath));
-        definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, Type.PATH, true, namePathMapper));
+        definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, Type.PATH, true));
         return definitions;
     }
 
     @Nonnull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException {
-        String oakName = namePathMapper.getOakName(jcrName);
+    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
         if (REP_NODE_PATH.equals(oakName) && PropertyType.PATH == value.getType()) {
-            return new RestrictionImpl(PropertyStates.createProperty(oakName, value), true, namePathMapper);
+            return new RestrictionImpl(PropertyStates.createProperty(oakName, value), true);
         } else {
-            return base.createRestriction(oakPath, jcrName, value);
+            return base.createRestriction(oakPath, oakName, value);
         }
     }
 
     @Nonnull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String jcrName, @Nonnull Value... values) throws RepositoryException {
-        return base.createRestriction(oakPath, jcrName, values);
+    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
+        return base.createRestriction(oakPath, oakName, values);
     }
 
     @Override
@@ -83,7 +79,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
         Set<Restriction> restrictions = new HashSet<Restriction>(base.readRestrictions(oakPath, aceTree));
         String value = (oakPath == null) ? "" : oakPath;
         PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
-        restrictions.add(new RestrictionImpl(nodePathProp, true, namePathMapper));
+        restrictions.add(new RestrictionImpl(nodePathProp, true));
         return restrictions;
     }
 

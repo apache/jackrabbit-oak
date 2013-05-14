@@ -19,11 +19,13 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
@@ -32,6 +34,8 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 
 /**
@@ -45,17 +49,19 @@ public class ACE implements JackrabbitAccessControlEntry {
     private final Set<Privilege> privileges;
     private final boolean isAllow;
     private final Set<Restriction> restrictions;
+    private final NamePathMapper namePathMapper;
 
     private Set<String> aggrPrivNames;
     private int hashCode;
 
     public ACE(Principal principal, Privilege[] privileges,
-               boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
-        this(principal, (privileges == null) ? null : ImmutableSet.copyOf(privileges), isAllow, restrictions);
+               boolean isAllow, Set<Restriction> restrictions,
+               NamePathMapper namePathMapper) throws AccessControlException {
+        this(principal, (privileges == null) ? null : ImmutableSet.copyOf(privileges), isAllow, restrictions, namePathMapper);
     }
 
     public ACE(Principal principal, Set<Privilege> privileges,
-               boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
+               boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws AccessControlException {
         if (principal == null || privileges == null || privileges.isEmpty()) {
             throw new AccessControlException();
         }
@@ -73,6 +79,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         this.privileges = ImmutableSet.copyOf(privileges);
         this.isAllow = isAllow;
         this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : ImmutableSet.copyOf(restrictions);
+        this.namePathMapper = namePathMapper;
     }
 
     @Nonnull
@@ -105,7 +112,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         return Collections2.transform(restrictions, new Function<Restriction, String>() {
             @Override
             public String apply(Restriction restriction) {
-                return restriction.getJcrName();
+                return namePathMapper.getJcrName(restriction.getName());
             }
         }).toArray(new String[restrictions.size()]);
     }
@@ -114,8 +121,31 @@ public class ACE implements JackrabbitAccessControlEntry {
     @Override
     public Value getRestriction(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
-            if (restriction.getJcrName().equals(restrictionName)) {
-                return restriction.getValue();
+            String jcrName = namePathMapper.getJcrName(restriction.getName());
+            if (jcrName.equals(restrictionName)) {
+
+                if (restriction.getRequiredType().isArray()) {
+                    List<Value> values = ValueFactoryImpl.createValues(restriction.getProperty(), namePathMapper);
+                    switch (values.size()) {
+                        case 1: return values.get(0);
+                        default : throw new ValueFormatException("Attempt to retrieve single value from multivalued property");
+                    }
+                } else {
+                    return ValueFactoryImpl.createValue(restriction.getProperty(), namePathMapper);
+                }
+            }
+        }
+        return null;
+    }
+
+    // TODO add to API
+    @CheckForNull
+    public Value[] getRestrictions(String restrictionName) throws RepositoryException {
+        for (Restriction restriction : restrictions) {
+            String jcrName = namePathMapper.getJcrName(restriction.getName());
+            if (jcrName.equals(restrictionName)) {
+                List<Value> values = ValueFactoryImpl.createValues(restriction.getProperty(), namePathMapper);
+                return values.toArray(new Value[values.size()]);
             }
         }
         return null;

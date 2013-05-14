@@ -23,6 +23,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
@@ -35,12 +36,12 @@ public interface RestrictionProvider {
 
     @Nonnull
     Restriction createRestriction(@Nullable String oakPath,
-                                  @Nonnull String jcrName,
+                                  @Nonnull String oakName,
                                   @Nonnull Value value) throws RepositoryException;
 
     @Nonnull
     Restriction createRestriction(@Nullable String oakPath,
-                                  @Nonnull String jcrName,
+                                  @Nonnull String oakName,
                                   @Nonnull Value... values) throws RepositoryException;
 
     @Nonnull

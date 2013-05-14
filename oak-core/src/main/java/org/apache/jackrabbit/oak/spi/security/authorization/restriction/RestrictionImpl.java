@@ -17,12 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import javax.annotation.Nonnull;
-import javax.jcr.Value;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 /**
  * {@code RestrictionImpl}
@@ -31,9 +28,8 @@ public class RestrictionImpl extends RestrictionDefinitionImpl implements Restri
 
     private final PropertyState property;
 
-    public RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory,
-                           @Nonnull NamePathMapper namePathMapper) {
-        super(property.getName(), property.getType(), isMandatory, namePathMapper);
+    public RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory) {
+        super(property.getName(), property.getType(), isMandatory);
         this.property = property;
     }
 
@@ -44,17 +40,10 @@ public class RestrictionImpl extends RestrictionDefinitionImpl implements Restri
         return property;
     }
 
-    @Nonnull
-    @Override
-    public Value getValue() {
-        return ValueFactoryImpl.createValue(property, getNamePathMapper());
-    }
-
     //-------------------------------------------------------------< Object >---
-
     @Override
     public int hashCode() {
-        return Objects.hashCode(getName(), getRequiredType(), isMandatory(), getValue());
+        return Objects.hashCode(getName(), getRequiredType(), isMandatory(), property);
     }
 
     @Override

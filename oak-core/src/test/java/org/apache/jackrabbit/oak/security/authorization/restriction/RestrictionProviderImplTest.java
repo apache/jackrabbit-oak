@@ -42,7 +42,7 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
     public void before() throws Exception {
         super.before();
 
-        provider = new RestrictionProviderImpl(namePathMapper);
+        provider = new RestrictionProviderImpl();
     }
 
     @Test

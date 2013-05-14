@@ -63,7 +63,7 @@ class AccessControlValidatorProvider extends ValidatorProvider {
         Tree rootAfter = new ImmutableTree(after);
 
         AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
-        RestrictionProvider restrictionProvider = acConfig.getRestrictionProvider(NamePathMapper.DEFAULT);
+        RestrictionProvider restrictionProvider = acConfig.getRestrictionProvider();
 
         Map<String, Privilege> privileges = getPrivileges(before, securityProvider.getPrivilegeConfiguration());
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
