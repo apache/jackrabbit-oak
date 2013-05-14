@@ -81,7 +81,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     public List<? extends CommitHook> getCommitHooks(String workspaceName) {
         return ImmutableList.of(
                 new VersionablePathHook(workspaceName),
-                new PermissionHook(workspaceName, getRestrictionProvider(NamePathMapper.DEFAULT)));
+                new PermissionHook(workspaceName, getRestrictionProvider()));
     }
 
     @Override
@@ -106,8 +106,8 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper) {
-        return new RestrictionProviderImpl(namePathMapper);
+    public RestrictionProvider getRestrictionProvider() {
+        return new RestrictionProviderImpl();
     }
 
     @Nonnull

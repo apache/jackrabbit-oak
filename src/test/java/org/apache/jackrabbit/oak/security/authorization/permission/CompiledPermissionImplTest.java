@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
@@ -92,7 +91,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         group3 = new GroupImpl("group3");
 
         pbp = new PrivilegeBitsProvider(root);
-        rp = new RestrictionProviderImpl(NamePathMapper.DEFAULT);
+        rp = new RestrictionProviderImpl();
 
         NodeUtil rootNode = new NodeUtil(root.getTree("/"));
         NodeUtil system = rootNode.getChild("jcr:system");

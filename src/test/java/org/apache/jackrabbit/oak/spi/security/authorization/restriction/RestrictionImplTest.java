@@ -18,18 +18,12 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
-import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,12 +45,9 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
     public void before() throws Exception {
         super.before();
 
-        registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
-        NamePathMapper npMapper = new NamePathMapperImpl(new TestNameMapper(Namespaces.getNamespaceMap(root.getTree("/")), TestNameMapper.LOCAL_MAPPING));
-
         name = TestNameMapper.TEST_PREFIX + ":defName";
         PropertyState property = createProperty(name);
-        restriction = new RestrictionImpl(property, true, npMapper);
+        restriction = new RestrictionImpl(property, true);
     }
 
     private static PropertyState createProperty(String name) {
@@ -66,11 +57,6 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
     @Test
     public void testGetName() {
         assertEquals(name, restriction.getName());
-    }
-
-    @Test
-    public void testGetJcrName() {
-        assertEquals(TestNameMapper.TEST_LOCAL_PREFIX + ":defName", restriction.getJcrName());
     }
 
     @Test
@@ -86,15 +72,8 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
     @Test
     public void testInvalid() {
         try {
-            new RestrictionImpl(null, false, namePathMapper);
+            new RestrictionImpl(null, false);
             fail("Creating RestrictionDefinition with null name should fail.");
-        } catch (NullPointerException e) {
-            // success
-        }
-
-        try {
-            new RestrictionImpl(createProperty(name), false, null);
-            fail("Creating RestrictionDefinition with null name/path mapper should fail.");
         } catch (NullPointerException e) {
             // success
         }
@@ -103,32 +82,23 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
         @Test
     public void testEquals() {
         // same definition
-        assertEquals(restriction, new RestrictionImpl(createProperty(name), true, restriction.getNamePathMapper()));
-
-        // same def but different namepathmapper.
-        Restriction r2 = new RestrictionImpl(createProperty(name), true, namePathMapper);
-        assertFalse(restriction.getJcrName().equals(r2.getJcrName()));
-        assertEquals(restriction, r2);
+        assertEquals(restriction, new RestrictionImpl(createProperty(name), true));
     }
 
     @Test
     public void testNotEqual() {
         List<Restriction> rs = new ArrayList<Restriction>();
         // - different type
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, PropertyType.STRING), true, namePathMapper));
+        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, PropertyType.STRING), true));
         // - different name
-        rs.add(new RestrictionImpl(PropertyStates.createProperty("otherName", PropertyType.NAME), true, namePathMapper));
+        rs.add(new RestrictionImpl(PropertyStates.createProperty("otherName", PropertyType.NAME), true));
         // - different mandatory flag
-        rs.add(new RestrictionImpl(createProperty(name), false, namePathMapper));
+        rs.add(new RestrictionImpl(createProperty(name), false));
         // - different impl
         rs.add(new Restriction() {
             @Override
             public String getName() {
                 return name;
-            }
-            @Override
-            public String getJcrName() {
-                throw new UnsupportedOperationException();
             }
             @Override
             public Type getRequiredType() {
@@ -141,12 +111,6 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
             @Override
             public PropertyState getProperty() {
                 return createProperty(name);
-            }
-
-            @Nonnull
-            @Override
-            public Value getValue() {
-                return ValueFactoryImpl.createValue(createProperty(name), namePathMapper);
             }
         });
 
