@@ -31,6 +31,10 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
     private final Set<String> propertyTypes;
 
+    public LuceneInitializerHelper(String name) {
+        this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES);
+    }
+
     public LuceneInitializerHelper(String name, Set<String> propertyTypes) {
         this.name = name;
         this.propertyTypes = propertyTypes;

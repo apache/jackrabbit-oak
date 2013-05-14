@@ -26,7 +26,7 @@ public interface LuceneIndexConstants {
 
     String INDEX_DATA_CHILD_NAME = ":data";
 
-    Version VERSION = Version.LUCENE_41;
+    Version VERSION = Version.LUCENE_42;
 
     Analyzer ANALYZER = new StandardAnalyzer(VERSION);
 

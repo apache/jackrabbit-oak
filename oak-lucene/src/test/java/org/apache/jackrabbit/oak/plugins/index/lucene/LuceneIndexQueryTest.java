@@ -21,7 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -31,6 +30,8 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.JsopUtil;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -113,19 +114,29 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         assertEquals("/, /parents", result.next());
         assertFalse(result.hasNext());
     }
-    
+
     @Test
     public void contains() throws Exception {
-        StringBuffer stmt = new StringBuffer();
-        stmt.append("/jcr:root").append("/test").append("/*");
-        stmt.append("[jcr:contains(., '").append("token");
-        stmt.append("')]");
-        System.out.println(stmt.toString());
+        String h = "Hello" + System.currentTimeMillis();
+        String w = "World" + System.currentTimeMillis();
 
-        List<String> result = executeQuery(stmt.toString(), "xpath");
-        System.out.println(result);
-        for (String h : result) {
-            System.out.println(h);
-        }
+        JsopUtil.apply(root, "/ + \"test\": { \"a\": { \"name\": [\"" + h
+                + "\", \"" + w + "\" ] }, \"b\": { \"name\" : \"" + h + "\" }}");
+        root.commit();
+
+        // query 'hello'
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("/jcr:root//*[jcr:contains(., '").append(h);
+        stmt.append("')]");
+        assertQuery(stmt.toString(), "xpath",
+                ImmutableList.of("/test/a", "/test/b"));
+
+        // query 'world'
+        stmt = new StringBuffer();
+        stmt.append("/jcr:root//*[jcr:contains(., '").append(w);
+        stmt.append("')]");
+        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+
     }
+
 }

@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.FULLTEXT;
 import static org.apache.lucene.document.Field.Store.NO;
 import static org.apache.lucene.document.Field.Store.YES;
 
@@ -44,4 +46,9 @@ public final class FieldFactory {
         // return new TextField(name, value, NO);
         return new StringField(name, value, NO);
     }
+
+    public static Field newFulltextField(String value) {
+        return new TextField(FULLTEXT, value, NO);
+    }
+
 }
