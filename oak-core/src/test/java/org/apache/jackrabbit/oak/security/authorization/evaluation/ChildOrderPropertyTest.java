@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -31,10 +26,13 @@ import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Test for the hidden {@link TreeImpl#OAK_CHILD_ORDER} property
- *
- * TODO: review if this shouldn't be moved to o.a.jackrabbit.oak.core tests.
  */
 public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
