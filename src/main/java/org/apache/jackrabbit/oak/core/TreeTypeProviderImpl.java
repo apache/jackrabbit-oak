@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.core;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -46,9 +45,6 @@ public final class TreeTypeProviderImpl implements TreeTypeProvider {
             case TYPE_HIDDEN:
                 type = TYPE_HIDDEN;
                 break;
-            case TYPE_NODE_TYPE:
-                type = TYPE_NODE_TYPE;
-                break;
             case TYPE_VERSION:
                 type = TYPE_VERSION;
                 break;
@@ -59,8 +55,6 @@ public final class TreeTypeProviderImpl implements TreeTypeProvider {
                 String name = tree.getName();
                 if (NodeStateUtils.isHidden(name)) {
                     type = TYPE_HIDDEN;
-                } else if (NodeTypeConstants.JCR_NODE_TYPES.equals(name)) {
-                    type = TYPE_NODE_TYPE;
                 } else if (VersionConstants.VERSION_NODE_NAMES.contains(name) ||
                         VersionConstants.VERSION_NODE_TYPE_NAMES.contains(NodeStateUtils.getPrimaryTypeName(tree.state))) {
                     type = TYPE_VERSION;
