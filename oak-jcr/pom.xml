@@ -302,6 +302,7 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceMove                 <!-- OAK-711 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testSessionMove                   <!-- OAK-711 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceImportXML            <!-- OAK-773 -->
+      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupIntoUsersTree <!-- OAK-821 -->
     </known.issues>
   </properties>
 
