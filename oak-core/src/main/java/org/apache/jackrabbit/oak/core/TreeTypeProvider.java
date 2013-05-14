@@ -29,10 +29,8 @@ public interface TreeTypeProvider {
     int TYPE_VERSION = 2;
     // access control content
     int TYPE_AC = 4;
-    // node type definition content
-    int TYPE_NODE_TYPE = 8;
     // hidden trees
-    int TYPE_HIDDEN = 16;
+    int TYPE_HIDDEN = 8;
 
     TreeTypeProvider EMPTY = new TreeTypeProvider() {
         @Override
