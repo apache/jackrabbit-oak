@@ -377,7 +377,8 @@ public class UserManagerImpl implements UserManager {
 
     private void checkIsLive() throws RepositoryException {
         try {
-            // FIXME: checkIsLive is not part of the public root interface... execute the check using another method.
+            // Note: Root#checkIsLive is not part of the public root interface.
+            // therefore execute the check using another method.
             root.getBlobFactory();
         } catch (IllegalStateException e) {
             throw new RepositoryException("User manager is no longer alive.");
