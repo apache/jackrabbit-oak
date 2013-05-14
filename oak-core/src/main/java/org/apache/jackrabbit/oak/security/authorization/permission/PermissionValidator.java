@@ -103,8 +103,7 @@ class PermissionValidator extends DefaultValidator {
             child = getVersionHistoryTree(child);
             if (child == null) {
                 throw new CommitFailedException(
-                        ACCESS, 21,
-                        "New version storage node without version history: cannot verify permissions.");
+                        ACCESS, 21, "New version storage node without version history: cannot verify permissions.");
             }
         }
         return checkPermissions(child, false, Permissions.ADD_NODE);
@@ -115,9 +114,6 @@ class PermissionValidator extends DefaultValidator {
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         Tree childBefore = parentBefore.getChild(name);
         Tree childAfter = parentAfter.getChild(name);
-
-        // TODO
-
         return nextValidator(childBefore, childAfter);
     }
 
@@ -125,10 +121,8 @@ class PermissionValidator extends DefaultValidator {
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
         Tree child = checkNotNull(parentBefore.getChild(name));
         if (isVersionstorageTree(child)) {
-            // TODO: check again
             throw new CommitFailedException(
-                    ACCESS, 22,
-                    "Attempt to remove versionstorage node: Fail to verify delete permission.");
+                    ACCESS, 22, "Attempt to remove versionstorage node: Fail to verify delete permission.");
         }
         return checkPermissions(child, true, Permissions.REMOVE_NODE);
     }
@@ -225,7 +219,7 @@ class PermissionValidator extends DefaultValidator {
         } else if (JcrConstants.JCR_MIXINTYPES.equals(name)) {
             perm = Permissions.NODE_TYPE_MANAGEMENT;
         } else if (JcrConstants.JCR_UUID.equals(name)) {
-            // TODO OAK-796: jcr:uuid is never set using a method on JCR API -> omit permission check
+            // TODO: OAK-796 (jcr:uuid is never set using a method on JCR API -> omit permission check)
             perm = Permissions.NO_PERMISSION;
         } else if (isLockProperty(name)) {
             perm = Permissions.LOCK_MANAGEMENT;
@@ -257,13 +251,11 @@ class PermissionValidator extends DefaultValidator {
         }
     }
 
-    // TODO
     private boolean isVersionstorageTree(Tree tree) {
         return permission == Permissions.VERSION_MANAGEMENT &&
                 VersionConstants.REP_VERSIONSTORAGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    // TODO
     private Tree getVersionHistoryTree(Tree versionstorageTree) throws CommitFailedException {
         Tree versionHistory = null;
         for (Tree child : versionstorageTree.getChildren()) {
@@ -272,7 +264,6 @@ class PermissionValidator extends DefaultValidator {
             } else if (isVersionstorageTree(child)) {
                 versionHistory = getVersionHistoryTree(child);
             } else {
-                // TODO:
                 throw new CommitFailedException("Misc", 0, "unexpected node");
             }
         }
