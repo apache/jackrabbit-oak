@@ -21,9 +21,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
-/**
- * ReadStatusTest... TODO
- */
 public class ReadStatusTest {
 
     @Test

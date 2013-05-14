@@ -74,7 +74,6 @@ import static org.junit.Assert.fail;
  * Test abstract {@code ACL} implementation.
  * <p/>
  * TODO: test restrictions
- * TODO: add test with multiple entries
  */
 public class ACLTest extends AbstractAccessControlListTest implements PrivilegeConstants, AccessControlConstants {
 

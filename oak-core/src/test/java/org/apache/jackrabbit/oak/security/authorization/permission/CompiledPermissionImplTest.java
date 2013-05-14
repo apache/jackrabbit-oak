@@ -64,9 +64,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-/**
- * CompiledPermissionImplTest... TODO
- */
 public class CompiledPermissionImplTest extends AbstractSecurityTest implements PermissionConstants, PrivilegeConstants, AccessControlConstants {
 
     private Principal userPrincipal;
