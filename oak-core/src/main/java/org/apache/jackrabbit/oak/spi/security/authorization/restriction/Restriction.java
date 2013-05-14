@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import javax.annotation.Nonnull;
-import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 
@@ -37,12 +36,4 @@ public interface Restriction extends RestrictionDefinition {
      */
     @Nonnull
     PropertyState getProperty();
-
-    /**
-     * The JCR value of this restriction object contained in {@link #getProperty()}.
-     *
-     * @return The JCR value of this restriction.
-     */
-    @Nonnull
-    Value getValue();
 }

@@ -39,7 +39,7 @@ public interface AccessControlConfiguration extends SecurityConfiguration {
                                                  @Nonnull NamePathMapper namePathMapper);
 
     @Nonnull
-    RestrictionProvider getRestrictionProvider(@Nonnull NamePathMapper namePathMapper);
+    RestrictionProvider getRestrictionProvider();
 
     @Nonnull
     PermissionProvider getPermissionProvider(@Nonnull Root root,

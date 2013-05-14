@@ -57,7 +57,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     }
 
     @Override
-    protected ImmutableACL createACL(String jcrPath, List<JackrabbitAccessControlEntry> entries,
+    protected ImmutableACL createACL(String jcrPath, List<ACE> entries,
                                      NamePathMapper namePathMapper, RestrictionProvider restrictionProvider) {
         String oakPath = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
         return new ImmutableACL(oakPath, entries, restrictionProvider, namePathMapper);
@@ -116,9 +116,9 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
 
     @Test
     public void testImmutable() throws Exception {
-        List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
-        entries.add(new ACE(testPrincipal, testPrivileges, true, null));
-        entries.add(new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false, null));
+        List<ACE> entries = new ArrayList<ACE>();
+        entries.add(new ACE(testPrincipal, testPrivileges, true, null, namePathMapper));
+        entries.add(new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false, null, namePathMapper));
 
         JackrabbitAccessControlList acl = createACL(entries);
         assertFalse(acl.isEmpty());
@@ -143,16 +143,16 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         JackrabbitAccessControlList acl = createEmptyACL();
 
         assertEquals(acl, createEmptyACL());
-        assertFalse(acl.equals(createACL(new ACE(testPrincipal, testPrivileges, true, Collections.<Restriction>emptySet()))));
+        assertFalse(acl.equals(createACL(new ACE(testPrincipal, testPrivileges, true, Collections.<Restriction>emptySet(), namePathMapper))));
         assertFalse(acl.equals(new TestACL(getTestPath(), getRestrictionProvider(), Collections.<JackrabbitAccessControlEntry>emptyList())));
     }
 
     @Test
     public void testEquals() throws Exception {
         RestrictionProvider rp = getRestrictionProvider();
-        ACE ace1 = new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false, null);
-        ACE ace2 = new ACE(testPrincipal, testPrivileges, true, null);
-        ACE ace2b = new ACE(testPrincipal, getAggregatedPrivileges(testPrivileges), true, null);
+        ACE ace1 = new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false, null, namePathMapper);
+        ACE ace2 = new ACE(testPrincipal, testPrivileges, true, null, namePathMapper);
+        ACE ace2b = new ACE(testPrincipal, getAggregatedPrivileges(testPrivileges), true, null, namePathMapper);
 
         JackrabbitAccessControlList acl = createACL(ace1, ace2);
         JackrabbitAccessControlList repoAcl = createACL((String) null, ace1, ace2);
@@ -175,9 +175,9 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     @Test
     public void testHashCode() throws Exception {
         RestrictionProvider rp = getRestrictionProvider();
-        ACE ace1 = new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false, null);
-        ACE ace2 = new ACE(testPrincipal, testPrivileges, true, null);
-        ACE ace2b = new ACE(testPrincipal, getAggregatedPrivileges(testPrivileges), true, null);
+        ACE ace1 = new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false, null, namePathMapper);
+        ACE ace2 = new ACE(testPrincipal, testPrivileges, true, null, namePathMapper);
+        ACE ace2b = new ACE(testPrincipal, getAggregatedPrivileges(testPrivileges), true, null, namePathMapper);
 
         JackrabbitAccessControlList acl = createACL(ace1, ace2);
         JackrabbitAccessControlList repoAcl = createACL((String) null, ace1, ace2);

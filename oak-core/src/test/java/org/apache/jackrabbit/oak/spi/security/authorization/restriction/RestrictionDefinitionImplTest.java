@@ -21,9 +21,6 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,21 +42,13 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
     public void before() throws Exception {
         super.before();
 
-        registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
-        NamePathMapper npMapper = new NamePathMapperImpl(new TestNameMapper(Namespaces.getNamespaceMap(root.getTree("/")), TestNameMapper.LOCAL_MAPPING));
-
         name = TestNameMapper.TEST_PREFIX + ":defName";
-        definition = new RestrictionDefinitionImpl(name, Type.NAME, true, npMapper);
+        definition = new RestrictionDefinitionImpl(name, Type.NAME, true);
     }
 
     @Test
     public void testGetName() {
         assertEquals(name, definition.getName());
-    }
-
-    @Test
-    public void testGetJcrName() {
-        assertEquals(TestNameMapper.TEST_LOCAL_PREFIX + ":defName", definition.getJcrName());
     }
 
     @Test
@@ -75,21 +64,14 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
     @Test
     public void testInvalid() {
         try {
-            new RestrictionDefinitionImpl(null, Type.BOOLEAN, false, namePathMapper);
+            new RestrictionDefinitionImpl(null, Type.BOOLEAN, false);
             fail("Creating RestrictionDefinition with null name should fail.");
         } catch (NullPointerException e) {
             // success
         }
 
         try {
-            new RestrictionDefinitionImpl(name, Type.BOOLEAN, false, null);
-            fail("Creating RestrictionDefinition with null name/path mapper should fail.");
-        } catch (NullPointerException e) {
-            // success
-        }
-
-        try {
-            new RestrictionDefinitionImpl(name, Type.UNDEFINED, false, namePathMapper);
+            new RestrictionDefinitionImpl(name, Type.UNDEFINED, false);
             fail("Creating RestrictionDefinition with undefined required type should fail.");
         } catch (IllegalArgumentException e) {
             // success
@@ -99,32 +81,23 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
     @Test
     public void testEquals() {
         // same definition
-        assertEquals(definition, new RestrictionDefinitionImpl(name, Type.NAME, true, definition.getNamePathMapper()));
-
-        // same def but different namepathmapper.
-        RestrictionDefinition definition2 = new RestrictionDefinitionImpl(name, Type.NAME, true, namePathMapper);
-        assertFalse(definition.getJcrName().equals(definition2.getJcrName()));
-        assertEquals(definition, definition2);
+        assertEquals(definition, new RestrictionDefinitionImpl(name, Type.NAME, true));
     }
 
     @Test
     public void testNotEqual() {
         List<RestrictionDefinition> defs = new ArrayList<RestrictionDefinition>();
         // - different type
-        defs.add(new RestrictionDefinitionImpl(name, Type.STRING, true, namePathMapper));
+        defs.add(new RestrictionDefinitionImpl(name, Type.STRING, true));
         // - different name
-        defs.add(new RestrictionDefinitionImpl("otherName", Type.NAME, true, namePathMapper));
+        defs.add(new RestrictionDefinitionImpl("otherName", Type.NAME, true));
         // - different mandatory flag
-        defs.add(new RestrictionDefinitionImpl(name, Type.NAMES, false, namePathMapper));
+        defs.add(new RestrictionDefinitionImpl(name, Type.NAMES, false));
         // - different impl
         defs.add(new RestrictionDefinition() {
             @Override
             public String getName() {
                 return name;
-            }
-            @Override
-            public String getJcrName() {
-                throw new UnsupportedOperationException();
             }
             @Override
             public Type getRequiredType() {

@@ -42,7 +42,7 @@ public class OpenAccessControlConfiguration extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper) {
+    public RestrictionProvider getRestrictionProvider() {
         throw new UnsupportedOperationException();
     }
 

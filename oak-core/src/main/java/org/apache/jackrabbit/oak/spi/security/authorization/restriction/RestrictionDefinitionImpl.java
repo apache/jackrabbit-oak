@@ -21,19 +21,17 @@ import javax.jcr.PropertyType;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * RestrictionDefinitionImpl... TODO
+ * Default implementation of the {@link RestrictionDefinition} interface.
  */
 public class RestrictionDefinitionImpl implements RestrictionDefinition {
 
     private final String name;
     private final Type type;
     private final boolean isMandatory;
-    private final NamePathMapper namePathMapper;
 
     /**
      * Create a new instance.
@@ -43,34 +41,20 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
      *                       {@link javax.jcr.PropertyType} except {@link javax.jcr.PropertyType#UNDEFINED}
      *                       is allowed.
      * @param isMandatory    A boolean indicating if the restriction is mandatory.
-     * @param namePathMapper The name path mapper used to calculate the JCR name.
      */
-    public RestrictionDefinitionImpl(@Nonnull String name, Type type, boolean isMandatory,
-                                     @Nonnull NamePathMapper namePathMapper) {
+    public RestrictionDefinitionImpl(@Nonnull String name, Type type, boolean isMandatory) {
         this.name = checkNotNull(name);
         if (type.tag() == PropertyType.UNDEFINED) {
             throw new IllegalArgumentException("'undefined' is not a valid required definition type.");
         }
         this.type = type;
         this.isMandatory = isMandatory;
-        this.namePathMapper = checkNotNull(namePathMapper);
     }
-
-    protected NamePathMapper getNamePathMapper() {
-        return namePathMapper;
-    }
-
     //----------------------------------------------< RestrictionDefinition >---
     @Nonnull
     @Override
     public String getName() {
         return name;
-    }
-
-    @Nonnull
-    @Override
-    public String getJcrName() {
-        return namePathMapper.getJcrName(getName());
     }
 
     @Override

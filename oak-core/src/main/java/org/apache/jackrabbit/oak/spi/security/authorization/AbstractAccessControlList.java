@@ -59,7 +59,12 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     }
 
     @Nonnull
-    public abstract List<JackrabbitAccessControlEntry> getEntries();
+    public NamePathMapper getNamePathMapper() {
+        return namePathMapper;
+    }
+
+    @Nonnull
+    public abstract List<? extends JackrabbitAccessControlEntry> getEntries();
 
     @Nonnull
     public abstract RestrictionProvider getRestrictionProvider();
@@ -75,7 +80,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
 
     @Override
     public AccessControlEntry[] getAccessControlEntries() throws RepositoryException {
-        List<JackrabbitAccessControlEntry> entries = getEntries();
+        List<? extends JackrabbitAccessControlEntry> entries = getEntries();
         return entries.toArray(new JackrabbitAccessControlEntry[entries.size()]);
     }
 
@@ -103,7 +108,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
         return Collections2.transform(supported, new Function<RestrictionDefinition, String>() {
             @Override
             public String apply(RestrictionDefinition definition) {
-                return definition.getJcrName();
+                return namePathMapper.getJcrName(definition.getName());
             }
         }).toArray(new String[supported.size()]);
 
@@ -112,7 +117,8 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @Override
     public int getRestrictionType(String restrictionName) throws RepositoryException {
         for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
-            if (definition.getJcrName().equals(restrictionName)) {
+            String jcrName = namePathMapper.getJcrName(definition.getName());
+            if (jcrName.equals(restrictionName)) {
                 return definition.getRequiredType().tag();
             }
         }

@@ -72,8 +72,6 @@ import static org.junit.Assert.fail;
 
 /**
  * Test abstract {@code ACL} implementation.
- * <p/>
- * TODO: test restrictions
  */
 public class ACLTest extends AbstractAccessControlListTest implements PrivilegeConstants, AccessControlConstants {
 
@@ -99,7 +97,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
     @Override
     protected AbstractAccessControlList createACL(@Nullable String jcrPath,
-                                                  @Nonnull List<JackrabbitAccessControlEntry> entries,
+                                                  @Nonnull List<ACE> entries,
                                                   @Nonnull NamePathMapper namePathMapper,
                                                   final @Nonnull RestrictionProvider restrictionProvider) {
         String path = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
@@ -235,7 +233,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
     @Test
     public void testRemoveNonExisting() throws Exception {
         try {
-            acl.removeAccessControlEntry(new ACE(testPrincipal, testPrivileges, true, null));
+            acl.removeAccessControlEntry(new ACE(testPrincipal, testPrivileges, true, null, namePathMapper));
             fail("Removing a non-existing ACE should fail.");
         } catch (AccessControlException e) {
             // success
@@ -252,13 +250,13 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         acl.addEntry(testPrincipal, write, false);
         acl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
 
-        List<JackrabbitAccessControlEntry> entries = acl.getEntries();
+        List<? extends JackrabbitAccessControlEntry> entries = acl.getEntries();
         assertEquals(3, entries.size());
 
         AccessControlEntry first = entries.get(0);
         acl.orderBefore(first, null);
 
-        List<JackrabbitAccessControlEntry> entriesAfter = acl.getEntries();
+        List<? extends JackrabbitAccessControlEntry> entriesAfter = acl.getEntries();
         assertEquals(first, entriesAfter.get(2));
     }
 
@@ -300,7 +298,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         acl.addAccessControlEntry(testPrincipal, read);
         acl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
 
-        AccessControlEntry invalid = new ACE(testPrincipal, write, false, Collections.<Restriction>emptySet());
+        AccessControlEntry invalid = new ACE(testPrincipal, write, false, Collections.<Restriction>emptySet(), namePathMapper);
         try {
             acl.orderBefore(invalid, acl.getEntries().get(0));
             fail("src entry not contained in list -> reorder should fail.");
@@ -561,7 +559,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         acl.addEntry(testPrincipal, writePriv, false);
         acl.addEntry(testPrincipal, addNodePriv, true, restrictions);
 
-        List<JackrabbitAccessControlEntry> entries = acl.getEntries();
+        List<? extends JackrabbitAccessControlEntry> entries = acl.getEntries();
         assertACE(entries.get(0), true, readPriv);
         assertACE(entries.get(1), false, writePriv);
         assertACE(entries.get(2), true, addNodePriv);
@@ -579,7 +577,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         acl.addEntry(testPrincipal, addNodePriv, true, restrictions);
         acl.addEntry(testPrincipal, writePriv, false);
 
-        List<JackrabbitAccessControlEntry> entries = acl.getEntries();
+        List<? extends JackrabbitAccessControlEntry> entries = acl.getEntries();
         assertACE(entries.get(0), true, readPriv);
         assertACE(entries.get(1), true, addNodePriv);
         assertACE(entries.get(2), false, writePriv);
@@ -711,7 +709,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         private final RestrictionDefinition supported;
 
         private TestRestrictionProvider(String name, Type type, boolean isMandatory) {
-            supported = new RestrictionDefinitionImpl(name, type, isMandatory, namePathMapper);
+            supported = new RestrictionDefinitionImpl(name, type, isMandatory);
         }
 
         @Nonnull
@@ -722,21 +720,21 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
         @Nonnull
         @Override
-        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException {
-            if (!supported.getJcrName().equals(jcrName)) {
+        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
+            if (!supported.getName().equals(oakName)) {
                 throw new AccessControlException();
             }
             if (supported.getRequiredType().tag() != value.getType()) {
                 throw new AccessControlException();
             }
-            PropertyState property = PropertyStates.createProperty(namePathMapper.getOakName(jcrName), value.getString(), value.getType());
-            return new RestrictionImpl(property, supported.isMandatory(), namePathMapper);
+            PropertyState property = PropertyStates.createProperty(namePathMapper.getOakName(oakName), value.getString(), value.getType());
+            return new RestrictionImpl(property, supported.isMandatory());
         }
 
         @Nonnull
         @Override
-        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String jcrName, @Nonnull Value... values) throws RepositoryException {
-            if (!supported.getJcrName().equals(jcrName)) {
+        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
+            if (!supported.getName().equals(oakName)) {
                 throw new AccessControlException();
             }
             for (Value v : values) {
@@ -744,8 +742,8 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
                     throw new AccessControlException();
                 }
             }
-            PropertyState property = PropertyStates.createProperty(namePathMapper.getOakName(jcrName), Arrays.asList(values), supported.getRequiredType());
-            return new RestrictionImpl(property, supported.isMandatory(), namePathMapper);
+            PropertyState property = PropertyStates.createProperty(namePathMapper.getOakName(oakName), Arrays.asList(values), supported.getRequiredType());
+            return new RestrictionImpl(property, supported.isMandatory());
         }
 
         @Nonnull

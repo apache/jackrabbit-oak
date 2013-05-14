@@ -55,13 +55,13 @@ abstract class ACL extends AbstractAccessControlList {
 
     private static final Logger log = LoggerFactory.getLogger(ACL.class);
 
-    private final List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
+    private final List<ACE> entries = new ArrayList<ACE>();
 
     ACL(@Nullable String oakPath, @Nonnull NamePathMapper namePathMapper) {
         this(oakPath, null, namePathMapper);
     }
 
-    ACL(@Nullable String oakPath, @Nullable List<JackrabbitAccessControlEntry> entries,
+    ACL(@Nullable String oakPath, @Nullable List<ACE> entries,
         @Nonnull NamePathMapper namePathMapper) {
         super(oakPath, namePathMapper);
         if (entries != null) {
@@ -78,7 +78,7 @@ abstract class ACL extends AbstractAccessControlList {
     //------------------------------------------< AbstractAccessControlList >---
     @Nonnull
     @Override
-    public List<JackrabbitAccessControlEntry> getEntries() {
+    public List<ACE> getEntries() {
         return entries;
     }
 
@@ -86,7 +86,7 @@ abstract class ACL extends AbstractAccessControlList {
 
     @Override
     public void removeAccessControlEntry(AccessControlEntry ace) throws RepositoryException {
-        JackrabbitAccessControlEntry entry = checkACE(ace);
+        ACE entry = checkACE(ace);
         if (!entries.remove(entry)) {
             throw new AccessControlException("Cannot remove AccessControlEntry " + ace);
         }
@@ -107,8 +107,9 @@ abstract class ACL extends AbstractAccessControlList {
         AccessControlUtils.checkValidPrincipal(principal, getPrincipalManager());
 
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
-            if (def.isMandatory() && (restrictions == null || !restrictions.containsKey(def.getJcrName()))) {
-                throw new AccessControlException("Mandatory restriction " +def.getJcrName()+ " is missing.");
+            String jcrName = getNamePathMapper().getJcrName(def.getName());
+            if (def.isMandatory() && (restrictions == null || !restrictions.containsKey(jcrName))) {
+                throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
             }
         }
 
@@ -117,12 +118,13 @@ abstract class ACL extends AbstractAccessControlList {
             rs = Collections.emptySet();
         } else {
             rs = new HashSet<Restriction>(restrictions.size());
-            for (String name : restrictions.keySet()) {
-                rs.add(getRestrictionProvider().createRestriction(getOakPath(), name, restrictions.get(name)));
+            for (String jcrName : restrictions.keySet()) {
+                String oakName = getNamePathMapper().getOakName(jcrName);
+                rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrictions.get(oakName)));
             }
         }
 
-        ACE entry = new ACE(principal, privileges, isAllow, rs);
+        ACE entry = new ACE(principal, privileges, isAllow, rs, getNamePathMapper());
         if (entries.contains(entry)) {
             log.debug("Entry is already contained in policy -> no modification.");
             return false;
@@ -133,8 +135,8 @@ abstract class ACL extends AbstractAccessControlList {
 
     @Override
     public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws RepositoryException {
-        JackrabbitAccessControlEntry src = checkACE(srcEntry);
-        JackrabbitAccessControlEntry dest = (destEntry == null) ? null : checkACE(destEntry);
+        ACE src = checkACE(srcEntry);
+        ACE dest = (destEntry == null) ? null : checkACE(destEntry);
 
         if (src.equals(dest)) {
             log.debug("'srcEntry' equals 'destEntry' -> no reordering required.");
@@ -184,9 +186,9 @@ abstract class ACL extends AbstractAccessControlList {
 
     private boolean internalAddEntry(@Nonnull ACE entry) throws RepositoryException {
         final Principal principal = entry.getPrincipal();
-        List<JackrabbitAccessControlEntry> subList = Lists.newArrayList(Iterables.filter(entries, new Predicate<JackrabbitAccessControlEntry>() {
+        List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, new Predicate<ACE>() {
             @Override
-            public boolean apply(@Nullable JackrabbitAccessControlEntry ace) {
+            public boolean apply(@Nullable ACE ace) {
                 return (ace != null) && ace.getPrincipal().equals(principal);
             }
         }));
@@ -236,7 +238,7 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     private ACE createACE(ACE existing, PrivilegeBits newPrivilegeBits) throws RepositoryException {
-        return new ACE(existing.getPrincipal(), getPrivileges(newPrivilegeBits), existing.isAllow(), existing.getRestrictions());
+        return new ACE(existing.getPrincipal(), getPrivileges(newPrivilegeBits), existing.isAllow(), existing.getRestrictions(), getNamePathMapper());
     }
 
     private Set<Privilege> getPrivileges(PrivilegeBits bits) throws RepositoryException {

@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.security.Principal;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,14 +26,12 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.util.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
@@ -47,9 +42,12 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
+import org.apache.jackrabbit.oak.util.TreeLocation;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * PermissionProviderImpl... TODO
@@ -84,7 +82,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             } else {
                 compiledPermissions = new CompiledPermissionImpl(principals,
                         permissionsTree, getBitsProvider(),
-                        acConfig.getRestrictionProvider(NamePathMapper.DEFAULT),
+                        acConfig.getRestrictionProvider(),
                         acConfig.getConfigurationParameters().getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS));
             }
         }
