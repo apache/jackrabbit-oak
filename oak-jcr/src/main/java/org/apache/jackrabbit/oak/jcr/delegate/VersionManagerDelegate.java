@@ -84,6 +84,12 @@ public class VersionManagerDelegate {
     }
 
     @Nonnull
+    public VersionDelegate createVersion(@Nonnull NodeDelegate version)
+            throws RepositoryException {
+        return VersionDelegate.create(sessionDelegate, getTree(version));
+    }
+
+    @Nonnull
     public VersionHistoryDelegate getVersionHistory(@Nonnull NodeDelegate versionable)
             throws RepositoryException {
         Tree vh = versionManager.getVersionHistory(getTree(versionable));

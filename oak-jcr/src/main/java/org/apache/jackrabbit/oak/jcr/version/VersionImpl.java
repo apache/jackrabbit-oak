@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.util.TODO;
 
-class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
+public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     public VersionImpl(VersionDelegate dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
