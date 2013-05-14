@@ -21,4 +21,4 @@ notifications:
   email:
     recipients: oak-dev@jackrabbit.apache.org
     on_success: change
-    on_failure: change
+    on_failure: always
