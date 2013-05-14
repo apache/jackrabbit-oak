@@ -205,12 +205,16 @@ public abstract class AbstractQueryTest {
     }
 
     protected List<String> executeQuery(String query, String language) {
+        return executeQuery(query, language, false);
+    }
+
+    protected List<String> executeQuery(String query, String language, boolean pathsOnly) {
         long time = System.currentTimeMillis();
         List<String> lines = new ArrayList<String>();
         try {
             Result result = executeQuery(query, language, null);
             for (ResultRow row : result.getRows()) {
-                lines.add(readRow(row));
+                lines.add(readRow(row, pathsOnly));
             }
             if (!query.contains("order by")) {
                 Collections.sort(lines);
@@ -228,8 +232,14 @@ public abstract class AbstractQueryTest {
     }
 
     protected List<String> assertQuery(String sql, List<String> expected) {
-        List<String> paths = executeQuery(sql, SQL2);
-        assertEquals(expected.size(), paths.size());
+        return assertQuery(sql, SQL2, expected);
+    }
+
+    protected List<String> assertQuery(String sql, String language,
+            List<String> expected) {
+        List<String> paths = executeQuery(sql, language, true);
+        assertEquals("Result set size is different", expected.size(),
+                paths.size());
         for (String p : expected) {
             assertTrue(paths.contains(p));
         }
@@ -240,7 +250,10 @@ public abstract class AbstractQueryTest {
         ((QueryEngineImpl) qe).setTravesalFallback(traversal);
     }
 
-    protected static String readRow(ResultRow row) {
+    protected static String readRow(ResultRow row, boolean pathOnly) {
+        if (pathOnly) {
+            return row.getValue(Query.JCR_PATH).getValue(Type.STRING);
+        }
         StringBuilder buff = new StringBuilder();
         PropertyValue[] values = row.getValues();
         for (int i = 0; i < values.length; i++) {

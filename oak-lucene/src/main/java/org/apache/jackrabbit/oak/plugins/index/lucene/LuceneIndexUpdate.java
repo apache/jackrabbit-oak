@@ -20,6 +20,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZER;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 
 import java.io.Closeable;
@@ -49,7 +54,7 @@ import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
+class LuceneIndexUpdate implements Closeable {
 
     private static final Logger log = LoggerFactory
             .getLogger(LuceneIndexUpdate.class);
@@ -187,19 +192,24 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
         Document document = new Document();
         document.add(newPathField(path));
         for (PropertyState property : state.getProperties()) {
-            if (propertyTypes.isEmpty()
+            String pname = property.getName();
+            if (isVisible(pname) && propertyTypes.isEmpty()
                     || propertyTypes.contains(property.getType().tag())) {
                 if (Type.BINARY.tag() == property.getType().tag()) {
                     addBinaryValue(document, property, state);
                 } else {
-                    String pname = property.getName();
                     for (String v : property.getValue(Type.STRINGS)) {
                         document.add(newPropertyField(pname, v));
+                        document.add(newFulltextField(v));
                     }
                 }
             }
         }
         return document;
+    }
+
+    private static boolean isVisible(String name) {
+        return name.charAt(0) != ':';
     }
 
     private void addBinaryValue(Document doc, PropertyState property,
@@ -216,9 +226,8 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
             metadata.set(Metadata.CONTENT_ENCODING, encoding);
         }
 
-        String name = property.getName();
         for (Blob v : property.getValue(Type.BINARIES)) {
-            doc.add(newPropertyField(name, parseStringValue(v, metadata)));
+            doc.add(newFulltextField(parseStringValue(v, metadata)));
         }
     }
 

@@ -45,4 +45,8 @@ public final class TermFactory {
         return new Term(FieldNames.PATH, path);
     }
 
+    public static Term newFulltextTerm(String ft) {
+        return new Term(FieldNames.FULLTEXT, ft);
+    }
+
 }

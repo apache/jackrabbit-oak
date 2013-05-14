@@ -25,8 +25,10 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
 import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 import java.io.IOException;
@@ -50,10 +52,10 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.MultiPhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -69,17 +71,20 @@ import org.slf4j.LoggerFactory;
  * Provides a QueryIndex that does lookups against a Lucene-based index
  * 
  * <p>
- * To define a lucene index on a subtree you have to add an <code>oak:index<code> node.
+ * To define a lucene index on a subtree you have to add an
+ * <code>oak:index<code> node.
  * 
  * Under it follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:queryIndexDefinition</code></li>
- * <li>must have the <code>type</code> property set to <b><code>lucene</code></b></li>
+ * <li>must have the <code>type</code> property set to <b><code>lucene</code>
+ * </b></li>
  * </ul>
  * </p>
  * 
  * <p>
- * Note: <code>reindex<code> is a property that when set to <code>true</code>, triggers a full content reindex.
+ * Note: <code>reindex<code> is a property that when set to <code>true</code>,
+ * triggers a full content reindex.
  * </p>
  * 
  * <pre>
@@ -191,7 +196,8 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
     }
 
-    private static Query getQuery(Filter filter, NodeState root, IndexReader reader) {
+    private static Query getQuery(Filter filter, NodeState root,
+            IndexReader reader) {
         List<Query> qs = new ArrayList<Query>();
 
         if (!filter.matchesAllTypes()) {
@@ -293,8 +299,9 @@ public class LuceneIndex implements FulltextQueryIndex {
 
             qs.add(TermRangeQuery.newStringRange(name, first, last,
                     pr.firstIncluding, pr.lastIncluding));
-
         }
+
+        addFulltextConstraints(qs, filter);
 
         if (qs.size() == 0) {
             return new MatchAllDocsQuery();
@@ -304,7 +311,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
         BooleanQuery bq = new BooleanQuery();
         for (Query q : qs) {
-            bq.add(q, Occur.MUST);
+            bq.add(q, MUST);
         }
         return bq;
     }
@@ -321,7 +328,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         BooleanQuery bq = new BooleanQuery();
         Collection<String> fields = MultiFields.getIndexedFields(reader);
         for (String f : fields) {
-            bq.add(new TermQuery(new Term(f, uuid)), Occur.SHOULD);
+            bq.add(new TermQuery(new Term(f, uuid)), SHOULD);
         }
         qs.add(bq);
     }
@@ -335,6 +342,96 @@ public class LuceneIndex implements FulltextQueryIndex {
             bq.add(new TermQuery(new Term(JCR_MIXINTYPES, type)), SHOULD);
         }
         qs.add(bq);
+    }
+
+    private static void addFulltextConstraints(List<Query> qs, Filter filter) {
+        if (filter.getFulltextConditions() == null
+                || filter.getFulltextConditions().isEmpty()) {
+            return;
+        }
+        List<String> tokens = tokenize(filter.getFulltextConditions()
+                .iterator().next().toLowerCase());
+        if (tokens.size() == 1) {
+            String token = tokens.get(0);
+            Query q = null;
+            if (token.contains(" ")) {
+                // q = new WildcardQuery(newFulltextTerm(token));
+                // PhraseQuery pq = new PhraseQuery();
+                // pq.add(newFulltextTerm(token));
+                // q = pq;
+            } else {
+                q = new WildcardQuery(newFulltextTerm(token
+                        + WildcardQuery.WILDCARD_STRING));
+            }
+            if (q != null) {
+                qs.add(q);
+            }
+            return;
+        }
+
+        BooleanQuery q = new BooleanQuery();
+        for (String token : tokens) {
+            q.add(new TermQuery(newFulltextTerm(token)), MUST);
+            // if (token.contains(" ")) {
+            // // q = new WildcardQuery(newFulltextTerm(token));
+            // // PhraseQuery pq = new PhraseQuery();
+            // // pq.add(newFulltextTerm(token));
+            // // q = pq;
+            // } else {
+            // q = new WildcardQuery(newFulltextTerm(token
+            // + WildcardQuery.WILDCARD_STRING));
+            // }
+        }
+        qs.add(q);
+    }
+
+    /**
+     * 
+     * inspired from lucene's WildcardQuery#toAutomaton
+     */
+    private static List<String> tokenize(String in) {
+        List<String> out = new ArrayList<String>();
+        StringBuilder token = new StringBuilder();
+        boolean quote = false;
+        for (int i = 0; i < in.length();) {
+            final int c = in.codePointAt(i);
+            int length = Character.charCount(c);
+            switch (c) {
+            case ' ':
+                if (quote) {
+                    token.append(' ');
+                } else if (token.length() > 0) {
+                    out.add(token.toString());
+                    token = new StringBuilder();
+                }
+                break;
+            case '"':
+                if (quote) {
+                    quote = false;
+                    if (token.length() > 0) {
+                        out.add(token.toString());
+                        token = new StringBuilder();
+                    }
+                } else {
+                    quote = true;
+                }
+                break;
+            case '\\':
+                if (i + length < in.length()) {
+                    final int nextChar = in.codePointAt(i + length);
+                    length += Character.charCount(nextChar);
+                    token.append(new String(Character.toChars(nextChar)));
+                    break;
+                }
+            default:
+                token.append(new String(Character.toChars(c)));
+            }
+            i += length;
+        }
+        if (token.length() > 0) {
+            out.add(token.toString());
+        }
+        return out;
     }
 
 }

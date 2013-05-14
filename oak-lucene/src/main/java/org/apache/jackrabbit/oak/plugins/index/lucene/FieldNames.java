@@ -38,6 +38,11 @@ public final class FieldNames {
     public static final String PATH = ":path";
 
     /**
+     * Name of the field that contains the fulltext index.
+     */
+    public static final String FULLTEXT = ":fulltext";
+
+    /**
      * Used to select only the PATH field from the lucene documents
      */
     public static final Set<String> PATH_SELECTOR = new HashSet<String>(
