@@ -17,16 +17,17 @@
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import javax.jcr.AccessDeniedException;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlList;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -35,7 +36,6 @@ import org.junit.Test;
 /**
  * Test access control evaluation for version operations.
  */
-@Ignore("OAK-168")
 public class VersionManagementTest extends AbstractEvaluationTest {
 
     private static final String SYSTEM = "/jcr:system";
@@ -81,7 +81,6 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         }
     }
 
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAddMixVersionable2() throws Exception {
         modify(path, REP_WRITE, true);
@@ -170,8 +169,9 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Version v = n.checkin();
         n.checkout();
 
+        testSession.refresh(false);
         assertFalse(testAcMgr.hasPrivileges(n.getPath(), versionPrivileges));
-        allow(SYSTEM, versionPrivileges);
+        AccessControlList acl = allow(SYSTEM, versionPrivileges);
 
         try {
             Node testNode = testSession.getNode(n.getPath());
@@ -182,13 +182,12 @@ public class VersionManagementTest extends AbstractEvaluationTest {
             // success
         } finally {
             // revert privilege modification (manually remove the ACE added)
-            JackrabbitAccessControlList systemAcl = AccessControlUtils.getAccessControlList(acMgr, SYSTEM);
-            for (AccessControlEntry entry : systemAcl.getAccessControlEntries()) {
+            for (AccessControlEntry entry : acl.getAccessControlEntries()) {
                 if (entry.getPrincipal().equals(testUser.getPrincipal())) {
-                    systemAcl.removeAccessControlEntry(entry);
+                    acl.removeAccessControlEntry(entry);
                 }
             }
-            acMgr.setPolicy(SYSTEM, systemAcl);
+            acMgr.setPolicy(SYSTEM, acl);
             superuser.save();
         }
     }
@@ -196,18 +195,18 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak
      */
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAccessVersionContentWithoutStoreAccess() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
         Version v = n.checkin();
-        VersionHistory vh = v.getVersionHistory();
+        VersionHistory vh = n.getVersionHistory();
         n.checkout();
         Version v2 = n.checkin();
         n.checkout();
 
+        testSession.refresh(false);
         assertFalse(testAcMgr.hasPrivileges(n.getPath(), versionPrivileges));
-        deny(SYSTEM, privilegesFromName(Privilege.JCR_READ));
+        AccessControlList acl = deny(SYSTEM, privilegesFromName(Privilege.JCR_READ));
 
         try {
             // version information must still be accessible
@@ -216,13 +215,12 @@ public class VersionManagementTest extends AbstractEvaluationTest {
             assertTrue(testSession.nodeExists(vh.getPath()));
 
         } finally {
-            JackrabbitAccessControlList systemAcl = AccessControlUtils.getAccessControlList(acMgr, SYSTEM);
-            for (AccessControlEntry entry : systemAcl.getAccessControlEntries()) {
+            for (AccessControlEntry entry : acl.getAccessControlEntries()) {
                 if (entry.getPrincipal().equals(testUser.getPrincipal())) {
-                    systemAcl.removeAccessControlEntry(entry);
+                    acl.removeAccessControlEntry(entry);
                 }
             }
-            acMgr.setPolicy("/jcr:system", systemAcl);
+            acMgr.setPolicy(SYSTEM, acl);
             superuser.save();
         }
     }
@@ -230,7 +228,6 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAccessVersionHistory() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -253,7 +250,6 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAccessVersionHistoryVersionableNodeNotAccessible() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -277,21 +273,21 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         try {
             VersionHistory history = (VersionHistory) testSession.getNode(vhPath);
             fail("Access to version history should be denied if versionable node is not accessible");
-        } catch (AccessDeniedException e) {
+        } catch (PathNotFoundException e) {
             // success
         }
 
         try {
             VersionHistory history = (VersionHistory) testSession.getNodeByIdentifier(vhUUID);
             fail("Access to version history should be denied if versionable node is not accessible");
-        } catch (AccessDeniedException e) {
+        } catch (ItemNotFoundException e) {
             // success
         }
 
         try {
             VersionHistory history = (VersionHistory) testSession.getNodeByUUID(vhUUID);
             fail("Access to version history should be denied if versionable node is not accessible");
-        } catch (AccessDeniedException e) {
+        } catch (ItemNotFoundException e) {
             // success
         }
     }

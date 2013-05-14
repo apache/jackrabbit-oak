@@ -24,24 +24,22 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlPolicy;
 
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Permission evaluation tests related to {@link #JCR_NAMESPACE_MANAGEMENT} privilege.
+ * Permission evaluation tests related to {@link PrivilegeConstants#JCR_NAMESPACE_MANAGEMENT} privilege.
  */
 public class NamespaceManagementTest extends AbstractEvaluationTest {
-
-    // TODO: replace with JCR privilege constant (JSR-333)
-    private static final String JCR_NAMESPACE_MANAGEMENT = "jcr:namespaceManagement";
 
     @Override
     @Before
     protected void setUp() throws Exception {
         super.setUp();
 
-        assertHasRepoPrivilege(JCR_NAMESPACE_MANAGEMENT, false);
+        assertHasRepoPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT, false);
     }
 
     @Override
@@ -92,21 +90,21 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testModifyNamespaceWithPrivilege() throws Exception {
-        modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), true);
-        assertHasRepoPrivilege(JCR_NAMESPACE_MANAGEMENT, true);
+        modify(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT.toString(), true);
+        assertHasRepoPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT, true);
 
-        modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), false);
-        assertHasRepoPrivilege(JCR_NAMESPACE_MANAGEMENT, false);
+        modify(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT.toString(), false);
+        assertHasRepoPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT, false);
     }
 
     @Test
     public void testRegisterNamespaceWithPrivilege() throws Exception {
-        modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), true);
+        modify(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT.toString(), true);
         try {
             Workspace testWsp = testSession.getWorkspace();
             testWsp.getNamespaceRegistry().registerNamespace(getNewNamespacePrefix(testWsp), getNewNamespaceURI(testWsp));
         } finally {
-            modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), false);
+            modify(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT.toString(), false);
         }
     }
 

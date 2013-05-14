@@ -293,7 +293,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLRemoveACE <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLUnknown   <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportPolicyExists <!-- OAK-414 -->
-      org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                                      <!-- OAK-414, OAK-482 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlManagementTest#testRemoveMixin              <!-- OAK-767 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixin                   <!-- OAK-767 -->
@@ -302,6 +301,13 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceMove                 <!-- OAK-711 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testSessionMove                   <!-- OAK-711 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceImportXML            <!-- OAK-773 -->
+
+      org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion   <!-- OAK-168 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion2  <!-- OAK-168 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion3  <!-- OAK-168 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testAddVersionLabel <!-- OAK-168 -->
+
+      org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest <!-- OAK-414, OAK-482 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupIntoUsersTree <!-- OAK-821 -->
     </known.issues>
   </properties>
