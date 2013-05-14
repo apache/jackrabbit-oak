@@ -35,6 +35,11 @@
   <properties>
     <tika.version>1.3</tika.version>
     <lucene.version>4.2.0</lucene.version>
+    <known.issues>
+      org.apache.jackrabbit.core.query.FulltextQueryTest <!-- OAK-819 -->
+      org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR4 <!-- OAK-819 -->
+      org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR5 <!-- OAK-819 -->
+    </known.issues>
   </properties>
 
   <build>
