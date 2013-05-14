@@ -24,9 +24,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
-/**
- * UserContext... TODO
- */
 final class UserContext implements Context, UserConstants {
 
     private static final Context INSTANCE = new UserContext();
