@@ -26,13 +26,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT;
+
 /**
- * Permission evaluation tests related to {@link #JCR_NODE_TYPE_DEFINITION_MANAGEMENT} privilege.
+ * Permission evaluation tests related to
+ * {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#JCR_NODE_TYPE_DEFINITION_MANAGEMENT}
+ * privilege.
  */
 public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
-
-    // TODO: replace with JCR privilege constant (JSR-333)
-    private static final String JCR_NODE_TYPE_DEFINITION_MANAGEMENT = "jcr:nodeTypeDefinitionManagement";
 
     @Override
     @Before
