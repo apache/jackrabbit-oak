@@ -48,9 +48,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * ACL... TODO
- */
 abstract class ACL extends AbstractAccessControlList {
 
     private static final Logger log = LoggerFactory.getLogger(ACL.class);
