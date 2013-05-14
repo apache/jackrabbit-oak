@@ -40,7 +40,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
- * PrincipalRestrictionProvider... TODO
+ * Restriction provider implementation used for editing access control by
+ * principal. It wraps the configured base provider and adds a mandatory
+ * restriction definition with name {@link #REP_NODE_PATH} and type {@link Type#PATH PATH}
+ * which stores the path of the access controlled node to which a given
+ * access control entry will be applied.
  */
 public class PrincipalRestrictionProvider implements RestrictionProvider, AccessControlConstants {
 
