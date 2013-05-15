@@ -275,28 +275,30 @@ public class Commit {
                     collisions.get().add(uncommitted);
                 }
             });
-            MicroKernelException conflict = null;
+            String conflictMessage = null;
             if (newestRev == null) {
                 if (op.isDelete || !op.isNew) {
-                    conflict = new MicroKernelException("The node " + 
-                            op.path + " does not exist or is already deleted " + 
-                            "before " + revision + "; document " + map);
+                    conflictMessage = "The node " + 
+                            op.path + " does not exist or is already deleted";
                 }
             } else {
                 if (op.isNew) {
-                    conflict = new MicroKernelException("The node " + 
-                            op.path + " was already added in revision " + 
-                            newestRev + "; before " + revision + "; document " + map);
+                    conflictMessage = "The node " + 
+                            op.path + " was already added in revision\n" + 
+                            newestRev;
                 } else if (mk.isRevisionNewer(newestRev, baseRevision)
                         && (op.isDelete || isConflicting(map, op))) {
-                    conflict = new MicroKernelException("The node " + 
-                            op.path + " was changed in revision " + newestRev +
-                            ", which was applied after the base revision " + 
-                            baseRevision + "; before " + revision + "; document " + map);
+                    conflictMessage = "The node " + 
+                            op.path + " was changed in revision\n" + newestRev +
+                            ", which was applied after the base revision\n" + 
+                            baseRevision;
                 }
             }
-            if (conflict != null) {
-                throw conflict;
+            if (conflictMessage != null) {
+                conflictMessage += ", before\n" + revision + 
+                        "; document:\n" + map.toString().replaceAll(", _", ",\n_").replaceAll("}, ", "},\n") + 
+                        ",\nrevision order:\n" + mk.getRevisionComparator();
+                throw new MicroKernelException(conflictMessage);
             }
             // if we get here the modification was successful
             // -> check for collisions and conflict (concurrent updates

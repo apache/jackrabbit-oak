@@ -169,6 +169,11 @@ public class MongoMK implements MicroKernel {
     private Thread backgroundThread;
     
     private AtomicInteger simpleRevisionCounter;
+    
+    /**
+     * The comparator for revisions.
+     */
+    private final RevisionComparator revisionComparator;
 
     /**
      * Unmerged branches of this MongoMK instance.
@@ -177,11 +182,6 @@ public class MongoMK implements MicroKernel {
     // need to be garbage collected (in-memory and on disk)
     private final UnmergedBranches branches = new UnmergedBranches();
 
-    /**
-     * The comparator for revisions.
-     */
-    private final RevisionComparator revisionComparator;
-    
     private boolean stopBackground;
     
     MongoMK(Builder builder) {
@@ -416,11 +416,11 @@ public class MongoMK implements MicroKernel {
     }
     
     private void checkRevisionAge(Revision r, String path) {
-        if (headRevision.getTimestamp() - r.getTimestamp() > WARN_REVISION_AGE) {
-            LOG.warn("Requesting an old revision for path " + path + ", " + 
+        // TODO only log if there are new revisions available for the given node
+        if (LOG.isDebugEnabled()) {
+            if (headRevision.getTimestamp() - r.getTimestamp() > WARN_REVISION_AGE) {
+                LOG.debug("Requesting an old revision for path " + path + ", " + 
                     ((headRevision.getTimestamp() - r.getTimestamp()) / 1000) + " seconds old");
-            if (LOG.isDebugEnabled()) {
-                LOG.warn("Requesting an old revision", new Exception());
             }
         }
     }
@@ -1513,8 +1513,13 @@ public class MongoMK implements MicroKernel {
     public boolean isCached(String path) {
         return store.isCached(Collection.NODES, Utils.getIdFromPath(path));
     }
+    
     public void stopBackground() {
         stopBackground = true;
+    }
+    
+    RevisionComparator getRevisionComparator() {
+        return revisionComparator;
     }
 
 }
