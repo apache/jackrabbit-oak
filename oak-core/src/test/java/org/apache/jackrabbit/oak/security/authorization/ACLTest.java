@@ -28,32 +28,28 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlListTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.AbstractRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -704,62 +700,10 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         }
     }
 
-    private final class TestRestrictionProvider implements RestrictionProvider {
-
-        private final RestrictionDefinition supported;
+    private final class TestRestrictionProvider extends AbstractRestrictionProvider {
 
         private TestRestrictionProvider(String name, Type type, boolean isMandatory) {
-            supported = new RestrictionDefinitionImpl(name, type, isMandatory);
-        }
-
-        @Nonnull
-        @Override
-        public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
-            return ImmutableSet.of(supported);
-        }
-
-        @Nonnull
-        @Override
-        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
-            if (!supported.getName().equals(oakName)) {
-                throw new AccessControlException();
-            }
-            if (supported.getRequiredType().tag() != value.getType()) {
-                throw new AccessControlException();
-            }
-            PropertyState property = PropertyStates.createProperty(namePathMapper.getOakName(oakName), value.getString(), value.getType());
-            return new RestrictionImpl(property, supported.isMandatory());
-        }
-
-        @Nonnull
-        @Override
-        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
-            if (!supported.getName().equals(oakName)) {
-                throw new AccessControlException();
-            }
-            for (Value v : values) {
-                if (supported.getRequiredType().tag() != v.getType()) {
-                    throw new AccessControlException();
-                }
-            }
-            PropertyState property = PropertyStates.createProperty(namePathMapper.getOakName(oakName), Arrays.asList(values), supported.getRequiredType());
-            return new RestrictionImpl(property, supported.isMandatory());
-        }
-
-        @Nonnull
-        @Override
-        public Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
-            throw new UnsupportedOperationException();
+            super(Collections.singletonMap(name, new RestrictionDefinitionImpl(name, type, isMandatory)));
         }
 
         @Nonnull

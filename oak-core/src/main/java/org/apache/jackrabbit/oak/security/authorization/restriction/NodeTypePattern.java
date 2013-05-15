@@ -55,4 +55,36 @@ class NodeTypePattern implements RestrictionPattern {
         log.debug("Unable to validate node type restriction.");
         return false;
     }
+
+       //-------------------------------------------------------------< Object >---
+    /**
+     * @see Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        return nodeTypeNames.hashCode();
+    }
+
+    /**
+     * @see Object#toString()
+     */
+    @Override
+    public String toString() {
+        return nodeTypeNames.toString();
+    }
+
+    /**
+     * @see Object#equals(Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj instanceof NodeTypePattern) {
+            NodeTypePattern other = (NodeTypePattern) obj;
+            return nodeTypeNames.equals(other.nodeTypeNames);
+        }
+        return false;
+    }
 }
