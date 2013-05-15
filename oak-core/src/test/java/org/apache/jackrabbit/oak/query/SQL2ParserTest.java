@@ -43,4 +43,10 @@ public class SQL2ParserTest {
         p.parse("select [jcr:path], [jcr:score], * from [nt:base] as a /* xpath: //* ");
     }
 
+    @Test
+    public void testTransformAndParse() throws ParseException {
+        p.parse(new XPathToSQL2Converter()
+                .convert("/jcr:root/test/*/nt:resource[@jcr:encoding]"));
+    }
+
 }
