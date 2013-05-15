@@ -29,6 +29,9 @@ import javax.jcr.PropertyType;
  * its json serialisation.
  */
 public final class TypeCodes {
+
+    public static final String EMPTY_ARRAY = "[0]:";
+
     private static final Map<Integer, String> TYPE2CODE = new HashMap<Integer, String>();
     private static final Map<String, Integer> CODE2TYPE = new HashMap<String, Integer>();
 
