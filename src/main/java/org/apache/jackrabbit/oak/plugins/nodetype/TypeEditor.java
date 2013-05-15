@@ -16,12 +16,32 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import java.util.List;
+import java.util.Set;
+import javax.jcr.PropertyType;
+import javax.jcr.Value;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
@@ -31,25 +51,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.valueConstraint;
-
-import java.util.List;
-import java.util.Set;
-
-import javax.jcr.PropertyType;
-import javax.jcr.Value;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
 
 /**
  * Validator implementation that check JCR node type constraints.
@@ -152,6 +153,7 @@ class TypeEditor extends DefaultEditor {
             throw constraintViolation(
                     3, "No matching property definition found for " + after);
         }
+        checkUUIDCreation(definition, after);
         checkValueConstraints(definition, after);
     }
 
@@ -163,6 +165,7 @@ class TypeEditor extends DefaultEditor {
             throw constraintViolation(
                     4, "No matching property definition found for " + after);
         }
+        checkUUIDModification(definition, after);
         checkValueConstraints(definition, after);
     }
 
@@ -238,6 +241,22 @@ class TypeEditor extends DefaultEditor {
             }
         }
         throw constraintViolation(5, "Value constraint violation in " + property);
+    }
+
+    private void checkUUIDCreation(NodeState definition, PropertyState property) throws CommitFailedException {
+        if (isJcrUuid(definition, property) && !IdentifierManager.isValidUUID(property.getValue(Type.STRING))) {
+            throw constraintViolation(12, "Invalid UUID in jcr:uuid property.");
+        }
+    }
+
+    private void checkUUIDModification(NodeState definition, PropertyState property) throws CommitFailedException {
+        if (isJcrUuid(definition, property)) {
+            throw constraintViolation(13, "jcr:uuid property cannot be modified.");
+        }
+    }
+
+    private static boolean isJcrUuid(NodeState definition, PropertyState property) {
+        return JCR_UUID.equals(property.getName()) && JCR_UUID.equals(definition.getName(JCR_NAME));
     }
 
     /**
