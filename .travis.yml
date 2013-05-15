@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-script: mvn verify -Ppedantic,integrationTesting
+install:  true
+script:   mvn verify -Ppedantic,integrationTesting
 language: java
 jdk:
   - openjdk6
@@ -22,3 +23,5 @@ notifications:
     recipients: oak-dev@jackrabbit.apache.org
     on_success: change
     on_failure: always
+  webhooks:
+    urls: http://zitting.name/travis/notify
