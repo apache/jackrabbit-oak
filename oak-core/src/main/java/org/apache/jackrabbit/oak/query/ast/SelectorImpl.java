@@ -289,8 +289,6 @@ public class SelectorImpl extends SourceImpl {
         if (r == null) {
             return null;
         }
-        // TODO support pseudo-properties such as jcr:score using
-        // r.getValue(columnName)
         String path = r.getPath();
         if (path == null) {
             return null;
@@ -321,6 +319,10 @@ public class SelectorImpl extends SourceImpl {
                 return null;
             }
             return PropertyValues.newString(local);
+        } else if (propertyName.equals(Query.JCR_SCORE)) {
+            return currentRow.getValue(Query.JCR_SCORE);
+        } else if (propertyName.equals(Query.REP_EXCERPT)) {
+            return currentRow.getValue(Query.REP_EXCERPT);
         }
         return PropertyValues.create(t.getProperty(propertyName));
     }
