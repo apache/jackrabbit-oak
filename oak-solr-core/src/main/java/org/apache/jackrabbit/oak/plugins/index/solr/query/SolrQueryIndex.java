@@ -166,7 +166,7 @@ public class SolrQueryIndex implements QueryIndex {
         return solrQuery;
     }
 
-    private String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
+    private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
         // TODO : handle inclusion / exclusion of bounds
         StringBuilder rangeQueryBuilder = new StringBuilder("[");
         rangeQueryBuilder.append(first != null ? first : "*");
@@ -176,13 +176,13 @@ public class SolrQueryIndex implements QueryIndex {
         return rangeQueryBuilder.toString();
     }
 
-    private String purgePath(Filter filter) {
+    private static String purgePath(Filter filter) {
         return partialEscape(filter.getPath()).toString();
     }
 
 
     // partially borrowed from SolrPluginUtils#partialEscape
-    private CharSequence partialEscape(CharSequence s) {
+    private static CharSequence partialEscape(CharSequence s) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -245,8 +245,8 @@ public class SolrQueryIndex implements QueryIndex {
 
                     @Override
                     public PropertyValue getValue(String columnName) {
-                        String s = doc.getFieldValue(columnName).toString();
-                        return PropertyValues.newString(s);
+                        Object o = doc.getFieldValue(columnName);
+                        return o == null ? null : PropertyValues.newString(o.toString());
                     }
 
                 };
