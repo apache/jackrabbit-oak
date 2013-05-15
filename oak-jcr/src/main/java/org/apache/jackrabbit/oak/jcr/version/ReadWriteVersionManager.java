@@ -174,7 +174,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             return new AccessDeniedException(exception);
         } else if (exception.isOfType("State")) {
             return new InvalidItemStateException(exception);
-        } else if (exception.isOfType(CommitFailedException.VERSION) && exception.getCode() == 1) { // FIXME: hardcoded exception code
+        } else if (exception.isOfType(CommitFailedException.VERSION)) {
             return new VersionException(exception);
         } else if (exception.isOfType("Lock")) {
             return new LockException(exception);

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
 /**
@@ -47,5 +48,24 @@ public class Utils {
             throw new IllegalArgumentException("Not referenceable");
         }
         return p.getValue(Type.STRING);
+    }
+
+    /**
+     * Returns the <code>jcr:primaryType</code> value of the given
+     * <code>node</code>.
+     *
+     * @param node a node.
+     * @return the <code>jcr:primaryType</code> value.
+     * @throws IllegalStateException if the node does not have a <code>jcr:primaryType</code>
+     *                               property.
+     */
+    @Nonnull
+    static String primaryTypeOf(@Nonnull NodeBuilder node)
+            throws IllegalStateException {
+        String primaryType = node.getName(JCR_PRIMARYTYPE);
+        if (primaryType == null) {
+            throw new IllegalStateException("Node does not have a jcr:primaryType");
+        }
+        return primaryType;
     }
 }

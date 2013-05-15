@@ -163,7 +163,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
                     if (nd == null) {
                         throw new AccessDeniedException("Root node is not accessible.");
                     }
-                    return new NodeImpl<NodeDelegate>(nd, sessionContext);
+                    return sessionContext.createNodeOrNull(nd);
                 }
 
                 String path = dlg.getPath();
@@ -183,7 +183,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
                 if (nd == null) {
                     throw new AccessDeniedException(this + ": Ancestor access denied (" + depth + ')');
                 }
-                return new NodeImpl<NodeDelegate>(nd, sessionContext);
+                return sessionContext.createNodeOrNull(nd);
             }
         });
     }

@@ -123,9 +123,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        return perform(new ItemReadOperation<NodeImpl<NodeDelegate>>() {
+        return perform(new ItemReadOperation<Node>() {
             @Override
-            public NodeImpl<NodeDelegate> perform() throws RepositoryException {
+            public Node perform() throws RepositoryException {
                 if (dlg.isRoot()) {
                     throw new ItemNotFoundException("Root has no parent");
                 } else {
@@ -133,7 +133,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     if (parent == null) {
                         throw new AccessDeniedException();
                     }
-                    return new NodeImpl<NodeDelegate>(parent, sessionContext);
+                    return sessionContext.createNodeOrNull(parent);
                 }
             }
         });
@@ -257,8 +257,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (added == null) {
                     throw new ItemExistsException();
                 }
-
-                return new NodeImpl<NodeDelegate>(added, sessionContext);
+                return sessionContext.createNodeOrNull(added);
             }
         });
     }
@@ -481,16 +480,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public Node getNode(final String relPath) throws RepositoryException {
-        return perform(new ItemReadOperation<NodeImpl<?>>() {
+        return perform(new ItemReadOperation<Node>() {
             @Override
-            public NodeImpl<?> perform() throws RepositoryException {
+            public Node perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(relPath);
 
                 NodeDelegate nd = dlg.getChild(oakPath);
                 if (nd == null) {
                     throw new PathNotFoundException(relPath);
                 } else {
-                    return new NodeImpl<NodeDelegate>(nd, sessionContext);
+                    return sessionContext.createNodeOrNull(nd);
                 }
             }
         });
@@ -987,6 +986,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void restore(String versionName, boolean removeExisting) throws RepositoryException {
+        if (!isNodeType(NodeType.MIX_VERSIONABLE)) {
+            throw new UnsupportedRepositoryOperationException("Node is not mix:versionable");
+        }
         getVersionManager().restore(getPath(), versionName, removeExisting);
     }
 
@@ -995,7 +997,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void restore(Version version, boolean removeExisting) throws RepositoryException {
-        getVersionManager().restore(version, removeExisting);
+        if (!isNodeType(NodeType.MIX_VERSIONABLE)) {
+            throw new UnsupportedRepositoryOperationException("Node is not mix:versionable");
+        }
+        String id = version.getContainingHistory().getVersionableIdentifier();
+        if (getIdentifier().equals(id)) {
+            getVersionManager().restore(version, removeExisting);
+        } else {
+            throw new VersionException("Version does not belong to the " +
+                    "VersionHistory of this node.");
+        }
     }
 
     /**
@@ -1008,8 +1019,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             // node at 'relPath' exists -> call restore on the target Node
             getNode(relPath).restore(version, removeExisting);
         } else {
-            // TODO
-            TODO.unimplemented();
+            String absPath = PathUtils.concat(getPath(), relPath);
+            getVersionManager().restore(absPath, version, removeExisting);
         }
     }
 

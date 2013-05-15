@@ -19,16 +19,19 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 /**
- * <code>VersionExceptionType</code> contains the states for version related
+ * <code>VersionExceptionCode</code> contains the codes for version related
  * commit failures.
  */
-public enum VersionExceptionType {
+public enum VersionExceptionCode {
 
-    NODE_CHECKED_IN("Node is checked in");
+    UNEXPECTED_REPOSITORY_EXCEPTION("Unexpected RepositoryException"),
+    NODE_CHECKED_IN("Node is checked in"),
+    NO_SUCH_VERSION("No such Version"),
+    OPV_ABORT_ITEM_PRESENT("Item with OPV ABORT action present");
 
     private final String desc;
 
-    private VersionExceptionType(String desc) {
+    private VersionExceptionCode(String desc) {
         this.desc = desc;
     }
 
