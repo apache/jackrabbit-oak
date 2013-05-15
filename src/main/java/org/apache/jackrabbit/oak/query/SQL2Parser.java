@@ -809,10 +809,12 @@ public class SQL2Parser {
 
     private void parseComment() throws ParseException {
         if (readIf("/") && readIf("*")) {
-            while (!(readIf("*") && readIf("/"))) {
-                if (!isToken("*")) {
-                    read();
-                }
+            //skip to the end directly
+            parseIndex = characterTypes.length - 3;
+            read();
+            boolean endComment = readIf("*") && readIf("/");
+            if (!endComment) {
+                throw getSyntaxError("end of comment");
             }
         }
     }
