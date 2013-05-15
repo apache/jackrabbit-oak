@@ -56,7 +56,6 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.util.TODO;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -161,8 +160,30 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         createVersion(history, versionable);
     }
 
-    public void restore(NodeBuilder versionable) {
-        TODO.unimplemented();
+    public void restore(@Nonnull NodeBuilder versionable,
+                        @Nonnull String versionUUID)
+            throws CommitFailedException {
+        NodeBuilder history = getOrCreateVersionHistory(versionable);
+        // FIXME: inefficient because it iterates over all versions (worst case)
+        NodeBuilder version = null;
+        for (String name : history.getChildNodeNames()) {
+            if (name.equals(JCR_VERSIONLABELS)) {
+                continue;
+            }
+            NodeBuilder child = history.getChildNode(name);
+            if (versionUUID.equals(uuidFromNode(child))) {
+                version = child;
+            }
+        }
+        if (version == null) {
+            throw new CommitFailedException(CommitFailedException.VERSION,
+                    VersionExceptionCode.NO_SUCH_VERSION.ordinal(),
+                    "The VersionHistory with UUID: " + uuidFromNode(versionable) +
+                            " does not have a Version with UUID: " + versionUUID);
+        }
+        VersionableState versionableState = VersionableState.forRestore(
+                version, versionable, ntMgr);
+        versionableState.restore();
     }
 
     // TODO: more methods that modify versions

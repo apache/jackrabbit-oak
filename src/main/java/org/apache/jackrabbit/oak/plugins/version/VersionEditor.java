@@ -86,6 +86,14 @@ class VersionEditor implements Editor {
     @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
+        if (after.getName().equals(JcrConstants.JCR_BASEVERSION)
+                && this.after.hasProperty(JcrConstants.JCR_VERSIONHISTORY)
+                && !this.after.hasProperty(JcrConstants.JCR_ISCHECKEDOUT)
+                && !this.before.exists()) {
+            // sentinel node for restore
+            vMgr.restore(node, after.getValue(Type.REFERENCE));
+            return;
+        }
         if (!wasReadOnly) {
             return;
         }
@@ -116,7 +124,7 @@ class VersionEditor implements Editor {
                 vMgr.checkin(node);
             }
         } else if (propName.equals(VersionConstants.JCR_BASEVERSION)) {
-            vMgr.restore(node);
+            vMgr.restore(node, after.getValue(Type.REFERENCE));
         } else if (isVersionProperty(after)) {
             throwProtected(after.getName());
         } else if (wasReadOnly) {
@@ -191,7 +199,7 @@ class VersionEditor implements Editor {
     private static void throwCheckedIn(String msg)
             throws CommitFailedException {
         throw new CommitFailedException(CommitFailedException.VERSION,
-                VersionExceptionType.NODE_CHECKED_IN.ordinal(), msg);
+                VersionExceptionCode.NODE_CHECKED_IN.ordinal(), msg);
     }
 
     private static void throwProtected(String name)
