@@ -17,6 +17,14 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
@@ -24,7 +32,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
 
 /**
@@ -120,6 +130,37 @@ public class VersionManagerDelegate {
                     identifier);
         }
         return VersionDelegate.create(sessionDelegate, t);
+    }
+
+    public void restore(@Nonnull NodeDelegate parent,
+                        @Nonnull String oakName,
+                        @Nonnull VersionDelegate vd)
+            throws RepositoryException {
+        NodeDelegate frozen = vd.getFrozenNode();
+        PropertyState primaryType = frozen.getProperty(
+                JCR_FROZENPRIMARYTYPE).getPropertyState();
+        PropertyState uuid = frozen.getProperty(
+                JCR_FROZENUUID).getPropertyState();
+        PropertyDelegate mixinTypes = frozen.getPropertyOrNull(JCR_FROZENMIXINTYPES);
+        if (parent.getChild(oakName) == null) {
+            // create a sentinel node with a jcr:baseVersion pointing
+            // to the version to restore
+            Tree t = parent.getTree().addChild(oakName);
+            t.setProperty(JCR_PRIMARYTYPE, primaryType.getValue(Type.NAME), Type.NAME);
+            t.setProperty(JCR_UUID, uuid.getValue(Type.STRING), Type.STRING);
+            if (mixinTypes != null && mixinTypes.getPropertyState().count() > 0) {
+                t.setProperty(JCR_MIXINTYPES,
+                        mixinTypes.getPropertyState().getValue(Type.NAMES),
+                        Type.NAMES);
+            }
+            t.setProperty(JCR_BASEVERSION, vd.getIdentifier(), Type.REFERENCE);
+            t.setProperty(JCR_VERSIONHISTORY, vd.getParent().getIdentifier(), Type.REFERENCE);
+        } else {
+            Tree t = parent.getChild(oakName).getTree();
+            t.setProperty(JCR_BASEVERSION, vd.getIdentifier(), Type.REFERENCE);
+            // TODO: what if node was checked-out and restore is for current
+            //       base version? -> will not trigger VersionEditor
+        }
     }
 
     //----------------------------< internal >----------------------------------

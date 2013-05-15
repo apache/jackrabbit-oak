@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
@@ -34,5 +36,15 @@ public class VersionDelegate extends NodeDelegate {
     static VersionDelegate create(@Nonnull SessionDelegate sessionDelegate,
                                   @Nonnull Tree tree) {
         return new VersionDelegate(sessionDelegate, tree);
+    }
+
+    @Nonnull
+    NodeDelegate getFrozenNode() throws RepositoryException {
+        NodeDelegate frozenNode = getChild(JcrConstants.JCR_FROZENNODE);
+        if (frozenNode == null) {
+            throw new RepositoryException("Inconsistent version storage. " +
+                    "Version at " + getPath() + " does not have a jcr:frozenNode");
+        }
+        return frozenNode;
     }
 }

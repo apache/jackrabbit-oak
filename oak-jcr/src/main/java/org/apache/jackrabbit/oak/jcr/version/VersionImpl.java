@@ -34,7 +34,6 @@ import javax.jcr.version.VersionHistory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
@@ -101,8 +100,8 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @Override
     public Node getFrozenNode() throws RepositoryException {
-        return new NodeImpl<NodeDelegate>(
-                dlg.getChild(VersionConstants.JCR_FROZENNODE), sessionContext);
+        return sessionContext.createNodeOrNull(
+                dlg.getChild(VersionConstants.JCR_FROZENNODE));
     }
 
     //------------------------------< internal >--------------------------------

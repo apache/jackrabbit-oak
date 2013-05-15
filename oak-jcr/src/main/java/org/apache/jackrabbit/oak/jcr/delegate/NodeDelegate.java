@@ -461,10 +461,12 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     /**
-     * Remove the node if not root. Does nothing otherwise
+     * Remove this node. This operation never succeeds for the root node.
+     *
+     * @return {@code true} if the node was removed; {@code false} otherwise.
      */
-    public void remove() throws InvalidItemStateException {
-        getTree().remove();
+    public boolean remove() throws InvalidItemStateException {
+        return getTree().remove();
     }
 
     /**
