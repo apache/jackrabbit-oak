@@ -21,7 +21,7 @@ import java.util.Collection;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * UserConstants...
+ * User management related constants.
  */
 public interface UserConstants {
 
