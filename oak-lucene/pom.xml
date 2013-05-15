@@ -36,7 +36,12 @@
     <tika.version>1.3</tika.version>
     <lucene.version>4.2.0</lucene.version>
     <known.issues>
-      org.apache.jackrabbit.core.query.FulltextQueryTest <!-- OAK-819 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testFulltextExcludeSQL      <!-- OAK-819 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testFulltextOrSQL           <!-- OAK-819 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testFulltextIntercapSQL     <!-- OAK-819 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeSQL    <!-- OAK-819 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeXPath  <!-- OAK-819 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testMultiByte               <!-- OAK-819 -->
       org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR4 <!-- OAK-819 -->
       org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR5 <!-- OAK-819 -->
     </known.issues>

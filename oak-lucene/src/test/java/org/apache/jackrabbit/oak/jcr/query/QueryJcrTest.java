@@ -26,6 +26,7 @@ import org.apache.jackrabbit.core.query.JoinTest;
 import org.apache.jackrabbit.core.query.LimitAndOffsetTest;
 import org.apache.jackrabbit.core.query.MixinTest;
 import org.apache.jackrabbit.core.query.OrderByTest;
+import org.apache.jackrabbit.core.query.ParentNodeTest;
 import org.apache.jackrabbit.core.query.PathQueryNodeTest;
 import org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest;
 import org.apache.jackrabbit.core.query.SQL2OffsetLimitTest;
@@ -39,24 +40,24 @@ public class QueryJcrTest extends TestCase {
     public static Test suite() {
         TestSuite suite = new ConcurrentTestSuite(
                 "Jackrabbit query tests using a Lucene based index");
-         suite.addTestSuite(FulltextQueryTest.class);
-         suite.addTestSuite(SQLTest.class);
-         suite.addTestSuite(JoinTest.class);
-         suite.addTestSuite(SkipDeletedNodesTest.class);
-         suite.addTestSuite(PathQueryNodeTest.class);
-         suite.addTestSuite(FulltextSQL2QueryTest.class);
-         suite.addTestSuite(SQL2NodeLocalNameTest.class);
-         suite.addTestSuite(MixinTest.class);
-         suite.addTestSuite(SQL2OuterJoinTest.class);
-         suite.addTestSuite(SQL2OffsetLimitTest.class);
-         suite.addTestSuite(LimitAndOffsetTest.class);
+        suite.addTestSuite(FulltextQueryTest.class);
+        suite.addTestSuite(SQLTest.class);
+        suite.addTestSuite(JoinTest.class);
+        suite.addTestSuite(SkipDeletedNodesTest.class);
+        suite.addTestSuite(PathQueryNodeTest.class);
+        suite.addTestSuite(FulltextSQL2QueryTest.class);
+        suite.addTestSuite(SQL2NodeLocalNameTest.class);
+        suite.addTestSuite(MixinTest.class);
+        suite.addTestSuite(SQL2OuterJoinTest.class);
+        suite.addTestSuite(SQL2OffsetLimitTest.class);
+        suite.addTestSuite(LimitAndOffsetTest.class);
         suite.addTestSuite(OrderByTest.class);
+        suite.addTestSuite(ParentNodeTest.class);
 
         // FAILURES
         //
         // suite.addTestSuite(SQL2OrderByTest.class); // order by score is not stable
         // suite.addTestSuite(QueryResultTest.class); // OAK-484
-        // suite.addTestSuite(ParentNodeTest.class); // OAK-309
         // suite.addTestSuite(ExcerptTest.class); // OAK-318
         // suite.addTestSuite(SimilarQueryTest.class); // OAK-319
         // suite.addTestSuite(DerefTest.class); // OAK-321

@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
@@ -55,7 +56,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.MultiPhraseQuery;
+import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -353,36 +354,39 @@ public class LuceneIndex implements FulltextQueryIndex {
                 .iterator().next().toLowerCase());
         if (tokens.size() == 1) {
             String token = tokens.get(0);
-            Query q = null;
             if (token.contains(" ")) {
-                // q = new WildcardQuery(newFulltextTerm(token));
-                // PhraseQuery pq = new PhraseQuery();
-                // pq.add(newFulltextTerm(token));
-                // q = pq;
+                PhraseQuery pq = new PhraseQuery();
+                for (String t : token.split(" ")) {
+                    pq.add(newFulltextTerm(t));
+                }
+                qs.add(pq);
             } else {
-                q = new WildcardQuery(newFulltextTerm(token
-                        + WildcardQuery.WILDCARD_STRING));
-            }
-            if (q != null) {
-                qs.add(q);
+                if (!token.endsWith("*")) {
+                    token = token + "*";
+                }
+                qs.add(new WildcardQuery(newFulltextTerm(token)));
             }
             return;
         }
 
         BooleanQuery q = new BooleanQuery();
-        for (String token : tokens) {
-            q.add(new TermQuery(newFulltextTerm(token)), MUST);
-            // if (token.contains(" ")) {
-            // // q = new WildcardQuery(newFulltextTerm(token));
-            // // PhraseQuery pq = new PhraseQuery();
-            // // pq.add(newFulltextTerm(token));
-            // // q = pq;
-            // } else {
-            // q = new WildcardQuery(newFulltextTerm(token
-            // + WildcardQuery.WILDCARD_STRING));
-            // }
+        Iterator<String> iterator = tokens.iterator();
+        while (iterator.hasNext()) {
+            String token = iterator.next();
+            q.add(tokenToQuery(token), MUST);
         }
         qs.add(q);
+    }
+
+    private static Query tokenToQuery(String token) {
+        if (token.contains(" ")) {
+            PhraseQuery pq = new PhraseQuery();
+            for (String t : token.split(" ")) {
+                pq.add(newFulltextTerm(t));
+            }
+            return pq;
+        }
+        return new TermQuery(newFulltextTerm(token));
     }
 
     /**
@@ -398,6 +402,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             int length = Character.charCount(c);
             switch (c) {
             case ' ':
+            case '&':
                 if (quote) {
                     token.append(' ');
                 } else if (token.length() > 0) {
@@ -406,6 +411,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                 }
                 break;
             case '"':
+            case '\'':
                 if (quote) {
                     quote = false;
                     if (token.length() > 0) {
