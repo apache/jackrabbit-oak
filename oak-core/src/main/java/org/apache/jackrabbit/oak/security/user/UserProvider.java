@@ -16,14 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -47,6 +43,9 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * User provider implementation and manager for group memberships with the
