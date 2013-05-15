@@ -21,6 +21,7 @@ import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.junit.Before;
 import org.junit.Test;
 
