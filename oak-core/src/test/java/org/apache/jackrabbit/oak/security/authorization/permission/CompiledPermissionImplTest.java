@@ -359,7 +359,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         deny(group3, node1Path, 2, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
-        assertReadStatus(ReadStatus.DENY_THIS, cp, nodePaths);
+        assertReadStatus(ReadStatus.DENY_THIS, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path); // TODO: need to change RestrictionPattern in order to get ALLOW_ALL_REGULAR
 
         cp = createPermissions(ImmutableSet.of(group1, group2));
         assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
