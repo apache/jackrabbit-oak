@@ -76,6 +76,11 @@ public class Query {
      */
     public static final String JCR_SCORE = "jcr:score";
 
+    /**
+     * The "rep:excerpt" pseudo-property.
+     */
+    public static final String REP_EXCERPT = "rep:excerpt";
+
     private static final Logger LOG = LoggerFactory.getLogger(Query.class);
 
     final SourceImpl source;

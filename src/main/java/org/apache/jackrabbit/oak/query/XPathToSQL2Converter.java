@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -26,6 +28,8 @@ import java.util.ArrayList;
  * This class can can convert a XPATH query to a SQL2 query.
  */
 public class XPathToSQL2Converter {
+
+    static final Logger LOG = LoggerFactory.getLogger(XPathToSQL2Converter.class);
 
     // Character types, used during the tokenizer phase
     private static final int CHAR_END = -1, CHAR_VALUE = 2;
