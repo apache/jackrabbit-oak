@@ -219,8 +219,14 @@ class PermissionValidator extends DefaultValidator {
         } else if (JcrConstants.JCR_MIXINTYPES.equals(name)) {
             perm = Permissions.NODE_TYPE_MANAGEMENT;
         } else if (JcrConstants.JCR_UUID.equals(name)) {
-            // TODO: OAK-796 (jcr:uuid is never set using a method on JCR API -> omit permission check)
-            perm = Permissions.NO_PERMISSION;
+            if (provider.getNodeTypeManager().isNodeType(parent, JcrConstants.MIX_REFERENCEABLE)) {
+                perm = Permissions.NO_PERMISSION;
+            } else {
+                /* the parent is not referenceable -> check regular permissions
+                   as this instance of jcr:uuid is not the mandatory/protected
+                   property defined by mix:referenceable */
+                perm = defaultPermission;
+            }
         } else if (isLockProperty(name)) {
             perm = Permissions.LOCK_MANAGEMENT;
         } else if (VersionConstants.VERSION_PROPERTY_NAMES.contains(name)) {

@@ -22,6 +22,7 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -41,6 +42,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     private final SecurityProvider securityProvider;
     private final long jr2Permissions;
 
+    private ReadOnlyNodeTypeManager ntMgr;
     private Context acCtx;
     private Context userCtx;
 
@@ -56,6 +58,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
+        ntMgr = ReadOnlyNodeTypeManager.getInstance(after);
         PermissionProvider pp = getPermissionProvider();
         return new PermissionValidator(createTree(before), createTree(after), pp, this);
     }
@@ -74,6 +77,10 @@ public class PermissionValidatorProvider extends ValidatorProvider {
             userCtx = securityProvider.getUserConfiguration().getContext();
         }
         return userCtx;
+    }
+
+    ReadOnlyNodeTypeManager getNodeTypeManager() {
+        return ntMgr;
     }
 
     boolean requiresJr2Permissions(long permission) {
