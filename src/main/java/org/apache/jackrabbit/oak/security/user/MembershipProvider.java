@@ -160,7 +160,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             if (useMemberNode(groupTree)) {
                 Tree membersTree = groupTree.getChild(REP_MEMBERS);
                 if (membersTree.exists()) {
-                    // FIXME: fix.. testing for property name in jr2 wasn't correct.
+                    // FIXME: testing for property name in jr2 wasn't correct.
                     // TODO OAK-482: add implementation
                     throw new UnsupportedOperationException("not implemented: isMembers determined from member-node hierarchy");
                 }

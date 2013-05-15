@@ -370,7 +370,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             while (isMemberNode(groupTree) && !groupTree.isRoot()) {
                 groupTree = groupTree.getParent();
             }
-            Authorizable auth = (groupTree == null) ? null : userManager.getAuthorizable(groupTree);
+            Authorizable auth = userManager.getAuthorizable(groupTree);
             if (auth == null) {
                 log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
                 return false;
