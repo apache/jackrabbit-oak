@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -55,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
@@ -627,6 +629,12 @@ public final class KernelNodeState extends AbstractNodeState {
             return BooleanPropertyState.booleanProperty(name, false);
         } else if (reader.matches(JsopReader.STRING)) {
             String jsonString = reader.getToken();
+            if (jsonString.startsWith(TypeCodes.EMPTY_ARRAY)) {
+                int type = PropertyType.valueFromName(
+                        jsonString.substring(TypeCodes.EMPTY_ARRAY.length()));
+                return PropertyStates.createProperty(
+                        name, emptyList(), Type.fromTag(type, true));
+            }
             int split = TypeCodes.split(jsonString);
             if (split != -1) {
                 int type = TypeCodes.decodeType(split, jsonString);

@@ -28,6 +28,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -134,9 +135,15 @@ class JsopDiff implements NodeStateDiff {
 
     private void toJson(PropertyState propertyState, JsopBuilder jsop) {
         if (propertyState.isArray()) {
-            jsop.array();
-            toJsonValue(propertyState, jsop);
-            jsop.endArray();
+            Type<?> type = propertyState.getType();
+            if (type == STRINGS || propertyState.count() > 0) {
+                jsop.array();
+                toJsonValue(propertyState, jsop);
+                jsop.endArray();
+            } else {
+                jsop.value(TypeCodes.EMPTY_ARRAY
+                        + PropertyType.nameFromValue(type.tag()));
+            }
         } else {
             toJsonValue(propertyState, jsop);
         }

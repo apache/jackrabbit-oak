@@ -389,25 +389,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return perform(new ItemReadOperation<Integer>() {
             @Override
             public Integer perform() throws RepositoryException {
-                if (isMultiple()) {
-                    Value[] values = getValues();
-                    if (values.length == 0) {
-                        // retrieve the type from the property definition
-                        // do not require exact match (see OAK-815)
-                        PropertyDefinition definition = getDefinitionProvider()
-                                .getDefinition(dlg.getParent().getTree(),
-                                        dlg.getPropertyState(), false);
-                        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
-                            return PropertyType.STRING;
-                        } else {
-                            return definition.getRequiredType();
-                        }
-                    } else {
-                        return values[0].getType();
-                    }
-                } else {
-                    return getValue().getType();
-                }
+                return dlg.getPropertyState().getType().tag();
             }
         });
     }
@@ -417,7 +399,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return perform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                return dlg.isArray();
+                return dlg.getPropertyState().isArray();
             }
         });
     }

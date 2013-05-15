@@ -87,6 +87,7 @@ import static javax.jcr.Property.JCR_LOCK_OWNER;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
@@ -1059,9 +1060,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 NodeDelegate parent = dlg.getParent();
                 while (parent != null) {
                     if (parent.getPropertyOrNull(lockOwner) != null) {
-                        PropertyDelegate isDeep = parent.getPropertyOrNull(lockIsDeep);
-                        if (isDeep != null && !isDeep.isArray()) {
-                            if (isDeep.getBoolean()) {
+                        PropertyDelegate isDeep =
+                                parent.getPropertyOrNull(lockIsDeep);
+                        if (isDeep != null) {
+                            PropertyState state = isDeep.getPropertyState();
+                            if (!state.isArray() && state.getValue(BOOLEAN)) {
                                 return true;
                             }
                         }
