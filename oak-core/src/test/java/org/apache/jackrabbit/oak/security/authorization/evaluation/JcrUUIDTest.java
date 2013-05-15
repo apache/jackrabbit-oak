@@ -29,13 +29,11 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -44,7 +42,10 @@ import static org.junit.Assert.fail;
 
 public class JcrUUIDTest extends AbstractOakCoreTest {
 
+    private static final String NT_NAME = "referenceableTestNodeType";
+
     private ReadWriteNodeTypeManager ntMgr;
+    private String referenceablePath;
 
     @Before
     public void before() throws Exception {
@@ -60,25 +61,17 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
                 return root.getTree(NODE_TYPES_PATH);
             }
         };
-        if (!ntMgr.hasNodeType("testNodeType")) {
+        if (!ntMgr.hasNodeType(NT_NAME)) {
             NodeTypeTemplate tmpl = ntMgr.createNodeTypeTemplate();
-            tmpl.setName("testNodeType");
+            tmpl.setName(NT_NAME);
             tmpl.setDeclaredSuperTypeNames(new String[] {JcrConstants.MIX_REFERENCEABLE, JcrConstants.NT_UNSTRUCTURED});
             ntMgr.registerNodeType(tmpl, true);
-
-            NodeUtil a = new NodeUtil(root.getTree("/a"));
-            NodeUtil test = a.addChild("referenceable", "testNodeType");
-            test.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
         }
-    }
 
-    @After
-    public void after() throws Exception {
-        try {
-            //ntMgr.unregisterNodeType("testNodeType");
-        } finally {
-            super.after();
-        }
+        NodeUtil a = new NodeUtil(root.getTree("/a"));
+        NodeUtil test = a.addChild("referenceable", NT_NAME);
+        test.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
+        referenceablePath = test.getTree().getPath();
     }
 
     @Override
@@ -99,7 +92,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
         testRoot.refresh();
 
         NodeUtil a = new NodeUtil(testRoot.getTree("/a"));
-        NodeUtil test = a.addChild("referenceable2", "testNodeType");
+        NodeUtil test = a.addChild("referenceable2", NT_NAME);
         test.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
         testRoot.commit();
     }
@@ -116,7 +109,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             testRoot.refresh();
 
             NodeUtil a = new NodeUtil(testRoot.getTree("/a"));
-            NodeUtil test = a.addChild("referenceable2", "testNodeType");
+            NodeUtil test = a.addChild("referenceable2", NT_NAME);
             test.setString(JcrConstants.JCR_UUID, "not a uuid");
             testRoot.commit();
             fail("Creating a referenceable node with an invalid uuid must fail.");
@@ -139,7 +132,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             testRoot.refresh();
 
             NodeUtil a = new NodeUtil(testRoot.getTree("/a"));
-            NodeUtil test = a.addChild("referenceable2", "testNodeType");
+            NodeUtil test = a.addChild("referenceable2", NT_NAME);
             test.setBoolean(JcrConstants.JCR_UUID, false);
             testRoot.commit();
             fail("Creating a referenceable node with an boolean uuid must fail.");
@@ -160,8 +153,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
         try {
             Root testRoot = getTestRoot();
             NodeUtil a = new NodeUtil(testRoot.getTree("/a"));
-            NodeUtil test = a.addChild("testNode", NT_UNSTRUCTURED);
-            test.setString(JCR_UUID, IdentifierManager.generateUUID());
+            a.setString(JCR_UUID, IdentifierManager.generateUUID());
             testRoot.commit();
             fail("Creating a jcr:uuid property for an unstructured node without ADD_PROPERTY permission must fail.");
         } catch (CommitFailedException e) {
@@ -178,7 +170,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
 
         try {
             Root testRoot = getTestRoot();
-            Tree test = testRoot.getTree("/a/referenceable");
+            Tree test = testRoot.getTree(referenceablePath);
             test.setProperty(JCR_UUID, "anothervalue");
             testRoot.commit();
             fail("An attempt to change the jcr:uuid property must fail");
@@ -220,7 +212,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
 
         try {
             Root testRoot = getTestRoot();
-            Tree test = testRoot.getTree("/a/referenceable");
+            Tree test = testRoot.getTree(referenceablePath);
             test.removeProperty(JCR_UUID);
             testRoot.commit();
             fail("Removing the jcr:uuid property of a referenceable node must fail.");
