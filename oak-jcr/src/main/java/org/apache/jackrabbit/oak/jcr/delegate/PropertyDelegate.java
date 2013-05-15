@@ -106,10 +106,6 @@ public class PropertyDelegate extends ItemDelegate {
         return p;
     }
 
-    public boolean isArray() throws InvalidItemStateException {
-        return getPropertyState().isArray();
-    }
-
     @Nonnull
     public PropertyState getSingleState() throws InvalidItemStateException, ValueFormatException {
         PropertyState p = getPropertyState();
