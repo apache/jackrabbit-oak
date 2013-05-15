@@ -68,13 +68,14 @@ public abstract class AbstractSecurityTest {
 
     @Before
     public void before() throws Exception {
-        contentRepository = new Oak()
+        Oak oak = new Oak()
                 .with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
                 .with(new RegistrationEditorProvider())
-                .with(getSecurityProvider())
-                .createContentRepository();
+                .with(getSecurityProvider());
+        withEditors(oak);
+        contentRepository = oak.createContentRepository();
 
         adminSession = login(getAdminCredentials());
         root = adminSession.getLatestRoot();
@@ -102,6 +103,10 @@ public abstract class AbstractSecurityTest {
             securityProvider = new SecurityProviderImpl(getSecurityConfigParameters());
         }
         return securityProvider;
+    }
+
+    protected Oak withEditors(Oak oak) {
+        return oak;
     }
 
     protected ConfigurationParameters getSecurityConfigParameters() {
