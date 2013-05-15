@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.jcr.PropertyType;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -39,6 +39,7 @@ import static org.junit.Assert.fail;
 public class RestrictionImplTest extends AbstractAccessControlTest {
 
     private String name;
+    private String value = "value";
     private RestrictionImpl restriction;
 
     @Before
@@ -46,12 +47,12 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
         super.before();
 
         name = TestNameMapper.TEST_PREFIX + ":defName";
-        PropertyState property = createProperty(name);
+        PropertyState property = createProperty(name, value);
         restriction = new RestrictionImpl(property, true);
     }
 
-    private static PropertyState createProperty(String name) {
-        return PropertyStates.createProperty(name, "value", Type.NAME);
+    private static PropertyState createProperty(String name, String value) {
+        return PropertyStates.createProperty(name, value, Type.NAME);
     }
 
     @Test
@@ -82,18 +83,22 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
         @Test
     public void testEquals() {
         // same definition
-        assertEquals(restriction, new RestrictionImpl(createProperty(name), true));
+        assertEquals(restriction, new RestrictionImpl(createProperty(name, value), true));
     }
 
     @Test
     public void testNotEqual() {
         List<Restriction> rs = new ArrayList<Restriction>();
         // - different type
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, PropertyType.STRING), true));
+        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), true));
+        // - different multi-value status
+        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.of(value), Type.STRINGS), true));
         // - different name
-        rs.add(new RestrictionImpl(PropertyStates.createProperty("otherName", PropertyType.NAME), true));
+        rs.add(new RestrictionImpl(createProperty("otherName", value), true));
+        // - different value
+        rs.add(new RestrictionImpl(createProperty("name", "otherValue"), true));
         // - different mandatory flag
-        rs.add(new RestrictionImpl(createProperty(name), false));
+        rs.add(new RestrictionImpl(createProperty(name, value), false));
         // - different impl
         rs.add(new Restriction() {
             @Override
@@ -110,7 +115,7 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
             }
             @Override
             public PropertyState getProperty() {
-                return createProperty(name);
+                return createProperty(name, value);
             }
         });
 

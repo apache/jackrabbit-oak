@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.security.authorization.permission.PermissionCon
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 

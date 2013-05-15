@@ -23,7 +23,7 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;

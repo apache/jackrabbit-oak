@@ -45,7 +45,6 @@ import javax.jcr.security.Privilege;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -69,6 +68,7 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.ImmutableACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -84,7 +84,6 @@ import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -252,9 +251,10 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             toRemove = existing.getEntries();
             toRemove.removeAll(principalAcl.getEntries());
         }
+
         // add new entries
-        for (JackrabbitAccessControlEntry ace : toAdd) {
-            String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
+        for (ACE ace : toAdd) {
+            String path = getNodePath(ace);
             Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
 
             ACL acl = (ACL) createACL(path, tree, false);
@@ -273,13 +273,17 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
 
         // remove entries that are not longer present in the acl to write
-        for (JackrabbitAccessControlEntry ace : toRemove) {
-            String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
+        for (ACE ace : toRemove) {
+            String path = getNodePath(ace);
             Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
 
             ACL acl = (ACL) createACL(path, tree, false);
-            acl.removeAccessControlEntry(ace);
-            setNodeBasedAcl(path, tree, acl);
+            if (acl != null) {
+                acl.removeAccessControlEntry(ace);
+                setNodeBasedAcl(path, tree, acl);
+            } else {
+                log.debug("Missing ACL at {}; cannot remove entry {}", path, ace);
+            }
         }
     }
 
@@ -295,8 +299,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             aclTree = createAclTree(oakPath, tree);
         }
         aclTree.setOrderableChildren(true);
-        for (JackrabbitAccessControlEntry ace : acl.getEntries()) {
-            checkArgument(ace instanceof ACE);
+        for (ACE ace : acl.getEntries()) {
             boolean isAllow = ace.isAllow();
             String nodeName = AccessControlUtils.generateAceName(aclTree, isAllow);
             String ntName = (isAllow) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
@@ -304,7 +307,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             NodeUtil aceNode = new NodeUtil(aclTree).addChild(nodeName, ntName);
             aceNode.setString(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
             aceNode.setNames(REP_PRIVILEGES, AccessControlUtils.namesFromPrivileges(ace.getPrivileges()));
-            Set<Restriction> restrictions = ((ACE) ace).getRestrictions();
+            Set<Restriction> restrictions = ace.getRestrictions();
             restrictionProvider.writeRestrictions(oakPath, aceNode.getTree(), restrictions);
         }
     }
@@ -316,8 +319,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
         if (policy instanceof PrincipalACL) {
             PrincipalACL principalAcl = (PrincipalACL) policy;
-            for (JackrabbitAccessControlEntry ace : principalAcl.getEntries()) {
-                String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
+            for (ACE ace : principalAcl.getEntries()) {
+                String path = getNodePath(ace);
                 Tree aclTree = getAclTree(path, getTree(path, Permissions.MODIFY_ACCESS_CONTROL));
                 if (aclTree == null) {
                     throw new AccessControlException("Unable to retrieve policy node at " + path);
@@ -673,6 +676,15 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
             }
             return provider.hasPrivileges(tree, privilegeNames.toArray(new String[privilegeNames.size()]));
+        }
+    }
+
+    private String getNodePath(ACE principalBasedAce) throws RepositoryException {
+        Value v = principalBasedAce.getRestriction(REP_NODE_PATH);
+        if (v == null) {
+            throw new AccessControlException("Missing mandatory restriction rep:nodePath");
+        } else {
+            return getOakPath(v.getString());
         }
     }
 

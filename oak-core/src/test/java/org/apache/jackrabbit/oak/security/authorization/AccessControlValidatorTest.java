@@ -27,6 +27,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;

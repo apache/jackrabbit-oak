@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.util.Collection;
 import java.util.Set;
@@ -26,7 +26,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 /**
- * Constants for this access control management implementation.
+ * Constants for the default access control management implementation and
+ * and for built-in access control related node types.
  */
 public interface AccessControlConstants {
 
@@ -36,7 +37,11 @@ public interface AccessControlConstants {
     String REP_PRINCIPAL_NAME = "rep:principalName";
     String REP_GLOB = "rep:glob";
     String REP_NODE_PATH = "rep:nodePath";
+
     /**
+     * Name of the optional access control restriction by node type name.
+     * The corresponding restriction type is {@link org.apache.jackrabbit.oak.api.Type#NAMES}.
+     *
      * @since OAK 1.0
      */
     String REP_NT_NAMES = "rep:ntNames";

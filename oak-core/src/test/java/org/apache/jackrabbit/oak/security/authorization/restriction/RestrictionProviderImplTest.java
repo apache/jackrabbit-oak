@@ -16,12 +16,23 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositePattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,32 +78,30 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
     }
 
     @Test
-    public void testCreateRestriction() {
-        // TODO
-    }
-
-    @Test
-    public void testCreateMvRestriction() {
-        // TODO
-    }
-
-    @Test
-    public void testReadRestrictions() {
-        // TODO
-    }
-
-    @Test
-    public void testWriteRestrictions() {
-        // TODO
-    }
-
-    @Test
-    public void testValidateRestrictions() {
-        // TODO
-    }
-
-    @Test
     public void testGetRestrictionPattern() {
-        // TODO
+        Map<PropertyState, RestrictionPattern> map = new HashMap();
+        map.put(PropertyStates.createProperty(REP_GLOB, "/*/jcr:content"), GlobPattern.create("/testPath", "/*/jcr:content"));
+        List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
+        map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
+
+        NodeUtil tree = new NodeUtil(root.getTree("/")).getOrAddTree("testPath", JcrConstants.NT_UNSTRUCTURED);
+        Tree restrictions = tree.addChild("restrictions", NT_REP_RESTRICTIONS).getTree();
+
+        // test restrictions individually
+        for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
+            restrictions.setProperty(entry.getKey());
+
+            RestrictionPattern pattern = provider.getPattern("/testPath", restrictions);
+            assertEquals(entry.getValue(), pattern);
+
+            restrictions.removeProperty(entry.getKey().getName());
+        }
+
+        // test combination on multiple restrictions
+        for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
+            restrictions.setProperty(entry.getKey());
+        }
+        RestrictionPattern pattern = provider.getPattern("/testPath", restrictions);
+        assertTrue(pattern instanceof CompositePattern);
     }
 }

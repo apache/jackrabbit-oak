@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.util.TreeLocation;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
