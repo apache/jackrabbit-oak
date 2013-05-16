@@ -65,7 +65,7 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
      * @throws SyncException
      */
     protected SyncHandler getSyncHandler() throws SyncException {
-        Object syncHandler = options.getConfigValue(PARAM_SYNC_HANDLER, null);
+        Object syncHandler = options.getNullableConfigValue(PARAM_SYNC_HANDLER, null);
         if (syncHandler == null) {
             return new DefaultSyncHandler();
         } else if (syncHandler instanceof SyncHandler) {
@@ -117,7 +117,7 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
         try {
             SyncHandler handler = getSyncHandler();
             Root root = getRoot();
-            Object smValue = options.getConfigValue(PARAM_SYNC_MODE, null);
+            Object smValue = options.getNullableConfigValue(PARAM_SYNC_MODE, null);
             SyncMode syncMode;
             if (smValue == null) {
                 syncMode = DEFAULT_SYNC_MODE;
