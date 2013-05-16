@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.io.InputStream;
 import java.util.Dictionary;
-import java.util.Map;
-import java.util.UUID;
+
+import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -28,16 +28,20 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.osgi.service.component.ComponentContext;
 
 import com.mongodb.Mongo;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(NodeStore.class)
-public class SegmentNodeStoreService extends SegmentNodeStore {
+public class SegmentNodeStoreService extends AbstractNodeStore {
 
     @Property(description="The unique name of this instance")
     public static final String NAME = "name";
@@ -63,64 +67,18 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
 
     private Mongo mongo;
 
-    private final SegmentStore[] store;
+    private SegmentStore store;
 
-    public SegmentNodeStoreService(final SegmentStore[] store) {
-        super(new SegmentStore() {
-            @Override
-            public void close() {
-                store[0].close();
-            }
-            @Override
-            public Journal getJournal(final String name) {
-                return new Journal() {
-                    @Override
-                    public RecordId getHead() {
-                        return store[0].getJournal(name).getHead();
-                    }
-                    @Override
-                    public boolean setHead(RecordId base, RecordId head) {
-                        return store[0].getJournal(name).setHead(base, head);
-                    }
-                    @Override
-                    public void merge() {
-                        store[0].getJournal(name).merge();
-                    }
-                };
-            }
-            @Override
-            public Segment readSegment(UUID segmentId) {
-                return store[0].readSegment(segmentId);
-            }            
-            @Override
-            public void createSegment(
-                    UUID segmentId, byte[] bytes, int offset, int length,
-                    Collection<UUID> referencedSegmentIds,
-                    Map<String, RecordId> strings,
-                    Map<Template, RecordId> templates) {
-                store[0].createSegment(
-                        segmentId, bytes, offset, length,
-                        referencedSegmentIds, strings, templates);
-            }
-            @Override
-            public void deleteSegment(UUID segmentId) {
-                store[0].deleteSegment(segmentId);
-            }
-        });
-        this.store = store;
-    }
+    private NodeStore delegate;
 
-    public SegmentNodeStoreService() {
-        this(new SegmentStore[1]);
-    }
-
-    @Override
-    public String toString() {
-        return name;
+    private synchronized NodeStore getDelegate() {
+        assert delegate != null : "service must be activated when used";
+        return delegate;
     }
 
     @Activate
-    public void activate(ComponentContext context) throws IOException {
+    public synchronized void activate(ComponentContext context)
+            throws IOException {
         Dictionary<?, ?> properties = context.getProperties();
         name = "" + properties.get(NAME);
 
@@ -128,7 +86,7 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
             String directory = properties.get(DIRECTORY).toString();
 
             mongo = null;
-            store[0] = new FileStore(directory);
+            store = new FileStore(directory);
         } else {
             String host = String.valueOf(properties.get(HOST));
             int port = Integer.parseInt(String.valueOf(properties.get(PORT)));
@@ -136,16 +94,44 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
             int cache = Integer.parseInt(String.valueOf(properties.get(CACHE)));
 
             mongo = new Mongo(host, port);
-            store[0] = new MongoStore(mongo.getDB(db), cache * MB);
+            store = new MongoStore(mongo.getDB(db), cache * MB);
         }
+
+        delegate = new SegmentNodeStore(store);
     }
 
     @Deactivate
-    public void deactivate() {
-        store[0].close();
+    public synchronized void deactivate() {
+        delegate = null;
+
+        store.close();
         if (mongo != null) {
             mongo.close();
         }
+    }
+
+    //---------------------------------------------------------< NodeStore >--
+
+    @Override @Nonnull
+    public NodeState getRoot() {
+        return getDelegate().getRoot();
+    }
+
+    @Override @Nonnull
+    public NodeStoreBranch branch() {
+        return getDelegate().branch();
+    }
+
+    @Override
+    public Blob createBlob(InputStream stream) throws IOException {
+        return getDelegate().createBlob(stream);
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public synchronized String toString() {
+        return name + ": " + super.toString();
     }
 
 }
