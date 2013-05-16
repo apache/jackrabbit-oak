@@ -297,7 +297,7 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public Node getActivity() throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return null;//TODO.unimplemented().returnValue(null);
     }
 
     @Override
