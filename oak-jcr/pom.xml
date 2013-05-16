@@ -290,8 +290,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemove7    <!-- OAK-781 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemoveIfReadingParentIsDenied      <!-- OAK-813 -->
 
-      org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportPolicyExists <!-- OAK-414 -->
-
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlManagementTest#testRemoveMixin              <!-- OAK-767 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixin                   <!-- OAK-767 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixinWithoutPermission  <!-- OAK-767 -->

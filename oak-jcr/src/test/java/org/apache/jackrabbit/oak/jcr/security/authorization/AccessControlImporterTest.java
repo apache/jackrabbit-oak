@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
 import javax.jcr.ImportUUIDBehavior;
@@ -31,12 +32,10 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.oak.jcr.SessionImpl;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.junit.Ignore;
-import org.xml.sax.SAXException;
 
 public class AccessControlImporterTest extends AbstractJCRTest {
 
@@ -343,12 +342,10 @@ public class AccessControlImporterTest extends AbstractJCRTest {
 
     /**
      * Imports a resource-based ACL containing a single entry for a policy that
-     * already exists.
-     *
-     * @throws Exception
+     * already exists: expected outcome its that the existing ACE is replaced.
      */
-    @Ignore("OAK-414") // FIXME
     public void testImportPolicyExists() throws Exception {
+        Principal everyone = ((JackrabbitSession) superuser).getPrincipalManager().getEveryone();
         Node target = testRootNode;
         target = target.addNode("test", "test:sameNameSibsFalseChildNodeDefinition");
         AccessControlManager acMgr = superuser.getAccessControlManager();
@@ -356,17 +353,15 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             AccessControlPolicy policy = it.nextAccessControlPolicy();
             if (policy instanceof AccessControlList) {
                 Privilege[] privs = new Privilege[] {acMgr.privilegeFromName(Privilege.JCR_LOCK_MANAGEMENT)};
-                ((AccessControlList) policy).addAccessControlEntry(((SessionImpl)superuser).getPrincipalManager().getEveryone(), privs);
+                ((AccessControlList) policy).addAccessControlEntry(everyone, privs);
                 acMgr.setPolicy(target.getPath(), policy);
             }
         }
 
         try {
-
             doImport(target.getPath(), XML_POLICY_TREE_2);
 
             AccessControlPolicy[] policies = acMgr.getPolicies(target.getPath());
-
             assertEquals(1, policies.length);
             assertTrue(policies[0] instanceof JackrabbitAccessControlList);
 
@@ -374,18 +369,14 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertEquals(1, entries.length);
 
             AccessControlEntry entry = entries[0];
-            assertEquals("everyone", entry.getPrincipal().getName());
+            assertEquals(everyone.getName(), entry.getPrincipal().getName());
             List<Privilege> privs = Arrays.asList(entry.getPrivileges());
-            assertEquals(2, privs.size());
-            assertTrue(privs.contains(acMgr.privilegeFromName(Privilege.JCR_WRITE)) &&
-                    privs.contains(acMgr.privilegeFromName(Privilege.JCR_LOCK_MANAGEMENT)));
-
+            assertEquals(1, privs.size());
             assertEquals(acMgr.privilegeFromName(Privilege.JCR_WRITE), entry.getPrivileges()[0]);
 
             if(entry instanceof JackrabbitAccessControlEntry) {
                 assertTrue(((JackrabbitAccessControlEntry) entry).isAllow());
             }
-
         } finally {
             superuser.refresh(false);
         }
@@ -492,7 +483,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
         }
     }
 
-    private void doImport(String parentPath, String xml) throws IOException, SAXException, RepositoryException {
+    private void doImport(String parentPath, String xml) throws IOException, RepositoryException {
         InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
         superuser.importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
     }
