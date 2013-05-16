@@ -64,11 +64,6 @@ class PropertyIndexUpdate {
     private final Set<String> mixinTypes;
 
     /**
-     * The node where the index definition is stored.
-     */
-    private final NodeBuilder node;
-
-    /**
      * The node where the index content is stored.
      */
     private final NodeBuilder index;
@@ -81,7 +76,6 @@ class PropertyIndexUpdate {
             String path, NodeBuilder node, IndexStoreStrategy store,
             Set<String> primaryTypes, Set<String> mixinTypes) {
         this.path = path;
-        this.node = node;
         this.store = store;
 
         if (primaryTypes.isEmpty() && mixinTypes.isEmpty()) {
@@ -92,7 +86,7 @@ class PropertyIndexUpdate {
             this.mixinTypes = mixinTypes;
         }
 
-        index = this.node.child(INDEX_CONTENT_NODE_NAME);
+        index = node.child(INDEX_CONTENT_NODE_NAME);
         unique = getBoolean(node, UNIQUE_PROPERTY_NAME);
     }
 
