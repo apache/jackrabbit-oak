@@ -195,18 +195,22 @@ public class IndexUtils {
         PropertyState property = builder.getProperty(name);
         if (property != null && property.getType() == STRING) {
             return property.getValue(STRING);
-        } else {
-            return null;
         }
+        if (property != null && property.getType() == NAME) {
+            return property.getValue(NAME);
+        }
+        return null;
     }
 
     public static String getString(NodeState state, String name) {
         PropertyState property = state.getProperty(name);
         if (property != null && property.getType() == STRING) {
             return property.getValue(STRING);
-        } else {
-            return null;
         }
+        if (property != null && property.getType() == NAME) {
+            return property.getValue(NAME);
+        }
+        return null;
     }
 
     public static boolean getBoolean(NodeBuilder builder, String name) {
