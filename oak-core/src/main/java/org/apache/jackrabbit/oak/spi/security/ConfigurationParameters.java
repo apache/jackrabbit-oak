@@ -30,9 +30,6 @@ import org.slf4j.LoggerFactory;
  */
 public class ConfigurationParameters {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(ConfigurationParameters.class);
 
     public static final ConfigurationParameters EMPTY = new ConfigurationParameters();
@@ -81,7 +78,7 @@ public class ConfigurationParameters {
      * @return The original or converted configuration value or {@code null}.
      */
     @CheckForNull
-    public <T> T getConfigValue(@Nonnull String key, @Nullable T defaultValue) {
+    public <T> T getNullableConfigValue(@Nonnull String key, @Nullable T defaultValue) {
         if (options != null && options.containsKey(key)) {
             return convert(options.get(key), defaultValue);
         } else {
@@ -89,9 +86,19 @@ public class ConfigurationParameters {
         }
     }
 
+    @Nonnull
+    public <T> T getConfigValue(@Nonnull String key, @Nonnull T defaultValue) {
+        if (options != null && options.containsKey(key)) {
+            T value = convert(options.get(key), defaultValue);
+            return (value == null) ? defaultValue : value;
+        } else {
+            return defaultValue;
+        }
+    }
+
     //--------------------------------------------------------< private >---
     @SuppressWarnings("unchecked")
-    @CheckForNull
+    @Nullable
     private static <T> T convert(@Nullable Object configProperty, @Nullable T defaultValue) {
         if (configProperty == null) {
             return null;

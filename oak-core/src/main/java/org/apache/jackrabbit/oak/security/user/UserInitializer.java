@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -45,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -123,7 +123,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             ConfigurationParameters params = userConfiguration.getConfigurationParameters();
             String adminId = params.getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
             if (userManager.getAuthorizable(adminId) == null) {
-                userManager.createUser(adminId, params.getConfigValue(PARAM_ADMIN_PW, adminId));
+                userManager.createUser(adminId, params.getNullableConfigValue(PARAM_ADMIN_PW, adminId));
             }
             String anonymousId = params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID);
             if (userManager.getAuthorizable(anonymousId) == null) {
