@@ -16,28 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getOrCreateOakIndex;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getOrCreateOakIndex;
 
 import java.util.ArrayList;
-import java.util.List;
 
-import javax.jcr.query.Query;
-
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 public class MultipleIndicesTest extends AbstractQueryTest {
 
