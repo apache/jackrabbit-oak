@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Collections;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -29,6 +32,12 @@ public class PropertyExistenceImpl extends ConstraintImpl {
     private final String propertyName;
     private SelectorImpl selector;
 
+    public PropertyExistenceImpl(SelectorImpl selector, String selectorName, String propertyName) {
+        this.selector = selector;
+        this.selectorName = selectorName;
+        this.propertyName = propertyName;
+    }
+    
     public PropertyExistenceImpl(String selectorName, String propertyName) {
         this.selectorName = selectorName;
         this.propertyName = propertyName;
@@ -37,6 +46,11 @@ public class PropertyExistenceImpl extends ConstraintImpl {
     @Override
     public boolean evaluate() {
         return selector.currentProperty(propertyName) != null;
+    }
+
+    @Override
+    public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
+        return Collections.singleton(this);
     }
 
     @Override
@@ -65,6 +79,28 @@ public class PropertyExistenceImpl extends ConstraintImpl {
         if (s == selector) {
             s.restrictSelector(this);
         }
+    }
+    
+    @Override
+    public int hashCode() {
+        return ((selectorName == null) ? 0 : selectorName.hashCode()) * 31 +
+                ((propertyName == null) ? 0 : propertyName.hashCode());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        } else if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        PropertyExistenceImpl other = (PropertyExistenceImpl) obj;
+        return equalsStrings(selectorName, other.selectorName) &&
+                equalsStrings(propertyName, other.propertyName);
+    }
+    
+    private static boolean equalsStrings(String a, String b) {
+        return a == null || b == null ? a == b : a.equals(b);
     }
 
 }

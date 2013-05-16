@@ -18,7 +18,11 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+
+import com.google.common.collect.Sets;
 
 /**
  * An "or" condition.
@@ -40,6 +44,19 @@ public class OrImpl extends ConstraintImpl {
     public ConstraintImpl getConstraint2() {
         return constraint2;
     }
+    
+    @Override
+    public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
+        Set<PropertyExistenceImpl> s1 = constraint1.getPropertyExistenceConditions();
+        if (s1.isEmpty()) {
+            return s1;
+        }
+        Set<PropertyExistenceImpl> s2 = constraint2.getPropertyExistenceConditions();
+        if (s2.isEmpty()) {
+            return s2;
+        }
+        return Sets.intersection(s1, s2);
+    }
 
     @Override
     public boolean evaluate() {
@@ -58,8 +75,13 @@ public class OrImpl extends ConstraintImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        // ignore
-        // TODO convert OR conditions to UNION
+        Set<PropertyExistenceImpl> set = getPropertyExistenceConditions();
+        if (set.isEmpty()) {
+            return;
+        }
+        for (PropertyExistenceImpl p : set) {
+            p.restrict(f);
+        }
     }
 
     @Override

@@ -50,6 +50,11 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     public String toString() {
         return "upper(" + operand + ')';
     }
+    
+    @Override
+    public PropertyExistenceImpl getPropertyExistence() {
+        return operand.getPropertyExistence();
+    }
 
     @Override
     public PropertyValue currentProperty() {

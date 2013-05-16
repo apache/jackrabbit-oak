@@ -46,6 +46,11 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     public String toString() {
         return "score(" + quote(selectorName) + ')';
     }
+    
+    @Override
+    public PropertyExistenceImpl getPropertyExistence() {
+        return null;
+    }
 
     @Override
     public PropertyValue currentProperty() {

@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Collections;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -38,6 +41,11 @@ public class NotImpl extends ConstraintImpl {
     @Override
     public boolean evaluate() {
         return !constraint.evaluate();
+    }
+    
+    @Override
+    public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
+        return Collections.emptySet();
     }
 
     @Override
