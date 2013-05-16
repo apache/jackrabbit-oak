@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -41,6 +43,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
+    private static final Logger log = LoggerFactory.getLogger(ReadWriteVersionManager.class);
     private final Tree versionStorage;
     private final Root workspaceRoot;
 
@@ -125,8 +128,6 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      * Performs a checkout on a versionable tree.
      *
      * @param versionable the versionable node to check out.
-     * @throws InvalidItemStateException if the current root has pending
-     *                                   changes.
      * @throws UnsupportedRepositoryOperationException
      *                                   if the versionable tree isn't actually
      *                                   versionable.
@@ -136,15 +137,17 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     public void checkout(@Nonnull Tree versionable)
             throws UnsupportedRepositoryOperationException,
             InvalidItemStateException, RepositoryException {
-        if (workspaceRoot.hasPendingChanges()) {
-            throw new InvalidItemStateException("Unable to perform checkout. " +
-                    "Session has pending changes.");
-        }
         if (!isVersionable(versionable)) {
             throw new UnsupportedRepositoryOperationException(
                     versionable.getPath() + " is not versionable");
         }
         if (!isCheckedOut(versionable)) {
+            if (workspaceRoot.hasPendingChanges()) {
+                // TODO: perform checkout on separate root and refresh session
+                //       while keeping pending changes.
+                log.warn("Session has pending changes. Checkout operation will " +
+                        "save those changes as well.");
+            }
             versionable.setProperty(VersionConstants.JCR_ISCHECKEDOUT,
                     Boolean.TRUE, Type.BOOLEAN);
             try {
