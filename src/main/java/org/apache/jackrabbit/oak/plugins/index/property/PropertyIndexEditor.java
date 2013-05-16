@@ -30,6 +30,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.isIndexNodeType;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getChildOrNull;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -43,7 +45,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -52,7 +53,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 /**
  * {@link IndexEditor} implementation that is responsible for keeping the
@@ -88,7 +88,7 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
      */
     private String path;
 
-    private final List<PropertyIndexUpdate> updates = Lists.newArrayList();
+    private final boolean isRoot;
 
     /**
      * The map of known indexes. Key: the property name. Value: the list of
@@ -103,19 +103,20 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
     private final NodeState types;
 
     public PropertyIndexEditor(NodeBuilder builder) {
-        this(null, builder, null, "/");
+        this(null, builder, null, "/", true);
     }
 
     private PropertyIndexEditor(PropertyIndexEditor parent, String nodeName) {
-        this(parent, IndexUtils.getChildOrNull(parent.node, nodeName), nodeName, null);
+        this(parent, getChildOrNull(parent.node, nodeName), nodeName, null, false);
     }
 
     private PropertyIndexEditor(PropertyIndexEditor parent, NodeBuilder node,
-            String nodeName, String path) {
+            String nodeName, String path, boolean root) {
         this.parent = parent;
         this.node = node;
         this.nodeName = nodeName;
         this.path = path;
+        this.isRoot = root;
 
         if (parent == null) {
             this.indexMap = new HashMap<String, List<PropertyIndexUpdate>>();
@@ -206,7 +207,6 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
                         getPath(), node.child(INDEX_DEFINITIONS_NAME).child(indexName),
                         store, primaryTypes, mixinTypes);
                 list.add(update);
-                updates.add(update);
             }
         }
     }
@@ -218,7 +218,7 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
             NodeState index = after.getChildNode(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
                 NodeState child = index.getChildNode(indexName);
-                if (IndexUtils.isIndexNodeType(child, TYPE)) {
+                if (isIndexNodeType(child, TYPE)) {
                     addIndexes(child, indexName);
                 }
             }
@@ -228,8 +228,12 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-        for (PropertyIndexUpdate update : updates) {
-            update.checkUniqueKeys();
+        if (isRoot) {
+            for (List<PropertyIndexUpdate> updates : indexMap.values()) {
+                for (PropertyIndexUpdate update : updates) {
+                    update.checkUniqueKeys();
+                }
+            }
         }
     }
 
