@@ -55,9 +55,11 @@ public class TextExtractionQueryTest extends AbstractQueryTest {
 
     private void assertFileContains(String name, String type,
             String... statements) throws Exception {
-        while (testRootNode.hasNode(nodeName1)) {
+        if (testRootNode.hasNode(nodeName1)) {
             testRootNode.getNode(nodeName1).remove();
         }
+        testRootNode.getSession().save();
+
         Node resource = testRootNode.addNode(nodeName1, NodeType.NT_RESOURCE);
         resource.setProperty(JcrConstants.JCR_MIMETYPE, type);
         InputStream stream = getClass().getResourceAsStream(name);
