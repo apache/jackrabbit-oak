@@ -377,7 +377,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         setupPermission(group1, node1Path, true, 0, new String[] {JCR_READ}, createGlobRestriction("/*"));
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
-        assertReadStatus(ReadStatus.DENY_THIS, cp, node1Path);
+        assertReadStatus(ReadStatus.DENY_THIS, ReadStatus.ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
         assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
 
         cp = createPermissions(ImmutableSet.of(group1, group2));
@@ -385,7 +385,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
 
         cp = createPermissions(ImmutableSet.of(group1, group2, group3));
-        assertReadStatus(ReadStatus.DENY_THIS, cp, node1Path);
+        assertReadStatus(ReadStatus.DENY_THIS, ReadStatus.ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
         assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
     }
 
