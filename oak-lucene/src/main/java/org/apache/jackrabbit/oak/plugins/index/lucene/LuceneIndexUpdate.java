@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.AggregatedState;
+import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
@@ -94,6 +96,8 @@ class LuceneIndexUpdate implements Closeable {
 
     private final Set<Integer> propertyTypes;
 
+    private final NodeAggregator aggregator;
+
     public LuceneIndexUpdate(String path, NodeBuilder index, Parser parser)
             throws CommitFailedException {
         this.path = path;
@@ -106,6 +110,7 @@ class LuceneIndexUpdate implements Closeable {
             throw new CommitFailedException("Lucene", 1,
                     "Failed to update the full text search index", e);
         }
+        aggregator = new NodeAggregator(index);
     }
 
     private Set<Integer> buildPropertyTypes(NodeBuilder index) {
@@ -201,6 +206,21 @@ class LuceneIndexUpdate implements Closeable {
                     for (String v : property.getValue(Type.STRINGS)) {
                         document.add(newPropertyField(pname, v));
                         document.add(newFulltextField(v));
+                    }
+                }
+            }
+        }
+        for (AggregatedState agg : aggregator.getAggregates(state)) {
+            for (PropertyState property : agg.getProperties()) {
+                String pname = property.getName();
+                if (isVisible(pname) && propertyTypes.isEmpty()
+                        || propertyTypes.contains(property.getType().tag())) {
+                    if (Type.BINARY.tag() == property.getType().tag()) {
+                        addBinaryValue(document, property, agg.get());
+                    } else {
+                        for (String v : property.getValue(Type.STRINGS)) {
+                            document.add(newFulltextField(v));
+                        }
                     }
                 }
             }
