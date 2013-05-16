@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -36,6 +37,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableSet;
@@ -107,17 +109,29 @@ class EffectiveType {
         for (NodeState type : types) {
             NodeState named = type.getChildNode("oak:namedPropertyDefinitions");
             NodeState definitions = named.getChildNode(escapedName);
+
             NodeState definition = definitions.getChildNode(definedType);
-            if (!definition.exists()) {
-                definition = definitions.getChildNode(undefinedType);
-            }
             if (definition.exists()) {
                 return definition;
-// TODO: Fall back to residual definitions until we have consensus on OAK-709
-//          } else {
-//              throw new ConstraintViolationException(
-//                    "No matching definition found for property " + propertyName);
             }
+
+            definition = definitions.getChildNode(undefinedType);
+            if (definition.exists()) {
+                return definition;
+            }
+
+            // OAK-822: a mandatory definition always overrides residual ones
+            // TODO: unnecessary if the OAK-713 fallback wasn't needed below
+            for (ChildNodeEntry entry : definitions.getChildNodeEntries()) {
+                definition = entry.getNodeState();
+                if (definition.getBoolean(JCR_MANDATORY)) {
+                    return definition;
+                }
+            }
+
+// TODO: Fall back to residual definitions until we have consensus on OAK-713
+//          throw new ConstraintViolationException(
+//                "No matching definition found for property " + propertyName);
         }
 
         // Find matching residual property definition
@@ -163,17 +177,26 @@ class EffectiveType {
         for (NodeState type : types) {
             NodeState named = type.getChildNode("oak:namedChildNodeDefinitions");
             NodeState definitions = named.getChildNode(nodeName);
-            if (definitions.exists()) {
-                for (String typeName : nodeType) {
-                    NodeState definition = definitions.getChildNode(typeName);
-                    if (definition.exists()) {
-                        return definition;
-                    }
+
+            for (String typeName : nodeType) {
+                NodeState definition = definitions.getChildNode(typeName);
+                if (definition.exists()) {
+                    return definition;
                 }
-// TODO: Fall back to residual definitions until we have consensus on OAK-709
-//              throw new ConstraintViolationException(
-//                      "Incorrect node type of child node " + nodeName);
             }
+
+            // OAK-822: a mandatory definition always overrides alternatives
+            // TODO: unnecessary if the OAK-713 fallback wasn't needed below
+            for (ChildNodeEntry entry : definitions.getChildNodeEntries()) {
+                NodeState definition = entry.getNodeState();
+                if (definition.getBoolean(JCR_MANDATORY)) {
+                    return definition;
+                }
+            }
+
+// TODO: Fall back to residual definitions until we have consensus on OAK-713
+//          throw new ConstraintViolationException(
+//                  "Incorrect node type of child node " + nodeName);
         }
 
         // Find matching residual child node definition
