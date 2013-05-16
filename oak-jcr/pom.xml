@@ -305,6 +305,8 @@
 
       org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest <!-- OAK-414, OAK-482 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupIntoUsersTree <!-- OAK-821 -->
+
+      org.apache.jackrabbit.oak.jcr.nodetype.NodeDefinitionTest <!-- OAK-826 -->
     </known.issues>
   </properties>
 
