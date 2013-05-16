@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public final class MemoryJournal implements Journal {
+public class MemoryJournal implements Journal {
 
     private final SegmentStore store;
 

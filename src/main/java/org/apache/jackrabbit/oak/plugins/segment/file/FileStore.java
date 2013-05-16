@@ -37,16 +37,20 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.Template;
-import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryJournal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
 
 public class FileStore implements SegmentStore {
 
-    private static final long MAGIC_BYTES = 0x4f616b0a527845ddL;
+    private static final long SEGMENT_MAGIC = 0x4f616b0a527845ddL;
+
+    private static final long JOURNAL_MAGIC = 0xdf36544212c0cb24L;
+
+    private static final String JOURNALS_UUID = new UUID(0, 0).toString();
 
     private static final long FILE_SIZE = 256 * 1024 * 1024;
 
@@ -71,7 +75,9 @@ public class FileStore implements SegmentStore {
             this.index++;
         }
 
-        journals.put("root", new MemoryJournal(this, root));
+        if (!journals.containsKey("root")) {
+            journals.put("root", new FileJournal(this, root));
+        }
     }
 
     public FileStore(File directory) throws IOException {
@@ -107,7 +113,7 @@ public class FileStore implements SegmentStore {
             while (ro.remaining() >= 4 * 0x200) {
                 // skip tar header and get the magic bytes; TODO: verify?
                 long magic = ro.getLong(ro.position() + 0x200);
-                if (magic == MAGIC_BYTES) {
+                if (magic == SEGMENT_MAGIC) {
                     ro.position(ro.position() + 0x200 + 8);
 
                     int length = ro.getInt();
@@ -133,6 +139,23 @@ public class FileStore implements SegmentStore {
 
                     // advance to next entry in the file
                     ro.position((ro.position() + length + 0x1ff) & ~0x1ff);
+                } else if (magic == JOURNAL_MAGIC) {
+                    ro.position(ro.position() + 0x200 + 8);
+
+                    int count = ro.getInt();
+                    for (int i = 0; i < count; i++) {
+                        byte[] n = new byte[ro.getInt()];
+                        ro.get(n);
+                        SegmentNodeState h = new SegmentNodeState(this, new RecordId(
+                                new UUID(ro.getLong(), ro.getLong()),
+                                ro.getInt()));
+                        journals.put(
+                                new String(n, UTF_8),
+                                new FileJournal(this, h));
+                    }
+
+                    // advance to next entry in the file
+                    ro.position((ro.position() + 0x1ff) & ~0x1ff);
                 } else {
                     // still space for more segments: position the write
                     // buffer at this point and return false to stop looking
@@ -151,7 +174,7 @@ public class FileStore implements SegmentStore {
     public synchronized Journal getJournal(final String name) {
         Journal journal = journals.get(name);
         if (journal == null) {
-            journal = new MemoryJournal(this, "root");
+            journal = new FileJournal(this, "root");
             journals.put(name, journal);
         }
         return journal;
@@ -174,26 +197,11 @@ public class FileStore implements SegmentStore {
             Map<String, RecordId> strings, Map<Template, RecordId> templates) {
         int size = 8 + 4 + 4 + 16 + 16 * referencedSegmentIds.size() + length;
 
-        if (0x200 + ((size + 0x1ff) & ~0x1ff) + 2 * 0x200 > rw.remaining()) {
-            rw.force();
-            String name = String.format(FILE_NAME_FORMAT, ++index);
-            File file = new File(directory, name);
-            try {
-                RandomAccessFile f = new RandomAccessFile(file, "rw");
-                try {
-                    rw = f.getChannel().map(READ_WRITE, 0, FILE_SIZE);
-                    ro = rw.asReadOnlyBuffer();
-                } finally {
-                    f.close();
-                }
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to create a new segment", e);
-            }
-        }
+        prepare(size);
 
         rw.put(createTarHeader(segmentId.toString(), size));
 
-        rw.putLong(MAGIC_BYTES);
+        rw.putLong(SEGMENT_MAGIC);
         rw.putInt(length);
         rw.putInt(referencedSegmentIds.size());
         rw.putLong(segmentId.getMostSignificantBits());
@@ -222,6 +230,49 @@ public class FileStore implements SegmentStore {
     public void deleteSegment(UUID segmentId) {
         if (segments.remove(segmentId) == null) {
             throw new IllegalStateException("Missing segment: " + segmentId);
+        }
+    }
+
+    synchronized void writeJournals() {
+        int size = 8 + 4;
+        for (String name : journals.keySet()) {
+            size += 4 + name.getBytes(UTF_8).length + 16 + 4;
+        }
+
+        prepare(size);
+
+        rw.put(createTarHeader(JOURNALS_UUID, size));
+
+        rw.putLong(JOURNAL_MAGIC);
+        rw.putInt(journals.size());
+        for (Map.Entry<String, Journal> entry : journals.entrySet()) {
+            byte[] name = entry.getKey().getBytes(UTF_8);
+            rw.putInt(name.length);
+            rw.put(name);
+            RecordId head = entry.getValue().getHead();
+            rw.putLong(head.getSegmentId().getMostSignificantBits());
+            rw.putLong(head.getSegmentId().getLeastSignificantBits());
+            rw.putInt(head.getOffset());
+        }
+        rw.position((rw.position() + 0x1ff) & ~0x1ff);
+    }
+
+    private void prepare(int size) {
+        if (0x200 + ((size + 0x1ff) & ~0x1ff) + 2 * 0x200 > rw.remaining()) {
+            rw.force();
+            String name = String.format(FILE_NAME_FORMAT, ++index);
+            File file = new File(directory, name);
+            try {
+                RandomAccessFile f = new RandomAccessFile(file, "rw");
+                try {
+                    rw = f.getChannel().map(READ_WRITE, 0, FILE_SIZE);
+                    ro = rw.asReadOnlyBuffer();
+                } finally {
+                    f.close();
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to create a new segment", e);
+            }
         }
     }
 
