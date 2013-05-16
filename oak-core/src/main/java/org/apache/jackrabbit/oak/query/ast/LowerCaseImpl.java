@@ -50,6 +50,11 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     public String toString() {
         return "lower(" + operand + ')';
     }
+    
+    @Override
+    public PropertyExistenceImpl getPropertyExistence() {
+        return operand.getPropertyExistence();
+    }
 
     @Override
     public PropertyValue currentProperty() {

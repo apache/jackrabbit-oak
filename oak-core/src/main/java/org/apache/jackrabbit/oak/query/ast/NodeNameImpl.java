@@ -58,6 +58,11 @@ public class NodeNameImpl extends DynamicOperandImpl {
     public boolean supportsRangeConditions() {
         return false;
     }
+    
+    @Override
+    public PropertyExistenceImpl getPropertyExistence() {
+        return null;
+    }
 
     @Override
     public PropertyValue currentProperty() {

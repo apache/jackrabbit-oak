@@ -18,7 +18,11 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+
+import com.google.common.collect.Sets;
 
 /**
  * An AND condition.
@@ -38,6 +42,15 @@ public class AndImpl extends ConstraintImpl {
 
     public ConstraintImpl getConstraint2() {
         return constraint2;
+    }
+    
+    @Override
+    public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
+        Set<PropertyExistenceImpl> s1 = constraint1.getPropertyExistenceConditions();
+        Set<PropertyExistenceImpl> s2 = constraint2.getPropertyExistenceConditions();
+        Set<PropertyExistenceImpl> result = Sets.newHashSet(s1);
+        result.addAll(s2);
+        return result;
     }
 
     @Override

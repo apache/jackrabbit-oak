@@ -23,6 +23,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -97,6 +99,14 @@ public class FullTextSearchImpl extends ConstraintImpl {
         builder.append(getFullTextSearchExpression());
         builder.append(')');
         return builder.toString();
+    }
+    
+    @Override
+    public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
+        if (propertyName == null) {
+            return Collections.emptySet();
+        }
+        return Collections.singleton(new PropertyExistenceImpl(selector, selectorName, propertyName));
     }
 
     @Override

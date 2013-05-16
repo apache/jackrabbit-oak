@@ -48,6 +48,11 @@ public class LengthImpl extends DynamicOperandImpl {
     public String toString() {
         return "length(" + propertyValue + ')';
     }
+    
+    @Override
+    public PropertyExistenceImpl getPropertyExistence() {
+        return propertyValue.getPropertyExistence();
+    }
 
     @Override
     public PropertyValue currentProperty() {

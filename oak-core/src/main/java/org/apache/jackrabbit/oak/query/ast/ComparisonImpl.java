@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Collections;
+import java.util.Set;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -57,6 +60,15 @@ public class ComparisonImpl extends ConstraintImpl {
             return p.getType().tag();
         }
         return ifUnknown;
+    }
+    
+    @Override
+    public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
+        PropertyExistenceImpl p = operand1.getPropertyExistence();
+        if (p == null) {
+            Collections.emptySet();
+        }
+        return Collections.singleton(p);
     }
 
     @Override
