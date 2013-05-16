@@ -237,11 +237,6 @@ public class AccessControlImporterTest extends AbstractJCRTest {
         }
     }
 
-    /**
-     * Imports a resource-based ACL containing a single entry.
-     *
-     * @throws Exception
-     */
     public void testImportACLOnly() throws Exception {
         try {
             Node target = testRootNode.addNode(nodeName1);
@@ -278,12 +273,6 @@ public class AccessControlImporterTest extends AbstractJCRTest {
         }
     }
 
-    /**
-     * Imports a resource-based ACL containing a single entry.
-     *
-     * @throws Exception
-     */
-    @Ignore("OAK-414") // FIXME
     public void testImportACLRemoveACE() throws Exception {
         try {
             Node target = testRootNode.addNode(nodeName1);
@@ -301,7 +290,6 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertTrue(policies[0] instanceof JackrabbitAccessControlList);
 
             AccessControlEntry[] entries = ((JackrabbitAccessControlList) policies[0]).getAccessControlEntries();
-            //FIXME assert fails
             assertEquals(1, entries.length);
 
             AccessControlEntry entry = entries[0];
@@ -317,18 +305,11 @@ public class AccessControlImporterTest extends AbstractJCRTest {
         }
     }
 
-    /**
-     * Imports a resource-based ACL containing a single entry.
-     *
-     * @throws Exception
-     */
-    @Ignore("OAK-414") // FIXME
     public void testImportACLUnknown() throws Exception {
         try {
             Node target = testRootNode.addNode(nodeName1);
             target.addMixin("rep:AccessControllable");
 
-            //FIXME import fails
             doImport(target.getPath(), XML_POLICY_TREE_4);
 
             String path = target.getPath();

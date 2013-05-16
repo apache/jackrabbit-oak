@@ -27,6 +27,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
@@ -192,19 +193,27 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     private JackrabbitAccessControlList getACL(Tree tree) throws RepositoryException {
         String nodeName = tree.getName();
 
+        JackrabbitAccessControlList acl = null;
         if (!tree.isRoot()) {
             Tree parent = tree.getParent();
             if (AccessControlConstants.REP_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)) {
-                return getACL(parent.getPath());
+                acl = getACL(parent.getPath());
             } else if (AccessControlConstants.REP_REPO_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)
                     && parent.isRoot()) {
-                return getACL((String) null);
+                acl = getACL((String) null);
             }
         }
 
-        return null;
+        if (acl != null) {
+            // clear all existing entries
+            for (AccessControlEntry ace: acl.getAccessControlEntries()) {
+                acl.removeAccessControlEntry(ace);
+            }
+        }
+
+        return acl;
     }
 
     @CheckForNull
