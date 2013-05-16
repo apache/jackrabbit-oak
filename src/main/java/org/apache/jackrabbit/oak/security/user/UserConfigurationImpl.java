@@ -44,14 +44,14 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     private final SecurityProvider securityProvider;
 
     public UserConfigurationImpl(SecurityProvider securityProvider) {
-        this.config = securityProvider.getConfiguration(PARAM_USER_OPTIONS);
+        this.config = securityProvider.getParameters(PARAM_USER_OPTIONS);
         this.securityProvider = securityProvider;
     }
 
     //----------------------------------------------< SecurityConfiguration >---
     @Nonnull
     @Override
-    public ConfigurationParameters getConfigurationParameters() {
+    public ConfigurationParameters getParameters() {
         return config;
     }
 
@@ -64,8 +64,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(String workspaceName) {
-        return Collections.singletonList(
-                new UserValidatorProvider(getConfigurationParameters()));
+        return Collections.singletonList(new UserValidatorProvider(getParameters()));
     }
 
     @Nonnull

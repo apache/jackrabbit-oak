@@ -46,6 +46,9 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.After;
@@ -123,7 +126,7 @@ public abstract class AbstractSecurityTest {
     }
 
     protected Credentials getAdminCredentials() {
-        String adminId = UserUtility.getAdminId(getUserConfiguration().getConfigurationParameters());
+        String adminId = UserUtility.getAdminId(getUserConfiguration().getParameters());
         return new SimpleCredentials(adminId, adminId.toCharArray());
     }
 
@@ -132,22 +135,22 @@ public abstract class AbstractSecurityTest {
     }
 
     protected UserConfiguration getUserConfiguration() {
-        return getSecurityProvider().getUserConfiguration();
+        return getConfig(UserConfiguration.class);
     }
 
-    protected UserManager getUserManager() {
+    protected UserManager getUserManager(Root root) {
         if (userManager == null) {
-            userManager = getUserConfiguration().getUserManager(root, namePathMapper);
+            userManager = getConfig(UserConfiguration.class).getUserManager(root, getNamePathMapper());
         }
         return userManager;
     }
 
-    protected PrincipalManager getPrincipalManager() {
-        return getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
+    protected PrincipalManager getPrincipalManager(Root root) {
+        return getConfig(PrincipalConfiguration.class).getPrincipalManager(root, getNamePathMapper());
     }
     
     protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
-        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT);
+        AccessControlManager acMgr = getConfig(AccessControlConfiguration.class).getAccessControlManager(root, NamePathMapper.DEFAULT);
         if (acMgr instanceof JackrabbitAccessControlManager) {
             return (JackrabbitAccessControlManager) acMgr;
         } else {
@@ -158,14 +161,14 @@ public abstract class AbstractSecurityTest {
     protected Privilege[] privilegesFromNames(String... privilegeNames) throws RepositoryException {
         Privilege[] privs = new Privilege[privilegeNames.length];
         for (int i = 0; i < privilegeNames.length; i++) {
-            privs[i] = getPrivilegeManager().getPrivilege(privilegeNames[i]);
+            privs[i] = getPrivilegeManager(root).getPrivilege(privilegeNames[i]);
         }
         return privs;
     }
 
-    protected PrivilegeManager getPrivilegeManager() {
+    protected PrivilegeManager getPrivilegeManager(Root root) {
         if (privMgr == null) {
-            privMgr = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
+            privMgr = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, getNamePathMapper());
         }
         return privMgr;
     }
@@ -177,7 +180,7 @@ public abstract class AbstractSecurityTest {
     protected User getTestUser() throws Exception {
         if (testUser == null) {
             String uid = "testUser" + UUID.randomUUID();
-            testUser = getUserManager().createUser(uid, uid);
+            testUser = getUserManager(root).createUser(uid, uid);
             root.commit();
         }
         return testUser;
@@ -186,5 +189,9 @@ public abstract class AbstractSecurityTest {
     protected ContentSession createTestSession() throws Exception {
         String uid = getTestUser().getID();
         return login(new SimpleCredentials(uid, uid.toCharArray()));
+    }
+
+    protected <T> T getConfig(Class<T> configClass) {
+        return getSecurityProvider().getConfiguration(configClass);
     }
 }

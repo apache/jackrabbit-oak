@@ -72,7 +72,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                                   @Nonnull SecurityProvider securityProvider) {
         this.root = root;
         this.workspaceName = root.getContentSession().getWorkspaceName();
-        acConfig = securityProvider.getAccessControlConfiguration();
+        acConfig = securityProvider.getConfiguration(AccessControlConfiguration.class);
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
@@ -83,7 +83,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                 compiledPermissions = new CompiledPermissionImpl(principals,
                         permissionsTree, getBitsProvider(),
                         acConfig.getRestrictionProvider(),
-                        acConfig.getConfigurationParameters().getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS));
+                        acConfig.getParameters().getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS));
             }
         }
     }

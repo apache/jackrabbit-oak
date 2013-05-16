@@ -16,15 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -45,6 +39,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     private PasswordValidationAction pwAction = new PasswordValidationAction();
@@ -57,7 +56,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        user = (User) getUserManager().getAuthorizable(adminSession.getAuthInfo().getUserID());
+        user = (User) getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID());
 
         testAction.reset();
         pwAction.setConstraint("^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*");
@@ -84,7 +83,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     @Test
     public void testActionIsCalled() throws Exception {
-        testUser = getUserManager().createUser("testUser", "testUser12345");
+        testUser = getUserManager(root).createUser("testUser", "testUser12345");
         root.commit();
         assertEquals(1, testAction.onCreateCalled);
 
@@ -128,7 +127,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
     @Test
     public void testPasswordValidationActionOnCreate() throws Exception {
         String hashed = PasswordUtility.buildPasswordHash("DWkej32H");
-        testUser = getUserManager().createUser("testuser", hashed);
+        testUser = getUserManager(root).createUser("testuser", hashed);
         root.commit();
 
         String pwValue = root.getTree(testUser.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
@@ -138,7 +137,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     @Test
     public void testPasswordValidationActionOnChange() throws Exception {
-        testUser = getUserManager().createUser("testuser", "testPw123456");
+        testUser = getUserManager(root).createUser("testuser", "testPw123456");
         root.commit();
         try {
             pwAction.setConstraint("abc");
@@ -188,22 +187,23 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
             this.actions = new AuthorizableAction[]{pwAction, testAction};
         }
 
-        @Nonnull
-        @Override
-        public UserConfiguration getUserConfiguration() {
-            return new UserConfigurationImpl(this) {
-
-                @Nonnull
-                @Override
-                public AuthorizableActionProvider getAuthorizableActionProvider() {
-                    return new AuthorizableActionProvider() {
-                        @Override
-                        public List<AuthorizableAction> getAuthorizableActions() {
-                            return Arrays.asList(actions);
-                        }
-                    };
-                }
-            };
+        public <T> T getConfiguration(Class<T> configClass) {
+            if (UserConfiguration.class == configClass) {
+                return (T) new UserConfigurationImpl(this) {
+                    @Nonnull
+                    @Override
+                    public AuthorizableActionProvider getAuthorizableActionProvider() {
+                        return new AuthorizableActionProvider() {
+                            @Override
+                            public List<AuthorizableAction> getAuthorizableActions() {
+                                return Arrays.asList(actions);
+                            }
+                        };
+                    }
+                };
+            } else {
+                return super.getConfiguration(configClass);
+            }
         }
     }
 }

@@ -46,7 +46,9 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.Credential
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.UserManagerCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -372,7 +374,8 @@ public abstract class AbstractLoginModule implements LoginModule {
         SecurityProvider sp = getSecurityProvider();
         Root root = getRoot();
         if (root != null && sp != null) {
-            userManager = sp.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
+            UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+            userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
         }
 
         if (userManager == null && callbackHandler != null) {
@@ -403,7 +406,8 @@ public abstract class AbstractLoginModule implements LoginModule {
         SecurityProvider sp = getSecurityProvider();
         Root root = getRoot();
         if (root != null && sp != null) {
-            principalProvider = sp.getPrincipalConfiguration().getPrincipalProvider(root, NamePathMapper.DEFAULT);
+            PrincipalConfiguration pc = sp.getConfiguration(PrincipalConfiguration.class);
+            principalProvider = pc.getPrincipalProvider(root, NamePathMapper.DEFAULT);
         }
 
         if (principalProvider == null && callbackHandler != null) {

@@ -48,14 +48,15 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     @Nonnull
     @Override
-    public ConfigurationParameters getConfiguration(String name) {
+    public ConfigurationParameters getParameters(String name) {
         return (name == null) ? configuration : configuration.getConfigValue(name, new ConfigurationParameters());
     }
 
     @Nonnull
     @Override
-    public Iterable<SecurityConfiguration> getSecurityConfigurations() {
+    public Iterable<? extends SecurityConfiguration> getConfigurations() {
         Set<SecurityConfiguration> scs = new HashSet<SecurityConfiguration>();
+        scs.add(getAuthenticationConfiguration());
         scs.add(getAccessControlConfiguration());
         scs.add(getUserConfiguration());
         scs.add(getPrincipalConfiguration());
@@ -65,31 +66,44 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     @Nonnull
     @Override
-    public AuthenticationConfiguration getAuthenticationConfiguration() {
+    public <T> T getConfiguration(Class<T> configClass) {
+        if (AuthenticationConfiguration.class == configClass) {
+            return (T) getAuthenticationConfiguration();
+        } else if (AccessControlConfiguration.class == configClass) {
+            return (T) getAccessControlConfiguration();
+        } else if (UserConfiguration.class == configClass) {
+            return (T) getUserConfiguration();
+        } else if (PrincipalConfiguration.class == configClass) {
+            return (T) getPrincipalConfiguration();
+        } else if (PrivilegeConfiguration.class == configClass) {
+            return (T) getPrivilegeConfiguration();
+        } else {
+            throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
+        }
+    }
+
+    @Nonnull
+    private AuthenticationConfiguration getAuthenticationConfiguration() {
         return new AuthenticationConfigurationImpl(this);
     }
 
     @Nonnull
-    @Override
-    public AccessControlConfiguration getAccessControlConfiguration() {
+    private AccessControlConfiguration getAccessControlConfiguration() {
         return new AccessControlConfigurationImpl(this);
     }
 
     @Nonnull
-    @Override
-    public PrivilegeConfiguration getPrivilegeConfiguration() {
+    private PrivilegeConfiguration getPrivilegeConfiguration() {
         return new PrivilegeConfigurationImpl();
     }
 
     @Nonnull
-    @Override
-    public UserConfiguration getUserConfiguration() {
+    private UserConfiguration getUserConfiguration() {
         return new UserConfigurationImpl(this);
     }
 
     @Nonnull
-    @Override
-    public PrincipalConfiguration getPrincipalConfiguration() {
+    private PrincipalConfiguration getPrincipalConfiguration() {
         return new PrincipalConfigurationImpl(this);
     }
 }

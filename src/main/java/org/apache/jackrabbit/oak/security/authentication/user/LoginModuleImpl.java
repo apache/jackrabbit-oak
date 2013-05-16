@@ -32,11 +32,13 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,7 +204,8 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         if (sp == null) {
             return null;
         } else {
-            return UserUtility.getAnonymousId(sp.getUserConfiguration().getConfigurationParameters());
+            ConfigurationParameters params = sp.getConfiguration(UserConfiguration.class).getParameters();
+            return UserUtility.getAnonymousId(params);
         }
     }
 

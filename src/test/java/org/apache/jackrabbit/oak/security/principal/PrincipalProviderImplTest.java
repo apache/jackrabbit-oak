@@ -80,7 +80,7 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
 
         Group everyoneGroup = null;
         try {
-            UserManager userMgr = getUserManager();
+            UserManager userMgr = getUserManager(root);
             everyoneGroup = userMgr.createGroup(EveryonePrincipal.NAME);
             root.commit();
 
@@ -98,7 +98,7 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
     public void testFindUserPrincipal() throws Exception {
         User testUser = null;
         try {
-            UserManager userMgr = getUserManager();
+            UserManager userMgr = getUserManager(root);
             testUser = userMgr.createUser("TestUser", "pw");
             root.commit();
 
@@ -126,7 +126,7 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
     public void testFindGroupPrincipal() throws Exception {
         Group testGroup = null;
         try {
-            UserManager userMgr = getUserManager();
+            UserManager userMgr = getUserManager(root);
             testGroup = userMgr.createGroup("TestGroup");
             root.commit();
 
@@ -194,7 +194,7 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
         User testUser = null;
         Group testGroup = null;
         try {
-            UserManager userMgr = getUserManager();
+            UserManager userMgr = getUserManager(root);
             testUser = userMgr.createUser("TestUser", "pw");
             testGroup = userMgr.createGroup("TestGroup");
 

@@ -19,35 +19,17 @@ package org.apache.jackrabbit.oak.spi.security;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-
 /**
  * SecurityProvider... TODO
  */
 public interface SecurityProvider {
 
     @Nonnull
-    ConfigurationParameters getConfiguration(@Nullable String name);
+    ConfigurationParameters getParameters(@Nullable String name);
 
     @Nonnull
-    Iterable<SecurityConfiguration> getSecurityConfigurations();
+    Iterable<? extends SecurityConfiguration> getConfigurations();
 
     @Nonnull
-    AuthenticationConfiguration getAuthenticationConfiguration();
-
-    @Nonnull
-    AccessControlConfiguration getAccessControlConfiguration();
-
-    @Nonnull
-    PrivilegeConfiguration getPrivilegeConfiguration();
-
-    @Nonnull
-    UserConfiguration getUserConfiguration();
-
-    @Nonnull
-    PrincipalConfiguration getPrincipalConfiguration();
+    <T> T getConfiguration(Class<T> configClass);
 }

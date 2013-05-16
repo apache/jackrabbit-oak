@@ -49,7 +49,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
         userId = getTestUser().getID();
-        authentication = new UserAuthentication(userId, getUserManager());
+        authentication = new UserAuthentication(userId, getUserManager(root));
     }
 
     @Test
@@ -60,7 +60,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticateWithoutUserId() throws Exception {
-        UserAuthentication authentication = new UserAuthentication(null, getUserManager());
+        UserAuthentication authentication = new UserAuthentication(null, getUserManager(root));
         assertFalse(authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
