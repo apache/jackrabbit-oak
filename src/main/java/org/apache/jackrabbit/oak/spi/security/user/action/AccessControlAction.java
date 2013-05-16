@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -109,8 +111,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     @Override
     protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
         setSecurityProvider(securityProvider);
-        setUserPrivilegeNames(config.getConfigValue(USER_PRIVILEGE_NAMES, (String) null));
-        setGroupPrivilegeNames(config.getConfigValue(GROUP_PRIVILEGE_NAMES, (String) null));
+        setUserPrivilegeNames(config.getNullableConfigValue(USER_PRIVILEGE_NAMES, (String) null));
+        setGroupPrivilegeNames(config.getNullableConfigValue(GROUP_PRIVILEGE_NAMES, (String) null));
     }
 
     //-------------------------------------------------< AuthorizableAction >---
@@ -125,7 +127,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     }
 
     //------------------------------------------------------< Configuration >---
-    public void setSecurityProvider(SecurityProvider securityProvider) {
+    public void setSecurityProvider(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
@@ -134,7 +136,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
      *
      * @param privilegeNames A comma separated list of privilege names.
      */
-    public void setGroupPrivilegeNames(String privilegeNames) {
+    public void setGroupPrivilegeNames(@Nullable String privilegeNames) {
         if (privilegeNames != null && privilegeNames.length() > 0) {
             groupPrivilegeNames = split(privilegeNames);
         }
@@ -146,7 +148,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
      *
      * @param privilegeNames  A comma separated list of privilege names.
      */
-    public void setUserPrivilegeNames(String privilegeNames) {
+    public void setUserPrivilegeNames(@Nullable String privilegeNames) {
         if (privilegeNames != null && privilegeNames.length() > 0) {
             userPrivilegeNames = split(privilegeNames);
         }
@@ -154,7 +156,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     //------------------------------------------------------------< private >---
 
-    private void setAC(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+    private void setAC(@Nonnull Authorizable authorizable, @Nonnull Root root,
+                       @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
         if (securityProvider == null) {
             throw new IllegalStateException("Not initialized");
         }
@@ -201,7 +204,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
     }
 
-    private boolean isSystemUser(Authorizable authorizable) throws RepositoryException {
+    private boolean isSystemUser(@Nonnull Authorizable authorizable) throws RepositoryException {
         if (authorizable.isGroup()) {
             return false;
         }
@@ -219,7 +222,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
      * @throws javax.jcr.RepositoryException If a privilege name cannot be
      * resolved to a valid privilege.
      */
-    private static Privilege[] getPrivileges(String[] privNames, AccessControlManager acMgr) throws RepositoryException {
+    private static Privilege[] getPrivileges(@Nullable String[] privNames,
+                                             @Nonnull AccessControlManager acMgr) throws RepositoryException {
         if (privNames == null || privNames.length == 0) {
             return new Privilege[0];
         }
@@ -237,7 +241,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
      * list of privilege names.
      * @return An array of privilege names.
      */
-    private static String[] split(String configParam) {
+    private static String[] split(@Nonnull String configParam) {
         List<String> nameList = new ArrayList<String>();
         for (String pn : Text.explode(configParam, ',', false)) {
             String privName = pn.trim();

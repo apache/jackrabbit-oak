@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -58,7 +60,7 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
     //-----------------------------------------< AbstractAuthorizableAction >---
     @Override
     protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
-        String constraint = config.getConfigValue(CONSTRAINT, (String) null);
+        String constraint = config.getNullableConfigValue(CONSTRAINT, (String) null);
         if (constraint != null) {
             setConstraint(constraint);
         }
@@ -81,7 +83,7 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
      *
      * @param constraint A regular expression that can be used to validate a new password.
      */
-    public void setConstraint(String constraint) {
+    public void setConstraint(@Nonnull String constraint) {
         try {
             pattern = Pattern.compile(constraint);
         } catch (PatternSyntaxException e) {
@@ -99,7 +101,7 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
      * @throws RepositoryException If the specified password is too short or
      * doesn't match the specified password pattern.
      */
-    private void validatePassword(String password, boolean forceMatch) throws RepositoryException {
+    private void validatePassword(@Nullable String password, boolean forceMatch) throws RepositoryException {
         if (password != null && (forceMatch || PasswordUtility.isPlainTextPassword(password))) {
             if (pattern != null && !pattern.matcher(password).matches()) {
                 throw new ConstraintViolationException("Password violates password constraint (" + pattern.pattern() + ").");

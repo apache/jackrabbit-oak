@@ -50,8 +50,8 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         this.securityProvider = securityProvider;
 
         ConfigurationParameters params = securityProvider.getAccessControlConfiguration().getConfigurationParameters();
-        String compatValue = params.getConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, null);
-        jr2Permissions = Permissions.getPermissions(params.getConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, compatValue));
+        String compatValue = params.getNullableConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, null);
+        jr2Permissions = Permissions.getPermissions(compatValue);
     }
 
     //--------------------------------------------------< ValidatorProvider >---
