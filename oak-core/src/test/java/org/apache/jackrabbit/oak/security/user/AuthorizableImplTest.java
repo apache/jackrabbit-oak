@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,7 +45,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        userMgr = getUserManager();
+        userMgr = getUserManager(root);
         testUser = getTestUser();
         testGroup = userMgr.createGroup("testGroup");
         root.commit();
@@ -89,7 +90,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
      */
     @Test
     public void testNotEqualAuthorizables() throws Exception {
-        UserManager otherUserManager = getSecurityProvider().getUserConfiguration().getUserManager(root, getNamePathMapper());
+        UserManager otherUserManager = getUserConfiguration().getUserManager(root, getNamePathMapper());
         Authorizable user = otherUserManager.getAuthorizable(testUser.getID());
         Authorizable group = otherUserManager.getAuthorizable(testGroup.getID());
 
@@ -125,7 +126,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
             assertEquals(entry.getKey().hashCode(), entry.getValue().hashCode());
         }
 
-        UserManager otherUserManager = getSecurityProvider().getUserConfiguration().getUserManager(root, getNamePathMapper());
+        UserManager otherUserManager = getUserConfiguration().getUserManager(root, getNamePathMapper());
         user = otherUserManager.getAuthorizable(testUser.getID());
         group = otherUserManager.getAuthorizable(testGroup.getID());
 

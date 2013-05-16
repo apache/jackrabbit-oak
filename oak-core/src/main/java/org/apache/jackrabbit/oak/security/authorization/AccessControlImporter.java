@@ -32,6 +32,7 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
@@ -90,13 +92,15 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
             throw new IllegalStateException("Already initialized");
         }
         try {
-            AccessControlConfiguration config = securityProvider.getAccessControlConfiguration();
             if (isWorkspaceImport) {
+                AccessControlConfiguration config = securityProvider.getConfiguration(AccessControlConfiguration.class);
                 acMgr = config.getAccessControlManager(root, namePathMapper);
+                PrincipalConfiguration pConfig = securityProvider.getConfiguration(PrincipalConfiguration.class);
+                principalManager = pConfig.getPrincipalManager(root, namePathMapper);
             } else {
                 acMgr = session.getAccessControlManager();
+                principalManager = ((JackrabbitSession) session).getPrincipalManager();
             }
-            principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, namePathMapper);
             ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
             initialized = true;
         } catch (RepositoryException e) {

@@ -54,8 +54,11 @@ import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.plugins.observation2.ObservationManagerImpl2;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -197,8 +200,7 @@ public abstract class SessionContext implements NamePathMapper {
     @Nonnull
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            accessControlManager = securityProvider.getAccessControlConfiguration().getAccessControlManager(delegate.getRoot(), namePathMapper);
+            accessControlManager = getConfig(AccessControlConfiguration.class).getAccessControlManager(delegate.getRoot(), namePathMapper);
         }
         return accessControlManager;
     }
@@ -206,8 +208,7 @@ public abstract class SessionContext implements NamePathMapper {
     @Nonnull
     public PrincipalManager getPrincipalManager() {
         if (principalManager == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            principalManager = securityProvider.getPrincipalConfiguration()
+            principalManager = getConfig(PrincipalConfiguration.class)
                     .getPrincipalManager(delegate.getRoot(), namePathMapper);
         }
         return principalManager;
@@ -216,8 +217,7 @@ public abstract class SessionContext implements NamePathMapper {
     @Nonnull
     public UserManager getUserManager() {
         if (userManager == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            userManager = securityProvider.getUserConfiguration().getUserManager(delegate.getRoot(), namePathMapper);
+            userManager = getConfig(UserConfiguration.class).getUserManager(delegate.getRoot(), namePathMapper);
         }
         return userManager;
     }
@@ -225,8 +225,7 @@ public abstract class SessionContext implements NamePathMapper {
     @Nonnull
     public PrivilegeManager getPrivilegeManager() {
         if (privilegeManager == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(delegate.getRoot(), namePathMapper);
+            privilegeManager = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(delegate.getRoot(), namePathMapper);
         }
         return privilegeManager;
     }
@@ -235,7 +234,7 @@ public abstract class SessionContext implements NamePathMapper {
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         // TODO: take non-security related importers into account as well (proper configuration)
         List<ProtectedItemImporter> importers = new ArrayList<ProtectedItemImporter>();
-        for (SecurityConfiguration sc : repository.getSecurityProvider().getSecurityConfigurations()) {
+        for (SecurityConfiguration sc : repository.getSecurityProvider().getConfigurations()) {
             importers.addAll(sc.getProtectedItemImporters());
         }
         return importers;
@@ -368,9 +367,13 @@ public abstract class SessionContext implements NamePathMapper {
     @Nonnull
     private PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            permissionProvider = securityProvider.getAccessControlConfiguration().getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
+            permissionProvider = getConfig(AccessControlConfiguration.class).getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
         }
         return permissionProvider;
+    }
+
+    @Nonnull
+    private <T> T getConfig(Class<T> clss) {
+        return repository.getSecurityProvider().getConfiguration(clss);
     }
 }

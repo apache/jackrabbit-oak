@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.TokenProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
@@ -211,7 +212,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
         SecurityProvider securityProvider = getSecurityProvider();
         Root root = getRoot();
         if (root != null && securityProvider != null) {
-            provider = securityProvider.getAuthenticationConfiguration().getTokenProvider(root);
+            AuthenticationConfiguration authConfig = getSecurityProvider().getConfiguration(AuthenticationConfiguration.class);
+            provider = authConfig.getTokenProvider(root);
         }
         if (provider == null && callbackHandler != null) {
             try {

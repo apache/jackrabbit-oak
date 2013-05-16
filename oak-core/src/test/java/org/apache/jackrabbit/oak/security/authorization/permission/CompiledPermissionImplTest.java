@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
@@ -122,10 +123,29 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     @Override
     protected SecurityProvider getSecurityProvider() {
         return new SecurityProviderImpl() {
+
             @Nonnull
             @Override
-            public AccessControlConfiguration getAccessControlConfiguration() {
-                return new OpenAccessControlConfiguration();
+            public Iterable<? extends SecurityConfiguration> getConfigurations() {
+                List<SecurityConfiguration> configs = new ArrayList<SecurityConfiguration>();
+                for (SecurityConfiguration sc : super.getConfigurations()) {
+                    if (sc instanceof AccessControlConfiguration) {
+                        configs.add(new OpenAccessControlConfiguration());
+                    } else {
+                        configs.add(sc);
+                    }
+                }
+                return configs;
+            }
+
+            @Nonnull
+            @Override
+            public <T> T getConfiguration(Class<T> configClass) {
+                if (AccessControlConfiguration.class == configClass) {
+                    return (T) new OpenAccessControlConfiguration();
+                } else {
+                    return super.getConfiguration(configClass);
+                }
             }
         };
     }

@@ -18,17 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -58,12 +53,17 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
 
@@ -265,7 +265,7 @@ public class RootImpl implements Root {
         List<CommitHook> commitHooks = new ArrayList<CommitHook>();
         commitHooks.add(hook);
         List<CommitHook> postValidationHooks = new ArrayList<CommitHook>();
-        for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
+        for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
             for (CommitHook ch : sc.getCommitHooks(workspaceName)) {
                 if (ch instanceof PostValidationHook) {
                     postValidationHooks.add(ch);
@@ -443,12 +443,17 @@ public class RootImpl implements Root {
 
     @Nonnull
     private PermissionProvider createPermissionProvider() {
-        return securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
+        return getAcConfig().getPermissionProvider(this, subject.getPrincipals());
     }
 
     @Nonnull
     private Context getAcContext() {
-        return securityProvider.getAccessControlConfiguration().getContext();
+        return getAcConfig().getContext();
+    }
+
+    @Nonnull
+    private AccessControlConfiguration getAcConfig() {
+        return securityProvider.getConfiguration(AccessControlConfiguration.class);
     }
 
     //---------------------------------------------------------< MoveRecord >---

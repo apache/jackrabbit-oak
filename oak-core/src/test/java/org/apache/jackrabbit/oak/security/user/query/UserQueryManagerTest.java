@@ -49,9 +49,9 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        UserManager userMgr = getUserManager();
+        UserManager userMgr = getUserManager(root);
         user = getTestUser();
-        queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getConfigurationParameters(), root);
+        queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getParameters(), root);
 
         valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
         propertyName = "testProperty";

@@ -16,18 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
@@ -60,6 +51,14 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 /**
  * @since OAK 1.0
  */
@@ -73,8 +72,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        userMgr = getUserManager();
-        config = getUserConfiguration().getConfigurationParameters();
+        userMgr = getUserManager(root);
+        config = getUserConfiguration().getParameters();
     }
 
     @Test
@@ -160,7 +159,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
         });
         try {
             Root root = cs.getLatestRoot();
-            UserManager umgr = sp.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
+            UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
+            UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
             Authorizable adminUser = umgr.getAuthorizable("admin");
             assertNotNull(adminUser);
 

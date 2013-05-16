@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -171,7 +173,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
 
         String path = authorizable.getPath();
-        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, namePathMapper);
+        AccessControlConfiguration acConfig = securityProvider.getConfiguration(AccessControlConfiguration.class);
+        AccessControlManager acMgr = acConfig.getAccessControlManager(root, namePathMapper);
         JackrabbitAccessControlList acl = null;
         for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext();) {
             AccessControlPolicy plc = it.nextAccessControlPolicy();
@@ -208,7 +211,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         if (authorizable.isGroup()) {
             return false;
         }
-        ConfigurationParameters userConfig = securityProvider.getUserConfiguration().getConfigurationParameters();
+        ConfigurationParameters userConfig = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
         String userId = authorizable.getID();
         return UserUtility.getAdminId(userConfig).equals(userId) || UserUtility.getAnonymousId(userConfig).equals(userId);
     }

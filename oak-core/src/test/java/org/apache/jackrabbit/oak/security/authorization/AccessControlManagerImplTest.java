@@ -173,7 +173,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     private ACL createPolicy(@Nullable String path) {
-        final PrincipalManager pm = getPrincipalManager();
+        final PrincipalManager pm = getPrincipalManager(root);
         final RestrictionProvider rp = getRestrictionProvider();
         return new ACL(path, getNamePathMapper()) {
             @Override
@@ -183,7 +183,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
             @Override
             PrivilegeManager getPrivilegeManager() {
-                return AccessControlManagerImplTest.this.getPrivilegeManager();
+                return AccessControlManagerImplTest.this.getPrivilegeManager(root);
             }
 
             @Override
@@ -257,7 +257,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     //---------------------------------------------< getSupportedPrivileges >---
     @Test
     public void testGetSupportedPrivileges() throws Exception {
-        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager().getRegisteredPrivileges());
+        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager(root).getRegisteredPrivileges());
 
         List<String> testPaths = new ArrayList<String>();
         testPaths.add(null);
@@ -308,7 +308,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetSupportedPrivilegesIncludingPathConversion() throws Exception {
-        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager().getRegisteredPrivileges());
+        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager(root).getRegisteredPrivileges());
 
         List<String> testPaths = new ArrayList<String>();
         testPaths.add('/' + TestNameMapper.TEST_LOCAL_PREFIX + ":testRoot");
@@ -327,7 +327,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     //--------------------------------------------------< privilegeFromName >---
     @Test
     public void testPrivilegeFromName() throws Exception {
-        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager().getRegisteredPrivileges());
+        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager(root).getRegisteredPrivileges());
         for (Privilege privilege : allPrivileges) {
             Privilege p = acMgr.privilegeFromName(privilege.getName());
             assertEquals(privilege, p);
@@ -336,7 +336,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testPrivilegeFromExpandedName() throws Exception {
-        Privilege readPriv = getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_READ);
+        Privilege readPriv = getPrivilegeManager(root).getPrivilege(PrivilegeConstants.JCR_READ);
         assertEquals(readPriv, acMgr.privilegeFromName(Privilege.JCR_READ));
     }
 
@@ -1475,10 +1475,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetApplicablePoliciesInvalidPrincipal() throws Exception {
-        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
         int i = 0;
         while (unknown != null) {
-            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
         }
         unknown = new InvalidTestPrincipal("unknown" + i);
         try {
@@ -1491,10 +1491,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetApplicablePoliciesInternalPrincipal() throws Exception {
-        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
         int i = 0;
         while (unknown != null) {
-            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
         }
         unknown = new PrincipalImpl("unknown" + i);
 
@@ -1538,8 +1538,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Root testRoot = getTestRoot();
         testRoot.refresh();
         JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
-        PrincipalManager testPrincipalMgr = getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(testRoot, getNamePathMapper());
-
         List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
             // testRoot can't read access control content -> doesn't see
@@ -1564,10 +1562,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetPoliciesInvalidPrincipal() throws Exception {
-        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
         int i = 0;
         while (unknown != null) {
-            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
         }
         unknown = new InvalidTestPrincipal("unknown" + i);
         try {
@@ -1580,10 +1578,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetPoliciesInternalPrincipal() throws Exception {
-        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
         int i = 0;
         while (unknown != null) {
-            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
         }
         unknown = new PrincipalImpl("unknown" + i);
         assertEquals(0, acMgr.getPolicies(unknown).length);
@@ -1624,7 +1622,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Root testRoot = getTestRoot();
         testRoot.refresh();
         JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
-        PrincipalManager testPrincipalMgr = getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(testRoot, getNamePathMapper());
+        PrincipalManager testPrincipalMgr = getPrincipalManager(testRoot);
 
         List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
@@ -1661,10 +1659,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetEffectivePoliciesInvalidPrincipals() throws Exception {
-        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
         int i = 0;
         while (unknown != null) {
-            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+            unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
         }
         unknown = new InvalidTestPrincipal("unknown" + i);
         try {

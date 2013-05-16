@@ -42,7 +42,7 @@ public class Jackrabbit2ConfigurationTest extends TokenDefaultLoginModuleTest {
         ContentSession cs = login(null);
         try {
             AuthInfo authInfo = cs.getAuthInfo();
-            String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getConfigurationParameters());
+            String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getParameters());
             assertEquals(anonymousID, authInfo.getUserID());
         } finally {
             cs.close();

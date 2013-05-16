@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +58,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
 
     public AuthenticationConfigurationImpl(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        this.config = securityProvider.getConfiguration(PARAM_AUTHENTICATION_OPTIONS);
+        this.config = securityProvider.getParameters(PARAM_AUTHENTICATION_OPTIONS);
     }
 
     /**
@@ -122,6 +123,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
     @Override
     public TokenProvider getTokenProvider(Root root) {
         ConfigurationParameters tokenOptions = config.getConfigValue(PARAM_TOKEN_OPTIONS, new ConfigurationParameters());
-        return new TokenProviderImpl(root, tokenOptions, securityProvider.getUserConfiguration());
+        UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+        return new TokenProviderImpl(root, tokenOptions, uc);
     }
 }

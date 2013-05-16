@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import java.util.Collections;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -40,44 +40,32 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
-    public ConfigurationParameters getConfiguration(@Nullable String name) {
+    public ConfigurationParameters getParameters(@Nullable String name) {
         return ConfigurationParameters.EMPTY;
     }
 
     @Nonnull
     @Override
-    public Iterable<SecurityConfiguration> getSecurityConfigurations() {
-        return Collections.emptyList();
+    public Iterable<? extends SecurityConfiguration> getConfigurations() {
+        return ImmutableList.of(new OpenAuthenticationConfiguration(), new OpenAccessControlConfiguration(), new OpenPrivilegeConfiguration());
     }
 
     @Nonnull
     @Override
-    public AuthenticationConfiguration getAuthenticationConfiguration() {
-        return new OpenAuthenticationConfiguration();
-    }
-
-    @Nonnull
-    @Override
-    public AccessControlConfiguration getAccessControlConfiguration() {
-        return new OpenAccessControlConfiguration();
-    }
-
-    @Nonnull
-    @Override
-    public PrivilegeConfiguration getPrivilegeConfiguration() {
-        return new OpenPrivilegeConfiguration();
-    }
-
-    @Nonnull
-    @Override
-    public UserConfiguration getUserConfiguration() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Nonnull
-    @Override
-    public PrincipalConfiguration getPrincipalConfiguration() {
-        throw new UnsupportedOperationException();
+    public <T> T getConfiguration(Class<T> configClass) {
+        if (AuthenticationConfiguration.class == configClass) {
+            return (T) new OpenAuthenticationConfiguration();
+        } else if (AccessControlConfiguration.class == configClass) {
+            return (T) new OpenAccessControlConfiguration();
+        } else if (UserConfiguration.class == configClass) {
+            throw new UnsupportedOperationException();
+        } else if (PrincipalConfiguration.class == configClass) {
+            throw new UnsupportedOperationException();
+        } else if (PrivilegeConfiguration.class == configClass) {
+            return (T) new OpenPrivilegeConfiguration();
+        } else {
+            throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
+        }
     }
 
     private static final class OpenPrivilegeConfiguration extends SecurityConfiguration.Default implements PrivilegeConfiguration {

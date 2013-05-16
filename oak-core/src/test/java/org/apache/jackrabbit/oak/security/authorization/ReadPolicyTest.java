@@ -21,6 +21,7 @@ import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +40,7 @@ public class ReadPolicyTest extends AbstractAccessControlTest {
     public void before() throws Exception {
         super.before();
 
-        ConfigurationParameters options = getSecurityProvider().getAccessControlConfiguration().getConfigurationParameters();
+        ConfigurationParameters options = getConfig(AccessControlConfiguration.class).getParameters();
         readPaths = options.getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS);
     }
 

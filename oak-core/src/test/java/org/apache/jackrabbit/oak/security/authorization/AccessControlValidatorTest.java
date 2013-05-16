@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.security.Principal;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -33,6 +29,10 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AccessControlValidatorTest extends AbstractAccessControlTest implements AccessControlConstants {
 
@@ -288,7 +288,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
     @Test
     public void testAbstractPrivilege() throws Exception {
-        PrivilegeManager pMgr = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
+        PrivilegeManager pMgr = getPrivilegeManager(root);
         pMgr.registerPrivilege("abstractPrivilege", true, new String[0]);
 
         NodeUtil acl = createAcl();

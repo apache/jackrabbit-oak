@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 public interface SecurityConfiguration {
 
     @Nonnull
-    ConfigurationParameters getConfigurationParameters();
+    ConfigurationParameters getParameters();
 
     @Nonnull
     WorkspaceInitializer getWorkspaceInitializer();
@@ -57,7 +57,7 @@ public interface SecurityConfiguration {
 
         @Nonnull
         @Override
-        public ConfigurationParameters getConfigurationParameters() {
+        public ConfigurationParameters getParameters() {
             return ConfigurationParameters.EMPTY;
         }
 

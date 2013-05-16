@@ -58,7 +58,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         for (ExternalGroup group : TestLoginModule.externalGroups) {
             ids.add(group.getId());
         }
-        userManager = getUserManager();
+        userManager = getUserManager(root);
     }
 
     @After

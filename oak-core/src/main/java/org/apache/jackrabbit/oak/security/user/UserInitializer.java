@@ -100,7 +100,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         // TODO reconsider
         Root root = new RootImpl(store, commitHook, workspaceName, SystemSubject.INSTANCE, new OpenSecurityProvider(), indexProvider);
 
-        UserConfiguration userConfiguration = securityProvider.getUserConfiguration();
+        UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
 
         String errorMsg = "Failed to initialize user content.";
@@ -120,7 +120,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
                 IndexUtils.createIndexDefinition(index, "members", false, new String[]{UserConstants.REP_MEMBERS}, null);
             }
 
-            ConfigurationParameters params = userConfiguration.getConfigurationParameters();
+            ConfigurationParameters params = userConfiguration.getParameters();
             String adminId = params.getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
             if (userManager.getAuthorizable(adminId) == null) {
                 userManager.createUser(adminId, params.getNullableConfigValue(PARAM_ADMIN_PW, adminId));
