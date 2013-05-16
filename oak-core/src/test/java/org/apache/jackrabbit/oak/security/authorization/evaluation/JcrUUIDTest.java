@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
@@ -122,7 +121,6 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
     /**
      * Creating a referenceable tree with an invalid jcr:uuid must fail.
      */
-    @Ignore("OAK-822") // FIXME
     @Test
     public void testCreateBooleanJcrUuid() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
