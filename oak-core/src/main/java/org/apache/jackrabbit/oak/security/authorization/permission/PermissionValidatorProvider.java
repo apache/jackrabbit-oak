@@ -23,6 +23,7 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -40,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class PermissionValidatorProvider extends ValidatorProvider {
 
     private final SecurityProvider securityProvider;
+    private final AccessControlConfiguration acConfig;
     private final long jr2Permissions;
 
     private ReadOnlyNodeTypeManager ntMgr;
@@ -48,8 +51,9 @@ public class PermissionValidatorProvider extends ValidatorProvider {
 
     public PermissionValidatorProvider(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
+        this.acConfig = securityProvider.getConfiguration(AccessControlConfiguration.class);
 
-        ConfigurationParameters params = securityProvider.getAccessControlConfiguration().getConfigurationParameters();
+        ConfigurationParameters params = acConfig.getParameters();
         String compatValue = params.getNullableConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, null);
         jr2Permissions = Permissions.getPermissions(compatValue);
     }
@@ -67,14 +71,15 @@ public class PermissionValidatorProvider extends ValidatorProvider {
 
     Context getAccessControlContext() {
         if (acCtx == null) {
-            acCtx = securityProvider.getAccessControlConfiguration().getContext();
+            acCtx = acConfig.getContext();
         }
         return acCtx;
     }
 
     Context getUserContext() {
         if (userCtx == null) {
-            userCtx = securityProvider.getUserConfiguration().getContext();
+            UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+            userCtx = uc.getContext();
         }
         return userCtx;
     }

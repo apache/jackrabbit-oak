@@ -83,8 +83,8 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
     public void before() throws Exception {
         super.before();
 
-        privilegeManager = getPrivilegeManager();
-        principalManager = getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
+        privilegeManager = getPrivilegeManager(root);
+        principalManager = getPrincipalManager(root);
 
         acl = createEmptyACL();
         testPrincipal = getTestPrincipal();

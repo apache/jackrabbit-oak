@@ -55,7 +55,7 @@ public class AccessControlActionTest extends AbstractSecurityTest {
 
     @Test
     public void testAccessControlActionForUser() throws Exception {
-        UserManager userMgr = getUserManager();
+        UserManager userMgr = getUserManager(root);
         User u = null;
         try {
             String uid = "actionTestUser";
@@ -74,7 +74,7 @@ public class AccessControlActionTest extends AbstractSecurityTest {
 
     @Test
     public void testAccessControlAction() throws Exception {
-        UserManager userMgr = getUserManager();
+        UserManager userMgr = getUserManager(root);
         Group gr = null;
         try {
             gr = userMgr.createGroup("actionTestGroup");
@@ -97,6 +97,6 @@ public class AccessControlActionTest extends AbstractSecurityTest {
             assertTrue(policies[0] instanceof AccessControlList);
             AccessControlList acl = (AccessControlList) policies[0];
             assertEquals(1, acl.getAccessControlEntries().length);
-            assertArrayEquals(new Privilege[]{getPrivilegeManager().getPrivilege(expectedPrivName)}, acl.getAccessControlEntries()[0].getPrivileges());
+            assertArrayEquals(new Privilege[]{getPrivilegeManager(root).getPrivilege(expectedPrivName)}, acl.getAccessControlEntries()[0].getPrivileges());
     }
 }

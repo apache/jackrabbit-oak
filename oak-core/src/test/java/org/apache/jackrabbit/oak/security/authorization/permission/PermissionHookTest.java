@@ -96,7 +96,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
             }
 
             for (Principal principal : principals) {
-                getUserManager().getAuthorizable(principal).remove();
+                getUserManager(root).getAuthorizable(principal).remove();
             }
             root.commit();
         } finally {
@@ -121,7 +121,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
     private void createPrincipals() throws Exception {
         if (principals.isEmpty()) {
             for (int i = 0; i < 10; i++) {
-                Group gr = getUserManager().createGroup("testGroup"+i);
+                Group gr = getUserManager(root).createGroup("testGroup"+i);
                 principals.add(gr.getPrincipal());
             }
             root.commit();

@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -81,7 +82,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        LoginContextProvider lcProvider = securityProvider.getAuthenticationConfiguration().getLoginContextProvider(this);
+        LoginContextProvider lcProvider = securityProvider.getConfiguration(AuthenticationConfiguration.class).getLoginContextProvider(this);
         LoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 

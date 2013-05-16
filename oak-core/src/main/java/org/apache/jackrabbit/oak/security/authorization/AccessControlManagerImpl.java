@@ -74,7 +74,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.PropertyUtil;
@@ -113,14 +115,18 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         this.root = root;
         this.namePathMapper = namePathMapper;
 
-        privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, namePathMapper);
-        principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, namePathMapper);
+        privilegeManager = getConfig(securityProvider, PrivilegeConfiguration.class).getPrivilegeManager(root, namePathMapper);
+        principalManager = getConfig(securityProvider, PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
 
-        acConfig = securityProvider.getAccessControlConfiguration();
+        acConfig = getConfig(securityProvider, AccessControlConfiguration.class);
         restrictionProvider = acConfig.getRestrictionProvider();
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
 
-        readPaths = acConfig.getConfigurationParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
+        readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
+    }
+
+    private static <T> T getConfig(SecurityProvider sp, Class<T> clss) {
+        return sp.getConfiguration(clss);
     }
 
     //-----------------------------------------------< AccessControlManager >---

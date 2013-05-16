@@ -89,7 +89,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
         for (int i = 0; i < 3; i++) {
             entries.add(new ACE(
                     new PrincipalImpl("testPrincipal" + i),
-                    new Privilege[]{getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_READ)},
+                    new Privilege[]{getPrivilegeManager(root).getPrivilege(PrivilegeConstants.JCR_READ)},
                     true, null, namePathMapper));
         }
         return entries;

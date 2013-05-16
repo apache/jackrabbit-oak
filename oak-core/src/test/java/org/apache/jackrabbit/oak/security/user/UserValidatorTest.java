@@ -102,7 +102,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     @Test
     public void createWithoutPrincipalName() throws Exception {
         try {
-            User user = getUserManager().createUser("withoutPrincipalName", "pw");
+            User user = getUserManager(root).createUser("withoutPrincipalName", "pw");
             Tree tree = root.getTree(userPath);
             tree.removeProperty(REP_PRINCIPAL_NAME);
             root.commit();
@@ -118,7 +118,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     @Test
     public void createWithInvalidUUID() throws Exception {
         try {
-            User user = getUserManager().createUser("withInvalidUUID", "pw");
+            User user = getUserManager(root).createUser("withInvalidUUID", "pw");
             Tree tree = root.getTree(userPath);
             tree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
@@ -191,7 +191,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void testRemoveAdminUser() throws Exception {
         try {
             String adminId = getConfig().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
-            UserManager userMgr = getUserManager();
+            UserManager userMgr = getUserManager(root);
             Authorizable admin = userMgr.getAuthorizable(adminId);
             if (admin == null) {
                 admin = userMgr.createUser(adminId, adminId);
@@ -212,7 +212,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void testDisableAdminUser() throws Exception {
         try {
             String adminId = getConfig().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
-            UserManager userMgr = getUserManager();
+            UserManager userMgr = getUserManager(root);
             Authorizable admin = userMgr.getAuthorizable(adminId);
             if (admin == null) {
                 admin = userMgr.createUser(adminId, adminId);
@@ -283,7 +283,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         Group group2 = null;
         Group group3 = null;
         
-        UserManager userMgr = getUserManager();
+        UserManager userMgr = getUserManager(root);
         try {
             group1 = userMgr.createGroup("group1");
             group2 = userMgr.createGroup("group2");
@@ -312,6 +312,6 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     }
 
     private ConfigurationParameters getConfig() {
-        return getUserConfiguration().getConfigurationParameters();
+        return getUserConfiguration().getParameters();
     }
 }

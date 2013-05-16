@@ -54,7 +54,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     public AccessControlConfigurationImpl(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        config = securityProvider.getConfiguration(PARAM_ACCESS_CONTROL_OPTIONS);
+        config = securityProvider.getParameters(PARAM_ACCESS_CONTROL_OPTIONS);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -66,7 +66,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public ConfigurationParameters getConfigurationParameters() {
+    public ConfigurationParameters getParameters() {
         return config;
     }
 

@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncMode;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -120,7 +119,8 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
         options.put(LdapSettings.KEY_GROUPMEMBERSHIPATTRIBUTE, InternalLdapServer.GROUP_MEMBER_ATTR);
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
 
-        userManager = securityProvider.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
+        UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+        userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
     }
 
     @After

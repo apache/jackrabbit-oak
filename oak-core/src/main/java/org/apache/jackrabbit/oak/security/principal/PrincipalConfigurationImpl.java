@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 
 /**
  * Default implementation of the {@code PrincipalConfiguration}
@@ -47,6 +48,7 @@ public class PrincipalConfigurationImpl extends SecurityConfiguration.Default im
     @Nonnull
     @Override
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
-        return new PrincipalProviderImpl(root, securityProvider.getUserConfiguration(), namePathMapper);
+        UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+        return new PrincipalProviderImpl(root, uc, namePathMapper);
     }
 }

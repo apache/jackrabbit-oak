@@ -105,7 +105,7 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
             testRoot.commit();
         } finally {
             root.refresh();
-            Authorizable user = getUserManager().getAuthorizable("a");
+            Authorizable user = getUserManager(root).getAuthorizable("a");
             if (user != null) {
                 user.remove();
                 root.commit();

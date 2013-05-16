@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -78,8 +79,8 @@ public class UserManagerImpl implements UserManager {
         this.namePathMapper = namePathMapper;
         this.securityProvider = securityProvider;
 
-        UserConfiguration uc = securityProvider.getUserConfiguration();
-        this.config = uc.getConfigurationParameters();
+        UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+        this.config = uc.getParameters();
         this.userProvider = new UserProvider(root, config);
         this.membershipProvider = new MembershipProvider(root, config);
         this.authorizableActions = uc.getAuthorizableActionProvider().getAuthorizableActions();
@@ -307,7 +308,7 @@ public class UserManagerImpl implements UserManager {
 
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
-        return securityProvider.getPrincipalConfiguration().getPrincipalManager(root, namePathMapper);
+        return securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
     }
 
     @Nonnull

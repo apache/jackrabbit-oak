@@ -46,7 +46,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
     protected RestrictionProvider getRestrictionProvider() {
         if (restrictionProvider == null) {
-            restrictionProvider = getSecurityProvider().getAccessControlConfiguration().getRestrictionProvider();
+            restrictionProvider = getConfig(AccessControlConfiguration.class).getRestrictionProvider();
         }
         return restrictionProvider;
     }

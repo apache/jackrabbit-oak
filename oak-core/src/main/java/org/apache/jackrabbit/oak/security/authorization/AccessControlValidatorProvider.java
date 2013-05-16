@@ -62,18 +62,17 @@ class AccessControlValidatorProvider extends ValidatorProvider {
         Tree rootBefore = new ImmutableTree(before);
         Tree rootAfter = new ImmutableTree(after);
 
-        AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
-        RestrictionProvider restrictionProvider = acConfig.getRestrictionProvider();
+        RestrictionProvider restrictionProvider = getConfig(AccessControlConfiguration.class).getRestrictionProvider();
 
-        Map<String, Privilege> privileges = getPrivileges(before, securityProvider.getPrivilegeConfiguration());
+        Map<String, Privilege> privileges = getPrivileges(before);
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
 
         return new AccessControlValidator(rootBefore, rootAfter, privileges, restrictionProvider, ntMgr);
     }
 
-    private Map<String, Privilege> getPrivileges(NodeState beforeRoot, PrivilegeConfiguration config) {
+    private Map<String, Privilege> getPrivileges(NodeState beforeRoot) {
         Root root = new ImmutableRoot(beforeRoot);
-        PrivilegeManager pMgr = config.getPrivilegeManager(root, NamePathMapper.DEFAULT);
+        PrivilegeManager pMgr = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
         ImmutableMap.Builder privileges = ImmutableMap.builder();
         try {
             for (Privilege privilege : pMgr.getRegisteredPrivileges()) {
@@ -85,4 +84,7 @@ class AccessControlValidatorProvider extends ValidatorProvider {
         return privileges.build();
     }
 
+    private <T> T getConfig(Class<T> configClass) {
+        return securityProvider.getConfiguration(configClass);
+    }
 }
