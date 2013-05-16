@@ -51,6 +51,11 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
     }
+    
+    @Override
+    public PropertyExistenceImpl getPropertyExistence() {
+        return null;
+    }
 
     @Override
     public PropertyValue currentProperty() {

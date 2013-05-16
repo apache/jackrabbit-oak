@@ -45,4 +45,12 @@ public abstract class DynamicOperandImpl extends AstElement {
 
     abstract int getPropertyType();
 
+    /**
+     * Get the property existence condition for this operand, if this operand is
+     * used as part of a condition.
+     * 
+     * @return the property existence condition, or null if none
+     */
+    public abstract PropertyExistenceImpl getPropertyExistence();
+
 }

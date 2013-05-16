@@ -25,6 +25,18 @@
 
 # property type (value prefix) index
 
+explain select * from [nt:base] where [jcr:uuid]=1 or [b]=2
+[nt:base] as [nt:base] /* traverse "*" */
+
+explain select * from [nt:base] where length([jcr:uuid])=1 or upper([jcr:uuid])='1' or lower([jcr:uuid])='3'
+[nt:base] as [nt:base] /* property jcr:uuid */
+
+explain select * from [nt:base] where [jcr:uuid] = '1' or ([jcr:uuid] = '2' and [b] = '3')
+[nt:base] as [nt:base] /* property jcr:uuid */
+
+explain select * from [nt:base] where [jcr:uuid] = '1' or [jcr:uuid] = '2'
+[nt:base] as [nt:base] /* property jcr:uuid */
+
 explain select * from [nt:base] where [jcr:uuid] = '123'
 [nt:base] as [nt:base] /* property jcr:uuid=123 where [nt:base].[jcr:uuid] = cast('123' as string) */
 

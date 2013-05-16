@@ -89,6 +89,14 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         // expressions that would result in incorrect results (/test[1] for example)
         return !propertyName.equals(Query.JCR_PATH);
     }
+    
+    @Override
+    public PropertyExistenceImpl getPropertyExistence() {
+        if (propertyName.equals("*")) {
+            return null;
+        }
+        return new PropertyExistenceImpl(selector, selectorName, propertyName);
+    }
 
     @Override
     public PropertyValue currentProperty() {

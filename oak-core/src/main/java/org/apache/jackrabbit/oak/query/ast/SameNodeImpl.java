@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Collections;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
@@ -40,6 +43,11 @@ public class SameNodeImpl extends ConstraintImpl {
         String p = validateAndNormalizePath(path);
         // TODO normalize paths
         return selector.currentPath().equals(p);
+    }
+    
+    @Override
+    public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
+        return Collections.emptySet();
     }
 
     @Override

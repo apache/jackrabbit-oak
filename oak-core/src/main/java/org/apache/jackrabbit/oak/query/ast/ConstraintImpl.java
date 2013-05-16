@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -29,6 +31,17 @@ public abstract class ConstraintImpl extends AstElement {
      * @return true if the constraint matches
      */
     public abstract boolean evaluate();
+    
+    /**
+     * Get the set of property existence conditions that can be derived for this
+     * condition. For example, for the condition "x=1 or x=2", the property
+     * existence condition is "x is not null". For the condition "x=1 or y=2",
+     * there is no such condition. For the condition "x=1 and y=1", there are
+     * two (x is not null, and y is not null).
+     * 
+     * @return the common property existence condition (possibly empty)
+     */
+    public abstract Set<PropertyExistenceImpl> getPropertyExistenceConditions();
 
     /**
      * Apply the condition to the filter, further restricting the filter if
