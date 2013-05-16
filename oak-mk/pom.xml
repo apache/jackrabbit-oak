@@ -50,6 +50,14 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-scr-plugin</artifactId>
+        <!-- See https://issues.apache.org/jira/browse/FELIX-2492 -->
+        <dependencies>
+          <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.api.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>
