@@ -59,6 +59,13 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus.ALLOW_ALL;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus.ALLOW_ALL_REGULAR;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus.ALLOW_NODES;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus.ALLOW_PROPERTIES;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus.ALLOW_THIS;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus.DENY_ALL_REGULAR;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus.DENY_THIS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -156,7 +163,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         allow(userPrincipal, "/", 0, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, allPaths);
     }
 
     @Ignore("OAK-774")
@@ -166,8 +173,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
-        assertReadStatus(ReadStatus.DENY_THIS, cp, ImmutableList.of("/", node1Path, UserConstants.DEFAULT_USER_PATH));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, node2Path);
+        assertReadStatus(DENY_THIS, DENY_THIS, cp, ImmutableList.of("/", node1Path, UserConstants.DEFAULT_USER_PATH));
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, node2Path);
     }
 
     @Ignore("OAK-774")
@@ -177,7 +184,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         deny(group1, "/", 0, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal,group1));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, allPaths);
     }
 
     @Ignore("OAK-774")
@@ -187,7 +194,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         deny(group2, "/", 1, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
-        assertReadStatus(ReadStatus.DENY_ALL_REGULAR, cp, allPaths);
+        assertReadStatus(DENY_ALL_REGULAR, DENY_THIS, cp, allPaths);
     }
 
     @Ignore("OAK-774")
@@ -197,7 +204,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         allow(group2, node2Path, 1, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, allPaths);
     }
 
     @Ignore("OAK-774")
@@ -207,7 +214,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         deny(group2, node1Path, 1, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal, group2));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, allPaths);
     }
 
     @Ignore("OAK-774")
@@ -218,8 +225,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal, group2));
 
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.DENY_ALL_REGULAR, cp, nodePaths);
+        assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, rootAndUsers);
+        assertReadStatus(DENY_ALL_REGULAR, DENY_THIS, cp, nodePaths);
     }
 
     @Ignore("OAK-774")
@@ -230,8 +237,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal, group2));
 
-        assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
+        assertReadStatus(ALLOW_PROPERTIES, ALLOW_THIS, cp, rootAndUsers);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, nodePaths);
     }
 
     @Ignore("OAK-774")
@@ -242,8 +249,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal, group2));
 
-        assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
+        assertReadStatus(ALLOW_PROPERTIES, ALLOW_THIS, cp, rootAndUsers);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, nodePaths);
     }
 
     @Ignore("OAK-774")
@@ -254,8 +261,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
 
-        assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
+        assertReadStatus(ALLOW_PROPERTIES, ALLOW_THIS, cp, rootAndUsers);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, nodePaths);
     }
 
     @Ignore("OAK-774")
@@ -266,8 +273,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
 
-        assertReadStatus(ReadStatus.DENY_THIS, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, nodePaths);
+        assertReadStatus(DENY_THIS, DENY_THIS, cp, rootAndUsers);
+        assertReadStatus(ALLOW_NODES, DENY_THIS, cp, nodePaths);
     }
 
     @Ignore("OAK-774")
@@ -280,8 +287,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
 
         List<String> treePaths = ImmutableList.of("/", UserConstants.DEFAULT_USER_PATH, node1Path);
-        assertReadStatus(ReadStatus.DENY_THIS, cp, treePaths);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, node2Path);
+        assertReadStatus(DENY_THIS, DENY_THIS, cp, treePaths);
+        assertReadStatus(ALLOW_NODES, DENY_THIS, cp, node2Path);
     }
 
     @Ignore("OAK-774")
@@ -293,8 +300,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, nodePaths);
+        assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, rootAndUsers);
+        assertReadStatus(ALLOW_NODES, DENY_THIS, cp, nodePaths);
     }
 
     @Ignore("OAK-774")
@@ -306,9 +313,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, node1Path);
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, node2Path);
+        assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, rootAndUsers);
+        assertReadStatus(ALLOW_NODES, DENY_THIS, cp, node1Path);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, node2Path);
     }
 
     @Ignore("OAK-774")
@@ -320,9 +327,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, node1Path);
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, node2Path);
+        assertReadStatus(ALLOW_NODES, DENY_THIS, cp, rootAndUsers);
+        assertReadStatus(ALLOW_NODES, DENY_THIS, cp, node1Path);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, node2Path);
     }
 
     @Ignore("OAK-774")
@@ -334,69 +341,79 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, "/");
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, UserConstants.DEFAULT_USER_PATH);
-        assertReadStatus(ReadStatus.DENY_THIS, cp, node1Path);
-        assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, node2Path);
+        assertReadStatus(ALLOW_THIS, DENY_THIS, cp, rootAndUsers);
+        assertReadStatus(DENY_THIS, DENY_THIS, cp, node1Path);
+        assertReadStatus(ALLOW_PROPERTIES, ALLOW_THIS, cp, node2Path);
     }
 
     @Ignore("OAK-774")
     @Test
-    public void testGetReadStatus16() throws Exception {
+    public void testGetReadStatusWithAccessControl() throws Exception {
         allow(group1, "/", 0, JCR_READ, JCR_READ_ACCESS_CONTROL);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, allPaths);
+        assertReadStatus(ALLOW_ALL, ALLOW_THIS, cp, allPaths);
+        assertReadStatus(ALLOW_ALL, ALLOW_THIS, cp, "/rep:policy"); // TODO: check again
     }
 
     @Ignore("OAK-774")
     @Test
-    public void testGetReadStatus17() throws Exception {
+    public void testGetReadStatusWithAccessControl1() throws Exception {
         allow(group1, node1Path, 0, JCR_READ, JCR_READ_ACCESS_CONTROL);
         deny(group1, node2Path, 0, JCR_READ_ACCESS_CONTROL);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node1Path);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, node2Path);
+        assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, node1Path); // TODO: check again... shouldn't this be ALLOW_ALL_REGULAR?
+        assertReadStatus(ALLOW_NODES, ALLOW_THIS, cp, node2Path);
     }
 
     @Ignore("OAK-774")
     @Test
-    public void testGetReadStatus18() throws Exception {
+    public void testGetReadStatusWithAccessControl2() throws Exception {
         allow(group1, node1Path, 0, JCR_READ);
         allow(group2, node2Path, 0, JCR_READ_ACCESS_CONTROL);
 
-        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, node1Path);
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, node2Path);
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, node1Path);
+        assertReadStatus(ALLOW_ALL, ALLOW_THIS, cp, node2Path);
+    }
+
+    @Ignore("OAK-774")
+    @Test
+    public void testGetReadStatusWithAccessControl3() throws Exception {
+        allow(group1, node1Path, 0, REP_READ_PROPERTIES);
+        allow(group2, node2Path, 0, JCR_READ_ACCESS_CONTROL);
+
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
+        // TODO ???
     }
 
     @Ignore("OAK-774")
     @Test
     public void testGetReadStatusWithRestrictions() throws Exception {
-        setupPermission(group1, node1Path, true, 0, new String[] {JCR_READ}, createGlobRestriction("/*"));
+        allow(group1, node1Path, 0, new String[]{JCR_READ}, createGlobRestriction("/*"));
         allow(group2, node1Path, 1, JCR_READ);
         deny(group3, node1Path, 2, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
-        assertReadStatus(ReadStatus.DENY_THIS, ReadStatus.ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path); // TODO: need to change RestrictionPattern in order to get ALLOW_ALL_REGULAR
+        assertReadStatus(DENY_THIS, ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
+        assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, node2Path); // TODO: need to change RestrictionPattern in order to get ALLOW_ALL_REGULAR
 
         cp = createPermissions(ImmutableSet.of(group1, group2));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, nodePaths);
 
         cp = createPermissions(ImmutableSet.of(group1, group2, group3));
-        assertReadStatus(ReadStatus.DENY_ALL_REGULAR, cp, nodePaths);
+        assertReadStatus(DENY_ALL_REGULAR, ALLOW_THIS, cp, nodePaths);
     }
 
     @Ignore("OAK-774")
     @Test
     public void testGetReadStatusWithRestrictions2() throws Exception {
         allow(group2, node1Path, 0, JCR_READ);
-        setupPermission(group1, node1Path, true, 1, new String[] {JCR_READ}, createGlobRestriction("/*"));
+        allow(group1, node1Path, 1, new String[]{JCR_READ}, createGlobRestriction("/*"));
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, nodePaths);  // TODO: should be ALLOW_ALL_REGULAR but requires detection of redundant ace
+        assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, nodePaths);  // TODO: should be ALLOW_ALL_REGULAR but requires detection of redundant ace
     }
 
     @Ignore("OAK-774")
@@ -404,11 +421,23 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     public void testGetReadStatusWithRestrictions3() throws Exception {
         allow(group2, node1Path, 0, JCR_READ);
         deny(group3, node1Path, 1, JCR_READ);
-        setupPermission(group1, node1Path, true, 2, new String[] {JCR_READ}, createGlobRestriction("/*"));
+        allow(group1, node1Path, 2, new String[]{JCR_READ}, createGlobRestriction("/*"));
 
         CompiledPermissions cp = createPermissions(ImmutableSet.of(group1, group2, group3));
-        assertReadStatus(ReadStatus.DENY_THIS, ReadStatus.ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
+        assertReadStatus(DENY_THIS, ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
+        assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, node2Path);
+    }
+
+    @Ignore("OAK-774")
+    @Test
+    public void testGetReadStatusWithRestrictions4() throws Exception {
+        allow(group2, node1Path, 0, JCR_READ);
+        deny(group3, node1Path, 1, REP_READ_PROPERTIES);
+        allow(group1, node1Path, 2, new String[]{REP_READ_PROPERTIES}, createGlobRestriction("/*"));
+
+        CompiledPermissions cp = createPermissions(ImmutableSet.of(group1, group2, group3));
+        assertReadStatus(ALLOW_THIS, DENY_THIS, cp, ImmutableList.<String>of(node1Path));
+        assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, node2Path);
     }
 
     // TODO: more tests with restrictions
@@ -420,7 +449,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     @Test
     public void testGetReadStatusForReadPaths() throws Exception {
         CompiledPermissionImpl cp = createPermissions(Collections.singleton(userPrincipal));
-        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, ReadStatus.ALLOW_ALL_REGULAR, cp, new ArrayList<String>(DEFAULT_READ_PATHS));
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_ALL_REGULAR, cp, new ArrayList<String>(DEFAULT_READ_PATHS));
     }
 
     @Test
@@ -481,8 +510,16 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         setupPermission(principal, path, true, index, privilegeNames, Collections.<Restriction>emptySet());
     }
 
+    private void allow(Principal principal, String path, int index, String[] privilegeNames, Set<Restriction> restrictions) throws CommitFailedException {
+        setupPermission(principal, path, true, index, privilegeNames, restrictions);
+    }
+
     private void deny(Principal principal, String path, int index, String... privilegeNames) throws CommitFailedException {
         setupPermission(principal, path, false, index, privilegeNames, Collections.<Restriction>emptySet());
+    }
+
+    private void deny(Principal principal, String path, int index, String[] privilegeNames, Set<Restriction> restrictions) throws CommitFailedException {
+        setupPermission(principal, path, false, index, privilegeNames, restrictions);
     }
 
     private void setupPermission(Principal principal, String path, boolean isAllow,
@@ -502,15 +539,10 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     }
 
     private void assertReadStatus(ReadStatus expectedTrees,
+                                  ReadStatus expectedProperties,
                                   CompiledPermissions cp,
                                   String treePath) {
         assertReadStatus(expectedTrees, expectedTrees, cp, Collections.singletonList(treePath));
-    }
-
-    private void assertReadStatus(ReadStatus expectedTrees,
-                                  CompiledPermissions cp,
-                                  List<String> treePaths) {
-        assertReadStatus(expectedTrees, expectedTrees, cp, treePaths);
     }
 
     private void assertReadStatus(ReadStatus expectedTrees,
