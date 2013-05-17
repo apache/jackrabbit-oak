@@ -174,7 +174,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             fail("An attempt to change the jcr:uuid property must fail");
         } catch (CommitFailedException e) {
             assertEquals(CommitFailedException.CONSTRAINT, e.getType());
-            assertEquals(13, e.getCode());
+            assertEquals(12, e.getCode());
         }
     }
 
