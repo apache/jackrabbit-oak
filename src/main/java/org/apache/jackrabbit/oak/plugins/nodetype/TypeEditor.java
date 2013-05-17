@@ -25,7 +25,6 @@ import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -34,14 +33,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.core.IdentifierManager.isValidUUID;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.valueConstraint;
 
@@ -113,14 +113,9 @@ class TypeEditor extends DefaultEditor {
     }
 
     @Override
-    public void propertyAdded(PropertyState after) throws CommitFailedException {
-        NodeState definition = effective.getDefinition(after);
-        if (definition == null) {
-            throw constraintViolation(
-                    3, "No matching property definition found for " + after);
-        }
-        checkUUIDCreation(definition, after);
-        checkValueConstraints(definition, after);
+    public void propertyAdded(PropertyState after)
+            throws CommitFailedException {
+        propertyChanged(null, after);
     }
 
     @Override
@@ -130,9 +125,17 @@ class TypeEditor extends DefaultEditor {
         if (definition == null) {
             throw constraintViolation(
                     4, "No matching property definition found for " + after);
+        } else if (JCR_UUID.equals(after.getName())
+                && effective.isNodeType(MIX_REFERENCEABLE)) {
+            // special handling for the jcr:uuid property of mix:referenceable
+            // TODO: this should be done in a pluggable extension
+            if (!isValidUUID(after.getValue(Type.STRING))) {
+                throw constraintViolation(
+                        12, "Invalid UUID value in the jcr:uuid property");
+            }
+        } else {
+            checkValueConstraints(definition, after);
         }
-        checkUUIDModification(definition, after);
-        checkValueConstraints(definition, after);
     }
 
     @Override
@@ -232,22 +235,6 @@ class TypeEditor extends DefaultEditor {
             }
         }
         throw constraintViolation(5, "Value constraint violation in " + property);
-    }
-
-    private void checkUUIDCreation(NodeState definition, PropertyState property) throws CommitFailedException {
-        if (isJcrUuid(definition, property) && !IdentifierManager.isValidUUID(property.getValue(Type.STRING))) {
-            throw constraintViolation(12, "Invalid UUID in jcr:uuid property.");
-        }
-    }
-
-    private void checkUUIDModification(NodeState definition, PropertyState property) throws CommitFailedException {
-        if (isJcrUuid(definition, property)) {
-            throw constraintViolation(13, "jcr:uuid property cannot be modified.");
-        }
-    }
-
-    private static boolean isJcrUuid(NodeState definition, PropertyState property) {
-        return JCR_UUID.equals(property.getName()) && JCR_UUID.equals(definition.getName(JCR_NAME));
     }
 
 }
