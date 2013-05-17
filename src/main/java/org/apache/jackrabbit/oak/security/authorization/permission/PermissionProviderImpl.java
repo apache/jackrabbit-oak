@@ -115,6 +115,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                 return ReadStatus.ALLOW_ALL;
             case TreeTypeProvider.TYPE_AC:
                 // TODO: review if read-ac permission is never fine-granular
+                // TODO: replace by calling #getReadStatus
                 return canReadAccessControlContent(tree, null) ? ReadStatus.ALLOW_ALL : ReadStatus.DENY_ALL;
             case TreeTypeProvider.TYPE_VERSION:
                 return getVersionContentReadStatus(tree, property);
