@@ -216,7 +216,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             fail("Removing the jcr:uuid property of a referenceable node must fail.");
         } catch (CommitFailedException e) {
             assertEquals(CommitFailedException.CONSTRAINT, e.getType());
-            assertEquals(2, e.getCode());
+            assertEquals(22, e.getCode());
         }
     }
 }

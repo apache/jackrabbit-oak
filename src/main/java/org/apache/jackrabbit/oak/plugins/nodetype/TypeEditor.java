@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.Set;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -103,13 +101,6 @@ class TypeEditor extends DefaultEditor {
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
         // TODO: add any auto-created items that are still missing
-
-        // verify the presence of all mandatory items
-        Set<String> missing = effective.findMissingMandatoryItems(builder.getNodeState());
-        if (!missing.isEmpty()) {
-            throw constraintViolation(
-                    2, "Missing mandatory items " + Joiner.on(", ").join(missing));
-        }
     }
 
     @Override
@@ -139,13 +130,41 @@ class TypeEditor extends DefaultEditor {
     }
 
     @Override
-    public Editor childNodeAdded(String name, NodeState after)
+    public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
-        return childNodeChanged(name, MISSING_NODE, after);
+        String name = before.getName();
+        if (effective.isMandatoryProperty(name)) {
+            throw constraintViolation(
+                    22, "Mandatory property " + name + " can not be removed");
+        }
     }
 
     @Override
-    public Editor childNodeChanged(
+    public Editor childNodeAdded(String name, NodeState after)
+            throws CommitFailedException {
+        TypeEditor editor = childNodeChanged(name, MISSING_NODE, after);
+
+        // verify the presence of all mandatory items
+        for (String property : editor.effective.getMandatoryProperties()) {
+            if (!after.hasProperty(property)) {
+                throw constraintViolation(
+                        21, "Mandatory property " + property
+                        + " not found in a new node");
+            }
+        }
+        for (String child : editor.effective.getMandatoryChildNodes()) {
+            if (!after.hasChildNode(child)) {
+                throw constraintViolation(
+                        25, "Mandatory child node " + child
+                        + " not found in a new node");
+            }
+        }
+
+        return editor;
+    }
+
+    @Override
+    public TypeEditor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
         NodeBuilder childBuilder = builder.getChildNode(name);
@@ -174,6 +193,17 @@ class TypeEditor extends DefaultEditor {
         }
 
         return new TypeEditor(this, name, childType, childBuilder);
+    }
+
+    @Override
+    public Editor childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
+        if (effective.isMandatoryChildNode(name)) {
+            throw constraintViolation(
+                     26, "Mandatory child node " + name + " can not be removed");
+        } else {
+            return null; // no further checking needed for the removed subtree
+        }
     }
 
     //-----------------------------------------------------------< private >--

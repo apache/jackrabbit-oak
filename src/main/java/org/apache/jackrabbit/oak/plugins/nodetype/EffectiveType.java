@@ -30,10 +30,11 @@ import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
@@ -50,7 +51,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 class EffectiveType {
@@ -84,29 +84,22 @@ class EffectiveType {
         return false;
     }
 
+    boolean isMandatoryProperty(String name) {
+        return nameSetContains(OAK_MANDATORY_PROPERTIES, name);
+    }
+
     @Nonnull
-    Set<String> findMissingMandatoryItems(NodeState node) {
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    Set<String> getMandatoryProperties() {
+        return getNameSet(OAK_MANDATORY_PROPERTIES);
+    }
 
-        for (NodeState type : types) {
-            PropertyState properties =
-                    type.getProperty("oak:mandatoryProperties");
-            for (String name : properties.getValue(NAMES)) {
-                if (!node.hasProperty(name)) {
-                    builder.add(name);
-                }
-            }
+    boolean isMandatoryChildNode(String name) {
+        return nameSetContains(OAK_MANDATORY_CHILD_NODES, name);
+    }
 
-            PropertyState childNodes =
-                    type.getProperty("oak:mandatoryChildNodes");
-            for (String name : childNodes.getValue(NAMES)) {
-                if (!node.hasChildNode(name)) {
-                    builder.add(name);
-                }
-            }
-        }
-
-        return builder.build();
+    @Nonnull
+    Set<String> getMandatoryChildNodes() {
+        return getNameSet(OAK_MANDATORY_CHILD_NODES);
     }
 
     /**
@@ -362,6 +355,24 @@ class EffectiveType {
             }
         }
         return name;
+    }
+
+    private boolean nameSetContains(String set, String name) {
+        for (NodeState type : types) {
+            if (contains(type.getNames(set), name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Nonnull
+    private Set<String> getNameSet(String set) {
+        Set<String> names = newHashSet();
+        for (NodeState type : types) {
+            addAll(names, type.getNames(set));
+        }
+        return names;
     }
 
 }
