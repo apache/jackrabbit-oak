@@ -25,6 +25,7 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -71,7 +72,8 @@ public class CompositeEditorProvider implements EditorProvider {
 
     @Override @CheckForNull
     public Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder) {
+            NodeState before, NodeState after, NodeBuilder builder)
+            throws CommitFailedException {
         List<Editor> list = Lists.newArrayListWithCapacity(providers.size());
         for (EditorProvider provider : providers) {
             Editor editor = provider.getRootEditor(before, after, builder);
