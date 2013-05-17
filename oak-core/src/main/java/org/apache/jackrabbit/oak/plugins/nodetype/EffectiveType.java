@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.contains;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
@@ -64,6 +65,23 @@ class EffectiveType {
             int code, String path, String message) {
         return new CommitFailedException(
                 CONSTRAINT, code, path + this + ": " + message);
+    }
+
+    /**
+     * Checks whether this effective type contains the named type.
+     *
+     * @param name node type name
+     * @return {@code true} if the named type is included,
+     *         {@code false} otherwise
+     */
+    boolean isNodeType(String name) {
+        for (NodeState type : types) {
+            if (name.equals(type.getName(JCR_NODETYPENAME))
+                    || contains(type.getNames(OAK_SUPERTYPES), name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Nonnull
