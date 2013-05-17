@@ -392,19 +392,21 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     @Ignore("OAK-774")
     @Test
     public void testGetReadStatusWithRestrictions2() throws Exception {
-        allow(group2, node1Path, 1, JCR_READ);
-        deny(group3, node1Path, 2, JCR_READ);
-        setupPermission(group1, node1Path, true, 0, new String[] {JCR_READ}, createGlobRestriction("/*"));
+        allow(group2, node1Path, 0, JCR_READ);
+        setupPermission(group1, node1Path, true, 1, new String[] {JCR_READ}, createGlobRestriction("/*"));
 
-        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
-        assertReadStatus(ReadStatus.DENY_THIS, ReadStatus.ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, nodePaths);  // TODO: should be ALLOW_ALL_REGULAR but requires detection of redundant ace
+    }
 
-        cp = createPermissions(ImmutableSet.of(group1, group2));
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node1Path);
-        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
+    @Ignore("OAK-774")
+    @Test
+    public void testGetReadStatusWithRestrictions3() throws Exception {
+        allow(group2, node1Path, 0, JCR_READ);
+        deny(group3, node1Path, 1, JCR_READ);
+        setupPermission(group1, node1Path, true, 2, new String[] {JCR_READ}, createGlobRestriction("/*"));
 
-        cp = createPermissions(ImmutableSet.of(group1, group2, group3));
+        CompiledPermissions cp = createPermissions(ImmutableSet.of(group1, group2, group3));
         assertReadStatus(ReadStatus.DENY_THIS, ReadStatus.ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
         assertReadStatus(ReadStatus.ALLOW_THIS, cp, node2Path);
     }
