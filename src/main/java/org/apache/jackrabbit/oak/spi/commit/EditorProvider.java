@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -44,8 +45,10 @@ public interface EditorProvider {
      * @param after   modified root state
      * @param builder node builder based on the after state
      * @return editor for processing the changes, or {@code null}
+     * @throws CommitFailedException if processing failed
      */
     @CheckForNull
-    Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder);
+    Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder)
+        throws CommitFailedException;
 
 }

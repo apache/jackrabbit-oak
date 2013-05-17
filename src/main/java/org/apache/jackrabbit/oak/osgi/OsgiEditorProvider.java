@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.osgi;
 
 import javax.annotation.CheckForNull;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -43,7 +44,8 @@ public class OsgiEditorProvider
     @Override
     @CheckForNull
     public Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder) {
+            NodeState before, NodeState after, NodeBuilder builder)
+            throws CommitFailedException {
         EditorProvider provider =
                 CompositeEditorProvider.compose(getServices());
         return provider.getRootEditor(before, after, builder);
