@@ -17,12 +17,20 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+
+import java.util.Collections;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 /**
@@ -53,4 +61,57 @@ public class TypeEditorTest {
         hook.processCommit(before, after);
     }
 
+    @Test
+    public void removeNonMandatoryProperty() throws CommitFailedException {
+        EffectiveType effective = createMock(EffectiveType.class);
+        expect(effective.isMandatoryProperty("mandatory")).andReturn(false);
+
+        replay(effective);
+
+        TypeEditor editor =
+                new TypeEditor(EMPTY_NODE, effective, EMPTY_NODE.builder());
+        editor.propertyDeleted(PropertyStates.createProperty("mandatory", ""));
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void removeMandatoryProperty() throws CommitFailedException {
+        EffectiveType effective = createMock(EffectiveType.class);
+        expect(effective.isMandatoryProperty("mandatory")).andReturn(true);
+        expect(effective.constraintViolation(
+                22, "/", "Mandatory property mandatory can not be removed"))
+                .andReturn(new CommitFailedException("", 0, ""));
+
+        replay(effective);
+
+        TypeEditor editor =
+                new TypeEditor(EMPTY_NODE, effective, EMPTY_NODE.builder());
+        editor.propertyDeleted(PropertyStates.createProperty("mandatory", ""));
+    }
+
+    @Test
+    public void removeNonMandatoryChildNode() throws CommitFailedException {
+        EffectiveType effective = createMock(EffectiveType.class);
+        expect(effective.isMandatoryChildNode("mandatory")).andReturn(false);
+
+        replay(effective);
+
+        TypeEditor editor =
+                new TypeEditor(EMPTY_NODE, effective, EMPTY_NODE.builder());
+        editor.childNodeDeleted("mandatory", EMPTY_NODE);
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void removeMandatoryChildNode() throws CommitFailedException {
+        EffectiveType effective = createMock(EffectiveType.class);
+        expect(effective.isMandatoryChildNode("mandatory")).andReturn(true);
+        expect(effective.constraintViolation(
+                26, "/", "Mandatory child node mandatory can not be removed"))
+                .andReturn(new CommitFailedException("", 0, ""));
+
+        replay(effective);
+
+        TypeEditor editor =
+                new TypeEditor(EMPTY_NODE, effective, EMPTY_NODE.builder());
+        editor.childNodeDeleted("mandatory", EMPTY_NODE);
+    }
 }
