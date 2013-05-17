@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -35,7 +34,6 @@ import javax.jcr.security.Privilege;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -190,13 +188,13 @@ abstract class ACL extends AbstractAccessControlList {
             }
         }));
 
-        for (JackrabbitAccessControlEntry ace : subList) {
-            ACE existing = (ACE) ace;
+        for (ACE existing : subList) {
             PrivilegeBits existingBits = getPrivilegeBits(existing);
             PrivilegeBits entryBits = getPrivilegeBits(entry);
             if (entry.getRestrictions().equals(existing.getRestrictions())) {
-                if (isRedundantOrExtending(existing, entry)) {
+                if (entry.isAllow() == existing.isAllow()) {
                     if (existingBits.includes(entryBits)) {
+                        // no changes
                         return false;
                     } else {
                         // merge existing and new ace
@@ -206,32 +204,25 @@ abstract class ACL extends AbstractAccessControlList {
                         entries.add(index, createACE(existing, existingBits));
                         return true;
                     }
+                } else {
+                    // existing is complementary entry -> clean up redundant
+                    // privileges defined by the existing entry
+                    PrivilegeBits updated = PrivilegeBits.getInstance(existingBits).diff(entryBits);
+                    if (updated.isEmpty()) {
+                        // remove the existing entry as the new entry covers all privileges
+                        entries.remove(existing);
+                    } else if (!updated.includes(existingBits)) {
+                        // replace the existing entry having it's privileges adjusted
+                        int index = entries.indexOf(existing);
+                        entries.remove(existing);
+                        entries.add(index, createACE(existing, updated));
+                    } /* else: no collision that requires adjusting the existing entry.*/
                 }
-
-                // clean up redundant privileges defined by the existing entry
-                // and append the new entry at the end of the list.
-                PrivilegeBits updated = PrivilegeBits.getInstance(existingBits).diff(entryBits);
-                if (updated.isEmpty()) {
-                    // remove the existing entry as the new entry covers all privileges
-                    entries.remove(ace);
-                } else if (!updated.includes(existingBits)) {
-                    // replace the existing entry having it's privileges adjusted
-                    int index = entries.indexOf(existing);
-                    entries.remove(ace);
-                    entries.add(index, createACE(existing, updated));
-                } /* else: no collision that requires adjusting the existing entry.*/
             }
         }
-
         // finally add the new entry at the end of the list
         entries.add(entry);
         return true;
-    }
-
-    // TODO: OAK-814
-    private boolean isRedundantOrExtending(ACE existing, ACE entry) {
-        return existing.isAllow() == entry.isAllow()
-                && (!(existing.getPrincipal() instanceof Group) || entries.indexOf(existing) == entries.size() - 1);
     }
 
     private ACE createACE(ACE existing, PrivilegeBits newPrivilegeBits) throws RepositoryException {
