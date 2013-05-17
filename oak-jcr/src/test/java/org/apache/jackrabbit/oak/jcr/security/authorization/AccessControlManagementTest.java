@@ -42,6 +42,21 @@ import org.junit.Test;
 public class AccessControlManagementTest extends AbstractEvaluationTest {
 
     @Test
+    public void testReadAccessControlContent() throws Exception {
+        // test access to ac content if the corresponding access controlled
+        // parent node is not accessible.
+        allow(path, privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL));
+        deny(path, privilegesFromName(Privilege.JCR_READ));
+
+        // the policy node however must be visible to the test-user
+        assertTrue(testSession.nodeExists(path + "/rep:policy"));
+        assertTrue(testSession.propertyExists(path + "/rep:policy/jcr:primaryType"));
+
+        assertFalse(testSession.nodeExists(path));
+        assertFalse(testSession.propertyExists(path + "/jcr:primaryType"));
+    }
+
+    @Test
     public void testAccessControlPrivileges() throws Exception {
         /* grant 'testUser' rep:write, rep:readAccessControl and
            rep:modifyAccessControl privileges at 'path' */
