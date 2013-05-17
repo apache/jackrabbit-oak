@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.List;
 import java.util.Set;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,21 +33,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.valueConstraint;
 
 /**
@@ -69,31 +62,31 @@ class TypeEditor extends DefaultEditor {
 
     private final NodeState types;
 
-    private final List<String> typeNames = newArrayList();
+    private EffectiveType effective;
 
-    private EffectiveType effective = null;
+    private final NodeBuilder builder;
 
-    private final NodeBuilder node;
-
-    // TODO: Calculate default type from the node definition
-    private final String defaultType = NT_UNSTRUCTURED;
-
-    TypeEditor(NodeState types, NodeBuilder node) {
+    TypeEditor(NodeState types, EffectiveType effective, NodeBuilder builder) {
         this.parent = null;
         this.nodeName = null;
         this.types = checkNotNull(types);
-        this.node = node;
+        this.effective = checkNotNull(effective);
+        this.builder = checkNotNull(builder);
     }
 
-    private TypeEditor(TypeEditor parent, String name) {
+    private TypeEditor(
+            TypeEditor parent, String name,
+            EffectiveType effective, NodeBuilder builder) {
         this.parent = checkNotNull(parent);
         this.nodeName = checkNotNull(name);
         this.types = parent.types;
-        if (parent != null && parent.node != null) {
-            this.node = parent.node.child(name);
-        } else {
-            this.node = null;
-        }
+        this.effective = checkNotNull(effective);
+        this.builder = checkNotNull(builder);
+    }
+
+    private CommitFailedException constraintViolation(
+            int code, String message) {
+        return effective.constraintViolation(code, getPath(), message);
     }
 
     private String getPath() {
@@ -106,44 +99,17 @@ class TypeEditor extends DefaultEditor {
         }
     }
 
-    /**
-     * Computes the effective type of the modified type.
-     */
-    @Override
-    public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
-        if (after.getProperty(JCR_PRIMARYTYPE) == null && node != null) {
-            node.setProperty(JCR_PRIMARYTYPE, defaultType, Type.NAME);
-        }
-        computeEffectiveType(after);
-
-        // find matching entry in the parent node's effective type
-        // TODO: this should be in childNodeAdded()
-        if (parent != null && parent.effective.getDefinition(
-                nodeName, effective.getTypeNames()) == null) {
-            Set<String> parentTypes = parent.effective.getTypeNames();
-            throw constraintViolation(
-                    1, "No matching child node definition found for child node "
-                    + nodeName + " in any of the parent types " + parentTypes);
-        }
-    }
-
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
         // TODO: add any auto-created items that are still missing
 
         // verify the presence of all mandatory items
-        Set<String> missing = effective.findMissingMandatoryItems(node.getNodeState());
+        Set<String> missing = effective.findMissingMandatoryItems(builder.getNodeState());
         if (!missing.isEmpty()) {
             throw constraintViolation(
                     2, "Missing mandatory items " + Joiner.on(", ").join(missing));
         }
-    }
-
-    private CommitFailedException constraintViolation(int code, String message) {
-        return new CommitFailedException(
-                CONSTRAINT, code, getPath() + typeNames + ": " + message);
     }
 
     @Override
@@ -172,14 +138,39 @@ class TypeEditor extends DefaultEditor {
     @Override
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        return new TypeEditor(this, name);
+        return childNodeChanged(name, MISSING_NODE, after);
     }
 
     @Override
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
-        return new TypeEditor(this, name);
+        NodeBuilder childBuilder = builder.getChildNode(name);
+
+        String primary = after.getName(JCR_PRIMARYTYPE);
+        if (primary == null) {
+            // no primary type defined, find and apply a default type
+            primary = effective.getDefaultType(name);
+            if (primary != null) {
+                builder.setProperty(JCR_PRIMARYTYPE, primary, NAME);
+            } else {
+                throw constraintViolation(
+                        5, "No default primary type available "
+                        + " for child node " + name);
+            }
+        }
+
+        EffectiveType childType = effective.computeEffectiveType(
+                types, getPath(), // TODO: compute path only on demand
+                name, primary, after.getNames(JCR_MIXINTYPES));
+
+        if (effective.getDefinition(name, childType.getTypeNames()) == null) {
+            throw constraintViolation(
+                    1, "No matching definition found for child node " + name
+                    + " with effective type " + childType.getTypeNames());
+        }
+
+        return new TypeEditor(this, name, childType, childBuilder);
     }
 
     //-----------------------------------------------------------< private >--
@@ -257,64 +248,6 @@ class TypeEditor extends DefaultEditor {
 
     private static boolean isJcrUuid(NodeState definition, PropertyState property) {
         return JCR_UUID.equals(property.getName()) && JCR_UUID.equals(definition.getName(JCR_NAME));
-    }
-
-    /**
-     * Collects the primary and mixin types and all related supertypes
-     * of the given node and places them in the {@link #effective} list
-     * of effective node type definitions.
-     *
-     * @param node node state
-     * @throws CommitFailedException if the effective node type is invalid
-     */
-    private void computeEffectiveType(NodeState node)
-            throws CommitFailedException {
-        List<NodeState> list = Lists.newArrayList();
-
-        // primary type
-        PropertyState primary = node.getProperty(JCR_PRIMARYTYPE);
-        if (primary != null && primary.getType() == NAME) {
-            String name = primary.getValue(NAME);
-            typeNames.add(name);
-
-            NodeState type = types.getChildNode(name);
-            if (!type.exists()) {
-                throw constraintViolation(
-                        6, "Primary node type " + name + " does not exist");
-            } else if (type.getBoolean(JCR_ISMIXIN)) {
-                throw constraintViolation(
-                        7, "Can not use mixin type " + name + " as primary");
-            } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
-                throw constraintViolation(
-                        8, "Can not use abstract type " + name + " as primary");
-            }
-
-            list.add(type);
-        }
-
-        // mixin types
-        PropertyState mixins = node.getProperty(JCR_MIXINTYPES);
-        if (mixins != null && mixins.getType() == NAMES) {
-            for (String name : mixins.getValue(NAMES)) {
-                typeNames.add(name);
-
-                NodeState type = types.getChildNode(name);
-                if (!type.exists()) {
-                    throw constraintViolation(
-                            9, "Mixin node type " + name + " does not exist");
-                } else if (!type.getBoolean(JCR_ISMIXIN)) {
-                    throw constraintViolation(
-                            10, "Can not use primary type " + name + " as mixin");
-                } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
-                    throw constraintViolation(
-                            11, "Can not use abstract type " + name + " as mixin");
-                }
-
-                list.add(type);
-            }
-        }
-
-        effective = new EffectiveType(list);
     }
 
 }
