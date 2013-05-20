@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.*;
 
 import java.util.Set;
 
@@ -52,6 +53,25 @@ public class LuceneIndexHelper {
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
                 .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
+                .setProperty(REINDEX_PROPERTY_NAME, true);
+        if (propertyTypes != null && !propertyTypes.isEmpty()) {
+            index.setProperty(PropertyStates.createProperty(
+                    INCLUDE_PROPERTY_TYPES, propertyTypes, Type.STRINGS));
+        }
+        return index;
+    }
+
+    public static NodeBuilder newLuceneFileIndexDefinition(
+            @Nonnull NodeBuilder index, @Nonnull String name,
+            @Nullable Set<String> propertyTypes, @Nonnull String path) {
+        if (index.hasChildNode(name)) {
+            return index.child(name);
+        }
+        index = index.child(name);
+        index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
+                .setProperty(PERSISTENCE_NAME, PERSISTENCE_FILE)
+                .setProperty(PERSISTENCE_PATH, path)
                 .setProperty(REINDEX_PROPERTY_NAME, true);
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
             index.setProperty(PropertyStates.createProperty(

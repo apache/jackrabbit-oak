@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneFileIndexDefinition;
 
 import java.util.Set;
 
@@ -31,13 +32,21 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
     private final Set<String> propertyTypes;
 
+    private final String filePath;
+
     public LuceneInitializerHelper(String name) {
         this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes) {
+        this(name, propertyTypes, null);
+    }
+
+    public LuceneInitializerHelper(String name, Set<String> propertyTypes,
+            String filePath) {
         this.name = name;
         this.propertyTypes = propertyTypes;
+        this.filePath = filePath;
     }
 
     @Override
@@ -48,7 +57,14 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
             return state;
         }
         NodeBuilder builder = state.builder();
-        newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), name, propertyTypes);
+
+        if (filePath == null) {
+            newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                    name, propertyTypes);
+        } else {
+            newLuceneFileIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                    name, propertyTypes, filePath);
+        }
         return builder.getNodeState();
     }
 

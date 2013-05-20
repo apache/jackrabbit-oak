@@ -24,6 +24,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_OAK;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
@@ -31,6 +35,7 @@ import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST;
 import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,6 +70,7 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,8 +125,7 @@ public class LuceneIndex implements FulltextQueryIndex {
     @Override
     public double getCost(Filter filter, NodeState root) {
         // TODO: proper cost calculation
-        NodeState index = getIndexDataNode(root);
-        if (index == null) {
+        if (!isLive(root)) {
             // unusable index
             return Double.POSITIVE_INFINITY;
         }
@@ -131,18 +136,74 @@ public class LuceneIndex implements FulltextQueryIndex {
         return Double.POSITIVE_INFINITY;
     }
 
-    private static NodeState getIndexDataNode(NodeState node) {
+    private static boolean isLive(NodeState root) {
+        NodeState def = getIndexDef(root);
+        if (def == null) {
+            return false;
+        }
+        String type = getString(def, PERSISTENCE_NAME);
+        if (type == null || PERSISTENCE_OAK.equalsIgnoreCase(type)) {
+            return getIndexDataNode(def) != null;
+        }
+
+        if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
+            return getString(def, INDEX_PATH) != null;
+        }
+
+        return false;
+    }
+
+    private static Directory newDirectory(NodeState root) {
+        NodeState def = getIndexDef(root);
+        if (def == null) {
+            return null;
+        }
+
+        String type = getString(def, PERSISTENCE_NAME);
+        if (type == null || PERSISTENCE_OAK.equalsIgnoreCase(type)) {
+            NodeState index = getIndexDataNode(def);
+            if (index == null) {
+                return null;
+            }
+            return new ReadOnlyOakDirectory(new ReadOnlyBuilder(index));
+        }
+
+        if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
+            String fs = getString(def, INDEX_PATH);
+            if (fs == null) {
+                return null;
+            }
+            File f = new File(fs);
+            if (!f.exists()) {
+                return null;
+            }
+            try {
+                // TODO lock factory
+                return FSDirectory.open(f);
+            } catch (IOException e) {
+                LOG.error("Unable to open directory {}", fs);
+            }
+        }
+
+        return null;
+    }
+
+    private static NodeState getIndexDef(NodeState node) {
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             NodeState ns = entry.getNodeState();
             if (TYPE_LUCENE.equals(getString(ns, TYPE_PROPERTY_NAME))) {
-                if (ns.hasChildNode(INDEX_DATA_CHILD_NAME)) {
-                    return ns.getChildNode(INDEX_DATA_CHILD_NAME);
-                }
-                // unusable index (not initialized yet)
-                return null;
+                return ns;
             }
         }
+        return null;
+    }
+
+    private static NodeState getIndexDataNode(NodeState node) {
+        if (node.hasChildNode(INDEX_DATA_CHILD_NAME)) {
+            return node.getChildNode(INDEX_DATA_CHILD_NAME);
+        }
+        // unusable index (not initialized yet)
         return null;
     }
 
@@ -153,14 +214,11 @@ public class LuceneIndex implements FulltextQueryIndex {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        NodeState index = getIndexDataNode(root);
-        if (index == null) {
+        Directory directory = newDirectory(root);
+        if (directory == null) {
             return Cursors.newPathCursor(Collections.<String> emptySet());
         }
-        Directory directory = new ReadOnlyOakDirectory(new ReadOnlyBuilder(
-                index));
         long s = System.currentTimeMillis();
-
         try {
             try {
                 IndexReader reader = DirectoryReader.open(directory);
