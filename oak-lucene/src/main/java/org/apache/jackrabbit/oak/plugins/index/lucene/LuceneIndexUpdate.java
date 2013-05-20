@@ -24,21 +24,33 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPro
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_OAK;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TO_WRITE_LOCK_MS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TO_MAX_RETRIES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TO_SLEEP_MS;
+
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.AggregatedState;
 import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -48,6 +60,9 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.search.PrefixQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.ParseContext;
@@ -69,6 +84,7 @@ class LuceneIndexUpdate implements Closeable {
         try {
             IndexWriterConfig config = new IndexWriterConfig(VERSION, ANALYZER);
             config.setMergeScheduler(new SerialMergeScheduler());
+            config.setWriteLockTimeout(TO_WRITE_LOCK_MS);
             return config;
         } finally {
             thread.setContextClassLoader(loader);
@@ -103,14 +119,89 @@ class LuceneIndexUpdate implements Closeable {
         this.path = path;
         this.parser = parser;
         this.propertyTypes = buildPropertyTypes(index);
-        try {
-            writer = new IndexWriter(new ReadWriteOakDirectory(
-                    index.child(INDEX_DATA_CHILD_NAME)), config);
-        } catch (IOException e) {
-            throw new CommitFailedException("Lucene", 1,
-                    "Failed to update the full text search index", e);
+        this.writer = newIndexWriter(index, path);
+        this.aggregator = new NodeAggregator(index);
+    }
+
+    private static IndexWriter newIndexWriter(NodeBuilder index, String path)
+            throws CommitFailedException {
+        String type = getString(index, PERSISTENCE_NAME);
+        if (type == null || PERSISTENCE_OAK.equalsIgnoreCase(type)) {
+            try {
+                return new IndexWriter(new ReadWriteOakDirectory(
+                        index.child(INDEX_DATA_CHILD_NAME)), config);
+            } catch (IOException e) {
+                throw new CommitFailedException("Lucene", 1,
+                        "Failed to update the full text search index", e);
+            }
         }
-        aggregator = new NodeAggregator(index);
+
+        if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
+            File f = getIndexChildFolder(getString(index, PERSISTENCE_PATH),
+                    path);
+            f.mkdirs();
+            index.setProperty(INDEX_PATH, f.getAbsolutePath());
+            try {
+                Directory d = FSDirectory.open(f);
+                return newIndexWriterTO(d, 0, TO_MAX_RETRIES, TO_SLEEP_MS);
+            } catch (IOException e) {
+                throw new CommitFailedException("Lucene", 1,
+                        "Failed to update the full text search index", e);
+            }
+        }
+
+        throw new CommitFailedException("Lucene", 1,
+                "Unknown lucene persistence setting");
+    }
+
+    private static IndexWriter newIndexWriterTO(Directory d, int retry,
+            int max, int sleep) throws IOException {
+        try {
+            return new IndexWriter(d, config);
+        } catch (LockObtainFailedException lofe) {
+            log.debug("Unable to create a new index writer ({}/{}): {}",
+                    new Object[] { retry, max, lofe.getMessage() });
+            retry++;
+            if (retry > max) {
+                log.debug("Unable to create a new index writer, giving up.");
+                return null;
+            }
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (InterruptedException e) {
+                //
+            }
+            return newIndexWriterTO(d, retry, max, sleep);
+        }
+    }
+
+    private static File getIndexChildFolder(String root, String path)
+            throws CommitFailedException {
+        File rootf = new File(".");
+        if (root != null) {
+            if (root.startsWith("..") || root.startsWith("/")) {
+                throw new CommitFailedException("Lucene", 1,
+                        "Index config path should be a descendant of the repository directory.");
+            }
+            for (String p : root.split("/")) {
+                rootf = new File(rootf, p);
+            }
+        }
+        // TODO factor in the 'path' argument to not have overlapping lucene
+        // index defs
+        if (!PathUtils.denotesRoot(path)) {
+            String elements = path;
+            if (elements.startsWith("/")) {
+                elements = elements.substring(1);
+            }
+            for (String p : elements.split("/")) {
+                rootf = new File(rootf, p);
+            }
+        }
+
+        File f = new File(rootf, INDEX_DATA_CHILD_NAME);
+        f.mkdirs();
+        return f;
     }
 
     private Set<Integer> buildPropertyTypes(NodeBuilder index) {
@@ -132,6 +223,11 @@ class LuceneIndexUpdate implements Closeable {
 
     public void insert(String path, NodeBuilder value)
             throws CommitFailedException {
+        if (writer == null) {
+            // noop
+            return;
+        }
+
         // null value can come from a deleted node, followed by a deleted
         // property event which would trigger an update on the previously
         // deleted node
@@ -160,6 +256,11 @@ class LuceneIndexUpdate implements Closeable {
     }
 
     public void remove(String path) throws CommitFailedException {
+        if (writer == null) {
+            // noop
+            return;
+        }
+
         checkArgument(path.startsWith(this.path));
         try {
             deleteSubtreeWriter(writer, path.substring(this.path.length()));
@@ -254,8 +355,9 @@ class LuceneIndexUpdate implements Closeable {
     /**
      * Returns <code>true</code> if the provided type is among the types
      * supported by the Tika parser we are using.
-     *
-     * @param type the type to check.
+     * 
+     * @param type
+     *            the type to check.
      * @return whether the type is supported by the Tika parser we are using.
      */
     private boolean isSupportedMediaType(final String type) {
