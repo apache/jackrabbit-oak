@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
@@ -49,4 +50,16 @@ public class SQL2ParserTest {
                 .convert("/jcr:root/test/*/nt:resource[@jcr:encoding]"));
     }
 
+    /**
+     * @see <a
+     *      href="https://issues.apache.org/jira/browse/OAK-OAK-830">OAK-OAK-830:
+     *      XPathToSQL2Converter fails to wrap or clauses</a>
+     */
+    @Test
+    public void testUnwrappedOr() throws ParseException {
+        String q = new XPathToSQL2Converter()
+                .convert("/jcr:root/home//test/* [@type='t1' or @type='t2' or @type='t3']");
+        String token = "and ((b.[type] = 't1' or b.[type] = 't2') or b.[type] = 't3')";
+        assertTrue(q.contains(token));
+    }
 }
