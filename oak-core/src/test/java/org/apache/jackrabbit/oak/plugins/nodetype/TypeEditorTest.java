@@ -64,8 +64,7 @@ public class TypeEditorTest {
 
         replay(effective);
 
-        TypeEditor editor =
-                new TypeEditor(EMPTY_NODE, effective, EMPTY_NODE.builder());
+        TypeEditor editor = new TypeEditor(effective);
         editor.propertyDeleted(PropertyStates.createProperty("mandatory", ""));
     }
 
@@ -79,8 +78,7 @@ public class TypeEditorTest {
 
         replay(effective);
 
-        TypeEditor editor =
-                new TypeEditor(EMPTY_NODE, effective, EMPTY_NODE.builder());
+        TypeEditor editor = new TypeEditor(effective);
         editor.propertyDeleted(PropertyStates.createProperty("mandatory", ""));
     }
 
@@ -91,8 +89,7 @@ public class TypeEditorTest {
 
         replay(effective);
 
-        TypeEditor editor =
-                new TypeEditor(EMPTY_NODE, effective, EMPTY_NODE.builder());
+        TypeEditor editor = new TypeEditor(effective);
         editor.childNodeDeleted("mandatory", EMPTY_NODE);
     }
 
@@ -106,8 +103,7 @@ public class TypeEditorTest {
 
         replay(effective);
 
-        TypeEditor editor =
-                new TypeEditor(EMPTY_NODE, effective, EMPTY_NODE.builder());
+        TypeEditor editor = new TypeEditor(effective);
         editor.childNodeDeleted("mandatory", EMPTY_NODE);
     }
 }

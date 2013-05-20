@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -45,17 +44,16 @@ public class TypeEditorProvider implements EditorProvider {
         if (types.exists()) {
 
             String primary = after.getName(JCR_PRIMARYTYPE);
+            Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
+
             if (primary == null) {
                 // no primary type on the root node, set the hardcoded default
                 primary = "rep:root";
                 builder.setProperty(JCR_PRIMARYTYPE, primary, NAME);
             }
-            NodeState unstructured = types.getChildNode("oak:unstructured");
-            EffectiveType parent = new EffectiveType(asList(unstructured));
-            EffectiveType effective = parent.computeEffectiveType(
-                    types, "/", null, primary, after.getNames(JCR_MIXINTYPES));
 
-            return new VisibleEditor(new TypeEditor(types, effective, builder));
+            return new VisibleEditor(
+                    new TypeEditor(types, primary, mixins, builder));
         } else {
             return null;
         }
