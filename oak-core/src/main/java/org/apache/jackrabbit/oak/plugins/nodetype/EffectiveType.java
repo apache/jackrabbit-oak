@@ -182,22 +182,24 @@ class EffectiveType {
      * types.
      *
      * @param nameWithIndex child node name, possibly with an SNS index
-     * @param nodeType effective types of the child node
-     * @return matching child node definition, or {@code null} if not found
+     * @param effective effective types of the child node
+     * @return {@code true} if there's a matching child node definition,
+     *         {@code false} otherwise
      */
-    @CheckForNull
-    NodeState getDefinition(String nameWithIndex, Iterable<String> nodeType) {
+    boolean isValidChildNode(String nameWithIndex, EffectiveType effective) {
         String nodeName = getNameWithoutIndex(nameWithIndex);
+        Set<String> typeNames = effective.getTypeNames();
 
         // Find matching named child node definition
         for (NodeState type : types) {
-            NodeState named = type.getChildNode("oak:namedChildNodeDefinitions");
-            NodeState definitions = named.getChildNode(nodeName);
+            NodeState definitions = type
+                    .getChildNode(OAK_NAMED_CHILD_NODE_DEFINITIONS)
+                    .getChildNode(nodeName);
 
-            for (String typeName : nodeType) {
+            for (String typeName : typeNames) {
                 NodeState definition = definitions.getChildNode(typeName);
                 if (definition.exists()) {
-                    return definition;
+                    return true;
                 }
             }
 
@@ -206,7 +208,7 @@ class EffectiveType {
             for (ChildNodeEntry entry : definitions.getChildNodeEntries()) {
                 NodeState definition = entry.getNodeState();
                 if (definition.getBoolean(JCR_MANDATORY)) {
-                    return definition;
+                    return false;
                 }
             }
 
@@ -218,18 +220,16 @@ class EffectiveType {
         // Find matching residual child node definition
         for (NodeState type : types) {
             NodeState residual =
-                    type.getChildNode("oak:residualChildNodeDefinitions");
-            if (residual.exists()) {
-                for (String typeName : nodeType) {
-                    NodeState definition = residual.getChildNode(typeName);
-                    if (definition.exists()) {
-                        return definition;
-                    }
+                    type.getChildNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+            for (String typeName : typeNames) {
+                NodeState definition = residual.getChildNode(typeName);
+                if (definition.exists()) {
+                    return true;
                 }
             }
         }
 
-        return null;
+        return false;
     }
 
     /**
@@ -292,15 +292,15 @@ class EffectiveType {
         NodeState type = types.getChildNode(primary);
         if (!type.exists()) {
             throw constraintViolation(
-                    11, path, "The primary type " + primary
+                    1, path, "The primary type " + primary
                     + " of child node " + name + " does not exist");
         } else if (type.getBoolean(JCR_ISMIXIN)) {
             throw constraintViolation(
-                    12, path, "Mixin type " + primary
+                    2, path, "Mixin type " + primary
                     + " used as the primary type of child node " + name);
         } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
             throw constraintViolation(
-                    13, path, "Abstract type " + primary
+                    3, path, "Abstract type " + primary
                     + " used as the primary type of child node " + name);
         } else {
             list.add(type);
@@ -311,15 +311,15 @@ class EffectiveType {
             type = types.getChildNode(mixin);
             if (!type.exists()) {
                 throw constraintViolation(
-                        14, path, "The mixin type " + mixin
+                        5, path, "The mixin type " + mixin
                         + " of child node " + name + " does not exist");
             } else if (!type.getBoolean(JCR_ISMIXIN)) {
                 throw constraintViolation(
-                        15, path, "Primary type " + mixin
+                        6, path, "Primary type " + mixin
                         + " used as a mixin type of child node " + name);
             } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
                 throw constraintViolation(
-                        16, path, "Abstract type " + mixin
+                        7, path, "Abstract type " + mixin
                         + " used as a mixin type of child node " + name);
             } else {
                 list.add(type);
