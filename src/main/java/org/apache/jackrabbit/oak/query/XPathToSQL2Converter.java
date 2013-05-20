@@ -355,7 +355,17 @@ public class XPathToSQL2Converter {
                 if (condition.length() > 0) {
                     condition.append(" and ");
                 }
-                condition.append(s.condition);
+                if (s.condition.getPrecedence() == Expression.PRECEDENCE_OR) {
+                    if (condition.length() > 0) {
+                        condition.append("(");
+                        condition.append(s.condition);
+                        condition.append(")");
+                    } else {
+                        condition.append(s.condition);
+                    }
+                } else {
+                    condition.append(s.condition);
+                }
             }
         }
         if (condition.length() > 0) {
@@ -1247,7 +1257,6 @@ public class XPathToSQL2Converter {
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder();
-            boolean shouldWrap = false;
             if (left != null) {
                 if (left.getPrecedence() < precedence) {
                     buff.append('(').append(left.toString()).append(')');
@@ -1255,7 +1264,6 @@ public class XPathToSQL2Converter {
                     buff.append(left.toString());
                 }
                 buff.append(' ');
-                shouldWrap = left instanceof Condition;
             }
             buff.append(operator);
             if (right != null) {
@@ -1265,11 +1273,6 @@ public class XPathToSQL2Converter {
                 } else {
                     buff.append(right.toString());
                 }
-                shouldWrap = shouldWrap || left instanceof Condition;
-            }
-            if (shouldWrap) {
-                buff.insert(0, "(");
-                buff.append(")");
             }
             return buff.toString();
         }
