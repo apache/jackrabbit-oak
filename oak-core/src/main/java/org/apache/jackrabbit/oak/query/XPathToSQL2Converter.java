@@ -1247,6 +1247,7 @@ public class XPathToSQL2Converter {
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder();
+            boolean shouldWrap = false;
             if (left != null) {
                 if (left.getPrecedence() < precedence) {
                     buff.append('(').append(left.toString()).append(')');
@@ -1254,6 +1255,7 @@ public class XPathToSQL2Converter {
                     buff.append(left.toString());
                 }
                 buff.append(' ');
+                shouldWrap = left instanceof Condition;
             }
             buff.append(operator);
             if (right != null) {
@@ -1263,6 +1265,11 @@ public class XPathToSQL2Converter {
                 } else {
                     buff.append(right.toString());
                 }
+                shouldWrap = shouldWrap || left instanceof Condition;
+            }
+            if (shouldWrap) {
+                buff.insert(0, "(");
+                buff.append(")");
             }
             return buff.toString();
         }
