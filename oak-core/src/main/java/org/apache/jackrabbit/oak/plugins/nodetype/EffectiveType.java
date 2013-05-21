@@ -28,10 +28,12 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
+import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
@@ -187,18 +189,20 @@ class EffectiveType {
      *         {@code false} otherwise
      */
     boolean isValidChildNode(String nameWithIndex, EffectiveType effective) {
-        String nodeName = getNameWithoutIndex(nameWithIndex);
+        String name = dropIndexFromName(nameWithIndex);
+        boolean sns = !name.equals(nameWithIndex);
         Set<String> typeNames = effective.getTypeNames();
 
         // Find matching named child node definition
         for (NodeState type : types) {
             NodeState definitions = type
                     .getChildNode(OAK_NAMED_CHILD_NODE_DEFINITIONS)
-                    .getChildNode(nodeName);
+                    .getChildNode(name);
 
             for (String typeName : typeNames) {
                 NodeState definition = definitions.getChildNode(typeName);
-                if (definition.exists()) {
+                if (definition.exists()
+                        && sns == definition.getBoolean(JCR_SAMENAMESIBLINGS)) {
                     return true;
                 }
             }
@@ -223,7 +227,8 @@ class EffectiveType {
                     type.getChildNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
             for (String typeName : typeNames) {
                 NodeState definition = residual.getChildNode(typeName);
-                if (definition.exists()) {
+                if (definition.exists()
+                        && sns == definition.getBoolean(JCR_SAMENAMESIBLINGS)) {
                     return true;
                 }
             }
@@ -240,7 +245,8 @@ class EffectiveType {
      */
     @CheckForNull
     String getDefaultType(String nameWithIndex) {
-        String name = getNameWithoutIndex(nameWithIndex);
+        String name = dropIndexFromName(nameWithIndex);
+        boolean sns = !name.equals(nameWithIndex);
 
         for (NodeState type : types) {
             NodeState named = type
@@ -254,7 +260,8 @@ class EffectiveType {
                     residual.getChildNodeEntries())) {
                 NodeState definition = entry.getNodeState();
                 String defaultType = definition.getName(JCR_DEFAULTPRIMARYTYPE);
-                if (defaultType != null) {
+                if (defaultType != null
+                        && sns == definition.getBoolean(JCR_SAMENAMESIBLINGS)) {
                     return defaultType;
                 }
             }
@@ -339,22 +346,6 @@ class EffectiveType {
             names.add(type.getName(JCR_NODETYPENAME));
         }
         return names.toString();
-    }
-
-    //-----------------------------------------------------------< private >--
-
-    private static String getNameWithoutIndex(String name) {
-        int n = name.length();
-        if (n > 3 && name.charAt(n - 1) == ']') {
-            int i = n - 2;
-            while (i > 1 && Character.isDigit(name.charAt(i))) {
-                i--;
-            }
-            if (name.charAt(i) == '[') {
-                return name.substring(0, i);
-            }
-        }
-        return name;
     }
 
     private boolean nameSetContains(String set, String name) {
