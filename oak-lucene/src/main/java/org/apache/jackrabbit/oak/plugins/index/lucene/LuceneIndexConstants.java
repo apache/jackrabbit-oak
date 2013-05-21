@@ -43,6 +43,8 @@ public interface LuceneIndexConstants {
 
     String PERSISTENCE_PATH = "path";
 
+    String INDEX_DATA_CHILD_NAME_FS = "data";
+
     String INDEX_PATH = "index";
 
     /**

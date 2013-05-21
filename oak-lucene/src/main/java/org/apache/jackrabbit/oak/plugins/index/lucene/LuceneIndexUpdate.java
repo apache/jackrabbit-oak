@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPro
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME_FS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
@@ -183,6 +184,7 @@ class LuceneIndexUpdate implements Closeable {
                 throw new CommitFailedException("Lucene", 1,
                         "Index config path should be a descendant of the repository directory.");
             }
+            root = root.toLowerCase();
             for (String p : root.split("/")) {
                 rootf = new File(rootf, p);
             }
@@ -190,7 +192,7 @@ class LuceneIndexUpdate implements Closeable {
         // TODO factor in the 'path' argument to not have overlapping lucene
         // index defs
         if (!PathUtils.denotesRoot(path)) {
-            String elements = path;
+            String elements = path.toLowerCase();
             if (elements.startsWith("/")) {
                 elements = elements.substring(1);
             }
@@ -199,7 +201,7 @@ class LuceneIndexUpdate implements Closeable {
             }
         }
 
-        File f = new File(rootf, INDEX_DATA_CHILD_NAME);
+        File f = new File(rootf, INDEX_DATA_CHILD_NAME_FS);
         f.mkdirs();
         return f;
     }
