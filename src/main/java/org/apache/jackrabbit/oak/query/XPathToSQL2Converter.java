@@ -349,15 +349,8 @@ public class XPathToSQL2Converter {
         
         // where ...
         Expression where = null;
-        for (int i = 0; i < selectors.size(); i++) {
-            Selector s = selectors.get(i);
-            if (s.condition != null) {
-                if (where == null) {
-                    where = s.condition;
-                } else {
-                    where = new Condition(where, "and", s.condition, Expression.PRECEDENCE_AND);
-                }
-            }
+        for (Selector s : selectors) {
+            where = add(where, s.condition);
         }
         if (where != null) {
             buff.append(" where ").append(where.toString());
