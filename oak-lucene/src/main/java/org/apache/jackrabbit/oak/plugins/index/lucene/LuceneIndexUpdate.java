@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.AggregatedStat
 import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.util.Text;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -197,7 +198,7 @@ class LuceneIndexUpdate implements Closeable {
                 elements = elements.substring(1);
             }
             for (String p : elements.split("/")) {
-                rootf = new File(rootf, p);
+                rootf = new File(rootf, Text.escapeIllegalJcrChars(p));
             }
         }
 
