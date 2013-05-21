@@ -47,6 +47,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONEDCHILD;
@@ -116,7 +117,8 @@ class VersionableState {
     static VersionableState fromVersion(@Nonnull NodeBuilder version,
                                         @Nonnull NodeBuilder versionable,
                                         @Nonnull ReadOnlyNodeTypeManager ntMgr) {
-        return new VersionableState(version, versionable, ntMgr).init();
+        VersionableState state = new VersionableState(version, versionable, ntMgr);
+        return state.initFrozen(version.child(JCR_FROZENNODE), versionable);
     }
 
     /**
@@ -136,23 +138,24 @@ class VersionableState {
     /**
      * Creates a frozen node under the version and initializes it with the basic
      * frozen properties (jcr:frozenPrimaryType, jcr:frozenMixinTypes and
-     * jcr:frozenUuid) from the given versionable node.
+     * jcr:frozenUuid) from the given node. The node must be referenceable.
      *
      * @return this versionable state.
      */
-    private VersionableState init() {
+    private VersionableState initFrozen(NodeBuilder frozen,
+                                        NodeBuilder referenceable) {
         // initialize jcr:frozenNode
-        frozenNode.setProperty(JCR_UUID, IdentifierManager.generateUUID(), Type.STRING);
-        frozenNode.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
+        frozen.setProperty(JCR_UUID, IdentifierManager.generateUUID(), Type.STRING);
+        frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         Iterable<String> mixinTypes;
-        if (versionable.hasProperty(JCR_MIXINTYPES)) {
-            mixinTypes = versionable.getNames(JCR_MIXINTYPES);
+        if (referenceable.hasProperty(JCR_MIXINTYPES)) {
+            mixinTypes = referenceable.getNames(JCR_MIXINTYPES);
         } else {
             mixinTypes = Collections.emptyList();
         }
-        frozenNode.setProperty(JCR_FROZENMIXINTYPES, mixinTypes, Type.NAMES);
-        frozenNode.setProperty(JCR_FROZENPRIMARYTYPE, primaryTypeOf(versionable), Type.NAME);
-        frozenNode.setProperty(JCR_FROZENUUID, uuidFromNode(versionable), Type.STRING);
+        frozen.setProperty(JCR_FROZENMIXINTYPES, mixinTypes, Type.NAMES);
+        frozen.setProperty(JCR_FROZENPRIMARYTYPE, primaryTypeOf(referenceable), Type.NAME);
+        frozen.setProperty(JCR_FROZENUUID, uuidFromNode(referenceable), Type.STRING);
         return this;
     }
 
@@ -165,7 +168,7 @@ class VersionableState {
      */
     NodeBuilder create() throws CommitFailedException {
         try {
-            createState(versionable, frozenNode);
+            createFrozen(versionable, frozenNode);
             return frozenNode;
         } catch (RepositoryException e) {
             throw new CommitFailedException(CommitFailedException.VERSION,
@@ -350,9 +353,9 @@ class VersionableState {
         }
     }
 
-    private void createState(NodeBuilder src,
-                             NodeBuilder dest)
+    private void createFrozen(NodeBuilder src, NodeBuilder dest)
             throws CommitFailedException, RepositoryException {
+        initFrozen(dest, src);
         copyProperties(src, dest, new OPVProvider() {
             @Override
             public int getAction(NodeBuilder src,
@@ -377,12 +380,18 @@ class VersionableState {
                 if (ntMgr.isNodeType(new ReadOnlyTree(child.getNodeState()), MIX_VERSIONABLE)) {
                     // create frozen versionable child
                     versionedChild(child, dest.child(name));
+                } else if (isReferenceable(child)) {
+                    createFrozen(child, dest.child(name));
                 } else {
                     // else copy
                     copy(child, dest.child(name));
                 }
             } else if (opv == COPY) {
-                copy(child, dest.child(name));
+                if (isReferenceable(child)) {
+                    createFrozen(child, dest.child(name));
+                } else {
+                    copy(child, dest.child(name));
+                }
             }
         }
     }
@@ -399,7 +408,11 @@ class VersionableState {
         copyProperties(src, dest, OPVForceCopy.INSTANCE, false);
         for (String name : src.getChildNodeNames()) {
             NodeBuilder child = src.getChildNode(name);
-            copy(child, dest.child(name));
+            if (isReferenceable(child)) {
+                createFrozen(child, dest.child(name));
+            } else {
+                copy(child, dest.child(name));
+            }
         }
     }
 
@@ -426,6 +439,16 @@ class VersionableState {
                 dest.setProperty(prop);
             }
         }
+    }
+
+    private boolean isReferenceable(NodeBuilder node)
+            throws RepositoryException {
+        if (!node.hasProperty(JCR_UUID)) {
+            // quick check without looking at type hierarchy
+            return false;
+        }
+        ReadOnlyTree tree = new ReadOnlyTree(node.getNodeState());
+        return ntMgr.isNodeType(tree, MIX_REFERENCEABLE);
     }
 
     private int getOPV(NodeBuilder parent, NodeBuilder child, String childName)
