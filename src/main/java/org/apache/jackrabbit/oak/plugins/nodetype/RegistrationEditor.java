@@ -241,7 +241,6 @@ class RegistrationEditor extends DefaultEditor {
         type.setProperty(OAK_PROTECTED_CHILD_NODES, empty, NAMES);
         type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES, false, BOOLEAN);
         type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES, false, BOOLEAN);
-        type.setProperty(OAK_PROTECTED_CHILD_NODES, false, BOOLEAN);
         type.setProperty(OAK_NAMED_SINGLE_VALUED_PROPERTIES, empty, NAMES);
         type.removeChildNode(OAK_NAMED_PROPERTY_DEFINITIONS);
         type.removeChildNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
