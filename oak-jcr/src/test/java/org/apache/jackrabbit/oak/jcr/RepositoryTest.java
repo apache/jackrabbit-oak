@@ -792,7 +792,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node parentNode = getNode(TEST_PATH);
         Value[] values = new Value[0];
 
-        parentNode.setProperty("multi name", values);
+        parentNode.setProperty("multi name", values, PropertyType.NAME);
         parentNode.getSession().save();
 
         Session session2 = createAnonymousSession();
@@ -801,9 +801,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertTrue(property.isMultiple());
             assertEquals(PropertyType.NAME, property.getType());
             Value[] values2 = property.getValues();
-            assertEquals(values.length, values2.length);
-            assertEquals(values[0], values2[0]);
-            assertEquals(values[1], values2[1]);
+            assertEquals(0, values2.length);
         } finally {
             session2.logout();
         }
