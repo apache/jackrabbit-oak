@@ -1332,6 +1332,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         checkNotNull(value);
         return perform(new ItemWriteOperation<Property>() {
             @Override
+            protected void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!isCheckedOut()) {
+                    throw new VersionException("Cannot set property. Node is checked in.");
+                }
+            }
+
+            @Override
             public Property perform() throws RepositoryException {
                 // TODO: Avoid extra JCR method calls (OAK-672)
                 PropertyDefinition definition = getEffectiveNodeType()
