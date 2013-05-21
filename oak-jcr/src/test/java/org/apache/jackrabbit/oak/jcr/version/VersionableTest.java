@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.version;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.test.AbstractJCRTest;
@@ -37,5 +38,20 @@ public class VersionableTest extends AbstractJCRTest {
         vMgr.checkin(node.getPath());
         assertEquals(PropertyType.nameFromValue(PropertyType.REFERENCE),
                 PropertyType.nameFromValue(node.getProperty(jcrPredecessors).getType()));
+    }
+
+    public void testReadOnlyAfterCheckin() throws RepositoryException {
+        Node node = testRootNode.addNode(nodeName1, testNodeType);
+        node.addMixin(mixVersionable);
+        superuser.save();
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        vMgr.checkin(node.getPath());
+        try {
+            node.setProperty(propertyName1, "value");
+            fail("setProperty() must fail on a checked-in node");
+        } catch (VersionException e) {
+            // expected
+        }
+
     }
 }
