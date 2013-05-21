@@ -21,7 +21,6 @@ import static com.google.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
@@ -391,7 +390,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         checkNotNull(parent);
         checkNotNull(targetNode);
 
-        String name = dropIndexFromName(targetNode.getName());
+        String name = targetNode.getName();
         EffectiveNodeType eff = getEffectiveNodeType(parent);
         return eff.getNodeDefinition(name, getEffectiveNodeType(targetNode));
     }
