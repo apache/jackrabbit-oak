@@ -348,30 +348,20 @@ public class XPathToSQL2Converter {
         }
         
         // where ...
-        StringBuilder condition = new StringBuilder();
+        Expression where = null;
         for (int i = 0; i < selectors.size(); i++) {
             Selector s = selectors.get(i);
             if (s.condition != null) {
-                if (condition.length() > 0) {
-                    condition.append(" and ");
-                }
-                if (s.condition.getPrecedence() == Expression.PRECEDENCE_OR) {
-                    if (condition.length() > 0) {
-                        condition.append("(");
-                        condition.append(s.condition);
-                        condition.append(")");
-                    } else {
-                        condition.append(s.condition);
-                    }
+                if (where == null) {
+                    where = s.condition;
                 } else {
-                    condition.append(s.condition);
+                    where = new Condition(where, "and", s.condition, Expression.PRECEDENCE_AND);
                 }
             }
         }
-        if (condition.length() > 0) {
-            buff.append(" where ").append(condition.toString());
+        if (where != null) {
+            buff.append(" where ").append(where.toString());
         }
-
         // order by ...
         if (!orderList.isEmpty()) {
             buff.append(" order by ");
