@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.7
+Release Notes -- Apache Jackrabbit Oak -- Version 0.8
 
 Introduction
 ------------
@@ -10,206 +10,37 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.7 is to be considered alpha-level software. Use
-at your own risk with no stability or compatibility guarantees.
+Jackrabbit Oak 0.8 is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.7
+Changes in Oak 0.8
 ------------------
 
 New features
 
-  [OAK-18]  Define Oak API
-  [OAK-28]  Query implementation
-  [OAK-34]  Define query API
-  [OAK-35]  Implement query builder
-  [OAK-36]  Implement a query parser interface (to make parsing extensible)
-  [OAK-88]  Auto-refresh mode
-  [OAK-154] Full text search index
-  [OAK-640] Add WorkspaceInitializer
-  [OAK-673] Unified hook processing
-  [OAK-697] Security: support for PBKDF2 password hashing
+  [OAK-788] File backend for the SegmentMK
 
 Improvements
 
-  [OAK-13]  Cleanup org.apache.jackrabbit.mk
-  [OAK-22]  Respect remapped namespaces on Session level
-  [OAK-37] Use nullability annotation to enforce/document API contract
-  [OAK-77]  Consolidate Utilities
-  [OAK-108] Shortcut path conversions
-  [OAK-137] Query: content index
-  [OAK-152] More efficient CoreValues
-  [OAK-160] Make oak interfaces permission aware
-  [OAK-170] Child node state builder
-  [OAK-175] MemoryNodeStateBuilder inefficient for large child node lists
-  [OAK-205] Redefined Tree#getChild(String name) to #getTree(String ...
-  [OAK-231] Support for large child node lists
-  [OAK-247] SessionImpl should not inherit from AbstractSession
-  [OAK-271] make identifiers for non-referenceable nodes more stable
-  [OAK-323] Column names aren't reported properly for "select * from ...
-  [OAK-336] Document query language extensions (SQL2 "measure", "explain")
-  [OAK-359] QueryEngine joins lack nodeType information
-  [OAK-370] Creating Root is too expensive
-  [OAK-399] RootImpl(NodeStore store) does not use configured index providers
-  [OAK-401] QueryIndex cost output
-  [OAK-412] Review effective node type calculations
-  [OAK-417] Refactor/reimplement TreeImpl.getStatus and TreeImpl....
-  [OAK-443] UserInitializer causes repository traversal
-  [OAK-463] RootImpl.rebase() causes all transient changes to be kept in ...
-  [OAK-470] Documentation for the PropertyIndex
-  [OAK-476] QueryEngine ignores unknown node types
-  [OAK-480] Authorizable Query
-  [OAK-523] AuthorizableImpl: add equals/hashCode implementation
-  [OAK-526] Implement AC-Postprocessing in PermissionHook
-  [OAK-536] Implement rebase for branches in Microkernel
-  [OAK-568] Duplicated code in TreeLocation implementations
-  [OAK-569] NamedTemplate: Null-test for @Nonnull parameter
-  [OAK-581] IndexDefinition for Access Control Content
-  [OAK-582] Throw IllegalArgumentException on invalid paths instead of a ...
-  [OAK-584] Clean up XXXNew classes
-  [OAK-588] Run oak-jcr tests on mongomk
-  [OAK-589] Make default workspace name configurable
-  [OAK-591] Improve KernelNodeStore cache efficiency
-  [OAK-594] Upgrade to Lucene 4.1 and Tika 1.3
-  [OAK-595] Naming consistency in QueryEngine#getRootTree
-  [OAK-600] Query log tweaks
-  [OAK-603] Use Microkernel.rebase in oak-core instead of reimplementing it
-  [OAK-605] NullLocation.getParent() should return to parent instead of ...
-  [OAK-609] Rename 'root' methods in NodeStore and NodeStoreBranch
-  [OAK-610] Misleading exception message in MultiPropertyState
-  [OAK-616] Remove KernelRootBuilder and KernelNodeBuilder and replace ...
-  [OAK-617] Generalise Tree.Status.REMOVED to DISCONNECTED
-  [OAK-620] Add CommitHook processing to MemoryNodeStoreBranch
-  [OAK-624] Run Oak-Jcr tests using the SegmentMK
-  [OAK-625] Ability to pass workspace name to a CommitHook
-  [OAK-626] Allow for setting orderable child nodes on the parent tree
-  [OAK-627] Move CommitHook(s) from KernelNodeStore to RootImpl
-  [OAK-629] SegmentMK: Reverse writing of segments
-  [OAK-635] SegmentMK NPE in SegmentNodeState#getChildNode
-  [OAK-637] Optimize SelectorImpl.evaluateTypeMatch()
-  [OAK-638] Avoid branch/merge for small commits
-  [OAK-639] Optimize isNodeType checks
-  [OAK-646] Commit Oak Solr modules to Oak trunk
-  [OAK-647] Customize Maven Bundle Plugin config for Oak and disable ...
-  [OAK-648] Remove circular dependency in AbstractNodeState
-  [OAK-649] Reset modCount in RootImpl.refresh()
-  [OAK-651] Make it easier to instantiate Solr IndexHook and QueryEngine ...
-  [OAK-654] MapBranch size preconditions can fail
-  [OAK-655] Make Solr commit policy configurable
-  [OAK-661] Thin fallback for shared node sets
-  [OAK-664] Track Tree instance across moves
-  [OAK-670] Log error when ChangeProcessor fails with exception
-  [OAK-671] Optimise TreeImpl.getBaseState() 
-  [OAK-676] Unify and upgrade SLF4j and Logback versions
-  [OAK-682] Run Oak-Jcr tests using the new MongoMK prototype
-  [OAK-684] Make it possible to store Solr config inside Oak idx definition
-  [OAK-690] Enforce and clarify Root contract wrt. invalid Tree instances
-  [OAK-694] Upgrade Oak Lucene to 4.2
-  [OAK-696] Support usage of JAAS based authentication with Repository in OSGi 
-  [OAK-698] Optimize handling of empty node states
-  [OAK-699] Provide the oak-solr-core module with a basic Solr server
-  [OAK-701] Optimize Session.getNamespacePrefixes()
-  [OAK-705] Redefine PermissionProvider#canRead 
-  [OAK-706] Make workspace name available with the permission provider
-  [OAK-707] Review interaction between AccessControlManager and ...
-  [OAK-715] Don't share name space map between SessionImpl and LocalNameMapper
-  [OAK-718] Copy default bundled configuration for default server if none ...
-  [OAK-720] Extend OakNodeStateConfiguration to use not fixed NodeStates
-  [OAK-723] ItemImpl - The type parameter T is hiding the type T
-  [OAK-725] Fix sql2 test errors
-  [OAK-726] Implement KernelNodeState.hasChildNode()
-  [OAK-727] Use snapshot of namespaces in SessionImpl
-  [OAK-729] Replace Tree.Status.DISCONNECTED with Tree.isConnected()
-  [OAK-732] Change TreeLocation.getChild() to only accept direct child ...
-  [OAK-733] Refactor AuthorizableImpl to retrieve underlying tree only ...
-  [OAK-735] Move DefaultOakSolrProvider and OakSolrNodeStateConfiguration ...
-  [OAK-737] Remove default security provider in Oak.java
-  [OAK-743] Increase default RootImpl.PURGE_LIMIT
-  [OAK-746] Builder for the MongoMK
-  [OAK-747] Prevent WorkspaceInitializer(s) to index content
-  [OAK-751] IndexHookManager should implement EditorProvider instead of ...
-  [OAK-756] Allow reindexing to use Editors
-  [OAK-757] Merge DefaultTypeEditor into the TypeEditor
-  [OAK-758] Implement AC-editing by principal (Jackrabbit API)
-  [OAK-768] Enhance Root API in order to provide information about the ...
-  [OAK-769] Add utility method to JsopDiff for debugging node states
-  [OAK-777] Get jcr:primaryType value as Type.NAME
-  [OAK-779] Add rep:Authorizable to declaringNodeTypeNames of ...
-  [OAK-785] PermissionValidator: add compatibility flag to ignore USER_MGT ...
-  [OAK-787] Accessibility of NodeTypes, Namespaces and Privileges
-  [OAK-789] Support relative path in Property2Index
-  [OAK-797] Move permission store initialization to a WorkspaceInitializer
-  [OAK-799] Fail-fast for content diffs
+  [OAK-601] Node#getVersionHistory fails with UnsupportedRepository...
+  [OAK-602] VersionManager is never updated
+  [OAK-734] Refactor indexing code to use Editors
+  [OAK-750] Reduce log level of oak-solr-core tests
+  [OAK-796] PermissionValidator: proper check for jcr:uuid modifications.
   [OAK-807] Keep original xpath query as a comment appended to the ...
+  [OAK-809] Review remove permissions
+  [OAK-811] Refactor Lucene index impl
+  [OAK-812] QueryEngine support for multiple indices (tests)
+  [OAK-814] Update/Insertion of ACEs for Group principals
+  [OAK-816] Property index: restrictions of the type "x > 10" can be ...
+  [OAK-817] Expose LuceneIndexHelper via osgi and make it consistent with ...
 
 Bug fixes
 
-  [OAK-157] Incorrect rebase/edit/merge logic
-  [OAK-178] Query: index definition documentation and tooling
-  [OAK-189] Swallowed exceptions
-  [OAK-201] NamespaceRegistry is very slow
-  [OAK-251] CommitEditor is global to ContentRepository instance
-  [OAK-343] Session.getNodeByUUID requires save call
-  [OAK-380] Define conversion of property values
-  [OAK-396] Limit property index to nodes of given type
-  [OAK-410] RepositoryInitializer runs before the CommitHooks are in place
-  [OAK-420] Query: Lucene index problem with isdescendantnode
-  [OAK-442] Concurrently adding nodes fails with CommitFailedException
-  [OAK-464] RootImpl.rebase() doesn't handle move operations correctly
-  [OAK-505] NodeImpl#canAddMixin uses hardcoded list of supported mixin types
-  [OAK-509] Item names starting with '{X}' cause RepositoryException
-  [OAK-548] Moving larger trees cause OutOfMemoryError
-  [OAK-559] Outer join can produce wrong result
-  [OAK-566] MongoMK throws exception when adding nodes concurrently
-  [OAK-592] MicroKernelIT conflictingMove and confilictingAddDelete tests ...
-  [OAK-596] Microkernel.diff returns empty diff when there are differences
-  [OAK-598] TreeLocation#NULL allows to reveal the existence of items that ...
-  [OAK-599] PropertyDelegate uses TreeImpl.PropertyLocation
-  [OAK-606] Node becomes invalid after Session#move()
-  [OAK-607] Old path after moving a new node
-  [OAK-611] GetJournalCommand does not take path into account
-  [OAK-612] Calling addNode on a node that has orderable child nodes ...
-  [OAK-613] NPE in Property2IndexDiff#getIndexes(String) when processing ...
-  [OAK-614] AssertionError in MemoryNodeBuilder
-  [OAK-618] ChangeProcessor must ignore hidden properties
-  [OAK-621] Moving or deleting tree instances with status NEW doesn't ...
-  [OAK-623] Adding an inherited mixin should not trigger a change on the node
-  [OAK-642] NPE trying to add a node to an nt:folder node
-  [OAK-643] Very high memory usage with 6000 child nodes
-  [OAK-644] Revisit PrivilegeDefinitionStore's use of null as a child ...
-  [OAK-665] Excessive MK.nodeExists() calls with many child nodes
-  [OAK-666] Property2Index: node type is used when indexing, but ignored ...
-  [OAK-667] Node.orderBefore() doesn't check whether the node type supports ...
-  [OAK-669] Exception while creating a new node using the HTTP API
-  [OAK-677] Property events on root node fail with NPE
-  [OAK-678] Access to disconnected MemoryNodeBuilder should throw ...
-  [OAK-681] ReadOnlyVersionManager.getVersionHistory throws NPE if the ...
-  [OAK-686] Save on node moved in other session throws wrong exception
-  [OAK-687] SessionDelegate.perform() must serialize calls to refresh()
-  [OAK-689] RepositoryException while creating a new node using the HTTP API
-  [OAK-691] Error while moving a node if the destination is not connected
-  [OAK-695] TypeEditor must not check hidden nodes
-  [OAK-703] Drop SessionImport#checkPermission
-  [OAK-712] jcr:primaryType created as String property
-  [OAK-714] Potential unsynchronised concurrent access to name space map ...
-  [OAK-716] NPE when starting Oak repository in Sling.
-  [OAK-717] oak-sling bundle imports org.apache.jackrabbit.test but no ...
-  [OAK-719] NodeTypeImpl.canRemoveItem() may return incorrect value
-  [OAK-721] NamePathMapperImpl: weird error message "index > 1"
-  [OAK-722] Type conversion broken
-  [OAK-728] NodeImpl.getSharedSet() returns inner class instead of ...
-  [OAK-738] Assertion error when adding node with expanded name
-  [OAK-740] Malformed solr delete query
-  [OAK-744] Invalid base node states in TreeImpl after commit/refresh/rebase
-  [OAK-748] ContentMirrorStoreStrategy #insert fails to enforce uniqueness ...
-  [OAK-749] Date PropertyState may cause ClassCastException
-  [OAK-761] Property2IndexProvider not annotated as OSGi component
-  [OAK-765] AbstractNodeState#getChildNode returns null despite @Nonnull ...
-  [OAK-766] TreeImpl#*Location: unable retrieve child location if access ...
-  [OAK-778] Recursive wrapping of ModifiedNodeState
-  [OAK-780] Revision.fromString() only parses two counter digits
-  [OAK-782] MemoryNodeBuilder.setNode() loses property values 
-  [OAK-794] CompiledPermissionImpl#getReadStatus wrong ordering
-  [OAK-800] EffectiveType#getTypeNames may throw NPE
+  [OAK-510] Multivalued properties with array size 0 forget their type
+  [OAK-815] Wrong type for empty multi-valued property
+  [OAK-822] TypeEditor: Missing validation for mandatory items
+  [OAK-824] Query engine: automatic expansion of "x=1 or x=2" to "(x is ...
+  [OAK-830] XPathToSQL2Converter fails to wrap or clauses
 
 In addition to the above-mentioned changes, this release contains
 all the changes included up to the Apache Jackrabbit Oak 0.6 release.
