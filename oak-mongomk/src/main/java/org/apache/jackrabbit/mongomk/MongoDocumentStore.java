@@ -100,6 +100,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
     
+    @Override
     public void finalize() throws Throwable {
         super.finalize();
         // TODO should not be needed, but it seems
@@ -119,6 +120,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
 
+    @Override
     public Map<String, Object> find(Collection collection, String key) {
         return find(collection, key, Integer.MAX_VALUE);
     }

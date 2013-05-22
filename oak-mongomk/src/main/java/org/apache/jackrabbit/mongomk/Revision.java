@@ -144,6 +144,7 @@ public class Revision {
         return r;
     }
     
+    @Override
     public String toString() {
         return new StringBuilder("r").
                 append(Long.toHexString(timestamp)).
@@ -162,10 +163,12 @@ public class Revision {
         return counter;
     }
     
+    @Override
     public int hashCode() {
         return (int) (timestamp >>> 32) ^ (int) timestamp ^ counter ^ clusterId;
     }
     
+    @Override
     public boolean equals(Object other) {
         if (this == other) {
             return true;
@@ -200,6 +203,7 @@ public class Revision {
          */
         Revision seenAt;
         
+        @Override
         public String toString() {
             return revision + ":" + seenAt;
         }
@@ -389,6 +393,7 @@ public class Revision {
             return result;
         }
         
+        @Override
         public String toString() {
             StringBuilder buff = new StringBuilder();
             for (int clusterId : new TreeSet<Integer>(map.keySet())) {

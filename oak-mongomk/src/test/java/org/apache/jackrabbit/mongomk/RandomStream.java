@@ -32,12 +32,14 @@ public class RandomStream extends InputStream {
         this.random = new Random(seed);
     }
 
+    @Override
     public int read() {
         byte[] data = new byte[1];
         int len = read(data, 0, 1);
         return len <= 0 ? len : data[0] & 255;
     }
 
+    @Override
     public int read(byte[] b, int off, int len) {
         if (pos >= size) {
             return -1;

@@ -256,6 +256,7 @@ public class ClusterNodeInfo {
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
     }
     
+    @Override
     public String toString() {
         return "id: " + id + ",\n" +
                 "startTime: " + startTime + ",\n" +

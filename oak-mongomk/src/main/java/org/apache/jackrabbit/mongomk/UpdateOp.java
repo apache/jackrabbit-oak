@@ -241,6 +241,7 @@ public class UpdateOp {
         return reverse;
     }
 
+    @Override
     public String toString() {
         return "key: " + key + " " + (isNew ? "new" : "update") + " " + changes;
     }
@@ -303,6 +304,7 @@ public class UpdateOp {
          */
         Object value;
         
+        @Override
         public String toString() {
             return type + " " + value;
         }
