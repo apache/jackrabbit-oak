@@ -786,7 +786,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore("OAK-510") // FIXME: OAK-510
     @Test
     public void addEmptyMultiValueName() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
