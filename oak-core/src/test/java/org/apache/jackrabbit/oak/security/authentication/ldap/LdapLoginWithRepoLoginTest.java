@@ -17,21 +17,11 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
 import java.util.Collections;
-import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncMode;
 import org.junit.Ignore;
-import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 @Ignore //ignore for the moment because "mvn test" runs into PermGen memory issues
 public class LdapLoginWithRepoLoginTest extends LdapLoginTestBase {

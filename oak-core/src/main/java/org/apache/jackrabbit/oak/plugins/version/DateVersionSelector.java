@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import java.util.Calendar;
-
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 

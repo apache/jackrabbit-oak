@@ -22,18 +22,10 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.OnParentVersionAction;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Node definition for the root node.
  */
 final class RootNodeDefinition implements NodeDefinition {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(RootNodeDefinition.class);
 
     private static final String REP_ROOT = "rep:root";
 

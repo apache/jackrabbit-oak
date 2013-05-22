@@ -35,14 +35,11 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
 class EventFilter {
-    private static final Logger log = LoggerFactory.getLogger(EventFilter.class);
 
     private final int eventTypes;
     private final String path;

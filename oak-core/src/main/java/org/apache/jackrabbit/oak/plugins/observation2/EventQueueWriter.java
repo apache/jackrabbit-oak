@@ -64,8 +64,6 @@ public class EventQueueWriter extends DefaultEditor {
     private final EventRecorder eventRecorder;
     private final String path;
 
-    private int eventId;
-
     public EventQueueWriter(EventRecorder eventRecorder, String path, NodeState parent) {
         this.parent = parent;
         this.eventRecorder = eventRecorder;
