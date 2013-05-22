@@ -27,9 +27,13 @@ import org.apache.jackrabbit.core.query.AbstractQueryTest;
  */
 public class MultiSessionQueryTest extends AbstractQueryTest {
 
+    private static final boolean DISABLED = true;
+
     final static int THREAD_COUNT = 3;
 
-    public void disabledTestConcurrent() throws Exception {
+    public void testConcurrent() throws Exception {
+        if (DISABLED) { return; } // test disabled for now
+
         final Exception[] ex = new Exception[1];
         Thread[] threads = new Thread[THREAD_COUNT];
         for (int i = 0; i < THREAD_COUNT; i++) {
