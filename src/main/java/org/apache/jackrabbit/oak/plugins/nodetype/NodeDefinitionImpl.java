@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -85,7 +86,11 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
     public NodeType getDefaultPrimaryType() {
         String oakName = getName(JcrConstants.JCR_DEFAULTPRIMARYTYPE);
         if (oakName != null) {
-            Tree type = definition.getParent().getParent().getChild(oakName);
+            Tree types = definition.getParent();
+            while (!JCR_NODE_TYPES.equals(types.getName())) {
+                types = types.getParent();
+            }
+            Tree type = types.getChild(oakName);
             checkState(type.exists());
             return new NodeTypeImpl(type, mapper);
         } else {
