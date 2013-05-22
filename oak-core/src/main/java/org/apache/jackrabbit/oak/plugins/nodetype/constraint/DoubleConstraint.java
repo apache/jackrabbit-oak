@@ -19,11 +19,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class DoubleConstraint extends NumericConstraint<Double> {
-    private static final Logger log = LoggerFactory.getLogger(DoubleConstraint.class);
 
     public DoubleConstraint(String definition) {
         super(definition);

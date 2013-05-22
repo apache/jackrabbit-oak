@@ -29,14 +29,11 @@ import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
 class ChangeFilter {
-    private static final Logger log = LoggerFactory.getLogger(ChangeFilter.class);
 
     private final ReadOnlyNodeTypeManager ntMgr;
     private final NamePathMapper namePathMapper;
