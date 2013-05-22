@@ -21,7 +21,6 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
-import org.junit.Ignore;
 
 /**
  * Tests the Lucene index using multiple threads.
@@ -30,8 +29,7 @@ public class MultiSessionQueryTest extends AbstractQueryTest {
 
     final static int THREAD_COUNT = 3;
 
-    @Ignore
-    public void testConcurrent() throws Exception {
+    public void disabledTestConcurrent() throws Exception {
         final Exception[] ex = new Exception[1];
         Thread[] threads = new Thread[THREAD_COUNT];
         for (int i = 0; i < THREAD_COUNT; i++) {
