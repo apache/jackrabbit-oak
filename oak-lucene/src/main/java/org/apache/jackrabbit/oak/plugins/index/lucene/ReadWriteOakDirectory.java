@@ -24,7 +24,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
 
 /**
- * A red-write implementation of the Lucene {@link Directory} (a flat list of
+ * A read-write implementation of the Lucene {@link Directory} (a flat list of
  * files) that allows to store Lucene index content in an Oak repository.
  */
 public class ReadWriteOakDirectory extends ReadOnlyOakDirectory {
