@@ -262,7 +262,26 @@
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitiallyGetAllLinearVersionsContainsTheRootAndTheBaseVersion
       org.apache.jackrabbit.test.api.version.VersionLabelTest
       org.apache.jackrabbit.test.api.version.CopyTest
-      org.apache.jackrabbit.test.api.version.RestoreTest
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreWithUUIDConflict
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrderJcr2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrderJcr2_2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrderJcr2_3
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrderJcr2_4
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreChild1
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreChild1Jcr2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreChild1Jcr2_2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreChild1Jcr2_3
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreChild1Jcr2_4
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreName
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreNameJcr2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrder
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrder2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrder2Jcr2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrder2Jcr2_2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrder2Jcr2_3
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrder2Jcr2_4
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
       org.apache.jackrabbit.test.api.version.OnParentVersionComputeTest
       org.apache.jackrabbit.test.api.version.OnParentVersionCopyTest
