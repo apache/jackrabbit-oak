@@ -38,11 +38,13 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
@@ -427,10 +429,13 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
         Value[] nonNullValues = compact(values);
         int targetType = getType(definition, type);
-        if (targetType == type) {
+        if (nonNullValues.length == 0) {
+            return MemoryPropertyBuilder
+                    .array(Type.fromTag(type, false), name)
+                    .getPropertyState();
+        } else if (targetType == type) {
             return PropertyStates.createProperty(name, Arrays.asList(nonNullValues));
-        }
-        else {
+        } else {
             return PropertyStates.createProperty(name, Arrays.asList(ValueHelper.convert(
                     values, targetType, getValueFactory())));
         }
