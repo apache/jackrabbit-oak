@@ -28,15 +28,19 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
+import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
 import java.util.List;
@@ -134,8 +138,9 @@ class EffectiveType {
 
         // Find matching named property definition
         for (NodeState type : types) {
-            NodeState named = type.getChildNode("oak:namedPropertyDefinitions");
-            NodeState definitions = named.getChildNode(escapedName);
+            NodeState definitions = type
+                    .getChildNode(OAK_NAMED_PROPERTY_DEFINITIONS)
+                    .getChildNode(escapedName);
 
             NodeState definition = definitions.getChildNode(definedType);
             if (definition.exists()) {
@@ -164,7 +169,7 @@ class EffectiveType {
         // Find matching residual property definition
         for (NodeState type : types) {
             NodeState residual =
-                    type.getChildNode("oak:residualPropertyDefinitions");
+                    type.getChildNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
             NodeState definition = residual.getChildNode(definedType);
             if (!definition.exists()) {
                 definition = residual.getChildNode(undefinedType);
@@ -187,18 +192,19 @@ class EffectiveType {
      *         {@code false} otherwise
      */
     boolean isValidChildNode(String nameWithIndex, EffectiveType effective) {
-        String nodeName = getNameWithoutIndex(nameWithIndex);
+        String name = dropIndexFromName(nameWithIndex);
+        boolean sns = !name.equals(nameWithIndex);
         Set<String> typeNames = effective.getTypeNames();
 
         // Find matching named child node definition
         for (NodeState type : types) {
             NodeState definitions = type
                     .getChildNode(OAK_NAMED_CHILD_NODE_DEFINITIONS)
-                    .getChildNode(nodeName);
+                    .getChildNode(name);
 
             for (String typeName : typeNames) {
                 NodeState definition = definitions.getChildNode(typeName);
-                if (definition.exists()) {
+                if (definition.exists() && snsMatch(sns, definition)) {
                     return true;
                 }
             }
@@ -223,7 +229,7 @@ class EffectiveType {
                     type.getChildNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
             for (String typeName : typeNames) {
                 NodeState definition = residual.getChildNode(typeName);
-                if (definition.exists()) {
+                if (definition.exists() && snsMatch(sns, definition)) {
                     return true;
                 }
             }
@@ -240,7 +246,8 @@ class EffectiveType {
      */
     @CheckForNull
     String getDefaultType(String nameWithIndex) {
-        String name = getNameWithoutIndex(nameWithIndex);
+        String name = dropIndexFromName(nameWithIndex);
+        boolean sns = !name.equals(nameWithIndex);
 
         for (NodeState type : types) {
             NodeState named = type
@@ -254,7 +261,7 @@ class EffectiveType {
                     residual.getChildNodeEntries())) {
                 NodeState definition = entry.getNodeState();
                 String defaultType = definition.getName(JCR_DEFAULTPRIMARYTYPE);
-                if (defaultType != null) {
+                if (defaultType != null && snsMatch(sns, definition)) {
                     return defaultType;
                 }
             }
@@ -343,18 +350,15 @@ class EffectiveType {
 
     //-----------------------------------------------------------< private >--
 
-    private static String getNameWithoutIndex(String name) {
-        int n = name.length();
-        if (n > 3 && name.charAt(n - 1) == ']') {
-            int i = n - 2;
-            while (i > 1 && Character.isDigit(name.charAt(i))) {
-                i--;
-            }
-            if (name.charAt(i) == '[') {
-                return name.substring(0, i);
-            }
-        }
-        return name;
+    /**
+     * Depending on the given SNS flag, checks whether the given child node
+     * definition allows same-name-siblings.
+     *
+     * @param sns SNS flag, {@code true} if processing an SNS node
+     * @param definition child node definition
+     */
+    private boolean snsMatch(boolean sns, NodeState definition) {
+        return !sns || definition.getBoolean(JCR_SAMENAMESIBLINGS);
     }
 
     private boolean nameSetContains(String set, String name) {
