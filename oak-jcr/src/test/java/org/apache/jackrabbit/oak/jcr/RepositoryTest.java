@@ -74,6 +74,7 @@ import javax.jcr.observation.ObservationManager;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.junit.Before;
@@ -2149,6 +2150,17 @@ public class RepositoryTest extends AbstractRepositoryTest {
         session.getRootNode().addNode("{0} test");
         session.save();
         assertTrue(session.nodeExists("/{0} test"));
+    }
+
+    @Test
+    public void testGetDefinitionWithSNS() throws RepositoryException, IOException {
+        Session session = getAdminSession();
+        Node node = session.getNode("/jcr:system/jcr:nodeTypes/nt:file");
+        // TODO: use getNode("jcr:childNodeDefinition[1]") once that works
+        for (Node definition
+                : JcrUtils.getChildNodes(node, "jcr:childNodeDefinition")) {
+            definition.getDefinition(); // should not throw
+        }
     }
 
     //------------------------------------------------------------< private >---

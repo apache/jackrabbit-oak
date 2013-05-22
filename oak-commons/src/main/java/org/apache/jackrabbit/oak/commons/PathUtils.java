@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.commons;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -29,6 +32,9 @@ import javax.annotation.Nonnull;
  * the the result of this method is undefined.
  */
 public final class PathUtils {
+
+    private static final Pattern SNS_PATTERN =
+            Pattern.compile("(.+)\\[[1-9][0-9]*\\]$");
 
     private PathUtils() {
         // utility class
@@ -150,6 +156,23 @@ public final class PathUtils {
             return path.substring(pos + 1, end + 1);
         }
         return path;
+    }
+
+    /**
+     * Returns the given name without the possible SNS index suffix. If the
+     * name does not contain an SNS index, then it is returned as-is.
+     *
+     * @param name name with a possible SNS index suffix
+     * @return name without the SNS index suffix
+     */
+    @Nonnull
+    public static String dropIndexFromName(@Nonnull String name) {
+        Matcher matcher = SNS_PATTERN.matcher(name);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            return name;
+        }
     }
 
     /**

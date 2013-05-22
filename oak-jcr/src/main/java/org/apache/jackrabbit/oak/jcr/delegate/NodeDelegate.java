@@ -36,12 +36,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
+import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_CREATEDBY;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_LASTMODIFIEDBY;
@@ -158,7 +160,9 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         Tree parent = tree.getParent();
-        String name = tree.getName();
+        String nameWithIndex = tree.getName();
+        String name = dropIndexFromName(nameWithIndex);
+        boolean sns = !name.equals(nameWithIndex);
         Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
         List<Tree> types = getEffectiveType(parent, typeRoot);
 
@@ -183,10 +187,12 @@ public class NodeDelegate extends ItemDelegate {
             }
 
             for (Tree type : types) {
-                Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+                Tree definitions =
+                        type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
                 for (String typeName : typeNames) {
                     Tree definition = definitions.getChild(typeName);
-                    if (getBoolean(definition, JCR_PROTECTED)) {
+                    if ((!sns || getBoolean(definition, JCR_SAMENAMESIBLINGS))
+                            && getBoolean(definition, JCR_PROTECTED)) {
                         return true;
                     }
                 }
@@ -541,6 +547,9 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         // TODO: use a separate oak:autoCreateChildNodeDefinitions
+        // Note that we use only named, non-SNS child node definitions
+        // as there can be no reasonable default values for residual or
+        // SNS child nodes
         Tree childNodes = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
         for (Tree definitions : childNodes.getChildren()) {
             String name = definitions.getName();
@@ -606,13 +615,17 @@ public class NodeDelegate extends ItemDelegate {
      */
     private static String getDefaultChildType(
             Tree typeRoot, Tree parent, String childName) {
+        String name = dropIndexFromName(childName);
+        boolean sns = !name.equals(childName);
         List<Tree> types = getEffectiveType(parent, typeRoot);
 
         // first look for named node definitions
         for (Tree type : types) {
-            Tree named = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-            Tree definitions = named.getChild(childName);
-            String defaultName = findDefaultPrimaryType(typeRoot, definitions);
+            Tree definitions = type
+                    .getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS)
+                    .getChild(name);
+            String defaultName =
+                    findDefaultPrimaryType(typeRoot, definitions, sns);
             if (defaultName != null) {
                 return defaultName;
             }
@@ -620,8 +633,10 @@ public class NodeDelegate extends ItemDelegate {
 
         // then check residual definitions
         for (Tree type : types) {
-            Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
-            String defaultName = findDefaultPrimaryType(typeRoot, definitions);
+            Tree definitions = type
+                    .getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+            String defaultName =
+                    findDefaultPrimaryType(typeRoot, definitions, sns);
             if (defaultName != null) {
                 return defaultName;
             }
@@ -655,10 +670,12 @@ public class NodeDelegate extends ItemDelegate {
         return types;
     }
 
-    private static String findDefaultPrimaryType(Tree typeRoot, Tree definitions) {
+    private static String findDefaultPrimaryType(
+            Tree typeRoot, Tree definitions, boolean sns) {
         for (Tree definition : definitions.getChildren()) {
             String defaultName = getName(definition, JCR_DEFAULTPRIMARYTYPE);
-            if (defaultName != null) {
+            if (defaultName != null
+                    && (!sns || getBoolean(definition, JCR_SAMENAMESIBLINGS))) {
                 return defaultName;
             }
         }
