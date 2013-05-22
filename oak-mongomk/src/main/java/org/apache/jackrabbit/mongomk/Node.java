@@ -59,6 +59,7 @@ public class Node {
         newNode.properties.putAll(properties);
     }
 
+    @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("path: ").append(path).append('\n');
@@ -124,6 +125,7 @@ public class Node {
             this.rev = rev;
         }
         
+        @Override
         public String toString() {
             return path + ": " + children.toString();
         }

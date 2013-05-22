@@ -108,9 +108,11 @@ public class MongoBlobStoreTest extends AbstractMongoConnectionTest {
     public void testCloseStream() throws Exception {
         final AtomicBoolean closed = new AtomicBoolean();
         InputStream in = new InputStream() {
+            @Override
             public void close() {
                 closed.set(true);
             }
+            @Override
             public int read() throws IOException {
                 return -1;
             }
@@ -123,9 +125,11 @@ public class MongoBlobStoreTest extends AbstractMongoConnectionTest {
     public void testExceptionWhileReading() throws Exception {
         final AtomicBoolean closed = new AtomicBoolean();
         InputStream in = new InputStream() {
+            @Override
             public void close() {
                 closed.set(true);
             }
+            @Override
             public int read() throws IOException {
                 throw new RuntimeException("abc");
             }

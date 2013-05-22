@@ -1382,6 +1382,8 @@ public class MongoMK implements MicroKernel {
             delay = mk.getAsyncDelay();
             this.isDisposed = isDisposed;
         }
+
+        @Override
         public void run() {
             while (delay != 0 && !isDisposed.get()) {
                 synchronized (isDisposed) {

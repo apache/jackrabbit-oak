@@ -48,10 +48,12 @@ public class MemoryDocumentStore implements DocumentStore {
     private ConcurrentSkipListMap<String, Map<String, Object>> clusterNodes =
             new ConcurrentSkipListMap<String, Map<String, Object>>();
 
+    @Override
     public Map<String, Object> find(Collection collection, String key, int maxCacheAge) {
         return find(collection, key);
     }
     
+    @Override
     public Map<String, Object> find(Collection collection, String key) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         Map<String, Object> n = map.get(key);
@@ -65,6 +67,7 @@ public class MemoryDocumentStore implements DocumentStore {
         return copy;
     }
     
+    @Override
     @Nonnull
     public List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
@@ -83,6 +86,7 @@ public class MemoryDocumentStore implements DocumentStore {
         return list;
     }
 
+    @Override
     public void remove(Collection collection, String path) {
         getMap(collection).remove(path);
     }
@@ -272,6 +276,7 @@ public class MemoryDocumentStore implements DocumentStore {
         return true;
     }
 
+    @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("Nodes:\n");
