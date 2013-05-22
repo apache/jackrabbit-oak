@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -64,6 +65,7 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
@@ -74,7 +76,6 @@ import javax.jcr.observation.ObservationManager;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.junit.Before;
@@ -2157,9 +2158,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         Node node = session.getNode("/jcr:system/jcr:nodeTypes/nt:file");
         // TODO: use getNode("jcr:childNodeDefinition[1]") once that works
-        for (Node definition
-                : JcrUtils.getChildNodes(node, "jcr:childNodeDefinition")) {
-            definition.getDefinition(); // should not throw
+        for (Node child : getChildNodes(node, "jcr:childNodeDefinition")) {
+            NodeDefinition definition = child.getDefinition(); // OAK-829
+            definition.getDefaultPrimaryType();                // OAK-826
         }
     }
 
