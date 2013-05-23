@@ -16,12 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
@@ -35,23 +42,16 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Testing the {@code PermissionHook}
@@ -86,6 +86,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         bitsProvider = new PrivilegeBitsProvider(root);
     }
 
+    @Override
     @After
     public void after() throws Exception {
         try {
@@ -164,7 +165,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         NodeUtil node = new NodeUtil(testAce);
         NodeUtil restrictions = node.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         restrictions.setString(REP_GLOB, "*");
-        String restritionsPath = restrictions.getTree().getPath();
+        String restrictionsPath = restrictions.getTree().getPath();
         root.commit();
 
         Tree principalRoot = getPrincipalRoot(testPrincipalName);
@@ -172,7 +173,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         assertEquals("*", principalRoot.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
 
         // modify the restrictions node
-        Tree restrictionsNode = root.getTree(restritionsPath);
+        Tree restrictionsNode = root.getTree(restrictionsPath);
         restrictionsNode.setProperty(REP_GLOB, "/*/jcr:content/*");
         root.commit();
 
@@ -181,7 +182,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         assertEquals("/*/jcr:content/*", principalRoot.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
 
         // remove the restriction again
-        root.getTree(restritionsPath).remove();
+        root.getTree(restrictionsPath).remove();
         root.commit();
 
         principalRoot = getPrincipalRoot(testPrincipalName);
@@ -327,7 +328,6 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         }
     }
 
-    @Ignore("OAK-781") // FIXME
     @Test
     public void testImplicitAceRemoval() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
