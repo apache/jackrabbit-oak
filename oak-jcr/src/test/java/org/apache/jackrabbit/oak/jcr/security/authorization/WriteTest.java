@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Session;
@@ -166,7 +167,6 @@ public class WriteTest extends AbstractEvaluationTest {
         testSession.save();
     }
 
-    @Ignore("OAK-781") // FIXME
     @Test
     public void testRemove5() throws Exception {
         // add 'remove_node' privilege at 'childNPath'
@@ -209,7 +209,6 @@ public class WriteTest extends AbstractEvaluationTest {
         }
     }
 
-    @Ignore("OAK-781") // FIXME
     @Test
     public void testRemove6() throws Exception {
         // add 'remove_child_nodes' and 'remove_node' privilege at 'path'
@@ -271,7 +270,6 @@ public class WriteTest extends AbstractEvaluationTest {
         }
     }
 
-    @Ignore("OAK-781") // FIXME
     @Test
     public void testRemove7() throws Exception {
         Privilege[] rmChildNodes = privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES);
@@ -298,7 +296,7 @@ public class WriteTest extends AbstractEvaluationTest {
         assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[] {rmChildNodes[0], rmNode[0]}));
         try {
             testSession.getNode(childNPath).remove();
-            superuser.save();
+            testSession.save();
             fail("Removal must fail");
         } catch (AccessDeniedException e) {
             // success
