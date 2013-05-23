@@ -34,6 +34,8 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
     private final String filePath;
 
+    private boolean async = false;
+
     public LuceneInitializerHelper(String name) {
         this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES);
     }
@@ -49,6 +51,11 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
         this.filePath = filePath;
     }
 
+    public LuceneInitializerHelper async() {
+        async = true;
+        return this;
+    }
+
     @Override
     public NodeState initialize(NodeState state) {
         if (state.hasChildNode(INDEX_DEFINITIONS_NAME)
@@ -60,10 +67,10 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
         if (filePath == null) {
             newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                    name, propertyTypes);
+                    name, propertyTypes, async);
         } else {
             newLuceneFileIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                    name, propertyTypes, filePath);
+                    name, propertyTypes, filePath, async);
         }
         return builder.getNodeState();
     }

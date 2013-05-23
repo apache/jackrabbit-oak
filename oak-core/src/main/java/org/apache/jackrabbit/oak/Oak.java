@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -93,6 +94,13 @@ public class Oak {
     private ScheduledExecutorService executor = newScheduledThreadPool(0);
 
     private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
+
+    /**
+     * Flag controlling the asynchronous indexing behavior. If false (default)
+     * there will be no background indexing happening.
+     * 
+     */
+    private boolean asyncIndexing = false;
 
     public Oak(NodeStore store) {
         this.store = checkNotNull(store);
@@ -237,6 +245,19 @@ public class Oak {
         return this;
     }
 
+    /**
+     * Enable the asynchronous (background) indexing behavior.
+     * 
+     * Please not that when enabling the background indexer, you need to take
+     * care of calling
+     * <code>#shutdown<code> on the <code>executor<code> provided for this Oak instance.
+     * 
+     */
+    public Oak withAsyncIndexing() {
+        this.asyncIndexing = true;
+        return this;
+    }
+
     @Nonnull
     public ScheduledExecutorService getExecutorService() {
         return this.executor;
@@ -251,6 +272,10 @@ public class Oak {
         List<CommitHook> initHooks = new ArrayList<CommitHook>(commitHooks);
         initHooks.add(new EditorHook(CompositeEditorProvider
                 .compose(editorProviders)));
+
+        if (asyncIndexing) {
+            new AsyncIndexUpdate(store, executor, indexEditors);
+        }
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace

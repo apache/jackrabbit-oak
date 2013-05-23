@@ -138,6 +138,11 @@ public class Jcr {
         return this;
     }
 
+    public Jcr withAsyncIndexing() {
+        oak.withAsyncIndexing();
+        return this;
+    }
+
     public Repository createRepository() {
         return new RepositoryImpl(
                 oak.createContentRepository(), 
