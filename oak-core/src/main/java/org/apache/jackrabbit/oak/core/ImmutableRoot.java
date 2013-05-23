@@ -27,13 +27,17 @@ import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Simple implementation of the Root interface that only supports simple read
- * operations (excluding query) based on the {@code NodeState} (or {@code ImmutableTree})
- * passed to the constructor.
+ * operations based on the {@code NodeState} (or {@code ImmutableTree})
+ * passed to the constructor. This root implementation provides a query engine
+ * with index support limited to the {@link PropertyIndexProvider}.
  */
 public final class ImmutableRoot implements Root {
 
@@ -99,7 +103,17 @@ public final class ImmutableRoot implements Root {
     @Nonnull
     @Override
     public QueryEngine getQueryEngine() {
-        throw new UnsupportedOperationException();
+        return new QueryEngineImpl(new PropertyIndexProvider()) {
+            @Override
+            protected NodeState getRootState() {
+                return rootTree.state;
+            }
+
+            @Override
+            protected Tree getRootTree() {
+                return rootTree;
+            }
+        };
     }
 
     @Nonnull
@@ -107,10 +121,11 @@ public final class ImmutableRoot implements Root {
     public BlobFactory getBlobFactory() {
         throw new UnsupportedOperationException();
     }
-    
-	@Override
-	public ContentSession getContentSession() {
-		throw new UnsupportedOperationException();
-	}
-    
+
+    @Nonnull
+    @Override
+    public ContentSession getContentSession() {
+        throw new UnsupportedOperationException();
+    }
+
 }

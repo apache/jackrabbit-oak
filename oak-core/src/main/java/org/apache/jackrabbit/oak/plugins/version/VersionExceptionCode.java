@@ -27,7 +27,8 @@ public enum VersionExceptionCode {
     UNEXPECTED_REPOSITORY_EXCEPTION("Unexpected RepositoryException"),
     NODE_CHECKED_IN("Node is checked in"),
     NO_SUCH_VERSION("No such Version"),
-    OPV_ABORT_ITEM_PRESENT("Item with OPV ABORT action present");
+    OPV_ABORT_ITEM_PRESENT("Item with OPV ABORT action present"),
+    NO_VERSION_TO_RESTORE("No suitable version to restore");
 
     private final String desc;
 

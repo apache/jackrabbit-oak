@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
@@ -36,6 +37,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_PATH;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -43,6 +45,8 @@ import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -58,7 +62,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 /**
@@ -161,18 +164,16 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     public void restore(@Nonnull NodeBuilder versionable,
-                        @Nonnull String versionUUID)
+                        @Nonnull String versionUUID,
+                        @Nullable VersionSelector selector)
             throws CommitFailedException {
+        String versionPath = getIdentifierManager().getPath(versionUUID);
         NodeBuilder history = getOrCreateVersionHistory(versionable);
-        // FIXME: inefficient because it iterates over all versions (worst case)
         NodeBuilder version = null;
-        for (String name : history.getChildNodeNames()) {
-            if (name.equals(JCR_VERSIONLABELS)) {
-                continue;
-            }
-            NodeBuilder child = history.getChildNode(name);
-            if (versionUUID.equals(uuidFromNode(child))) {
-                version = child;
+        if (versionPath != null) {
+            String versionName = PathUtils.getName(versionPath);
+            if (history.hasChildNode(versionName)) {
+                version = history.getChildNode(versionName);
             }
         }
         if (version == null) {
@@ -182,13 +183,62 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
                             " does not have a Version with UUID: " + versionUUID);
         }
         VersionableState versionableState = VersionableState.forRestore(
-                version, versionable, ntMgr);
-        versionableState.restore();
+                version, history, versionable, this, ntMgr);
+        versionableState.restore(selector);
+    }
+
+    /**
+     * Restores a version from the history identified by <code>historyIdentifier</code>
+     * using the given version <code>selector</code>.
+     *
+     * @param historyIdentifier identifier of the version history node.
+     * @param selector the version selector.
+     * @param versionable the versionable node where the version is restored to.
+     * @throws CommitFailedException if an error occurs while restoring.
+     */
+    void restore(@Nonnull String historyIdentifier,
+                 @Nonnull VersionSelector selector,
+                 @Nonnull NodeBuilder versionable)
+            throws CommitFailedException, RepositoryException {
+        String historyPath = getIdentifierManager().getPath(historyIdentifier);
+        String historyRelPath = PathUtils.relativize(VERSION_STORE_PATH, historyPath);
+        NodeBuilder history = resolve(versionStorageNode, historyRelPath);
+        checkState(history.exists(), "Version history does not exist: " + historyPath);
+        NodeBuilder version = selector.select(history);
+        if (version == null) {
+            throw new CommitFailedException(CommitFailedException.VERSION,
+                    VersionExceptionCode.NO_VERSION_TO_RESTORE.ordinal(),
+                    "VersionSelector did not select any version from " +
+                            "history: " + historyPath);
+        }
+        // make sure versionable nodes has a jcr:uuid
+        // (required to identify its version history)
+        String versionableUUUID = history.getProperty(
+                JCR_VERSIONABLEUUID).getValue(Type.STRING);
+        versionable.setProperty(JCR_UUID, versionableUUUID, Type.STRING);
+        restore(versionable, uuidFromNode(version), selector);
     }
 
     // TODO: more methods that modify versions
 
     //------------------------------< internal >--------------------------------
+
+    /**
+     * Resolves the <code>relPath</code> based on the given <code>node</code>
+     * and returns the resulting node, possibly non-existing.
+     *
+     * @param node the resolved node.
+     * @param relPath a relative path.
+     * @return the resolved node.
+     */
+    @Nonnull
+    private NodeBuilder resolve(NodeBuilder node, String relPath) {
+        checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path");
+        for (String name : PathUtils.elements(relPath)) {
+            node = node.getChildNode(name);
+        }
+        return node;
+    }
 
     /**
      * Creates a version in the given version history. If the given version
@@ -229,27 +279,22 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         version.setProperty(JCR_SUCCESSORS, Collections.<String>emptyList(), Type.REFERENCES);
 
         // update successors of versions identified by predecessors
-        // FIXME: inefficient because it iterates over all versions
-        for (String name : vHistory.getChildNodeNames()) {
-            if (name.equals(JCR_VERSIONLABELS)) {
-                continue;
-            }
+        for (String id : predecessors) {
+            String name = PathUtils.getName(getIdentifierManager().getPath(id));
             NodeBuilder predecessor = vHistory.getChildNode(name);
-            if (predecessors.contains(uuidFromNode(predecessor))) {
-                PropertyState state = predecessor.getProperty(JCR_SUCCESSORS);
-                if (state == null) {
-                    throw new IllegalStateException("Missing " + JCR_SUCCESSORS +
-                            " property on " + predecessor);
-                }
-                Set<String> refs = Sets.newHashSet(state.getValue(Type.REFERENCES));
-                refs.add(versionUUID);
-                predecessor.setProperty(JCR_SUCCESSORS, refs, Type.REFERENCES);
+            PropertyState state = predecessor.getProperty(JCR_SUCCESSORS);
+            if (state == null) {
+                throw new IllegalStateException("Missing " + JCR_SUCCESSORS +
+                        " property on " + predecessor);
             }
+            Set<String> refs = Sets.newHashSet(state.getValue(Type.REFERENCES));
+            refs.add(versionUUID);
+            predecessor.setProperty(JCR_SUCCESSORS, refs, Type.REFERENCES);
         }
 
         // jcr:frozenNode of created version
         VersionableState versionableState = VersionableState.fromVersion(
-                version, versionable, ntMgr);
+                version, vHistory, versionable, this, ntMgr);
         if (!isRootVersion) {
             versionableState.create();
         }
@@ -331,18 +376,11 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
             throw new IllegalStateException(message);
         }
 
-        // FIXME: inefficient because it iterates over all versions!
-        Set<String> uuids = ImmutableSet.copyOf(predecessors.getValue(Type.REFERENCES));
         String best = null;
-        for (String name : history.getChildNodeNames()) {
-            if (name.equals(JCR_VERSIONLABELS)) {
-                continue;
-            }
-            NodeBuilder child = history.getChildNode(name);
-            if (uuids.contains(uuidFromNode(child))) {
-                if (best == null || name.length() < best.length()) {
-                    best = name;
-                }
+        for (String id : predecessors.getValue(Type.REFERENCES)) {
+            String name = PathUtils.getName(getIdentifierManager().getPath(id));
+            if (best == null || name.length() < best.length()) {
+                best = name;
             }
         }
 

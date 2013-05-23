@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.plugins.version;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -64,6 +66,8 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.TODO;
 
+import com.google.common.collect.Lists;
+
 /**
  * <code>VersionableState</code> provides methods to create a versionable state
  * for a version based on a versionable node.
@@ -84,22 +88,29 @@ class VersionableState {
         BASIC_PROPERTIES.add(JCR_PRIMARYTYPE);
         BASIC_PROPERTIES.add(JCR_UUID);
         BASIC_PROPERTIES.add(JCR_MIXINTYPES);
+        BASIC_FROZEN_PROPERTIES.addAll(BASIC_PROPERTIES);
         BASIC_FROZEN_PROPERTIES.add(JCR_FROZENPRIMARYTYPE);
         BASIC_FROZEN_PROPERTIES.add(JCR_FROZENUUID);
         BASIC_FROZEN_PROPERTIES.add(JCR_FROZENMIXINTYPES);
     }
 
     private final NodeBuilder version;
+    private final NodeBuilder history;
     private final NodeBuilder frozenNode;
     private final NodeBuilder versionable;
+    private final ReadWriteVersionManager vMgr;
     private final ReadOnlyNodeTypeManager ntMgr;
 
     private VersionableState(@Nonnull NodeBuilder version,
+                             @Nonnull NodeBuilder history,
                              @Nonnull NodeBuilder versionable,
+                             @Nonnull ReadWriteVersionManager vMgr,
                              @Nonnull ReadOnlyNodeTypeManager ntMgr) {
         this.version = checkNotNull(version);
+        this.history = checkNotNull(history);
         this.frozenNode = version.child(JCR_FROZENNODE);
         this.versionable = checkNotNull(versionable);
+        this.vMgr = checkNotNull(vMgr);
         this.ntMgr = checkNotNull(ntMgr);
     }
 
@@ -109,15 +120,19 @@ class VersionableState {
      * jcr:frozenUuid) from the given versionable node.
      *
      * @param version the parent node of the frozen node.
+     * @param history the history node of the version.
      * @param versionable the versionable node.
+     * @param vMgr the version manager.
      * @param ntMgr the node type manager.
      * @return a versionable state
      */
     @Nonnull
     static VersionableState fromVersion(@Nonnull NodeBuilder version,
+                                        @Nonnull NodeBuilder history,
                                         @Nonnull NodeBuilder versionable,
+                                        @Nonnull ReadWriteVersionManager vMgr,
                                         @Nonnull ReadOnlyNodeTypeManager ntMgr) {
-        VersionableState state = new VersionableState(version, versionable, ntMgr);
+        VersionableState state = new VersionableState(version, history, versionable, vMgr, ntMgr);
         return state.initFrozen(version.child(JCR_FROZENNODE), versionable);
     }
 
@@ -125,14 +140,18 @@ class VersionableState {
      * Creates a versionable state for a restore.
      *
      * @param version the version to restore.
+     * @param history the history node of the version.
      * @param versionable the versionable node.
+     * @param vMgr the version manager.
      * @param ntMgr the node type manager.
      * @return a versionable state.
      */
     static VersionableState forRestore(@Nonnull NodeBuilder version,
+                                       @Nonnull NodeBuilder history,
                                        @Nonnull NodeBuilder versionable,
+                                       @Nonnull ReadWriteVersionManager vMgr,
                                        @Nonnull ReadOnlyNodeTypeManager ntMgr) {
-        return new VersionableState(version, versionable, ntMgr);
+        return new VersionableState(version, history, versionable, vMgr, ntMgr);
     }
 
     /**
@@ -147,15 +166,19 @@ class VersionableState {
         // initialize jcr:frozenNode
         frozen.setProperty(JCR_UUID, IdentifierManager.generateUUID(), Type.STRING);
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
-        Iterable<String> mixinTypes;
+        List<String> mixinTypes;
         if (referenceable.hasProperty(JCR_MIXINTYPES)) {
-            mixinTypes = referenceable.getNames(JCR_MIXINTYPES);
+            mixinTypes = Lists.newArrayList(referenceable.getNames(JCR_MIXINTYPES));
         } else {
             mixinTypes = Collections.emptyList();
         }
-        frozen.setProperty(JCR_FROZENMIXINTYPES, mixinTypes, Type.NAMES);
-        frozen.setProperty(JCR_FROZENPRIMARYTYPE, primaryTypeOf(referenceable), Type.NAME);
         frozen.setProperty(JCR_FROZENUUID, uuidFromNode(referenceable), Type.STRING);
+        frozen.setProperty(JCR_FROZENPRIMARYTYPE, primaryTypeOf(referenceable), Type.NAME);
+        if (mixinTypes.isEmpty()) {
+            frozen.removeProperty(JCR_FROZENMIXINTYPES);
+        } else {
+            frozen.setProperty(JCR_FROZENMIXINTYPES, mixinTypes, Type.NAMES);
+        }
         return this;
     }
 
@@ -180,13 +203,18 @@ class VersionableState {
     /**
      * Restore the versionable node to the given version.
      *
+     * @param selector an optional version selector. If none is passed, this
+     *                 method will use a date based version selector.
      * @return the versionable node.
      * @throws CommitFailedException if the operation fails.
      */
-    public NodeBuilder restore() throws CommitFailedException {
+    public NodeBuilder restore(@Nullable VersionSelector selector)
+            throws CommitFailedException {
         try {
-            long created = version.getProperty(JCR_CREATED).getValue(Type.DATE);
-            VersionSelector selector = new DateVersionSelector(created);
+            if (selector == null) {
+                long created = version.getProperty(JCR_CREATED).getValue(Type.DATE);
+                selector = new DateVersionSelector(created);
+            }
             restoreFrozen(frozenNode, versionable, selector);
             restoreVersionable(versionable, version);
             return versionable;
@@ -199,37 +227,49 @@ class VersionableState {
 
     //--------------------------< internal >------------------------------------
 
+    /**
+     * Restores the state from <code>src</code> to a child node of
+     * <code>destParent</code> with the same name as <code>src</code>.
+     *
+     * @param src the source node.
+     * @param destParent the parent of the destination node.
+     * @param name the name of the source node.
+     * @param selector the version selector.
+     */
     private void restoreState(@Nonnull NodeBuilder src,
-                              @Nonnull NodeBuilder dest,
+                              @Nonnull NodeBuilder destParent,
+                              @Nonnull String name,
                               @Nonnull VersionSelector selector)
             throws RepositoryException, CommitFailedException {
+        checkNotNull(name);
+        checkNotNull(destParent);
         String primaryType = primaryTypeOf(src);
         if (primaryType.equals(NT_FROZENNODE)) {
-            restoreFrozen(src, dest, selector);
+            // replace with frozen state
+            destParent.removeChildNode(name);
+            restoreFrozen(src, destParent.child(name), selector);
         } else if (primaryType.equals(NT_VERSIONEDCHILD)) {
-            restoreVersionedChild(src, dest, selector);
+            // only perform chained restore if the node didn't exist
+            // before. see 15.7.5 and RestoreTest#testRestoreName
+            if (!destParent.hasChildNode(name)) {
+                restoreVersionedChild(src, destParent.child(name), selector);
+            }
         } else {
-            restoreNode(src, dest, selector);
+            // replace
+            destParent.removeChildNode(name);
+            restoreNode(src, destParent.child(name), selector);
         }
     }
 
     /**
      * Restore a nt:frozenNode.
      */
-    private void restoreFrozen(NodeBuilder frozen,
-                               NodeBuilder dest,
-                               VersionSelector selector)
+    private void restoreFrozen(@Nonnull NodeBuilder frozen,
+                               @Nonnull NodeBuilder dest,
+                               @Nonnull VersionSelector selector)
             throws RepositoryException, CommitFailedException {
         // 15.7.2 Restoring Type and Identifier
-        dest.setProperty(JCR_PRIMARYTYPE,
-                frozen.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
-        dest.setProperty(JCR_UUID,
-                frozen.getProperty(JCR_FROZENUUID).getValue(Type.STRING),
-                Type.STRING);
-        if (frozen.hasProperty(JCR_FROZENMIXINTYPES)) {
-            dest.setProperty(JCR_MIXINTYPES,
-                    frozen.getNames(JCR_FROZENMIXINTYPES), Type.NAMES);
-        }
+        restoreFrozen(frozen, dest);
         // 15.7.3 Restoring Properties
         for (PropertyState p : frozen.getProperties()) {
             if (BASIC_FROZEN_PROPERTIES.contains(p.getName())) {
@@ -265,13 +305,35 @@ class VersionableState {
     }
 
     /**
+     * Restores the basic frozen properties (jcr:primaryType, jcr:mixinTypes
+     * and jcr:uuid).
+     */
+    private void restoreFrozen(@Nonnull NodeBuilder frozen,
+                               @Nonnull NodeBuilder dest) {
+        dest.setProperty(JCR_PRIMARYTYPE,
+                frozen.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
+        dest.setProperty(JCR_UUID,
+                frozen.getProperty(JCR_FROZENUUID).getValue(Type.STRING),
+                Type.STRING);
+        if (frozen.hasProperty(JCR_FROZENMIXINTYPES)) {
+            dest.setProperty(JCR_MIXINTYPES,
+                    frozen.getNames(JCR_FROZENMIXINTYPES), Type.NAMES);
+        }
+    }
+
+    /**
      * Restore a copied node.
      */
     private void restoreNode(NodeBuilder src,
                              NodeBuilder dest,
                              VersionSelector selector)
             throws RepositoryException, CommitFailedException {
-        copyProperties(src, dest, OPVForceCopy.INSTANCE, false);
+        if (primaryTypeOf(src).equals(NT_FROZENNODE)) {
+            restoreFrozen(src, dest);
+            copyProperties(src, dest, OPVForceCopy.INSTANCE, true);
+        } else {
+            copyProperties(src, dest, OPVForceCopy.INSTANCE, false);
+        }
         restoreChildren(src, dest, selector);
     }
 
@@ -281,11 +343,14 @@ class VersionableState {
     private void restoreVersionedChild(NodeBuilder versionedChild,
                                        NodeBuilder dest,
                                        VersionSelector selector)
-            throws RepositoryException {
+            throws RepositoryException, CommitFailedException {
         // 15.7.5 Chained Versions on Restore
-        TODO.unimplemented().doNothing();
-        // ...
-        // restoreVersionable(dest, selector.select(history));
+        PropertyState id = versionedChild.getProperty(JCR_CHILDVERSIONHISTORY);
+        if (id == null) {
+            throw new RepositoryException("Mandatory property " +
+                    JCR_CHILDVERSIONHISTORY + " is missing.");
+        }
+        vMgr.restore(id.getValue(Type.REFERENCE), selector, dest);
     }
 
     /**
@@ -299,10 +364,12 @@ class VersionableState {
         for (String name : src.getChildNodeNames()) {
             NodeBuilder srcChild = src.getChildNode(name);
             int action = getOPV(dest, srcChild, name);
-            if (action == COPY || action == VERSION) {
+            if (action == COPY) {
                 // replace on destination
                 dest.removeChildNode(name);
-                restoreState(srcChild, dest.child(name), selector);
+                restoreNode(srcChild, dest.child(name), selector);
+            } else if (action == VERSION) {
+                restoreState(srcChild, dest, name, selector);
             }
         }
         for (String name : dest.getChildNodeNames()) {
@@ -331,6 +398,7 @@ class VersionableState {
                                     @Nonnull NodeBuilder version) {
         checkNotNull(versionable).setProperty(JCR_ISCHECKEDOUT,
                 false, Type.BOOLEAN);
+        versionable.setProperty(JCR_VERSIONHISTORY, uuidFromNode(history));
         versionable.setProperty(JCR_BASEVERSION,
                 uuidFromNode(version), Type.REFERENCE);
         versionable.setProperty(JCR_PREDECESSORS,
@@ -380,18 +448,12 @@ class VersionableState {
                 if (ntMgr.isNodeType(new ReadOnlyTree(child.getNodeState()), MIX_VERSIONABLE)) {
                     // create frozen versionable child
                     versionedChild(child, dest.child(name));
-                } else if (isReferenceable(child)) {
-                    createFrozen(child, dest.child(name));
                 } else {
                     // else copy
                     copy(child, dest.child(name));
                 }
             } else if (opv == COPY) {
-                if (isReferenceable(child)) {
-                    createFrozen(child, dest.child(name));
-                } else {
-                    copy(child, dest.child(name));
-                }
+                copy(child, dest.child(name));
             }
         }
     }
@@ -405,14 +467,15 @@ class VersionableState {
     private void copy(NodeBuilder src,
                       NodeBuilder dest)
             throws RepositoryException, CommitFailedException {
-        copyProperties(src, dest, OPVForceCopy.INSTANCE, false);
+        if (isReferenceable(src)) {
+            initFrozen(dest, src);
+            copyProperties(src, dest, OPVForceCopy.INSTANCE, true);
+        } else {
+            copyProperties(src, dest, OPVForceCopy.INSTANCE, false);
+        }
         for (String name : src.getChildNodeNames()) {
             NodeBuilder child = src.getChildNode(name);
-            if (isReferenceable(child)) {
-                createFrozen(child, dest.child(name));
-            } else {
-                copy(child, dest.child(name));
-            }
+            copy(child, dest.child(name));
         }
     }
 
