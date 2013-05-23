@@ -17,7 +17,7 @@ install:  true
 script:   mvn verify -Ppedantic,integrationTesting
 language: java
 jdk:
-  - openjdk6
+  - oraclejdk7
 notifications:
   email: false
   webhooks:
