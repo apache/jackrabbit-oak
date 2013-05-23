@@ -62,7 +62,7 @@ public class Utils {
     @Nonnull
     static String primaryTypeOf(@Nonnull NodeBuilder node)
             throws IllegalStateException {
-        String primaryType = node.getName(JCR_PRIMARYTYPE);
+        String primaryType = checkNotNull(node).getName(JCR_PRIMARYTYPE);
         if (primaryType == null) {
             throw new IllegalStateException("Node does not have a jcr:primaryType");
         }

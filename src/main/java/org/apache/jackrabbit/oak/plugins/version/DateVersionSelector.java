@@ -69,8 +69,9 @@ public class DateVersionSelector implements VersionSelector {
         NodeBuilder latestVersion = null;
         for (String name: history.getChildNodeNames()) {
             NodeBuilder v = history.getChildNode(name);
-            if (name.equals(JcrConstants.JCR_ROOTVERSION)) {
-                // ignore root version
+            if (name.equals(JcrConstants.JCR_ROOTVERSION)
+                    || name.equals(JcrConstants.JCR_VERSIONLABELS)) {
+                // ignore root version and labels node
                 continue;
             }
             long c = v.getProperty(JcrConstants.JCR_CREATED).getValue(Type.DATE);
