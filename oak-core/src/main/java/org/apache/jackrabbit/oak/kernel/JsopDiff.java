@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import javax.jcr.PropertyType;
 
@@ -55,11 +56,47 @@ class JsopDiff implements NodeStateDiff {
         this(store, new JsopBuilder(), "/");
     }
 
+    /**
+     * Create the jsop diff between {@code before} and {@code after} and
+     * stores binaries to {@code store}.
+     *
+     * @param store   node store for storing binaries.
+     * @param before  before node state
+     * @param after   after node state
+     * @param path    base path
+     * @param jsop    builder to feed in the diff
+     */
     public static void diffToJsop(
             KernelNodeStore store, NodeState before, NodeState after,
             String path, JsopBuilder jsop) {
         after.compareAgainstBaseState(before, new JsopDiff(store, jsop, path));
     }
+
+    /**
+     * Create the jsop diff between {@code before} and {@code after} for
+     * debugging purposes.
+     * <p>
+     * This method does not store binaries but returns them inlined
+     * in the format
+     * <pre>
+     *   "Blob{" + Arrays.toString(blob.sha256()) + "}"
+     * </pre>.
+     *
+     * @param before  before node state
+     * @param after  after node state
+     * @return  jsop diff between {@code before} and {@code after}
+     */
+    public static String diffToJsop(NodeState before, NodeState after) {
+        JsopDiff diff = new JsopDiff(null) {
+            @Override
+            protected String writeBlob(Blob blob) {
+                return "Blob{" + Arrays.toString(blob.sha256()) + '}';
+            }
+        };
+        after.compareAgainstBaseState(before, diff);
+        return diff.toString();
+    }
+
 
     protected JsopDiff createChildDiff(JsopBuilder jsop, String path) {
         return new JsopDiff(store, jsop, path);
@@ -184,7 +221,7 @@ class JsopDiff implements NodeStateDiff {
      * @param blob  blob to persist
      * @return  id of the persisted blob
      */
-    private String writeBlob(Blob blob) {
+    protected String writeBlob(Blob blob) {
         KernelBlob kernelBlob;
         if (blob instanceof KernelBlob) {
             kernelBlob = (KernelBlob) blob;
