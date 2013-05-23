@@ -228,7 +228,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
         if (!builder.hasChildNode(name)) {
             deleteDeletedNode(builder, name, before);
         } else if (before.equals(builder.child(name).getNodeState())) {
-            builder.removeChildNode(name);
+            builder.getChildNode(name).remove();
         } else {
             deleteChangedNode(builder, name, before);
         }

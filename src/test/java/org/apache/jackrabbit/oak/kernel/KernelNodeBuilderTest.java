@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.kernel;
 
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -27,9 +30,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
 
 public class KernelNodeBuilderTest {
 
@@ -65,7 +65,7 @@ public class KernelNodeBuilderTest {
         assertTrue("child node x/y/z should be present", builder.child("x")
                 .child("y").hasChildNode("z"));
 
-        builder.removeChildNode("x");
+        builder.getChildNode("x").remove();
         assertFalse("child node x not should be present",
                 builder.hasChildNode("x"));
         assertFalse("child node x/y not should be present", builder.child("x")

@@ -18,18 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.nodetype.PropertyDefinition;
-import javax.jcr.version.OnParentVersionAction;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.version.OnParentVersionAction.ABORT;
 import static javax.jcr.version.OnParentVersionAction.COMPUTE;
@@ -56,6 +44,19 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSIONEDCHILD;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.primaryTypeOf;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.version.OnParentVersionAction;
+
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -65,8 +66,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.TODO;
-
-import com.google.common.collect.Lists;
 
 /**
  * <code>VersionableState</code> provides methods to create a versionable state
@@ -246,7 +245,7 @@ class VersionableState {
         String primaryType = primaryTypeOf(src);
         if (primaryType.equals(NT_FROZENNODE)) {
             // replace with frozen state
-            destParent.removeChildNode(name);
+            destParent.getChildNode(name).remove();
             restoreFrozen(src, destParent.child(name), selector);
         } else if (primaryType.equals(NT_VERSIONEDCHILD)) {
             // only perform chained restore if the node didn't exist
@@ -256,7 +255,7 @@ class VersionableState {
             }
         } else {
             // replace
-            destParent.removeChildNode(name);
+            destParent.getChildNode(name).remove();
             restoreNode(src, destParent.child(name), selector);
         }
     }
@@ -366,7 +365,7 @@ class VersionableState {
             int action = getOPV(dest, srcChild, name);
             if (action == COPY) {
                 // replace on destination
-                dest.removeChildNode(name);
+                dest.getChildNode(name).remove();
                 restoreNode(srcChild, dest.child(name), selector);
             } else if (action == VERSION) {
                 restoreState(srcChild, dest, name, selector);
@@ -379,7 +378,7 @@ class VersionableState {
             NodeBuilder destChild = dest.getChildNode(name);
             int action = getOPV(dest, destChild, name);
             if (action == COPY || action == VERSION || action == ABORT) {
-                dest.removeChildNode(name);
+                dest.getChildNode(name).remove();
             } else if (action == IGNORE) {
                 // no action
             } else if (action == INITIALIZE) {

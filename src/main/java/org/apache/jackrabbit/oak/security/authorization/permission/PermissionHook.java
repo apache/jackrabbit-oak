@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -35,10 +41,10 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -49,11 +55,6 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
@@ -213,7 +214,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             PermissionEntry entry = createPermissionEntry(name, ace, parentBefore);
             NodeBuilder principalRoot = getPrincipalRoot(entry.principalName);
             if (principalRoot != null) {
-                principalRoot.removeChildNode(entry.nodeName);
+                principalRoot.getChildNode(entry.nodeName).remove();
             }
         }
 

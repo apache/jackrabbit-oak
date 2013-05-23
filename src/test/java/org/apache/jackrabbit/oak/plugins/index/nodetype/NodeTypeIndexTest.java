@@ -16,12 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -29,8 +34,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
@@ -44,12 +49,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.junit.Assert.assertEquals;
 
 /**
  * {@code NodeTypeIndexTest} performs tests on {@link NodeTypeIndex}.
@@ -73,7 +72,7 @@ public class NodeTypeIndexTest {
         NodeStoreBranch branch = store.branch();
         NodeBuilder root = branch.getHead().builder();
 
-        root.removeChildNode("rep:security"); // interferes with tests
+        root.getChildNode("rep:security").remove(); // interferes with tests
         addFolder(root, "folder-1");
         addFolder(root, "folder-2");
         addFile(root, "file-1");

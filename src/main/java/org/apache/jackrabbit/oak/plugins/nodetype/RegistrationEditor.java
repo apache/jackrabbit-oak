@@ -242,10 +242,10 @@ class RegistrationEditor extends DefaultEditor {
         type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES, false, BOOLEAN);
         type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES, false, BOOLEAN);
         type.setProperty(OAK_NAMED_SINGLE_VALUED_PROPERTIES, empty, NAMES);
-        type.removeChildNode(OAK_NAMED_PROPERTY_DEFINITIONS);
-        type.removeChildNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
-        type.removeChildNode(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-        type.removeChildNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+        type.getChildNode(OAK_NAMED_PROPERTY_DEFINITIONS).remove();
+        type.getChildNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS).remove();
+        type.getChildNode(OAK_NAMED_CHILD_NODE_DEFINITIONS).remove();
+        type.getChildNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS).remove();
 
         // + jcr:propertyDefinition (nt:propertyDefinition)
         //   = nt:propertyDefinition protected sns

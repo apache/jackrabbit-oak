@@ -290,18 +290,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public NodeBuilder removeChildNode(String name) {
-        if (write().removeChildNode(checkNotNull(name))) {
-            updated();
-        }
-        return this;
-    }
-
-    @Override
-    public void remove() {
-        write();
-        if (parent.head.removeChildNode(name)) {
-            updated();
+    public boolean remove() {
+        if (!exists()) {
+            return false;
+        } else {
+            write();
+            parent.head.removeChildNode(name);
+            return true;
         }
     }
 
