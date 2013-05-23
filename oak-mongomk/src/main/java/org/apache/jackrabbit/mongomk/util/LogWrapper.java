@@ -55,10 +55,6 @@ public class LogWrapper implements MicroKernel {
         }
     }
 
-    public void dispose() {
-        // do nothing
-    }
-
     @Override
     public String getHeadRevision() {
         try {

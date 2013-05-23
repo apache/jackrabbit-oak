@@ -92,10 +92,6 @@ public class TimingWrapper implements MicroKernel {
         }
     }
 
-    public void dispose() {
-        // do nothing
-    }
-
     @Override
     public String getHeadRevision() {
         try {
