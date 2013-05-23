@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import com.mongodb.DB;
 
@@ -37,6 +38,46 @@ public class ClusterTest {
     
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
+    
+    @Test
+    @Ignore
+    public void threeNodes() throws Exception {
+        MemoryDocumentStore ds = new MemoryDocumentStore();
+        MemoryBlobStore bs = new MemoryBlobStore();
+        MongoMK.Builder builder;
+        
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs);
+        MongoMK mk1 = builder.setClusterId(1).open();
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs);
+        MongoMK mk2 = builder.setClusterId(2).open();
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs);
+        MongoMK mk3 = builder.setClusterId(3).open();
+
+        String r1 = mk1.commit("/", "+\"test\":{}", null, null);
+
+        mk2.commit("/", "+\"a\":{}", null, null);
+        mk3.commit("/", "+\"b\":{}", null, null);
+        mk2.commit("/", "^\"test/x\":1", null, null);
+        mk3.commit("/", "^\"test/y\":2", null, null);
+
+        String r2 = mk1.commit("/", "^\"b/x\":1", null, null);
+        String r3 = mk1.commit("/", "^\"a/x\":1", null, null);
+        
+        String n1 = mk1.getNodes("/test", r1, 0, 0, 10, null);
+        String n2 = mk1.getNodes("/test", r2, 0, 0, 10, null);
+        String n3 = mk1.getNodes("/test", r3, 0, 0, 10, null);
+
+        System.out.println(n1);
+        System.out.println(n2);
+        System.out.println(n3);
+        
+        mk1.dispose();
+        mk2.dispose();
+        mk3.dispose();
+    }
 
     @Test
     public void clusterNodeInfoLease() throws InterruptedException {
