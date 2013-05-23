@@ -28,18 +28,22 @@ import org.slf4j.LoggerFactory;
 /**
  * A logging microkernel implementation.
  */
-public class LogWrapper implements MicroKernel {
+public class LogWrapper<T extends MicroKernel> implements MicroKernel {
     
     private static final Logger LOG = LoggerFactory.getLogger(LogWrapper.class);
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("mk.debug", "true"));
     private static final AtomicInteger NEXT_ID = new AtomicInteger();
 
-    private final MicroKernel mk;
+    private final T mk;
     private final int id = NEXT_ID.getAndIncrement();
 
-    public LogWrapper(MicroKernel mk) {
+    public LogWrapper(T mk) {
         this.mk = mk;
+    }
+
+    public T unwrap() {
+        return mk;
     }
 
     @Override
