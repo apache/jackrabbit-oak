@@ -31,7 +31,6 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -616,7 +615,6 @@ public class WriteTest extends AbstractEvaluationTest {
         n.save();
     }
 
-    @Ignore("OAK-813: Removal needs read access on the parent") // FIXME
     @Test
     public void testRemoveIfReadingParentIsDenied() throws Exception {
         /* deny READ privilege for testUser at 'path' */

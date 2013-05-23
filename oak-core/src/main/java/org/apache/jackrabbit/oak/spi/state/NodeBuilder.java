@@ -213,9 +213,16 @@ public interface NodeBuilder {
      *
      * @param name  name of the child node
      * @return this builder
+     * @deprecated Use {@link #remove()}
      */
     @Nonnull
+    @Deprecated
     NodeBuilder removeChildNode(String name);
+
+    /**
+     * Remove this child node from its parent.
+     */
+    void remove();
 
     /**
      * Returns the current number of properties.

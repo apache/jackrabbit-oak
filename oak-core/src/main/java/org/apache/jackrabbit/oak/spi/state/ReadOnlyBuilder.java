@@ -94,6 +94,11 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
+    public void remove() {
+        throw unsupported();
+    }
+
+    @Override
     public long getPropertyCount() {
         return state.getPropertyCount();
     }

@@ -291,8 +291,6 @@
       org.apache.jackrabbit.test.api.lock.LockTest#testCheckedInUnlock
       org.apache.jackrabbit.test.api.observation.GetUserDataTest#testVersioning
 
-      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemoveIfReadingParentIsDenied      <!-- OAK-813 -->
-
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlManagementTest#testRemoveMixin              <!-- OAK-767 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixin                   <!-- OAK-767 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixinWithoutPermission  <!-- OAK-767 -->
