@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
@@ -30,8 +32,6 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.NoLockFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
 
 /**
  * A read-only implementation of the Lucene {@link Directory} (a flat list of
@@ -60,7 +60,7 @@ class ReadOnlyOakDirectory extends Directory {
 
     @Override
     public void deleteFile(String name) throws IOException {
-        directoryBuilder.removeChildNode(name);
+        directoryBuilder.getChildNode(name).remove();
     }
 
     @Override

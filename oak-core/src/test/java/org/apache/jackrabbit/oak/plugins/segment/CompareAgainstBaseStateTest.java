@@ -141,7 +141,7 @@ public class CompareAgainstBaseStateTest {
     @Test
     public void testChildNodeDeleted() {
         NodeState before = persist(builder);
-        builder.removeChildNode("baz");
+        builder.getChildNode("baz").remove();
         NodeState after = persist(builder);
 
         expect(diff.childNodeDeleted("baz", before.getChildNode("baz"))).andReturn(true);

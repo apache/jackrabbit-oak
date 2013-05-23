@@ -99,7 +99,7 @@ class IndexUpdate implements Editor {
                         // as we don't know the index content node name
                         // beforehand, we'll remove all child nodes
                         for (String rm : definition.getChildNodeNames()) {
-                            definition.removeChildNode(rm);
+                            definition.getChildNode(rm).remove();
                         }
                         reindex.add(editor);
                     } else {

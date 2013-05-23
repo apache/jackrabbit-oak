@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static junit.framework.Assert.assertFalse;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,12 +42,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertFalse;
-import static org.apache.jackrabbit.oak.api.Type.LONG;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class KernelNodeStoreTest {
 
@@ -82,7 +82,7 @@ public class KernelNodeStoreTest {
         NodeBuilder testBuilder = rootBuilder.child("test");
         NodeBuilder newNodeBuilder = testBuilder.child("newNode");
 
-        testBuilder.removeChildNode("x");
+        testBuilder.getChildNode("x").remove();
 
         newNodeBuilder.setProperty("n", 42);
 
@@ -137,7 +137,7 @@ public class KernelNodeStoreTest {
 
         newNodeBuilder.setProperty("n", 42);
 
-        testBuilder.removeChildNode("a");
+        testBuilder.getChildNode("a").remove();
 
         NodeState newRoot = rootBuilder.getNodeState();
 
@@ -167,7 +167,7 @@ public class KernelNodeStoreTest {
 
         newNodeBuilder.setProperty("n", 42);
 
-        testBuilder.removeChildNode("a");
+        testBuilder.getChildNode("a").remove();
 
         NodeState newRoot = rootBuilder.getNodeState();
 
@@ -272,7 +272,7 @@ public class KernelNodeStoreTest {
         branch = store.branch();
         root = branch.getHead().builder();
         parent = root.child("parent");
-        parent.removeChildNode("child-moved");
+        parent.getChildNode("child-moved").remove();
         branch.setRoot(root.getNodeState());
         branch.merge(EmptyHook.INSTANCE);
 

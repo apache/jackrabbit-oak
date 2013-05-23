@@ -111,7 +111,7 @@ public class MemoryNodeBuilderTest {
             NodeBuilder root = base.builder();
             NodeBuilder child = root.child(name);
 
-            root.removeChildNode(name);
+            root.getChildNode(name).remove();
             try {
                 child.setProperty("q", "w");
                 fail();
@@ -128,7 +128,7 @@ public class MemoryNodeBuilderTest {
     public void testAddRemovedNodeAgain() {
         NodeBuilder root = base.builder();
 
-        root.removeChildNode("x");
+        root.getChildNode("x").remove();
         NodeBuilder x = root.child("x");
 
         x.child("q");
@@ -176,7 +176,7 @@ public class MemoryNodeBuilderTest {
         assertTrue(x.exists());
         assertTrue(q.exists());
 
-        root.removeChildNode("x");
+        root.getChildNode("x").remove();
         assertFalse(q.exists());
         assertFalse(x.exists());
     }
@@ -204,7 +204,7 @@ public class MemoryNodeBuilderTest {
     public void testRemovedStatus() {
         NodeBuilder root = base.builder();
         NodeBuilder x = root.child("x");
-        root.removeChildNode("x");
+        root.getChildNode("x").remove();
         assertFalse(x.exists());
         assertFalse(x.isNew());
         assertFalse(x.isModified());

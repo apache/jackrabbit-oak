@@ -22,6 +22,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,7 +64,9 @@ public class SolrCommitHookTest extends SolrBaseTest {
     public void testRemoveNode() throws Exception {
         SolrCommitHook solrCommitHook = new SolrCommitHook(server);
         NodeState before = store.getRoot().builder().child("somechild").getNodeState();
-        NodeState after = before.builder().removeChildNode("somechild").getNodeState();
+        NodeBuilder builder = before.builder();
+        builder.getChildNode("somechild").remove();
+        NodeState after = builder.getNodeState();
         NodeState changedState = solrCommitHook.processCommit(before, after);
         assertEquals(after, changedState);
     }

@@ -88,13 +88,8 @@ public class ReadOnlyBuilder implements NodeBuilder {
         throw unsupported();
     }
 
-    @Override @Nonnull
-    public NodeBuilder removeChildNode(String name) {
-        throw unsupported();
-    }
-
     @Override
-    public void remove() {
+    public boolean remove() {
         throw unsupported();
     }
 
