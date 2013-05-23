@@ -241,6 +241,7 @@ public class TreeImpl implements Tree {
         if (parent != null && parent.hasChild(name)) {
             nodeBuilder.remove();
             if (parent.hasOrderableChildren()) {
+                // FIXME (OAK-842) child order not updated when parent is not accessible
                 parent.nodeBuilder.setProperty(
                         MemoryPropertyBuilder.copy(STRING, parent.nodeBuilder.getProperty(OAK_CHILD_ORDER))
                                 .removeValue(name)
@@ -523,6 +524,7 @@ public class TreeImpl implements Tree {
      * @return the ordered child names.
      */
     private Iterable<String> getOrderedChildNames() {
+        // FIXME (OAK-842) take access control restriction into consideration
         assert hasOrderableChildren();
         return new Iterable<String>() {
             @Override
