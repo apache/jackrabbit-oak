@@ -239,10 +239,9 @@ public class TreeImpl implements Tree {
     public boolean remove() {
         checkExists();
         if (parent != null && parent.hasChild(name)) {
-            NodeBuilder parentBuilder = parent.nodeBuilder;
-            parentBuilder.removeChildNode(name);
+            nodeBuilder.remove();
             if (parent.hasOrderableChildren()) {
-                parentBuilder.setProperty(
+                parent.nodeBuilder.setProperty(
                         MemoryPropertyBuilder.copy(STRING, parent.nodeBuilder.getProperty(OAK_CHILD_ORDER))
                                 .removeValue(name)
                                 .getPropertyState()
