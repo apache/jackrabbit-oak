@@ -298,6 +298,14 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
+    public void remove() {
+        write();
+        if (parent.head.removeChildNode(name)) {
+            updated();
+        }
+    }
+
+    @Override
     public long getPropertyCount() {
         return read().getPropertyCount();
     }
