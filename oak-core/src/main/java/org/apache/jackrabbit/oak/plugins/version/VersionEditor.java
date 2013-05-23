@@ -91,7 +91,7 @@ class VersionEditor implements Editor {
                 && !this.after.hasProperty(JcrConstants.JCR_ISCHECKEDOUT)
                 && !this.before.exists()) {
             // sentinel node for restore
-            vMgr.restore(node, after.getValue(Type.REFERENCE));
+            vMgr.restore(node, after.getValue(Type.REFERENCE), null);
             return;
         }
         if (!wasReadOnly) {
@@ -124,7 +124,7 @@ class VersionEditor implements Editor {
                 vMgr.checkin(node);
             }
         } else if (propName.equals(VersionConstants.JCR_BASEVERSION)) {
-            vMgr.restore(node, after.getValue(Type.REFERENCE));
+            vMgr.restore(node, after.getValue(Type.REFERENCE), null);
         } else if (isVersionProperty(after)) {
             throwProtected(after.getName());
         } else if (wasReadOnly) {

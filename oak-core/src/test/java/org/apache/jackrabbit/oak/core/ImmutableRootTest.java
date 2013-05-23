@@ -86,13 +86,6 @@ public class ImmutableRootTest extends OakBaseTest {
         }
 
         try {
-            root.getQueryEngine();
-            fail();
-        } catch (UnsupportedOperationException e) {
-            // success
-        }
-
-        try {
             root.move("/x", "/b");
             fail();
         } catch (UnsupportedOperationException e) {
