@@ -162,7 +162,7 @@ public interface NodeBuilder {
      * had been made after each update. Repeated calls to this method with
      * the same name will return the same child builder instance until an
      * explicit {@link #setChildNode(String, NodeState)} or
-     * {@link #removeChildNode(String)} call is made, at which point the link
+     * {@link #remove())} call is made, at which point the link
      * between this builder and a previously returned child builder for
      * that child node name will get broken.
      *
@@ -208,21 +208,10 @@ public interface NodeBuilder {
     NodeBuilder setChildNode(String name, @Nonnull NodeState nodeState);
 
     /**
-     * Remove a child node. This method has no effect if a
-     * name of the given {@code name} does not exist.
-     *
-     * @param name  name of the child node
-     * @return this builder
-     * @deprecated Use {@link #remove()}
-     */
-    @Nonnull
-    @Deprecated
-    NodeBuilder removeChildNode(String name);
-
-    /**
      * Remove this child node from its parent.
+     * @return {@code true} for existing nodes, {@code false} otherwise
      */
-    void remove();
+    boolean remove();
 
     /**
      * Returns the current number of properties.

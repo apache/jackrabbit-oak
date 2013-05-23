@@ -77,7 +77,7 @@ public class MergeDiff implements NodeStateDiff {
     public boolean childNodeDeleted(String name, NodeState before) {
         if (builder.hasChildNode(name)
                 && before.equals(builder.child(name).getNodeState())) {
-            builder.removeChildNode(name);
+            builder.getChildNode(name).remove();
         }
         return true;
     }

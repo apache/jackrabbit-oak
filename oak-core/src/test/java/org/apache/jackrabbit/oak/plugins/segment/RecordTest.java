@@ -307,7 +307,7 @@ public class RecordTest {
 
         builder = before.builder();
         for (int i = 0; i < 900; i++) {
-            builder.removeChildNode("test" + i);
+            builder.getChildNode("test" + i).remove();
         }
         NodeState after = writer.writeNode(builder.getNodeState());
         writer.flush();

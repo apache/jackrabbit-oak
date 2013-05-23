@@ -128,7 +128,7 @@ class SecuredNodeRebaseDiff extends AbstractRebaseDiff {
      */
     @Override
     protected void deleteChangedNode(NodeBuilder builder, String name, NodeState before) {
-        builder.removeChildNode(name);
+        builder.getChildNode(name).remove();
     }
 
 }
