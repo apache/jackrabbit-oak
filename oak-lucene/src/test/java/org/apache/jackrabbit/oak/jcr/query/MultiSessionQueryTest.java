@@ -16,29 +16,71 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 import javax.jcr.Node;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.core.query.AbstractQueryTest;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Tests the Lucene index using multiple threads.
  */
-public class MultiSessionQueryTest extends AbstractQueryTest {
-
-    private static final boolean DISABLED = true;
+public class MultiSessionQueryTest {
 
     final static int THREAD_COUNT = 3;
 
+    protected ScheduledExecutorService executor = null;
+    private Repository repository = null;
+
+    @Before
+    public void before() {
+        executor = Executors.newScheduledThreadPool(1);
+
+        String dir = "target/mk-tck-" + System.currentTimeMillis();
+        Jcr jcr = new Jcr(new MicroKernelImpl(dir));
+        jcr.with(executor);
+
+        // lucene specific
+        jcr.with(new LuceneInitializerHelper("lucene").async());
+        jcr.with(new LuceneIndexProvider());
+        jcr.with(new LuceneIndexEditorProvider());
+
+        repository = jcr.createRepository();
+    }
+
+    @After
+    public void after() {
+        if (executor != null) {
+            executor.shutdown();
+        }
+    }
+
+    protected Session createAdminSession() throws RepositoryException {
+        return repository.login(new SimpleCredentials("admin", "admin"
+                .toCharArray()));
+    }
+
+    @Test
+    @Ignore("OAK-837")
     public void testConcurrent() throws Exception {
-        if (DISABLED) { return; } // test disabled for now
 
         final Exception[] ex = new Exception[1];
         Thread[] threads = new Thread[THREAD_COUNT];
         for (int i = 0; i < THREAD_COUNT; i++) {
-            final Session s = superuser.getRepository().login(
-                    new SimpleCredentials("admin", "admin".toCharArray()));
+            final Session s = createAdminSession();
             final String node = "node" + i;
             Thread t = new Thread() {
                 @Override
