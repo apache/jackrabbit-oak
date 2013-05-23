@@ -296,6 +296,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         } else {
             write();
             parent.head.removeChildNode(name);
+            updated();
             return true;
         }
     }
