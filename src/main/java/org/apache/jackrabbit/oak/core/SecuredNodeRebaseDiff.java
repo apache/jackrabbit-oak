@@ -29,10 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * {@link org.apache.jackrabbit.oak.spi.state.NodeStateDiff}
  * for applying changes made on top of secure node states
  * to a node builder for the underlying non secure node state
- * of the before state. That is, the only expected conflicts
- * are adding an existing property and adding an existing node.
- * These conflicts correspond to the shadowing of hidden properties
- * and nodes in transient space, respectively.
+ * of the before state.
  *
  * @see SecureNodeState
  */
@@ -65,6 +62,12 @@ class SecuredNodeRebaseDiff extends AbstractRebaseDiff {
         return new SecuredNodeRebaseDiff(builder.child(name));
     }
 
+    /**
+     * This conflict corresponds to the shadowing of an invisible property.
+     * @param builder  parent builder
+     * @param before existing property
+     * @param after  added property
+     */
     @Override
     protected void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
         builder.setProperty(after);
@@ -91,6 +94,12 @@ class SecuredNodeRebaseDiff extends AbstractRebaseDiff {
         throw new IllegalStateException("Unexpected conflict: delete changed property: " + before);
     }
 
+    /**
+     * This conflict corresponds to the shadowing of an invisible node
+     * @param builder  parent builder
+     * @param before existing property
+     * @param after  added property
+     */
     @Override
     protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
         // FIXME (OAK-709) after might be a secured node instead of the underlying non secured node.
@@ -111,11 +120,15 @@ class SecuredNodeRebaseDiff extends AbstractRebaseDiff {
                 name + " : " + before);
     }
 
+    /**
+     * This conflict occurs when deleting a node that has an invisible child node.
+     * @param builder  parent builder
+     * @param name
+     * @param before  deleted node
+     */
     @Override
     protected void deleteChangedNode(NodeBuilder builder, String name, NodeState before) {
-        // FIXME Should never be called. OAK-781 should fix this.
-//        throw new IllegalStateException("Unexpected conflict: delete changed node: " +
-//                name + " : " + before);
+        builder.removeChildNode(name);
     }
 
 }

@@ -16,8 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 import java.util.Map;
+
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 
@@ -30,18 +35,13 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Test compatibility with Jackrabbit 2.x using the
@@ -113,7 +113,6 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
         }
     }
 
-    @Ignore("OAK-781") // FIXME
     @Test
     public void testRemoveNodeWithJr2Flag() throws Exception {
         /* allow READ/WRITE privilege for testUser at 'path' */
@@ -137,7 +136,6 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
         }
     }
 
-    @Ignore("OAK-781") // FIXME
     @Test
     public void testRemoveNodeWithJr2Flag2() throws Exception {
         /* allow READ/WRITE privilege for testUser at 'path' */
