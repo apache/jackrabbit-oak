@@ -137,7 +137,7 @@ class PropertyIndexUpdate {
         if (unique && !modifiedKeys.isEmpty()) {
             NodeState state = index.getNodeState();
             for (String key : modifiedKeys) {
-                if (store.count(state, Collections.singletonList(key), 2) > 1) {
+                if (store.count(state, Collections.singleton(key), 2) > 1) {
                     throw new CommitFailedException(
                             "Constraint", 30,
                             "Uniqueness constraint violated for key " + key);
