@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
@@ -82,17 +82,29 @@ import com.google.common.base.Charsets;
 class PropertyIndex implements QueryIndex {
 
     // TODO the max string length should be removed, or made configurable
-    private static final int MAX_STRING_LENGTH = 100; 
+    private static final int MAX_STRING_LENGTH = 100;
 
-    static List<String> encode(PropertyValue value) {
-        List<String> values = new ArrayList<String>();
+    /**
+     * name used when the indexed value is an empty string
+     */
+    private static final String EMPTY_TOKEN = ":";
 
+    static Set<String> encode(PropertyValue value) {
+        if (value == null) {
+            return null;
+        }
+        Set<String> values = new HashSet<String>();
         for (String v : value.getValue(Type.STRINGS)) {
             try {
                 if (v.length() > MAX_STRING_LENGTH) {
                     v = v.substring(0, MAX_STRING_LENGTH);
                 }
-                values.add(URLEncoder.encode(v, Charsets.UTF_8.name()));
+                if (v.isEmpty()) {
+                    v = EMPTY_TOKEN;
+                } else {
+                    v = URLEncoder.encode(v, Charsets.UTF_8.name());
+                }
+                values.add(v);
             } catch (UnsupportedEncodingException e) {
                 throw new IllegalStateException("UTF-8 is unsupported", e);
             }

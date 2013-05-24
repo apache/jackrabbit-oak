@@ -23,9 +23,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NA
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -109,8 +109,7 @@ public class PropertyIndexLookup {
         if (state == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
-        List<String> values = value == null ? null : PropertyIndex.encode(value);
-        return store.query(filter, propertyName, state, values);
+        return store.query(filter, propertyName, state, encode(value));
     }
 
     public double getCost(Filter filter, String name, PropertyValue value) {
@@ -123,8 +122,7 @@ public class PropertyIndexLookup {
         if (state == null) {
             return Double.POSITIVE_INFINITY;
         }
-        List<String> it = value == null ? null : PropertyIndex.encode(value);
-        return store.count(state, it, MAX_COST);
+        return store.count(state, encode(value), MAX_COST);
     }
 
     /**
