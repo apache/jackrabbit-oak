@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -168,9 +167,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
         };
     }
-    
+
     @Override
-    public int count(NodeState index, List<String> values, int max) {
+    public int count(NodeState index, Set<String> values, int max) {
         int count = 0;
         if (values == null) {
             CountingNodeVisitor v = new CountingNodeVisitor(max);

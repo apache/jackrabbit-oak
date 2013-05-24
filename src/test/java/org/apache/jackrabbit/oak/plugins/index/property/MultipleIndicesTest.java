@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -94,7 +93,6 @@ public class MultipleIndicesTest extends AbstractQueryTest {
     /**
      * Test for OAK-841
      */
-    @Ignore
     @Test
     public void emptyStringValue() throws CommitFailedException {
         Tree t = root.getTree("/");
@@ -104,5 +102,12 @@ public class MultipleIndicesTest extends AbstractQueryTest {
         t = root.getTree("/");
         t.addChild("node-2").setProperty("pid", "");
         root.commit();
+
+        setTravesalFallback(false);
+        assertQuery("select [jcr:path] from [nt:base] where [pid] = 'value'",
+                ImmutableList.of("/node-1"));
+        assertQuery("select [jcr:path] from [nt:base] where [pid] = ''",
+                ImmutableList.of("/node-2"));
+        setTravesalFallback(true);
     }
 }
