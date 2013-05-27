@@ -27,11 +27,11 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.query.JsopUtil;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
@@ -58,9 +58,10 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void bindVariableTest() throws Exception {
-        JsopUtil.apply(
-                root,
-                "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}");
+        Tree tree = root.getTree("/");
+        Tree test = tree.addChild("test");
+        test.addChild("hello").setProperty("id", "1");
+        test.addChild("world").setProperty("id", "2");
         root.commit();
 
         Map<String, PropertyValue> sv = new HashMap<String, PropertyValue>();
