@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static java.util.Arrays.asList;
 import static junit.framework.Assert.assertEquals;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -27,7 +29,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.query.JsopUtil;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
@@ -67,7 +68,9 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void descendantTest() throws Exception {
-        JsopUtil.apply(root, "/ + \"test\": { \"a\": {}, \"b\": {} }");
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a");
+        test.addChild("b");
         root.commit();
 
         Iterator<String> result = executeQuery(
@@ -81,9 +84,9 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void descendantTest2() throws Exception {
-        JsopUtil.apply(
-                root,
-                "/ + \"test\": { \"a\": { \"name\": [\"Hello\", \"World\" ] }, \"b\": { \"name\" : \"Hello\" }}");
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("name", asList("Hello", "World"), STRINGS);
+        test.addChild("b").setProperty("name", "Hello");
         root.commit();
 
         Iterator<String> result = executeQuery(
@@ -96,12 +99,16 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void ischildnodeTest() throws Exception {
-        JsopUtil.apply(
-                root,
-                "/ + \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}");
-        JsopUtil.apply(
-                root,
-                "/ + \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}");
+        Tree tree = root.getTree("/");
+        Tree parents = tree.addChild("parents");
+        parents.addChild("p0").setProperty("id", "0");
+        parents.addChild("p1").setProperty("id", "1");
+        parents.addChild("p2").setProperty("id", "2");
+        Tree children = tree.addChild("children");
+        children.addChild("c1").setProperty("p", "1");
+        children.addChild("c2").setProperty("p", "2");
+        children.addChild("c3").setProperty("p", "3");
+        children.addChild("c4").setProperty("p", "4");
         root.commit();
 
         Iterator<String> result = executeQuery(
@@ -120,8 +127,9 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         String h = "Hello" + System.currentTimeMillis();
         String w = "World" + System.currentTimeMillis();
 
-        JsopUtil.apply(root, "/ + \"test\": { \"a\": { \"name\": [\"" + h
-                + "\", \"" + w + "\" ] }, \"b\": { \"name\" : \"" + h + "\" }}");
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("name", asList(h, w), STRINGS);
+        test.addChild("b").setProperty("name", h);
         root.commit();
 
         // query 'hello'
