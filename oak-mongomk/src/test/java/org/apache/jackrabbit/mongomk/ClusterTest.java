@@ -24,7 +24,6 @@ import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Ignore;
 
 import com.mongodb.DB;
 
@@ -40,40 +39,63 @@ public class ClusterTest {
     private MemoryBlobStore bs;
     
     @Test
-    @Ignore
     public void threeNodes() throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
         MongoMK.Builder builder;
         
         builder = new MongoMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs);
+        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         MongoMK mk1 = builder.setClusterId(1).open();
         builder = new MongoMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs);
+        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         MongoMK mk2 = builder.setClusterId(2).open();
         builder = new MongoMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs);
+        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         MongoMK mk3 = builder.setClusterId(3).open();
 
-        String r1 = mk1.commit("/", "+\"test\":{}", null, null);
-
+        mk1.commit("/", "+\"test\":{}", null, null);
         mk2.commit("/", "+\"a\":{}", null, null);
         mk3.commit("/", "+\"b\":{}", null, null);
+        mk2.backgroundWrite();
+        mk2.backgroundRead();
+        mk3.backgroundWrite();
+        mk3.backgroundRead();
+        mk1.backgroundWrite();
+        mk1.backgroundRead();
+        mk2.backgroundWrite();
+        mk2.backgroundRead();
+        mk3.backgroundWrite();
+        mk3.backgroundRead();
+        
         mk2.commit("/", "^\"test/x\":1", null, null);
+        String n3 = mk3.getNodes("/test", mk3.getHeadRevision(), 0, 0, 10, null);
+        // mk3 didn't see the previous change yet; 
+        // it is questionable if this should prevent any changes to this node
+        // (currently it does not)
+        assertEquals("{\":childNodeCount\":0}", n3);
         mk3.commit("/", "^\"test/y\":2", null, null);
 
-        String r2 = mk1.commit("/", "^\"b/x\":1", null, null);
-        String r3 = mk1.commit("/", "^\"a/x\":1", null, null);
-        
-        String n1 = mk1.getNodes("/test", r1, 0, 0, 10, null);
-        String n2 = mk1.getNodes("/test", r2, 0, 0, 10, null);
-        String n3 = mk1.getNodes("/test", r3, 0, 0, 10, null);
+        mk3.backgroundWrite();
+        mk3.backgroundRead();
+        mk1.backgroundWrite();
+        mk1.backgroundRead();
 
-        System.out.println(n1);
-        System.out.println(n2);
-        System.out.println(n3);
-        
+        String r1 = mk1.getHeadRevision();
+        String n1 = mk1.getNodes("/test", r1, 0, 0, 10, null);
+        // mk1 only sees the change of mk3 so far
+        assertEquals("{\"y\":2,\":childNodeCount\":0}", n1);
+
+        mk2.backgroundWrite();
+        mk2.backgroundRead();
+        mk1.backgroundWrite();
+        mk1.backgroundRead();
+
+        String r1b = mk1.getHeadRevision();
+        String n1b = mk1.getNodes("/test", r1b, 0, 0, 10, null);
+        // mk1 now sees both changes
+        assertEquals("{\"x\":1,\"y\":2,\":childNodeCount\":0}", n1b);
+
         mk1.dispose();
         mk2.dispose();
         mk3.dispose();
