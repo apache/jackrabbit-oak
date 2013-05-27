@@ -72,8 +72,9 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
         Session session = null;
         try {
             this.connection = new MongoConnection(HOST, PORT, DB);
-            Jcr jcr = new Jcr(new MongoMK.Builder().
-                    setMongoDB(connection.getDB()).open());
+            MongoMK m = new MongoMK.Builder().setClusterId(1).
+                    setMongoDB(connection.getDB()).open();
+            Jcr jcr = new Jcr(m);
             jcr.with(Executors.newScheduledThreadPool(1));
             this.repository = jcr.createRepository();
 
