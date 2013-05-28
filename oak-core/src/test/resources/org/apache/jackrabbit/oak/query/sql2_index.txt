@@ -25,6 +25,9 @@
 
 # property type (value prefix) index
 
+explain select excerpt(.) from [nt:resource] where contains(*, 'jackrabbit')
+[nt:resource] as [nt:resource] /* traverse "*" where contains([nt:resource].[*], cast('jackrabbit' as string)) */
+
 explain select * from [nt:base] where [jcr:uuid]=1 or [b]=2
 [nt:base] as [nt:base] /* traverse "*" */
 

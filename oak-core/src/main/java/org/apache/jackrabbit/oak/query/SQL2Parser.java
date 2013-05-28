@@ -728,7 +728,16 @@ public class SQL2Parser {
                 ColumnOrWildcard column = new ColumnOrWildcard();
                 if (readIf("*")) {
                     column.propertyName = null;
-                } else {
+                } else if (readIf("EXCERPT")) {
+                    column.propertyName = "rep:excerpt";
+                    read("(");
+                    if (!readIf(")")) {
+                        if (!readIf(".")) {
+                            column.selectorName = readName();
+                        }
+                        read(")");
+                    }
+                } else {                    
                     column.propertyName = readName();
                     if (readIf(".")) {
                         column.selectorName = column.propertyName;
