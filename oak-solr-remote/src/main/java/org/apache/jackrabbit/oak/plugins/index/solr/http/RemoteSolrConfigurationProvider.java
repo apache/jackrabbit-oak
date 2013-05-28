@@ -34,7 +34,7 @@ import org.osgi.service.component.ComponentContext;
  * the default behavior that properties are indexed by name.
  * Possible extensions of this class may trigger type based property indexing / search.
  */
-@Component
+@Component(metatype = true)
 @Service(OakSolrConfigurationProvider.class)
 public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProvider {
 
@@ -42,29 +42,23 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
     private static final String DEFAULT_CHILD_FIELD = "path_child";
     private static final String DEFAULT_PARENT_FIELD = "path_anc";
     private static final String DEFAULT_PATH_FIELD = "path_exact";
-    private static final String DEFAULT_CORE_NAME = "oak";
 
-    @Property(value = DEFAULT_DESC_FIELD)
+    @Property(value = DEFAULT_DESC_FIELD, name = "field for descendants search")
     private static final String PATH_DESCENDANTS_FIELD = "path.desc.field";
 
-    @Property(value = DEFAULT_CHILD_FIELD)
+    @Property(value = DEFAULT_CHILD_FIELD, name = "field for children search")
     private static final String PATH_CHILDREN_FIELD = "path.child.field";
 
-    @Property(value = DEFAULT_PARENT_FIELD)
+    @Property(value = DEFAULT_PARENT_FIELD, name = "field for parent search")
     private static final String PATH_PARENT_FIELD = "path.parent.field";
 
-    @Property(value = DEFAULT_PATH_FIELD)
+    @Property(value = DEFAULT_PATH_FIELD, name = "field for path search")
     private static final String PATH_EXACT_FIELD = "path.exact.field";
-
-    @Property(value = DEFAULT_CORE_NAME)
-    private static final String CORE_NAME = "core.name";
-
 
     private String pathChildrenFieldName;
     private String pathParentFieldName;
     private String pathDescendantsFieldName;
     private String pathExactFieldName;
-    private String coreName;
 
     private OakSolrConfiguration oakSolrConfiguration;
 
@@ -73,17 +67,14 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
         this.pathDescendantsFieldName = DEFAULT_DESC_FIELD;
         this.pathExactFieldName = DEFAULT_PATH_FIELD;
         this.pathParentFieldName = DEFAULT_PARENT_FIELD;
-        this.coreName = DEFAULT_CORE_NAME;
     }
 
     public RemoteSolrConfigurationProvider(String pathChildrenFieldName, String pathParentFieldName,
-                                           String pathDescendantsFieldName, String pathExactFieldName,
-                                           String coreName) {
+                                           String pathDescendantsFieldName, String pathExactFieldName) {
         this.pathChildrenFieldName = pathChildrenFieldName;
         this.pathParentFieldName = pathParentFieldName;
         this.pathDescendantsFieldName = pathDescendantsFieldName;
         this.pathExactFieldName = pathExactFieldName;
-        this.coreName = coreName;
     }
 
     protected void activate(ComponentContext componentContext) throws Exception {
@@ -91,7 +82,6 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
         pathParentFieldName = String.valueOf(componentContext.getProperties().get(PATH_PARENT_FIELD));
         pathExactFieldName = String.valueOf(componentContext.getProperties().get(PATH_EXACT_FIELD));
         pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
-        coreName = String.valueOf(componentContext.getProperties().get(CORE_NAME));
     }
 
     @Override
@@ -147,10 +137,6 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
                     return CommitPolicy.SOFT;
                 }
 
-                 @Override
-                public String getCoreName() {
-                    return coreName;
-                }
             };
         }
         return oakSolrConfiguration;

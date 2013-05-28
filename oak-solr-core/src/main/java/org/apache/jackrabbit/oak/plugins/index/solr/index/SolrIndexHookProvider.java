@@ -66,8 +66,7 @@ public class SolrIndexHookProvider implements IndexEditorProvider {
                 if (log.isDebugEnabled()) {
                     log.debug("Creating a Solr index hook");
                 }
-                IndexEditor indexHook = new SolrIndexDiff(builder, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration());
-                return indexHook;
+                return new SolrIndexDiff(builder, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration());
             } catch (Exception e) {
                 log.error("unable to create Solr IndexHook ", e);
             }

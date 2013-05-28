@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
-import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
@@ -77,8 +75,4 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
         return CommitPolicy.SOFT;
     }
 
-    @Override
-    public String getCoreName() {
-        return SolrServerConfigurationDefaults.CORE_NAME;
-    }
 }
