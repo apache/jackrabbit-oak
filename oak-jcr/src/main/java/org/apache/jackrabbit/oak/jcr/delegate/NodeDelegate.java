@@ -61,7 +61,6 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_R
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -77,6 +76,7 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
@@ -338,23 +338,20 @@ public class NodeDelegate extends ItemDelegate {
      */
     @Nonnull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
-        Tree tree = getTree();
-        long count = tree.getChildrenCount();
-        if (count == 0) {
-            // Optimise the most common case
-            return Collections.<NodeDelegate>emptySet().iterator();
-        } else if (count == 1) {
-            // Optimise another typical case
-            Tree child = tree.getChildren().iterator().next();
-            if (!child.getName().startsWith(":")) {
-                NodeDelegate delegate = new NodeDelegate(sessionDelegate, child);
-                return Collections.singleton(delegate).iterator();
-            } else {
-                return Collections.<NodeDelegate>emptySet().iterator();
-            }
-        } else {
-            return nodeDelegateIterator(tree.getChildren().iterator());
-        }
+        Iterator<Tree> iterator = getTree().getChildren().iterator();
+        return transform(
+                filter(iterator, new Predicate<Tree>() {
+                    @Override
+                    public boolean apply(Tree tree) {
+                        return !tree.getName().startsWith(":");
+                    }
+                }),
+                new Function<Tree, NodeDelegate>() {
+                    @Override
+                    public NodeDelegate apply(Tree tree) {
+                        return new NodeDelegate(sessionDelegate, tree);
+                    }
+                });
     }
 
     public void orderBefore(String source, String target)
@@ -698,23 +695,6 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         return TreeUtil.getTree(tree, relPath);
-    }
-
-    private Iterator<NodeDelegate> nodeDelegateIterator(
-            Iterator<Tree> children) {
-        return transform(
-                filter(children, new Predicate<Tree>() {
-                    @Override
-                    public boolean apply(Tree tree) {
-                        return !tree.getName().startsWith(":");
-                    }
-                }),
-                new Function<Tree, NodeDelegate>() {
-                    @Override
-                    public NodeDelegate apply(Tree tree) {
-                        return new NodeDelegate(sessionDelegate, tree);
-                    }
-                });
     }
 
     // Generic property value accessors. TODO: add to Tree?

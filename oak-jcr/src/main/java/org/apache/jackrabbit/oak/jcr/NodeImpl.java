@@ -502,8 +502,21 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = dlg.getChildren();
-                long size = dlg.getChildCount();
-                return new NodeIteratorAdapter(nodeIterator(children), size);
+                return new NodeIteratorAdapter(nodeIterator(children)) {
+                    private long size = -1;
+                    @Override
+                    public long getSize() {
+                        if (size == -1) {
+                            try {
+                                size = dlg.getChildCount();
+                            } catch (InvalidItemStateException e) {
+                                throw new IllegalStateException(
+                                        "This iterator is no longer valid", e);
+                            }
+                        }
+                        return size;
+                    }
+                };
             }
         });
     }
