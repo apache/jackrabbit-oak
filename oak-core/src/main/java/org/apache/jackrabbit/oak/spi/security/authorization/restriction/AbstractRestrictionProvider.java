@@ -67,7 +67,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         if (definition == null) {
             throw new AccessControlException("Unsupported restriction: " + oakName);
         }
-        Type requiredType = definition.getRequiredType();
+        Type<?> requiredType = definition.getRequiredType();
         int tag = requiredType.tag();
         if (tag != PropertyType.UNDEFINED && tag != value.getType()) {
             throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType);
@@ -90,7 +90,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         if (definition == null) {
             throw new AccessControlException("Unsupported restriction: " + oakName);
         }
-        Type requiredType = definition.getRequiredType();
+        Type<?> requiredType = definition.getRequiredType();
         for (Value v : values) {
             if (requiredType.tag() != PropertyType.UNDEFINED && requiredType.tag() != v.getType()) {
                 throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType);
@@ -153,7 +153,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
             if (def == null) {
                 throw new AccessControlException("Unsupported restriction: " + restrName);
             }
-            Type type = entry.getValue().getType();
+            Type<?> type = entry.getValue().getType();
             if (type != def.getRequiredType()) {
                 throw new AccessControlException("Invalid restriction type '" + type + "'. Expected " + def.getRequiredType());
             }
