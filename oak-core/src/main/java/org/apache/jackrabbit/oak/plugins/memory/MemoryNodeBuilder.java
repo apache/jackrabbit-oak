@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyList;
@@ -37,17 +38,35 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * A {@code MemoryNodeBuilder} instance tracks uncommitted changes without
  * relying on weak references or requiring hard references on the entire
  * accessed subtree. It does this by relying on {@code MutableNodeState}
- * instances for tracking <em>uncommitted changes</em>. A child builders
- * keeps a reference to its parent builder and knows its own name. Before
- * each access the builder checks the mutable state of its parent for
- * relevant changes and updates its own mutable state.
+ * instances for tracking <em>uncommitted changes</em> and on {@code Head}
+ * instances for tracking the connectedness of the builder. A builder keeps
+ * a reference to the parent builder and knows its own name, which is used
+ * to check for relevant changes in its parent builder and update its state
+ * accordingly.
  * <p>
- * A {@code MutableNodeState} instance does not keep a reference to its
- * parent state. It only keeps references to children that have been
- * modified. Instances representing an unmodified child are created on
- * the fly without keeping a reference. This effectively ensures that
- * such an instance can be GC'ed once no node builder references it
- * anymore.
+ * A builder is in one of three possible states, which is tracked within
+ * its {@code Head} instance:
+ * <dl>
+ *   <dt><em>unconnected</em></dt>
+ *   <dd>
+ *     A child builder with no content changes starts in this state.
+ *     Before each access the unconnected builder checks its parent for
+ *     relevant changes.
+ *   </dd>
+ *   <dt><em>connected</em></dt>
+ *   <dd>
+ *     Once a builder is first modified, it switches to the connected state
+ *     and records all modification in a shared {@code MutableNodeState}
+ *     instance. Before each access the connected builder checks whether its
+ *     parents base state has been reset and if so, resets its own base state
+ *     accordingly.
+ *   </dd>
+ *   <dt><em>root</em></dt>
+ *   <dd>
+ *     Same as the connected state but only the root of the builder hierarchy
+ *     can have this state.
+ *   </dd>
+ * </dl>
  */
 public class MemoryNodeBuilder implements NodeBuilder {
 
@@ -63,9 +82,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private final String name;
 
     /**
-     * Root builder, or {@code this} for the root itself.
+     * Root builder, or {@code this} for the root builder itself.
      */
-    private final MemoryNodeBuilder root;
+    private final MemoryNodeBuilder rootBuilder;
 
     /**
      * Internal revision counter for the base state of this builder. The counter
@@ -73,30 +92,20 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * Each builder instance has its own copy of this revision counter for
      * quickly checking whether its base state needs updating.
      * @see #reset(org.apache.jackrabbit.oak.spi.state.NodeState)
+     * @see #base()
      */
     private long baseRevision;
 
     /**
      * The base state of this builder, possibly non-existent if this builder
      * represents a new node that didn't yet exist in the base content tree.
-     * @see #base()
      */
     private NodeState base;
 
     /**
-     * Internal revision counter for the head state of this builder. The counter
-     * is incremented in the root builder whenever anything changes in the tree
-     * below. Each builder instance has its own copy of this revision counter for
-     * quickly checking whether its head state needs updating.
+     * Head of this builder
      */
-    private long headRevision;
-
-    /**
-     * The shared mutable state this builder.
-     * @see #write()
-     * @see #read()
-     */
-    private MutableNodeState head;
+    private Head head;
 
     /**
      * Creates a new in-memory child builder.
@@ -106,7 +115,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private MemoryNodeBuilder(MemoryNodeBuilder parent, String name) {
         this.parent = parent;
         this.name = name;
-        this.root = parent.root;
+        this.rootBuilder = parent.rootBuilder;
+        this.head = new UnconnectedHead();
     }
 
     /**
@@ -117,83 +127,39 @@ public class MemoryNodeBuilder implements NodeBuilder {
     public MemoryNodeBuilder(@Nonnull NodeState base) {
         this.parent = null;
         this.name = null;
-        this.root = this;
+        this.rootBuilder = this;
 
-        // ensure base is updated on next call to base()
+        // ensure child builder's base is updated on first access
         this.baseRevision = 1;
         this.base = checkNotNull(base);
 
-        // ensure head is updated on next call to read() or write()
-        this.headRevision = 1;
-        this.head = new MutableNodeState(this.base);
+        this.head = new RootHead();
     }
 
+    /**
+     * @return  {@code true} iff this is the root builder
+     */
     private boolean isRoot() {
-        return this == root;
+        return this == rootBuilder;
     }
 
     /**
      * Update the base state of this builder by recursively retrieving it
-     * from the parent builder.
+     * from its parent builder.
      * @return  base state of this builder
      */
     @Nonnull
     private NodeState base() {
-        if (root.baseRevision != baseRevision) {
+        if (rootBuilder.baseRevision != baseRevision) {
             base = parent.base().getChildNode(name);
-            baseRevision = root.baseRevision;
+            baseRevision = rootBuilder.baseRevision;
         }
         return base;
     }
 
     /**
-     * Update the head state of this builder by recursively retrieving it
-     * from the parent builder.
-     * @return  head state of this builder
-     */
-    @Nonnull
-    private MutableNodeState read() {
-        if (headRevision != root.headRevision) {
-            assert !isRoot() : "root should have headRevision == root.headRevision";
-            head = parent.read().getChildNode(name, false);
-            headRevision = root.headRevision;
-        }
-        return head;
-    }
-
-    /**
-     * Update the head state of this builder by recursively retrieving it
-     * from the parent builder and increment the head revision of the root
-     * builder ensuring subsequent calls to {@link #read()} result in updating
-     * of the respective head states.
-     * @return  head state of this builder
-     */
-    @Nonnull
-    private MutableNodeState write() {
-        // TODO avoid traversing the parent hierarchy twice: once for exist and once for write
-        if (!exists()) {
-            throw new IllegalStateException("This builder does not exist: " + name);
-        }
-        return write(root.headRevision + 1);
-    }
-
-    /**
-     * Recursive helper method to {@link #write()}. Don't call directly.
-     */
-    @Nonnull
-    private MutableNodeState write(long newRevision) {
-        if (headRevision != newRevision && !isRoot()) {
-            head = parent.write(newRevision).getChildNode(name, true);
-            headRevision = newRevision;
-        }
-        root.headRevision = newRevision;
-        return head;
-    }
-
-    /**
      * Factory method for creating new child state builders. Subclasses may
      * override this method to control the behavior of child state builders.
-     *
      * @return new builder
      */
     protected MemoryNodeBuilder createChildBuilder(String name) {
@@ -215,7 +181,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getNodeState() {
-        return read().snapshot();
+        return head.getNodeState();
     }
 
     @Override
@@ -225,7 +191,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean exists() {
-        return read().exists();
+        return head.exists();
     }
 
     @Override
@@ -235,31 +201,29 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean isModified() {
-        return read().isModified(base());
+        return head.isModified(base());
     }
 
     @Override
     public void reset(NodeState newBase) {
-        checkState(isRoot(), "Cannot reset a non-root builder");
         base = checkNotNull(newBase);
-        root.baseRevision++;
-        root.headRevision++;
-        head = new MutableNodeState(base);
+        baseRevision++;
+        head.reset();
     }
 
     @Override
     public long getChildNodeCount() {
-        return read().getChildNodeCount();
+        return head.getChildNodeCount();
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return read().getChildNodeNames();
+        return head.getChildNodeNames();
     }
 
     @Override
     public boolean hasChildNode(String name) {
-        return read().hasChildNode(checkNotNull(name));
+        return head.hasChildNode(checkNotNull(name));
     }
 
     @Override
@@ -283,7 +247,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setChildNode(String name, NodeState state) {
-        write().setChildNode(checkNotNull(name), checkNotNull(state));
+        checkState(exists(), "This builder does not exist: " + name);
+        head.setChildNode(checkNotNull(name), checkNotNull(state));
         MemoryNodeBuilder builder = createChildBuilder(name);
         updated();
         return builder;
@@ -291,34 +256,32 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean remove() {
-        if (!exists()) {
-            return false;
-        } else {
-            write();
-            parent.head.removeChildNode(name);
-            updated();
+        if (exists()) {
+            head.remove();
             return true;
+        } else {
+            return false;
         }
     }
 
     @Override
     public long getPropertyCount() {
-        return read().getPropertyCount();
+        return head.getPropertyCount();
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return read().getProperties();
+        return head.getProperties();
     }
 
     @Override
     public boolean hasProperty(String name) {
-        return read().hasProperty(checkNotNull(name));
+        return head.hasProperty(checkNotNull(name));
     }
 
     @Override
     public PropertyState getProperty(String name) {
-        return read().getProperty(checkNotNull(name));
+        return head.getProperty(checkNotNull(name));
     }
 
     @Override
@@ -351,7 +314,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setProperty(PropertyState property) {
-        write().setProperty(checkNotNull(property));
+        checkState(exists(), "This builder does not exist: " + name);
+        head.setProperty(checkNotNull(property));
         updated();
         return this;
     }
@@ -370,10 +334,190 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder removeProperty(String name) {
-        if (write().removeProperty(checkNotNull(name))) {
+        checkState(exists(), "This builder does not exist: " + name);
+        if (head.removeProperty(checkNotNull(name))) {
             updated();
         }
         return this;
+    }
+
+    /**
+     * @return path of this builder. For debugging purposes only
+     */
+    private String getPath() {
+        return parent == null ? "/" : getPath(new StringBuilder()).toString();
+    }
+
+    private StringBuilder getPath(StringBuilder parentPath) {
+        return parent == null ? parentPath : parent.getPath(parentPath).append('/').append(name);
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this).add("path", getPath()).toString();
+    }
+
+    //------------------------------------------------------------< Head >---
+
+    /**
+     * The subclasses of this abstract base class represent the different
+     * states builders can have: <em>unconnected</em>, <em>connected</em>,
+     * and <em>root</em>. {@code MemoryNodeBuilder} implements most of its
+     * functionality by forwarding to the methods of {@code Head} instances
+     * where the actual type of {@code Head} determines the behaviour associated
+     * with the current state.
+     */
+    private abstract class Head {
+        protected long revision;
+        protected NodeState state;
+
+        protected abstract NodeState read();
+        protected abstract MutableNodeState write();
+
+        public NodeState getNodeState() {
+            NodeState state = read();
+            return state instanceof MutableNodeState
+                    ? ((MutableNodeState) state).snapshot()
+                    : state;
+        }
+
+        public boolean exists() {
+            return read().exists();
+        }
+
+        public boolean isModified(NodeState base) {
+            NodeState state = read();
+            return state instanceof MutableNodeState && ((MutableNodeState) state).isModified(base);
+        }
+
+        public void reset() {
+            throw new IllegalStateException("Cannot reset a non-root builder");
+        }
+
+        public long getChildNodeCount() {
+            return read().getChildNodeCount();
+        }
+
+        public Iterable<String> getChildNodeNames() {
+            return read().getChildNodeNames();
+        }
+
+        public boolean hasChildNode(String name) {
+            return read().hasChildNode(name);
+        }
+
+        public void setChildNode(String name, NodeState nodeState) {
+            write().setChildNode(name, nodeState);
+        }
+
+        public void remove() {
+            head.write();
+            parent.head.write().removeChildNode(name);
+        }
+
+        public long getPropertyCount() {
+            return read().getPropertyCount();
+        }
+
+        public Iterable<? extends PropertyState> getProperties() {
+            return read().getProperties();
+        }
+
+        public boolean hasProperty(String name) {
+            return read().hasProperty(name);
+        }
+
+        public PropertyState getProperty(String name) {
+            return read().getProperty(name);
+        }
+
+        public void setProperty(PropertyState propertyState) {
+            write().setProperty(propertyState);
+        }
+
+        public boolean removeProperty(String name) {
+            return write().removeProperty(name);
+        }
+    }
+
+    private class ConnectedHead extends Head {
+        @Override
+        protected MutableNodeState read() {
+            if (revision != rootBuilder.baseRevision) {
+                // the root builder's base state has been reset: re-get
+                // state from parent.
+                MutableNodeState parentState = (MutableNodeState) parent.head.read();
+                state = parentState.getMutableChildNode(name);
+                revision = rootBuilder.baseRevision;
+            }
+            return (MutableNodeState) state;
+        }
+
+        @Override
+        protected MutableNodeState write() {
+            // incrementing the root revision triggers unconnected
+            // child state to re-get their state on next access
+            rootBuilder.head.revision++;
+            return read();
+        }
+
+        @Override
+        public String toString() {
+            return toStringHelper(this).add("path", getPath()).toString();
+        }
+    }
+
+    private class UnconnectedHead extends Head {
+        @Override
+        protected NodeState read() {
+            if (revision != rootBuilder.head.revision) {
+                // root revision changed: recursively re-get state from parent
+                NodeState parentState = parent.head.read();
+                state = parentState.getChildNode(name);
+                revision = rootBuilder.head.revision;
+            }
+            return state;
+        }
+
+        @Override
+        protected MutableNodeState write() {
+            // switch to connected state recursively up to the parent
+            parent.head.write();
+            return (head = new ConnectedHead()).write();
+        }
+
+        @Override
+        public String toString() {
+            return toStringHelper(this).add("path", getPath()).toString();
+        }
+    }
+
+    private class RootHead extends Head {
+        public RootHead() {
+            // ensure updating of child builders on first access
+            reset();
+        }
+
+        @Override
+        protected MutableNodeState read() {
+            return (MutableNodeState) state;
+        }
+
+        @Override
+        protected MutableNodeState write() {
+            return (MutableNodeState) state;
+        }
+
+        @Override
+        public final void reset() {
+            state = new MutableNodeState(base);
+            revision++;
+        }
+
+        @Override
+        public String toString() {
+            return toStringHelper(this).add("path", getPath()).toString();
+        }
     }
 
 }
