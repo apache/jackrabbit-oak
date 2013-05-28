@@ -30,7 +30,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class RestrictionDefinitionImpl implements RestrictionDefinition {
 
     private final String name;
-    private final Type type;
+    private final Type<?> type;
     private final boolean isMandatory;
 
     /**
@@ -42,7 +42,7 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
      *                       is allowed.
      * @param isMandatory    A boolean indicating if the restriction is mandatory.
      */
-    public RestrictionDefinitionImpl(@Nonnull String name, Type type, boolean isMandatory) {
+    public RestrictionDefinitionImpl(@Nonnull String name, Type<?> type, boolean isMandatory) {
         this.name = checkNotNull(name);
         if (type.tag() == PropertyType.UNDEFINED) {
             throw new IllegalArgumentException("'undefined' is not a valid required definition type.");
@@ -58,7 +58,7 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
     }
 
     @Override
-    public Type getRequiredType() {
+    public Type<?> getRequiredType() {
         return type;
     }
 

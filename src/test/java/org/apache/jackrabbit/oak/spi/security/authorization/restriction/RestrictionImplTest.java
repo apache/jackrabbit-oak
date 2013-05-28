@@ -106,7 +106,7 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
                 return name;
             }
             @Override
-            public Type getRequiredType() {
+            public Type<?> getRequiredType() {
                 return Type.NAME;
             }
             @Override
