@@ -180,7 +180,7 @@ public class MongoMK implements MicroKernel {
      */
     // TODO at some point, open (unmerged) branches
     // need to be garbage collected (in-memory and on disk)
-    private final UnmergedBranches branches = new UnmergedBranches();
+    private final UnmergedBranches branches;
 
     private boolean stopBackground;
     
@@ -202,6 +202,7 @@ public class MongoMK implements MicroKernel {
         
         this.revisionComparator = new RevisionComparator(clusterId);
         this.asyncDelay = builder.getAsyncDelay();
+        this.branches = new UnmergedBranches(revisionComparator);
 
         //TODO Use size based weigher
         nodeCache = CacheBuilder.newBuilder()
@@ -1116,7 +1117,6 @@ public class MongoMK implements MicroKernel {
      * 
      * @param nodeMap the document
      * @param changeRev the revision of the current change
-     * @param onlyCommitted whether only committed changes should be considered
      * @param handler the conflict handler, which is called for un-committed revisions
      *                preceding <code>before</code>.
      * @return the revision, or null if deleted
@@ -1265,7 +1265,7 @@ public class MongoMK implements MicroKernel {
                 // remove from branchCommits map after successful update
                 branches.remove(b);
             } else {
-                throw new MicroKernelException("Conflicting concurrent change");
+                throw new MicroKernelException("Conflicting concurrent change. Update operation failed: " + op);
             }
         } else {
             // no commits in this branch -> do nothing
