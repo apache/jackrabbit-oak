@@ -83,23 +83,6 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     /**
-     * Get and optionally connect a potentially non existing child
-     * node of a given {@code name}. Connected child nodes are kept
-     * in the list of modified child nodes of this node.
-     */
-    MutableNodeState getChildNode(String name, boolean connect) {
-        assert base != null;
-        MutableNodeState child = nodes.get(name);
-        if (child == null) {
-            child = new MutableNodeState(base.getChildNode(name));
-            if (connect) {
-                nodes.put(name, child);
-            }
-        }
-        return child;
-    }
-
-    /**
      * Equivalent to
      * <pre>
      *   MutableNodeState child = getChildNode(name, true);
@@ -269,9 +252,31 @@ class MutableNodeState extends AbstractNodeState {
         }
     }
 
+    /**
+     * Returns a mutable child node with the given name. If the named
+     * child node has already been modified, i.e. there's an entry for
+     * it in the {@link #nodes} map, then that child instance is returned
+     * directly. Otherwise a new mutable child instance is created based
+     * on the (possibly non-existent) respective child node of the base
+     * state, added to the {@link #nodes} map and returned.
+     */
+    MutableNodeState getMutableChildNode(String name) {
+        assert base != null;
+        MutableNodeState child = nodes.get(name);
+        if (child == null) {
+            child = new MutableNodeState(base.getChildNode(name));
+            nodes.put(name, child);
+        }
+        return child;
+    }
+
     @Override
-    public MutableNodeState getChildNode(String name) {
-        throw new UnsupportedOperationException();
+    public NodeState getChildNode(String name) {
+        NodeState child = nodes.get(name);
+        if (child == null) {
+            child = base.getChildNode(name);
+        }
+        return child;
     }
 
     @Override @Nonnull
