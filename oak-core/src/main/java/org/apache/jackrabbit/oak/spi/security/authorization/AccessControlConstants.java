@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.util.Collection;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
@@ -118,8 +117,16 @@ public interface AccessControlConstants {
     /**
      * Default value for the {@link #PARAM_READ_PATHS} configuration parameter.
      */
-    Set<String> DEFAULT_READ_PATHS = ImmutableSet.of(
+    String[] DEFAULT_READ_PATHS = new String[] {
             NamespaceConstants.NAMESPACES_PATH,
             NodeTypeConstants.NODE_TYPES_PATH,
-            PrivilegeConstants.PRIVILEGES_PATH);
+            PrivilegeConstants.PRIVILEGES_PATH
+    };
+
+    /**
+     * Configuration parameter specifying additional principals that should be
+     * treated as 'administrator' thus get granted full permissions on the
+     * complete repository content.
+     */
+    String PARAM_ADMINISTRATOR_PRINCIPALS = "administratorPrincipals";
 }

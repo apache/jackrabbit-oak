@@ -43,6 +43,7 @@ import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -122,7 +123,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         restrictionProvider = acConfig.getRestrictionProvider();
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
 
-        readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
+        readPaths = ImmutableSet.copyOf(acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS));
     }
 
     private static <T> T getConfig(SecurityProvider sp, Class<T> clss) {
