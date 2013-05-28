@@ -178,14 +178,14 @@ public class MemoryDocumentStore implements DocumentStore {
                         return false;
                     }
                 } else {
-                    if (value instanceof java.util.Collection) {
-                        java.util.Collection<?> col = (java.util.Collection<?>) value;
+                    if (value instanceof Map) {
+                        Map map = (Map) value;
                         if (Boolean.TRUE.equals(op.value)) {
-                            if (!col.contains(kv[1])) {
+                            if (!map.containsKey(kv[1])) {
                                 return false;
                             }
                         } else {
-                            if (col.contains(kv[1])) {
+                            if (map.containsKey(kv[1])) {
                                 return false;
                             }
                         }
