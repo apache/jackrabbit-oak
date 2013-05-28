@@ -133,14 +133,14 @@ public class UserInitializerTest extends AbstractSecurityTest {
     }
 
     /**
-     * @since OAK 1.0 The configuration defines if and how the password of the
+     * @since OAK 1.0 The configuration defines if the password of the
      * admin user is being set.
      */
     @Test
     public void testAdminConfiguration() throws Exception {
-        Map<String,String> userParams = new HashMap();
+        Map<String,Object> userParams = new HashMap();
         userParams.put(UserConstants.PARAM_ADMIN_ID, "admin");
-        userParams.put(UserConstants.PARAM_ADMIN_PW, null);
+        userParams.put(UserConstants.PARAM_OMIT_ADMIN_PW, true);
 
         ConfigurationParameters params = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.PARAM_USER_OPTIONS, new ConfigurationParameters(userParams)));
         SecurityProvider sp = new SecurityProviderImpl(params);
