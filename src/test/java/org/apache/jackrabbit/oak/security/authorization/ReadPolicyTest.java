@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ReadPolicyTest extends AbstractAccessControlTest {
 
-    private Set<String> readPaths;
+    private String[] readPaths;
 
     @Override
     @Before
