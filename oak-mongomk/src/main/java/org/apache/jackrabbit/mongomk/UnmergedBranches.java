@@ -51,8 +51,11 @@ class UnmergedBranches {
     /**
      * The revision comparator.
      */
-    // TODO use the same comparator as MongoMK?
-    private final Revision.RevisionComparator comparator = new Revision.RevisionComparator(0);
+    private final Revision.RevisionComparator comparator;
+
+    UnmergedBranches(@Nonnull Revision.RevisionComparator comparator) {
+        this.comparator = checkNotNull(comparator);
+    }
 
     /**
      * Initialize with un-merged branches from <code>store</code> for this
