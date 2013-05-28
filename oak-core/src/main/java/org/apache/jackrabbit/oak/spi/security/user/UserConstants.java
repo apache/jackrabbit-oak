@@ -61,9 +61,10 @@ public interface UserConstants {
     String PARAM_ADMIN_ID = "adminId";
 
     /**
-     * Configuration option defining the ID of the administrator user.
+     * Configuration option defining if the admin password should be omitted
+     * upon user creation.
      */
-    String PARAM_ADMIN_PW = "adminPw";
+    String PARAM_OMIT_ADMIN_PW = "omitAdminPw";
 
     /**
      * Default value for {@link #PARAM_ADMIN_ID}
