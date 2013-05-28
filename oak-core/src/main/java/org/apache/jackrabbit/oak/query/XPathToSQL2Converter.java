@@ -187,32 +187,25 @@ public class XPathToSQL2Converter {
                     read(")");
                 }
             } else if (readIf("@")) {
+                rewindSelector();
                 Property p = readProperty();
                 columnList.add(p);
             } else if (readIf("rep:excerpt")) {
-                read("(");
-                if (!readIf(")")) {
-                    // only rep:excerpt(.) and rep:excerpt() are currently supported
-                    read(".");
-                    read(")");
-                }
+                rewindSelector();
+                readExcerpt();
                 Property p = new Property(currentSelector, "rep:excerpt");
                 columnList.add(p);
             } else if (readIf("(")) {
-                // special case: ".../(@prop)" is actually not a child node, 
-                // but the same node (selector) as before 
-                if (selectors.size() > 0) {
-                    currentSelector = selectors.remove(selectors.size() - 1);
-                    // prevent (join) conditions are added again
-                    currentSelector.isChild = false;
-                    currentSelector.isDescendant = false;
-                    currentSelector.path = "";
-                    currentSelector.nodeName = null;
-                }
+                rewindSelector();
                 do {
-                    read("@");
-                    Property p = readProperty();
-                    columnList.add(p);
+                    if (readIf("@")) {
+                        Property p = readProperty();
+                        columnList.add(p);
+                    } else if (readIf("rep:excerpt")) {
+                        readExcerpt();
+                        Property p = new Property(currentSelector, "rep:excerpt");
+                        columnList.add(p);
+                    }
                 } while (readIf("|"));
                 read(")");
             } else if (currentTokenType == IDENTIFIER) {
@@ -371,6 +364,23 @@ public class XPathToSQL2Converter {
         buff.append(query);
         buff.append(" */");
         return buff.toString();
+    }
+    
+    /**
+     * Switch back to the old selector when reading a property. This occurs
+     * after reading a "/", but then reading a property or a list of properties.
+     * For example ".../(@prop)" is actually not a child node, but the same node
+     * (selector) as before.
+     */
+    private void rewindSelector() {
+        if (selectors.size() > 0) {
+            currentSelector = selectors.remove(selectors.size() - 1);
+            // prevent (join) conditions are added again
+            currentSelector.isChild = false;
+            currentSelector.isDescendant = false;
+            currentSelector.path = "";
+            currentSelector.nodeName = null;
+        }
     }
 
     private void nextSelector(boolean force) throws ParseException {
@@ -704,6 +714,15 @@ public class XPathToSQL2Converter {
             return new Property(currentSelector, "*");
         }
         return new Property(currentSelector, readIdentifier());
+    }
+    
+    private void readExcerpt() throws ParseException {
+        read("(");
+        if (!readIf(")")) {
+            // only rep:excerpt(.) and rep:excerpt() are currently supported
+            read(".");
+            read(")");
+        }
     }
 
     private String readIdentifier() throws ParseException {
