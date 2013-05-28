@@ -138,10 +138,6 @@ public class TestUtils {
                 return CommitPolicy.HARD;
             }
 
-            @Override
-            public String getCoreName() {
-                return "oak";
-            }
         };
     }
 }

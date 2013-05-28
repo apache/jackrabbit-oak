@@ -77,11 +77,6 @@ public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfigur
         return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()));
     }
 
-    @Override
-    public String getCoreName() {
-        return getStringValueFor(Properties.CORE_NAME, SolrServerConfigurationDefaults.CORE_NAME);
-    }
-
     protected String getStringValueFor(String propertyName, String defaultValue) {
         String value = null;
         NodeState configurationNodeState = getConfigurationNodeState();
@@ -90,9 +85,9 @@ public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfigur
             if (property != null) {
                 value = property.getValue(Type.STRING);
             }
-            if (value == null || value.length() == 0) {
-                value = defaultValue;
-            }
+        }
+        if (value == null || value.length() == 0) {
+            value = defaultValue;
         }
         return value;
     }
@@ -101,12 +96,13 @@ public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfigur
     public SolrServerConfiguration getSolrServerConfiguration() {
         String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);
         String solrConfigPath = getStringValueFor(Properties.SOLRCONFIG_PATH, SolrServerConfigurationDefaults.SOLR_CONFIG_PATH);
+        String coreName = getStringValueFor(Properties.CORE_NAME, SolrServerConfigurationDefaults.CORE_NAME);
 
         String context = getStringValueFor(Properties.CONTEXT, SolrServerConfigurationDefaults.CONTEXT);
         Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, SolrServerConfigurationDefaults.HTTP_PORT));
 
         return new SolrServerConfiguration(solrHomePath,
-                solrConfigPath, getCoreName()).withHttpConfiguration(context, httpPort);
+                solrConfigPath, coreName).withHttpConfiguration(context, httpPort);
     }
 
     /**
@@ -117,7 +113,7 @@ public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfigur
         public static final String SOLRHOME_PATH = "solrHomePath";
         public static final String SOLRCONFIG_PATH = "solrConfigPath";
         public static final String CONTEXT = "solrContext";
-        public static final String HTTP_PORT = "solrContext";
+        public static final String HTTP_PORT = "httpPort";
         public static final String CORE_NAME = "coreName";
         public static final String PATH_FIELD = "pathField";
         public static final String PARENT_FIELD = "parentField";

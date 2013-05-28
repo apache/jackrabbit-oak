@@ -25,7 +25,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Testcase for {@link UpToDateNodeStateConfiguration}
@@ -38,7 +38,7 @@ public class UpToDateNodeStateConfigurationTest {
     public void setUp() throws Exception {
         MicroKernel microKernel = new MicroKernelImpl();
         String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{} +\"y\":{} +\"z\":{} " +
-                "+\"oak:index\":{\"solrIdx\":{\"coreName\":\"cn\", \"solrHome\":\"sh\", \"solrConfig\":\"sc\"}} ";
+                "+\"oak:index\":{\"solrIdx\":{\"coreName\":\"cn\", \"solrHomePath\":\"sh\", \"solrConfigPath\":\"sc\"}} ";
         microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
         store = new KernelNodeStore(microKernel);
     }
@@ -47,7 +47,11 @@ public class UpToDateNodeStateConfigurationTest {
     public void testExistingPath() throws Exception {
         String path = "oak:index/solrIdx";
         UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        assertEquals("cn", upToDateNodeStateConfiguration.getCoreName()); // property defined in the node state
+        SolrServerConfiguration solrServerConfiguration = upToDateNodeStateConfiguration.getSolrServerConfiguration();
+        assertNotNull(solrServerConfiguration);
+        assertEquals("sh", solrServerConfiguration.getSolrHomePath()); // property defined in the node state
+        assertEquals("cn", solrServerConfiguration.getCoreName()); // property defined in the node state
+        assertEquals("sc", solrServerConfiguration.getSolrConfigPath()); // property defined in the node state
         assertEquals("path_exact", upToDateNodeStateConfiguration.getPathField()); // using default as this property not defined in the node state
     }
 
@@ -55,7 +59,7 @@ public class UpToDateNodeStateConfigurationTest {
     public void testNonExistingPath() throws Exception {
         String path = "some/path/to/oak:index/solrIdx";
         UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        assertNull(upToDateNodeStateConfiguration.getCoreName());
+        assertNotNull(upToDateNodeStateConfiguration.getSolrServerConfiguration());
     }
 
     @Test

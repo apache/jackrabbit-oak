@@ -46,36 +46,44 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private static final String DEFAULT_HTTP_URL = "http://127.0.0.1:8983/solr";
     private static final String DEFAULT_ZK_HOST = "localhost:9983";
 
-    @Property(value = DEFAULT_HTTP_URL)
+    @Property(value = DEFAULT_HTTP_URL, name = "Default Solr HTTP URL")
     private static final String SOLR_HTTP_URL = "solr.http.url";
 
-    @Property(value = DEFAULT_ZK_HOST)
+    @Property(value = DEFAULT_ZK_HOST, name = "Zookeeper host")
     private static final String SOLR_ZK_HOST = "solr.zk.host";
+
+    @Property(value = DEFAULT_COLLECTION, name = "Default collection")
+    private static final String SOLR_COLLECTION = "solr.collection";
 
     private SolrServer solrServer;
     private String solrHttpUrl;
     private String solrZkHost;
+    private String solrCollection;
 
     public RemoteSolrServerProvider() {
         this.solrHttpUrl = DEFAULT_HTTP_URL;
         this.solrZkHost = DEFAULT_ZK_HOST;
+        this.solrCollection = DEFAULT_COLLECTION;
     }
 
-    public RemoteSolrServerProvider(String solrHttpUrl, String solrZkHost) {
+    public RemoteSolrServerProvider(String solrHttpUrl, String solrZkHost, String solrCollection) {
         this.solrHttpUrl = solrHttpUrl;
         this.solrZkHost = solrZkHost;
+        this.solrCollection = solrCollection;
     }
 
     @Activate
     protected void activate(ComponentContext componentContext) throws Exception {
         solrHttpUrl = String.valueOf(componentContext.getProperties().get(SOLR_HTTP_URL));
         solrZkHost = String.valueOf(componentContext.getProperties().get(SOLR_ZK_HOST));
+        solrCollection = String.valueOf(componentContext.getProperties().get(SOLR_COLLECTION));
     }
 
     @Deactivate
     protected void deactivate() throws Exception {
         solrHttpUrl = null;
         solrZkHost = null;
+        solrCollection = null;
         if (solrServer != null) {
             solrServer.shutdown();
             solrServer = null;
