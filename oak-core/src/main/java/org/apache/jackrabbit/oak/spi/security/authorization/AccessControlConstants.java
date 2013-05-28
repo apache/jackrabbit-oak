@@ -111,6 +111,8 @@ public interface AccessControlConstants {
     /**
      * Configuration parameter to enable full read access to regular nodes and
      * properties at the specified paths.
+     *
+     * @since OAK 1.0
      */
     String PARAM_READ_PATHS = "readPaths";
 
@@ -127,6 +129,8 @@ public interface AccessControlConstants {
      * Configuration parameter specifying additional principals that should be
      * treated as 'administrator' thus get granted full permissions on the
      * complete repository content.
+     *
+     * @since OAK 1.0
      */
     String PARAM_ADMINISTRATOR_PRINCIPALS = "administratorPrincipals";
 }
