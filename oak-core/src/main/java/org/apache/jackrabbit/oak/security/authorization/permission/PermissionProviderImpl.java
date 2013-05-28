@@ -22,6 +22,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -33,10 +34,10 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
@@ -73,6 +74,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         this.root = root;
         this.workspaceName = root.getContentSession().getWorkspaceName();
         acConfig = securityProvider.getConfiguration(AccessControlConfiguration.class);
+
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
@@ -80,10 +82,11 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             if (!permissionsTree.exists() || principals.isEmpty()) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
+                String[] readPaths = acConfig.getParameters().getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS);
                 compiledPermissions = new CompiledPermissionImpl(principals,
                         permissionsTree, getBitsProvider(),
                         acConfig.getRestrictionProvider(),
-                        acConfig.getParameters().getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS));
+                        ImmutableSet.copyOf(readPaths));
             }
         }
     }
@@ -175,9 +178,10 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     //--------------------------------------------------------------------------
 
-    private static boolean isAdmin(Set<Principal> principals) {
+    private boolean isAdmin(Set<Principal> principals) {
+        Set<String> adminNames = ImmutableSet.copyOf(acConfig.getParameters().getConfigValue(PARAM_ADMINISTRATOR_PRINCIPALS, new String[0]));
         for (Principal principal : principals) {
-            if (principal instanceof AdminPrincipal) {
+            if (principal instanceof AdminPrincipal || adminNames.contains(principal.getName())) {
                 return true;
             }
         }

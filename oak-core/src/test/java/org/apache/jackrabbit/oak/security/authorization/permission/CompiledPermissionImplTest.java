@@ -26,7 +26,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -84,9 +83,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     private String node1Path = "/nodeName1";
     private String node2Path = node1Path + "/nodeName2";
 
-    private List<String> allPaths;
-    private List<String> rootAndUsers;
-    private List<String> nodePaths;
+    private Set<String> allPaths;
+    private Set<String> rootAndUsers;
+    private Set<String> nodePaths;
 
     @Before
     @Override
@@ -114,9 +113,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         testNode2.setString("propName2", "strValue");
         root.commit();
 
-        allPaths = ImmutableList.of("/", UserConstants.DEFAULT_USER_PATH, node1Path, node2Path);
-        rootAndUsers = ImmutableList.of("/", UserConstants.DEFAULT_USER_PATH);
-        nodePaths = ImmutableList.of(node1Path, node2Path);
+        allPaths = ImmutableSet.of("/", UserConstants.DEFAULT_USER_PATH, node1Path, node2Path);
+        rootAndUsers = ImmutableSet.of("/", UserConstants.DEFAULT_USER_PATH);
+        nodePaths = ImmutableSet.of(node1Path, node2Path);
     }
 
     @Override
@@ -173,7 +172,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
-        assertReadStatus(DENY_THIS, DENY_THIS, cp, ImmutableList.of("/", node1Path, UserConstants.DEFAULT_USER_PATH));
+        assertReadStatus(DENY_THIS, DENY_THIS, cp, ImmutableSet.of("/", node1Path, UserConstants.DEFAULT_USER_PATH));
         assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_THIS, cp, node2Path);
     }
 
@@ -286,7 +285,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
 
-        List<String> treePaths = ImmutableList.of("/", UserConstants.DEFAULT_USER_PATH, node1Path);
+        Set<String> treePaths = ImmutableSet.of("/", UserConstants.DEFAULT_USER_PATH, node1Path);
         assertReadStatus(DENY_THIS, DENY_THIS, cp, treePaths);
         assertReadStatus(ALLOW_NODES, DENY_THIS, cp, node2Path);
     }
@@ -396,7 +395,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         deny(group3, node1Path, 2, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
-        assertReadStatus(DENY_THIS, ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
+        assertReadStatus(DENY_THIS, ALLOW_THIS, cp, ImmutableSet.<String>of(node1Path));
         assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, node2Path); // TODO: need to change RestrictionPattern in order to get ALLOW_ALL_REGULAR
 
         cp = createPermissions(ImmutableSet.of(group1, group2));
@@ -424,7 +423,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         allow(group1, node1Path, 2, new String[]{JCR_READ}, createGlobRestriction("/*"));
 
         CompiledPermissions cp = createPermissions(ImmutableSet.of(group1, group2, group3));
-        assertReadStatus(DENY_THIS, ALLOW_THIS, cp, ImmutableList.<String>of(node1Path));
+        assertReadStatus(DENY_THIS, ALLOW_THIS, cp, ImmutableSet.<String>of(node1Path));
         assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, node2Path);
     }
 
@@ -436,7 +435,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         allow(group1, node1Path, 2, new String[]{REP_READ_PROPERTIES}, createGlobRestriction("/*"));
 
         CompiledPermissions cp = createPermissions(ImmutableSet.of(group1, group2, group3));
-        assertReadStatus(ALLOW_THIS, DENY_THIS, cp, ImmutableList.<String>of(node1Path));
+        assertReadStatus(ALLOW_THIS, DENY_THIS, cp, ImmutableSet.<String>of(node1Path));
         assertReadStatus(ALLOW_THIS, ALLOW_THIS, cp, node2Path);
     }
 
@@ -449,7 +448,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     @Test
     public void testGetReadStatusForReadPaths() throws Exception {
         CompiledPermissionImpl cp = createPermissions(Collections.singleton(userPrincipal));
-        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_ALL_REGULAR, cp, new ArrayList<String>(DEFAULT_READ_PATHS));
+        assertReadStatus(ALLOW_ALL_REGULAR, ALLOW_ALL_REGULAR, cp, ImmutableSet.copyOf(DEFAULT_READ_PATHS));
     }
 
     @Test
@@ -503,7 +502,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
     private CompiledPermissionImpl createPermissions(Set<Principal> principals) {
         ImmutableTree permissionsTree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTree(PERMISSIONS_STORE_PATH);
-        return new CompiledPermissionImpl(principals, permissionsTree, pbp, rp, DEFAULT_READ_PATHS);
+        return new CompiledPermissionImpl(principals, permissionsTree, pbp, rp, ImmutableSet.copyOf(DEFAULT_READ_PATHS));
     }
 
     private void allow(Principal principal, String path, int index, String... privilegeNames) throws CommitFailedException {
@@ -542,13 +541,13 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
                                   ReadStatus expectedProperties,
                                   CompiledPermissions cp,
                                   String treePath) {
-        assertReadStatus(expectedTrees, expectedTrees, cp, Collections.singletonList(treePath));
+        assertReadStatus(expectedTrees, expectedTrees, cp, Collections.singleton(treePath));
     }
 
     private void assertReadStatus(ReadStatus expectedTrees,
                                   ReadStatus expectedProperties,
                                   CompiledPermissions cp,
-                                  List<String> treePaths) {
+                                  Set<String> treePaths) {
         for (String path : treePaths) {
             Tree node = root.getTree(path);
             assertSame("Tree " + path, expectedTrees, cp.getReadStatus(node, null));
