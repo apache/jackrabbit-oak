@@ -572,7 +572,6 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private static Result searchAces(@Nonnull Set<Principal> principals, @Nonnull Root root) throws RepositoryException {
-        // TODO: specify sort order
         StringBuilder stmt = new StringBuilder("/jcr:root");
         stmt.append("//element(*,");
         stmt.append(NT_REP_ACE);
@@ -590,6 +589,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             i++;
         }
         stmt.append(']');
+        stmt.append(" order by jcr:path");
 
         try {
             QueryEngine queryEngine = root.getQueryEngine();
