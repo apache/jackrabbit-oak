@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.mongomk;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -138,6 +140,46 @@ public class MongoDocumentStoreTest {
         }
         dropCollections();
 
+    }
+
+    @Test
+    public void containsMapEntry() {
+        dropCollections();
+
+        DocumentStore docStore = openDocumentStore();
+        UpdateOp op = new UpdateOp("/node", "/node", true);
+        op.setMapEntry("map", "key", "value");
+        docStore.createOrUpdate(Collection.NODES, op);
+
+        op = new UpdateOp("/node", "/node", false);
+        op.set("prop", "value");
+        op.containsMapEntry("map", "unknown-key", true);
+        // update if unknown-key exists -> must not succeed
+        assertNull(docStore.findAndUpdate(Collection.NODES, op));
+
+        op = new UpdateOp("/node", "/node", false);
+        op.set("prop", "value");
+        op.containsMapEntry("map", "key", true);
+        // update if key exists -> must succeed
+        Map doc = docStore.findAndUpdate(Collection.NODES, op);
+        assertNotNull(doc);
+
+        doc = docStore.find(Collection.NODES, "/node");
+        assertTrue(doc.containsKey("prop"));
+        assertEquals("value", doc.get("prop"));
+
+        op = new UpdateOp("/node", "/node", false);
+        op.set("prop", "other");
+        op.containsMapEntry("map", "key", false);
+        // update if key does not exist -> must not succeed
+        assertNull(docStore.findAndUpdate(Collection.NODES, op));
+
+        // value must still be the same
+        doc = docStore.find(Collection.NODES, "/node");
+        assertTrue(doc.containsKey("prop"));
+        assertEquals("value", doc.get("prop"));
+
+        dropCollections();
     }
 
     @Test
