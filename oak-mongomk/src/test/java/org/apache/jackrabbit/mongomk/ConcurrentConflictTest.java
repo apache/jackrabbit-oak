@@ -52,13 +52,15 @@ public class ConcurrentConflictTest extends BaseMongoMKTest {
     private final StringBuilder logBuffer = new StringBuilder();
 
     @Before
-    public void setup() {
+    @Override
+    public void initMongoMK() {
         logBuffer.setLength(0);
         this.store = new MemoryDocumentStore();
         MongoMK mk = openMongoMK();
         for (int i = 0; i < NUM_NODES; i++) {
             mk.commit("/", "+\"node-" + i + "\":{\"value\":100}", null, null);
         }
+        mk.dispose();
         for (int i = 0; i < NUM_WRITERS; i++) {
             kernels.add(openMongoMK());
         }
