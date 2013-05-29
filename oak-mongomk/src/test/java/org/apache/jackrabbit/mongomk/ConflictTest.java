@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -89,6 +88,26 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void addExistingPropertyTwoBranches() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev1 = mk.branch(rev);
+        branchRev1 = mk.commit("/foo", "^\"prop\":\"value\"", branchRev1, null);
+
+        String branchRev2 = mk.branch(rev);
+        // will mark conflict on branchRev1
+        branchRev2 = mk.commit("/foo", "^\"prop\":\"other\"", branchRev2, null);
+
+        mk.merge(branchRev2, null);
+        
+        try {
+            mk.merge(branchRev1, null);
+            fail("Must fail with conflict for addExistingProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void removeRemovedProperty() {
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
         mk.commit("/foo", "^\"prop\":null", rev, null);
@@ -142,6 +161,26 @@ public class ConflictTest extends BaseMongoMKTest {
 
         try {
             mk.merge(branchRev, null);
+            fail("Must fail with conflict for removeRemovedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void removeRemovedPropertyTwoBranches() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev1 = mk.branch(rev);
+        branchRev1 = mk.commit("/foo", "^\"prop\":null", branchRev1, null);
+        
+        String branchRev2 = mk.branch(rev);
+        // will mark collision on branchRev1
+        branchRev2 = mk.commit("/foo", "^\"prop\":null", branchRev2, null);
+
+        mk.merge(branchRev2, null);
+        
+        try {
+            mk.merge(branchRev1, null);
             fail("Must fail with conflict for removeRemovedProperty");
         } catch (MicroKernelException e) {
             // expected
@@ -209,6 +248,25 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void removeChangedPropertyTwoBranches() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev1 = mk.branch(rev);
+        branchRev1 = mk.commit("/foo", "^\"prop\":null", branchRev1, null);
+        
+        String branchRev2 = mk.branch(rev);
+        // will mark conflict on branchRev1
+        branchRev2 = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev2, null);
+        mk.merge(branchRev2, null);
+
+        try {
+            mk.merge(branchRev1, null);
+            fail("Must fail with conflict for removeChangedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void changeRemovedProperty() {
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
         mk.commit("/foo", "^\"prop\":null", rev, null);
@@ -262,6 +320,25 @@ public class ConflictTest extends BaseMongoMKTest {
 
         try {
             mk.merge(branchRev, null);
+            fail("Must fail with conflict for changeRemovedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void changeRemovedPropertyTwoBranches() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev1 = mk.branch(rev);
+        branchRev1 = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev1, null);
+        
+        String branchRev2 = mk.branch(rev);
+        // will mark collision on branchRev1
+        branchRev2 = mk.commit("/foo", "^\"prop\":null", branchRev2, null);
+        mk.merge(branchRev2, null);
+
+        try {
+            mk.merge(branchRev1, null);
             fail("Must fail with conflict for changeRemovedProperty");
         } catch (MicroKernelException e) {
             // expected
@@ -328,7 +405,6 @@ public class ConflictTest extends BaseMongoMKTest {
         }
     }
 
-    @Ignore("OAK-846")
     @Test
     public void changeChangedPropertyTwoBranches(){
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
@@ -409,6 +485,26 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void addExistingNodeTwoBranches() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev1 = mk.branch(rev);
+        branchRev1 = mk.commit("/foo", "+\"bar\":{}", branchRev1, null);
+        
+        String branchRev2 = mk.branch(rev);
+        // will mark conflict on branchRev1
+        branchRev2 = mk.commit("/foo", "+\"bar\":{}", branchRev2, null);
+
+        mk.merge(branchRev2, null);
+        
+        try {
+            mk.merge(branchRev1, null);
+            fail("Must fail with conflict for addExistingNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void removeRemovedNode() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         mk.commit("/", "-\"foo\"", rev, null);
@@ -462,6 +558,25 @@ public class ConflictTest extends BaseMongoMKTest {
 
         try {
             mk.merge(branchRev, null);
+            fail("Must fail with conflict for removeRemovedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void removeRemovedNodeTwoBranches() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev1 = mk.branch(rev);
+        branchRev1 = mk.commit("/", "-\"foo\"", branchRev1, null);
+        
+        String branchRev2 = mk.branch(rev);
+        // will mark collision on branchRev1
+        branchRev2 = mk.commit("/", "-\"foo\"", branchRev2, null);
+        mk.merge(branchRev2, null);
+
+        try {
+            mk.merge(branchRev1, null);
             fail("Must fail with conflict for removeRemovedNode");
         } catch (MicroKernelException e) {
             // expected
@@ -529,6 +644,25 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void removeChangedNodeTwoBranches() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev1 = mk.branch(rev);
+        branchRev1 = mk.commit("/", "-\"foo\"", branchRev1, null);
+        
+        String branchRev2 = mk.branch(rev);
+        // will mark collision on branchRev1
+        branchRev2 = mk.commit("/foo", "^\"prop\":\"value\"", branchRev2, null);
+        mk.merge(branchRev2, null);
+
+        try {
+            mk.merge(branchRev1, null);
+            fail("Must fail with conflict for removeChangedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void changeRemovedNode() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         mk.commit("/", "-\"foo\"", rev, null);
@@ -582,6 +716,25 @@ public class ConflictTest extends BaseMongoMKTest {
 
         try {
             mk.merge(branchRev, null);
+            fail("Must fail with conflict for changeRemovedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void changeRemovedNodeTwoBranches() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev1 = mk.branch(rev);
+        branchRev1 = mk.commit("/foo", "^\"prop\":\"value\"", branchRev1, null);
+        
+        String branchRev2 = mk.branch(rev);
+        // will mark collision on branchRev1
+        branchRev2 = mk.commit("/", "-\"foo\"", branchRev2, null);
+        mk.merge(branchRev2, null);
+
+        try {
+            mk.merge(branchRev1, null);
             fail("Must fail with conflict for changeRemovedNode");
         } catch (MicroKernelException e) {
             // expected
