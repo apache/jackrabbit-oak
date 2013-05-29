@@ -47,7 +47,7 @@ public class MemoryNodeBuilderTest {
         builder.child("x").child("q");
         builder.child("y");
         builder.child("z");
-        base = builder.getNodeState();
+        base = ModifiedNodeState.squeeze(builder.getNodeState());
     }
 
     @Test
