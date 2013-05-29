@@ -16,16 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
@@ -55,6 +48,11 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
@@ -96,34 +94,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         return rootBuilder.child(JCR_SYSTEM).child(REP_PERMISSION_STORE).child(workspaceName);
     }
 
-    @CheckForNull
-    private NodeBuilder getPrincipalRoot(String principalName) {
-        if (permissionRoot.hasChildNode(principalName)) {
-            return permissionRoot.child(principalName);
-        } else {
-            return null;
-        }
-    }
-
     private static Tree getTree(String name, NodeState nodeState) {
         return new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, name, nodeState, TreeTypeProvider.EMPTY);
-    }
-
-    private static String getAccessControlledPath(Node aclNode) {
-        if (REP_REPO_POLICY.equals(aclNode.getName())) {
-            return "";
-        } else {
-            return Text.getRelativeParent(aclNode.getPath(), 1);
-        }
-    }
-
-    private static int getAceIndex(Node aclNode, String aceName) {
-        PropertyState ordering = checkNotNull(aclNode.getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
-        return Lists.newArrayList(ordering.getValue(Type.STRINGS)).indexOf(aceName);
-    }
-
-    private Set<Restriction> getRestrictions(String accessControlledPath, Tree aceTree) {
-        return restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), aceTree);
     }
 
     private class Diff extends DefaultNodeStateDiff {
@@ -207,15 +179,12 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         private void addEntry(String name, NodeState ace) {
             PermissionEntry entry = createPermissionEntry(name, ace, parentAfter);
-            entry.writeTo(permissionRoot);
+            entry.add();
         }
 
         private void removeEntry(String name, NodeState ace) {
             PermissionEntry entry = createPermissionEntry(name, ace, parentBefore);
-            NodeBuilder principalRoot = getPrincipalRoot(entry.principalName);
-            if (principalRoot != null) {
-                principalRoot.getChildNode(entry.nodeName).remove();
-            }
+            entry.remove();
         }
 
         private void updateEntry(String name, NodeState before, NodeState after) {
@@ -229,14 +198,10 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         @Nonnull
         private PermissionEntry createPermissionEntry(String name, NodeState ace, Node acl) {
-            Tree aceTree = getTree(name, ace);
-            String accessControlledPath = getAccessControlledPath(acl);
-            String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
-            PrivilegeBits privilegeBits = bitsProvider.getBits(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
-            boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
-
-            return new PermissionEntry(accessControlledPath, getAceIndex(acl, name), principalName,
-                    privilegeBits, isAllow, getRestrictions(accessControlledPath, aceTree));
+            String accessControlledPath = (REP_REPO_POLICY.equals(acl.getName()) ? "" : Text.getRelativeParent(acl.getPath(), 1));
+            PropertyState ordering = checkNotNull(acl.getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+            int index = Lists.newArrayList(ordering.getValue(Type.STRINGS)).indexOf(name);
+            return new PermissionEntry(getTree(name, ace), accessControlledPath, index);
         }
     }
 
@@ -316,21 +281,16 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         private final PrivilegeBits privilegeBits;
         private final boolean isAllow;
         private final Set<Restriction> restrictions;
-
         private final String nodeName;
 
-        private PermissionEntry(@Nonnull String accessControlledPath,
-                      int index,
-                      @Nonnull String principalName,
-                      @Nonnull PrivilegeBits privilegeBits,
-                      boolean isAllow, Set<Restriction> restrictions) {
+        private PermissionEntry(@Nonnull Tree aceTree, @Nonnull String accessControlledPath, int index) {
             this.accessControlledPath = accessControlledPath;
             this.index = index;
 
-            this.principalName = Text.escapeIllegalJcrChars(principalName);
-            this.privilegeBits = privilegeBits;
-            this.isAllow = isAllow;
-            this.restrictions = restrictions;
+            principalName = Text.escapeIllegalJcrChars(checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME)));
+            privilegeBits = bitsProvider.getBits(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
+            isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
+            restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), aceTree);
 
             // create node name from ace definition
             StringBuilder name = new StringBuilder();
@@ -339,7 +299,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             nodeName = name.toString();
         }
 
-        private void writeTo(NodeBuilder permissionRoot) {
+        private void add() {
             NodeBuilder principalRoot = permissionRoot.child(principalName);
             if (!principalRoot.hasProperty(JCR_PRIMARYTYPE)) {
                 principalRoot.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
@@ -351,6 +311,13 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                     .setProperty(privilegeBits.asPropertyState(REP_PRIVILEGE_BITS));
             for (Restriction restriction : restrictions) {
                 entry.setProperty(restriction.getProperty());
+            }
+        }
+
+        private void remove() {
+            if (permissionRoot.hasChildNode(principalName)) {
+                NodeBuilder principalRoot = permissionRoot.child(principalName);
+                principalRoot.getChildNode(nodeName).remove();
             }
         }
 
