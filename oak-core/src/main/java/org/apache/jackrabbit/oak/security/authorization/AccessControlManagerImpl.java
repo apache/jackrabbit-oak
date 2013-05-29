@@ -808,15 +808,15 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
-    private static class ReadPolicy implements NamedAccessControlPolicy {
+    private static final class ReadPolicy implements NamedAccessControlPolicy {
 
         private static final NamedAccessControlPolicy INSTANCE = new ReadPolicy();
 
         private ReadPolicy() {}
 
         @Override
-        public String getName() throws RepositoryException {
-            return "Grants read access on configured trees (default: node types, namespaces and privileges).";
+        public String getName() {
+            return "Grants read access on configured trees.";
         }
     }
 }
