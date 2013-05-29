@@ -473,7 +473,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     private class ConnectedHead extends Head {
-        protected long revision;
+        protected long revision = rootBuilder.baseRevision;
         protected MutableNodeState state;
 
         public ConnectedHead(MutableNodeState state) {
@@ -483,11 +483,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
         @Override
         public Head update() {
             if (revision != rootBuilder.baseRevision) {
-                // the root builder's base state has been reset: re-get
-                // state from parent.
-                MutableNodeState parentState = (MutableNodeState) parent.head().getCurrentNodeState();
-                state = parentState.getMutableChildNode(name);
-                revision = rootBuilder.baseRevision;
+                // the root builder's base state has been reset: transition back
+                // to unconnected and connect again if necessary.
+                return new UnconnectedHead().update();
             }
             return this;
         }
