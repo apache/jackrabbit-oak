@@ -181,5 +181,15 @@ public class Utils {
             target.put(e.getKey(), value);
         }
     }
+    
+    /**
+     * Formats a MongoDB document for use in a log message.
+     * 
+     * @param document the MongoDB document.
+     * @return
+     */
+    public static String formatDocument(Map<String, Object> document) {
+    	return document.toString().replaceAll(", _", ",\n_").replaceAll("}, ", "},\n");
+    }
 
 }
