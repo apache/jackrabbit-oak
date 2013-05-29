@@ -94,6 +94,27 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
     }
 
+    /**
+     * "Squeezes" {@link ModifiedNodeState} instances into equivalent
+     * {@link MemoryNodeState}s. Other kinds of states are returned as-is.
+     */
+    public static NodeState squeeze(NodeState state) {
+        if (state instanceof ModifiedNodeState) {
+            Map<String, PropertyState> properties = newHashMap();
+            for (PropertyState property : state.getProperties()) {
+                properties.put(property.getName(), property);
+            }
+
+            Map<String, NodeState> nodes = newHashMap();
+            for (ChildNodeEntry child : state.getChildNodeEntries()) {
+                nodes.put(child.getName(), squeeze(child.getNodeState()));
+            }
+
+            state = new MemoryNodeState(properties, nodes);
+        }
+        return state;
+    }
+
 
     static long getPropertyCount(
             NodeState base, Map<String, PropertyState> properties) {
