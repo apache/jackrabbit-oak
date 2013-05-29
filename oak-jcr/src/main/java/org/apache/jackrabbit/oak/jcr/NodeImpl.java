@@ -765,12 +765,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean hasNodes() throws RepositoryException {
-        return perform(new ItemReadOperation<Boolean>() {
-            @Override
-            public Boolean perform() throws RepositoryException {
-                return dlg.getChildCount() != 0;
-            }
-        });
+        return getNodes().hasNext();
     }
 
     @Override
