@@ -60,11 +60,12 @@ public class QueryResultImpl implements QueryResult {
      */
     private static final int PREFETCH_TIMEOUT = 100;
 
-    private final SessionContext sessionContext;
-    final SessionDelegate sessionDelegate;
     final Result result;
-    final String pathFilter;
 
+    private final SessionContext sessionContext;
+    private final SessionDelegate sessionDelegate;
+    private final String pathFilter;
+    
     public QueryResultImpl(SessionContext sessionContext, Result result) {
         this.sessionContext = sessionContext;
         this.sessionDelegate = sessionContext.getSessionDelegate();
@@ -240,9 +241,8 @@ public class QueryResultImpl implements QueryResult {
     Value createValue(PropertyValue value) {
         if (value == null) {
             return null;
-        } else {
-            return ValueFactoryImpl.createValue(value, sessionContext);
         }
+        return ValueFactoryImpl.createValue(value, sessionContext);
     }
 
 }
