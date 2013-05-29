@@ -41,10 +41,15 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.Template;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
 public class FileStore implements SegmentStore {
+
+    /** Logger instance */
+    private static final Logger log = LoggerFactory.getLogger(FileStore.class);
 
     private static final long SEGMENT_MAGIC = 0x4f616b0a527845ddL;
 
@@ -68,6 +73,12 @@ public class FileStore implements SegmentStore {
             Maps.newConcurrentMap();
 
     public FileStore(File directory, NodeState root) throws IOException {
+        // http://www.oracle.com/technetwork/java/hotspotfaq-138619.html#64bit_detection
+        if ("32".equals(System.getProperty("sun.arch.data.model"))) {
+            log.warn("TarMK will only work with small repositories"
+                    + " in a 32 bit JVM. Consider switching to a 64 bit JVM.");
+        }
+
         checkNotNull(directory).mkdirs();
         this.directory = directory;
         this.index = 0;
