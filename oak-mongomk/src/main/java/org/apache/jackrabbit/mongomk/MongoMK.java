@@ -392,6 +392,7 @@ public class MongoMK implements MicroKernel {
                 clusterNodeInfo.dispose();
             }
             store.dispose();
+            LOG.info("Disposed MongoMK with clusterNodeId: {}", clusterId);
         }
     }
 
