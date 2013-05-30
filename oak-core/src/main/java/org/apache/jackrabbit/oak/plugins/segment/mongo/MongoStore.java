@@ -109,7 +109,7 @@ public class MongoStore implements SegmentStore {
         System.arraycopy(data, offset, d, 0, length);
 
         cache.addSegment(new Segment(
-                this, segmentId, ByteBuffer.wrap(data), referencedSegmentIds,
+                this, segmentId, ByteBuffer.wrap(d), referencedSegmentIds,
                 Collections.<String, RecordId>emptyMap(),
                 Collections.<Template, RecordId>emptyMap()));
 
