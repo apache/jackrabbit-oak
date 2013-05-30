@@ -122,7 +122,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
             @Override
             public Repository[] setUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
-                stores = new FileStore[cluster.length];
+                stores = new SegmentStore[cluster.length];
                 mongo = new Mongo(host, port);
                 for (int i = 0; i < cluster.length; i++) {
                     stores[i] = new MongoStore(mongo.getDB(unique), cacheSize);
