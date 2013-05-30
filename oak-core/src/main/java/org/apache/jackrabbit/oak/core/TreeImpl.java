@@ -465,8 +465,11 @@ public class TreeImpl implements Tree {
 
     private boolean enter() {
         root.checkLive();
-        applyPendingMoves();
-        return reconnect();
+        if (applyPendingMoves()) {
+            return reconnect();
+        } else {
+            return nodeBuilder.exists();
+        }
     }
 
     private static boolean isHidden(String name) {
@@ -487,12 +490,17 @@ public class TreeImpl implements Tree {
         }
     }
 
-    private void applyPendingMoves() {
+    private boolean applyPendingMoves() {
+        boolean movesApplied = false;
         if (parent != null) {
-            parent.applyPendingMoves();
+            movesApplied = parent.applyPendingMoves();
         }
-
+        Move old = pendingMoves;
         pendingMoves = pendingMoves.apply(this);
+        if (pendingMoves != old) {
+            movesApplied = true;
+        }
+        return movesApplied;
     }
 
     private PropertyState getVisibleProperty(String name) {
