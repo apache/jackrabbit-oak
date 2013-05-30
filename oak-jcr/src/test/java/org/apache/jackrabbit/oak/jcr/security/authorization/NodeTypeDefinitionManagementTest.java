@@ -61,7 +61,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
         Workspace testWsp = testSession.getWorkspace();
         NodeTypeManager ntm = testWsp.getNodeTypeManager();
         NodeTypeTemplate ntd = ntm.createNodeTypeTemplate();
-        ntd.setName("testNodeType");
+        ntd.setName("testRegisterNodeType");
         ntd.setMixin(true);
 
         try {
@@ -80,7 +80,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
         NodeTypeTemplate[] ntds = new NodeTypeTemplate[2];
         ntds[0] = ntd;
         ntds[1] = ntm.createNodeTypeTemplate();
-        ntds[1].setName("anotherNodeType");
+        ntds[1].setName("anotherRegisterNodeType");
         ntds[1].setDeclaredSuperTypeNames(new String[] {"nt:file"});
         try {
             ntm.registerNodeTypes(ntds, true);
@@ -113,14 +113,14 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
             Workspace testWsp = testSession.getWorkspace();
             NodeTypeManager ntm = testWsp.getNodeTypeManager();
             NodeTypeTemplate ntd = ntm.createNodeTypeTemplate();
-            ntd.setName("testNodeType");
+            ntd.setName("testRegisterNodeTypeWithPrivilege");
             ntd.setMixin(true);
             ntm.registerNodeType(ntd, true);
 
             NodeTypeTemplate[] ntds = new NodeTypeTemplate[2];
             ntds[0] = ntd;
             ntds[1] = ntm.createNodeTypeTemplate();
-            ntds[1].setName("anotherNodeType");
+            ntds[1].setName("anotherRegisterNodeTypeWithPrivilege");
             ntds[1].setDeclaredSuperTypeNames(new String[] {"nt:file"});
             ntm.registerNodeTypes(ntds, true);
         } finally {
@@ -132,7 +132,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
     public void testUnRegisterNodeType() throws Exception {
         NodeTypeManager ntm = superuser.getWorkspace().getNodeTypeManager();
         NodeTypeTemplate ntd = ntm.createNodeTypeTemplate();
-        ntd.setName("testNodeType");
+        ntd.setName("testUnregisterNodeType");
         ntd.setMixin(true);
         ntm.registerNodeType(ntd, true);
 
