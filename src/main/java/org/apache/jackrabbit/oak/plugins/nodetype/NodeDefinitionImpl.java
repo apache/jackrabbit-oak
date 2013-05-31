@@ -63,7 +63,10 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
         }
 
         NodeType[] types = new NodeType[oakNames.length];
-        Tree root = definition.getParent().getParent();
+        Tree root = definition.getParent();
+        while (!JCR_NODE_TYPES.equals(root.getName())) {
+            root = root.getParent();
+        }
         for (int i = 0; i < oakNames.length; i++) {
             Tree type = root.getChild(oakNames[i]);
             checkState(type.exists());
