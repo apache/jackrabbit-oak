@@ -2161,6 +2161,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         for (Node child : getChildNodes(node, "jcr:childNodeDefinition")) {
             NodeDefinition definition = child.getDefinition(); // OAK-829
             definition.getDefaultPrimaryType();                // OAK-826
+            definition.getRequiredPrimaryTypes();              // OAK-826
         }
     }
 

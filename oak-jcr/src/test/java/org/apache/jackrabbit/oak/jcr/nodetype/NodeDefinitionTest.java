@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import java.util.ArrayList;
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.Node;
@@ -30,11 +30,11 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore("OAK-826") // FIXME
 public class NodeDefinitionTest extends AbstractJCRTest {
+
+    private List<String> paths;
 
     @Override
     @Before
@@ -44,20 +44,20 @@ public class NodeDefinitionTest extends AbstractJCRTest {
         testRootNode.addNode("a", JcrConstants.NT_UNSTRUCTURED);
         testRootNode.addNode("b", JcrConstants.NT_FOLDER);
         superuser.save();
+
+        paths = Arrays.asList(
+                "/",
+                "/jcr:system",
+                "/jcr:system/jcr:versionStorage",
+                "/jcr:system/jcr:nodeTypes",
+                "/jcr:system/rep:namespaces",
+                testRoot + "/a",
+                testRoot + "/b",
+                "/oak:index");
     }
 
     @Test
     public void testGetRequiredPrimaryTypes() throws RepositoryException {
-        List<String> paths = new ArrayList();
-        paths.add("/");
-        paths.add("/jcr:system");
-        paths.add("/jcr:system/jcr:versionStorage");
-        paths.add("/jcr:system/jcr:nodeTypes");
-        paths.add("/jcr:system/rep:namespaces");
-        paths.add(testRoot + "/a");
-        paths.add(testRoot + "/b");
-        paths.add("/oak:index");
-
         for (String path : paths) {
             Node n = superuser.getNode(path);
             NodeDefinition def = n.getDefinition();
@@ -67,16 +67,6 @@ public class NodeDefinitionTest extends AbstractJCRTest {
 
     @Test
     public void testGetRequiredPrimaryTypes2() throws RepositoryException {
-        List<String> paths = new ArrayList();
-        paths.add("/");
-        paths.add("/jcr:system");
-        paths.add("/jcr:system/jcr:versionStorage");
-        paths.add("/jcr:system/jcr:nodeTypes");
-        paths.add("/jcr:system/rep:namespaces");
-        paths.add(testRoot + "/a");
-        paths.add(testRoot + "/b");
-        paths.add("/oak:index");
-
         for (String path : paths) {
             Node n = superuser.getNode(path);
             for (NodeDefinition nd : getAggregatedNodeDefinitions(n)) {
@@ -87,7 +77,7 @@ public class NodeDefinitionTest extends AbstractJCRTest {
 
 
     private static NodeDefinition[] getAggregatedNodeDefinitions(Node node) throws RepositoryException {
-        Set<NodeDefinition> cDefs = new HashSet();
+        Set<NodeDefinition> cDefs = newHashSet();
         NodeDefinition[] nd = node.getPrimaryNodeType().getChildNodeDefinitions();
         cDefs.addAll(Arrays.asList(nd));
         NodeType[] mixins = node.getMixinNodeTypes();
@@ -99,7 +89,7 @@ public class NodeDefinitionTest extends AbstractJCRTest {
     }
 
     public static PropertyDefinition[] getAggregatedPropertyDefinitionss(Node node) throws RepositoryException {
-        Set<PropertyDefinition> pDefs = new HashSet();
+        Set<PropertyDefinition> pDefs = newHashSet();
         PropertyDefinition pd[] = node.getPrimaryNodeType().getPropertyDefinitions();
         pDefs.addAll(Arrays.asList(pd));
         NodeType[] mixins = node.getMixinNodeTypes();
