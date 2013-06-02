@@ -858,6 +858,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakTypeName = getOakName(checkNotNull(mixinName));
         perform(new ItemWriteOperation<Void>() {
             @Override
+            protected void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!isCheckedOut()) {
+                    throw new VersionException("Cannot add mixin type. Node is checked in.");
+                }
+            }
+            @Override
             public Void perform() throws RepositoryException {
                 dlg.addMixin(oakTypeName);
                 return null;
@@ -868,6 +875,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public void removeMixin(final String mixinName) throws RepositoryException {
         perform(new ItemWriteOperation<Void>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!isCheckedOut()) {
+                    throw new VersionException("Cannot remove mixin type. Node is checked in.");
+                }
+            }
             @Override
             public Void perform() throws RepositoryException {
                 PropertyDelegate propDlg = dlg.getPropertyOrNull(JcrConstants.JCR_MIXINTYPES);
