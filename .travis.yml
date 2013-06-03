@@ -18,7 +18,6 @@ script:   mvn verify -Ppedantic,integrationTesting
 language: java
 jdk:
   - oraclejdk7
-services: mongodb
 notifications:
   email: false
   webhooks:
