@@ -31,17 +31,18 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
@@ -524,11 +525,12 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     private void setupPermission(Principal principal, String path, boolean isAllow,
                                  int index, String[] privilegeName, Set<Restriction> restrictions) throws CommitFailedException {
         PrivilegeBits pb = pbp.getBits(privilegeName);
-        String name = ((isAllow) ? PREFIX_ALLOW : PREFIX_DENY) + "-" + Objects.hashCode(path, principal, index, pb, isAllow, restrictions);
+        String name = PathUtils.getDepth(path) + "_" + Objects.hashCode(path, principal, index, pb, isAllow, restrictions);
         Tree principalRoot = root.getTree(PERMISSIONS_STORE_PATH + '/' + principal.getName());
         Tree entry = principalRoot.addChild(name);
         entry.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS);
         entry.setProperty(REP_ACCESS_CONTROLLED_PATH, path);
+        entry.setProperty(REP_IS_ALLOW, isAllow);
         entry.setProperty(REP_INDEX, index);
         entry.setProperty(pb.asPropertyState(REP_PRIVILEGE_BITS));
         for (Restriction restriction : restrictions) {
@@ -541,7 +543,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
                                   ReadStatus expectedProperties,
                                   CompiledPermissions cp,
                                   String treePath) {
-        assertReadStatus(expectedTrees, expectedTrees, cp, Collections.singleton(treePath));
+        assertReadStatus(expectedTrees, expectedProperties, cp, Collections.singleton(treePath));
     }
 
     private void assertReadStatus(ReadStatus expectedTrees,
