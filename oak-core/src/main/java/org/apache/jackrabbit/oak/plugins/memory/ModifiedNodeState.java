@@ -337,6 +337,10 @@ public class ModifiedNodeState extends AbstractNodeState {
     @Override
     public boolean compareAgainstBaseState(
             NodeState base, final NodeStateDiff diff) {
+        if (this == base) {
+            return true; // no differences
+        }
+
         for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
             PropertyState before = base.getProperty(entry.getKey());
             PropertyState after = entry.getValue();
