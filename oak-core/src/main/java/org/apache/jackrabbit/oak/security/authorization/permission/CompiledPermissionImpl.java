@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Collections;
@@ -27,7 +24,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -52,6 +48,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * TODO: WIP
@@ -81,6 +80,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         this.bitsProvider = bitsProvider;
         this.readPaths = readPaths;
         this.trees = new HashMap<String, ImmutableTree>(principals.size());
+
+        // FIXME: load entries lazily or partially
         buildEntries(permissionsTree);
     }
 
@@ -374,7 +375,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         private PermissionEntry next;
 
         private PermissionEntry(String accessControlledPath, Tree entryTree, RestrictionProvider restrictionsProvider) {
-            isAllow = (PREFIX_ALLOW == entryTree.getName().charAt(0));
+            isAllow = entryTree.getProperty(REP_IS_ALLOW).getValue(Type.BOOLEAN);
             privilegeBits = PrivilegeBits.getInstance(entryTree.getProperty(REP_PRIVILEGE_BITS));
             path = accessControlledPath;
             restriction = restrictionsProvider.getPattern(accessControlledPath, entryTree);
@@ -411,20 +412,31 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         private void addEntries(@Nonnull Principal principal,
                                 @Nonnull Tree principalRoot,
                                 @Nonnull RestrictionProvider restrictionProvider) {
+            boolean isGroup = (principal instanceof Group);
             for (Tree entryTree : principalRoot.getChildren()) {
-                Key key = new Key(entryTree);
-                PermissionEntry entry = new PermissionEntry(key.path, entryTree, restrictionProvider);
-                if (!entry.privilegeBits.isEmpty()) {
-                    if (key.path == null) {
-                        repoEntries.put(key, entry);
-                    } else if (principal instanceof Group) {
-                        groupEntries.put(key, entry);
-                    } else {
-                        userEntries.put(key, entry);
-                    }
-                }
+                traverse(entryTree, isGroup, restrictionProvider);
             }
         }
+
+        private void traverse(@Nonnull Tree entryTree, boolean isGroup, @Nonnull RestrictionProvider restrictionProvider) {
+
+            Key key = new Key(entryTree);
+            PermissionEntry entry = new PermissionEntry(key.path, entryTree, restrictionProvider);
+            if (!entry.privilegeBits.isEmpty()) {
+                if (key.path == null) {
+                    repoEntries.put(key, entry);
+                } else if (isGroup) {
+                    groupEntries.put(key, entry);
+                } else {
+                    userEntries.put(key, entry);
+                }
+            }
+
+            for (Tree child : entryTree.getChildren()) {
+                traverse(child, isGroup, restrictionProvider);
+            }
+        }
+
 
         private Map<Key, PermissionEntry> getRepoEntries() {
             return repoEntries.build();

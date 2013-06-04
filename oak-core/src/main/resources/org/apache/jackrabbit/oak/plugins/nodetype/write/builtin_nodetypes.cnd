@@ -642,7 +642,7 @@
 [rep:PermissionStore]
   orderable
   + * (rep:PermissionStore) = rep:PermissionStore protected IGNORE
-  + * (rep:Permissions) = rep:Permissions protected  IGNORE
+  + * (rep:Permissions) = rep:Permissions protected IGNORE
 
 /**
  * @since oak 1.0
@@ -650,6 +650,7 @@
 [rep:Permissions]
   - * (UNDEFINED) protected
   - * (UNDEFINED) protected multiple
+  + * (rep:Permissions) = rep:Permissions protected IGNORE
 
 // -----------------------------------------------------------------------------
 // Principal based AC
