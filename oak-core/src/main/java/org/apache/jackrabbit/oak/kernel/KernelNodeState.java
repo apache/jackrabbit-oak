@@ -394,7 +394,14 @@ public final class KernelNodeState extends AbstractNodeState {
                         // definitively different.
                         return true;
                     } else if (path.equals(that.path) && !path.equals("/")) {
-                        String jsonDiff = kernel.diff(that.getRevision(), revision, path, 0);
+                        String r1 = revision, r2 = that.getRevision();
+                        if (r1.compareTo(r2) > 0) {
+                            // sort the revisions, to allow the MicroKernel to cache the result
+                            String temp = r1;
+                            r1 = r2;
+                            r2 = temp;
+                        }
+                        String jsonDiff = kernel.diff(r1, r2, path, 0);
                         return !hasChanges(jsonDiff);
                     }
                 }
