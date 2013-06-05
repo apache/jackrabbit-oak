@@ -70,10 +70,23 @@ public class MemoryDocumentStore implements DocumentStore {
     @Override
     @Nonnull
     public List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit) {
+        return query(collection, fromKey, toKey, null, 0, limit);
+    }
+    
+    @Override
+    @Nonnull
+    public List<Map<String, Object>> query(Collection collection, String fromKey,
+            String toKey, String indexedProperty, long startValue, int limit) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         ConcurrentNavigableMap<String, Map<String, Object>> sub = map.subMap(fromKey, toKey);
         ArrayList<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
         for (Map<String, Object> n : sub.values()) {
+            if (indexedProperty != null) {
+                Long value = (Long) n.get(indexedProperty);
+                if (value < startValue) {
+                    continue;
+                }
+            }
             Map<String, Object> copy = Utils.newMap();
             synchronized (n) {
                 Utils.deepCopyMap(n, copy);
@@ -179,7 +192,7 @@ public class MemoryDocumentStore implements DocumentStore {
                     }
                 } else {
                     if (value instanceof Map) {
-                        Map map = (Map) value;
+                        Map<?, ?> map = (Map<?, ?>) value;
                         if (Boolean.TRUE.equals(op.value)) {
                             if (!map.containsKey(kv[1])) {
                                 return false;

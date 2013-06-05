@@ -81,6 +81,19 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
+    
+    @Override
+    @Nonnull
+    public List<Map<String, Object>> query(Collection collection, String fromKey,
+            String toKey, String indexedProperty, long startValue, int limit) {
+        try {
+            logMethod("query", collection, fromKey, toKey, indexedProperty, startValue, limit);
+            return logResult(store.query(collection, fromKey, toKey, indexedProperty, startValue, limit));
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
 
     @Override
     public void remove(Collection collection, String key) {

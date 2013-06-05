@@ -109,11 +109,10 @@ class Collision {
             if ("true".equals(value)) {
                 // already committed
                 return false;
-            } else {
-                // node is also commit root, but not yet committed
-                // i.e. a branch commit, which is not yet merged
-                commitRootPath = p;
             }
+            // node is also commit root, but not yet committed
+            // i.e. a branch commit, which is not yet merged
+            commitRootPath = p;
         } else {
             // next look at commit root
             @SuppressWarnings("unchecked")

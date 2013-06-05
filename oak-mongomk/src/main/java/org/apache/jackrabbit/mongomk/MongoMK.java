@@ -50,6 +50,7 @@ import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.Node.Children;
 import org.apache.jackrabbit.mongomk.Revision.RevisionComparator;
 import org.apache.jackrabbit.mongomk.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
@@ -74,7 +75,13 @@ public class MongoMK implements MicroKernel {
      * The number of nodes to cache.
      */
     private static final int CACHE_NODES = 
-            Integer.getInteger("oak.mongoMK.cacheNodes", 1024);
+            Integer.getInteger("oak.mongoMK.cacheNodes", 5 * 1024);
+    
+    /**
+     * The number of diffs to cache.
+     */
+    private static final int CACHE_DIFF = 
+            Integer.getInteger("oak.mongoMK.cacheNodes", 16);
     
     /**
      * When trying to access revisions that are older than this many
@@ -90,6 +97,18 @@ public class MongoMK implements MicroKernel {
             System.getProperty("oak.mongoMK.backgroundOps", "true"));
 
     /**
+     * Enable fast diff operations.
+     */
+    private static final boolean FAST_DIFF = Boolean.parseBoolean(
+            System.getProperty("oak.mongoMK.fastDiff", "true"));
+    
+    /**
+     * The threshold where special handling for many child node starts.
+     */
+    private static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
+            "oak.mongoMK.manyChildren", 50);
+
+    /**
      * How long to remember the relative order of old revision of all cluster
      * nodes, in milliseconds. The default is one hour.
      */
@@ -99,7 +118,6 @@ public class MongoMK implements MicroKernel {
      * The delay for asynchronous operations (delayed commit propagation and
      * cache update).
      */
-    // TODO test observation with multiple Oak instances
     protected int asyncDelay = 1000;
 
     /**
@@ -140,6 +158,11 @@ public class MongoMK implements MicroKernel {
      * Key: path@rev, value: children
      */
     private final Cache<String, Node.Children> nodeChildrenCache;
+
+    /**
+     * Diff cache.
+     */
+    private final Cache<String, String> diffCache;
 
     /**
      * The unsaved last revisions. This contains the parents of all changed
@@ -185,7 +208,11 @@ public class MongoMK implements MicroKernel {
     private boolean stopBackground;
     
     MongoMK(Builder builder) {
-        this.store = builder.getDocumentStore();
+        DocumentStore s = builder.getDocumentStore();
+        if (builder.getTiming()) {
+            s = new TimingDocumentStoreWrapper(s);
+        }
+        this.store = s;
         this.blobStore = builder.getBlobStore();
         int cid = builder.getClusterId();
         cid = Integer.getInteger("oak.mongoMK.clusterId", cid);
@@ -212,6 +239,10 @@ public class MongoMK implements MicroKernel {
         nodeChildrenCache =  CacheBuilder.newBuilder()
                         .maximumSize(CACHE_CHILDREN)
                         .build();
+        
+        diffCache = CacheBuilder.newBuilder()
+                .maximumSize(CACHE_DIFF)
+                .build();
         
         init();
         // initial reading of the revisions of other cluster nodes
@@ -580,20 +611,27 @@ public class MongoMK implements MicroKernel {
             if (children != null) {
                 nodeChildrenCache.put(key, children);
             }
+        } else if (children.hasMore) {
+            if (limit > children.children.size()) {
+                children = readChildren(path, rev, limit);
+                if (children != null) {
+                    nodeChildrenCache.put(key, children);
+                }
+            }
         }
         return children;        
     }
     
     Node.Children readChildren(String path, Revision rev, int limit) {
-        String from = PathUtils.concat(path, "a");
-        from = Utils.getIdFromPath(from);
-        from = from.substring(0, from.length() - 1);
-        String to = PathUtils.concat(path, "z");
-        to = Utils.getIdFromPath(to);
-        to = to.substring(0, to.length() - 2) + "0";
-        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
+        String from = getPathLowerLimit(path);
+        String to = getPathUpperLimit(path);
+        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, 
+                from, to, limit);
         Children c = new Children(path, rev);
         Set<Revision> validRevisions = new HashSet<Revision>();
+        if (list.size() >= limit) {
+            c.hasMore = true;
+        }
         for (Map<String, Object> e : list) {
             // filter out deleted children
             if (getLiveRevision(e, rev, validRevisions) == null) {
@@ -605,6 +643,20 @@ public class MongoMK implements MicroKernel {
             c.children.add(p);
         }
         return c;
+    }
+    
+    private static String getPathLowerLimit(String path) {
+        String from = PathUtils.concat(path, "a");
+        from = Utils.getIdFromPath(from);
+        from = from.substring(0, from.length() - 1);
+        return from;
+    }
+    
+    private static String getPathUpperLimit(String path) {
+        String to = PathUtils.concat(path, "z");
+        to = Utils.getIdFromPath(to);
+        to = to.substring(0, to.length() - 2) + "0";
+        return to;
     }
 
     private Node readNode(String path, Revision rev) {
@@ -652,6 +704,7 @@ public class MongoMK implements MicroKernel {
             Map<String, String> valueMap = (Map<String, String>) v;
             if (valueMap != null) {
                 if (valueMap instanceof TreeMap) {
+                    // TODO instanceof should be avoided
                     // use descending keys (newest first) if map is sorted
                     valueMap = ((TreeMap<String, String>) valueMap).descendingMap();
                 }
@@ -721,7 +774,18 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public String diff(String fromRevisionId, String toRevisionId, String path,
+    public synchronized String diff(String fromRevisionId, String toRevisionId, String path,
+            int depth) throws MicroKernelException {
+        String key = fromRevisionId + "-" + toRevisionId + "-" + path + "-" + depth;
+        String d = diffCache.getIfPresent(key);
+        if (d == null) {
+            d = diffImpl(fromRevisionId, toRevisionId, path, depth);
+            diffCache.put(key, d);
+        }
+        return d;
+    }
+    
+    private String diffImpl(String fromRevisionId, String toRevisionId, String path,
             int depth) throws MicroKernelException {
         if (fromRevisionId.equals(toRevisionId)) {
             return "";
@@ -734,8 +798,11 @@ public class MongoMK implements MicroKernel {
         }
         fromRevisionId = stripBranchRevMarker(fromRevisionId);
         toRevisionId = stripBranchRevMarker(toRevisionId);
-        Node from = getNode(path, Revision.fromString(fromRevisionId));
-        Node to = getNode(path, Revision.fromString(toRevisionId));
+        Revision fromRev = Revision.fromString(fromRevisionId);
+        Revision toRev = Revision.fromString(toRevisionId);
+        Node from = getNode(path, fromRev);
+        Node to = getNode(path, toRev);
+
         if (from == null || to == null) {
             // TODO implement correct behavior if the node does't/didn't exist
             throw new MicroKernelException("Diff is only supported if the node exists in both cases");
@@ -760,19 +827,53 @@ public class MongoMK implements MicroKernel {
                 w.tag('^').key(p).encodedValue(to.getProperty(p)).newline();
             }
         }
-        Revision fromRev = Revision.fromString(fromRevisionId);
-        Revision toRev = Revision.fromString(toRevisionId);
         // TODO this does not work well for large child node lists 
         // use a MongoDB index instead
-        Children fromChildren = getChildren(path, fromRev, Integer.MAX_VALUE);
-        Children toChildren = getChildren(path, toRev, Integer.MAX_VALUE);
+        int max = MANY_CHILDREN_THRESHOLD;
+        Children fromChildren, toChildren;
+        fromChildren = getChildren(path, fromRev, max);
+        toChildren = getChildren(path, toRev, max);
+        if (!fromChildren.hasMore && !toChildren.hasMore) {
+            diffFewChildren(w, fromChildren, toChildren);
+        } else {
+            if (FAST_DIFF) {
+                diffManyChildren(w, path, fromRev, toRev);
+            } else {
+                max = Integer.MAX_VALUE;
+                fromChildren = getChildren(path, fromRev, max);
+                toChildren = getChildren(path, toRev, max);
+                diffFewChildren(w, fromChildren, toChildren);
+            }
+        }
+        return w.toString();
+    }
+    
+    private void diffManyChildren(JsopWriter w, String path, Revision fromRev, Revision toRev) {
+        long minTimestamp = Math.min(fromRev.getTimestamp(), toRev.getTimestamp());
+        Revision rev = isRevisionNewer(fromRev, toRev) ? toRev : fromRev;
+        long minValue = Commit.getModified(minTimestamp);
+        String fromKey = getPathLowerLimit(path);
+        String toKey = getPathUpperLimit(path);
+        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, fromKey, toKey, 
+                UpdateOp.MODIFIED, minValue, Integer.MAX_VALUE);
+        for (Map<String, Object> e : list) {
+            if (isOlder(e, rev)) {
+                continue;
+            }
+            String id = e.get(UpdateOp.ID).toString();
+            String p = Utils.getPathFromId(id);
+            w.tag('^').key(p).object().endObject().newline();
+        }
+    }
+    
+    private void diffFewChildren(JsopWriter w, Children fromChildren, Children toChildren) {
         Set<String> childrenSet = new HashSet<String>(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('-').value(n).newline();
             } else {
-                Node n1 = getNode(n, fromRev);
-                Node n2 = getNode(n, toRev);
+                Node n1 = getNode(n, fromChildren.rev);
+                Node n2 = getNode(n, toChildren.rev);
                 // this is not fully correct:
                 // a change is detected if the node changed recently,
                 // even if the revisions are well in the past
@@ -788,7 +889,6 @@ public class MongoMK implements MicroKernel {
                 w.tag('+').key(n).object().endObject().newline();
             }
         }
-        return w.toString();
     }
 
     @Override
@@ -818,26 +918,26 @@ public class MongoMK implements MicroKernel {
             throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
         }
         revisionId = revisionId != null ? revisionId : headRevision.toString();
-        if (revisionId.startsWith("b")) {
-            // reading from the branch is reading from the trunk currently
-            revisionId = stripBranchRevMarker(revisionId);
-        }
+        revisionId = stripBranchRevMarker(revisionId);
         Revision rev = Revision.fromString(revisionId);
         Node n = getNode(path, rev);
         if (n == null) {
             return null;
-            // throw new MicroKernelException("Node not found at path " + path);
         }
         JsopStream json = new JsopStream();
         boolean includeId = filter != null && filter.contains(":id");
         includeId |= filter != null && filter.contains(":hash");
         json.object();
         n.append(json, includeId);
+        int max;
         if (maxChildNodes == -1) {
+            max = MANY_CHILDREN_THRESHOLD;
             maxChildNodes = Integer.MAX_VALUE;
+        } else {
+            // avoid overflow (if maxChildNodes is Integer.MAX_VALUE)
+            max = Math.max(maxChildNodes, maxChildNodes + 1);
         }
-        // FIXME: must not read all children!
-        Children c = getChildren(path, rev, Integer.MAX_VALUE);
+        Children c = getChildren(path, rev, max);
         for (long i = offset; i < c.children.size(); i++) {
             if (maxChildNodes-- <= 0) {
                 break;
@@ -845,13 +945,14 @@ public class MongoMK implements MicroKernel {
             String name = PathUtils.getName(c.children.get((int) i));
             json.key(name).object().endObject();
         }
-        json.key(":childNodeCount").value(c.children.size());
+        if (c.hasMore) {
+            // TODO use a better way to notify there are more children
+            json.key(":childNodeCount").value(Integer.MAX_VALUE);
+        } else {
+            json.key(":childNodeCount").value(c.children.size());
+        }
         json.endObject();
-        String result = json.toString();
-        // if (filter != null && filter.contains(":hash")) {
-        //     result = result.replaceAll("\":id\"", "\":hash\"");
-        // }
-        return result;
+        return json.toString();
     }
 
     @Override
@@ -1070,6 +1171,7 @@ public class MongoMK implements MicroKernel {
         // first, search the newest deleted revision
         Revision deletedRev = null;
         if (valueMap instanceof TreeMap) {
+            // TODO instanceof should be avoided
             // use descending keys (newest first) if map is sorted
             valueMap = ((TreeMap<String, String>) valueMap).descendingMap();
         }
@@ -1113,6 +1215,34 @@ public class MongoMK implements MicroKernel {
         return liveRev;
     }
     
+    boolean isOlder(Map<String, Object> map, Revision rev) {
+        Revision revision;
+        for (String key : map.keySet()) {
+            if (!Utils.isPropertyName(key)) {
+                if (key.equals(UpdateOp.ID)) {
+                    continue;
+                } else if (key.equals(UpdateOp.LAST_REV)) {
+                    // TODO could use just this property? it would be faster
+                    continue;
+                } else if (key.equals(UpdateOp.PREVIOUS)) {
+                    continue;
+                } else if (key.equals(UpdateOp.MODIFIED)) {
+                    continue;
+                }                    
+            }
+            Object v = map.get(key);
+            @SuppressWarnings("unchecked")
+            Map<String, String> valueMap = (Map<String, String>) v;
+            for (String r : valueMap.keySet()) {
+                revision = Revision.fromString(r);
+                if (!isRevisionNewer(rev, revision)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
     /**
      * Get the revision of the latest change made to this node.
      * 
@@ -1147,6 +1277,7 @@ public class MongoMK implements MicroKernel {
                 // we have seen a previous change from another cluster node
                 // (which might be conflicting or not) - we need to make
                 // sure this change is visible from now on
+                // TODO verify this is really needed
                 publishRevision(propRev, changeRev);
             }
             if (newestRev == null || isRevisionNewer(propRev, newestRev)) {
@@ -1256,6 +1387,7 @@ public class MongoMK implements MicroKernel {
         // make branch commits visible
         UpdateOp op = new UpdateOp("/", Utils.getIdFromPath("/"), false);
         Revision revision = Revision.fromString(revisionId);
+        Commit.setModified(op, revision);
         Branch b = branches.getBranch(revision);
         if (b != null) {
             for (Revision rev : b.getCommits()) {
@@ -1412,6 +1544,7 @@ public class MongoMK implements MicroKernel {
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.mongoMK.clusterId", 0);
         private int asyncDelay = 1000;
+        private boolean timing;
 
         /**
          * Set the MongoDB connection to use. By default an in-memory store is used.
@@ -1427,6 +1560,21 @@ public class MongoMK implements MicroKernel {
             return this;
         }
         
+        /**
+         * Use the timing document store wrapper.
+         * 
+         * @param timing whether to use the timing wrapper.
+         * @return this
+         */
+        public Builder setTiming(boolean timing) {
+            this.timing = true;
+            return this;
+        }
+        
+        public boolean getTiming() {
+            return timing;
+        }
+
         /**
          * Set the document store to use. By default an in-memory store is used.
          * 

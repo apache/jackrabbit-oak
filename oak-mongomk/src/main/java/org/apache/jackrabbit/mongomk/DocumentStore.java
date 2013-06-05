@@ -105,8 +105,25 @@ public interface DocumentStore {
      * @return the list (possibly empty)
      */
     @Nonnull
-    List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit);
+    List<Map<String, Object>> query(Collection collection, String fromKey, 
+            String toKey, int limit);
     
+    /**
+     * Get a list of documents where the key is greater than a start value and
+     * less than an end value.
+     * 
+     * @param collection the collection
+     * @param fromKey the start value (excluding)
+     * @param toKey the end value (excluding)
+     * @param indexedProperty the name of the indexed property (optional)
+     * @param startValue the minimum value of the indexed property
+     * @param limit the maximum number of entries to return
+     * @return the list (possibly empty)
+     */
+    @Nonnull
+    List<Map<String, Object>> query(Collection collection, String fromKey,
+            String toKey, String indexedProperty, long startValue, int limit);
+
     /**
      * Remove a document.
      *
