@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
@@ -28,36 +30,34 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
 
-import com.google.common.base.Preconditions;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-/**
- * TODO document
- */
 public class ObservationManagerImpl implements ObservationManager {
     private static final Logger log = LoggerFactory.getLogger(ObservationManagerImpl.class);
+    public static final Marker OBSERVATION = MarkerFactory.getMarker("observation");
 
-    private final RootImpl root;
-    private final NamePathMapper namePathMapper;
-    private final ScheduledExecutorService executor;
     private final Map<EventListener, ChangeProcessor> processors = new HashMap<EventListener, ChangeProcessor>();
     private final AtomicBoolean hasEvents = new AtomicBoolean(false);
+    private final ContentRepositoryImpl contentRepository;
     private final ReadOnlyNodeTypeManager ntMgr;
+    private final NamePathMapper namePathMapper;
+    private final ScheduledExecutorService executor;
 
-    public ObservationManagerImpl(Root root, NamePathMapper namePathMapper, ScheduledExecutorService executor) {
-        Preconditions.checkArgument(root instanceof RootImpl, "root must be of actual type RootImpl");
-        this.root = ((RootImpl) root);
+    public ObservationManagerImpl(ContentRepositoryImpl contentRepository, ReadOnlyNodeTypeManager nodeTypeManager,
+            NamePathMapper namePathMapper, ScheduledExecutorService executor) {
+
+        this.contentRepository = contentRepository;
+        this.ntMgr = nodeTypeManager;
         this.namePathMapper = namePathMapper;
         this.executor = executor;
-        this.ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
     }
 
     public synchronized void dispose() {
@@ -79,18 +79,16 @@ public class ObservationManagerImpl implements ObservationManager {
     @Override
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
-        ChangeFilter filter = new ChangeFilter(ntMgr, namePathMapper, eventTypes,
+        EventFilter filter = new EventFilter(ntMgr, namePathMapper, eventTypes,
                 absPath, isDeep, uuid, nodeTypeName, noLocal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
-            log.error(MarkerFactory.getMarker("observation"),
-                    "Registering event listener {} with filter {}", listener, filter);
+            log.error(OBSERVATION, "Registering event listener {} with filter {}", listener, filter);
             processor = new ChangeProcessor(this, listener, filter);
             processors.put(listener, processor);
             processor.start(executor);
         } else {
-            log.debug(MarkerFactory.getMarker("observation"),
-                    "Changing event listener {} to filter {}", listener, filter);
+            log.debug(OBSERVATION, "Changing event listener {} to filter {}", listener, filter);
             processor.setFilter(filter);
         }
     }
@@ -131,11 +129,11 @@ public class ObservationManagerImpl implements ObservationManager {
         return namePathMapper;
     }
 
-    ChangeExtractor getChangeExtractor() {
-        return root.getChangeExtractor();
-    }
-
     void setHasEvents() {
         hasEvents.set(true);
+    }
+
+    Listener newChangeListener() {
+        return contentRepository.newListener();
     }
 }

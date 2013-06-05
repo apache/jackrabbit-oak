@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
@@ -33,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * TODO document
  */
-class ChangeFilter {
+class EventFilter {
 
     private final ReadOnlyNodeTypeManager ntMgr;
     private final NamePathMapper namePathMapper;
@@ -44,10 +46,10 @@ class ChangeFilter {
     private final String[] nodeTypeOakName;
     private final boolean noLocal;        // TODO implement filtering by noLocal
 
-    public ChangeFilter(ReadOnlyNodeTypeManager ntMgr,
-                        NamePathMapper namePathMapper, int eventTypes,
-                        String path, boolean deep, String[] uuid,
-                        String[] nodeTypeName, boolean noLocal)
+    public EventFilter(ReadOnlyNodeTypeManager ntMgr,
+            NamePathMapper namePathMapper, int eventTypes,
+            String path, boolean deep, String[] uuid,
+            String[] nodeTypeName, boolean noLocal)
             throws NoSuchNodeTypeException, RepositoryException {
         this.ntMgr = ntMgr;
         this.namePathMapper = namePathMapper;
@@ -128,9 +130,9 @@ class ChangeFilter {
      *
      * @param nodeTypeNames the node type names.
      * @return the node type names as oak names.
-     * @throws NoSuchNodeTypeException if one of the node type names refers to
+     * @throws javax.jcr.nodetype.NoSuchNodeTypeException if one of the node type names refers to
      *                                 an non-existing node type.
-     * @throws RepositoryException     if an error occurs while reading from the
+     * @throws javax.jcr.RepositoryException     if an error occurs while reading from the
      *                                 node type manager.
      */
     @CheckForNull

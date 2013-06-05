@@ -18,12 +18,17 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -37,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
+import org.apache.jackrabbit.oak.plugins.observation.PostCommitHook;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -61,10 +67,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 public class RootImpl implements Root {
 
     /**
@@ -78,6 +80,8 @@ public class RootImpl implements Root {
     private final NodeStore store;
 
     private final CommitHook hook;
+
+    private final PostCommitHook postHook;
 
     private final String workspaceName;
 
@@ -125,12 +129,14 @@ public class RootImpl implements Root {
      */
     public RootImpl(NodeStore store,
                     CommitHook hook,
+                    PostCommitHook postHook,
                     String workspaceName,
                     Subject subject,
                     SecurityProvider securityProvider,
                     QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
         this.hook = checkNotNull(hook);
+        this.postHook = postHook;
         this.workspaceName = checkNotNull(workspaceName);
         this.subject = checkNotNull(subject);
         this.securityProvider = checkNotNull(securityProvider);
@@ -149,7 +155,7 @@ public class RootImpl implements Root {
 
     public RootImpl(NodeStore store, CommitHook hook) {
         // FIXME: define proper default or pass workspace name with the constructor
-        this(store, hook, Oak.DEFAULT_WORKSPACE_NAME, SystemSubject.INSTANCE,
+        this(store, hook, PostCommitHook.EMPTY, Oak.DEFAULT_WORKSPACE_NAME, SystemSubject.INSTANCE,
                 new OpenSecurityProvider(), new CompositeQueryIndexProvider());
     }
 
@@ -241,7 +247,9 @@ public class RootImpl implements Root {
             @Override
             public CommitFailedException run() {
                 try {
-                    branch.merge(getCommitHook());
+                    NodeState base = branch.getBase();
+                    NodeState newHead = branch.merge(getCommitHook());
+                    postHook.contentChanged(base, newHead);
                     return null;
                 } catch (CommitFailedException e) {
                     return e;
