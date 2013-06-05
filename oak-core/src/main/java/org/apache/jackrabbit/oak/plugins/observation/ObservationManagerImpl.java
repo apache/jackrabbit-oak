@@ -112,7 +112,9 @@ public class ObservationManagerImpl implements ObservationManager {
 
     @Override
     public void setUserData(String userData) throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("User data not supported");
+        for (ChangeProcessor processor : processors.values()) {
+            processor.setUserData(userData);
+        }
     }
 
     @Override

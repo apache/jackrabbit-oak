@@ -58,6 +58,7 @@ class ChangeProcessor implements Runnable {
     private final NamePathMapper namePathMapper;
     private final EventListener listener;
     private final AtomicReference<EventFilter> filterRef;
+    private final AtomicReference<String> userDataRef = new AtomicReference<String>(null);
 
     private volatile boolean running;
     private volatile boolean stopping;
@@ -78,6 +79,10 @@ class ChangeProcessor implements Runnable {
 
     public void setFilter(EventFilter filter) {
         filterRef.set(filter);
+    }
+
+    public void setUserData(String userData) {
+        userDataRef.set(userData);
     }
 
     /**
@@ -294,9 +299,9 @@ class ChangeProcessor implements Runnable {
         }
 
         private EventImpl createEvent(int eventType, String jcrPath) {
-            // TODO support, identifier, info
+            // TODO support identifier, info
             return new EventImpl(ChangeProcessor.this, eventType, jcrPath, changes.getUserId(),
-                    null, null, changes.getDate(), changes.getUserData(), changes.isExternal());
+                    null, null, changes.getDate(), userDataRef.get(), changes.isExternal());
         }
 
         private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property) {
