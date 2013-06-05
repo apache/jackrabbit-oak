@@ -44,7 +44,7 @@ class EventFilter {
     private final boolean deep;
     private final String[] uuid;          // TODO implement filtering by uuid
     private final String[] nodeTypeOakName;
-    private final boolean noLocal;        // TODO implement filtering by noLocal
+    private final boolean noLocal;
 
     public EventFilter(ReadOnlyNodeTypeManager ntMgr,
             NamePathMapper namePathMapper, int eventTypes,
@@ -72,6 +72,10 @@ class EventFilter {
         return PathUtils.isAncestor(path, this.path) ||
                 path.equals(this.path) ||
                 deep && PathUtils.isAncestor(this.path, path);
+    }
+
+    public boolean excludeLocal() {
+        return noLocal;
     }
 
     @Override
