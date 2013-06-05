@@ -26,7 +26,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
 
 /**
  * A MicroKernel wrapper that can be used to log and also time MicroKernel
@@ -43,6 +42,7 @@ public class TimingWrapper implements MicroKernel {
     private long startTime;
     private final Map<String, Count> counts = new HashMap<String, Count>();
     private long lastLogTime;
+    private long totalLogTime;
 
     /**
      * A class that keeps track of timing data and call counts.
@@ -51,43 +51,34 @@ public class TimingWrapper implements MicroKernel {
         public long count;
         public long max;
         public long total;
+        public long paramSize;
+        public long resultSize;
 
-        void update(long time) {
+        void update(long time, int paramSize, int resultSize) {
             count++;
             if (time > max) {
                 max = time;
             }
             total += time;
+            this.paramSize += paramSize;
+            this.resultSize += resultSize;
         }
     }
 
     public TimingWrapper(MicroKernel mk) {
         this.mk = mk;
-        counts.put("commit", new Count());
-        counts.put("getHeadRevision", new Count());
-        counts.put("getJournal", new Count());
-        counts.put("diff", new Count());
-        counts.put("getLength", new Count());
-        counts.put("getNodes", new Count());
-        counts.put("getRevisionHistory", new Count());
-        counts.put("nodeExists", new Count());
-        counts.put("getChildNodeCount", new Count());
-        counts.put("read", new Count());
-        counts.put("waitForCommit", new Count());
-        counts.put("write", new Count());
-        counts.put("branch", new Count());
-        counts.put("merge", new Count());
+        lastLogTime = now();
     }
 
     @Override
     public String commit(String path, String jsonDiff, String revisionId, String message) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.commit(path, jsonDiff, revisionId, message);
-            updateAndLogTimes("commit", start);
+            updateAndLogTimes("commit", start, 
+                    size(path) + size(jsonDiff) + size(message), 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -95,12 +86,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String getHeadRevision() {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.getHeadRevision();
-            updateAndLogTimes("getHeadRevision", start);
+            updateAndLogTimes("getHeadRevision", start, 0, 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -108,12 +98,12 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String getJournal(String fromRevisionId, String toRevisionId, String path) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.getJournal(fromRevisionId, toRevisionId, path);
-            updateAndLogTimes("getJournal", start);
+            updateAndLogTimes("getJournal", start,
+                    size(path), size(result));
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -121,12 +111,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String diff(String fromRevisionId, String toRevisionId, String path, int depth) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.diff(fromRevisionId, toRevisionId, path, depth);
-            updateAndLogTimes("diff", start);
+            updateAndLogTimes("diff", start, size(path), size(result));
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -134,12 +123,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public long getLength(String blobId) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             long result = mk.getLength(blobId);
-            updateAndLogTimes("getLength", start);
+            updateAndLogTimes("getLength", start, size(blobId), 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -147,12 +135,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String getNodes(String path, String revisionId, int depth, long offset, int maxChildNodes, String filter) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.getNodes(path, revisionId, depth, offset, maxChildNodes, filter);
-            updateAndLogTimes("getNodes", start);
+            updateAndLogTimes("getNodes", start, size(path) + size(filter), size(result));
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -160,12 +147,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String getRevisionHistory(long since, int maxEntries, String path) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.getRevisionHistory(since, maxEntries, path);
-            updateAndLogTimes("getRevisionHistory", start);
+            updateAndLogTimes("getRevisionHistory", start, size(path), size(result));
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -173,12 +159,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public boolean nodeExists(String path, String revisionId) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             boolean result = mk.nodeExists(path, revisionId);
-            updateAndLogTimes("nodeExists", start);
+            updateAndLogTimes("nodeExists", start, size(path), 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -186,12 +171,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public long getChildNodeCount(String path, String revisionId) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             long result = mk.getChildNodeCount(path, revisionId);
-            updateAndLogTimes("getChildNodeCount", start);
+            updateAndLogTimes("getChildNodeCount", start, size(path), 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -199,12 +183,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public int read(String blobId, long pos, byte[] buff, int off, int length) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             int result = mk.read(blobId, pos, buff, off, length);
-            updateAndLogTimes("read", start);
+            updateAndLogTimes("read", start, size(blobId) + length, 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -212,15 +195,13 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String waitForCommit(String oldHeadRevisionId, long maxWaitMillis) throws InterruptedException {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.waitForCommit(oldHeadRevisionId, maxWaitMillis);
-            updateAndLogTimes("waitForCommit", start);
+            updateAndLogTimes("waitForCommit", start, 0, 0);
             return result;
         } catch (InterruptedException e) {
-            logException(e);
             throw e;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -228,12 +209,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String write(InputStream in) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.write(in);
-            updateAndLogTimes("write", start);
+            updateAndLogTimes("write", start, 0, size(result));
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -241,12 +221,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String branch(String trunkRevisionId) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.branch(trunkRevisionId);
-            updateAndLogTimes("branch", start);
+            updateAndLogTimes("branch", start, 0, 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -254,12 +233,11 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String merge(String branchRevisionId, String message) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.merge(branchRevisionId, message);
-            updateAndLogTimes("merge", start);
+            updateAndLogTimes("merge", start, size(message), 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
@@ -268,63 +246,76 @@ public class TimingWrapper implements MicroKernel {
     @Override
     public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
         try {
-            long start = System.currentTimeMillis();
+            long start = now();
             String result = mk.rebase(branchRevisionId, newBaseRevisionId);
-            updateAndLogTimes("rebase", start);
+            updateAndLogTimes("rebase", start, 0, 0);
             return result;
         } catch (Exception e) {
-            logException(e);
             throw convert(e);
         }
     }
 
-    public static String quote(Object o) {
-        if (o == null) {
-            return "null";
-        } else if (o instanceof String) {
-            return JsopBuilder.encode((String) o);
-        }
-        return o.toString();
-    }
-
-    private RuntimeException convert(Exception e) {
+    private static RuntimeException convert(Exception e) {
         if (e instanceof RuntimeException) {
             return (RuntimeException) e;
         }
-        log("// unexpected exception type: " + e.getClass().getName());
         return new MicroKernelException("Unexpected exception: " + e.toString(), e);
     }
 
-    private void logException(Exception e) {
-        log("// exception: " + e.toString());
-    }
-    
     private void log(String message) {
         if (DEBUG) {
-            System.out.println(id + " " + message);
+            System.out.println("[" + id + "] " + message);
         }
     }
+    
+    private static int size(String s) {
+        return s == null ? 0 : s.length();
+    }
+    
+    private static long now() {
+        return System.currentTimeMillis();
+    }
 
-    private void updateAndLogTimes(String operation, long start) {
+    private void updateAndLogTimes(String operation, long start, int paramSize, int resultSize) {
+        long now = now();
         if (startTime == 0) {
-            startTime = System.currentTimeMillis();
+            startTime = now;
         }
-        counts.get(operation).update(System.currentTimeMillis() - start);
-        long now = System.currentTimeMillis();
-        if (now - lastLogTime >= 2000) {
+        Count c = counts.get(operation);
+        if (c == null) {
+            c = new Count();
+            counts.put(operation, c);
+        }
+        c.update(now - start, paramSize, resultSize);
+        long t = now - lastLogTime;
+        if (t >= 2000) {
+            totalLogTime += t;
             lastLogTime = now;
-            for (Entry<String, Count> count : counts.entrySet()) {
-                double c = count.getValue().count;
-                double max = count.getValue().max;
-                double total = count.getValue().total;
-                double avg = total / c;
-                if (c > 0) {
-                    log(count.getKey() + " --> count:" + c + " avg: " + avg
-                            + " max: " + max + " total: " + total);
+            long totalCount = 0, totalTime = 0;
+            for (Count count : counts.values()) {
+                totalCount += count.count;
+                totalTime += count.total;
+            }
+            totalCount = Math.max(1, totalCount);
+            totalTime = Math.max(1, totalTime);
+            for (Entry<String, Count> e : counts.entrySet()) {
+                c = e.getValue();
+                long count = c.count;
+                long total = c.total;
+                long in = c.paramSize / 1024 / 1024;
+                long out = c.resultSize / 1024 / 1024;
+                if (count > 0) {
+                    log(e.getKey() + 
+                            " count " + count + 
+                            " " + (100 * count / totalCount) + "%" +
+                            " in " + in + " out " + out +
+                            " time " + total +
+                            " " + (100 * total / totalTime) + "%");
                 }
             }
-            System.out.println("Time: " + ((now - startTime) / 1000L));
-            System.out.println("------");
+            log("all count " + totalCount + " time " + totalTime + " " + 
+                    (100 * totalTime / totalLogTime) + "%");
+            log("------");
         }
     }
 }
