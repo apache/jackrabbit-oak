@@ -173,7 +173,6 @@ public class ChangeDispatcher {
         public abstract boolean isExternal();
         public abstract boolean isLocal(ContentSession contentSession);
         public abstract String getUserId();
-        public abstract String getUserData();
         public abstract long getDate();
 
         public void diff(NodeStateDiff diff) {
@@ -186,7 +185,6 @@ public class ChangeDispatcher {
                 .add("base", before)
                 .add("head", after)
                 .add("userId", getUserId())
-                .add("userData", getUserData())
                 .add("date", getDate())
                 .toString();
         }
@@ -240,12 +238,6 @@ public class ChangeDispatcher {
             }
 
             @Override
-            public String getUserData() {
-                // TODO implement getUserData
-                return DUMMY_USER_DATA;
-            }
-
-            @Override
             public long getDate() {
                 return date;
             }
@@ -278,11 +270,6 @@ public class ChangeDispatcher {
 
             @Override
             public String getUserId() {
-                return OAK_UNKNOWN;
-            }
-
-            @Override
-            public String getUserData() {
                 return OAK_UNKNOWN;
             }
 
