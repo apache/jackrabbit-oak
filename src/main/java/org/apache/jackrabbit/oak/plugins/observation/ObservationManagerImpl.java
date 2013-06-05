@@ -30,9 +30,9 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
 
+import com.google.common.base.Preconditions;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
@@ -47,16 +47,16 @@ public class ObservationManagerImpl implements ObservationManager {
 
     private final Map<EventListener, ChangeProcessor> processors = new HashMap<EventListener, ChangeProcessor>();
     private final AtomicBoolean hasEvents = new AtomicBoolean(false);
-    private final ContentRepositoryImpl contentRepository;
     private final ContentSession contentSession;
     private final ReadOnlyNodeTypeManager ntMgr;
     private final NamePathMapper namePathMapper;
     private final ScheduledExecutorService executor;
 
-    public ObservationManagerImpl(ContentRepositoryImpl contentRepository, ContentSession contentSession,
-            ReadOnlyNodeTypeManager nodeTypeManager, NamePathMapper namePathMapper, ScheduledExecutorService executor) {
+    public ObservationManagerImpl(ContentSession contentSession, ReadOnlyNodeTypeManager nodeTypeManager,
+            NamePathMapper namePathMapper, ScheduledExecutorService executor) {
 
-        this.contentRepository = contentRepository;
+        Preconditions.checkArgument(contentSession instanceof Observable);
+
         this.contentSession = contentSession;
         this.ntMgr = nodeTypeManager;
         this.namePathMapper = namePathMapper;
@@ -139,7 +139,7 @@ public class ObservationManagerImpl implements ObservationManager {
     }
 
     Listener newChangeListener() {
-        return contentRepository.newListener();
+        return ((Observable) contentSession).newListener();
     }
 
     public ContentSession getContentSession() {
