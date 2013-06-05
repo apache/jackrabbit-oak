@@ -32,6 +32,8 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mongomk.MongoMK;
+import org.apache.jackrabbit.mongomk.util.LogWrapper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -112,6 +114,9 @@ public class Oak {
 
     public Oak() {
         this(new MicroKernelImpl());
+        // this(new MongoMK.Builder().open());
+        // this(new LogWrapper(new MicroKernelImpl()));
+        // this(new LogWrapper(new MongoMK.Builder().open()));
     }
 
     /**
