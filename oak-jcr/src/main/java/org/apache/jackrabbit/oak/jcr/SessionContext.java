@@ -42,7 +42,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -246,13 +247,13 @@ public abstract class SessionContext implements NamePathMapper {
     public ObservationManager getObservationManager() throws UnsupportedRepositoryOperationException {
         if (observationManager == null) {
             ContentRepository contentRepository = repository.getContentRepository();
-            if (!(contentRepository instanceof ContentRepositoryImpl)) {
-                throw new UnsupportedRepositoryOperationException("Observation not supported");
+            ContentSession contentSession = getSessionDelegate().getContentSession();
+            if (!(contentSession instanceof Observable)) {
+                throw new UnsupportedRepositoryOperationException("Observation not supported for session " + contentSession);
             }
+
             observationManager = new ObservationManagerImpl(
-                // FIXME avoid casting to implementation
-                ((ContentRepositoryImpl) contentRepository),
-                getSessionDelegate().getContentSession(),
+                contentSession,
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
                 namePathMapper, repository.getObservationExecutor());
         }

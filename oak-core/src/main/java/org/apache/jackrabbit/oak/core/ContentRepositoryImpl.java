@@ -27,7 +27,6 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -96,10 +95,6 @@ public class ContentRepositoryImpl implements ContentRepository {
 
     public NodeStore getNodeStore() {
         return nodeStore;
-    }
-
-    public Listener newListener() {
-        return changeDispatcher.newListener();
     }
 
 }

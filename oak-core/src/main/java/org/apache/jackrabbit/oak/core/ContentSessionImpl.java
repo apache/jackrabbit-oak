@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -39,7 +41,7 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
  */
-class ContentSessionImpl implements ContentSession {
+class ContentSessionImpl implements ContentSession, Observable {
 
     private static final Logger log = LoggerFactory.getLogger(ContentSessionImpl.class);
 
@@ -108,6 +110,11 @@ class ContentSessionImpl implements ContentSession {
             }            
         };
         return root;
+    }
+
+    @Override
+    public Listener newListener() {
+        return changeDispatcher.newListener();
     }
 
     //-----------------------------------------------------------< Closable >---

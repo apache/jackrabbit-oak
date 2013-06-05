@@ -176,6 +176,7 @@ public class ChangeDispatcher {
         public abstract long getDate();
 
         public void diff(NodeStateDiff diff) {
+            // TODO wrap diff into access check wrapper
             after.compareAgainstBaseState(before, diff);
         }
 
