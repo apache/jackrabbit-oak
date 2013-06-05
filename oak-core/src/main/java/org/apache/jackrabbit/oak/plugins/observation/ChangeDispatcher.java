@@ -37,22 +37,55 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.TODO;
 
+/**
+ * A {@code ChangeDispatcher} instance records changes to a {@link NodeStore}
+ * and dispatches them to interested parties.
+ * <p>
+ * The {@link #newHook(ContentSession)} method registers a hook for
+ * reporting changes. Actual changes are reported by calling
+ * {@link Hook#contentChanged(NodeState, NodeState)}. Such changes are considered
+ * to have occurred on the local cluster node and are recorded as such. Changes
+ * that occurred in-between calls to any hook registered with a change processor
+ * are considered to have occurred on a different cluster node and are recorded as such.
+ * <p>
+ * The {@link #newListener()} registers a listener for receiving changes reported
+ * into a change dispatcher by any of its hooks.
+ */
 public class ChangeDispatcher {
     private final NodeStore store;
     private final Set<Listener> listeners = Sets.newHashSet();
 
-    private NodeState previous;
+    private NodeState previousRoot;
 
-    public ChangeDispatcher(NodeStore store) {
+    /**
+     * Create a new instance for recording changes to {@code store}.
+     * @param store  the node store to record changes for
+     */
+    public ChangeDispatcher(@Nonnull NodeStore store) {
         this.store = store;
-        previous = checkNotNull(store.getRoot());
+        previousRoot = checkNotNull(store.getRoot());
     }
 
+    /**
+     * Create a new {@link Hook} for reporting changes occurring in the
+     * passed {@code contentSession}. The content session is used to
+     * determine the user associated with the changes recorded through this
+     * hook and to determine the originating session of changes.
+     * @param contentSession  session which will be associated with any changes reported
+     *                        through this hook.
+     * @return a new {@code Hook} instance
+     */
     @Nonnull
-    public Hook createHook(ContentSession contentSession) {
+    public Hook newHook(ContentSession contentSession) {
         return new Hook(contentSession);
     }
 
+    /**
+     * Create a new {@link Listener} for receiving changes reported into
+     * this change dispatcher. Listeners need to be {@link Listener#dispose() disposed}
+     * when no longer needed.
+     * @return  a new {@code Listener} instance.
+     */
     @Nonnull
     public Listener newListener() {
         Listener listener = new Listener();
@@ -75,9 +108,9 @@ public class ChangeDispatcher {
 
     @CheckForNull
     private synchronized ChangeSet externalChange(NodeState root) {
-        if (root != previous) {
-            ChangeSet changeSet = ChangeSet.external(previous, root);
-            previous = root;
+        if (root != previousRoot) {
+            ChangeSet changeSet = ChangeSet.external(previousRoot, root);
+            previousRoot = root;
             return changeSet;
         }
         return null;
@@ -85,8 +118,8 @@ public class ChangeDispatcher {
 
     @Nonnull
     private synchronized ChangeSet internalChange(NodeState root, ContentSession contentSession) {
-        ChangeSet changeSet = ChangeSet.local(previous, root, contentSession);
-        previous = root;
+        ChangeSet changeSet = ChangeSet.local(previousRoot, root, contentSession);
+        previousRoot = root;
         return changeSet;
     }
 
@@ -116,6 +149,13 @@ public class ChangeDispatcher {
 
     //------------------------------------------------------------< Sink >---
 
+    /**
+     * Hook for reporting changes. Actual changes are reported by calling
+     * {@link Hook#contentChanged(NodeState, NodeState)}. Such changes are considered
+     * to have occurred on the local cluster node and are recorded as such. Changes
+     * that occurred in-between calls to any hook registered with a change processor
+     * are considered to have occurred on a different cluster node and are recorded as such.
+     */
     public class Hook implements PostCommitHook {
         private final ContentSession contentSession;
 
@@ -131,13 +171,24 @@ public class ChangeDispatcher {
 
     //------------------------------------------------------------< Listener >---
 
+    /**
+     * Listener for receiving changes reported into a change dispatcher by any of its hooks.
+     */
     public class Listener {
         private final Queue<ChangeSet> changeSets = Queues.newLinkedBlockingQueue();
 
+        /**
+         * Free up any resources associated by this hook.
+         */
         public void dispose() {
             unregister(this);
         }
 
+        /**
+         * Poll for changes reported to this listener.
+         * @return  {@code ChangeSet} of the changes or {@code null} if no changes occurred since
+         *          the last call to this method.
+         */
         @CheckForNull
         public ChangeSet getChanges() {
             if (changeSets.isEmpty()) {
@@ -153,15 +204,21 @@ public class ChangeDispatcher {
 
     //------------------------------------------------------------< ChangeSet >---
 
+    /**
+     * Instances of this class represent changes to a node store. In addition they
+     * record meta data associated with such changes like whether a change occurred
+     * on the local cluster node, the user causing the changes and the date the changes
+     * where persisted.
+     */
     public abstract static class ChangeSet {
         private final NodeState before;
         private final NodeState after;
 
-        public static ChangeSet local(NodeState base, NodeState head, ContentSession contentSession) {
+        static ChangeSet local(NodeState base, NodeState head, ContentSession contentSession) {
             return new InternalChangeSet(base, head, contentSession, System.currentTimeMillis());
         }
 
-        public static ChangeSet external(NodeState base, NodeState head) {
+        static ChangeSet external(NodeState base, NodeState head) {
             return new ExternalChangeSet(base, head);
         }
 
@@ -170,11 +227,38 @@ public class ChangeDispatcher {
             this.after = after;
         }
 
+        /**
+         * Determine whether these changes originate from the local cluster node
+         * or an external cluster node.
+         * @return  {@code true} iff the changes originate from a remote cluster node.
+         */
         public abstract boolean isExternal();
+
+        /**
+         * Determine whether these changes where caused by the passed content
+         * session.
+         * @param contentSession  content session to test for
+         * @return  {@code true} iff these changes where cause by the passed content session.
+         *          Always {@code false} if {@link #isExternal()} is {@code true}.
+         */
         public abstract boolean isLocal(ContentSession contentSession);
+
+        /**
+         * Determine the user associated with these changes.
+         * @return  user id or {@link ObservationConstants#OAK_UNKNOWN} if {@link #isExternal()} is {@code true}.
+         */
         public abstract String getUserId();
+
+        /**
+         * Determine the date when these changes where persisted.
+         * @return  date or {@code 0} if {@link #isExternal()} is {@code true}.
+         */
         public abstract long getDate();
 
+        /**
+         * {@link NodeStateDiff} of the changes
+         * @param diff  node state diff instance for traversing the changes.
+         */
         public void diff(NodeStateDiff diff) {
             // TODO wrap diff into access check wrapper
             after.compareAgainstBaseState(before, diff);
