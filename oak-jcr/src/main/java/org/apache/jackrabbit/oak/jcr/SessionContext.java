@@ -249,10 +249,10 @@ public abstract class SessionContext implements NamePathMapper {
             if (!(contentRepository instanceof ContentRepositoryImpl)) {
                 throw new UnsupportedRepositoryOperationException("Observation not supported");
             }
-
             observationManager = new ObservationManagerImpl(
                 // FIXME avoid casting to implementation
                 ((ContentRepositoryImpl) contentRepository),
+                getSessionDelegate().getContentSession(),
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
                 namePathMapper, repository.getObservationExecutor());
         }

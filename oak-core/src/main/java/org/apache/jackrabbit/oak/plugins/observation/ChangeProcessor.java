@@ -125,7 +125,8 @@ class ChangeProcessor implements Runnable {
         running = true;
         try{
             ChangeSet changes = changeListener.getChanges();
-            if (changes != null) {
+            if (changes != null &&
+                    !(filterRef.get().excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes);
                 changes.diff(diff);
                 if (!stopping) {
