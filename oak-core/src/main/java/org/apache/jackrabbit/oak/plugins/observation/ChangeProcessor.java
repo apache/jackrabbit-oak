@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
@@ -34,12 +36,12 @@ import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -49,40 +51,49 @@ import org.slf4j.MarkerFactory;
  * TODO document
  */
 class ChangeProcessor implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
+    private static final Marker DEPRECATED = MarkerFactory.getMarker("deprecated");
 
-    private static final Logger log =
-            LoggerFactory.getLogger(ChangeProcessor.class);
-
-    private static final Marker DEPRECATED =
-            MarkerFactory.getMarker("deprecated");
-
-    private static final String DUMMY_USER_ID = TODO.dummyImplementation().returnValueOrNull("oak:unknown");
     private final ObservationManagerImpl observationManager;
     private final NamePathMapper namePathMapper;
-    private final ChangeExtractor changeExtractor;
     private final EventListener listener;
-    private final AtomicReference<ChangeFilter> filterRef;
+    private final AtomicReference<EventFilter> filterRef;
+
     private volatile boolean running;
     private volatile boolean stopping;
     private ScheduledFuture<?> future;
+    private Listener changeListener;
 
-    private boolean userIDAccessed = false;
-    private boolean userDataAccessed = false;
-    private boolean isExternalAccessed = false;
-    private boolean userInfoAccessedWithoutExternalsCheck = false;
-    private boolean userInfoAccessedFromExternalEvent = false;
+    private boolean userInfoAccessedWithoutExternalsCheck;
+    private boolean userInfoAccessedFromExternalEvent;
+    private boolean dateAccessedWithoutExternalsCheck;
+    private boolean dateAccessedFromExternalEvent;
 
-    public ChangeProcessor(ObservationManagerImpl observationManager, EventListener listener, ChangeFilter filter) {
+    public ChangeProcessor(ObservationManagerImpl observationManager, EventListener listener, EventFilter filter) {
         this.observationManager = observationManager;
         this.namePathMapper = observationManager.getNamePathMapper();
-        this.changeExtractor = observationManager.getChangeExtractor();
         this.listener = listener;
-        filterRef = new AtomicReference<ChangeFilter>(filter);
+        filterRef = new AtomicReference<EventFilter>(filter);
     }
 
-    public void setFilter(ChangeFilter filter) {
+    public void setFilter(EventFilter filter) {
         filterRef.set(filter);
     }
+
+    /**
+     * Start the change processor on the passed {@code executor}.
+     * @param executor
+     * @throws IllegalStateException if started already
+     */
+    public synchronized void start(ScheduledExecutorService executor) {
+        if (future != null) {
+            throw new IllegalStateException("Change processor started already");
+        }
+        stopping = false;
+        changeListener = observationManager.newChangeListener();
+        future = executor.scheduleWithFixedDelay(this, 100, 1000, TimeUnit.MILLISECONDS);
+    }
+
 
     /**
      * Stop this change processor if running. After returning from this methods no further
@@ -104,31 +115,22 @@ class ChangeProcessor implements Runnable {
             Thread.currentThread().interrupt();
         }
         finally {
+            changeListener.dispose();
             future = null;
         }
-    }
-
-    /**
-     * Start the change processor on the passed {@code executor}.
-     * @param executor
-     * @throws IllegalStateException if started already
-     */
-    public synchronized void start(ScheduledExecutorService executor) {
-        if (future != null) {
-            throw new IllegalStateException("Change processor started already");
-        }
-        stopping = false;
-        future = executor.scheduleWithFixedDelay(this, 100, 1000, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void run() {
         running = true;
         try{
-            EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff();
-            changeExtractor.getChanges(diff);
-            if (!stopping) {
-                diff.sendEvents();
+            ChangeSet changes = changeListener.getChanges();
+            if (changes != null) {
+                EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes);
+                changes.diff(diff);
+                if (!stopping) {
+                    diff.sendEvents();
+                }
             }
         } catch (Exception e) {
             log.error("Unable to generate or send events", e);
@@ -138,18 +140,6 @@ class ChangeProcessor implements Runnable {
                 notifyAll();
             }
         }
-    }
-
-    synchronized void userIDAccessed() {
-        userIDAccessed = true;
-    }
-
-    synchronized void userDataAccessed() {
-        userDataAccessed = true;
-    }
-
-    synchronized void externalAccessed() {
-        isExternalAccessed = true;
     }
 
     synchronized void userInfoAccessedWithoutExternalCheck() {
@@ -171,25 +161,48 @@ class ChangeProcessor implements Runnable {
         }
     }
 
+    synchronized void dateAccessedWithoutExternalCheck() {
+        if (!dateAccessedWithoutExternalsCheck) {
+            log.warn(DEPRECATED,
+                    "Event listener " + listener + " is trying to access"
+                    + " event date information without checking for whether"
+                    + " the event is external");
+            dateAccessedWithoutExternalsCheck = true;
+        }
+    }
+
+    synchronized void dateAccessedFromExternalEvent() {
+        if (!dateAccessedFromExternalEvent) {
+            log.warn(DEPRECATED,
+                    "Event listener " + listener + " is trying to access"
+                    + " event date information from an external event");
+            dateAccessedFromExternalEvent = true;
+        }
+    }
+
     //------------------------------------------------------------< private >---
 
     private class EventGeneratingNodeStateDiff implements NodeStateDiff {
         public static final int PURGE_LIMIT = 8192;
 
+        private final ChangeSet changes;
         private final String path;
         private final NodeState associatedParentNode;
 
-        private int childNodeCount;
         private List<Iterator<Event>> events;
+        private int childNodeCount;
 
-        EventGeneratingNodeStateDiff(String path, List<Iterator<Event>> events, NodeState associatedParentNode) {
+        EventGeneratingNodeStateDiff(ChangeSet changes, String path, List<Iterator<Event>> events,
+                NodeState associatedParentNode) {
+
+            this.changes = changes;
             this.path = path;
-            this.associatedParentNode = associatedParentNode;
             this.events = events;
+            this.associatedParentNode = associatedParentNode;
         }
 
-        public EventGeneratingNodeStateDiff() {
-            this("/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null);
+        public EventGeneratingNodeStateDiff(ChangeSet changes) {
+            this(changes, "/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null);
         }
 
         public void sendEvents() {
@@ -268,7 +281,7 @@ class ChangeProcessor implements Runnable {
             if (!NodeStateUtils.isHidden(name)
                     && filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
-                        PathUtils.concat(path, name), events, after);
+                        changes, PathUtils.concat(path, name), events, after);
                 if (!after.compareAgainstBaseState(before, diff)) {
                     return false;
                 }
@@ -279,23 +292,26 @@ class ChangeProcessor implements Runnable {
             return !stopping;
         }
 
+        private EventImpl createEvent(int eventType, String jcrPath) {
+            // TODO support, identifier, info
+            return new EventImpl(ChangeProcessor.this, eventType, jcrPath, changes.getUserId(),
+                    null, null, changes.getDate(), changes.getUserData(), changes.isExternal());
+        }
+
         private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property) {
             String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
-
-            // TODO support userId, identifier, info, date
-            return new EventImpl(ChangeProcessor.this, eventType, jcrPath, DUMMY_USER_ID, null, null, 0, null, false);
+            return createEvent(eventType, jcrPath);
         }
 
         private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String name, NodeState node) {
-            ChangeFilter filter = filterRef.get();
+            EventFilter filter = filterRef.get();
             final String path = PathUtils.concat(parentPath, name);
             String jcrParentPath = namePathMapper.getJcrPath(parentPath);
             String jcrPath = namePathMapper.getJcrPath(path);
 
             Iterator<Event> nodeEvent;
             if (filter.include(eventType, jcrParentPath, associatedParentNode)) {
-                // TODO support userId, identifier, info, date
-                Event event = new EventImpl(ChangeProcessor.this, eventType, jcrPath, DUMMY_USER_ID, null, null, 0, null, false);
+                Event event = createEvent(eventType, jcrPath);
                 nodeEvent = Iterators.singletonIterator(event);
             } else {
                 nodeEvent = Iterators.emptyIterator();

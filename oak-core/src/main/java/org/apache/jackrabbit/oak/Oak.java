@@ -16,9 +16,14 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static java.util.concurrent.Executors.newScheduledThreadPool;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
@@ -37,7 +42,6 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
-import org.apache.jackrabbit.oak.plugins.observation2.EventQueueWriterProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -57,10 +61,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -293,7 +293,6 @@ public class Oak {
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
         with(new IndexUpdateProvider(indexEditors));
-        with(new EventQueueWriterProvider());
         withEditorHook();
         CommitHook commitHook = CompositeHook.compose(commitHooks);
         return new ContentRepositoryImpl(

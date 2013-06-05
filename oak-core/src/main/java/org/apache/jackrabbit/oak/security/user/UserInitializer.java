@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -28,6 +30,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.observation.PostCommitHook;
 import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -43,8 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -98,7 +99,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             throw new RuntimeException(e);
         }
         // TODO reconsider
-        Root root = new RootImpl(store, commitHook, workspaceName, SystemSubject.INSTANCE, new OpenSecurityProvider(), indexProvider);
+        Root root = new RootImpl(store, commitHook, PostCommitHook.EMPTY, workspaceName, SystemSubject.INSTANCE, new OpenSecurityProvider(), indexProvider);
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);

@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -23,10 +28,11 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
-import org.apache.jackrabbit.oak.query.ast.Operator;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrCommitHook;
+import org.apache.jackrabbit.oak.plugins.observation.PostCommitHook;
+import org.apache.jackrabbit.oak.query.ast.Operator;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -34,11 +40,6 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
 
 /**
  * Integration test for {@link org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex} and {@link org.apache.jackrabbit.oak.plugins.index.solr.index.SolrCommitHook} working
@@ -48,7 +49,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
 
     @Override
     protected RootImpl createRootImpl() {
-        return new RootImpl(store, new SolrCommitHook(server), "solr-query-engine-it", new Subject(),
+        return new RootImpl(store, new SolrCommitHook(server), PostCommitHook.EMPTY, "solr-query-engine-it", new Subject(),
                 new OpenSecurityProvider(), new CompositeQueryIndexProvider());
     }
 
