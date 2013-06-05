@@ -380,16 +380,6 @@ public class TreeImpl implements Tree {
     }
 
     /**
-     * Reset this (root) tree instance's underlying node state to the passed {@code state}.
-     * @param state
-     * @throws IllegalStateException  if {@code isRoot()} is {@code false}.
-     */
-    void reset(NodeState state) {
-        checkState(parent == null);
-        nodeBuilder.reset(state);
-    }
-
-    /**
      * Get a possibly non existing tree.
      * @param path the path to the tree
      * @return a {@link Tree} instance for the child at {@code path}.
