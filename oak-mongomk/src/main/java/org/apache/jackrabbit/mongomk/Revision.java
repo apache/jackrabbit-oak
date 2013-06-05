@@ -172,6 +172,8 @@ public class Revision {
     public boolean equals(Object other) {
         if (this == other) {
             return true;
+        } else if (other == null) {
+            return false;
         } else if (other.getClass() != this.getClass()) {
             return false;
         }

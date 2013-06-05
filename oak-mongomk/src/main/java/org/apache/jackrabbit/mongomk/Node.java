@@ -76,6 +76,7 @@ public class Node {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(path, id, isNew);
         op.set(UpdateOp.ID, id);
+        Commit.setModified(op, rev);
         op.setMapEntry(UpdateOp.DELETED, rev.toString(), "false");
         op.setMapEntry(UpdateOp.LAST_REV, "" + rev.getClusterId(), rev.toString());
         for (String p : properties.keySet()) {
@@ -119,6 +120,8 @@ public class Node {
         final Revision rev;
         
         final ArrayList<String> children = new ArrayList<String>();
+        
+        boolean hasMore;
         
         Children(String path, Revision rev) {
             this.path = path;

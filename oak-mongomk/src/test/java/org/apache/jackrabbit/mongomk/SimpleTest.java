@@ -306,13 +306,13 @@ public class SimpleTest {
             jsop.tag('+').key(s).object().key(s).value("x").endObject();
             rev = mk.commit("/", jsop.toString(), 
                     null, null);
-            nodes = mk.getNodes("/" + s, rev, 0, 0, 10, null);
+            nodes = mk.getNodes("/" + s, rev, 0, 0, 100, null);
             jsop = new JsopBuilder();
             jsop.object().key(s).value("x").
                     key(":childNodeCount").value(0).endObject();
             String n = jsop.toString();
             assertEquals(n, nodes);
-            nodes = mk.getNodes("/", rev, 0, 0, 10, null);
+            nodes = mk.getNodes("/", rev, 0, 0, 100, null);
             jsop = new JsopBuilder();
             jsop.object().key(s).object().endObject().
             key(":childNodeCount").value(1).endObject();

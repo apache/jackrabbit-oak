@@ -76,9 +76,19 @@ public class Commit {
         if (op == null) {
             String id = Utils.getIdFromPath(path);
             op = new UpdateOp(path, id, false);
+            setModified(op, revision);
             operations.put(path, op);
         }
         return op;
+    }
+    
+    static void setModified(UpdateOp op, Revision revision) {
+        op.set(UpdateOp.MODIFIED, getModified(revision.getTimestamp()));
+    }
+    
+    public static long getModified(long timestamp) {
+        // 5 second resolution
+        return timestamp / 1000 / 5;
     }
 
     public Revision getRevision() {
@@ -261,7 +271,7 @@ public class Commit {
      * @param store the store
      * @param op the operation
      */
-    private void createOrUpdateNode(DocumentStore store, UpdateOp op) {
+    public void createOrUpdateNode(DocumentStore store, UpdateOp op) {
         Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
         if (baseRevision != null) {
             final AtomicReference<List<Revision>> collisions = new AtomicReference<List<Revision>>();
@@ -400,11 +410,15 @@ public class Commit {
             previous++;
         }
         UpdateOp old = new UpdateOp(path, id + "/" + previous, true);
+        setModified(old, revision);
         UpdateOp main = new UpdateOp(path, id, false);
+        setModified(main, revision);
         main.set(UpdateOp.PREVIOUS, previous);
         for (Entry<String, Object> e : map.entrySet()) {
             String key = e.getKey();
             if (key.equals(UpdateOp.ID)) {
+                // ok
+            } else if (key.equals(UpdateOp.MODIFIED)) {
                 // ok
             } else if (key.equals(UpdateOp.PREVIOUS)) {
                 // ok

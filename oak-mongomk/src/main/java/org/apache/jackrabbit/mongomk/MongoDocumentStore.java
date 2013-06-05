@@ -55,7 +55,8 @@ public class MongoDocumentStore implements DocumentStore {
     /**
      * The number of documents to cache.
      */
-    private static final int CACHE_DOCUMENTS = Integer.getInteger("oak.mongoMK.cacheDocs", 20 * 1024);
+    private static final int CACHE_DOCUMENTS = Integer.getInteger(
+            "oak.mongoMK.cacheDocs", 10 * 1024);
 
     private static final boolean LOG_TIME = false;
 
@@ -75,13 +76,14 @@ public class MongoDocumentStore implements DocumentStore {
         clusterNodes = db.getCollection(
                 Collection.CLUSTER_NODES.toString());
         
+        // indexes:
         // the _id field is the primary key, so we don't need to define it
-        // the following code is just a template in case we need more indexes
-        // DBObject index = new BasicDBObject();
-        // index.put(KEY_PATH, 1L);
-        // DBObject options = new BasicDBObject();
-        // options.put("unique", Boolean.TRUE);
-        // nodesCollection.ensureIndex(index, options);
+        DBObject index = new BasicDBObject();
+        // modification time (descending)
+        index.put(UpdateOp.MODIFIED, -1L);
+        DBObject options = new BasicDBObject();
+        options.put("unique", Boolean.FALSE);
+        nodes.ensureIndex(index, options);
 
         // TODO expire entries if the parent was changed
         nodesCache = CacheBuilder.newBuilder()
@@ -176,11 +178,21 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public List<Map<String, Object>> query(Collection collection,
             String fromKey, String toKey, int limit) {
+        return query(collection, fromKey, toKey, null, 0, limit);
+    }
+    
+    @Override
+    public List<Map<String, Object>> query(Collection collection,
+            String fromKey, String toKey, String indexedProperty, long startValue, int limit) {
         log("query", fromKey, toKey, limit);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder queryBuilder = QueryBuilder.start(UpdateOp.ID);
         queryBuilder.greaterThanEquals(fromKey);
         queryBuilder.lessThan(toKey);
+        if (indexedProperty != null) {
+            queryBuilder.and(indexedProperty);
+            queryBuilder.greaterThanEquals(startValue);
+        }
         DBObject query = queryBuilder.get();
         long start = start();
         try {
