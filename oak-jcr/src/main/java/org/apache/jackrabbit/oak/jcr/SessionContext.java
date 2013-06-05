@@ -28,6 +28,7 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
@@ -242,10 +243,15 @@ public abstract class SessionContext implements NamePathMapper {
 
 
     @Nonnull
-    public ObservationManager getObservationManager() {
+    public ObservationManager getObservationManager() throws UnsupportedRepositoryOperationException {
         if (observationManager == null) {
             ContentRepository contentRepository = repository.getContentRepository();
+            if (!(contentRepository instanceof ContentRepositoryImpl)) {
+                throw new UnsupportedRepositoryOperationException("Observation not supported");
+            }
+
             observationManager = new ObservationManagerImpl(
+                // FIXME avoid casting to implementation
                 ((ContentRepositoryImpl) contentRepository),
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
                 namePathMapper, repository.getObservationExecutor());
