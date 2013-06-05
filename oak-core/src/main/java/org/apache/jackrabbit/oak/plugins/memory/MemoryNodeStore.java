@@ -95,14 +95,15 @@ public class MemoryNodeStore extends AbstractNodeStore {
         @Override
         public void setRoot(NodeState newRoot) {
             checkNotMerged();
-            this.root = newRoot;
+            this.root = ModifiedNodeState.squeeze(newRoot);
         }
 
         @Override
         public NodeState merge(CommitHook hook) throws CommitFailedException {
             checkNotMerged();
             while (!store.root.compareAndSet(
-                    base, checkNotNull(hook).processCommit(base, root))) {
+                    base, ModifiedNodeState.squeeze(
+                            checkNotNull(hook).processCommit(base, root)))) {
                 // TODO: rebase();
                 throw new UnsupportedOperationException();
             }
