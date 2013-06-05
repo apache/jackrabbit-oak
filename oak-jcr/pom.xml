@@ -231,7 +231,6 @@
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testPropertyAdded
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testPropertyChanged
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testPropertyRemoved
-      org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testUUID
       org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
       <!-- Versioning -->
