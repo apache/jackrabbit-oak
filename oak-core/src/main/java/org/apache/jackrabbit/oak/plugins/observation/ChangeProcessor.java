@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.VisibleDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -133,7 +134,7 @@ class ChangeProcessor implements Runnable {
             if (changes != null &&
                     !(filterRef.get().excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes);
-                changes.diff(diff);
+                changes.diff(VisibleDiff.wrap(diff));
                 if (!stopping) {
                     diff.sendEvents();
                 }
@@ -231,8 +232,7 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            if (!NodeStateUtils.isHidden(after.getName())
-                    && filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
+            if (filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -241,8 +241,7 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean propertyChanged(PropertyState before, PropertyState after) {
-            if (!NodeStateUtils.isHidden(before.getName())
-                    && filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
+            if (filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -251,8 +250,7 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean propertyDeleted(PropertyState before) {
-            if (!NodeStateUtils.isHidden(before.getName())
-                    && filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
+            if (filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
                 events.add(Iterators.singletonIterator(event));
             }
@@ -261,8 +259,7 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            if (!NodeStateUtils.isHidden(name)
-                    && filterRef.get().includeChildren(jcrPath())) {
+            if (filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
                 this.events.add(events);
                 if (++childNodeCount > PURGE_LIMIT) {
@@ -274,8 +271,7 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean childNodeDeleted(String name, NodeState before) {
-            if (!NodeStateUtils.isHidden(name)
-                    && filterRef.get().includeChildren(jcrPath())) {
+            if (filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
                 this.events.add(events);
             }
@@ -284,11 +280,10 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-            if (!NodeStateUtils.isHidden(name)
-                    && filterRef.get().includeChildren(jcrPath())) {
+            if (filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
                         changes, PathUtils.concat(path, name), events, after);
-                if (!after.compareAgainstBaseState(before, diff)) {
+                if (!after.compareAgainstBaseState(before, VisibleDiff.wrap(diff))) {
                     return false;
                 }
                 if (events.size() > PURGE_LIMIT) {
