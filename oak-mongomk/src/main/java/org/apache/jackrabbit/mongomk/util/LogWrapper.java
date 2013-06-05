@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A logging microkernel implementation.
+ * 
+ * @param <T> the wrapped microkernel
  */
 public class LogWrapper<T extends MicroKernel> implements MicroKernel {
     
