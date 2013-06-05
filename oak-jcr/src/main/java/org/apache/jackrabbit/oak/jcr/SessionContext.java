@@ -246,7 +246,6 @@ public abstract class SessionContext implements NamePathMapper {
         if (observationManager == null) {
             ContentRepository contentRepository = repository.getContentRepository();
             observationManager = new ObservationManagerImpl(
-                // FIXME don't cast
                 ((ContentRepositoryImpl) contentRepository),
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
                 namePathMapper, repository.getObservationExecutor());
