@@ -27,6 +27,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -47,6 +48,7 @@ class ContentSessionImpl implements ContentSession {
     private final String workspaceName;
     private final NodeStore store;
     private final CommitHook hook;
+    private final ChangeDispatcher changeDispatcher;
     private final QueryIndexProvider indexProvider;
 
     private volatile boolean live = true;
@@ -56,12 +58,14 @@ class ContentSessionImpl implements ContentSession {
                               @Nonnull String workspaceName,
                               @Nonnull NodeStore store,
                               @Nonnull CommitHook hook,
+                              @Nonnull ChangeDispatcher changeDispatcher,
                               @Nonnull QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
         this.securityProvider = securityProvider;
         this.workspaceName = workspaceName;
         this.store = store;
         this.hook = hook;
+        this.changeDispatcher = changeDispatcher;
         this.indexProvider = indexProvider;
     }
 
@@ -91,9 +95,8 @@ class ContentSessionImpl implements ContentSession {
     @Override
     public Root getLatestRoot() {
         checkLive();
-        RootImpl root = new RootImpl(
-                store, hook, workspaceName, loginContext.getSubject(),
-                securityProvider, indexProvider) {
+        RootImpl root = new RootImpl(store, hook, changeDispatcher.createHook(this), workspaceName,
+                loginContext.getSubject(), securityProvider, indexProvider) {
             @Override
             protected void checkLive() {
                 ContentSessionImpl.this.checkLive();

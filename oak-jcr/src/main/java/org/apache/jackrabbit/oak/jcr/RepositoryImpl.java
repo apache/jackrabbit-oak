@@ -194,4 +194,8 @@ public class RepositoryImpl implements Repository {
         return executor;
     }
 
+    ContentRepository getContentRepository() {
+        return contentRepository;
+    }
+
 }

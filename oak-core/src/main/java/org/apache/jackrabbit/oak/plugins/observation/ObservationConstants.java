@@ -17,29 +17,11 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.observation2;
+package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+public final class ObservationConstants {
+    public static final String OAK_UNKNOWN = "oak:unknown";
 
-/**
- * TODO document
- */
-public interface ObservationConstants {
-    String REP_OBSERVATION = "rep:observation";
-    String LISTENERS = "listeners";
-    String EVENTS = "events";
-
-    String USER_DATA = "userData";
-    String USER_ID = "userId";
-
-    String TYPE = "type";
-    String PATH = "path";
-    String DATE = "date";
-    String DEEP = "deep";
-    String UUID = "uuid";
-    String NODE_TYPES = "nodeTypes";
-    String NO_LOCAL = "noLocal";
-
-    String LISTENER_PATH = '/' + JCR_SYSTEM + '/' + REP_OBSERVATION + '/' + LISTENERS;
-    String EVENTS_PATH = '/' + JCR_SYSTEM + '/' + REP_OBSERVATION + '/' + EVENTS;
+    private ObservationConstants() {
+    }
 }

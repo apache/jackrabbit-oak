@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.Collections;
@@ -29,9 +30,8 @@ import org.apache.jackrabbit.api.observation.JackrabbitEvent;
  * TODO document
  */
 public class EventImpl implements JackrabbitEvent {
-
     private final ChangeProcessor collector;
-    private boolean externalAccessed = false;
+    private boolean externalAccessed;
 
     private final int type;
     private final String path;
@@ -43,10 +43,10 @@ public class EventImpl implements JackrabbitEvent {
     private final boolean external;
 
     public EventImpl(
-            ChangeProcessor collector,
+            ChangeProcessor processor,
             int type, String path, String userID, String identifier,
             Map<?, ?> info, long date, String userData, boolean external) {
-        this.collector = collector;
+        this.collector = processor;
         this.type = type;
         this.path = path;
         this.userID = userID;
@@ -75,7 +75,6 @@ public class EventImpl implements JackrabbitEvent {
         if (external) {
             collector.userInfoAccessedFromExternalEvent();
         }
-        collector.userIDAccessed();
         return userID;
     }
 
@@ -97,19 +96,23 @@ public class EventImpl implements JackrabbitEvent {
         if (external) {
             collector.userInfoAccessedFromExternalEvent();
         }
-        collector.userDataAccessed();
         return userData;
     }
 
     @Override
     public long getDate() throws RepositoryException {
+        if (!externalAccessed) {
+            collector.dateAccessedWithoutExternalCheck();
+        }
+        if (external) {
+            collector.dateAccessedFromExternalEvent();
+        }
         return date;
     }
 
     @Override
     public synchronized boolean isExternal() {
         externalAccessed = true;
-        collector.externalAccessed();
         return external;
     }
 

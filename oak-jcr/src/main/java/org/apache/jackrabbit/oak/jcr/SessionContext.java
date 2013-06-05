@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -37,6 +40,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -50,8 +55,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.plugins.observation2.ObservationManagerImpl2;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -61,8 +66,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Instances of this class are passed to all JCR implementation classes
  * (e.g. {@code SessionImpl}, {@code NodeImpl}, etc.) and provide access to
@@ -70,9 +73,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * {@code ValueFactory}, etc.).
  */
 public abstract class SessionContext implements NamePathMapper {
-    // FIXME remove OAK-775 feature flag and unify ObservationManager implementations
-    private static final boolean OAK_775 = Boolean.getBoolean("OAK-775");
-
     private final RepositoryImpl repository;
     private final SessionDelegate delegate;
     private final SessionNamespaces namespaces;
@@ -244,22 +244,18 @@ public abstract class SessionContext implements NamePathMapper {
     @Nonnull
     public ObservationManager getObservationManager() {
         if (observationManager == null) {
-            if (OAK_775) {
-                observationManager = new ObservationManagerImpl2(
-                        delegate.getRoot(), namePathMapper, repository.getObservationExecutor());
-            } else {
-                observationManager = new ObservationManagerImpl(
-                    delegate.getRoot(), namePathMapper, repository.getObservationExecutor());
-            }
+            ContentRepository contentRepository = repository.getContentRepository();
+            observationManager = new ObservationManagerImpl(
+                // FIXME don't cast
+                ((ContentRepositoryImpl) contentRepository),
+                ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
+                namePathMapper, repository.getObservationExecutor());
         }
         return observationManager;
     }
 
     public boolean hasPendingEvents() {
-        return observationManager != null &&
-                (OAK_775
-                    ? ((ObservationManagerImpl2) observationManager).hasEvents()
-                    : ((ObservationManagerImpl) observationManager).hasEvents());
+        return observationManager != null && (((ObservationManagerImpl) observationManager).hasEvents());
     }
 
     //-----------------------------------------------------< NamePathMapper >---
@@ -348,11 +344,7 @@ public abstract class SessionContext implements NamePathMapper {
 
     void dispose() {
         if (observationManager != null) {
-            if (OAK_775) {
-                ((ObservationManagerImpl2) observationManager).dispose();
-            } else {
-                ((ObservationManagerImpl) observationManager).dispose();
-            }
+            ((ObservationManagerImpl) observationManager).dispose();
         }
         namespaces.clear();
     }
