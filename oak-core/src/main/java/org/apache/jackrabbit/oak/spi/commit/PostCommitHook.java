@@ -17,14 +17,14 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.spi.commit;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TODO unify with Observer or CommitHook
+ * TODO unify with either Observer or CommitHook
  */
 public interface PostCommitHook {
     PostCommitHook EMPTY = new PostCommitHook() {
