@@ -35,9 +35,8 @@ import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionP
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -47,27 +46,22 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 /**
  * Default implementation of the {@code AccessControlConfiguration}.
  */
-public class AccessControlConfigurationImpl extends SecurityConfiguration.Default implements AccessControlConfiguration {
-
-    private final SecurityProvider securityProvider;
-    private final ConfigurationParameters config;
+public class AccessControlConfigurationImpl extends ConfigurationBase implements AccessControlConfiguration {
 
     public AccessControlConfigurationImpl(SecurityProvider securityProvider) {
-        this.securityProvider = securityProvider;
-        config = securityProvider.getParameters(PARAM_ACCESS_CONTROL_OPTIONS);
+        super(securityProvider);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
+    @Nonnull
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
     @Override
     public Context getContext() {
         return AccessControlContext.getInstance();
-    }
-
-    @Nonnull
-    @Override
-    public ConfigurationParameters getParameters() {
-        return config;
     }
 
     @Nonnull
@@ -88,20 +82,20 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     public List<ValidatorProvider> getValidators(String workspaceName) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
-                new PermissionValidatorProvider(securityProvider),
-                new AccessControlValidatorProvider(securityProvider));
+                new PermissionValidatorProvider(getSecurityProvider()),
+                new AccessControlValidatorProvider(getSecurityProvider()));
     }
 
     @Nonnull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.<ProtectedItemImporter>singletonList(new AccessControlImporter(securityProvider));
+        return Collections.<ProtectedItemImporter>singletonList(new AccessControlImporter(getSecurityProvider()));
     }
 
     //-----------------------------------------< AccessControlConfiguration >---
     @Override
     public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
-        return new AccessControlManagerImpl(root, namePathMapper, securityProvider);
+        return new AccessControlManagerImpl(root, namePathMapper, getSecurityProvider());
     }
 
     @Nonnull
@@ -113,6 +107,6 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
-        return new PermissionProviderImpl(root, principals, securityProvider);
+        return new PermissionProviderImpl(root, principals, getSecurityProvider());
     }
 }

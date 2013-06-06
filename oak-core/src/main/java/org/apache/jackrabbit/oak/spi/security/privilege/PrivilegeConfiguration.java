@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
  */
 public interface PrivilegeConfiguration extends SecurityConfiguration {
 
+    String NAME = "org.apache.jackrabbit.oak.privilege";
+
     /**
      * Creates a new instance of {@link PrivilegeManager}.
      *

@@ -28,10 +28,10 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider
  */
 public interface AuthenticationConfiguration extends SecurityConfiguration {
 
-    String PARAM_AUTHENTICATION_OPTIONS = "org.apache.jackrabbit.oak.authentication.options";
-    String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.authentication.token.options";
+    String NAME = "org.apache.jackrabbit.oak.authentication";
 
-    String PARAM_APP_NAME = "org.apache.jackrabbit.oak.auth.appName";
+    String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.authentication.token";
+    String PARAM_APP_NAME = "org.apache.jackrabbit.oak.authentication.appName";
     String DEFAULT_APP_NAME = "jackrabbit.oak";
 
     @Nonnull

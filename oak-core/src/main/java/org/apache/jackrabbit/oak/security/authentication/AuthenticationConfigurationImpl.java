@@ -21,12 +21,12 @@ import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -49,18 +49,22 @@ import org.slf4j.LoggerFactory;
  * </ul>
  *
  */
-public class AuthenticationConfigurationImpl extends SecurityConfiguration.Default implements AuthenticationConfiguration {
+public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);
 
-    private final SecurityProvider securityProvider;
-    private final ConfigurationParameters config;
-
     public AuthenticationConfigurationImpl(SecurityProvider securityProvider) {
-        this.securityProvider = securityProvider;
-        this.config = securityProvider.getParameters(PARAM_AUTHENTICATION_OPTIONS);
+        super(securityProvider);
     }
 
+    //----------------------------------------------< SecurityConfiguration >---
+    @Nonnull
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
+    //----------------------------------------< AuthenticationConfiguration >---
     /**
      * Create a {@code LoginContextProvider} using standard
      * {@link javax.security.auth.login.Configuration#getConfiguration() JAAS}
@@ -88,7 +92,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
     @Nonnull
     @Override
     public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
-        String appName = config.getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
+        String appName = getParameters().getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
         Configuration loginConfig = null;
         try {
             loginConfig = Configuration.getConfiguration();
@@ -101,9 +105,9 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
         }
         if (loginConfig == null) {
             log.debug("No login configuration available for {}; using default", appName);
-            loginConfig = ConfigurationUtil.getDefaultConfiguration(config);
+            loginConfig = ConfigurationUtil.getDefaultConfiguration(getParameters());
         }
-        return new LoginContextProviderImpl(appName, loginConfig, contentRepository, securityProvider);
+        return new LoginContextProviderImpl(appName, loginConfig, contentRepository, getSecurityProvider());
     }
 
     /**
@@ -122,8 +126,8 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
     @Nonnull
     @Override
     public TokenProvider getTokenProvider(Root root) {
-        ConfigurationParameters tokenOptions = config.getConfigValue(PARAM_TOKEN_OPTIONS, new ConfigurationParameters());
-        UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+        ConfigurationParameters tokenOptions = getParameters().getConfigValue(PARAM_TOKEN_OPTIONS, new ConfigurationParameters());
+        UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
         return new TokenProviderImpl(root, tokenOptions, uc);
     }
 }
