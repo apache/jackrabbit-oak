@@ -623,6 +623,9 @@ public class MongoMK implements MicroKernel {
     }
     
     Node.Children readChildren(String path, Revision rev, int limit) {
+        // TODO use offset, to avoid O(n^2) and running out of memory
+        // to do that, use the *name* of the last entry of the previous batch of children
+        // as the starting point
         String from = getPathLowerLimit(path);
         String to = getPathUpperLimit(path);
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, 
@@ -934,8 +937,14 @@ public class MongoMK implements MicroKernel {
             max = MANY_CHILDREN_THRESHOLD;
             maxChildNodes = Integer.MAX_VALUE;
         } else {
-            // avoid overflow (if maxChildNodes is Integer.MAX_VALUE)
-            max = Math.max(maxChildNodes, maxChildNodes + 1);
+            // use long to avoid overflows
+            long m = maxChildNodes + 1L + offset;
+            max = (int) Math.min(m, Integer.MAX_VALUE);
+        }
+        if (offset > 0) {
+            // TODO workaround for missing offset 
+            // support in getChildren
+            max = Integer.MAX_VALUE;
         }
         Children c = getChildren(path, rev, max);
         for (long i = offset; i < c.children.size(); i++) {
@@ -1122,8 +1131,7 @@ public class MongoMK implements MicroKernel {
             nodeCache.invalidate(path + "@" + rev);
             
             if (n != null) {
-                Node.Children c = getChildren(path, rev,
-                        Integer.MAX_VALUE);
+                Node.Children c = getChildren(path, rev, Integer.MAX_VALUE);
                 for (String childPath : c.children) {
                     markAsDeleted(childPath, commit, true);
                 }
