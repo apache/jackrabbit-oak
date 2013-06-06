@@ -118,10 +118,9 @@ public class Node {
         
         final String path;
         final Revision rev;
-        
         final ArrayList<String> children = new ArrayList<String>();
-        
         boolean hasMore;
+        long offset;
         
         Children(String path, Revision rev) {
             this.path = path;
