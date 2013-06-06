@@ -48,28 +48,32 @@ sub accumulate {
 }
 
 sub output {
-  my ($total, $info, $prefix, $limit) = @_;
+  my ($total, $info, $prefix) = @_;
 
-  my $children = $info->{'children'};
-  for my $child (sort { $b->{'count'} - $a->{'count'} } values %{$children}) {
-    my $frame = $child->{'frame'};
-    my $ratio = int(100 * $child->{'count'} / $total);
-    if ($ratio > 1) {
-      printf "%s%.1d%% %s\n", $prefix, $ratio, $frame;
-      $limit and output($total, $child, "$prefix ", $limit - 1);
-    }
+  my @children = values %{$info->{'children'}};
+  @children = grep { $_->{'count'} * 50 > $total } @children or return;
+  @children = sort { $b->{'count'} - $a->{'count'} } @children;
+
+  my $last = $children[-1];
+  for my $child (@children) {
+    printf "%s+%d%% (%d%%) %s\n",
+      $prefix,
+      $child->{'count'} * 100 / $total,
+      $child->{'count'} * 100 / $info->{'count'},
+      $child->{'frame'};
+    output($total, $child, ($child == $last) ? "$prefix " : "$prefix|");
   }
 }
 
 my $trace = '';
 while (<>) {
   /^TRACE (\d+)/  and $trace = $1 and $traces{$trace} = [] and next;
-  /^\s+([a-z].*?)(\(.*)?\r?\n/ and $trace and $traces{$trace} = [ $1, @{$traces{$trace}} ] and next;
+  /^\s+(?:org\.apache\.jackrabbit\.)?([a-z].*?)(\(.*)?\r?\n/ and $trace and $traces{$trace} = [ $1, @{$traces{$trace}} ] and next;
   /^rank/ and $trace and $trace = '' and next;
   /^\s*\d+\s+\S+%\s+\S+%\s+(\d+)\s+(\d+)/ and accumulate($2, $1); 
 }
 
 print "ROOT\n====\n";
-output($root->{'count'}, $root, "", 20);
+output($root->{'count'}, $root, "");
 print "LEAF\n====\n";
-output($leaf->{'count'}, $leaf, "", 20);
+output($leaf->{'count'}, $leaf, "");
