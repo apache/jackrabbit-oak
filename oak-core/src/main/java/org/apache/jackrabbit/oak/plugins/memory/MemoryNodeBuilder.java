@@ -142,7 +142,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @return  head of this builder
      */
     private Head head() {
-        return head.update();
+        Head newHead = head.update();
+        if (newHead != head) {
+            head = newHead;
+        }
+        return newHead;
     }
 
     /**
@@ -381,9 +385,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private abstract static class Head {
 
         /**
-         * Update the {@link MemoryNodeBuilder#head} of this builder by apply any pending
-         * state transition.
-         * @return  the new head of the associated builder.
+         * Returns the up-to-date head of the associated builder. In most
+         * cases the returned value will be the current head instance, but
+         * a different head can be returned if a state transition is needed.
+         * The returned value is then used as the new current head of the
+         * builder.
+         *
+         * @return up-to-date head of the associated builder
          */
         public abstract Head update();
 
@@ -428,16 +436,19 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override
         public Head update() {
-            if (revision != rootHead().revision) {
+            long rootRevision = rootHead().revision;
+            if (revision != rootRevision) {
                 // root revision changed: recursively re-get state from parent
                 NodeState parentState = parent.head().getCurrentNodeState();
                 NodeState newState = parentState.getChildNode(name);
                 if (newState instanceof MutableNodeState) {
-                    return head = new ConnectedHead((MutableNodeState) newState);
+                    // transition state to ConnectedHead
+                    return new ConnectedHead((MutableNodeState) newState);
                 } else {
+                    // update to match the latest revision
                     state = newState;
+                    revision = rootRevision;
                 }
-                revision = rootHead().revision;
             }
             return this;
         }
@@ -451,8 +462,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
         public MutableNodeState getMutableNodeState() {
             // switch to connected state recursively up to the parent
             MutableNodeState parentState = parent.head().getMutableNodeState();
-            head = new ConnectedHead(parentState.getMutableChildNode(name));
-            return head.getMutableNodeState();
+            MutableNodeState state = parentState.getMutableChildNode(name);
+            // triggers a head state transition at next access
+            return new ConnectedHead(state).getMutableNodeState();
         }
 
         @Override
@@ -486,8 +498,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 // the root builder's base state has been reset: transition back
                 // to unconnected and connect again if necessary.
                 return new UnconnectedHead().update();
+            } else {
+                return this;
             }
-            return this;
         }
 
         @Override
