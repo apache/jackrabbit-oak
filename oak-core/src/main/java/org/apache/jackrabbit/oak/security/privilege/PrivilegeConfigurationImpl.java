@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -27,14 +26,14 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 
 /**
  * Configuration for the privilege management component.
  */
-public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default implements PrivilegeConfiguration {
+public class PrivilegeConfigurationImpl extends ConfigurationBase implements PrivilegeConfiguration {
 
     //---------------------------------------------< PrivilegeConfiguration >---
     @Nonnull
@@ -50,6 +49,12 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
     }
 
     //----------------------------------------------< SecurityConfiguration >---
+    @Nonnull
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
     @Nonnull
     @Override
     public List<? extends CommitHook> getCommitHooks(String workspaceName) {

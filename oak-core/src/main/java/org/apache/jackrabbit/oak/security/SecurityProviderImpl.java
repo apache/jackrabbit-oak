@@ -49,7 +49,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     @Override
     public ConfigurationParameters getParameters(String name) {
-        return (name == null) ? configuration : configuration.getConfigValue(name, new ConfigurationParameters());
+        return (name == null) ? configuration : configuration.getConfigValue(name, ConfigurationParameters.EMPTY);
     }
 
     @Nonnull

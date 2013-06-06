@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProv
  */
 public interface UserConfiguration extends SecurityConfiguration {
 
-    String PARAM_USER_OPTIONS = "org.apache.jackrabbit.oak.user.options";
+    String NAME = "org.apache.jackrabbit.oak.user";
 
     @Nonnull
     UserManager getUserManager(Root root, NamePathMapper namePathMapper);

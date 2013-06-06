@@ -17,7 +17,11 @@
 package org.apache.jackrabbit.oak.spi.security;
 
 import java.util.Collections;
+import java.util.Dictionary;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,6 +46,31 @@ public class ConfigurationParameters {
 
     public ConfigurationParameters(@Nullable Map<String, ?> options) {
         this.options = (options == null) ? Collections.<String, Object>emptyMap() : Collections.unmodifiableMap(options);
+    }
+
+    public static ConfigurationParameters newInstance(Properties properties) {
+        if (properties.isEmpty()) {
+            return EMPTY;
+        }
+
+        Map<String, Object> options = new HashMap<String, Object>(properties.size());
+        for (String name : properties.stringPropertyNames()) {
+            options.put(name, properties.getProperty(name));
+        }
+        return new ConfigurationParameters(options);
+    }
+
+    public static ConfigurationParameters newInstance(Dictionary<String, Object> properties) {
+        if (properties.isEmpty()) {
+            return EMPTY;
+        }
+
+        Map<String, Object> options = new HashMap<String, Object>(properties.size());
+        for (Enumeration<String> keys = properties.keys(); keys.hasMoreElements();) {
+            String key = keys.nextElement();
+            options.put(key, properties.get(key));
+        }
+        return new ConfigurationParameters(options);
     }
 
     /**

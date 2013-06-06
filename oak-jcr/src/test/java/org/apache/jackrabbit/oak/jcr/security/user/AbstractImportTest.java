@@ -71,7 +71,7 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
         if (importBehavior != null) {
             Map<String,String> userParams = new HashMap();
             userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
-            ConfigurationParameters config = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.PARAM_USER_OPTIONS, new ConfigurationParameters(userParams)));
+            ConfigurationParameters config = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
 
             SecurityProvider securityProvider = new SecurityProviderImpl(config);
             String dir = "target/mk-tck-" + System.currentTimeMillis();

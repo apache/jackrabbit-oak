@@ -142,7 +142,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         userParams.put(UserConstants.PARAM_ADMIN_ID, "admin");
         userParams.put(UserConstants.PARAM_OMIT_ADMIN_PW, true);
 
-        ConfigurationParameters params = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.PARAM_USER_OPTIONS, new ConfigurationParameters(userParams)));
+        ConfigurationParameters params = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
         SecurityProvider sp = new SecurityProviderImpl(params);
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
