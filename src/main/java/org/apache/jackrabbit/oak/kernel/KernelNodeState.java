@@ -75,7 +75,7 @@ public final class KernelNodeState extends AbstractNodeState {
     /**
      * Maximum number of child nodes kept in memory.
      */
-    static final int MAX_CHILD_NODE_NAMES = 1000;
+    static final int MAX_CHILD_NODE_NAMES = 100;
 
     /**
      * Dummy cache instance for static {@link #NULL} kernel node state.
@@ -305,18 +305,87 @@ public final class KernelNodeState extends AbstractNodeState {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         init();
-        Iterable<ChildNodeEntry> iterable = iterable(childNames);
-        if (childNodeCount > childNames.size()) {
-            List<Iterable<ChildNodeEntry>> iterables = Lists.newArrayList();
-            iterables.add(iterable);
-            long offset = childNames.size();
-            while (offset < childNodeCount) {
-                iterables.add(getChildNodeEntries(offset, MAX_CHILD_NODE_NAMES));
-                offset += MAX_CHILD_NODE_NAMES;
-            }
-            iterable = Iterables.concat(iterables);
+        if (childNodeCount <= childNames.size()) {
+            return iterable(childNames);
         }
-        return iterable;
+        List<Iterable<ChildNodeEntry>> iterables = Lists.newArrayList();
+        iterables.add(iterable(childNames));
+        iterables.add(getChildNodeEntries(childNames.size()));
+        return Iterables.concat(iterables);
+    }
+
+    private Iterable<ChildNodeEntry> getChildNodeEntries(final long offset) {
+        return new Iterable<ChildNodeEntry>() {
+            @Override
+            public Iterator<ChildNodeEntry> iterator() {
+                return new Iterator<ChildNodeEntry>() {
+                    private long currentOffset = offset;
+                    private Iterator<ChildNodeEntry> current;
+
+                    {
+                        fetchEntries();
+                    }
+
+                    private void fetchEntries() {
+                        List<ChildNodeEntry> entries = Lists
+                                .newArrayListWithCapacity(MAX_CHILD_NODE_NAMES);
+                        String json = kernel.getNodes(path, revision, 0,
+                                currentOffset, MAX_CHILD_NODE_NAMES, null);
+                        JsopReader reader = new JsopTokenizer(json);
+                        reader.read('{');
+                        do {
+                            String name = StringCache.get(reader.readString());
+                            reader.read(':');
+                            if (reader.matches('{')) {
+                                reader.read('}');
+                                entries.add(new KernelChildNodeEntry(name));
+                            } else if (reader.matches('[')) {
+                                while (reader.read() != ']') {
+                                    // skip
+                                }
+                            } else {
+                                reader.read();
+                            }
+                        } while (reader.matches(','));
+                        reader.read('}');
+                        reader.read(JsopReader.END);
+                        if (entries.isEmpty()) {
+                            current = null;
+                        } else {
+                            currentOffset += entries.size();
+                            current = entries.iterator();
+                        }
+                    }
+
+                    @Override
+                    public boolean hasNext() {
+                        while (true) {
+                            if (current == null) {
+                                return false;
+                            } else if (current.hasNext()) {
+                                return true;
+                            }
+                            fetchEntries();
+                        }
+                    }
+
+                    @Override
+                    public ChildNodeEntry next() {
+                        if (!hasNext()) {
+                            throw new IllegalStateException(
+                                    "Reading past the end");
+                        }
+                        return current.next();
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                    
+                };
+            }
+        };
     }
 
     @Override
@@ -537,38 +606,6 @@ public final class KernelNodeState extends AbstractNodeState {
                             + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
             }
         }
-    }
-
-    private Iterable<ChildNodeEntry> getChildNodeEntries(
-            final long offset, final int count) {
-        return new Iterable<ChildNodeEntry>() {
-            @Override
-            public Iterator<ChildNodeEntry> iterator() {
-                List<ChildNodeEntry> entries =
-                        Lists.newArrayListWithCapacity(count);
-                String json = kernel.getNodes(
-                        path, revision, 0, offset, count, null);
-                JsopReader reader = new JsopTokenizer(json);
-                reader.read('{');
-                do {
-                    String name = StringCache.get(reader.readString());
-                    reader.read(':');
-                    if (reader.matches('{')) {
-                        reader.read('}');
-                        entries.add(new KernelChildNodeEntry(name));
-                    } else if (reader.matches('[')) {
-                        while (reader.read() != ']') {
-                            // skip
-                        }
-                    } else {
-                        reader.read();
-                    }
-                } while (reader.matches(','));
-                reader.read('}');
-                reader.read(JsopReader.END);
-                return entries.iterator();
-            }
-        };
     }
 
     private String getChildPath(String name) {
