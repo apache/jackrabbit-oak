@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
  */
 public interface PrincipalConfiguration extends SecurityConfiguration {
 
+    String NAME = "org.apache.jackrabbit.oak.principal";
+
     /**
      * Returns an instance of {@link PrincipalManager} that can be used
      * to query and retrieve principals such as needed for JCR access control

@@ -21,7 +21,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -30,14 +30,13 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 /**
  * Default implementation of the {@code PrincipalConfiguration}
  */
-public class PrincipalConfigurationImpl extends SecurityConfiguration.Default implements PrincipalConfiguration {
-
-    private final SecurityProvider securityProvider;
+public class PrincipalConfigurationImpl extends ConfigurationBase implements PrincipalConfiguration {
 
     public PrincipalConfigurationImpl(SecurityProvider securityProvider) {
-        this.securityProvider = securityProvider;
+        super(securityProvider);
     }
 
+    //---------------------------------------------< PrincipalConfiguration >---
     @Nonnull
     @Override
     public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
@@ -48,7 +47,14 @@ public class PrincipalConfigurationImpl extends SecurityConfiguration.Default im
     @Nonnull
     @Override
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
-        UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+        UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
         return new PrincipalProviderImpl(root, uc, namePathMapper);
+    }
+
+    //----------------------------------------------< SecurityConfiguration >---
+    @Nonnull
+    @Override
+    public String getName() {
+        return NAME;
     }
 }

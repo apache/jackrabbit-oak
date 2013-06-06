@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  */
 public interface AccessControlConfiguration extends SecurityConfiguration {
 
-    String PARAM_ACCESS_CONTROL_OPTIONS = "org.apache.jackrabbit.oak.accesscontrol.options";
+    String NAME = "org.apache.jackrabbit.oak.accesscontrol";
 
     @Nonnull
     AccessControlManager getAccessControlManager(@Nonnull Root root,

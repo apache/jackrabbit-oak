@@ -50,7 +50,7 @@ public class AccessControlActionTest extends AbstractSecurityTest {
         map.put(AccessControlAction.USER_PRIVILEGE_NAMES, PrivilegeConstants.JCR_ALL);
 
         ConfigurationParameters userConfig = new ConfigurationParameters(map);
-        return new ConfigurationParameters(ImmutableMap.of(UserConfiguration.PARAM_USER_OPTIONS, userConfig));
+        return new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, userConfig));
     }
 
     @Test

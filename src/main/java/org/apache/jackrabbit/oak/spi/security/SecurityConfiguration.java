@@ -33,6 +33,9 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 public interface SecurityConfiguration {
 
     @Nonnull
+    String getName();
+
+    @Nonnull
     ConfigurationParameters getParameters();
 
     @Nonnull
@@ -54,6 +57,12 @@ public interface SecurityConfiguration {
      * Default implementation that provides empty validators/parameters.
      */
     class Default implements SecurityConfiguration {
+
+        @Nonnull
+        @Override
+        public String getName() {
+            return "org.apache.jackrabbit.oak";
+        }
 
         @Nonnull
         @Override

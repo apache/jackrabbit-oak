@@ -85,7 +85,7 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
         Map<String, String> map = Collections.singletonMap(AccessControlConstants.PARAM_PERMISSIONS_JR2, AccessControlConstants.VALUE_PERMISSIONS_JR2);
         ConfigurationParameters acConfig = new ConfigurationParameters(map);
 
-        return new ConfigurationParameters(ImmutableMap.of(AccessControlConfiguration.PARAM_ACCESS_CONTROL_OPTIONS, acConfig));
+        return new ConfigurationParameters(ImmutableMap.of(AccessControlConfiguration.NAME, acConfig));
     }
 
     @Test

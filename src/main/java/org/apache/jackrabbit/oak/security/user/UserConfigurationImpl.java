@@ -25,9 +25,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -38,27 +37,23 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 /**
  * Default implementation of the {@link UserConfiguration}.
  */
-public class UserConfigurationImpl extends SecurityConfiguration.Default implements UserConfiguration {
-
-    private final ConfigurationParameters config;
-    private final SecurityProvider securityProvider;
+public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration {
 
     public UserConfigurationImpl(SecurityProvider securityProvider) {
-        this.config = securityProvider.getParameters(PARAM_USER_OPTIONS);
-        this.securityProvider = securityProvider;
+        super(securityProvider);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
     @Nonnull
     @Override
-    public ConfigurationParameters getParameters() {
-        return config;
+    public String getName() {
+        return NAME;
     }
 
     @Nonnull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
-        return new UserInitializer(securityProvider);
+        return new UserInitializer(getSecurityProvider());
     }
 
     @Nonnull
@@ -70,7 +65,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Nonnull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.<ProtectedItemImporter>singletonList(new UserImporter(config));
+        return Collections.<ProtectedItemImporter>singletonList(new UserImporter(getParameters()));
     }
 
     @Nonnull
@@ -83,14 +78,14 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Nonnull
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
-        return new UserManagerImpl(root, namePathMapper, securityProvider);
+        return new UserManagerImpl(root, namePathMapper, getSecurityProvider());
     }
 
     @Nonnull
     @Override
     public AuthorizableActionProvider getAuthorizableActionProvider() {
         // TODO OAK-521: add proper implementation
-        AuthorizableActionProvider defProvider = new DefaultAuthorizableActionProvider(securityProvider, config);
-        return config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, defProvider);
+        AuthorizableActionProvider defProvider = new DefaultAuthorizableActionProvider(getSecurityProvider(), getParameters());
+        return getParameters().getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, defProvider);
     }
 }
