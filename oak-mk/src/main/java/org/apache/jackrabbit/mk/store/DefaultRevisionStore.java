@@ -175,7 +175,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
                     new ThreadFactory() {
                         @Override
                         public Thread newThread(Runnable r) {
-                            return new Thread(r, "RevisionStore-GC");
+                            Thread t = new Thread(r, "RevisionStore-GC");
+                            t.setDaemon(true);
+                            return t;
                         }
                     });
             gcExecutor.scheduleWithFixedDelay(new Runnable() {
