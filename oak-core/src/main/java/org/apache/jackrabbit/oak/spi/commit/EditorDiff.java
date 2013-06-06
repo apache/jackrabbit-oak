@@ -45,11 +45,20 @@ public class EditorDiff implements NodeStateDiff {
         checkNotNull(before);
         checkNotNull(after);
         if (editor != null) {
-            EditorDiff diff = new EditorDiff(editor);
-            return diff.process(before, after);
-        } else {
-            return null;
+            try {
+                editor.enter(before, after);
+
+                EditorDiff diff = new EditorDiff(editor);
+                if (!after.compareAgainstBaseState(before, diff)) {
+                    return diff.exception;
+                }
+
+                editor.leave(before, after);
+            } catch (CommitFailedException e) {
+                return e;
+            }
         }
+        return null;
     }
 
     private final Editor editor;
@@ -63,27 +72,6 @@ public class EditorDiff implements NodeStateDiff {
 
     private EditorDiff(Editor editor) {
         this.editor = editor;
-    }
-
-    private CommitFailedException process(NodeState before, NodeState after) {
-        try {
-            editor.enter(before, after);
-        } catch (CommitFailedException e) {
-            return e;
-        }
-
-        after.compareAgainstBaseState(before, this);
-        if (exception != null) {
-            return exception;
-        }
-
-        try {
-            editor.leave(before, after);
-        } catch (CommitFailedException e) {
-            return e;
-        }
-
-        return null;
     }
 
     //-------------------------------------------------< NodeStateDiff >--
