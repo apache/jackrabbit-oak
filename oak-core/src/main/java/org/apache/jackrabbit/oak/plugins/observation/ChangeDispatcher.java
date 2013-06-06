@@ -192,7 +192,10 @@ public class ChangeDispatcher {
         @CheckForNull
         public ChangeSet getChanges() {
             if (changeSets.isEmpty()) {
-                add(externalChange(store.getRoot()));
+                ChangeSet changeSet = externalChange(store.getRoot());
+                if (changeSet != null) {
+                    add(changeSet);
+                }
             }
             return changeSets.isEmpty() ? null : changeSets.remove();
         }
