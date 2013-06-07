@@ -267,7 +267,8 @@ class ChangeProcessor implements Runnable {
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
             if (filterRef.get().includeChildren(jcrPath())) {
-                Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after, getAfterId(name));
+                Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name,
+                        after, afterParentNode, getAfterId(name));
                 this.events.add(events);
                 if (++childNodeCount > PURGE_LIMIT) {
                     sendEvents();
@@ -279,7 +280,8 @@ class ChangeProcessor implements Runnable {
         @Override
         public boolean childNodeDeleted(String name, NodeState before) {
             if (filterRef.get().includeChildren(jcrPath())) {
-                Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before, getBeforeId(name));
+                Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name,
+                        before, beforeParentNode, getBeforeId(name));
                 this.events.add(events);
             }
             return !stopping;
@@ -303,7 +305,7 @@ class ChangeProcessor implements Runnable {
         }
 
         private EventImpl createEvent(int eventType, String jcrPath, String id) {
-            // TODO support identifier, info
+            // TODO support info
             return new EventImpl(ChangeProcessor.this, eventType, jcrPath, changes.getUserId(),
                     id, null, changes.getDate(), userDataRef.get(), changes.isExternal());
         }
@@ -340,14 +342,14 @@ class ChangeProcessor implements Runnable {
         }
 
         private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String childName,
-                NodeState node, String id) {
+                NodeState node, NodeState parentNode, final String id) {
             EventFilter filter = filterRef.get();
             final String path = PathUtils.concat(parentPath, childName);
             String jcrParentPath = namePathMapper.getJcrPath(parentPath);
             String jcrPath = namePathMapper.getJcrPath(path);
 
             Iterator<Event> nodeEvent;
-            if (filter.include(eventType, jcrParentPath, afterParentNode)) {
+            if (filter.include(eventType, jcrParentPath, parentNode)) {
                 Event event = createEvent(eventType, jcrPath, id);
                 nodeEvent = Iterators.singletonIterator(event);
             } else {
@@ -359,7 +361,7 @@ class ChangeProcessor implements Runnable {
                     : Event.PROPERTY_REMOVED;
 
             Iterator<Event> propertyEvents;
-            if (filter.include(propertyEventType, jcrPath, afterParentNode)) {
+            if (filter.include(propertyEventType, jcrPath, parentNode)) {
                 propertyEvents = Iterators.transform(
                         Iterators.filter(
                                 node.getProperties().iterator(),
@@ -372,7 +374,7 @@ class ChangeProcessor implements Runnable {
                         new Function<PropertyState, Event>() {
                             @Override
                             public Event apply(PropertyState property) {
-                                return generatePropertyEvent(propertyEventType, path, property, "TODO");  // FIXME
+                                return generatePropertyEvent(propertyEventType, path, property, id);
                             }
                         });
             } else {
@@ -380,26 +382,38 @@ class ChangeProcessor implements Runnable {
             }
 
             Iterator<Event> childNodeEvents = filter.includeChildren(jcrPath)
-                    ? Iterators.concat(generateChildEvents(eventType, path, node))
+                    ? Iterators.concat(generateChildEvents(eventType, path, node, id))
                     : Iterators.<Event>emptyIterator();
 
             return Iterators.concat(nodeEvent, propertyEvents, childNodeEvents);
         }
 
-        // FIXME this doesn't correctly track the associated parent node
-        private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath, NodeState node) {
+        private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath,
+                final NodeState parentNode, final String parentId) {
             return Iterators.transform(
-                    Iterators.filter(node.getChildNodeEntries().iterator(),
-                        new Predicate<ChildNodeEntry>() {
-                            @Override
-                            public boolean apply(ChildNodeEntry entry) {
-                                return !NodeStateUtils.isHidden(entry.getName());
-                            }
-                    }),
+                    Iterators.filter(parentNode.getChildNodeEntries().iterator(),
+                            new Predicate<ChildNodeEntry>() {
+                                @Override
+                                public boolean apply(ChildNodeEntry entry) {
+                                    return !NodeStateUtils.isHidden(entry.getName());
+                                }
+                            }),
                     new Function<ChildNodeEntry, Iterator<Event>>() {
                         @Override
                         public Iterator<Event> apply(ChildNodeEntry entry) {
-                            return generateNodeEvents(eventType, parentPath, entry.getName(), entry.getNodeState(), "TODO");  // FIXME
+                            NodeState node = entry.getNodeState();
+                            String name = entry.getName();
+                            return generateNodeEvents(eventType, parentPath, name,
+                                    node, parentNode, getId(parentId, node, name));
+                        }
+
+                        private String getId(String parentId, NodeState node, String name) {
+                            PropertyState uuid = node.getProperty(JcrConstants.JCR_UUID);
+                            if (uuid == null) {
+                                return parentId + '/' + namePathMapper.getJcrName(name);
+                            } else {
+                                return uuid.getValue(Type.STRING);
+                            }
                         }
                     });
         }
