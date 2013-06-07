@@ -33,8 +33,10 @@ import javax.jcr.observation.EventListener;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
@@ -192,22 +194,26 @@ class ChangeProcessor implements Runnable {
         private final ChangeSet changes;
         private final String path;
         private final NodeState associatedParentNode;
+        private final EventGeneratingNodeStateDiff parent;
+        private final String name;
 
         private List<Iterator<Event>> events;
         private int childNodeCount;
 
         EventGeneratingNodeStateDiff(ChangeSet changes, String path, List<Iterator<Event>> events,
-                NodeState associatedParentNode) {
+                NodeState associatedParentNode, EventGeneratingNodeStateDiff parent, String name) {
 
             this.changes = changes;
             this.path = path;
             this.events = events;
             this.associatedParentNode = associatedParentNode;
+            this.parent = parent;
+            this.name = name;
         }
 
         public EventGeneratingNodeStateDiff(ChangeSet changes) {
             // FIXME associatedParentNode should be the root node here
-            this(changes, "/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null);
+            this(changes, "/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, "");
         }
 
         public void sendEvents() {
@@ -286,33 +292,46 @@ class ChangeProcessor implements Runnable {
         public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
             if (filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
-                        changes, PathUtils.concat(path, name), events, after);
+                        changes, PathUtils.concat(path, name), events, after, this, name);
                 return VisibleDiff.wrap(diff);
             } else {
                 return new RecursingNodeStateDiff();
             }
         }
 
-        private EventImpl createEvent(int eventType, String jcrPath) {
+        private EventImpl createEvent(int eventType, String jcrPath, String id) {
             // TODO support identifier, info
             return new EventImpl(ChangeProcessor.this, eventType, jcrPath, changes.getUserId(),
-                    null, null, changes.getDate(), userDataRef.get(), changes.isExternal());
+                    id, null, changes.getDate(), userDataRef.get(), changes.isExternal());
+        }
+
+        private String getId(String childName) {
+            if (parent == null) {
+                return '/' + namePathMapper.getJcrName(childName);
+            }
+
+            PropertyState uuid = associatedParentNode.getProperty(JcrConstants.JCR_UUID);
+            if (uuid == null) {
+                return parent.getId(name) + '/' + namePathMapper.getJcrName(childName);
+            }
+
+            return uuid.getValue(Type.STRING);
         }
 
         private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property) {
             String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
-            return createEvent(eventType, jcrPath);
+            return createEvent(eventType, jcrPath, parent.getId(name));
         }
 
-        private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String name, NodeState node) {
+        private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String childName, NodeState node) {
             EventFilter filter = filterRef.get();
-            final String path = PathUtils.concat(parentPath, name);
+            final String path = PathUtils.concat(parentPath, childName);
             String jcrParentPath = namePathMapper.getJcrPath(parentPath);
             String jcrPath = namePathMapper.getJcrPath(path);
 
             Iterator<Event> nodeEvent;
             if (filter.include(eventType, jcrParentPath, associatedParentNode)) {
-                Event event = createEvent(eventType, jcrPath);
+                Event event = createEvent(eventType, jcrPath, getId(childName));
                 nodeEvent = Iterators.singletonIterator(event);
             } else {
                 nodeEvent = Iterators.emptyIterator();
