@@ -193,7 +193,8 @@ class ChangeProcessor implements Runnable {
 
         private final ChangeSet changes;
         private final String path;
-        private final NodeState associatedParentNode;
+        private final NodeState beforeParentNode;
+        private final NodeState afterParentNode;
         private final EventGeneratingNodeStateDiff parent;
         private final String name;
 
@@ -201,19 +202,21 @@ class ChangeProcessor implements Runnable {
         private int childNodeCount;
 
         EventGeneratingNodeStateDiff(ChangeSet changes, String path, List<Iterator<Event>> events,
-                NodeState associatedParentNode, EventGeneratingNodeStateDiff parent, String name) {
+                NodeState beforeParentNode, NodeState afterParentNode,
+                EventGeneratingNodeStateDiff parent, String name) {
 
             this.changes = changes;
             this.path = path;
             this.events = events;
-            this.associatedParentNode = associatedParentNode;
+            this.beforeParentNode = beforeParentNode;
+            this.afterParentNode = afterParentNode;
             this.parent = parent;
             this.name = name;
         }
 
         public EventGeneratingNodeStateDiff(ChangeSet changes) {
-            // FIXME associatedParentNode should be the root node here
-            this(changes, "/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, "");
+            // FIXME parent nodes should be the root here
+            this(changes, "/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
         }
 
         public void sendEvents() {
@@ -236,8 +239,8 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            if (filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
-                Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
+            if (filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), afterParentNode)) {
+                Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after, parent.getAfterId(name));
                 events.add(Iterators.singletonIterator(event));
             }
             return !stopping;
@@ -245,8 +248,8 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean propertyChanged(PropertyState before, PropertyState after) {
-            if (filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
-                Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
+            if (filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), afterParentNode)) {
+                Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after, parent.getAfterId(name));
                 events.add(Iterators.singletonIterator(event));
             }
             return !stopping;
@@ -254,8 +257,8 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean propertyDeleted(PropertyState before) {
-            if (filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
-                Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
+            if (filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), afterParentNode)) {
+                Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before, parent.getBeforeId(name));
                 events.add(Iterators.singletonIterator(event));
             }
             return !stopping;
@@ -264,7 +267,7 @@ class ChangeProcessor implements Runnable {
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
             if (filterRef.get().includeChildren(jcrPath())) {
-                Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
+                Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after, getAfterId(name));
                 this.events.add(events);
                 if (++childNodeCount > PURGE_LIMIT) {
                     sendEvents();
@@ -276,7 +279,7 @@ class ChangeProcessor implements Runnable {
         @Override
         public boolean childNodeDeleted(String name, NodeState before) {
             if (filterRef.get().includeChildren(jcrPath())) {
-                Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
+                Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before, getBeforeId(name));
                 this.events.add(events);
             }
             return !stopping;
@@ -292,7 +295,7 @@ class ChangeProcessor implements Runnable {
         public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
             if (filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
-                        changes, PathUtils.concat(path, name), events, after, this, name);
+                        changes, PathUtils.concat(path, name), events, before, after, this, name);
                 return VisibleDiff.wrap(diff);
             } else {
                 return new RecursingNodeStateDiff();
@@ -305,33 +308,47 @@ class ChangeProcessor implements Runnable {
                     id, null, changes.getDate(), userDataRef.get(), changes.isExternal());
         }
 
-        private String getId(String childName) {
+        private String getBeforeId(String childName) {
             if (parent == null) {
                 return '/' + namePathMapper.getJcrName(childName);
             }
 
-            PropertyState uuid = associatedParentNode.getProperty(JcrConstants.JCR_UUID);
+            PropertyState uuid = beforeParentNode.getProperty(JcrConstants.JCR_UUID);
             if (uuid == null) {
-                return parent.getId(name) + '/' + namePathMapper.getJcrName(childName);
+                return parent.getBeforeId(name) + '/' + namePathMapper.getJcrName(childName);
             }
 
             return uuid.getValue(Type.STRING);
         }
 
-        private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property) {
-            String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
-            return createEvent(eventType, jcrPath, parent.getId(name));
+        private String getAfterId(String childName) {
+            if (parent == null) {
+                return '/' + namePathMapper.getJcrName(childName);
+            }
+
+            PropertyState uuid = afterParentNode.getProperty(JcrConstants.JCR_UUID);
+            if (uuid == null) {
+                return parent.getAfterId(name) + '/' + namePathMapper.getJcrName(childName);
+            }
+
+            return uuid.getValue(Type.STRING);
         }
 
-        private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String childName, NodeState node) {
+        private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property, String id) {
+            String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
+            return createEvent(eventType, jcrPath, id);
+        }
+
+        private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String childName,
+                NodeState node, String id) {
             EventFilter filter = filterRef.get();
             final String path = PathUtils.concat(parentPath, childName);
             String jcrParentPath = namePathMapper.getJcrPath(parentPath);
             String jcrPath = namePathMapper.getJcrPath(path);
 
             Iterator<Event> nodeEvent;
-            if (filter.include(eventType, jcrParentPath, associatedParentNode)) {
-                Event event = createEvent(eventType, jcrPath, getId(childName));
+            if (filter.include(eventType, jcrParentPath, afterParentNode)) {
+                Event event = createEvent(eventType, jcrPath, id);
                 nodeEvent = Iterators.singletonIterator(event);
             } else {
                 nodeEvent = Iterators.emptyIterator();
@@ -342,7 +359,7 @@ class ChangeProcessor implements Runnable {
                     : Event.PROPERTY_REMOVED;
 
             Iterator<Event> propertyEvents;
-            if (filter.include(propertyEventType, jcrPath, associatedParentNode)) {
+            if (filter.include(propertyEventType, jcrPath, afterParentNode)) {
                 propertyEvents = Iterators.transform(
                         Iterators.filter(
                                 node.getProperties().iterator(),
@@ -355,7 +372,7 @@ class ChangeProcessor implements Runnable {
                         new Function<PropertyState, Event>() {
                             @Override
                             public Event apply(PropertyState property) {
-                                return generatePropertyEvent(propertyEventType, path, property);
+                                return generatePropertyEvent(propertyEventType, path, property, "TODO");  // FIXME
                             }
                         });
             } else {
@@ -382,7 +399,7 @@ class ChangeProcessor implements Runnable {
                     new Function<ChildNodeEntry, Iterator<Event>>() {
                         @Override
                         public Iterator<Event> apply(ChildNodeEntry entry) {
-                            return generateNodeEvents(eventType, parentPath, entry.getName(), entry.getNodeState());
+                            return generateNodeEvents(eventType, parentPath, entry.getName(), entry.getNodeState(), "TODO");  // FIXME
                         }
                     });
         }
