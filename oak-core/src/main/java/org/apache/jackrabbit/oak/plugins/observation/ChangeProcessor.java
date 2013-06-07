@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nonnull;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
@@ -40,7 +41,6 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.VisibleDiff;
 import org.slf4j.Logger;
@@ -48,9 +48,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-/**
- * TODO document
- */
 class ChangeProcessor implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
     private static final Marker DEPRECATED = MarkerFactory.getMarker("deprecated");
@@ -189,7 +186,7 @@ class ChangeProcessor implements Runnable {
 
     //------------------------------------------------------------< private >---
 
-    private class EventGeneratingNodeStateDiff implements NodeStateDiff {
+    private class EventGeneratingNodeStateDiff extends RecursingNodeStateDiff {
         public static final int PURGE_LIMIT = 8192;
 
         private final ChangeSet changes;
@@ -209,6 +206,7 @@ class ChangeProcessor implements Runnable {
         }
 
         public EventGeneratingNodeStateDiff(ChangeSet changes) {
+            // FIXME associatedParentNode should be the root node here
             this(changes, "/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null);
         }
 
@@ -280,17 +278,19 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            return !stopping;
+        }
+
+        @Nonnull
+        @Override
+        public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
             if (filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
                         changes, PathUtils.concat(path, name), events, after);
-                if (!after.compareAgainstBaseState(before, VisibleDiff.wrap(diff))) {
-                    return false;
-                }
-                if (events.size() > PURGE_LIMIT) {
-                    diff.sendEvents();
-                }
+                return VisibleDiff.wrap(diff);
+            } else {
+                return new RecursingNodeStateDiff();
             }
-            return !stopping;
         }
 
         private EventImpl createEvent(int eventType, String jcrPath) {
@@ -350,6 +350,7 @@ class ChangeProcessor implements Runnable {
             return Iterators.concat(nodeEvent, propertyEvents, childNodeEvents);
         }
 
+        // FIXME this doesn't correctly track the associated parent node
         private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath, NodeState node) {
             return Iterators.transform(
                     Iterators.filter(node.getChildNodeEntries().iterator(),
