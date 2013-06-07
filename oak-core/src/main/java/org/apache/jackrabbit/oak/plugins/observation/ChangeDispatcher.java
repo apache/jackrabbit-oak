@@ -262,9 +262,9 @@ public class ChangeDispatcher {
          * {@link NodeStateDiff} of the changes
          * @param diff  node state diff instance for traversing the changes.
          */
-        public void diff(NodeStateDiff diff) {
-            // TODO wrap diff into access check wrapper
-            after.compareAgainstBaseState(before, diff);
+        public void diff(RecursingNodeStateDiff diff) {
+            NodeStateDiff secureDiff = SecureNodeStateDiff.wrap(diff);
+            after.compareAgainstBaseState(before, secureDiff);
         }
 
         @Override

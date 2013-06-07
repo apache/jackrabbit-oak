@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.observation.RecursingNodeStateDiff;
 
 /**
  * {@code NodeStateDiff} wrapper that passes only changes to non-hidden nodes and properties
@@ -32,16 +33,16 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  *
  * @since Oak 0.9
  */
-public class VisibleDiff implements NodeStateDiff {
+public class VisibleDiff extends RecursingNodeStateDiff {
     private final NodeStateDiff diff;
 
     @Nonnull
-    public static NodeStateDiff wrap(@Nonnull NodeStateDiff diff) {
+    public static RecursingNodeStateDiff wrap(@Nonnull NodeStateDiff diff) {
         return new VisibleDiff(checkNotNull(diff));
     }
 
-    public VisibleDiff(NodeStateDiff diff) {
-        this.diff = checkNotNull(diff);
+    private VisibleDiff(NodeStateDiff diff) {
+        this.diff = diff;
     }
 
     @Override
@@ -95,6 +96,20 @@ public class VisibleDiff implements NodeStateDiff {
             return diff.childNodeDeleted(name, before);
         } else {
             return true;
+        }
+    }
+
+    @Nonnull
+    @Override
+    public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
+        if (diff instanceof RecursingNodeStateDiff) {
+            if (isHidden(name)) {
+                return RecursingNodeStateDiff.EMPTY;
+            } else {
+                return ((RecursingNodeStateDiff) diff).createChildDiff(name, before, after);
+            }
+        } else {
+            return super.createChildDiff(name, before, after);
         }
     }
 }
