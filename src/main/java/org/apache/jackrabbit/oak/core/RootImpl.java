@@ -101,8 +101,10 @@ public class RootImpl implements Root {
      */
     private NodeStoreBranch branch;
 
-    private NodeBuilder rawBuilder;
-    private NodeBuilder secureBuilder;
+    /**
+     * Unsecured builder for the root tree
+     */
+    private NodeBuilder builder;
 
     /** Sentinel for the next move operation to take place on the this root */
     private Move lastMove = new Move();
@@ -142,8 +144,8 @@ public class RootImpl implements Root {
 
         branch = this.store.branch();
         NodeState root = branch.getHead();
-        rawBuilder = root.builder();
-        secureBuilder = new SecureNodeBuilder(rawBuilder, getRootContext(root));
+        builder = root.builder();
+        NodeBuilder secureBuilder = new SecureNodeBuilder(builder, getRootContext(root));
         rootTree = new TreeImpl(this, secureBuilder, lastMove);
     }
 
@@ -403,7 +405,7 @@ public class RootImpl implements Root {
      */
     @Nonnull
     private NodeState getRootState() {
-        return rawBuilder.getNodeState();
+        return builder.getNodeState();
     }
 
     /**
@@ -443,7 +445,7 @@ public class RootImpl implements Root {
      */
     private void reset() {
         NodeState root = branch.getHead();
-        rawBuilder.reset(root);
+        builder.reset(root);
     }
 
     @Nonnull
