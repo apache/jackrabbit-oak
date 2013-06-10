@@ -956,7 +956,7 @@ public class MongoMK implements MicroKernel {
         }
         if (c.hasMore) {
             // TODO use a better way to notify there are more children
-            json.key(":childNodeCount").value(Integer.MAX_VALUE);
+            json.key(":childNodeCount").value(Long.MAX_VALUE);
         } else {
             json.key(":childNodeCount").value(c.children.size());
         }
