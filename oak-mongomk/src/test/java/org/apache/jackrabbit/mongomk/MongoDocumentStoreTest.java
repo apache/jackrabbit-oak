@@ -54,7 +54,7 @@ public class MongoDocumentStoreTest {
 
     DocumentStore openDocumentStore() {
         if (MONGO_DB) {
-            return new MongoDocumentStore(MongoUtils.getConnection().getDB());
+            return new MongoDocumentStore(MongoUtils.getConnection().getDB(),new MongoMK.Builder());
         }
         return new MemoryDocumentStore();
     }

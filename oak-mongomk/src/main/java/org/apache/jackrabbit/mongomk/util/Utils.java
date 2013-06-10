@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.mongodb.BasicDBObject;
 import org.bson.types.ObjectId;
 
 /**
@@ -56,16 +57,25 @@ public class Utils {
             return 0;
         }
         int size = 0;
+
         for (Entry<String, Object> e : map.entrySet()) {
-            size += e.getKey().length();
+            size += e.getKey().length()*2;
             Object o = e.getValue();
             if (o instanceof String) {
-                size += o.toString().length();
+                size += ((String)o).length()*2;
             } else if (o instanceof Long) {
                 size += 8;
+            }  else if (o instanceof Integer) {
+                size += 4;
             } else if (o instanceof Map) {
                 size += 8 + estimateMemoryUsage((Map<String, Object>) o);
             }
+        }
+
+        if(map instanceof BasicDBObject){
+            //Based on emperical testing using JAMM
+            size += 176;
+            size += map.entrySet().size() * 136;
         }
         return size;
     }

@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
@@ -65,18 +66,6 @@ public class MongoMK implements MicroKernel {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
-    /**
-     * The number of child node list entries to cache.
-     */
-    private static final int CACHE_CHILDREN = 
-            Integer.getInteger("oak.mongoMK.cacheChildren", 1024);
-    
-    /**
-     * The number of nodes to cache.
-     */
-    private static final int CACHE_NODES = 
-            Integer.getInteger("oak.mongoMK.cacheNodes", 5 * 1024);
-    
     /**
      * The number of diffs to cache.
      */
@@ -231,13 +220,19 @@ public class MongoMK implements MicroKernel {
         this.asyncDelay = builder.getAsyncDelay();
         this.branches = new UnmergedBranches(revisionComparator);
 
-        //TODO Use size based weigher
+        //TODO Make stats collection configurable as it add slight overhead
+        //TODO Expose the stats as JMX beans
+
         nodeCache = CacheBuilder.newBuilder()
-                        .maximumSize(CACHE_NODES)
+                        .weigher(builder.getWeigher())
+                        .maximumWeight(builder.getNodeCacheSize())
+                        .recordStats()
                         .build();
 
         nodeChildrenCache =  CacheBuilder.newBuilder()
-                        .maximumSize(CACHE_CHILDREN)
+                        .weigher(builder.getWeigher())
+                        .recordStats()
+                        .maximumWeight(builder.getChildrenCacheSize())
                         .build();
         
         diffCache = CacheBuilder.newBuilder()
@@ -1547,12 +1542,20 @@ public class MongoMK implements MicroKernel {
      * A builder for a MongoMK instance.
      */
     public static class Builder {
-        
+        private static final long DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
         private DocumentStore documentStore;
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.mongoMK.clusterId", 0);
         private int asyncDelay = 1000;
         private boolean timing;
+        private Weigher<String,Object> weigher = new EmpericalWeigher();
+        private long nodeCacheSize;
+        private long childrenCacheSize;
+        private long documentCacheSize;
+
+        public Builder() {
+            memoryCacheSize(DEFAULT_MEMORY_CACHE_SIZE);
+        }
 
         /**
          * Set the MongoDB connection to use. By default an in-memory store is used.
@@ -1562,7 +1565,7 @@ public class MongoMK implements MicroKernel {
          */
         public Builder setMongoDB(DB db) {
             if (db != null) {
-                this.documentStore = new MongoDocumentStore(db);
+                this.documentStore = new MongoDocumentStore(db,this);
                 this.blobStore = new MongoBlobStore(db);
             }
             return this;
@@ -1650,7 +1653,35 @@ public class MongoMK implements MicroKernel {
         public int getAsyncDelay() {
             return asyncDelay;
         }
-        
+
+        public Weigher<String, Object> getWeigher() {
+            return weigher;
+        }
+
+        public Builder weigher(Weigher<String, Object> weigher) {
+            this.weigher = weigher;
+            return this;
+        }
+
+        public Builder memoryCacheSize(long memoryCacheSize) {
+            this.nodeCacheSize = memoryCacheSize * 20 / 100;
+            this.childrenCacheSize = memoryCacheSize * 10 / 100;
+            this.documentCacheSize = memoryCacheSize - nodeCacheSize - childrenCacheSize;
+            return this;
+        }
+
+        public long getNodeCacheSize() {
+            return nodeCacheSize;
+        }
+
+        public long getChildrenCacheSize() {
+            return childrenCacheSize;
+        }
+
+        public long getDocumentCacheSize() {
+            return documentCacheSize;
+        }
+
         /**
          * Open the MongoMK instance using the configured options.
          * 

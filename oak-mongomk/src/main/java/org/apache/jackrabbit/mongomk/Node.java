@@ -126,6 +126,15 @@ public class Node {
             this.path = path;
             this.rev = rev;
         }
+
+        public int getMemory(){
+            int size = 200 + path.length() * 2;
+            for(String c : children){
+                size += c.length() * 2 + 40;
+            }
+            return size;
+        }
+
         
         @Override
         public String toString() {
