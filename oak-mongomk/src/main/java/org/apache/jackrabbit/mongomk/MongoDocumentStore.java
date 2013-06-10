@@ -64,7 +64,7 @@ public class MongoDocumentStore implements DocumentStore {
     
     private final Cache<String, CachedDocument> nodesCache;
 
-    public MongoDocumentStore(DB db,MongoMK.Builder builder) {
+    public MongoDocumentStore(DB db, MongoMK.Builder builder) {
         nodes = db.getCollection(
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(

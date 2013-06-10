@@ -54,7 +54,7 @@ public class MongoDocumentStoreTest {
 
     DocumentStore openDocumentStore() {
         if (MONGO_DB) {
-            return new MongoDocumentStore(MongoUtils.getConnection().getDB(),new MongoMK.Builder());
+            return new MongoDocumentStore(MongoUtils.getConnection().getDB(), new MongoMK.Builder());
         }
         return new MemoryDocumentStore();
     }
@@ -161,7 +161,7 @@ public class MongoDocumentStoreTest {
         op.set("prop", "value");
         op.containsMapEntry("map", "key", true);
         // update if key exists -> must succeed
-        Map doc = docStore.findAndUpdate(Collection.NODES, op);
+        Map<String, Object> doc = docStore.findAndUpdate(Collection.NODES, op);
         assertNotNull(doc);
 
         doc = docStore.find(Collection.NODES, "/node");

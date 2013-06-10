@@ -406,7 +406,7 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    public void changeChangedPropertyTwoBranches(){
+    public void changeChangedPropertyTwoBranches() {
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
 
         String b1 = mk.branch(rev);
