@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.mongomk;
 
+import static org.apache.jackrabbit.mongomk.Node.Children;
 import static org.junit.Assert.fail;
 
 import java.util.LinkedList;
 import java.util.concurrent.Callable;
 
+import com.mongodb.BasicDBObject;
+import org.apache.jackrabbit.mongomk.util.Utils;
 import org.junit.Test;
 
 /**
@@ -64,6 +67,50 @@ public class MeasureMemory {
             }
         });
     }
+
+    @Test
+    public void basicObject() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() {
+                BasicDBObject n = generateBasicObject(15);
+                return new Object[]{n, Utils.estimateMemoryUsage(n) + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void basicObjectWithoutProperties() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() {
+                BasicDBObject n = generateBasicObject(0);
+                return new Object[]{n, Utils.estimateMemoryUsage(n) + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void nodeChild() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() {
+                Children n = generateNodeChild(15);
+                return new Object[]{n, n.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void nodeChildWithoutChildren() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() {
+                Children n = generateNodeChild(15);
+                return new Object[]{n, n.getMemory() + OVERHEAD};
+            }
+        });
+    }
     
     private static void measureMemory(Callable<Object[]> c) throws Exception {
         LinkedList<Object> list = new LinkedList<Object>();
@@ -97,6 +144,22 @@ public class MeasureMemory {
             n.setProperty("property" + i, "values " + i);
         }
         n.setLastRevision(new Revision(1, 2, 3));
+        return n;
+    }
+
+    static BasicDBObject generateBasicObject(int propertyCount) {
+        BasicDBObject n = new BasicDBObject(new String("_id"),new String("/hello/world"));
+        for (int i = 0; i < propertyCount; i++) {
+            n.append("property" + i, "values " + i);
+        }
+        return n;
+    }
+
+    static Children generateNodeChild(int childCount) {
+        Children n = new Children(new String("_id"),new Revision(1, 2, 3));
+        for (int i = 0; i < childCount; i++) {
+            n.children.add("child"+i);
+        }
         return n;
     }
     

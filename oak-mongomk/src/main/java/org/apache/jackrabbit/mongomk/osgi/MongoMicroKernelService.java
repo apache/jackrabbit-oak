@@ -51,6 +51,7 @@ public class MongoMicroKernelService {
     private static final String DEFAULT_HOST = "localhost";
     private static final int DEFAULT_PORT = 27017;
     private static final String DEFAULT_DB = "oak";
+    private static final int DEFAULT_CACHE = 256;
 
     @Property(value = DEFAULT_HOST)
     private static final String PROP_HOST = "host";
@@ -60,6 +61,10 @@ public class MongoMicroKernelService {
 
     @Property(value = DEFAULT_DB)
     private static final String PROP_DB = "db";
+
+    @Property(intValue=DEFAULT_CACHE)
+    private static final String PROP_CACHE = "cache";
+    private static final long MB = 1024 * 1024;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -72,6 +77,7 @@ public class MongoMicroKernelService {
         String host = PropertiesUtil.toString(config.get(PROP_HOST), DEFAULT_HOST);
         int port = PropertiesUtil.toInteger(config.get(PROP_PORT), DEFAULT_PORT);
         String db = PropertiesUtil.toString(config.get(PROP_DB), DEFAULT_DB);
+        int cacheSize = PropertiesUtil.toInteger(config.get(PROP_CACHE), DEFAULT_CACHE);
 
         logger.info("Starting MongoDB MicroKernel with host={}, port={}, db={}",
                 new Object[] {host, port, db});
@@ -81,7 +87,7 @@ public class MongoMicroKernelService {
 
         logger.info("Connected to database {}", mongoDB);
 
-        mk = new MongoMK.Builder().setMongoDB(mongoDB).open();
+        mk = new MongoMK.Builder().memoryCacheSize(cacheSize * MB).setMongoDB(mongoDB).open();
 
         Properties props = new Properties();
         props.setProperty("oak.mk.type", "mongo");
