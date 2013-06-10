@@ -96,9 +96,13 @@ public class MongoDocumentStore implements DocumentStore {
         return LOG_TIME ? System.currentTimeMillis() : 0;
     }
     
-    private void end(long start) {
+    private void end(String message, long start) {
         if (LOG_TIME) {
-            timeSum += System.currentTimeMillis() - start;
+            long t = System.currentTimeMillis() - start;
+            if (t > 0) {
+                LOG.debug(message + ": " + t);
+            }
+            timeSum += t;
         }
     }
     
@@ -170,7 +174,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
             return convertFromDBObject(doc);
         } finally {
-            end(start);
+            end("findUncached", start);
         }
     }
     
@@ -209,7 +213,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
             return list;
         } finally {
-            end(start);
+            end("query", start);
         }
     }
 
@@ -227,7 +231,7 @@ public class MongoDocumentStore implements DocumentStore {
                 throw new MicroKernelException("Remove failed: " + writeResult.getError());
             }
         } finally {
-            end(start);
+            end("remove", start);
         }
     }
 
@@ -321,7 +325,7 @@ public class MongoDocumentStore implements DocumentStore {
         } catch (Exception e) {
             throw new MicroKernelException(e);
         } finally {
-            end(start);
+            end("findAndModify", start);
         }
     }
 
@@ -403,7 +407,7 @@ public class MongoDocumentStore implements DocumentStore {
                 return false;
             }
         } finally {
-            end(start);
+            end("create", start);
         }        
     }
 

@@ -52,6 +52,11 @@ public class Revision {
      */
     private int clusterId;
     
+    /**
+     * The string representation.
+     */
+    private String string;
+    
     public Revision(long timestamp, int counter, int clusterId) {
         this.timestamp = timestamp;
         this.counter = counter;
@@ -146,13 +151,16 @@ public class Revision {
     
     @Override
     public String toString() {
-        return new StringBuilder("r").
+        if (string == null) {
+            string = new StringBuilder("r").
                 append(Long.toHexString(timestamp)).
                 append('-').
                 append(Integer.toHexString(counter)).
                 append('-').
                 append(Integer.toHexString(clusterId)).
                 toString();
+        }
+        return string;
     }
     
     public long getTimestamp() {
