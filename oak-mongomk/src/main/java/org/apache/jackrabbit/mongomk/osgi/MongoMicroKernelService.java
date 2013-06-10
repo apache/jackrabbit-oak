@@ -62,7 +62,7 @@ public class MongoMicroKernelService {
     @Property(value = DEFAULT_DB)
     private static final String PROP_DB = "db";
 
-    @Property(intValue=DEFAULT_CACHE)
+    @Property(intValue = DEFAULT_CACHE)
     private static final String PROP_CACHE = "cache";
     private static final long MB = 1024 * 1024;
 

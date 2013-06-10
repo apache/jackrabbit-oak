@@ -26,19 +26,19 @@ import org.apache.jackrabbit.mongomk.util.Utils;
  * Determines the weight of object based on the memory taken by them. The memory esimates
  * are based on emperical data and not exact
  */
-public class EmpericalWeigher implements Weigher<String,Object>{
+public class EmpericalWeigher implements Weigher<String, Object> {
 
     @Override
     public int weigh(String key, Object value) {
         int size = key.length() * 2;
 
-        if(value instanceof Node){
+        if (value instanceof Node) {
             size += ((Node) value).getMemory();
-        }else if (value instanceof Node.Children){
+        } else if (value instanceof Node.Children) {
             size += ((Node.Children) value).getMemory();
-        }else if(value instanceof MongoDocumentStore.CachedDocument){
+        } else if (value instanceof MongoDocumentStore.CachedDocument) {
             size += Utils.estimateMemoryUsage(((MongoDocumentStore.CachedDocument) value).value);
-        }else if(value != null){
+        } else if (value != null) {
             throw new IllegalArgumentException("Cannot determine weight for object of type " + value.getClass());
         }
         return size;

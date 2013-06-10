@@ -148,7 +148,8 @@ public class MeasureMemory {
     }
 
     static BasicDBObject generateBasicObject(int propertyCount) {
-        BasicDBObject n = new BasicDBObject(new String("_id"),new String("/hello/world"));
+        BasicDBObject n = new BasicDBObject(new String("_id"), new String(
+                "/hello/world"));
         for (int i = 0; i < propertyCount; i++) {
             n.append("property" + i, "values " + i);
         }
@@ -156,9 +157,9 @@ public class MeasureMemory {
     }
 
     static Children generateNodeChild(int childCount) {
-        Children n = new Children(new String("_id"),new Revision(1, 2, 3));
+        Children n = new Children(new String("_id"), new Revision(1, 2, 3));
         for (int i = 0; i < childCount; i++) {
-            n.children.add("child"+i);
+            n.children.add("child" + i);
         }
         return n;
     }

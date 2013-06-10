@@ -1542,13 +1542,13 @@ public class MongoMK implements MicroKernel {
      * A builder for a MongoMK instance.
      */
     public static class Builder {
-        private static final long DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
+        private static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
         private DocumentStore documentStore;
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.mongoMK.clusterId", 0);
         private int asyncDelay = 1000;
         private boolean timing;
-        private Weigher<String,Object> weigher = new EmpericalWeigher();
+        private Weigher<String, Object> weigher = new EmpericalWeigher();
         private long nodeCacheSize;
         private long childrenCacheSize;
         private long documentCacheSize;
@@ -1565,7 +1565,7 @@ public class MongoMK implements MicroKernel {
          */
         public Builder setMongoDB(DB db) {
             if (db != null) {
-                this.documentStore = new MongoDocumentStore(db,this);
+                this.documentStore = new MongoDocumentStore(db, this);
                 this.blobStore = new MongoBlobStore(db);
             }
             return this;
