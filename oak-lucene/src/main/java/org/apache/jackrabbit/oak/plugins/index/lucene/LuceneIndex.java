@@ -301,6 +301,9 @@ public class LuceneIndex implements FulltextQueryIndex {
                 // lucene cannot handle child-level property restrictions
                 continue;
             }
+            if ("rep:excerpt".equals(name)) {
+                continue;
+            }
 
             String first = null;
             String last = null;
