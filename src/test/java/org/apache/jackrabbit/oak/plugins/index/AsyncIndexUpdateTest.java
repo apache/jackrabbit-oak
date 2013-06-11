@@ -23,12 +23,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.IndexTask;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -74,7 +70,6 @@ public class AsyncIndexUpdateTest {
     @Test
     public void testAsync() throws Exception {
         NodeStore store = new MemoryNodeStore();
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(0);
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
         NodeStoreBranch branch = store.branch();
@@ -82,15 +77,15 @@ public class AsyncIndexUpdateTest {
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, true);
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("testRoot").setProperty("foo", "abc");
 
         // merge it back in
         branch.setRoot(builder.getNodeState());
         branch.merge(EmptyHook.INSTANCE);
 
-        AsyncIndexUpdate async = new AsyncIndexUpdate(store, executor, provider);
-        runIndexing(async, 1);
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
         root = store.getRoot();
 
         // first check that the index content nodes exist
@@ -99,15 +94,6 @@ public class AsyncIndexUpdateTest {
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
-    }
-
-    private static void runIndexing(AsyncIndexUpdate async, int expectedActive) {
-        async.run();
-        Map<String, IndexTask> active = async.active;
-        assertEquals(expectedActive, active.size());
-        for (IndexTask task : active.values()) {
-            task.run();
-        }
     }
 
     /**
@@ -122,7 +108,6 @@ public class AsyncIndexUpdateTest {
     @Test
     public void testAsyncDouble() throws Exception {
         NodeStore store = new MemoryNodeStore();
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(0);
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
         NodeStoreBranch branch = store.branch();
@@ -130,10 +115,10 @@ public class AsyncIndexUpdateTest {
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, true);
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "rootIndexSecond", true, false, ImmutableSet.of("bar"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, true);
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
 
         builder.child("testRoot").setProperty("foo", "abc")
                 .setProperty("bar", "def");
@@ -143,8 +128,8 @@ public class AsyncIndexUpdateTest {
         branch.setRoot(builder.getNodeState());
         branch.merge(EmptyHook.INSTANCE);
 
-        AsyncIndexUpdate async = new AsyncIndexUpdate(store, executor, provider);
-        runIndexing(async, 1);
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
         root = store.getRoot();
 
         // first check that the index content nodes exist
@@ -176,7 +161,6 @@ public class AsyncIndexUpdateTest {
     @Test
     public void testAsyncDoubleSubtree() throws Exception {
         NodeStore store = new MemoryNodeStore();
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(0);
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
         NodeStoreBranch branch = store.branch();
@@ -184,12 +168,12 @@ public class AsyncIndexUpdateTest {
         NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "rootIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, true);
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
         createIndexDefinition(
                 builder.child("newchild").child("other")
                         .child(INDEX_DEFINITIONS_NAME), "subIndex", true,
-                false, ImmutableSet.of("foo"), null).setProperty(
-                ASYNC_PROPERTY_NAME, true);
+                false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
 
         builder.child("testRoot").setProperty("foo", "abc");
         builder.child("newchild").child("other").child("testChild")
@@ -199,8 +183,8 @@ public class AsyncIndexUpdateTest {
         branch.setRoot(builder.getNodeState());
         branch.merge(EmptyHook.INSTANCE);
 
-        AsyncIndexUpdate async = new AsyncIndexUpdate(store, executor, provider);
-        runIndexing(async, 1);
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
         root = store.getRoot();
 
         // first check that the index content nodes exist

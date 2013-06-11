@@ -21,6 +21,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Service that provides PropertyIndex based editors.
@@ -36,9 +37,10 @@ public class PropertyIndexEditorProvider implements IndexEditorProvider {
     public static final String TYPE = "property";
 
     @Override
-    public Editor getIndexEditor(String type, NodeBuilder builder) {
+    public Editor getIndexEditor(
+            String type, NodeBuilder definition, NodeState root) {
         if (TYPE.equals(type)) {
-            return new PropertyIndexEditor(builder);
+            return new PropertyIndexEditor(definition, root);
         }
         return null;
     }

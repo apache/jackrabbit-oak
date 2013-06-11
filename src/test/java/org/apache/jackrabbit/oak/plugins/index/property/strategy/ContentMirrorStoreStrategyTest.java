@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.util.Collections;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -29,9 +32,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
-
 public class ContentMirrorStoreStrategyTest {
+
+    private static final Set<String> empty = newHashSet();
+
+    private static final Set<String> key = newHashSet("key");
 
     /**
      * <p>
@@ -54,8 +59,9 @@ public class ContentMirrorStoreStrategyTest {
         NodeState root = EMPTY_NODE;
         NodeBuilder index = root.builder();
 
-        store.insert(index, "key",
-                Sets.newHashSet("/", "a/b/c", "a/b/d", "b", "d/e", "d/e/f"));
+        for (String path : asList("/", "a/b/c", "a/b/d", "b", "d/e", "d/e/f")) {
+            store.update(index, path, empty, key);
+        }
         checkPath(index, "key", "", true);
         checkPath(index, "key", "a/b/c", true);
         checkPath(index, "key", "a/b/d", true);
@@ -65,27 +71,30 @@ public class ContentMirrorStoreStrategyTest {
 
         // remove the root key, removes just the "match" property, when the
         // index is not empty
-        store.remove(index, "key", Sets.newHashSet("/"));
+        store.update(index, "/", key, empty);
         checkPath(index, "key", "d/e/f", true);
 
         // removing intermediary path doesn't remove the entire subtree
-        store.remove(index, "key", Sets.newHashSet("d/e"));
+        store.update(index, "d/e", key, empty);
         checkPath(index, "key", "d/e/f", true);
 
         // removing intermediary path doesn't remove the entire subtree
-        store.remove(index, "key", Sets.newHashSet("d/e/f"));
+        store.update(index, "d/e/f", key, empty);
         checkNotPath(index, "key", "d");
 
         // brother segment removed
-        store.remove(index, "key", Sets.newHashSet("a/b/d", "a/b"));
+        store.update(index, "a/b/d", key, empty);
+        store.update(index, "a/b", key, empty);
         checkPath(index, "key", "a/b/c", true);
 
         // reinsert root and remove everything else
-        store.insert(index, "key", Sets.newHashSet("/"));
-        store.remove(index, "key", Sets.newHashSet("d/e/f", "b", "a/b/c"));
+        store.update(index, "", empty, key);
+        store.update(index, "d/e/f", key, empty);
+        store.update(index, "b", key, empty);
+        store.update(index, "a/b/c", key, empty);
 
         // remove the root key when the index is empty
-        store.remove(index, "key", Sets.newHashSet("/"));
+        store.update(index, "", key, empty);
         Assert.assertEquals(0, index.getChildNodeCount());
     }
 
@@ -121,8 +130,8 @@ public class ContentMirrorStoreStrategyTest {
         IndexStoreStrategy store = new ContentMirrorStoreStrategy();
         NodeState root = EMPTY_NODE;
         NodeBuilder index = root.builder();
-        store.insert(index, "key", Sets.newHashSet("a"));
-        store.insert(index, "key", Sets.newHashSet("b"));
+        store.update(index, "a", empty, key);
+        store.update(index, "b", empty, key);
         Assert.assertTrue(
                 "ContentMirrorStoreStrategy should guarantee uniqueness on insert",
                 store.count(index.getNodeState(), Collections.singleton("key"), 2) > 1);

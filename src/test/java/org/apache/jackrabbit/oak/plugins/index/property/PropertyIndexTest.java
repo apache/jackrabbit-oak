@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -36,10 +34,11 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -56,6 +55,9 @@ public class PropertyIndexTest {
 
     private static final int MANY = 100;
 
+    private static final EditorHook HOOK = new EditorHook(
+            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+
     @Test
     public void testPropertyLookup() throws Exception {
         NodeState root = new InitialContent().initialize(EMPTY_NODE);
@@ -67,7 +69,6 @@ public class PropertyIndexTest {
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
-        builder = before.builder();
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
                 Type.STRINGS);
@@ -77,8 +78,7 @@ public class PropertyIndexTest {
         }
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new PropertyIndexEditor(builder), before, after);
-        NodeState indexed = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after);
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
@@ -115,7 +115,6 @@ public class PropertyIndexTest {
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
-        builder = before.builder();
         builder.child("a").setProperty("foo", "abc")
                 .setProperty("extrafoo", "pqr");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
@@ -127,8 +126,7 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        EditorDiff.process(new PropertyIndexEditor(builder), before, after);
-        NodeState indexed = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after);
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
@@ -168,7 +166,6 @@ public class PropertyIndexTest {
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
-        builder = before.builder();
         builder.child("a")
                 .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
                 .setProperty("foo", "abc");
@@ -177,8 +174,7 @@ public class PropertyIndexTest {
                 .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new PropertyIndexEditor(builder), before, after);
-        NodeState indexed = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after);
 
         FilterImpl f = createFilter(indexed, NT_UNSTRUCTURED);
 
@@ -216,14 +212,15 @@ public class PropertyIndexTest {
         // Add index definitions
         NodeBuilder builder = root.builder();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        createIndexDefinition(index, "fooIndex", true, false,
+        createIndexDefinition(
+                index, "fooIndex", true, false,
                 ImmutableSet.of("foo", "extrafoo"), null);
-        createIndexDefinition(index, "fooIndexFile", true, false,
+        createIndexDefinition(
+                index, "fooIndexFile", true, false,
                 ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
-        builder = before.builder();
         builder.child("a")
                 .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
                 .setProperty("foo", "abc");
@@ -233,8 +230,7 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        EditorDiff.process(new PropertyIndexEditor(builder), before, after);
-        NodeState indexed = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after);
 
         FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
 
@@ -252,24 +248,22 @@ public class PropertyIndexTest {
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testUnique() throws Exception {
         NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+        createIndexDefinition(
+                builder.child(INDEX_DEFINITIONS_NAME),
                 "fooIndex", true, true, ImmutableSet.of("foo"), null);
         NodeState before = builder.getNodeState();
-        builder = before.builder();
         builder.child("a").setProperty("foo", "abc");
         builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
                 Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        CommitFailedException expected = EditorDiff.process(
-                new PropertyIndexEditor(builder), before, after);
-        assertNotNull("Unique constraint should be respected", expected);
+        HOOK.processCommit(before, after); // should throw
     }
 
     @Test
@@ -282,19 +276,16 @@ public class PropertyIndexTest {
                 "fooIndex", true, true, ImmutableSet.of("foo"),
                 ImmutableSet.of("typeFoo"));
         NodeState before = builder.getNodeState();
-        builder = before.builder();
         builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
         builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeBar", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
-        CommitFailedException unexpected = EditorDiff.process(
-                new PropertyIndexEditor(builder), before, after);
-        assertNull(unexpected);
+        HOOK.processCommit(before, after); // should not throw
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testUniqueByTypeKO() throws Exception {
         NodeState root = EMPTY_NODE;
 
@@ -304,16 +295,13 @@ public class PropertyIndexTest {
                 "fooIndex", true, true, ImmutableSet.of("foo"),
                 ImmutableSet.of("typeFoo"));
         NodeState before = builder.getNodeState();
-        builder = before.builder();
         builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
         builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
-        CommitFailedException expected = EditorDiff.process(
-                new PropertyIndexEditor(builder), before, after);
-        assertNotNull("Unique constraint should be respected", expected);
+        HOOK.processCommit(before, after); // should throw
     }
 
     @Test
@@ -330,13 +318,10 @@ public class PropertyIndexTest {
         builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeBar", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
-        builder = before.builder();
         builder.getChildNode("b").remove();
         NodeState after = builder.getNodeState();
 
-        CommitFailedException unexpected = EditorDiff.process(
-                new PropertyIndexEditor(builder), before, after);
-        assertNull(unexpected);
+        HOOK.processCommit(before, after); // should not throw
     }
 
 }

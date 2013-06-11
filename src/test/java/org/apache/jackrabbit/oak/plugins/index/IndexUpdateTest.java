@@ -50,6 +50,9 @@ import com.google.common.collect.Sets;
 
 public class IndexUpdateTest {
 
+    private static final EditorHook HOOK = new EditorHook(
+            new IndexUpdateProvider(new PropertyIndexEditorProvider()));
+
     private NodeState root = new InitialContent().initialize(EMPTY_NODE);
 
     private NodeBuilder builder = root.builder();
@@ -81,10 +84,7 @@ public class IndexUpdateTest {
 
         NodeState after = builder.getNodeState();
 
-        IndexUpdateProvider p = new IndexUpdateProvider(
-                new PropertyIndexEditorProvider());
-        EditorHook hook = new EditorHook(p);
-        NodeState indexed = hook.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after);
 
         // first check that the index content nodes exist
         checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex",
@@ -120,10 +120,7 @@ public class IndexUpdateTest {
 
         NodeState after = builder.getNodeState();
 
-        IndexUpdateProvider p = new IndexUpdateProvider(
-                new PropertyIndexEditorProvider());
-        EditorHook hook = new EditorHook(p);
-        NodeState indexed = hook.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after);
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
@@ -159,10 +156,7 @@ public class IndexUpdateTest {
                 .setProperty(REINDEX_PROPERTY_NAME, true);
         NodeState after = builder.getNodeState();
 
-        IndexUpdateProvider p = new IndexUpdateProvider(
-                new PropertyIndexEditorProvider());
-        EditorHook hook = new EditorHook(p);
-        NodeState indexed = hook.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after);
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
@@ -183,19 +177,16 @@ public class IndexUpdateTest {
                 "existing", true, false, ImmutableSet.of("foo"), null);
 
         NodeState before = builder.getNodeState();
+        NodeBuilder other = builder.child("test").child("other");
         // Add index definition
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                 true, false, ImmutableSet.of("foo"), null);
         createIndexDefinition(
-                builder.child("test").child("other")
-                        .child(INDEX_DEFINITIONS_NAME), "index2", true, false,
+                other.child(INDEX_DEFINITIONS_NAME), "index2", true, false,
                 ImmutableSet.of("foo"), null);
         NodeState after = builder.getNodeState();
 
-        IndexUpdateProvider p = new IndexUpdateProvider(
-                new PropertyIndexEditorProvider());
-        EditorHook hook = new EditorHook(p);
-        NodeState indexed = hook.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after);
 
         // check that the index content nodes exist
         checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "existing",
