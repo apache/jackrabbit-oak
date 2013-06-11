@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nonnull;
@@ -25,16 +28,16 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefinitions;
 
 /**
  * {@link QueryIndexProvider} for {@link SolrQueryIndex}
@@ -63,18 +66,26 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
-        for (IndexDefinition child : buildIndexDefinitions(nodeState, "/",
-                SolrQueryIndex.TYPE)) {
-            if (log.isDebugEnabled()) {
-                log.debug("found a Solr index definition {}", child);
+        if (solrServerProvider == null || oakSolrConfigurationProvider == null) {
+            return tempIndexes;
+        }
+        NodeState definitions = nodeState.getChildNode(INDEX_DEFINITIONS_NAME);
+        for (ChildNodeEntry entry : definitions.getChildNodeEntries()) {
+            NodeState definition = entry.getNodeState();
+            PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
+            if (type != null
+                    && SolrQueryIndex.TYPE.equals(type.getValue(Type.STRING))) {
+                log.debug("found a Solr index definition {}", entry.getName());
             }
             try {
-                if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
-                    tempIndexes.add(new SolrQueryIndex(child, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration()));
-                }
+                tempIndexes.add(new SolrQueryIndex(
+                        entry.getName(),
+                        solrServerProvider.getSolrServer(),
+                        oakSolrConfigurationProvider.getConfiguration()));
             } catch (Exception e) {
-                log.error("unable to create Solr query index at {} due to {}", new Object[]{child.getPath(), e});
+                log.error("unable to create Solr query index at " + entry.getName(), e);
             }
+            
         }
         return tempIndexes;
     }

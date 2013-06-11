@@ -22,10 +22,12 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -41,7 +43,8 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
         if (providers.isEmpty()) {
             return new IndexEditorProvider() {
                 @Override
-                public Editor getIndexEditor(String type, NodeBuilder builder) {
+                public Editor getIndexEditor(
+                        String type, NodeBuilder builder, NodeState root) {
                     return null;
                 }
             };
@@ -64,10 +67,12 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
     }
 
     @Override
-    public Editor getIndexEditor(String type, NodeBuilder builder) {
+    public Editor getIndexEditor(
+            String type, NodeBuilder builder, NodeState root)
+            throws CommitFailedException {
         List<Editor> indexes = Lists.newArrayList();
         for (IndexEditorProvider provider : providers) {
-            Editor e = provider.getIndexEditor(type, builder);
+            Editor e = provider.getIndexEditor(type, builder, root);
             if (e != null) {
                 indexes.add(e);
             }

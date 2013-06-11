@@ -16,15 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -32,8 +29,10 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.solr.client.solrj.SolrQuery;
 import org.junit.Test;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
@@ -56,21 +55,11 @@ public class SolrIndexHookIT extends SolrBaseTest {
         builder.child("newnode").setProperty("prop", "val");
         NodeState after = builder.getNodeState();
 
-        EditorProvider provider = new EditorProvider() {
-            @Override
-            public Editor getRootEditor(NodeState before, NodeState after,
-                    NodeBuilder builder) {
-                return new SolrIndexHook("/", builder, server);
-            }
-        };
-        EditorHook hook = new EditorHook(provider);
         NodeState indexed = hook.processCommit(before, after);
 
-        IndexDefinition testDef = new IndexDefinitionImpl("solr",
-                "solr", "/oak:index/solr");
-        QueryIndex queryIndex = new SolrQueryIndex(testDef, server, configuration);
+        QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
         FilterImpl filter = new FilterImpl(null, null);
-        filter.restrictPath("newnode", Filter.PathRestriction.EXACT);
+        filter.restrictPath("/newnode", Filter.PathRestriction.EXACT);
         filter.restrictProperty("prop", Operator.EQUAL,
                 PropertyValues.newString("val"));
         Cursor cursor = queryIndex.query(filter, indexed);
@@ -78,7 +67,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         assertTrue("no results found", cursor.hasNext());
         IndexRow next = cursor.next();
         assertNotNull("first returned item should not be null", next);
-        assertEquals("newnode", next.getPath());
+        assertEquals("/newnode", next.getPath());
         assertFalse(cursor.hasNext());
     }
 
@@ -95,19 +84,9 @@ public class SolrIndexHookIT extends SolrBaseTest {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        EditorProvider provider = new EditorProvider() {
-            @Override
-            public Editor getRootEditor(NodeState before, NodeState after,
-                    NodeBuilder builder) {
-                return new SolrIndexHook("/", builder, server);
-            }
-        };
-        EditorHook hook = new EditorHook(provider);
         NodeState indexed = hook.processCommit(before, after);
 
-        IndexDefinition testDef = new IndexDefinitionImpl("solr",
-                "solr", "/oak:index/solr");
-        QueryIndex queryIndex = new SolrQueryIndex(testDef, server, configuration);
+        QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
         FilterImpl filter = new FilterImpl(null, null);
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
@@ -139,31 +118,24 @@ public class SolrIndexHookIT extends SolrBaseTest {
 
         NodeState after = builder.getNodeState();
 
-        EditorProvider provider = new EditorProvider() {
-            @Override
-            public Editor getRootEditor(NodeState before, NodeState after,
-                    NodeBuilder builder) {
-                return new SolrIndexHook("/", builder, server);
-            }
-        };
-        EditorHook hook = new EditorHook(provider);
         NodeState indexed = hook.processCommit(before, after);
 
-        IndexDefinition testDef = new IndexDefinitionImpl("solr",
-                "solr", "/oak:index/solr");
-        QueryIndex queryIndex = new SolrQueryIndex(testDef, server, configuration);
+        QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
         FilterImpl filter = new FilterImpl(null, null);
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
         filter.restrictFulltextCondition("bar");
         Cursor cursor = queryIndex.query(filter, indexed);
 
-        assertTrue(cursor.hasNext());
-        assertEquals("/", cursor.next().getPath());
-        assertEquals("a", cursor.next().getPath());
-        assertEquals("a/b", cursor.next().getPath());
-        assertEquals("a/b/c", cursor.next().getPath());
-        assertFalse(cursor.hasNext());
+        Set<String> paths = newHashSet();
+        while (cursor.hasNext()) {
+            paths.add(cursor.next().getPath());
+        }
+        assertTrue(paths.remove("/"));
+        assertTrue(paths.remove("/a"));
+        assertTrue(paths.remove("/a/b"));
+        assertTrue(paths.remove("/a/b/c"));
+        assertTrue(paths.isEmpty());
     }
 
 }

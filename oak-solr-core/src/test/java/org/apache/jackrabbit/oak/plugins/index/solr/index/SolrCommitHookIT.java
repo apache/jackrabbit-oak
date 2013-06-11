@@ -36,12 +36,6 @@ import org.junit.Test;
  */
 public class SolrCommitHookIT extends SolrBaseTest {
 
-    @Override
-    protected RootImpl createRootImpl() {
-        return new RootImpl(store, new SolrCommitHook(server), PostCommitHook.EMPTY, "solr-commit-hook-it", new Subject(),
-                new OpenSecurityProvider(), new CompositeQueryIndexProvider());
-    }
-
     @Test
     public void testAddSomeNodes() throws Exception {
         Root r = createRootImpl();
@@ -63,21 +57,24 @@ public class SolrCommitHookIT extends SolrBaseTest {
 
     @Test
     public void testRemoveNode() throws Exception {
-        // pre-populate the index with a node that is already in Oak
-        SolrInputDocument doc = new SolrInputDocument();
-        doc.addField("path_exact", "z");
-        server.add(doc);
-        server.commit();
-
-        // remove the node in oak
         Root r = createRootImpl();
-        r.getTree("/").getChild("z").remove();
+
+        // Add a node
+        r.getTree("/").addChild("testRemoveNode").setProperty("foo", "bar");
         r.commit();
 
         // check the node is not in Solr anymore
         SolrQuery query = new SolrQuery();
-        query.setQuery("path_exact:z");
-        QueryResponse queryResponse = server.query(query);
-        assertTrue("item with id:z was found in the index", queryResponse.getResults().size() == 0);
+        query.setQuery("path_exact:\\/testRemoveNode\\/");
+        assertTrue("item with id:testRemoveNode was not found in the index",
+                server.query(query).getResults().size() > 0);
+
+        // remove the node in oak
+        r.getTree("/").getChild("testRemoveNode").remove();
+        r.commit();
+
+        // check the node is not in Solr anymore
+        assertTrue("item with id:testRemoveNode was found in the index",
+                server.query(query).getResults().size() == 0);
     }
 }

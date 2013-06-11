@@ -260,7 +260,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setChildNode(String name, NodeState state) {
-        checkState(exists(), "This builder does not exist: " + name);
+        checkState(exists(), "This builder does not exist: " + this.name);
         head().getMutableNodeState().setChildNode(checkNotNull(name), checkNotNull(state));
         MemoryNodeBuilder builder = createChildBuilder(name);
         updated();

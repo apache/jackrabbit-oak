@@ -21,24 +21,15 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 
-import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.RootImpl;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
-import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrCommitHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
 /**
@@ -47,30 +38,21 @@ import org.junit.Test;
  */
 public class SolrQueryEngineIT extends SolrBaseTest {
 
-    @Override
-    protected RootImpl createRootImpl() {
-        return new RootImpl(store, new SolrCommitHook(server), PostCommitHook.EMPTY, "solr-query-engine-it", new Subject(),
-                new OpenSecurityProvider(), new CompositeQueryIndexProvider());
-    }
-
     @Test
     public void testSolrQueryEngine() throws Exception {
-        IndexDefinition testID = new IndexDefinitionImpl("solr-test",
-                "solr", "/");
         Root root = createRootImpl();
         Tree tree = root.getTree("/");
-
         tree.addChild("somenode").setProperty("foo", "bar");
         root.commit();
 
-        QueryIndex index = new SolrQueryIndex(testID, server, configuration);
+        QueryIndex index = new SolrQueryIndex("solr", server, configuration);
         FilterImpl filter = new FilterImpl(null, null);
-        filter.restrictPath("somenode", Filter.PathRestriction.EXACT);
+        filter.restrictPath("/somenode", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         Cursor cursor = index.query(filter, store.getRoot());
         assertNotNull(cursor);
         assertTrue(cursor.hasNext());
-        assertEquals("somenode", cursor.next().getPath());
+        assertEquals("/somenode", cursor.next().getPath());
         assertFalse(cursor.hasNext());
     }
 

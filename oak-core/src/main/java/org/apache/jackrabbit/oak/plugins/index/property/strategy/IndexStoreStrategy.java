@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -30,26 +29,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public interface IndexStoreStrategy {
 
     /**
-     * Removes a set of values from the index
+     * Updates the index for the given path.
      * 
      * @param index the index node
-     * @param key the index key
-     * @param values the values to be removed from the given key
-     * @throws CommitFailedException
+     * @param path path stored in the index
+     * @param beforeKeys keys that no longer apply to the path
+     * @param afterKeys keys that now do apply to the path
      */
-    void remove(NodeBuilder index, String key, Iterable<String> values)
-            throws CommitFailedException;
-
-    /**
-     * Inserts a set of values in the index
-     * 
-     * @param index the index node
-     * @param key the index key
-     * @param values the values to be added to the given key
-     * @throws CommitFailedException
-     */
-    void insert(NodeBuilder index, String key, Iterable<String> values)
-            throws CommitFailedException;
+    void update(
+        NodeBuilder index, String path,
+        Set<String> beforeKeys, Set<String> afterKeys);
     
     /**
      * Search for a given set of values.

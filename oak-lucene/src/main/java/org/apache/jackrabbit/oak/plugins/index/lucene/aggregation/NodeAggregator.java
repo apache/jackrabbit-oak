@@ -23,18 +23,11 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 
 import java.util.List;
 
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
 
 public class NodeAggregator {
-
-    private final NodeBuilder index;
-
-    public NodeAggregator(NodeBuilder index) {
-        this.index = index;
-    }
 
     public List<AggregatedState> getAggregates(NodeState state) {
         // FIXME remove hardcoded aggregates

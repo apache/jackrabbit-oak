@@ -20,73 +20,35 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexDiff;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefinitions;
-
 /**
  * Utility class for tests
  */
-public class TestUtils {
+public class TestUtils
+        implements SolrServerProvider, OakSolrConfigurationProvider {
 
     static final String SOLR_HOME_PATH = "target/test-classes/solr";
     static final String SOLRCONFIG_PATH = "target/test-classes/solr/solr.xml";
 
-    public static QueryIndexProvider getTestQueryIndexProvider(final SolrServer solrServer, final OakSolrConfiguration configuration) {
-        return new QueryIndexProvider() {
-            @Nonnull
-            @Override
-            public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-                List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
-                for (IndexDefinition child : buildIndexDefinitions(nodeState, "/",
-                        SolrQueryIndex.TYPE)) {
-                    try {
-                        tempIndexes.add(new SolrQueryIndex(child, solrServer, configuration));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                return tempIndexes;
-            }
-        };
-    }
-
-    public static IndexEditorProvider getTestIndexHookProvider(final SolrServer solrServer, final OakSolrConfiguration configuration) {
-        return new IndexEditorProvider() {
-            @Override @CheckForNull
-            public Editor getIndexEditor(String type, NodeBuilder builder) {
-                if (SolrQueryIndex.TYPE.equals(type)) {
-                    try {
-                        return new SolrIndexDiff(builder, solrServer, configuration);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                return null;
-            }
-        };
-
-    }
-
-    public static SolrServer createSolrServer() throws Exception {
+    public static SolrServer createSolrServer() {
         CoreContainer coreContainer = new CoreContainer(SOLR_HOME_PATH);
-        coreContainer.load(SOLR_HOME_PATH, new File(SOLRCONFIG_PATH));
+        try {
+            coreContainer.load(SOLR_HOME_PATH, new File(SOLRCONFIG_PATH));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
         return new EmbeddedSolrServer(coreContainer, "oak");
     }
 
@@ -140,4 +102,19 @@ public class TestUtils {
 
         };
     }
+
+    private final SolrServer solrServer = createSolrServer();
+
+    private final OakSolrConfiguration configuration = getTestConfiguration();
+
+    @Override
+    public SolrServer getSolrServer() {
+        return solrServer;
+    }
+
+    @Override
+    public OakSolrConfiguration getConfiguration() {
+        return configuration;
+    }
+
 }

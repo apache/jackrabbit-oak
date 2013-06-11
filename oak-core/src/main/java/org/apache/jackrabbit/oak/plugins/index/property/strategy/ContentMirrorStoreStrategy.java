@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
-import java.util.Collections;
+import static com.google.common.collect.Queues.newArrayDeque;
+
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -65,82 +63,52 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     static final Logger LOG = LoggerFactory.getLogger(ContentMirrorStoreStrategy.class);
 
     @Override
-    public void remove(NodeBuilder index, String key, Iterable<String> values) {
-        if (!index.hasChildNode(key)) {
-            return;
+    public void update(
+            NodeBuilder index, String path,
+            Set<String> beforeKeys, Set<String> afterKeys) {
+        for (String key : beforeKeys) {
+            remove(index, key, path);
         }
-        NodeBuilder child = index.child(key);
-        Map<String, NodeBuilder> parents = new TreeMap<String, NodeBuilder>(Collections.reverseOrder());
-
-        for (String rm : values) {
-            if (PathUtils.denotesRoot(rm)) {
-                child.removeProperty("match");
-            } else {
-                String parentPath = PathUtils.getParentPath(rm);
-                String name = PathUtils.getName(rm);
-                NodeBuilder indexEntry = parents.get(parentPath);
-                if (indexEntry == null) {
-                    indexEntry = child;
-                    String segmentPath = "";
-                    Iterator<String> segments = PathUtils.elements(parentPath)
-                            .iterator();
-                    while (segments.hasNext()) {
-                        String segment = segments.next();
-                        segmentPath = PathUtils.concat(segmentPath, segment);
-                        indexEntry = indexEntry.child(segment);
-                        parents.put(segmentPath, indexEntry);
-                    }
-                }
-                if (indexEntry.hasChildNode(name)) {
-                    NodeBuilder childEntry = indexEntry.child(name);
-                    childEntry.removeProperty("match");
-                    if (childEntry.getChildNodeCount() == 0) {
-                        indexEntry.getChildNode(name).remove();
-                    }
-                }
-            }
-        }
-        // prune the index: remove all children that have no children
-        // and no "match" property progressing bottom up
-        Iterator<String> it = parents.keySet().iterator();
-        while (it.hasNext()) {
-            String path = it.next();
-            NodeBuilder parent = parents.get(path);
-            pruneNode(parent);
-        }
-
-        // finally prune the index node
-        pruneNode(child);
-        if (child.getChildNodeCount() == 0
-                && !child.hasProperty("match")) {
-            index.getChildNode(key).remove();
+        for (String key : afterKeys) {
+            insert(index, key, path);
         }
     }
 
-    private static void pruneNode(NodeBuilder parent) {
-        if (!parent.exists()) {
-            return;
-        }
-        for (String name : parent.getChildNodeNames()) {
-            NodeBuilder segment = parent.child(name);
-            if (segment.getChildNodeCount() == 0
-                    && !segment.hasProperty("match")) {
-                parent.getChildNode(name).remove();
+    private void remove(NodeBuilder index, String key, String value) {
+        NodeBuilder builder = index.getChildNode(key);
+        if (builder.exists()) {
+            // Collect all builders along the given path
+            Deque<NodeBuilder> builders = newArrayDeque();
+            builders.addFirst(builder);
+
+            // Descend to the correct location in the index tree
+            for (String name : PathUtils.elements(value)) {
+                builder = builder.getChildNode(name);
+                builders.addFirst(builder);
+            }
+
+            // Drop the match value,  if present
+            if (builder.exists()) {
+                builder.removeProperty("match");
+            }
+
+            // Prune all index nodes that are no longer needed
+            for (NodeBuilder node : builders) {
+                if (node.getBoolean("match") || node.getChildNodeCount() > 0) {
+                    return;
+                } else if (node.exists()) {
+                    node.remove();
+                }
             }
         }
     }
 
-    @Override
-    public void insert(NodeBuilder index, String key, Iterable<String> values)
-            throws CommitFailedException {
-        NodeBuilder child = index.child(key);
-        for (String add : values) {
-            NodeBuilder indexEntry = child;
-            for (String segment : PathUtils.elements(add)) {
-                indexEntry = indexEntry.child(segment);
-            }
-            indexEntry.setProperty("match", true);
+    private void insert(NodeBuilder index, String key, String value) {
+        NodeBuilder builder = index.child(key);
+        for (String name : PathUtils.elements(value)) {
+            builder = builder.child(name);
         }
+        builder.setProperty("match", true);
     }
 
     @Override

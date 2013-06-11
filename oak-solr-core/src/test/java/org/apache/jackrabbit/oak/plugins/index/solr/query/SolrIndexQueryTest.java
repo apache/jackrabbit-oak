@@ -27,8 +27,8 @@ import java.util.Iterator;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
+import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -60,13 +60,13 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        OakSolrConfiguration testConfiguration = TestUtils.getTestConfiguration();
+        TestUtils provider = new TestUtils();
+        solrServer = provider.getSolrServer();
         try {
-            solrServer = TestUtils.createSolrServer();
             return new Oak().with(new InitialContent())
                     .with(new OpenSecurityProvider())
-                    .with(TestUtils.getTestQueryIndexProvider(solrServer, testConfiguration))
-                    .with(TestUtils.getTestIndexHookProvider(solrServer, testConfiguration))
+                    .with(new SolrQueryIndexProvider(provider, provider))
+                    .with(new SolrIndexEditorProvider(provider, provider))
                     .createContentRepository();
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-
-import javax.annotation.CheckForNull;
+import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
+import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
@@ -31,44 +30,50 @@ import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Service that provides {@link SolrIndexHookProvider} based {@link IndexEditor}s.
- *
- * @see org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider
+ * Service that provides Lucene based {@link IndexEditor}s
+ * 
+ * @see SolrIndexEditor
+ * @see IndexEditorProvider
+ * 
  */
 @Component
 @Service(IndexEditorProvider.class)
-public class SolrIndexHookProvider implements IndexEditorProvider {
+public class SolrIndexEditorProvider implements IndexEditorProvider {
 
-    private final Logger log = LoggerFactory.getLogger(SolrIndexHookProvider.class);
-
-    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
+    @Reference(policyOption = GREEDY, policy = STATIC)
     private SolrServerProvider solrServerProvider;
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
+    @Reference(policyOption = GREEDY, policy = STATIC)
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
-    public SolrIndexHookProvider() {
-    }
-
-    public SolrIndexHookProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+    public SolrIndexEditorProvider(
+            SolrServerProvider solrServerProvider,
+            OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this.solrServerProvider = solrServerProvider;
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
     }
 
-    @Override @CheckForNull
-    public Editor getIndexEditor(String type, NodeBuilder builder) {
-        if (SolrQueryIndex.TYPE.equals(type) && solrServerProvider != null && oakSolrConfigurationProvider != null) {
+    public SolrIndexEditorProvider() {
+    }
+
+    @Override
+    public Editor getIndexEditor(
+            String type, NodeBuilder definition, NodeState root)
+            throws CommitFailedException {
+        if (SolrQueryIndex.TYPE.equals(type)
+                && solrServerProvider != null
+                && oakSolrConfigurationProvider != null) {
             try {
-                if (log.isDebugEnabled()) {
-                    log.debug("Creating a Solr index hook");
-                }
-                return new SolrIndexDiff(builder, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration());
+                return new SolrIndexEditor(
+                        definition,
+                        solrServerProvider.getSolrServer(),
+                        oakSolrConfigurationProvider.getConfiguration());
             } catch (Exception e) {
-                log.error("unable to create Solr IndexHook ", e);
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
         }
         return null;

@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This IndexEditor provider combines all index editors of all available OSGi
@@ -35,13 +37,15 @@ public class OsgiIndexEditorProvider extends
     }
 
     @Override
-    public Editor getIndexEditor(String type, NodeBuilder builder) {
+    public Editor getIndexEditor(
+            String type, NodeBuilder builder, NodeState root)
+            throws CommitFailedException {
         IndexEditorProvider composite = CompositeIndexEditorProvider
                 .compose(getServices());
         if (composite == null) {
             return null;
         }
-        return composite.getIndexEditor(type, builder);
+        return composite.getIndexEditor(type, builder, root);
     }
 
 }

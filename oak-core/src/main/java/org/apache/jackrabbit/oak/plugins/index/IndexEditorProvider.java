@@ -17,9 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Extension point for plugging in different kinds of IndexEditor providers.
@@ -29,23 +32,22 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 public interface IndexEditorProvider {
 
     /**
-     * 
      * Each provider knows how to produce a certain type of index. If the
      * <code>type</code> param is of an unknown value, the provider is expected
      * to return {@code null}.
      * 
      * <p>
-     * The <code>builder</code> must points to the index definition node
-     * under which the indexer is expected to store the index content.
+     * The <code>definition</code> builder must points to the index definition
+     * node under which the indexer is expected to store the index content.
      * </p>
      * 
-     * @param type
-     *            the index type
-     * @param builder
-     *            the node state builder of the index definition node that
-     *            will be used for updates
+     * @param type  index type
+     * @param definition index definition node builder, used for updates
+     * @param root root node state, used for things like node type information
      * @return index update editor, or {@code null} if type is unknown
      */
     @CheckForNull
-    Editor getIndexEditor(String type, NodeBuilder builder);
+    Editor getIndexEditor(
+            @Nonnull String type, @Nonnull NodeBuilder definition,
+            @Nonnull NodeState root) throws CommitFailedException;
 }
