@@ -202,7 +202,7 @@ public interface NodeBuilder {
      *
      * @param name name of the child node containing the new subtree
      * @param nodeState subtree
-     * @return this builder
+     * @return child builder
      */
     @Nonnull
     NodeBuilder setChildNode(String name, @Nonnull NodeState nodeState);
