@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-
 import java.util.Collection;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -44,19 +42,19 @@ public class SolrQueryIndex implements QueryIndex {
     private static final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
     public static final String TYPE = "solr";
 
-    private final IndexDefinition index;
+    private final String name;
     private final SolrServer solrServer;
     private final OakSolrConfiguration configuration;
 
-    public SolrQueryIndex(IndexDefinition indexDefinition, SolrServer solrServer, OakSolrConfiguration configuration) {
-        this.index = indexDefinition;
+    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration) {
+        this.name = name;
         this.solrServer = solrServer;
         this.configuration = configuration;
     }
 
     @Override
     public String getIndexName() {
-        return index.getName();
+        return name;
     }
 
     @Override
@@ -94,13 +92,13 @@ public class SolrQueryIndex implements QueryIndex {
             if (fieldName != null) {
                 queryBuilder.append(fieldName);
                 queryBuilder.append(':');
-                // TODO : remove this hack for all descendants of root node
-                if (path.equals("\\/") && pathRestriction.equals(Filter.PathRestriction.ALL_CHILDREN)) {
+                queryBuilder.append(path);
+                if (!path.equals("\\/")) {
+                    queryBuilder.append("\\/");
+                }
+                // TODO: Also handle other path restriction types
+                if (pathRestriction.equals(Filter.PathRestriction.ALL_CHILDREN)) {
                     queryBuilder.append("*");
-                } else {
-                    queryBuilder.append("\"");
-                    queryBuilder.append(path);
-                    queryBuilder.append("\"");
                 }
                 queryBuilder.append(" ");
             }
@@ -128,6 +126,9 @@ public class SolrQueryIndex implements QueryIndex {
                     queryBuilder.append(configuration.getPathField());
                     queryBuilder.append(':');
                     queryBuilder.append(first);
+                    if (!first.equals("\\/")) {
+                        queryBuilder.append("\\/");
+                    }
                 } else {
                     queryBuilder.append(fieldName).append(':');
                     if (pr.first != null && pr.last != null && pr.first.equals(pr.last)) {
@@ -189,8 +190,7 @@ public class SolrQueryIndex implements QueryIndex {
             if (c == '\\' || c == '!' || c == '(' || c == ')' ||
                     c == ':' || c == '^' || c == '[' || c == ']' || c == '/' ||
                     c == '{' || c == '}' || c == '~' || c == '*' || c == '?' ||
-                    c == '-'
-                    ) {
+                    c == '-' || c == ' ') {
                 sb.append('\\');
             }
             sb.append(c);
@@ -240,7 +240,13 @@ public class SolrQueryIndex implements QueryIndex {
                 return new IndexRow() {
                     @Override
                     public String getPath() {
-                        return String.valueOf(doc.getFieldValue(configuration.getPathField()));
+                        String path = String.valueOf(doc.getFieldValue(
+                                configuration.getPathField()));
+                        if ("/".equals(path)) {
+                            return "/";
+                        } else {
+                            return path.substring(0, path.length() - 1);
+                        }
                     }
 
                     @Override

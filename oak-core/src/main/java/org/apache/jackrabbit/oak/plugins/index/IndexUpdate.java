@@ -27,9 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getBoolean;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -43,20 +41,30 @@ import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.base.Objects;
+
 class IndexUpdate implements Editor {
 
     private final IndexEditorProvider provider;
 
-    private final boolean async;
+    private final String async;
 
     private final NodeState root;
 
     private final NodeBuilder builder;
 
+    /**
+     * Editors for indexes that will be normally updated.
+     */
     private final List<Editor> editors = newArrayList();
 
+    /**
+     * Editors for indexes that need to be re-indexed.
+     */
+    private final List<Editor> reindex = newArrayList();
+
     IndexUpdate(
-            IndexEditorProvider provider, boolean async,
+            IndexEditorProvider provider, String async,
             NodeState root, NodeBuilder builder) {
         this.provider = checkNotNull(provider);
         this.async = async;
@@ -75,49 +83,42 @@ class IndexUpdate implements Editor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        List<Editor> reindex = newArrayList();
-        if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)) {
-            Map<String, Editor> tempEditors = new HashMap<String, Editor>();
-            NodeBuilder definitions = builder.child(INDEX_DEFINITIONS_NAME);
-            for (String name : definitions.getChildNodeNames()) {
-                NodeBuilder definition = definitions.child(name);
-                if (async == getBoolean(definition, ASYNC_PROPERTY_NAME)) {
-                    String type = getString(definition, TYPE_PROPERTY_NAME);
-                    Editor editor = null;
-                    if (tempEditors.containsKey(type)) {
-                        editor = tempEditors.get(type);
-                    } else {
-                        editor = provider.getIndexEditor(type, builder);
-                        tempEditors.put(type, editor);
-                    }
-
-                    if (editor == null) {
-                        // trigger reindexing when an indexer becomes available
-                        definition.setProperty(REINDEX_PROPERTY_NAME, true);
-                    } else if (getBoolean(definition, REINDEX_PROPERTY_NAME)) {
-                        definition.setProperty(REINDEX_PROPERTY_NAME, false);
-                        // as we don't know the index content node name
-                        // beforehand, we'll remove all child nodes
-                        for (String rm : definition.getChildNodeNames()) {
-                            definition.getChildNode(rm).remove();
-                        }
-                        reindex.add(editor);
-                    } else {
-                        editors.add(VisibleEditor.wrap(editor));
-                    }
-                }
-            }
-        }
+        collectIndexEditors(builder.getChildNode(INDEX_DEFINITIONS_NAME));
 
         // no-op when reindex is empty
         CommitFailedException exception = EditorDiff.process(
-                VisibleEditor.wrap(CompositeEditor.compose(reindex)), MISSING_NODE, after);
+                CompositeEditor.compose(reindex), MISSING_NODE, after);
         if (exception != null) {
             throw exception;
         }
 
         for (Editor editor : editors) {
             editor.enter(before, after);
+        }
+    }
+
+    private void collectIndexEditors(NodeBuilder definitions)
+            throws CommitFailedException {
+        for (String name : definitions.getChildNodeNames()) {
+            NodeBuilder definition = definitions.getChildNode(name);
+            if (Objects.equal(async, getString(definition, ASYNC_PROPERTY_NAME))) {
+                String type = getString(definition, TYPE_PROPERTY_NAME);
+                Editor editor = provider.getIndexEditor(type, definition, root);
+                if (editor == null) {
+                    // trigger reindexing when an indexer becomes available
+                    definition.setProperty(REINDEX_PROPERTY_NAME, true);
+                } else if (getBoolean(definition, REINDEX_PROPERTY_NAME)) {
+                    definition.setProperty(REINDEX_PROPERTY_NAME, false);
+                    // as we don't know the index content node name
+                    // beforehand, we'll remove all child nodes
+                    for (String rm : definition.getChildNodeNames()) {
+                        definition.getChildNode(rm).remove();
+                    }
+                    reindex.add(VisibleEditor.wrap(editor));
+                } else {
+                    editors.add(VisibleEditor.wrap(editor));
+                }
+            }
         }
     }
 

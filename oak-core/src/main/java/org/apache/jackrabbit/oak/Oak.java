@@ -23,6 +23,7 @@ import static java.util.concurrent.Executors.newScheduledThreadPool;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
@@ -32,8 +33,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mongomk.MongoMK;
-import org.apache.jackrabbit.mongomk.util.LogWrapper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -279,7 +278,9 @@ public class Oak {
                 .compose(editorProviders)));
 
         if (asyncIndexing) {
-            new AsyncIndexUpdate(store, executor, indexEditors);
+            executor.scheduleWithFixedDelay(
+                    new AsyncIndexUpdate("async", store, indexEditors),
+                    1, 5, TimeUnit.SECONDS);
         }
 
         // FIXME: OAK-810 move to proper workspace initialization

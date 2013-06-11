@@ -16,10 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
+import javax.security.auth.Subject;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
@@ -32,16 +40,21 @@ public abstract class SolrBaseTest {
 
     protected KernelNodeStore store;
     protected NodeState state;
+    protected TestUtils provider;
     protected SolrServer server;
     protected OakSolrConfiguration configuration;
+    protected EditorHook hook;
 
     @Before
     public void setUp() throws Exception {
         MicroKernel microKernel = new MicroKernelImpl();
         store = new KernelNodeStore(microKernel);
         state = createInitialState(microKernel);
-        server = TestUtils.createSolrServer();
-        configuration = TestUtils.getTestConfiguration();
+        provider = new TestUtils();
+        server = provider.getSolrServer();
+        configuration = provider.getConfiguration();
+        hook = new EditorHook(new IndexUpdateProvider(
+                new SolrIndexEditorProvider(provider, provider)));
     }
 
     @After
@@ -53,16 +66,16 @@ public abstract class SolrBaseTest {
         }
     }
 
+    protected RootImpl createRootImpl() {
+        return new RootImpl(store, hook, PostCommitHook.EMPTY, "solr-query-engine-it", new Subject(),
+                new OpenSecurityProvider(), new CompositeQueryIndexProvider());
+    }
+
     protected NodeState createInitialState(MicroKernel microKernel) {
         String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{} +\"y\":{} +\"z\":{} " +
-                "+\"solrIdx\":{\"core\":\"oak\", \"solrHome\":\"" +
-                TestUtils.SOLR_HOME_PATH + "\", \"solrConfig\":\"" +
-                TestUtils.SOLRCONFIG_PATH + "\"} ";
+                "+\"oak:index\":{\"solr\":{\"type\":\"solr\"}}";
         microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
         return store.getRoot();
     }
 
-    protected RootImpl createRootImpl() {
-        return new RootImpl(store);
-    }
 }

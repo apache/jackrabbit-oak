@@ -16,197 +16,168 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.Iterables.addAll;
-import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.isIndexNodeType;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getChildOrNull;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
+
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.ImmutableList;
-
 /**
- * {@link IndexEditor} implementation that is responsible for keeping the
- * {@link PropertyIndex} up to date.
- * <br>
- * There is a tree of PropertyIndexDiff objects, each object represents the
- * changes at a given node.
+ * Index editor for keeping a property index up to date.
  * 
  * @see PropertyIndex
  * @see PropertyIndexLookup
  */
-class PropertyIndexEditor implements IndexEditor, Closeable {
+class PropertyIndexEditor implements IndexEditor {
 
-    private final IndexStoreStrategy store = new ContentMirrorStoreStrategy();
+    /** Index storage strategy */
+    private static final IndexStoreStrategy STORE =
+            new ContentMirrorStoreStrategy();
 
-    /**
-     * The parent (null if this is the root node).
-     */
+    /** Parent editor, or {@code null} if this is the root editor. */
     private final PropertyIndexEditor parent;
 
-    /**
-     * The node (can be null in the case of a deleted node).
-     */
-    private final NodeBuilder node;
+    /** Name of this node, or {@code null} for the root node. */
+    private final String name;
 
-    /**
-     * The node name (the path element). Null for the root node.
-     */
-    private final String nodeName;
-
-    /**
-     * The path of the changed node (built lazily).
-     */
+    /** Path of this editor, built lazily in {@link #getPath()}. */
     private String path;
 
-    private final boolean isRoot;
+    /** Index definition node builder */
+    private final NodeBuilder definition;
+
+    private final Set<String> propertyNames;
+
+    private final Set<String> primaryTypes;
+
+    private final Set<String> mixinTypes;
+
+    private final Set<String> keysToCheckForUniqueness;
 
     /**
-     * The map of known indexes. Key: the property name. Value: the list of
-     * indexes (it is possible to have multiple indexes for the same property
-     * name).
+     * Flag to indicate whether individual property changes should
+     * be tracked for this node.
      */
-    private final Map<String, List<PropertyIndexUpdate>> indexMap;
+    private boolean trackChanges = false;
 
     /**
-     * The {@code /jcr:system/jcr:nodeTypes} subtree.
+     * Matching property value keys from the before state,
+     * or {@code null} if this node is not indexed.
      */
-    private final NodeState types;
+    private Set<String> beforeKeys = null;
 
-    public PropertyIndexEditor(NodeBuilder builder) {
-        this(null, builder, null, "/", true);
-    }
+    /**
+     * Matching property value keys from the after state,
+     * or {@code null} if this node is not indexed.
+     */
+    private Set<String> afterKeys = null;
 
-    private PropertyIndexEditor(PropertyIndexEditor parent, String nodeName) {
-        this(parent, getChildOrNull(parent.node, nodeName), nodeName, null, false);
-    }
+    public PropertyIndexEditor(NodeBuilder definition, NodeState root) {
+        this.parent = null;
+        this.name = null;
+        this.path = "/";
+        this.definition = definition;
 
-    private PropertyIndexEditor(PropertyIndexEditor parent, NodeBuilder node,
-            String nodeName, String path, boolean root) {
-        this.parent = parent;
-        this.node = node;
-        this.nodeName = nodeName;
-        this.path = path;
-        this.isRoot = root;
+        // get property names
+        this.propertyNames = newHashSet(definition.getNames(PROPERTY_NAMES));
 
-        if (parent == null) {
-            this.indexMap = new HashMap<String, List<PropertyIndexUpdate>>();
-            if (node.hasChildNode(JCR_SYSTEM)) {
-                NodeBuilder typeNB = node.getChildNode(JCR_SYSTEM)
-                        .getChildNode(JCR_NODE_TYPES);
-                this.types = typeNB.getNodeState();
-            } else {
-                this.types = EmptyNodeState.MISSING_NODE;
+        // get declaring types, and all their subtypes
+        // TODO: should we reindex when type definitions change?
+        if (definition.hasProperty(DECLARING_NODE_TYPES)) {
+            this.primaryTypes = newHashSet();
+            this.mixinTypes = newHashSet();
+            NodeState types =
+                    root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
+            for (String name : definition.getNames(DECLARING_NODE_TYPES)) {
+                NodeState type = types.getChildNode(name);
+                if (type.getBoolean(JCR_ISMIXIN)) {
+                    mixinTypes.add(name);
+                } else {
+                    primaryTypes.add(name);
+                }
+                addAll(mixinTypes, type.getNames(OAK_MIXIN_SUBTYPES));
+                addAll(primaryTypes, type.getNames(OAK_PRIMARY_SUBTYPES));
             }
         } else {
-            this.indexMap = parent.indexMap;
-            this.types = parent.types;
+            this.primaryTypes = null;
+            this.mixinTypes = null;
+        }
+
+        // keep track of modified keys for uniqueness checks
+        if (definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME)) {
+            this.keysToCheckForUniqueness = newHashSet();
+        } else {
+            this.keysToCheckForUniqueness = null;
         }
     }
 
-    public String getPath() {
-        // build the path lazily
+    private PropertyIndexEditor(PropertyIndexEditor parent, String name) {
+        this.parent = parent;
+        this.name = name;
+        this.path = null;
+        this.definition = parent.definition;
+        this.propertyNames = parent.propertyNames;
+        this.primaryTypes = parent.primaryTypes;
+        this.mixinTypes = parent.mixinTypes;
+        this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
+    }
+
+    /**
+     * Returns the path of this node, building it lazily when first requested.
+     */
+    private String getPath() {
         if (path == null) {
-            path = concat(parent.getPath(), nodeName);
+            path = concat(parent.getPath(), name);
         }
         return path;
     }
 
-    /**
-     * Get all the indexes for the given property name.
-     * 
-     * @param propertyName
-     *            the property name
-     * @return the indexes
-     */
-    private Iterable<PropertyIndexUpdate> getIndexes(String propertyName) {
-        List<PropertyIndexUpdate> indexes = indexMap.get(propertyName);
-        if (indexes == null) {
-            return ImmutableList.of();
-        }
-        List<PropertyIndexUpdate> filtered = new ArrayList<PropertyIndexUpdate>();
-        for (PropertyIndexUpdate pi : indexes) {
-            if (node == null || pi.matchesNodeType(node, getPath())) {
-                filtered.add(pi);
-            }
-        }
-        return filtered;
+    private boolean isOfMatchingType(NodeState state) {
+        return primaryTypes == null // no type limitations
+                || primaryTypes.contains(state.getName(JCR_PRIMARYTYPE))
+                || any(state.getNames(JCR_MIXINTYPES), in(mixinTypes));
     }
 
-    /**
-     * Add the index definitions to the in-memory set of known index
-     * definitions.
-     * 
-     * @param state
-     *            the node state that contains the index definition
-     * @param indexName
-     *            the name of the index
-     */
-    private void addIndexes(NodeState state, String indexName) {
-        Set<String> primaryTypes = newHashSet();
-        Set<String> mixinTypes = newHashSet();
-        for (String typeName : state.getNames(DECLARING_NODE_TYPES)) {
-            NodeState type = types.getChildNode(typeName);
-            if (type.getBoolean(JCR_ISMIXIN)) {
-                mixinTypes.add(typeName);
-            } else {
-                primaryTypes.add(typeName);
-            }
-            addAll(primaryTypes, type.getNames(OAK_PRIMARY_SUBTYPES));
-            addAll(mixinTypes, type.getNames(OAK_MIXIN_SUBTYPES));
+    private static void addValueKeys(Set<String> keys, PropertyState property) {
+        if (property.getType().tag() != PropertyType.BINARY) {
+            keys.addAll(encode(PropertyValues.create(property)));
         }
+    }
 
-        PropertyState ps = state.getProperty(PROPERTY_NAMES);
-        Iterable<String> propertyNames = ps != null ? ps.getValue(Type.NAMES)
-                : ImmutableList.of(indexName);
-        for (String pname : propertyNames) {
-            List<PropertyIndexUpdate> list = this.indexMap.get(pname);
-            if (list == null) {
-                list = newArrayList();
-                this.indexMap.put(pname, list);
-            }
-            boolean exists = false;
-            String localPath = getPath();
-            for (PropertyIndexUpdate piu : list) {
-                if (piu.matches(localPath, primaryTypes, mixinTypes)) {
-                    exists = true;
-                    break;
-                }
-            }
-            if (!exists) {
-                PropertyIndexUpdate update = new PropertyIndexUpdate(
-                        getPath(), node.child(INDEX_DEFINITIONS_NAME).child(indexName),
-                        store, primaryTypes, mixinTypes);
-                list.add(update);
+    private static void addMatchingKeys(
+            Set<String> keys, NodeState state, Iterable<String> propertyNames) {
+        for (String propertyName : propertyNames) {
+            PropertyState property = state.getProperty(propertyName);
+            if (property != null) {
+                addValueKeys(keys, property);
             }
         }
     }
@@ -214,75 +185,100 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (after != null && after.hasChildNode(INDEX_DEFINITIONS_NAME)) {
-            NodeState index = after.getChildNode(INDEX_DEFINITIONS_NAME);
-            for (String indexName : index.getChildNodeNames()) {
-                NodeState child = index.getChildNode(indexName);
-                if (isIndexNodeType(child, TYPE)) {
-                    addIndexes(child, indexName);
-                }
-            }
+        boolean beforeMatches = before.exists() && isOfMatchingType(before);
+        boolean afterMatches  = after.exists()  && isOfMatchingType(after);
+
+        if (beforeMatches || afterMatches) {
+            beforeKeys = newHashSet();
+            afterKeys = newHashSet();
+        }
+ 
+        if (beforeMatches && afterMatches) {
+            trackChanges = true;
+        } else if (beforeMatches) {
+            // all matching values should be removed from the index
+            addMatchingKeys(beforeKeys, before, propertyNames);
+        } else if (afterMatches) {
+            // all matching values should be added to the index
+            addMatchingKeys(afterKeys, after, propertyNames);
         }
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (isRoot) {
-            for (List<PropertyIndexUpdate> updates : indexMap.values()) {
-                for (PropertyIndexUpdate update : updates) {
-                    update.checkUniqueKeys();
+        if (beforeKeys != null) {
+            Set<String> sharedKeys = newHashSet(beforeKeys);
+            sharedKeys.retainAll(afterKeys);
+
+            beforeKeys.removeAll(sharedKeys);
+            afterKeys.removeAll(sharedKeys);
+
+            if (!beforeKeys.isEmpty() || !afterKeys.isEmpty()) {
+                NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
+                STORE.update(index, getPath(), beforeKeys, afterKeys);
+
+                if (keysToCheckForUniqueness != null) {
+                    keysToCheckForUniqueness.addAll(afterKeys);
+                }
+            }
+        }
+
+        if (parent == null) {
+            // make sure that the index node exist, even with no content
+            NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
+
+            // check uniqueness constraints when leaving the root
+            if (keysToCheckForUniqueness != null
+                    && !keysToCheckForUniqueness.isEmpty()) {
+                NodeState state = index.getNodeState();
+                for (String key : keysToCheckForUniqueness) {
+                    if (STORE.count(state, singleton(key), 2) > 1) {
+                        throw new CommitFailedException(
+                                CONSTRAINT, 30,
+                                "Uniqueness constraint violated for key " + key);
+                    }
                 }
             }
         }
     }
 
     @Override
-    public void propertyAdded(PropertyState after) throws CommitFailedException {
-        for (PropertyIndexUpdate update : getIndexes(after.getName())) {
-            update.insert(getPath(), after);
+    public void propertyAdded(PropertyState after) {
+        if (trackChanges && propertyNames.contains(after.getName())) {
+            addValueKeys(afterKeys, after);
         }
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after)
-            throws CommitFailedException {
-        for (PropertyIndexUpdate update : getIndexes(after.getName())) {
-            update.remove(getPath(), before);
-            update.insert(getPath(), after);
+    public void propertyChanged(PropertyState before, PropertyState after) {
+        if (trackChanges && propertyNames.contains(after.getName())) {
+            addValueKeys(beforeKeys, before);
+            addValueKeys(afterKeys, after);
         }
     }
 
     @Override
-    public void propertyDeleted(PropertyState before)
-            throws CommitFailedException {
-        for (PropertyIndexUpdate update : getIndexes(before.getName())) {
-            update.remove(getPath(), before);
+    public void propertyDeleted(PropertyState before) {
+        if (trackChanges && propertyNames.contains(before.getName())) {
+            addValueKeys(beforeKeys, before);
         }
     }
 
     @Override
-    public Editor childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
-        return childNodeChanged(name, EMPTY_NODE, after);
-    }
-
-    @Override
-    public Editor childNodeChanged(String name, NodeState before,
-            NodeState after) throws CommitFailedException {
+    public Editor childNodeAdded(String name, NodeState after) {
         return new PropertyIndexEditor(this, name);
     }
 
     @Override
-    public Editor childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
-        return childNodeChanged(name, before, EMPTY_NODE);
+    public Editor childNodeChanged(
+            String name, NodeState before, NodeState after) {
+        return new PropertyIndexEditor(this, name);
     }
-
-    // -----------------------------------------------------< Closeable >--
 
     @Override
-    public void close() throws IOException {
-        indexMap.clear();
+    public Editor childNodeDeleted(String name, NodeState before) {
+        return new PropertyIndexEditor(this, name);
     }
+
 }

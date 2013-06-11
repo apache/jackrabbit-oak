@@ -50,12 +50,12 @@ public class LuceneIndexHelper {
     public static NodeBuilder newLuceneIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
             @Nullable Set<String> propertyTypes) {
-        return newLuceneIndexDefinition(index, name, propertyTypes, false);
+        return newLuceneIndexDefinition(index, name, propertyTypes, null);
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
-            @Nullable Set<String> propertyTypes, boolean async) {
+            @Nullable Set<String> propertyTypes, String async) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
@@ -63,8 +63,8 @@ public class LuceneIndexHelper {
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
                 .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
                 .setProperty(REINDEX_PROPERTY_NAME, true);
-        if (async) {
-            index.setProperty(ASYNC_PROPERTY_NAME, true);
+        if (async != null) {
+            index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
             index.setProperty(PropertyStates.createProperty(
@@ -76,14 +76,14 @@ public class LuceneIndexHelper {
     public static NodeBuilder newLuceneFileIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
             @Nullable Set<String> propertyTypes, @Nonnull String path) {
-        return newLuceneFileIndexDefinition(index, name, propertyTypes, path,
-                false);
+        return newLuceneFileIndexDefinition(
+                index, name, propertyTypes, path, null);
     }
 
     public static NodeBuilder newLuceneFileIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
             @Nullable Set<String> propertyTypes, @Nonnull String path,
-            boolean async) {
+            String async) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
@@ -93,8 +93,8 @@ public class LuceneIndexHelper {
                 .setProperty(PERSISTENCE_NAME, PERSISTENCE_FILE)
                 .setProperty(PERSISTENCE_PATH, path)
                 .setProperty(REINDEX_PROPERTY_NAME, true);
-        if (async) {
-            index.setProperty(ASYNC_PROPERTY_NAME, true);
+        if (async != null) {
+            index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
             index.setProperty(PropertyStates.createProperty(

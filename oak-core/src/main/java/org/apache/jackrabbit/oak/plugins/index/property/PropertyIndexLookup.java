@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -85,13 +86,13 @@ public class PropertyIndexLookup {
         }
 
         if (PathUtils.denotesRoot(path)) {
-            return getIndexDataNode(root, propertyName, supertypes) != null;
+            return getIndexDataNode(root, propertyName, supertypes).exists();
         }
 
         NodeState node = root;
         Iterator<String> it = PathUtils.elements(path).iterator();
         while (it.hasNext()) {
-            if (getIndexDataNode(node, propertyName, supertypes) != null) {
+            if (getIndexDataNode(node, propertyName, supertypes).exists()) {
                 return true;
             }
             node = node.getChildNode(it.next());
@@ -106,10 +107,11 @@ public class PropertyIndexLookup {
         }
 
         NodeState state = getIndexDataNode(root, propertyName, supertypes);
-        if (state == null) {
+        if (state.exists()) {
+            return store.query(filter, propertyName, state, encode(value));
+        } else {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
-        return store.query(filter, propertyName, state, encode(value));
     }
 
     public double getCost(Filter filter, String name, PropertyValue value) {
@@ -119,10 +121,11 @@ public class PropertyIndexLookup {
         }
 
         NodeState state = getIndexDataNode(root, name, supertypes);
-        if (state == null) {
+        if (state.exists()) {
+            return store.count(state, encode(value), MAX_COST);
+        } else {
             return Double.POSITIVE_INFINITY;
         }
-        return store.count(state, encode(value), MAX_COST);
     }
 
     /**
@@ -139,7 +142,7 @@ public class PropertyIndexLookup {
     private NodeState getIndexDataNode(
             NodeState node, String propertyName, Set<String> supertypes) {
         //keep a fallback to a matching index def that has *no* node type constraints
-        NodeState fallback = null;
+        NodeState fallback = MISSING_NODE;
 
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
@@ -161,7 +164,7 @@ public class PropertyIndexLookup {
                     }
                 } else if (supertypes == null) {
                     return index;
-                } else if (fallback == null) {
+                } else if (index.exists() && !fallback.exists()) {
                     fallback = index;
                 }
             }

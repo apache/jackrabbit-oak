@@ -26,12 +26,15 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -43,6 +46,9 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 
 public class LuceneIndexTest {
+
+    private static final EditorHook HOOK = new EditorHook(
+            new IndexUpdateProvider(new LuceneIndexEditorProvider()));
 
     private NodeState root = new InitialContent().initialize(EMPTY_NODE);
 
@@ -57,8 +63,7 @@ public class LuceneIndexTest {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new LuceneIndexEditor(builder), before, after);
-        NodeState indexed = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after);
 
         QueryIndex queryIndex = new LuceneIndex();
         FilterImpl filter = createFilter(NT_BASE);
@@ -84,8 +89,7 @@ public class LuceneIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new LuceneIndexEditor(builder), before, after);
-        NodeState indexed = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after);
 
         QueryIndex queryIndex = new LuceneIndex();
         FilterImpl filter = createFilter(NT_BASE);
@@ -95,17 +99,18 @@ public class LuceneIndexTest {
         Cursor cursor = queryIndex.query(filter, indexed);
 
         assertTrue(cursor.hasNext());
-        assertEquals("/", cursor.next().getPath());
-        assertEquals("/a", cursor.next().getPath());
-        assertEquals("/a/b", cursor.next().getPath());
         assertEquals("/a/b/c", cursor.next().getPath());
+        assertEquals("/a/b", cursor.next().getPath());
+        assertEquals("/a", cursor.next().getPath());
+        assertEquals("/", cursor.next().getPath());
         assertFalse(cursor.hasNext());
     }
 
     @Test
     public void testLucene3() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "lucene", ImmutableSet.of(Type.STRING.toString()));
+        newLuceneIndexDefinition(
+                index, "lucene", ImmutableSet.of(PropertyType.TYPENAME_STRING));
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -115,8 +120,7 @@ public class LuceneIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new LuceneIndexEditor(builder), before, after);
-        NodeState indexed = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after);
 
         QueryIndex queryIndex = new LuceneIndex();
         FilterImpl filter = createFilter(NT_BASE);
@@ -126,8 +130,8 @@ public class LuceneIndexTest {
         Cursor cursor = queryIndex.query(filter, indexed);
 
         assertTrue(cursor.hasNext());
-        assertEquals("/", cursor.next().getPath());
         assertEquals("/a", cursor.next().getPath());
+        assertEquals("/", cursor.next().getPath());
         assertFalse(cursor.hasNext());
     }
 

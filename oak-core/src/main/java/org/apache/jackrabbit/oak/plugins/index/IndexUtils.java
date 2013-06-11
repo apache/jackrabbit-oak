@@ -16,10 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.ArrayList;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
+
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -27,26 +39,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_UNKNOWN;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
 
 /**
  * TODO document
@@ -121,59 +116,6 @@ public class IndexUtils {
             entry.setNames(DECLARING_NODE_TYPES, declaringNodeTypeNames);
         }
         entry.setNames(PROPERTY_NAMES, propertyNames);
-    }
-
-    /**
-     * Builds a list of the existing index definitions.
-     * <p/>
-     * Checks only children of the provided state for an index definitions
-     * container node, aka a node named {@link IndexConstants#INDEX_DEFINITIONS_NAME}
-     *
-     * @param state
-     * @param indexConfigPath
-     * @param typeFilter
-     * @return A list of index definitions.
-     */
-    public static List<IndexDefinition> buildIndexDefinitions(NodeState state,
-                                                              String indexConfigPath, String typeFilter) {
-        NodeState definitions = state.getChildNode(INDEX_DEFINITIONS_NAME);
-        if (!definitions.exists()) {
-            return Collections.emptyList();
-        }
-        indexConfigPath = concat(indexConfigPath, INDEX_DEFINITIONS_NAME);
-
-        List<IndexDefinition> defs = new ArrayList<IndexDefinition>();
-        for (ChildNodeEntry c : definitions.getChildNodeEntries()) {
-            IndexDefinition def = getDefinition(indexConfigPath, c, typeFilter);
-            if (def == null) {
-                continue;
-            }
-            defs.add(def);
-        }
-        return defs;
-    }
-
-    /**
-     * Builds an {@link IndexDefinition} out of a {@link ChildNodeEntry}
-     *
-     * @param path
-     * @param def {@code ChildNodeEntry} storing the index definition.
-     * @param typeFilter
-     * @return a new {@code IndexDefinition}
-     */
-    private static IndexDefinition getDefinition(String path,
-                                                 ChildNodeEntry def, String typeFilter) {
-        String name = def.getName();
-        NodeState ns = def.getNodeState();
-        PropertyState typeProp = ns.getProperty(TYPE_PROPERTY_NAME);
-        String type = TYPE_UNKNOWN;
-        if (typeProp != null && !typeProp.isArray()) {
-            type = typeProp.getValue(STRING);
-        }
-        if (typeFilter != null && !typeFilter.equals(type)) {
-            return null;
-        }
-        return new IndexDefinitionImpl(name, type, concat(path, name));
     }
 
     public static boolean isIndexNodeType(NodeState state) {

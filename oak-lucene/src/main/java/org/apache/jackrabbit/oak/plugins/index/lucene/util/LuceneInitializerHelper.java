@@ -34,7 +34,7 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
     private final String filePath;
 
-    private boolean async = false;
+    private String async = null;
 
     public LuceneInitializerHelper(String name) {
         this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES);
@@ -52,7 +52,7 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
     }
 
     public LuceneInitializerHelper async() {
-        async = true;
+        async = "async";
         return this;
     }
 

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -27,13 +28,14 @@ public class IndexUpdateProvider implements EditorProvider {
 
     private final IndexEditorProvider provider;
 
-    private final boolean async;
+    private final String async;
 
     public IndexUpdateProvider(IndexEditorProvider provider) {
-        this(provider, false);
+        this(provider, null);
     }
 
-    public IndexUpdateProvider(IndexEditorProvider provider, boolean async) {
+    public IndexUpdateProvider(
+            @Nonnull IndexEditorProvider provider, @CheckForNull String async) {
         this.provider = provider;
         this.async = async;
     }

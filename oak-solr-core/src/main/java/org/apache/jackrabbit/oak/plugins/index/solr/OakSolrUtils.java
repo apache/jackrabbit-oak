@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
 import java.io.IOException;
+
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.solr.client.solrj.SolrServer;
@@ -44,27 +43,6 @@ public class OakSolrUtils {
      */
     public static boolean checkServerAlive(@Nonnull SolrServer solrServer) throws IOException, SolrServerException {
         return solrServer.ping().getStatus() == 0;
-    }
-
-    /**
-     * adapts the OSGi Solr {@link IndexEditorProvider} service
-     *
-     * @return a {@link SolrIndexHookProvider}
-     */
-    public static IndexEditorProvider adaptOsgiIndexHookProvider() {
-        IndexEditorProvider indexHookProvider = null;
-        try {
-            BundleContext ctx = BundleReference.class.cast(SolrIndexHookProvider.class
-                    .getClassLoader()).getBundle().getBundleContext();
-
-            ServiceReference serviceReference = ctx.getServiceReference(IndexEditorProvider.class.getName());
-            if (serviceReference != null) {
-                indexHookProvider = IndexEditorProvider.class.cast(ctx.getService(serviceReference));
-            }
-        } catch (Throwable e) {
-            // do nothing
-        }
-        return indexHookProvider;
     }
 
     /**
