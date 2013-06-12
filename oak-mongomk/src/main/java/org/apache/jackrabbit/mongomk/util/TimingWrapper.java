@@ -95,6 +95,18 @@ public class TimingWrapper implements MicroKernel {
         }
     }
 
+    @Override @Nonnull
+    public String checkpoint(long lifetime) {
+        try {
+            long start = now();
+            String result = mk.checkpoint(lifetime);
+            updateAndLogTimes("checkpoint", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
     @Override
     public String getJournal(String fromRevisionId, String toRevisionId, String path) {
         try {

@@ -168,6 +168,11 @@ public class KernelNodeStoreCacheTest {
             return kernel.getHeadRevision();
         }
 
+        @Override @Nonnull
+        public String checkpoint(long lifetime) throws MicroKernelException {
+            return kernel.checkpoint(lifetime);
+        }
+
         @Override
         public String getRevisionHistory(long since,
                                          int maxEntries,
@@ -269,5 +274,6 @@ public class KernelNodeStoreCacheTest {
         public String write(InputStream in) throws MicroKernelException {
             return kernel.write(in);
         }
+
     }
 }

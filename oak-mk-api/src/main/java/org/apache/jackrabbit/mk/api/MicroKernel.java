@@ -83,6 +83,19 @@ public interface MicroKernel {
     String getHeadRevision() throws MicroKernelException;
 
     /**
+     * Creates a new checkpoint of the latest head revision. The checkpoint
+     * guarantees that revision to remain valid and accessible for at least
+     * as long as requested.
+     *
+     * @param lifetime time (in milliseconds) that the checkpoint should
+     *                 remain available
+     * @return revision id of the created checkpoint
+     * @throws MicroKernelException if the checkpoint could not be created
+     */
+    @Nonnull
+    String checkpoint(long lifetime) throws MicroKernelException;
+
+    /**
      * Returns a list of all currently available (historical) head revisions in
      * chronological order since a specific point. <i>Private</i> branch
      * revisions won't be included in the result.

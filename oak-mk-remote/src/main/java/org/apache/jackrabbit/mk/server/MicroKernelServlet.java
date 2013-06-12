@@ -74,6 +74,7 @@ class MicroKernelServlet {
 
     static {
         COMMANDS.put("getHeadRevision", new GetHeadRevision());
+        COMMANDS.put("checkpoint", new Checkpoint());
         COMMANDS.put("getRevisionHistory", new GetRevisionHistory());
         COMMANDS.put("waitForCommit", new WaitForCommit());
         COMMANDS.put("getJournal", new GetJournal());
@@ -97,6 +98,17 @@ class MicroKernelServlet {
 
             response.setContentType("text/plain");
             response.write(mk.getHeadRevision());
+        }
+    }
+
+    static class Checkpoint implements Command {
+
+        @Override
+        public void execute(MicroKernel mk, Request request, Response response)
+                throws IOException, MicroKernelException {
+            long lifetime = request.getParameter("lifetime", 1000L);
+            response.setContentType("text/plain");
+            response.write(mk.checkpoint(lifetime));
         }
     }
 

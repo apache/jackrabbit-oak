@@ -19,6 +19,8 @@ package org.apache.jackrabbit.mongomk.util;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
@@ -66,6 +68,19 @@ public class LogWrapper<T extends MicroKernel> implements MicroKernel {
         try {
             logMethod("getHeadRevision");
             String result = mk.getHeadRevision();
+            logResult(result);
+            return result;
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override @Nonnull
+    public String checkpoint(long lifetime) {
+        try {
+            logMethod("checkpoint", lifetime);
+            String result = mk.checkpoint(lifetime);
             logResult(result);
             return result;
         } catch (Exception e) {

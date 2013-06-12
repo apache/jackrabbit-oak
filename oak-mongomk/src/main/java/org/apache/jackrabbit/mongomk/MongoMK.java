@@ -750,6 +750,13 @@ public class MongoMK implements MicroKernel {
         return headRevision.toString();
     }
 
+    @Override @Nonnull
+    public String checkpoint(long lifetime) throws MicroKernelException {
+        // FIXME: need to signal to the garbage collector that this revision
+        // should not be collected until the requested lifetime is over
+        return getHeadRevision();
+    }
+
     @Override
     public String getRevisionHistory(long since, int maxEntries, String path)
             throws MicroKernelException {
