@@ -226,12 +226,12 @@ public class MongoMK implements MicroKernel {
         nodeCache = CacheBuilder.newBuilder()
                         .weigher(builder.getWeigher())
                         .maximumWeight(builder.getNodeCacheSize())
-                        .recordStats()
+                        // .recordStats() FIXME: OAK-863
                         .build();
 
         nodeChildrenCache =  CacheBuilder.newBuilder()
                         .weigher(builder.getWeigher())
-                        .recordStats()
+                        //.recordStats() FIXME: OAK-863
                         .maximumWeight(builder.getChildrenCacheSize())
                         .build();
         
