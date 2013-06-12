@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class RootImplTest extends OakBaseTest {
@@ -176,7 +175,6 @@ public class RootImplTest extends OakBaseTest {
     }
 
     @Test
-    @Ignore
     public void moveToDescendant() throws CommitFailedException {
         Root root = session.getLatestRoot();
         root.getTree("/").addChild("s");

@@ -180,6 +180,10 @@ public class RootImpl implements Root {
     
     @Override
     public boolean move(String sourcePath, String destPath) {
+        if (PathUtils.isAncestor(sourcePath, destPath)) {
+            return false;
+        }
+
         checkLive();
         TreeImpl destParent = rootTree.getTree(getParentPath(destPath));
         if (!destParent.exists()) {
