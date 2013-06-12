@@ -82,13 +82,8 @@ public class MemoryNodeStore extends AbstractNodeStore {
     }
 
     @Override @CheckForNull
-    public synchronized NodeStoreBranch branch(@Nonnull String checkpoint) {
-        NodeState base = checkpoints.get(checkNotNull(checkpoint));
-        if (base != null) {
-            return new MemoryNodeStoreBranch(this, base);
-        } else {
-            return null;
-        }
+    public synchronized NodeState retrieve(@Nonnull String checkpoint) {
+        return checkpoints.get(checkNotNull(checkpoint));
     }
 
     private static class MemoryNodeStoreBranch extends AbstractNodeStoreBranch {

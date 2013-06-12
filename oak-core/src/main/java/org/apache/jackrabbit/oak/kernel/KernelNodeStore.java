@@ -153,10 +153,9 @@ public class KernelNodeStore extends AbstractNodeStore {
     }
 
     @Override @CheckForNull
-    public NodeStoreBranch branch(@Nonnull String checkpoint) {
+    public NodeState retrieve(@Nonnull String checkpoint) {
         try {
-            return new KernelNodeStoreBranch(
-                    this, getRootState(checkNotNull(checkpoint)));
+            return getRootState(checkNotNull(checkpoint));
         } catch (MicroKernelException e) {
             // TODO: caused by the checkpoint no longer being available?
             return null;
