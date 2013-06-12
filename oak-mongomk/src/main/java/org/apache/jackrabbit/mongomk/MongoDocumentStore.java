@@ -82,7 +82,7 @@ public class MongoDocumentStore implements DocumentStore {
         // TODO expire entries if the parent was changed
         nodesCache = CacheBuilder.newBuilder()
                 .weigher(builder.getWeigher())
-                .recordStats()
+                //.recordStats() FIXME: OAK-863
                 .maximumWeight(builder.getDocumentCacheSize())
                 .build();
         
