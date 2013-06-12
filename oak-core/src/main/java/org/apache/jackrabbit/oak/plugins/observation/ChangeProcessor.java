@@ -148,40 +148,40 @@ class ChangeProcessor implements Runnable {
         }
     }
 
-    synchronized void userInfoAccessedWithoutExternalCheck() {
+    synchronized void userInfoAccessedWithoutExternalCheck(Event event) {
         if (!userInfoAccessedWithoutExternalsCheck) {
             log.warn(DEPRECATED,
                     "Event listener " + listener + " is trying to access"
                     + " event user information without checking for whether"
-                    + " the event is external");
+                    + " the event is external on " + event);
             userInfoAccessedWithoutExternalsCheck = true;
         }
     }
 
-    synchronized void userInfoAccessedFromExternalEvent() {
+    synchronized void userInfoAccessedFromExternalEvent(Event event) {
         if (!userInfoAccessedFromExternalEvent) {
             log.warn(DEPRECATED,
                     "Event listener " + listener + " is trying to access"
-                    + " event user information from an external event");
+                    + " event user information from an external event on " + event);
             userInfoAccessedFromExternalEvent = true;
         }
     }
 
-    synchronized void dateAccessedWithoutExternalCheck() {
+    synchronized void dateAccessedWithoutExternalCheck(Event event) {
         if (!dateAccessedWithoutExternalsCheck) {
             log.warn(DEPRECATED,
                     "Event listener " + listener + " is trying to access"
                     + " event date information without checking for whether"
-                    + " the event is external");
+                    + " the event is external on " + event);
             dateAccessedWithoutExternalsCheck = true;
         }
     }
 
-    synchronized void dateAccessedFromExternalEvent() {
+    synchronized void dateAccessedFromExternalEvent(Event event) {
         if (!dateAccessedFromExternalEvent) {
             log.warn(DEPRECATED,
                     "Event listener " + listener + " is trying to access"
-                    + " event date information from an external event");
+                    + " event date information from an external event on " + event);
             dateAccessedFromExternalEvent = true;
         }
     }
