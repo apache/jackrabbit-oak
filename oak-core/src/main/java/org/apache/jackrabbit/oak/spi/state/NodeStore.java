@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.state;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -57,4 +58,28 @@ public interface NodeStore {
      * @throws IOException  If an error occurs while reading from the stream
      */
     Blob createBlob(InputStream inputStream) throws IOException;
+
+    /**
+     * Creates a new checkpoint of the latest root of the tree. The checkpoint
+     * remains valid for at least as long as requested and allows that state
+     * of the repository to be retrieved using the returned opaque string
+     * reference.
+     *
+     * @param lifetime time (in milliseconds, &gt; 0) that the checkpoint
+     *                 should remain available
+     * @return string reference of this checkpoint
+     */
+    @Nonnull
+    String checkpoint(long lifetime);
+
+    /**
+     * Starts a new branch from a previously created repository checkpoint.
+     *
+     * @param checkpoint string reference of a checkpoint
+     * @return new branch starting from the given checkpoint,
+     *         or {@code null} if the checkpoint is no longer available
+     */
+    @CheckForNull
+    NodeStoreBranch branch(@Nonnull String checkpoint);
+
 }

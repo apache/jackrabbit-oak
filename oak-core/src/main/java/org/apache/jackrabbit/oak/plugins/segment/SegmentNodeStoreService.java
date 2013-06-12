@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Dictionary;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Activate;
@@ -125,6 +126,16 @@ public class SegmentNodeStoreService extends AbstractNodeStore {
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         return getDelegate().createBlob(stream);
+    }
+
+    @Override @Nonnull
+    public String checkpoint(long lifetime) {
+        return getDelegate().checkpoint(lifetime);
+    }
+
+    @Override @CheckForNull
+    public NodeStoreBranch branch(@Nonnull String checkpoint) {
+        return getDelegate().branch(checkpoint);
     }
 
     //------------------------------------------------------------< Object >--

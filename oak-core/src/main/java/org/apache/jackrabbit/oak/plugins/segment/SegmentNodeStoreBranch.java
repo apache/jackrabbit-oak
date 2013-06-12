@@ -40,10 +40,12 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
 
     private SegmentNodeState head;
 
-    SegmentNodeStoreBranch(SegmentNodeStore store, SegmentWriter writer) {
+    SegmentNodeStoreBranch(
+            SegmentNodeStore store, SegmentWriter writer,
+            SegmentNodeState base) {
         this.store = store;
         this.writer = writer;
-        this.base = store.getRoot();
+        this.base = base;
         this.head = base;
     }
 

@@ -110,6 +110,21 @@ public class Client implements MicroKernel {
         }
     }
 
+    @Override @Nonnull
+    public String checkpoint(long lifetime) throws MicroKernelException {
+        try {
+            Request request = createRequest("checkpoint");
+            try {
+                request.addParameter("lifetime", lifetime);
+                return request.getString();
+            } finally {
+                request.close();
+            }
+        } catch (IOException e) {
+            throw new MicroKernelException(e);
+        }
+    }
+
     @Override
     public String getRevisionHistory(long since, int maxEntries, String path)
             throws MicroKernelException {
@@ -382,5 +397,6 @@ public class Client implements MicroKernel {
     private Request createRequest(String command) throws IOException, MicroKernelException {
         return new Request(socketFactory, addr, command);
     }
-    
+
+
 }

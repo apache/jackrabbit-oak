@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -66,7 +70,8 @@ public class SegmentNodeStore extends AbstractNodeStore {
 
     @Override @Nonnull
     public NodeStoreBranch branch() {
-        return new SegmentNodeStoreBranch(this, new SegmentWriter(store));
+        return new SegmentNodeStoreBranch(
+                this, new SegmentWriter(store), getRoot());
     }
 
     @Override
@@ -75,6 +80,21 @@ public class SegmentNodeStore extends AbstractNodeStore {
         RecordId recordId = writer.writeStream(stream);
         writer.flush();
         return new SegmentBlob(reader, recordId);
+    }
+
+    @Override @Nonnull
+    public synchronized String checkpoint(long lifetime) {
+        checkArgument(lifetime > 0);
+        // TODO: Guard the checkpoint from garbage collection
+        return getRoot().getRecordId().toString();
+    }
+
+    @Override @CheckForNull
+    public synchronized NodeStoreBranch branch(@Nonnull String checkpoint) {
+        // TODO: Verify validity of the checkpoint
+        RecordId id = RecordId.fromString(checkNotNull(checkpoint));
+        SegmentNodeState base = new SegmentNodeState(store, id);
+        return new SegmentNodeStoreBranch(this, new SegmentWriter(store), base);
     }
 
 }

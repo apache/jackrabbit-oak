@@ -20,6 +20,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsonObject;
@@ -109,6 +111,13 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalStateException("this instance has already been disposed");
         }
         return getHeadRevisionId().toString();
+    }
+
+    @Override @Nonnull
+    public String checkpoint(long lifetime) throws MicroKernelException {
+        // FIXME: need to signal to the garbage collector that this revision
+        // should not be collected until the requested lifetime is over
+        return getHeadRevision();
     }
 
     /**
