@@ -32,6 +32,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -42,7 +43,7 @@ import com.google.common.collect.ImmutableSet;
 public class LuceneIndexHelper {
 
     public static final Set<String> JR_PROPERTY_INCLUDES = ImmutableSet.of(
-            Type.STRING.toString(), Type.BINARY.toString());
+            PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY);
 
     private LuceneIndexHelper() {
     }
