@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class RootImplTest extends OakBaseTest {
@@ -163,6 +164,43 @@ public class RootImplTest extends OakBaseTest {
 
         assertEquals("/moved", parent.getPath());
         assertEquals("/moved/new", n.getPath());
+    }
+
+    @Test
+    public void moveToSelf() throws CommitFailedException {
+        Root root = session.getLatestRoot();
+        root.getTree("/").addChild("s");
+        root.commit();
+
+        assertFalse(root.move("/s", "/s"));
+    }
+
+    @Test
+    @Ignore
+    public void moveToDescendant() throws CommitFailedException {
+        Root root = session.getLatestRoot();
+        root.getTree("/").addChild("s");
+        root.commit();
+
+        assertFalse(root.move("/s", "/s/t"));
+    }
+
+    @Test
+    public void copyToSelf() throws CommitFailedException {
+        Root root = session.getLatestRoot();
+        root.getTree("/").addChild("s");
+        root.commit();
+
+        assertFalse(root.copy("/s", "/s"));
+    }
+
+    @Test
+    public void copyToDescendant() throws CommitFailedException {
+        Root root = session.getLatestRoot();
+        root.getTree("/").addChild("s");
+        root.commit();
+
+        assertTrue(root.copy("/s", "/s/t"));
     }
 
     /**
