@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -42,8 +45,6 @@ import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * TODO document
@@ -242,7 +243,9 @@ public class SessionDelegate {
 
         try {
             Root currentRoot = contentSession.getLatestRoot();
-            currentRoot.copy(srcPath, destPath);
+            if (!currentRoot.copy(srcPath, destPath)) {
+                throw new RepositoryException("Cannot copy node at " + srcPath + " to " + destPath);
+            }
             currentRoot.commit();
         } catch (CommitFailedException e) {
             throw newRepositoryException(e);
@@ -283,7 +286,9 @@ public class SessionDelegate {
         accessManager.checkPermissions(destPath, Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
 
         try {
-            moveRoot.move(srcPath, destPath);
+            if (!moveRoot.move(srcPath, destPath)) {
+                throw new RepositoryException("Cannot move node at " + srcPath + " to " + destPath);
+            }
             if (!transientOp) {
                 moveRoot.commit();
             }
