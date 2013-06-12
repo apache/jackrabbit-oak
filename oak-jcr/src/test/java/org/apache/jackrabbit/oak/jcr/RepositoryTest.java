@@ -1572,7 +1572,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test(expected = RepositoryException.class)
-    @Ignore
     public void moveToDescendant() throws RepositoryException {
         Session session = getAdminSession();
 
