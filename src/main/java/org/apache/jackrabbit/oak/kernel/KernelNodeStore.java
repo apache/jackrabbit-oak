@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.cache.CacheBuilder;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -141,6 +143,23 @@ public class KernelNodeStore extends AbstractNodeStore {
             return new KernelBlob(blobId, kernel);
         } catch (MicroKernelException e) {
             throw new IOException(e);
+        }
+    }
+
+    @Override @Nonnull
+    public String checkpoint(long lifetime) {
+        checkArgument(lifetime > 0);
+        return kernel.checkpoint(lifetime);
+    }
+
+    @Override @CheckForNull
+    public NodeStoreBranch branch(@Nonnull String checkpoint) {
+        try {
+            return new KernelNodeStoreBranch(
+                    this, getRootState(checkNotNull(checkpoint)));
+        } catch (MicroKernelException e) {
+            // TODO: caused by the checkpoint no longer being available?
+            return null;
         }
     }
 

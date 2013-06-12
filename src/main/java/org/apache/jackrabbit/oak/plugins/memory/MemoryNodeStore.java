@@ -18,9 +18,14 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
@@ -28,8 +33,10 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -40,6 +47,8 @@ public class MemoryNodeStore extends AbstractNodeStore {
 
     private final AtomicReference<NodeState> root =
             new AtomicReference<NodeState>(EMPTY_NODE);
+
+    private final Map<String, NodeState> checkpoints = newHashMap();
 
     @Override
     public NodeState getRoot() {
@@ -61,6 +70,24 @@ public class MemoryNodeStore extends AbstractNodeStore {
         }
         finally {
             inputStream.close();
+        }
+    }
+
+    @Override @Nonnull
+    public synchronized String checkpoint(long lifetime) {
+        checkArgument(lifetime > 0);
+        String checkpoint = "checkpoint" + checkpoints.size();
+        checkpoints.put(checkpoint, getRoot());
+        return checkpoint;
+    }
+
+    @Override @CheckForNull
+    public synchronized NodeStoreBranch branch(@Nonnull String checkpoint) {
+        NodeState base = checkpoints.get(checkNotNull(checkpoint));
+        if (base != null) {
+            return new MemoryNodeStoreBranch(this, base);
+        } else {
+            return null;
         }
     }
 
