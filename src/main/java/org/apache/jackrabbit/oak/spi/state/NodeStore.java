@@ -73,13 +73,13 @@ public interface NodeStore {
     String checkpoint(long lifetime);
 
     /**
-     * Starts a new branch from a previously created repository checkpoint.
+     * Retrieves the root node from a previously created repository checkpoint.
      *
      * @param checkpoint string reference of a checkpoint
-     * @return new branch starting from the given checkpoint,
+     * @return the root node of the checkpoint,
      *         or {@code null} if the checkpoint is no longer available
      */
     @CheckForNull
-    NodeStoreBranch branch(@Nonnull String checkpoint);
+    NodeState retrieve(@Nonnull String checkpoint);
 
 }
