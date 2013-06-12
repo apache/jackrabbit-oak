@@ -134,8 +134,8 @@ public class SegmentNodeStoreService extends AbstractNodeStore {
     }
 
     @Override @CheckForNull
-    public NodeStoreBranch branch(@Nonnull String checkpoint) {
-        return getDelegate().branch(checkpoint);
+    public NodeState retrieve(@Nonnull String checkpoint) {
+        return getDelegate().retrieve(checkpoint);
     }
 
     //------------------------------------------------------------< Object >--

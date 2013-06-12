@@ -28,8 +28,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -43,15 +42,24 @@ public class AsyncIndexUpdate implements Runnable {
     private static final Logger log = LoggerFactory
             .getLogger(AsyncIndexUpdate.class);
 
+    /**
+     * Name of the hidden node under which information about the
+     * checkpoints seen and indexed by each async indexer is kept.
+     */
+    private static final String ASYNC = ":async";
+
     private static final long DEFAULT_LIFETIME = TimeUnit.HOURS.toMillis(1);
 
     private final String name;
 
     private final NodeStore store;
 
-    private final CommitHook hook;
+    private final IndexEditorProvider provider;
 
     private final long lifetime = DEFAULT_LIFETIME; // TODO: make configurable
+
+    /** Flag to avoid repeatedly logging failure warnings */
+    private boolean failing = false;
 
     public AsyncIndexUpdate(
             @Nonnull String name,
@@ -59,35 +67,52 @@ public class AsyncIndexUpdate implements Runnable {
             @Nonnull IndexEditorProvider provider) {
         this.name = checkNotNull(name);
         this.store = checkNotNull(store);
-        this.hook = new EditorHook(
-                new IndexUpdateProvider(checkNotNull(provider), name));
+        this.provider = checkNotNull(provider);
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         log.debug("Running background index task {}", name);
+        NodeStoreBranch branch = store.branch();
+        NodeBuilder builder = branch.getHead().builder();
+        NodeBuilder async = builder.child(ASYNC);
+
+        NodeState before = null;
+        PropertyState property = async.getProperty(name);
+        if (property != null && property.getType() == STRING) {
+            before = store.retrieve(property.getValue(STRING));
+        }
+        if (before == null) {
+            before = MISSING_NODE;
+        }
+
         String checkpoint = store.checkpoint(lifetime);
-        NodeStoreBranch branch = store.branch(checkpoint);
-        try {
-            NodeState after = branch.getHead();
-
-            NodeState before = null;
-            PropertyState async =
-                    after.getChildNode(":async").getProperty(name);
-            if (async != null && async.getType() == STRING) {
-                before = store.branch(async.getValue(STRING)).getHead();
+        NodeState after = store.retrieve(checkpoint);
+        if (after != null) {
+            CommitFailedException exception = EditorDiff.process(
+                    new IndexUpdate(provider, name, after, builder),
+                    before, after);
+            if (exception == null) {
+                try {
+                    async.setProperty(name, checkpoint);
+                    branch.setRoot(builder.getNodeState());
+                    branch.merge(EmptyHook.INSTANCE);
+                } catch (CommitFailedException e) {
+                    exception = e;
+                }
             }
-            if (before == null) {
-                before = MISSING_NODE;
-            }
 
-            NodeState processed = hook.processCommit(before, after);
-            NodeBuilder builder = processed.builder();
-            builder.child(":async").setProperty(name, checkpoint);
-            branch.setRoot(builder.getNodeState());
-            branch.merge(EmptyHook.INSTANCE); 
-        } catch (CommitFailedException e) {
-            log.warn("Background index update " + name + " failed", e);
+            if (exception != null) {
+                if (!failing) {
+                    log.warn("Index update " + name + " failed", exception);
+                }
+                failing = true;
+            } else {
+                if (failing) {
+                    log.info("Index update " + name + " no longer fails");
+                }
+                failing = false;
+            }
         }
     }
 

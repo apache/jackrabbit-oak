@@ -90,11 +90,10 @@ public class SegmentNodeStore extends AbstractNodeStore {
     }
 
     @Override @CheckForNull
-    public synchronized NodeStoreBranch branch(@Nonnull String checkpoint) {
+    public synchronized NodeState retrieve(@Nonnull String checkpoint) {
         // TODO: Verify validity of the checkpoint
         RecordId id = RecordId.fromString(checkNotNull(checkpoint));
-        SegmentNodeState base = new SegmentNodeState(store, id);
-        return new SegmentNodeStoreBranch(this, new SegmentWriter(store), base);
+        return new SegmentNodeState(store, id);
     }
 
 }
