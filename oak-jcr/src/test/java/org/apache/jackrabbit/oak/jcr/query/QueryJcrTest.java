@@ -20,6 +20,7 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+import org.apache.jackrabbit.core.query.ExcerptTest;
 import org.apache.jackrabbit.core.query.FulltextQueryTest;
 import org.apache.jackrabbit.core.query.FulltextSQL2QueryTest;
 import org.apache.jackrabbit.core.query.JoinTest;
@@ -52,12 +53,12 @@ public class QueryJcrTest extends TestCase {
         suite.addTestSuite(SQL2OffsetLimitTest.class);
         suite.addTestSuite(LimitAndOffsetTest.class);
         suite.addTestSuite(OrderByTest.class);
+        suite.addTestSuite(ExcerptTest.class);
 
         // FAILURES
         //
         // suite.addTestSuite(QueryResultTest.class); // OAK-484
         // suite.addTestSuite(ParentNodeTest.class); // OAK-309
-        // suite.addTestSuite(ExcerptTest.class); // OAK-318
         // suite.addTestSuite(SimilarQueryTest.class); // OAK-319
         // suite.addTestSuite(DerefTest.class); // OAK-321
         // suite.addTestSuite(XPathAxisTest.class); // OAK-322
