@@ -26,9 +26,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TO_WRITE_LOCK_MS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -88,7 +88,6 @@ public class LuceneIndexEditor implements IndexEditor {
         try {
             IndexWriterConfig config = new IndexWriterConfig(VERSION, ANALYZER);
             config.setMergeScheduler(new SerialMergeScheduler());
-            config.setWriteLockTimeout(TO_WRITE_LOCK_MS);
             return config;
         } finally {
             thread.setContextClassLoader(loader);
@@ -105,7 +104,14 @@ public class LuceneIndexEditor implements IndexEditor {
             try {
                 File file = new File(path);
                 file.mkdirs();
-                return FSDirectory.open(file); // TODO: close() is never called
+                // TODO: close() is never called
+                // TODO: no locking used
+                // --> using the FS backend for the index is in any case
+                //     troublesome in clustering scenarios and for backup
+                //     etc. so instead of fixing these issues we'd better
+                //     work on making the in-content index work without
+                //     problems (or look at the Solr indexer as alternative)
+                return FSDirectory.open(file, getNoLockFactory());
             } catch (IOException e) {
                 throw new CommitFailedException(
                         "Lucene", 1, "Failed to open the index in " + path, e);

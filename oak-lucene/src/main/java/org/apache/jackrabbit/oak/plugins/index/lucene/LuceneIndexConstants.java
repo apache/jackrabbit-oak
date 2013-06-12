@@ -47,21 +47,4 @@ public interface LuceneIndexConstants {
 
     String INDEX_PATH = "index";
 
-    /**
-     * Lucene writer timeout write lock setting
-     */
-    int TO_WRITE_LOCK_MS = 50;
-
-    /**
-     * Controls how many retries should happen when there is a writer lock
-     * timeout
-     */
-    int TO_MAX_RETRIES = 3;
-
-    /**
-     * Controls how much sleep (ms) should happen when there is a writer lock
-     * timeout
-     */
-    int TO_SLEEP_MS = 30;
-
 }
