@@ -70,10 +70,10 @@ public class EventImpl implements JackrabbitEvent {
     @Override
     public synchronized String getUserID() {
         if (!externalAccessed) {
-            collector.userInfoAccessedWithoutExternalCheck();
+            collector.userInfoAccessedWithoutExternalCheck(this);
         }
         if (external) {
-            collector.userInfoAccessedFromExternalEvent();
+            collector.userInfoAccessedFromExternalEvent(this);
         }
         return userID;
     }
@@ -91,10 +91,10 @@ public class EventImpl implements JackrabbitEvent {
     @Override
     public String getUserData() throws RepositoryException {
         if (!externalAccessed) {
-            collector.userInfoAccessedWithoutExternalCheck();
+            collector.userInfoAccessedWithoutExternalCheck(this);
         }
         if (external) {
-            collector.userInfoAccessedFromExternalEvent();
+            collector.userInfoAccessedFromExternalEvent(this);
         }
         return userData;
     }
@@ -102,10 +102,10 @@ public class EventImpl implements JackrabbitEvent {
     @Override
     public long getDate() throws RepositoryException {
         if (!externalAccessed) {
-            collector.dateAccessedWithoutExternalCheck();
+            collector.dateAccessedWithoutExternalCheck(this);
         }
         if (external) {
-            collector.dateAccessedFromExternalEvent();
+            collector.dateAccessedFromExternalEvent(this);
         }
         return date;
     }
