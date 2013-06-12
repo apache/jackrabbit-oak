@@ -582,7 +582,7 @@ public class Query {
                 return i;
             }
         }
-        throw new IllegalArgumentException("Column not found: " + columnName);
+        return -1;
     }
 
     public PropertyValue getBindVariableValue(String bindVariableName) {
