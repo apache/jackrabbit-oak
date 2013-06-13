@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class KernelNodeStoreTest {
@@ -282,7 +283,44 @@ public class KernelNodeStoreTest {
         assertEquals(1, diff.removed.size());
         assertEquals(0, diff.added.size());
         assertEquals("child-moved", diff.removed.get(0));
+    }
 
+    @Test
+    public void compareAgainstBaseState0() throws CommitFailedException {
+        compareAgainstBaseState(0);
+    }
+
+    @Test
+    public void compareAgainstBaseState20() throws CommitFailedException {
+        compareAgainstBaseState(20);
+    }
+
+    @Test
+    @Ignore
+    public void compareAgainstBaseState100() throws CommitFailedException {
+        compareAgainstBaseState(KernelNodeState.MAX_CHILD_NODE_NAMES);
+    }
+
+    private void compareAgainstBaseState(int childNodeCount) throws CommitFailedException {
+        NodeStoreBranch branch = store.branch();
+
+        NodeState before = branch.getHead();
+        NodeBuilder builder = before.builder();
+        for (int k = 0; k < childNodeCount; k++) {
+            builder.child("c" + k);
+        }
+
+        builder.child("foo").child(":bar").child("quz").setProperty("p", "v");
+        branch.setRoot(builder.getNodeState());
+        branch.merge(EmptyHook.INSTANCE);
+
+        NodeState after = store.getRoot();
+        Diff diff = new Diff();
+        after.compareAgainstBaseState(before, diff);
+
+        assertEquals(0, diff.removed.size());
+        assertEquals(childNodeCount + 1, diff.added.size());
+        assertEquals(0, diff.addedProperties.size());
     }
 
     private static class Diff extends DefaultNodeStateDiff {
