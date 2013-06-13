@@ -111,7 +111,7 @@ public class RootImpl implements Root {
      * Number of {@link #updated} occurred so since the last
      * purge.
      */
-    private int modCount;
+    private long modCount;
 
     private PermissionProvider permissionProvider;
 
@@ -308,7 +308,7 @@ public class RootImpl implements Root {
     @Override
     public boolean hasPendingChanges() {
         checkLive();
-        return !getSecureBase().equals(getSecureRootState());
+        return modCount > 0;
     }
 
     @Override
@@ -376,8 +376,7 @@ public class RootImpl implements Root {
 
     // TODO better way to determine purge limit. See OAK-175
     void updated() {
-        if (++modCount > PURGE_LIMIT) {
-            modCount = 0;
+        if (++modCount % PURGE_LIMIT == 0) {
             purgePendingChanges();
         }
     }
