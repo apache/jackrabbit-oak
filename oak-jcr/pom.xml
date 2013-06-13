@@ -289,6 +289,7 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceMove                 <!-- OAK-711 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testSessionMove                   <!-- OAK-711 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceImportXML            <!-- OAK-773 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testWriteOnParentWithNoReadePriv               <!-- OAK-869 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion   <!-- OAK-168 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion2  <!-- OAK-168 -->
