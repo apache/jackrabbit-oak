@@ -15,6 +15,22 @@
    limitations under the License.
   -->
 
+*Note:* Below algorithms turns out to be not sufficient. The edit script for the
+following case is incomplete. Given S constructed from an empty tree
+
+    S = +/s:{} +/t:{}
+
+obtain T from S by
+
+    T = S +/s/a:{} >/s:/t/s
+
+Running below algorithm on S and T will result in an edit script which, when
+applied to S, will not create child node a. I.e. it will result in
+
+    S >/s:/t/s
+
+* * *
+
 An algorithm for creating edit scripts (in JSOP format) from two trees.
 See [this GitHub repository](https://github.com/mduerig/json-diff) for a
 proof of concept implementation and
