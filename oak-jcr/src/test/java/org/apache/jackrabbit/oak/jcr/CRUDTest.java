@@ -123,5 +123,37 @@ public class CRUDTest extends AbstractRepositoryTest {
             s.getRootNode().addNode("a", "nt:folder").addNode("b");
             s.save();        
     }
-    
+
+    @Test
+    public void getNodeWithRelativePath() throws RepositoryException {
+        Session s = getAdminSession();
+        try {
+            s.getNode("some-relative-path");
+            fail("Session.getNode() with relative path must throw a RepositoryException");
+        } catch (RepositoryException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void getPropertyWithRelativePath() throws RepositoryException {
+        Session s = getAdminSession();
+        try {
+            s.getProperty("some-relative-path");
+            fail("Session.getProperty() with relative path must throw a RepositoryException");
+        } catch (RepositoryException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void getItemWithRelativePath() throws RepositoryException {
+        Session s = getAdminSession();
+        try {
+            s.getItem("some-relative-path");
+            fail("Session.getItem() with relative path must throw a RepositoryException");
+        } catch (RepositoryException e) {
+            // expected
+        }
+    }
 }

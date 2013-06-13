@@ -106,7 +106,11 @@ public class SessionImpl implements JackrabbitSession {
 
     @Nonnull
     private String getOakPathOrThrow(String absPath) throws RepositoryException {
-        return sessionContext.getOakPathOrThrow(absPath);
+        String p = sessionContext.getOakPathOrThrow(absPath);
+        if (!PathUtils.isAbsolute(p)) {
+            throw new RepositoryException("Not an absolute path: " + absPath);
+        }
+        return p;
     }
 
     @Nonnull
