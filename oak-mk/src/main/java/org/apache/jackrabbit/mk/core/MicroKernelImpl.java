@@ -317,8 +317,8 @@ public class MicroKernelImpl implements MicroKernel {
         try {
             if ("/".equals(path)) {
                 StoredCommit toCommit = rep.getCommit(toRevisionId);
-                if (toCommit.getParentId().equals(fromRevisionId)) {
-                    // specified range spans a single commit:
+                if (toCommit.getParentId().equals(fromRevisionId) && depth == -1) {
+                    // specified range spans a single commit and depth is not limited:
                     // use diff stored in commit instead of building it dynamically
                     return toCommit.getChanges();
                 }

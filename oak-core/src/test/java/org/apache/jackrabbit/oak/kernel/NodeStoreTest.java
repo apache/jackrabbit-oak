@@ -23,13 +23,14 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.runners.Parameterized.Parameters;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
@@ -39,26 +40,58 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-public class KernelNodeStoreTest {
+@RunWith(value = Parameterized.class)
+public class NodeStoreTest {
 
-    private KernelNodeStore store;
+    @Parameters
+    public static Collection<Object[]> fixtures() {
+        Object[][] fixtures = new Object[][] {
+                {NodeStoreFixture.MK_IMPL},
+                {NodeStoreFixture.MONGO_MK},
+                {NodeStoreFixture.SEGMENT_MK},
+        };
+        return Arrays.asList(fixtures);
+    }
+
+    private NodeStore store;
 
     private NodeState root;
 
+    private NodeStoreFixture fixture;
+
+    public NodeStoreTest(NodeStoreFixture fixture) {
+        this.fixture = fixture;
+    }
+
     @Before
-    public void setUp() {
-        MicroKernel kernel = new MicroKernelImpl();
-        String jsop =
-                "+\"test\":{\"a\":1,\"b\":2,\"c\":3,"
-                + "\"x\":{},\"y\":{},\"z\":{}}";
-        kernel .commit("/", jsop, null, "test data");
-        store = new KernelNodeStore(kernel);
+    public void setUp() throws Exception {
+        store = fixture.createNodeStore();
+        NodeStoreBranch branch = store.branch();
+        NodeBuilder builder = branch.getHead().builder();
+        NodeBuilder test = builder.child("test");
+        test.setProperty("a", 1);
+        test.setProperty("b", 2);
+        test.setProperty("c", 3);
+        test.child("x");
+        test.child("y");
+        test.child("z");
+        branch.setRoot(builder.getNodeState());
+        branch.merge(EmptyHook.INSTANCE);
         root = store.getRoot();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        fixture.dispose(store);
     }
 
     @Test
@@ -122,8 +155,10 @@ public class KernelNodeStoreTest {
 
     @Test
     public void afterCommitHook() throws CommitFailedException {
+        // this test only works with a KernelNodeStore
+        Assume.assumeTrue(store instanceof KernelNodeStore);
         final NodeState[] states = new NodeState[2]; // { before, after }
-        store.setObserver(new Observer() {
+        ((KernelNodeStore) store).setObserver(new Observer() {
             @Override
             public void contentChanged(NodeState before, NodeState after) {
                 states[0] = before;
@@ -194,6 +229,8 @@ public class KernelNodeStoreTest {
 
     @Test
     public void manyChildNodes() throws CommitFailedException {
+        // OAK-872
+        Assume.assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
         NodeStoreBranch branch = store.branch();
         NodeBuilder root = branch.getHead().builder();
         NodeBuilder parent = root.child("parent");
@@ -296,8 +333,9 @@ public class KernelNodeStoreTest {
     }
 
     @Test
-    @Ignore
     public void compareAgainstBaseState100() throws CommitFailedException {
+        // OAK-872
+        Assume.assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
         compareAgainstBaseState(KernelNodeState.MAX_CHILD_NODE_NAMES);
     }
 
