@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -62,7 +60,7 @@ class ChangeProcessor implements Runnable {
     private final AtomicReference<EventFilter> filterRef;
     private final AtomicReference<String> userDataRef = new AtomicReference<String>(null);
 
-    private final String initStacktrace;
+    private final Exception initStacktrace;
 
     private volatile boolean running;
     private volatile boolean stopping;
@@ -79,14 +77,7 @@ class ChangeProcessor implements Runnable {
         this.namePathMapper = observationManager.getNamePathMapper();
         this.listener = listener;
         filterRef = new AtomicReference<EventFilter>(filter);
-        initStacktrace = log.isWarnEnabled(DEPRECATED) ? getStackTrace() : null;
-    }
-
-    private static String getStackTrace() {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        new Exception().printStackTrace(pw);
-        return sw.toString();
+        initStacktrace = log.isWarnEnabled(DEPRECATED) ? new Exception("Initialized here") : null;
     }
 
     public void setFilter(EventFilter filter) {
@@ -166,7 +157,7 @@ class ChangeProcessor implements Runnable {
                     "Event listener " + listener + " is trying to access"
                     + " event user information on event " + event
                     + " without checking whether the event is external."
-                    + " The event listener was registered here: " + initStacktrace);
+                    + " The event listener was registered here: ",  initStacktrace);
             userInfoAccessedWithoutExternalsCheck = true;
         }
     }
@@ -176,7 +167,7 @@ class ChangeProcessor implements Runnable {
             log.warn(DEPRECATED,
                     "Event listener " + listener + " is trying to access"
                     + " event user information for external event " + event + '.'
-                    + " The event listener was registered here: " + initStacktrace);
+                    + " The event listener was registered here: ", initStacktrace);
             userInfoAccessedFromExternalEvent = true;
         }
     }
@@ -187,7 +178,7 @@ class ChangeProcessor implements Runnable {
                     "Event listener " + listener + " is trying to access"
                     + " event date information on event " + event
                     + " without checking whether the event is external."
-                    + " The event listener was registered here: " + initStacktrace);
+                    + " The event listener was registered here: ", initStacktrace);
             dateAccessedWithoutExternalsCheck = true;
         }
     }
@@ -197,7 +188,7 @@ class ChangeProcessor implements Runnable {
             log.warn(DEPRECATED,
                     "Event listener " + listener + " is trying to access"
                     + " event date information for external event " + event + '.'
-                    + " The event listener was registered here: " + initStacktrace);
+                    + " The event listener was registered here: ", initStacktrace);
             dateAccessedFromExternalEvent = true;
         }
     }
