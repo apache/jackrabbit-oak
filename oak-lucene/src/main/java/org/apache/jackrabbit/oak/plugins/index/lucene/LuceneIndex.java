@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_OAK;
@@ -147,7 +147,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
 
         if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
-            return getString(def, INDEX_PATH) != null;
+            return getString(def, PERSISTENCE_PATH) != null;
         }
 
         return false;
@@ -169,7 +169,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
 
         if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
-            String fs = getString(def, INDEX_PATH);
+            String fs = getString(def, PERSISTENCE_PATH);
             if (fs == null) {
                 return null;
             }
