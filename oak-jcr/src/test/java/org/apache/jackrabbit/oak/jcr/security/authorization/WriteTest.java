@@ -31,6 +31,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -419,6 +420,17 @@ public class WriteTest extends AbstractEvaluationTest {
         assertFalse(testSession.hasPermission(path, Session.ACTION_ADD_NODE));
         assertTrue(testSession.hasPermission(path+"/anychild", Session.ACTION_ADD_NODE));
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_ADD_NODE));
+    }
+
+    // FIXME OAK-869: This currently throws an IllegalStateException. Set correct test expectations
+    @Test
+    @Ignore
+    public void testWriteOnParentWithNoReadePriv() throws Exception {
+        Node a = superuser.getNode(path).addNode("a");
+        allow(path, testUser.getPrincipal(), readWritePrivileges);
+        deny(a.getPath(), testUser.getPrincipal(), readPrivileges);
+        superuser.save();
+        testSession.getNode(path).addNode("a");
     }
 
     @Test
