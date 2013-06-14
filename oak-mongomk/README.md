@@ -22,6 +22,9 @@ The basic MongoDB document of a node in Oak looks like this:
         "_lastRev" : {
             "1" : "r13f3875b5d1-0-1"
         },
+        "_commitRoot": {
+            "r13f3875b5d1-0-1": 0
+        },
         "_modified" : NumberLong(274208361),
         "_revisions" : {
             "r13f3875b5d1-0-1" : "true"
@@ -48,10 +51,15 @@ the node.
 The `_modified` field contains a low-resolution timestamp when the node was last
 modified. The time resolution is five seconds.
 
+The sub-document `_commitRoot` contains commit root depth for the commit in which
+the node was created against the revision.
+
 Finally, the `_revision` sub-document contains commit information about changes
 marked with a revision. E.g. the single entry in the above document tells us
 that everything marked with revision `r13f3875b5d1-0-1` is committed and
-therefore valid.
+therefore valid. In case the change is done in a branch then the value would be the
+base revision. It is only added for thode nodes which happen to be the commit root
+for any give commit.
 
 Adding a property `prop` with value `foo` to the node in a next step will
 result in the following document:
@@ -114,6 +122,26 @@ Revision Model
 * Explain revision, cluster node id, etc.
 * Explain branches
 
+Background Operations
+---------------------
+Each MongoMK instance connecting to same database in Mongo server performs certain backgroun task
+
+### Renew Cluster Id Lease
+
+### Background Writes
+
+While performing commits there are certain nodes which are modified but do not become part
+of commit. For example when a node under /a/b/c is updated then the `_lastRev` property also
+needs to be updated to the commit revision. Such changes are accumulated and flushed periodically
+through a asynch job
+
+### Background Reads
+
+
+Pending Topics
+--------------
+
+### Conflict Detection and Handling
 
 
 License

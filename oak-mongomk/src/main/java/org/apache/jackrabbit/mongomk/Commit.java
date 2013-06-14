@@ -60,7 +60,12 @@ public class Commit {
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new HashMap<String, UpdateOp>();
     private JsopWriter diff = new JsopStream();
-    private HashSet<String> changedNodes = new HashSet<String>();
+
+    /**
+     * List of all node paths which have been modified in this commit. In addition to the nodes
+     * which are actually changed it also contains there parent node paths
+     */
+    private HashSet<String> modifiedNodes = new HashSet<String>();
     
     private HashSet<String> addedNodes = new HashSet<String>();
     private HashSet<String> removedNodes = new HashSet<String>();
@@ -152,18 +157,18 @@ public class Commit {
     /**
      * Apply the changes to the document store (to update MongoDB).
      *
-     * @param baseRevision the base revision of this commit. Currently only
+     * @param baseBranchRevision the base revision of this commit. Currently only
      *                     used for branch commits.
      */
-    void applyToDocumentStore(Revision baseRevision) {
+    void applyToDocumentStore(Revision baseBranchRevision) {
         // the value in _revisions.<revision> property of the commit root node
         // regular commits use "true", which makes the commit visible to
         // other readers. branch commits use the base revision to indicate
         // the visibility of the commit
-        String commitValue = baseRevision != null ? baseRevision.toString() : "true";
+        String commitValue = baseBranchRevision != null ? baseBranchRevision.toString() : "true";
         DocumentStore store = mk.getDocumentStore();
         String commitRootPath = null;
-        if (baseRevision != null) {
+        if (baseBranchRevision != null) {
             // branch commits always use root node as commit root
             commitRootPath = "/";
         }
@@ -172,6 +177,8 @@ public class Commit {
         // operations are added to this list before they are executed,
         // so that all operations can be rolled back if there is a conflict
         ArrayList<UpdateOp> opLog = new ArrayList<UpdateOp>();
+
+        //Compute the commit root
         for (String p : operations.keySet()) {
             markChanged(p);
             if (commitRootPath == null) {
@@ -472,7 +479,7 @@ public class Commit {
             }
             list.add(p);
         }
-        for (String path : changedNodes) {
+        for (String path : modifiedNodes) {
             ArrayList<String> added = new ArrayList<String>();
             ArrayList<String> removed = new ArrayList<String>();
             ArrayList<String> changed = nodesWithChangedChildren.get(path);
@@ -508,7 +515,7 @@ public class Commit {
             throw new IllegalArgumentException("path: " + path);
         }
         while (true) {
-            changedNodes.add(path);
+            modifiedNodes.add(path);
             if (PathUtils.denotesRoot(path)) {
                 break;
             }
