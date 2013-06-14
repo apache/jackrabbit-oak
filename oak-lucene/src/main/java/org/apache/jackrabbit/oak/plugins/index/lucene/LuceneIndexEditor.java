@@ -33,6 +33,7 @@ import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jcr.PropertyType;
 
@@ -79,6 +80,8 @@ public class LuceneIndexEditor implements IndexEditor {
     private static final NodeAggregator aggregator = new NodeAggregator();
 
     private static final Parser parser = new AutoDetectParser();
+
+    private AtomicLong indexedNodes;
 
     private static IndexWriterConfig getIndexWriterConfig() {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
@@ -157,6 +160,7 @@ public class LuceneIndexEditor implements IndexEditor {
         } else {
             this.propertyTypes = -1;
         }
+        this.indexedNodes = new AtomicLong(0);
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name) {
@@ -166,6 +170,7 @@ public class LuceneIndexEditor implements IndexEditor {
         this.definition = parent.definition;
         this.writer = parent.writer;
         this.propertyTypes = parent.propertyTypes;
+        this.indexedNodes = parent.indexedNodes;
     }
 
     public String getPath() {
@@ -200,14 +205,22 @@ public class LuceneIndexEditor implements IndexEditor {
                 throw new CommitFailedException(
                         "Lucene", 3, "Failed to index the node " + path, e);
             }
+            long indexed = indexedNodes.incrementAndGet();
+            if (indexed % 1000 == 0) {
+                log.debug("Indexed {} nodes...", indexed);
+            }
         }
 
         if (parent == null) {
             try {
                 writer.close();
             } catch (IOException e) {
-                throw new CommitFailedException(
-                        "Lucene", 4, "Failed to close the Lucene index", e);
+                throw new CommitFailedException("Lucene", 4,
+                        "Failed to close the Lucene index", e);
+            }
+            long indexed = indexedNodes.get();
+            if (indexed > 0) {
+                log.debug("Indexed {} nodes, done.", indexed);
             }
         }
     }
