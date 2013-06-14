@@ -123,7 +123,7 @@ public class Oak {
         public <T> Registration register(
                 Class<T> type, T service, Map<?, ?> properties) {
             Future<?> future = null;
-            if (type == Runnable.class) {
+            if (executor != null && type == Runnable.class) {
                 Runnable runnable = (Runnable) service;
                 Long period =
                         getValue(properties, "scheduler.period", Long.class);
