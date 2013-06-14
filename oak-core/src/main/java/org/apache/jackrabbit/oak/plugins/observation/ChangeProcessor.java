@@ -64,8 +64,9 @@ class ChangeProcessor implements Runnable {
 
     private final Exception initStacktrace;
 
-    private volatile boolean running = false;
+    private volatile Thread running = null;
     private volatile boolean stopping = false;
+    private Runnable deferredUnregister;
 
     private Registration registration;
     private Listener changeListener;
@@ -105,7 +106,6 @@ class ChangeProcessor implements Runnable {
                 WhiteboardUtils.scheduleWithFixedDelay(whiteboard, this, 1);
     }
 
-
     /**
      * Stop this change processor if running. After returning from this methods no further
      * events will be delivered.
@@ -113,29 +113,46 @@ class ChangeProcessor implements Runnable {
      */
     public void stop() {
         stopping = true; // do this outside synchronization
-        synchronized (this) {
-            try {
-                while (running) {
-                    wait();
+
+        if (running == Thread.currentThread()) {
+            // Defer stopping from event listener, defer unregistering until
+            // event listener is done
+            deferredUnregister = new Runnable() {
+                @Override
+                public void run() {
+                    unregister();
                 }
-                checkState(registration != null, "Change processor not started");
-                changeListener.dispose();
-                registration.unregister();
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            };
+        } else {
+            // Otherwise wait for the event listener to terminate and unregister immediately
+            synchronized (this) {
+                try {
+                    while (running != null) {
+                        wait();
+                    }
+                    unregister();
+                }
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
+    }
+
+    private void unregister() {
+        checkState(registration != null, "Change processor not started");
+        changeListener.dispose();
+        registration.unregister();
     }
 
     @Override
     public void run() {
         // guarantee that only one thread is processing changes at a time
         synchronized (this) {
-            if (running) {
+            if (running != null) {
                 return;
             } else {
-                running = true;
+                running = Thread.currentThread();
             }
         }
 
@@ -152,8 +169,11 @@ class ChangeProcessor implements Runnable {
         } catch (Exception e) {
             log.error("Unable to generate or send events", e);
         } finally {
-            running = false;
+            running = null;
             synchronized (this) { notifyAll(); }
+            if (deferredUnregister != null) {
+                deferredUnregister.run();
+            }
         }
     }
 
