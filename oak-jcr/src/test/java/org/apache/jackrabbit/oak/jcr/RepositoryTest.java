@@ -2092,6 +2092,55 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void observationDisposeFromListener() throws RepositoryException, InterruptedException, ExecutionException,
+            TimeoutException {
+
+        final Session observingSession = createAdminSession();
+        final AtomicReference<RepositoryException> repositoryException = new AtomicReference<RepositoryException>(null);
+        final AtomicReference<CountDownLatch> unregistered = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
+        try {
+            final ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
+            final EventListener listener = new EventListener() {
+                @Override
+                public void onEvent(EventIterator events) {
+                    try {
+                        // Unregistering listener from event handler should not block
+                        obsMgr.removeEventListener(this);
+                    }
+                    catch (RepositoryException e) {
+                        repositoryException.set(e);
+                    }
+                    finally {
+                        unregistered.get().countDown();
+                    }
+                }
+            };
+
+            obsMgr.addEventListener(listener, Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED |
+                    Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
+                    "/", true, null, null, false);
+
+            // Ensure the listener is there
+            assertTrue(obsMgr.getRegisteredEventListeners().hasNext());
+
+            // Generate events
+            Node n = getNode(TEST_PATH);
+            n.addNode("c");
+            n.getSession().save();
+
+            // Make sure we see the events and the listener is gone
+            assertTrue(unregistered.get().await(2, TimeUnit.SECONDS));
+            if (repositoryException.get() != null) {
+                throw repositoryException.get();
+            }
+            assertFalse(obsMgr.getRegisteredEventListeners().hasNext());
+        }
+        finally {
+            observingSession.logout();
+        }
+    }
+
+    @Test
     public void observationOnRootNode() throws Exception {
         final AtomicReference<CountDownLatch> hasEvents = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
         Session observingSession = createAdminSession();
