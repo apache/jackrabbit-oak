@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import java.util.Dictionary;
+import java.util.Map;
 
 public class DefaultWhiteboard implements Whiteboard {
 
     @Override
     public <T> Registration register(
-            final Class<T> type, final T service,
-            final Dictionary<?, ?> properties) {
+            final Class<T> type, final T service, final Map<?, ?> properties) {
         registered(type, service, properties);
         return new Registration() {
             @Override
@@ -36,11 +35,11 @@ public class DefaultWhiteboard implements Whiteboard {
     //---------------------------------------------------------< protected >--
 
     protected void registered(
-            Class<?> type, Object service, Dictionary<?, ?> properties) {
+            Class<?> type, Object service, Map<?, ?> properties) {
     }
 
     protected void unregistered(
-            Class<?> type, Object service, Dictionary<?, ?> properties) {
+            Class<?> type, Object service, Map<?, ?> properties) {
     }
 
 }

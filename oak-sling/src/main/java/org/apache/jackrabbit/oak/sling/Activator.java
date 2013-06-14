@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.sling;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -38,8 +37,6 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private BundleContext context;
-
-    private ScheduledExecutorService executor;
 
     private SecurityProvider securityProvider;
 
@@ -56,7 +53,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     @Override
     public void start(BundleContext bundleContext) throws Exception {
         context = bundleContext;
-        executor = Executors.newScheduledThreadPool(1);
         securityProvider = new SecurityProviderImpl(); // TODO
         tracker = new ServiceTracker(
                 context, ContentRepository.class.getName(), this);
@@ -66,7 +62,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
         tracker.close();
-        executor.shutdown();
     }
 
     //--------------------------------------------< ServiceTrackerCustomizer >--
@@ -76,7 +71,9 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         Object service = context.getService(reference);
         if (service instanceof ContentRepository) {
             SlingRepository repository = new SlingRepositoryImpl(
-                    (ContentRepository) service, executor, securityProvider);
+                    (ContentRepository) service,
+                    new OsgiWhiteboard(context),
+                    securityProvider);
             jcrRepositories.put(reference, context.registerService(
                     Repository.class.getName(),
                     repository, new Properties()));

@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
 
-public interface Whiteboard {
+public class WhiteboardUtils {
 
-    /**
-     * Publishes the given service to the whiteboard. Use the returned
-     * registration object to unregister the service.
-     *
-     * @param type type of the service
-     * @param service service instance
-     * @param properties service properties
-     * @return service registration
-     */
-    <T> Registration register(Class<T> type, T service, Map<?, ?> properties);
+    public static Registration scheduleWithFixedDelay(
+            Whiteboard whiteboard, Runnable runnable, long delay) {
+        return whiteboard.register(
+                Runnable.class, runnable, ImmutableMap.builder()
+                    .put("scheduler.period", delay)
+                    .put("scheduler.concurrent", false)
+                    .build());
+    }
 
 }

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.osgi;
 
-import java.util.concurrent.ScheduledExecutorService;
-
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -26,6 +24,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
  * Workaround to a JAAS class loading issue in OSGi environments.
@@ -35,9 +34,9 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 public class OsgiRepository extends RepositoryImpl {
 
     public OsgiRepository(ContentRepository repository,
-                          ScheduledExecutorService executor,
+                          Whiteboard whiteboard,
                           SecurityProvider securityProvider) {
-        super(repository, executor, securityProvider);
+        super(repository, whiteboard, securityProvider);
     }
 
     @Override

@@ -19,14 +19,14 @@ package org.apache.jackrabbit.oak.jcr.osgi;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -38,7 +38,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private BundleContext context;
 
-    private ScheduledExecutorService executor;
+    private Whiteboard whiteboard;
 
     private SecurityProvider securityProvider = new OpenSecurityProvider(); // TODO review
 
@@ -52,7 +52,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     @Override
     public void start(BundleContext bundleContext) throws Exception {
         context = bundleContext;
-        executor = Executors.newScheduledThreadPool(1);
+        whiteboard = new OsgiWhiteboard(context);
         tracker = new ServiceTracker(
                 context, ContentRepository.class.getName(), this);
         tracker.open();
@@ -61,7 +61,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
         tracker.close();
-        executor.shutdown();
     }
 
     //--------------------------------------------< ServiceTrackerCustomizer >--
@@ -73,7 +72,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
             ContentRepository repository = (ContentRepository) service;
             services.put(reference, context.registerService(
                     Repository.class.getName(),
-                    new OsgiRepository(repository, executor, securityProvider),
+                    new OsgiRepository(repository, whiteboard, securityProvider),
                     new Properties()));
             return service;
         } else {

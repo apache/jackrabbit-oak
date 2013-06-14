@@ -16,23 +16,22 @@
  */
 package org.apache.jackrabbit.oak.sling;
 
-import java.util.concurrent.ScheduledExecutorService;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.osgi.OsgiRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.sling.jcr.api.SlingRepository;
 
 public class SlingRepositoryImpl
         extends OsgiRepository implements SlingRepository {
 
     public SlingRepositoryImpl(ContentRepository repository,
-                               ScheduledExecutorService executor,
+                               Whiteboard whiteboard,
                                SecurityProvider securityProvider) {
-        super(repository, executor, securityProvider);
+        super(repository, whiteboard, securityProvider);
     }
 
     @Override
