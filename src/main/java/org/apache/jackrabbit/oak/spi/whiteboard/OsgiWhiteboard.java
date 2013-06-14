@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -38,9 +40,14 @@ public class OsgiWhiteboard implements Whiteboard {
 
     @Override
     public <T> Registration register(
-            Class<T> type, T service, Dictionary<?, ?> properties) {
+            Class<T> type, T service, Map<?, ?> properties) {
+        Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
+        for (Map.Entry<?, ?> entry : properties.entrySet()) {
+            dictionary.put(entry.getKey(), entry.getValue());
+        }
+
         final ServiceRegistration registration =
-                context.registerService(type.getName(), service, properties);
+                context.registerService(type.getName(), service, dictionary);
         return new Registration() {
             @Override
             public void unregister() {
