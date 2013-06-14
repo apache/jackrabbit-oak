@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
@@ -45,6 +44,9 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.VisibleDiff;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -62,9 +64,8 @@ class ChangeProcessor implements Runnable {
 
     private final Exception initStacktrace;
 
-    private volatile boolean running;
     private volatile boolean stopping;
-    private ScheduledFuture<?> future;
+    private Registration registration;
     private Listener changeListener;
 
     private boolean userInfoAccessedWithoutExternalsCheck;
@@ -90,16 +91,16 @@ class ChangeProcessor implements Runnable {
 
     /**
      * Start the change processor on the passed {@code executor}.
-     * @param executor
+     * @param whiteboard
      * @throws IllegalStateException if started already
      */
-    public synchronized void start(ScheduledExecutorService executor) {
-        if (future != null) {
-            throw new IllegalStateException("Change processor started already");
-        }
+    public synchronized void start(Whiteboard whiteboard) {
+        checkState(registration == null, "Change processor started already");
+
         stopping = false;
         changeListener = observationManager.newChangeListener();
-        future = executor.scheduleWithFixedDelay(this, 100, 1000, TimeUnit.MILLISECONDS);
+        registration =
+                WhiteboardUtils.scheduleWithFixedDelay(whiteboard, this, 1);
     }
 
 
@@ -108,29 +109,17 @@ class ChangeProcessor implements Runnable {
      * events will be delivered.
      * @throws IllegalStateException if not yet started or stopped already
      */
-    public synchronized void stop() {
-        if (future == null) {
-            throw new IllegalStateException("Change processor not started");
-        }
-
-        try {
-            stopping = true;
-            future.cancel(true);
-            while (running) {
-                wait();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        finally {
+    public void stop() {
+        stopping = true; // do this outside synchronization
+        synchronized (this) {
+            checkState(registration != null, "Change processor not started");
             changeListener.dispose();
-            future = null;
+            registration.unregister();
         }
     }
 
     @Override
-    public void run() {
-        running = true;
+    public synchronized void run() {
         try{
             ChangeSet changes = changeListener.getChanges();
             if (changes != null &&
@@ -143,11 +132,6 @@ class ChangeProcessor implements Runnable {
             }
         } catch (Exception e) {
             log.error("Unable to generate or send events", e);
-        } finally {
-            synchronized (this) {
-                running = false;
-                notifyAll();
-            }
         }
     }
 

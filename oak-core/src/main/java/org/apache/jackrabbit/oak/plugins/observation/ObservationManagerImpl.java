@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.RepositoryException;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -50,17 +50,17 @@ public class ObservationManagerImpl implements ObservationManager {
     private final ContentSession contentSession;
     private final ReadOnlyNodeTypeManager ntMgr;
     private final NamePathMapper namePathMapper;
-    private final ScheduledExecutorService executor;
+    private final Whiteboard whiteboard;
 
     public ObservationManagerImpl(ContentSession contentSession, ReadOnlyNodeTypeManager nodeTypeManager,
-            NamePathMapper namePathMapper, ScheduledExecutorService executor) {
+            NamePathMapper namePathMapper, Whiteboard whiteboard) {
 
         Preconditions.checkArgument(contentSession instanceof Observable);
 
         this.contentSession = contentSession;
         this.ntMgr = nodeTypeManager;
         this.namePathMapper = namePathMapper;
-        this.executor = executor;
+        this.whiteboard = whiteboard;
     }
 
     public synchronized void dispose() {
@@ -89,7 +89,7 @@ public class ObservationManagerImpl implements ObservationManager {
             log.error(OBSERVATION, "Registering event listener {} with filter {}", listener, filter);
             processor = new ChangeProcessor(this, listener, filter);
             processors.put(listener, processor);
-            processor.start(executor);
+            processor.start(whiteboard);
         } else {
             log.debug(OBSERVATION, "Changing event listener {} to filter {}", listener, filter);
             processor.setFilter(filter);
@@ -97,11 +97,13 @@ public class ObservationManagerImpl implements ObservationManager {
     }
 
     @Override
-    public synchronized void removeEventListener(EventListener listener) {
-        ChangeProcessor processor = processors.remove(listener);
-
+    public void removeEventListener(EventListener listener) {
+        ChangeProcessor processor;
+        synchronized (this) {
+            processor = processors.remove(listener);
+        }
         if (processor != null) {
-            processor.stop();
+            processor.stop(); // needs to happen outside synchronization
         }
     }
 

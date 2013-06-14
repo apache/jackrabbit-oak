@@ -66,6 +66,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
@@ -74,12 +75,15 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
  * the session scoped instances generally needed (e.g. {@code NamePathMapper},
  * {@code ValueFactory}, etc.).
  */
-public abstract class SessionContext implements NamePathMapper {
+public class SessionContext implements NamePathMapper {
     private final RepositoryImpl repository;
+    private final Whiteboard whiteboard;
     private final SessionDelegate delegate;
     private final SessionNamespaces namespaces;
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
+    private final SessionImpl session;
+    private final WorkspaceImpl workspace;
 
     private AccessControlManager accessControlManager;
     private PermissionProvider permissionProvider;
@@ -88,10 +92,12 @@ public abstract class SessionContext implements NamePathMapper {
     private PrivilegeManager privilegeManager;
     private ObservationManager observationManager;
 
-    private SessionContext(RepositoryImpl repository,
-                           final SessionDelegate delegate) {
-        this.delegate = delegate;
-        this.repository = repository;
+    SessionContext(
+            RepositoryImpl repository, Whiteboard whiteboard,
+            final SessionDelegate delegate) {
+        this.repository = checkNotNull(repository);
+        this.whiteboard = checkNotNull(whiteboard);
+        this.delegate = checkNotNull(delegate);
         this.namespaces = new SessionNamespaces(this);
         LocalNameMapper nameMapper = new LocalNameMapper() {
             @Override
@@ -108,48 +114,37 @@ public abstract class SessionContext implements NamePathMapper {
                 nameMapper, delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot().getBlobFactory(), namePathMapper);
+
+        this.session = new SessionImpl(this);
+        this.workspace = new WorkspaceImpl(this);
     }
 
-    public static SessionContext create(final SessionDelegate delegate, RepositoryImpl repository) {
-        return new SessionContext(checkNotNull(repository), checkNotNull(delegate)) {
-            private final SessionImpl session = new SessionImpl(this);
-            private final WorkspaceImpl workspace = new WorkspaceImpl(this);
+    public Session getSession() {
+        return session;
+    }
 
-            @Override
-            public Session getSession() {
-                return session;
-            }
+    public Workspace getWorkspace() {
+        return workspace;
+    }
 
-            @Override
-            public Workspace getWorkspace() {
-                return workspace;
-            }
+    public LockManager getLockManager() {
+        return workspace.getLockManager();
+    }
 
-            @Override
-            public LockManager getLockManager() {
-                return workspace.getLockManager();
-            }
+    public NodeTypeManager getNodeTypeManager() {
+        return workspace.getNodeTypeManager();
+    }
 
-            @Override
-            public NodeTypeManager getNodeTypeManager() {
-                return workspace.getNodeTypeManager();
-            }
+    public VersionManager getVersionManager() throws RepositoryException {
+        return workspace.getVersionManager();
+    }
 
-            @Override
-            public VersionManager getVersionManager() throws RepositoryException {
-                return workspace.getVersionManager();
-            }
+    public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
+        return workspace.getReadWriteNodeTypeManager();
+    }
 
-            @Override
-            public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-                return workspace.getReadWriteNodeTypeManager();
-            }
-
-            @Override
-            public DefinitionProvider getDefinitionProvider() {
-                return workspace.getReadWriteNodeTypeManager();
-            }
-        };
+    public DefinitionProvider getDefinitionProvider() {
+        return workspace.getReadWriteNodeTypeManager();
     }
 
     public Repository getRepository() {
@@ -163,20 +158,6 @@ public abstract class SessionContext implements NamePathMapper {
     SessionNamespaces getNamespaces() {
         return namespaces;
     }
-
-    public abstract Session getSession();
-
-    public abstract Workspace getWorkspace();
-
-    public abstract LockManager getLockManager();
-
-    public abstract NodeTypeManager getNodeTypeManager();
-
-    public abstract VersionManager getVersionManager() throws RepositoryException;
-
-    public abstract EffectiveNodeTypeProvider getEffectiveNodeTypeProvider();
-
-    public abstract DefinitionProvider getDefinitionProvider();
 
     public NodeImpl createNodeOrNull(NodeDelegate nd) throws RepositoryException {
         if (nd == null) {
@@ -255,7 +236,7 @@ public abstract class SessionContext implements NamePathMapper {
             observationManager = new ObservationManagerImpl(
                 contentSession,
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
-                namePathMapper, repository.getObservationExecutor());
+                namePathMapper, whiteboard);
         }
         return observationManager;
     }

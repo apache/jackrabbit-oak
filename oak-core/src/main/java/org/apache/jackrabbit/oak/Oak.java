@@ -22,6 +22,8 @@ import static java.util.concurrent.Executors.newScheduledThreadPool;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -31,6 +33,7 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -62,6 +65,9 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -95,6 +101,58 @@ public class Oak {
     private ScheduledExecutorService executor = newScheduledThreadPool(0);
 
     private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
+
+    @SuppressWarnings("unchecked")
+    private static <T> T getValue(
+            Map<?, ?> properties, String name, Class<T> type, T def) {
+        Object value = properties.get(name);
+        if (type.isInstance(value)) {
+            return (T) value;
+        } else {
+            return def;
+        }
+    }
+
+    private static <T> T getValue(
+            Map<?, ?> properties, String name, Class<T> type) {
+        return getValue(properties, name, type, null);
+    }
+
+    private Whiteboard whiteboard = new Whiteboard() {
+        @Override
+        public <T> Registration register(
+                Class<T> type, T service, Map<?, ?> properties) {
+            Future<?> future = null;
+            if (type == Runnable.class) {
+                Runnable runnable = (Runnable) service;
+                Long period =
+                        getValue(properties, "scheduler.period", Long.class);
+                if (period != null) {
+
+                    Boolean concurrent = getValue(
+                            properties, "scheduler.concurrent",
+                            Boolean.class, Boolean.FALSE);
+                    if (concurrent) {
+                        future = executor.scheduleAtFixedRate(
+                                runnable, period, period, TimeUnit.SECONDS);
+                    } else {
+                        future = executor.scheduleWithFixedDelay(
+                                runnable, period, period, TimeUnit.SECONDS);
+                    }
+                }
+            }
+
+            final Future<?> f = future;
+            return new Registration() {
+                @Override
+                public void unregister() {
+                    if (f != null) {
+                        f.cancel(false);
+                    }
+                }
+            };
+        }
+    };
 
     /**
      * Flag controlling the asynchronous indexing behavior. If false (default)
@@ -249,6 +307,12 @@ public class Oak {
         return this;
     }
 
+    @Nonnull
+    public Oak with(@Nonnull Whiteboard whiteboard) {
+        this.whiteboard = whiteboard;
+        return this;
+    }
+
     /**
      * Enable the asynchronous (background) indexing behavior.
      * 
@@ -263,8 +327,8 @@ public class Oak {
     }
 
     @Nonnull
-    public ScheduledExecutorService getExecutorService() {
-        return this.executor;
+    public Whiteboard getWhiteboard() {
+        return this.whiteboard;
     }
 
     public ContentRepository createContentRepository() {
@@ -278,9 +342,8 @@ public class Oak {
                 .compose(editorProviders)));
 
         if (asyncIndexing) {
-            executor.scheduleWithFixedDelay(
-                    new AsyncIndexUpdate("async", store, indexEditors),
-                    1, 5, TimeUnit.SECONDS);
+            Runnable task = new AsyncIndexUpdate("async", store, indexEditors);
+            WhiteboardUtils.scheduleWithFixedDelay(whiteboard, task, 5);
         }
 
         // FIXME: OAK-810 move to proper workspace initialization

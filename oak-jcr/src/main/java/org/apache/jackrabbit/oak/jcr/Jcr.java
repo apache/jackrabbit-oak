@@ -146,7 +146,7 @@ public class Jcr {
     public Repository createRepository() {
         return new RepositoryImpl(
                 oak.createContentRepository(), 
-                oak.getExecutorService(), 
+                oak.getWhiteboard(),
                 securityProvider);
     }
 

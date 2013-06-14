@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +48,14 @@ public class RepositoryImpl implements Repository {
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
-    private final ScheduledExecutorService executor;
+    private final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
 
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
-                          @Nonnull ScheduledExecutorService executor,
+                          @Nonnull Whiteboard whiteboard,
                           @Nonnull SecurityProvider securityProvider) {
         this.contentRepository = checkNotNull(contentRepository);
-        this.executor = checkNotNull(executor);
+        this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
     }
 
@@ -139,7 +138,7 @@ public class RepositoryImpl implements Repository {
                 }
             };
 
-            context[0] = SessionContext.create(sessionDelegate, this);
+            context[0] = new SessionContext(this, whiteboard, sessionDelegate);
             return context[0].getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -188,10 +187,6 @@ public class RepositoryImpl implements Repository {
 
     SecurityProvider getSecurityProvider() {
         return securityProvider;
-    }
-
-    ScheduledExecutorService getObservationExecutor() {
-        return executor;
     }
 
     ContentRepository getContentRepository() {
