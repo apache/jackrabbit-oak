@@ -447,6 +447,11 @@ public class MemoryNodeBuilderTest {
         assertTrue(c.hasProperty("c2"));
     }
 
+    @Test
+    public void removeRoot() {
+        assertFalse(base.builder().remove());
+    }
+
     private static NodeState createBC(final boolean exists) {
         final NodeState C = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
             .setProperty("c", "cValue")
