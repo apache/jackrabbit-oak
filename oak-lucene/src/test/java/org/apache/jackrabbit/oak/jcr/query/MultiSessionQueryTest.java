@@ -32,11 +32,12 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Tests the Lucene index using multiple threads.
+ * 
+ * See https://issues.apache.org/jira/browse/OAK-837
  */
 public class MultiSessionQueryTest {
 
@@ -74,7 +75,6 @@ public class MultiSessionQueryTest {
     }
 
     @Test
-    @Ignore("OAK-837")
     public void testConcurrent() throws Exception {
 
         final Exception[] ex = new Exception[1];
