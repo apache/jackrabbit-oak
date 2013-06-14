@@ -33,7 +33,6 @@ import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ContentSession;
