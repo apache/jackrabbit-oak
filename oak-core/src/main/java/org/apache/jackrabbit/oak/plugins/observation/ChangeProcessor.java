@@ -114,9 +114,17 @@ class ChangeProcessor implements Runnable {
     public void stop() {
         stopping = true; // do this outside synchronization
         synchronized (this) {
-            checkState(registration != null, "Change processor not started");
-            changeListener.dispose();
-            registration.unregister();
+            try {
+                while (running) {
+                    wait();
+                }
+                checkState(registration != null, "Change processor not started");
+                changeListener.dispose();
+                registration.unregister();
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
@@ -145,6 +153,7 @@ class ChangeProcessor implements Runnable {
             log.error("Unable to generate or send events", e);
         } finally {
             running = false;
+            synchronized (this) { notifyAll(); }
         }
     }
 

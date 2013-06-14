@@ -2037,8 +2037,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void observationDispose() throws RepositoryException, InterruptedException, ExecutionException,
             TimeoutException {
 
+        final AtomicReference<Boolean> stopGeneratingEvents = new AtomicReference<Boolean>(false);
         final AtomicReference<CountDownLatch> hasEvents = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
-        final AtomicReference<CountDownLatch> waitForRemove = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
         final Session observingSession = createAdminSession();
         try {
             final ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
@@ -2048,13 +2048,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
                     while (events.hasNext()) {
                         events.next();
                         hasEvents.get().countDown();
-                        try {
-                            // After receiving an event wait until event listener is removed
-                            waitForRemove.get().await();
-                        }
-                        catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
                     }
                 }
             };
@@ -2063,30 +2056,37 @@ public class RepositoryTest extends AbstractRepositoryTest {
                     Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
                     "/", true, null, null, false);
 
-            // Generate two events
-            Node n = getNode(TEST_PATH);
-            n.setProperty("prop1", "val1");
-            n.setProperty("prop2", "val2");
-            n.getSession().save();
+            // Generate events
+            Executors.newSingleThreadExecutor().submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    Node n = getNode(TEST_PATH);
+                    for (int c = 0; !stopGeneratingEvents.get() ; c++) {
+                        n.addNode("c" + c);
+                        n.getSession().save();
+                    }
+                    return null;
+                }
+            });
 
-            // Make sure we see the first event
+            // Make sure we see the events
             assertTrue(hasEvents.get().await(2, TimeUnit.SECONDS));
 
-            // Remove event listener before it receives the second event
+            // Remove event listener
             Executors.newSingleThreadExecutor().submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
                     obsMgr.removeEventListener(listener);
+                    hasEvents.set(new CountDownLatch(1));
                     return null;
                 }
             }).get(2, TimeUnit.SECONDS);
-            hasEvents.set(new CountDownLatch(1));
-            waitForRemove.get().countDown();
 
-            // Make sure we don't see the second event
+            // Make sure we don't see any more events
             assertFalse(hasEvents.get().await(2, TimeUnit.SECONDS));
         }
         finally {
+            stopGeneratingEvents.set(true);
             observingSession.logout();
         }
     }
