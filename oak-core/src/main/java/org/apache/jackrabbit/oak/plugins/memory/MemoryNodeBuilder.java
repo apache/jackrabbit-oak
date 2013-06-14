@@ -269,7 +269,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean remove() {
-        if (exists()) {
+        if (!isRoot() && exists()) {
             head().getMutableNodeState();  // Make sure the removed node is connected
             parent.head().getMutableNodeState().removeChildNode(name);
             return true;
