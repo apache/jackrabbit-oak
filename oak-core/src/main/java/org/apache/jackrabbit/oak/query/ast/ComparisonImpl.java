@@ -66,7 +66,7 @@ public class ComparisonImpl extends ConstraintImpl {
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         PropertyExistenceImpl p = operand1.getPropertyExistence();
         if (p == null) {
-            Collections.emptySet();
+            return Collections.emptySet();
         }
         return Collections.singleton(p);
     }
