@@ -216,12 +216,6 @@
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException                          <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.query.SaveTest#testLockException
-      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoin                                      <!-- OAK-474 -->
-      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinNtBase                                <!-- OAK-474 -->
-      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinFilterPrimaryType                     <!-- OAK-474 -->
-      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinSNS                                   <!-- OAK-474 -->
-      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testInnerJoin         <!-- OAK-852 -->
-      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testLeftOuterJoin     <!-- OAK-852 -->
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove
@@ -305,6 +299,41 @@
       org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment              <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots  <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                           <!-- OAK-318 -->
+
+      <!-- Jackrabbit query tests (OAK-237) -->
+      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoin                                      <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinNtBase                                <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinFilterPrimaryType                     <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinSNS                                   <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testInnerJoin         <!-- OAK-852 -->
+      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testLeftOuterJoin     <!-- OAK-852 -->
+      org.apache.jackrabbit.core.query.QueryResultTest#testSkip                                      <!-- OAK-484 -->
+      org.apache.jackrabbit.core.query.SimilarQueryTest#testSimilar                                  <!-- OAK-319 -->
+      org.apache.jackrabbit.core.query.DerefTest#testDeref                                           <!-- OAK-321 -->
+      org.apache.jackrabbit.core.query.DerefTest#testDerefInPredicate                                <!-- OAK-321 -->
+      org.apache.jackrabbit.core.query.DerefTest#testRewrite                                         <!-- OAK-321 -->
+      org.apache.jackrabbit.core.query.DerefTest#testDerefToVersionNode                              <!-- OAK-321 -->
+      org.apache.jackrabbit.core.query.DerefTest#testMultipleDeref                                   <!-- OAK-321 -->
+      org.apache.jackrabbit.core.query.XPathAxisTest#testIndex0Descendant                            <!-- OAK-322 -->
+      org.apache.jackrabbit.core.query.XPathAxisTest#testIndex1Descendant                            <!-- OAK-322 -->
+      org.apache.jackrabbit.core.query.XPathAxisTest#testIndex2Descendant                            <!-- OAK-322 -->
+      org.apache.jackrabbit.core.query.XPathAxisTest#testIndex3Descendant                            <!-- OAK-322 -->
+      org.apache.jackrabbit.core.query.SQL2QueryResultTest#testSQL2SelectColums                      <!-- OAK-874 -->
+      org.apache.jackrabbit.core.query.SimpleQueryTest#testGeneralComparison                         <!-- OAK-327 -->
+      org.apache.jackrabbit.core.query.FnNameQueryTest#testLikeWithPrefix                            <!-- OAK-328 -->
+      org.apache.jackrabbit.core.query.UpperLowerCaseQueryTest#testInvalidQuery                      <!-- OAK-329 -->
+      org.apache.jackrabbit.core.query.SQL2PathEscapingTest#testGetChildrenNoEscaping                <!-- OAK-481 -->
+      org.apache.jackrabbit.core.query.SQL2PathEscapingTest#testGetChildrenEscapedFull               <!-- OAK-481 -->
+      org.apache.jackrabbit.core.query.SQL2PathEscapingTest#testGetChildrenEscapedNode               <!-- OAK-481 -->
+      org.apache.jackrabbit.core.query.ChildAxisQueryTest#testRelationQuery                          <!-- OAK-203 -->
+      org.apache.jackrabbit.core.query.ChildAxisQueryTest#testRelationQueryDeep                      <!-- OAK-203 -->
+      org.apache.jackrabbit.core.query.ChildAxisQueryTest#testMultiRelation                          <!-- OAK-203 -->
+      org.apache.jackrabbit.core.query.ChildAxisQueryTest#testLike                                   <!-- OAK-203 -->
+      org.apache.jackrabbit.core.query.ChildAxisQueryTest#testContains                               <!-- OAK-203 -->
+      org.apache.jackrabbit.core.query.ChildAxisQueryTest#testStarNameTest                           <!-- OAK-203 -->
+      org.apache.jackrabbit.core.query.SelectClauseTest#testSameNameSiblingSQL                       <!-- OAK-203 -->
+      org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
+      org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
     </known.issues>
   </properties>
 

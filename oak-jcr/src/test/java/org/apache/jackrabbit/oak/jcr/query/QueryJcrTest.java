@@ -20,20 +20,36 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+import org.apache.jackrabbit.core.query.ChildAxisQueryTest;
+import org.apache.jackrabbit.core.query.DerefTest;
 import org.apache.jackrabbit.core.query.ExcerptTest;
+import org.apache.jackrabbit.core.query.FnNameQueryTest;
 import org.apache.jackrabbit.core.query.FulltextQueryTest;
 import org.apache.jackrabbit.core.query.FulltextSQL2QueryTest;
 import org.apache.jackrabbit.core.query.JoinTest;
 import org.apache.jackrabbit.core.query.LimitAndOffsetTest;
+import org.apache.jackrabbit.core.query.LimitedAccessQueryTest;
 import org.apache.jackrabbit.core.query.MixinTest;
 import org.apache.jackrabbit.core.query.OrderByTest;
+import org.apache.jackrabbit.core.query.ParentNodeTest;
 import org.apache.jackrabbit.core.query.PathQueryNodeTest;
+import org.apache.jackrabbit.core.query.QueryResultTest;
 import org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest;
 import org.apache.jackrabbit.core.query.SQL2OffsetLimitTest;
 import org.apache.jackrabbit.core.query.SQL2OrderByTest;
 import org.apache.jackrabbit.core.query.SQL2OuterJoinTest;
+import org.apache.jackrabbit.core.query.SQL2PathEscapingTest;
+import org.apache.jackrabbit.core.query.SQL2QueryResultTest;
 import org.apache.jackrabbit.core.query.SQLTest;
+import org.apache.jackrabbit.core.query.SelectClauseTest;
+import org.apache.jackrabbit.core.query.ShareableNodeTest;
+import org.apache.jackrabbit.core.query.SimilarQueryTest;
+import org.apache.jackrabbit.core.query.SimpleQueryTest;
 import org.apache.jackrabbit.core.query.SkipDeletedNodesTest;
+import org.apache.jackrabbit.core.query.SkipDeniedNodesTest;
+import org.apache.jackrabbit.core.query.UpperLowerCaseQueryTest;
+import org.apache.jackrabbit.core.query.VersionStoreQueryTest;
+import org.apache.jackrabbit.core.query.XPathAxisTest;
 import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
 public class QueryJcrTest extends TestCase {
@@ -54,33 +70,20 @@ public class QueryJcrTest extends TestCase {
         suite.addTestSuite(LimitAndOffsetTest.class);
         suite.addTestSuite(OrderByTest.class);
         suite.addTestSuite(ExcerptTest.class);
-
-        // FAILURES
-        //
-        // suite.addTestSuite(QueryResultTest.class); // OAK-484
-        // suite.addTestSuite(ParentNodeTest.class); // OAK-309
-        // suite.addTestSuite(SimilarQueryTest.class); // OAK-319
-        // suite.addTestSuite(DerefTest.class); // OAK-321
-        // suite.addTestSuite(XPathAxisTest.class); // OAK-322
-        // suite.addTestSuite(SQL2QueryResultTest.class); // OAK-323
-        // suite.addTestSuite(SimpleQueryTest.class); // OAK-327
-        // suite.addTestSuite(FnNameQueryTest.class); // OAK-328
-        // suite.addTestSuite(UpperLowerCaseQueryTest.class); // OAK-329
-        // suite.addTestSuite(SQL2PathEscapingTest.class); // OAK-481
-
-        // NOT IMPLEMENTED
-        //
-        // suite.addTestSuite(ChildAxisQueryTest.class); // sns
-        // suite.addTestSuite(SelectClauseTest.class); // sns
-        // suite.addTestSuite(ShareableNodeTest.class); // ws#clone
-        // suite.addTestSuite(VersionStoreQueryTest.class); // versioning
-
-        // TOO JR SPECIFIC
-        //
-        // suite.addTestSuite(LimitedAccessQueryTest.class); // acls
-        // suite.addTestSuite(SkipDeniedNodesTest.class); // acls
-
+        suite.addTestSuite(QueryResultTest.class);
+        suite.addTestSuite(ParentNodeTest.class);
+        suite.addTestSuite(SimilarQueryTest.class);
+        suite.addTestSuite(DerefTest.class);
+        suite.addTestSuite(XPathAxisTest.class);
+        suite.addTestSuite(SQL2QueryResultTest.class);
+        suite.addTestSuite(SimpleQueryTest.class);
+        suite.addTestSuite(FnNameQueryTest.class);
+        suite.addTestSuite(UpperLowerCaseQueryTest.class);
+        suite.addTestSuite(SQL2PathEscapingTest.class);
+        suite.addTestSuite(ChildAxisQueryTest.class); // sns
+        suite.addTestSuite(SelectClauseTest.class); // sns
+        suite.addTestSuite(ShareableNodeTest.class); // ws#clone
+        suite.addTestSuite(VersionStoreQueryTest.class); // versioning
         return suite;
     }
-
 }
