@@ -28,7 +28,6 @@ import org.apache.jackrabbit.core.query.FulltextQueryTest;
 import org.apache.jackrabbit.core.query.FulltextSQL2QueryTest;
 import org.apache.jackrabbit.core.query.JoinTest;
 import org.apache.jackrabbit.core.query.LimitAndOffsetTest;
-import org.apache.jackrabbit.core.query.LimitedAccessQueryTest;
 import org.apache.jackrabbit.core.query.MixinTest;
 import org.apache.jackrabbit.core.query.OrderByTest;
 import org.apache.jackrabbit.core.query.ParentNodeTest;
@@ -46,7 +45,6 @@ import org.apache.jackrabbit.core.query.ShareableNodeTest;
 import org.apache.jackrabbit.core.query.SimilarQueryTest;
 import org.apache.jackrabbit.core.query.SimpleQueryTest;
 import org.apache.jackrabbit.core.query.SkipDeletedNodesTest;
-import org.apache.jackrabbit.core.query.SkipDeniedNodesTest;
 import org.apache.jackrabbit.core.query.UpperLowerCaseQueryTest;
 import org.apache.jackrabbit.core.query.VersionStoreQueryTest;
 import org.apache.jackrabbit.core.query.XPathAxisTest;
@@ -80,10 +78,10 @@ public class QueryJcrTest extends TestCase {
         suite.addTestSuite(FnNameQueryTest.class);
         suite.addTestSuite(UpperLowerCaseQueryTest.class);
         suite.addTestSuite(SQL2PathEscapingTest.class);
-        suite.addTestSuite(ChildAxisQueryTest.class); // sns
-        suite.addTestSuite(SelectClauseTest.class); // sns
-        suite.addTestSuite(ShareableNodeTest.class); // ws#clone
-        suite.addTestSuite(VersionStoreQueryTest.class); // versioning
+        suite.addTestSuite(ChildAxisQueryTest.class);
+        suite.addTestSuite(SelectClauseTest.class);
+        suite.addTestSuite(ShareableNodeTest.class);
+        suite.addTestSuite(VersionStoreQueryTest.class);
         return suite;
     }
 }
