@@ -18,7 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,6 +33,8 @@ import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -63,11 +68,17 @@ public class ObservationManagerImpl implements ObservationManager {
         this.whiteboard = whiteboard;
     }
 
-    public synchronized void dispose() {
-        for (ChangeProcessor processor : processors.values()) {
+    public void dispose() {
+        List<ChangeProcessor> toBeStopped;
+
+        synchronized (this) {
+            toBeStopped = newArrayList(processors.values());
+            processors.clear();
+        }
+
+        for (ChangeProcessor processor : toBeStopped) {
             processor.stop();
         }
-        processors.clear();
     }
 
     /**

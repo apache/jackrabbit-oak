@@ -64,7 +64,9 @@ class ChangeProcessor implements Runnable {
 
     private final Exception initStacktrace;
 
-    private volatile boolean stopping;
+    private volatile boolean running = false;
+    private volatile boolean stopping = false;
+
     private Registration registration;
     private Listener changeListener;
 
@@ -119,8 +121,17 @@ class ChangeProcessor implements Runnable {
     }
 
     @Override
-    public synchronized void run() {
-        try{
+    public void run() {
+        // guarantee that only one thread is processing changes at a time
+        synchronized (this) {
+            if (running) {
+                return;
+            } else {
+                running = true;
+            }
+        }
+
+        try {
             ChangeSet changes = changeListener.getChanges();
             if (changes != null &&
                     !(filterRef.get().excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
@@ -132,6 +143,8 @@ class ChangeProcessor implements Runnable {
             }
         } catch (Exception e) {
             log.error("Unable to generate or send events", e);
+        } finally {
+            running = false;
         }
     }
 
