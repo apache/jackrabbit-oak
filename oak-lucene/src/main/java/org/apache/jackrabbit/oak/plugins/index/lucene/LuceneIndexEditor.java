@@ -22,20 +22,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZER;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -45,21 +35,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.AggregatedState;
-import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.search.PrefixQuery;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,68 +58,16 @@ public class LuceneIndexEditor implements IndexEditor {
     private static final Logger log =
             LoggerFactory.getLogger(LuceneIndexEditor.class);
 
-    private static final IndexWriterConfig config = getIndexWriterConfig();
-
-    private static final NodeAggregator aggregator = new NodeAggregator();
-
-    private static final Parser parser = new AutoDetectParser();
-
-    private AtomicLong indexedNodes;
-
-    private static IndexWriterConfig getIndexWriterConfig() {
-        // FIXME: Hack needed to make Lucene work in an OSGi environment
-        Thread thread = Thread.currentThread();
-        ClassLoader loader = thread.getContextClassLoader();
-        thread.setContextClassLoader(IndexWriterConfig.class.getClassLoader());
-        try {
-            IndexWriterConfig config = new IndexWriterConfig(VERSION, ANALYZER);
-            config.setMergeScheduler(new SerialMergeScheduler());
-            return config;
-        } finally {
-            thread.setContextClassLoader(loader);
-        }
-    }
-
-    private static Directory newIndexDirectory(NodeBuilder definition)
-            throws CommitFailedException {
-        String path = getString(definition, PERSISTENCE_PATH);
-        if (path == null) {
-            return new ReadWriteOakDirectory(
-                    definition.child(INDEX_DATA_CHILD_NAME));
-        } else {
-            try {
-                File file = new File(path);
-                file.mkdirs();
-                // TODO: close() is never called
-                // TODO: no locking used
-                // --> using the FS backend for the index is in any case
-                //     troublesome in clustering scenarios and for backup
-                //     etc. so instead of fixing these issues we'd better
-                //     work on making the in-content index work without
-                //     problems (or look at the Solr indexer as alternative)
-                return FSDirectory.open(file, getNoLockFactory());
-            } catch (IOException e) {
-                throw new CommitFailedException(
-                        "Lucene", 1, "Failed to open the index in " + path, e);
-            }
-        }
-    }
-
-    /** Parent editor, or {@code null} if this is the root editor. */
-    private final LuceneIndexEditor parent;
+    private final LuceneIndexEditorContext context;
 
     /** Name of this node, or {@code null} for the root node. */
     private final String name;
 
+    /** Parent editor or {@code null} if this is the root editor. */
+    private final LuceneIndexEditor parent;
+
     /** Path of this editor, built lazily in {@link #getPath()}. */
     private String path;
-
-    /** Index definition node builder */
-    private final NodeBuilder definition;
-
-    private final int propertyTypes;
-
-    private IndexWriter writer = null;
 
     private boolean propertiesChanged = false;
 
@@ -144,33 +75,14 @@ public class LuceneIndexEditor implements IndexEditor {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.definition = definition;
-
-        PropertyState ps = definition.getProperty(INCLUDE_PROPERTY_TYPES);
-        if (ps != null) {
-            int types = 0;
-            for (String inc : ps.getValue(Type.STRINGS)) {
-                try {
-                    types |= 1 << PropertyType.valueFromName(inc);
-                } catch (IllegalArgumentException e) {
-                    log.warn("Unknown property type: " + inc);
-                }
-            }
-            this.propertyTypes = types;
-        } else {
-            this.propertyTypes = -1;
-        }
-        this.indexedNodes = new AtomicLong(0);
+        this.context = new LuceneIndexEditorContext(definition);
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name) {
         this.parent = parent;
         this.name = name;
         this.path = null;
-        this.definition = parent.definition;
-        this.writer = parent.writer;
-        this.propertyTypes = parent.propertyTypes;
-        this.indexedNodes = parent.indexedNodes;
+        this.context = parent.context;
     }
 
     public String getPath() {
@@ -183,14 +95,6 @@ public class LuceneIndexEditor implements IndexEditor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (parent == null) {
-            try {
-                writer = new IndexWriter(newIndexDirectory(definition), config);
-            } catch (IOException e) {
-                throw new CommitFailedException(
-                        "Lucene", 2, "Unable to create a new index writer", e);
-            }
-        }
     }
 
     @Override
@@ -199,13 +103,13 @@ public class LuceneIndexEditor implements IndexEditor {
         if (propertiesChanged || !before.exists()) {
             String path = getPath();
             try {
-                writer.updateDocument(
-                        newPathTerm(path), makeDocument(path, after));
+                context.getWriter().updateDocument(newPathTerm(path),
+                        makeDocument(path, after));
             } catch (IOException e) {
                 throw new CommitFailedException(
                         "Lucene", 3, "Failed to index the node " + path, e);
             }
-            long indexed = indexedNodes.incrementAndGet();
+            long indexed = context.incIndexedNodes();
             if (indexed % 1000 == 0) {
                 log.debug("Indexed {} nodes...", indexed);
             }
@@ -213,14 +117,13 @@ public class LuceneIndexEditor implements IndexEditor {
 
         if (parent == null) {
             try {
-                writer.close();
+                context.closeWriter();
             } catch (IOException e) {
                 throw new CommitFailedException("Lucene", 4,
                         "Failed to close the Lucene index", e);
             }
-            long indexed = indexedNodes.get();
-            if (indexed > 0) {
-                log.debug("Indexed {} nodes, done.", indexed);
+            if (context.getIndexedNodes() > 0) {
+                log.debug("Indexed {} nodes, done.", context.getIndexedNodes());
             }
         }
     }
@@ -257,6 +160,7 @@ public class LuceneIndexEditor implements IndexEditor {
         String path = PathUtils.concat(getPath(), name);
 
         try {
+            IndexWriter writer = context.getWriter();
             // Remove all index entries in the removed subtree
             writer.deleteDocuments(newPathTerm(path));
             writer.deleteDocuments(new PrefixQuery(newPathTerm(path + "/")));
@@ -276,7 +180,7 @@ public class LuceneIndexEditor implements IndexEditor {
         for (PropertyState property : state.getProperties()) {
             String pname = property.getName();
             if (isVisible(pname)
-                    && (propertyTypes & (1 << property.getType().tag())) != 0) {
+                    && (context.getPropertyTypes() & (1 << property.getType().tag())) != 0) {
                 if (Type.BINARY.tag() == property.getType().tag()) {
                     addBinaryValue(document, property, state);
                 } else {
@@ -288,11 +192,11 @@ public class LuceneIndexEditor implements IndexEditor {
             }
         }
 
-        for (AggregatedState agg : aggregator.getAggregates(state)) {
+        for (AggregatedState agg : context.getAggregator().getAggregates(state)) {
             for (PropertyState property : agg.getProperties()) {
                 String pname = property.getName();
                 if (isVisible(pname)
-                        && (propertyTypes & (1 << property.getType().tag())) != 0) {
+                        && (context.getPropertyTypes() & (1 << property.getType().tag())) != 0) {
                     if (Type.BINARY.tag() == property.getType().tag()) {
                         addBinaryValue(document, property, agg.get());
                     } else {
@@ -335,7 +239,7 @@ public class LuceneIndexEditor implements IndexEditor {
         try {
             InputStream stream = v.getNewStream();
             try {
-                parser.parse(stream, handler, metadata, new ParseContext());
+                context.getParser().parse(stream, handler, metadata, new ParseContext());
             } finally {
                 stream.close();
             }
