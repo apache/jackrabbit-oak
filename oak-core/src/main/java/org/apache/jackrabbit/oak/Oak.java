@@ -29,6 +29,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
@@ -100,6 +103,8 @@ public class Oak {
 
     private ScheduledExecutorService executor = newScheduledThreadPool(0);
 
+    private MBeanServer mbeanServer;
+
     private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
 
     @SuppressWarnings("unchecked")
@@ -128,7 +133,6 @@ public class Oak {
                 Long period =
                         getValue(properties, "scheduler.period", Long.class);
                 if (period != null) {
-
                     Boolean concurrent = getValue(
                             properties, "scheduler.concurrent",
                             Boolean.class, Boolean.FALSE);
@@ -142,12 +146,35 @@ public class Oak {
                 }
             }
 
+            ObjectName objectName = null;
+            Object name = properties.get("jmx.objectname");
+            if (mbeanServer != null && name != null) {
+                try {
+                    if (name instanceof ObjectName) {
+                        objectName = (ObjectName) name;
+                    } else {
+                        objectName = new ObjectName(String.valueOf(name));
+                    }
+                    mbeanServer.registerMBean(service, objectName);
+                } catch (JMException e) {
+                    // ignore
+                }
+            }
+
             final Future<?> f = future;
+            final ObjectName on = objectName;
             return new Registration() {
                 @Override
                 public void unregister() {
                     if (f != null) {
                         f.cancel(false);
+                    }
+                    if (on != null) {
+                        try {
+                            mbeanServer.unregisterMBean(on);
+                        } catch (JMException e) {
+                            // ignore
+                        }
                     }
                 }
             };
@@ -304,6 +331,12 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull ScheduledExecutorService executorService) {
         this.executor = executorService;
+        return this;
+    }
+
+    @Nonnull
+    public Oak with(@Nonnull MBeanServer mbeanServer) {
+        this.mbeanServer = mbeanServer;
         return this;
     }
 

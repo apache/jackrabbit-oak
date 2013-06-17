@@ -16,9 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
+import java.util.Hashtable;
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
 import com.google.common.collect.ImmutableMap;
 
 public class WhiteboardUtils {
+
+    private static final AtomicLong COUNTER = new AtomicLong();
 
     public static Registration scheduleWithFixedDelay(
             Whiteboard whiteboard, Runnable runnable, long delay) {
@@ -27,6 +35,22 @@ public class WhiteboardUtils {
                     .put("scheduler.period", delay)
                     .put("scheduler.concurrent", false)
                     .build());
+    }
+
+    public static <T> Registration registerMBean(
+            Whiteboard whiteboard,
+            Class<T> iface, T bean, String type, String name) {
+        try {
+            Hashtable<String, String> table = new Hashtable<String, String>();
+            table.put("type", type);
+            table.put("name", name);
+            table.put("id", String.valueOf(COUNTER.incrementAndGet()));
+            return whiteboard.register(iface, bean, ImmutableMap.of(
+                    "jmx.objectname",
+                    new ObjectName("org.apache.jackrabbit.oak", table)));
+        } catch (MalformedObjectNameException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
 }

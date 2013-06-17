@@ -33,7 +33,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
+import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -49,39 +51,37 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 class ChangeProcessor implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
-    private static final Marker DEPRECATED = MarkerFactory.getMarker("deprecated");
+
+    private static final Logger log =
+            LoggerFactory.getLogger(ChangeProcessor.class);
 
     private final ObservationManagerImpl observationManager;
     private final NamePathMapper namePathMapper;
-    private final EventListener listener;
     private final AtomicReference<EventFilter> filterRef;
     private final AtomicReference<String> userDataRef = new AtomicReference<String>(null);
 
-    private final Exception initStacktrace;
+    private final ListenerTracker tracker;
+    private final EventListener listener;
 
     private volatile Thread running = null;
     private volatile boolean stopping = false;
     private Runnable deferredUnregister;
 
-    private Registration registration;
+    private Registration runnable;
+    private Registration mbean;
     private Listener changeListener;
 
-    private boolean userInfoAccessedWithoutExternalsCheck;
-    private boolean userInfoAccessedFromExternalEvent;
-    private boolean dateAccessedWithoutExternalsCheck;
-    private boolean dateAccessedFromExternalEvent;
-
-    public ChangeProcessor(ObservationManagerImpl observationManager, EventListener listener, EventFilter filter) {
+    public ChangeProcessor(
+            ObservationManagerImpl observationManager,
+            ListenerTracker tracker,
+            EventFilter filter) {
         this.observationManager = observationManager;
         this.namePathMapper = observationManager.getNamePathMapper();
-        this.listener = listener;
+        this.tracker = tracker;
+        this.listener = tracker.getTrackedListener();
         filterRef = new AtomicReference<EventFilter>(filter);
-        initStacktrace = log.isWarnEnabled(DEPRECATED) ? new Exception("Initialized here") : null;
     }
 
     public void setFilter(EventFilter filter) {
@@ -98,12 +98,14 @@ class ChangeProcessor implements Runnable {
      * @throws IllegalStateException if started already
      */
     public synchronized void start(Whiteboard whiteboard) {
-        checkState(registration == null, "Change processor started already");
+        checkState(runnable == null, "Change processor started already");
 
         stopping = false;
         changeListener = observationManager.newChangeListener();
-        registration =
-                WhiteboardUtils.scheduleWithFixedDelay(whiteboard, this, 1);
+        runnable = WhiteboardUtils.scheduleWithFixedDelay(whiteboard, this, 1);
+        mbean = WhiteboardUtils.registerMBean(
+                whiteboard, EventListenerMBean.class, tracker.getListenerMBean(),
+                "ObservationListener", tracker.toString());
     }
 
     /**
@@ -140,9 +142,10 @@ class ChangeProcessor implements Runnable {
     }
 
     private void unregister() {
-        checkState(registration != null, "Change processor not started");
+        checkState(runnable != null, "Change processor not started");
+        mbean.unregister();
+        runnable.unregister();
         changeListener.dispose();
-        registration.unregister();
     }
 
     @Override
@@ -174,48 +177,6 @@ class ChangeProcessor implements Runnable {
             if (deferredUnregister != null) {
                 deferredUnregister.run();
             }
-        }
-    }
-
-    synchronized void userInfoAccessedWithoutExternalCheck(Event event) {
-        if (!userInfoAccessedWithoutExternalsCheck) {
-            log.warn(DEPRECATED,
-                    "Event listener " + listener + " is trying to access"
-                    + " event user information on event " + event
-                    + " without checking whether the event is external."
-                    + " The event listener was registered here: ",  initStacktrace);
-            userInfoAccessedWithoutExternalsCheck = true;
-        }
-    }
-
-    synchronized void userInfoAccessedFromExternalEvent(Event event) {
-        if (!userInfoAccessedFromExternalEvent) {
-            log.warn(DEPRECATED,
-                    "Event listener " + listener + " is trying to access"
-                    + " event user information for external event " + event + '.'
-                    + " The event listener was registered here: ", initStacktrace);
-            userInfoAccessedFromExternalEvent = true;
-        }
-    }
-
-    synchronized void dateAccessedWithoutExternalCheck(Event event) {
-        if (!dateAccessedWithoutExternalsCheck) {
-            log.warn(DEPRECATED,
-                    "Event listener " + listener + " is trying to access"
-                    + " event date information on event " + event
-                    + " without checking whether the event is external."
-                    + " The event listener was registered here: ", initStacktrace);
-            dateAccessedWithoutExternalsCheck = true;
-        }
-    }
-
-    synchronized void dateAccessedFromExternalEvent(Event event) {
-        if (!dateAccessedFromExternalEvent) {
-            log.warn(DEPRECATED,
-                    "Event listener " + listener + " is trying to access"
-                    + " event date information for external event " + event + '.'
-                    + " The event listener was registered here: ", initStacktrace);
-            dateAccessedFromExternalEvent = true;
         }
     }
 
@@ -339,8 +300,10 @@ class ChangeProcessor implements Runnable {
 
         private EventImpl createEvent(int eventType, String jcrPath, String id) {
             // TODO support info
-            return new EventImpl(ChangeProcessor.this, eventType, jcrPath, changes.getUserId(),
-                    id, null, changes.getDate(), userDataRef.get(), changes.isExternal());
+            return new EventImpl(
+                    eventType, jcrPath, changes.getUserId(),
+                    id, null, changes.getDate(), userDataRef.get(),
+                    changes.isExternal());
         }
 
         private String getRootId() {

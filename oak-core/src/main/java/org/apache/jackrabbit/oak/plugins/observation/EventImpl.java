@@ -30,8 +30,6 @@ import org.apache.jackrabbit.api.observation.JackrabbitEvent;
  * TODO document
  */
 public class EventImpl implements JackrabbitEvent {
-    private final ChangeProcessor collector;
-    private boolean externalAccessed;
 
     private final int type;
     private final String path;
@@ -43,10 +41,8 @@ public class EventImpl implements JackrabbitEvent {
     private final boolean external;
 
     public EventImpl(
-            ChangeProcessor processor,
             int type, String path, String userID, String identifier,
             Map<?, ?> info, long date, String userData, boolean external) {
-        this.collector = processor;
         this.type = type;
         this.path = path;
         this.userID = userID;
@@ -68,51 +64,32 @@ public class EventImpl implements JackrabbitEvent {
     }
 
     @Override
-    public synchronized String getUserID() {
-        if (!externalAccessed) {
-            collector.userInfoAccessedWithoutExternalCheck(this);
-        }
-        if (external) {
-            collector.userInfoAccessedFromExternalEvent(this);
-        }
+    public String getUserID() {
         return userID;
     }
 
     @Override
-    public String getIdentifier() throws RepositoryException {
+    public String getIdentifier() {
         return identifier;
     }
 
     @Override
-    public Map<?, ?> getInfo() throws RepositoryException {
+    public Map<?, ?> getInfo() {
         return info;
     }
 
     @Override
-    public String getUserData() throws RepositoryException {
-        if (!externalAccessed) {
-            collector.userInfoAccessedWithoutExternalCheck(this);
-        }
-        if (external) {
-            collector.userInfoAccessedFromExternalEvent(this);
-        }
+    public String getUserData() {
         return userData;
     }
 
     @Override
-    public long getDate() throws RepositoryException {
-        if (!externalAccessed) {
-            collector.dateAccessedWithoutExternalCheck(this);
-        }
-        if (external) {
-            collector.dateAccessedFromExternalEvent(this);
-        }
+    public long getDate() {
         return date;
     }
 
     @Override
     public synchronized boolean isExternal() {
-        externalAccessed = true;
         return external;
     }
 

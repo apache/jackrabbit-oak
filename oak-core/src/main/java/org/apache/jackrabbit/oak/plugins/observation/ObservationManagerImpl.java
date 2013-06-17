@@ -35,6 +35,7 @@ import javax.jcr.observation.ObservationManager;
 import com.google.common.base.Preconditions;
 
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
+import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -47,7 +48,12 @@ import org.slf4j.MarkerFactory;
 
 public class ObservationManagerImpl implements ObservationManager {
     private static final Logger log = LoggerFactory.getLogger(ObservationManagerImpl.class);
-    public static final Marker OBSERVATION = MarkerFactory.getMarker("observation");
+
+    public static final Marker OBSERVATION =
+            MarkerFactory.getMarker("observation");
+
+    private static final Marker DEPRECATED =
+            MarkerFactory.getMarker("deprecated");
 
     private final Map<EventListener, ChangeProcessor> processors = new HashMap<EventListener, ChangeProcessor>();
     private final AtomicBoolean hasEvents = new AtomicBoolean(false);
@@ -96,8 +102,16 @@ public class ObservationManagerImpl implements ObservationManager {
                 absPath, isDeep, uuid, nodeTypeName, noLocal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
-            log.error(OBSERVATION, "Registering event listener {} with filter {}", listener, filter);
-            processor = new ChangeProcessor(this, listener, filter);
+            log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filter);
+            ListenerTracker tracker = new ListenerTracker(
+                    listener, eventTypes, absPath, isDeep,
+                    uuid, nodeTypeName, noLocal) {
+                        @Override
+                        protected void warn(String message) {
+                            log.warn(DEPRECATED, message, initStackTrace);
+                        }
+            };
+            processor = new ChangeProcessor(this, tracker, filter);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
