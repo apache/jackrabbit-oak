@@ -248,12 +248,6 @@ public class MongoMK implements MicroKernel {
     }
     
     void init() {
-        backgroundThread = new Thread(
-                new BackgroundOperation(this, isDisposed),
-                "MongoMK background thread");
-        backgroundThread.setDaemon(true);
-        backgroundThread.start();
-
         headRevision = newRevision();
         Node n = readNode("/", headRevision);
         if (n == null) {
@@ -266,6 +260,11 @@ public class MongoMK implements MicroKernel {
             // initialize branchCommits
             branches.init(store, clusterId);
         }
+        backgroundThread = new Thread(
+                new BackgroundOperation(this, isDisposed),
+                "MongoMK background thread");
+        backgroundThread.setDaemon(true);
+        backgroundThread.start();
     }
     
     /**
