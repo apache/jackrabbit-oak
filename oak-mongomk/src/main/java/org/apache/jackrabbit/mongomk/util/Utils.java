@@ -23,6 +23,8 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import com.mongodb.BasicDBObject;
+
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.bson.types.ObjectId;
 
 /**
@@ -202,4 +204,31 @@ public class Utils {
         return document.toString().replaceAll(", _", ",\n_").replaceAll("}, ", "},\n");
     }
 
+    /**
+     * Returns the lower key limit to retrieve the children of the given
+     * <code>path</code>.
+     *
+     * @param path a path.
+     * @return the lower key limit.
+     */
+    public static String getKeyLowerLimit(String path) {
+        String from = PathUtils.concat(path, "a");
+        from = getIdFromPath(from);
+        from = from.substring(0, from.length() - 1);
+        return from;
+    }
+
+    /**
+     * Returns the upper key limit to retrieve the children of the given
+     * <code>path</code>.
+     *
+     * @param path a path.
+     * @return the upper key limit.
+     */
+    public static String getKeyUpperLimit(String path) {
+        String to = PathUtils.concat(path, "z");
+        to = getIdFromPath(to);
+        to = to.substring(0, to.length() - 2) + "0";
+        return to;
+    }
 }

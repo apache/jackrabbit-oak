@@ -29,6 +29,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
+import org.apache.jackrabbit.mongomk.util.Utils;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -65,9 +68,14 @@ public class MongoDocumentStoreTest {
         }
     }
 
+    @Before
+    @After
+    public void cleanUp() {
+        dropCollections();
+    }
+
     @Test
     public void addGetAndRemove() throws Exception {
-        dropCollections();
         DocumentStore docStore = openDocumentStore();
 
         UpdateOp updateOp = new UpdateOp("/", "/", true);
@@ -90,13 +98,10 @@ public class MongoDocumentStoreTest {
         docStore.remove(Collection.NODES, "/");
         obj = docStore.find(Collection.NODES, "/");
         assertTrue(obj == null);
-        dropCollections();
     }
 
     @Test
     public void batchAdd() throws Exception {
-        dropCollections();
-
         DocumentStore docStore = openDocumentStore();
         int nUpdates = 10;
         List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
@@ -110,13 +115,10 @@ public class MongoDocumentStoreTest {
             updateOps.add(updateOp);
         }
         docStore.create(Collection.NODES, updateOps);
-
-        dropCollections();
     }
 
     @Test
     public void addLotsOfNodes() throws Exception {
-
         char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
         int nNodes = NODE_COUNT;
 
@@ -138,14 +140,10 @@ public class MongoDocumentStoreTest {
             log("Done: " + (end - start) + "ms");
 
         }
-        dropCollections();
-
     }
 
     @Test
     public void containsMapEntry() {
-        dropCollections();
-
         DocumentStore docStore = openDocumentStore();
         UpdateOp op = new UpdateOp("/node", "/node", true);
         op.setMapEntry("map", "key", "value");
@@ -178,8 +176,22 @@ public class MongoDocumentStoreTest {
         doc = docStore.find(Collection.NODES, "/node");
         assertTrue(doc.containsKey("prop"));
         assertEquals("value", doc.get("prop"));
+    }
 
-        dropCollections();
+    @Test
+    public void queryWithLimit() throws Exception {
+        DocumentStore docStore = openDocumentStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            Node n = new Node("/node-" + i, rev);
+            inserts.add(n.asOperation(true));
+        }
+        docStore.create(Collection.NODES, inserts);
+        List<Map<String, Object>> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit("/"),  Utils.getKeyUpperLimit("/"),
+                MongoMK.MANY_CHILDREN_THRESHOLD);
+        assertEquals(MongoMK.MANY_CHILDREN_THRESHOLD, docs.size());
     }
 
     @Test

@@ -94,7 +94,7 @@ public class MongoMK implements MicroKernel {
     /**
      * The threshold where special handling for many child node starts.
      */
-    private static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
+    static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
             "oak.mongoMK.manyChildren", 50);
 
     /**
@@ -620,8 +620,8 @@ public class MongoMK implements MicroKernel {
         // TODO use offset, to avoid O(n^2) and running out of memory
         // to do that, use the *name* of the last entry of the previous batch of children
         // as the starting point
-        String from = getPathLowerLimit(path);
-        String to = getPathUpperLimit(path);
+        String from = Utils.getKeyLowerLimit(path);
+        String to = Utils.getKeyUpperLimit(path);
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, 
                 from, to, limit);
         Children c = new Children(path, rev);
@@ -640,20 +640,6 @@ public class MongoMK implements MicroKernel {
             c.children.add(p);
         }
         return c;
-    }
-    
-    private static String getPathLowerLimit(String path) {
-        String from = PathUtils.concat(path, "a");
-        from = Utils.getIdFromPath(from);
-        from = from.substring(0, from.length() - 1);
-        return from;
-    }
-    
-    private static String getPathUpperLimit(String path) {
-        String to = PathUtils.concat(path, "z");
-        to = Utils.getIdFromPath(to);
-        to = to.substring(0, to.length() - 2) + "0";
-        return to;
     }
 
     private Node readNode(String path, Revision rev) {
@@ -856,8 +842,8 @@ public class MongoMK implements MicroKernel {
         long minTimestamp = Math.min(fromRev.getTimestamp(), toRev.getTimestamp());
         Revision rev = isRevisionNewer(fromRev, toRev) ? toRev : fromRev;
         long minValue = Commit.getModified(minTimestamp);
-        String fromKey = getPathLowerLimit(path);
-        String toKey = getPathUpperLimit(path);
+        String fromKey = Utils.getKeyLowerLimit(path);
+        String toKey = Utils.getKeyUpperLimit(path);
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, fromKey, toKey, 
                 UpdateOp.MODIFIED, minValue, Integer.MAX_VALUE);
         for (Map<String, Object> e : list) {

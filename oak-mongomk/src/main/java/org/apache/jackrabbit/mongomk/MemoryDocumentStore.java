@@ -92,7 +92,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 Utils.deepCopyMap(n, copy);
             }
             list.add(copy);
-            if (list.size() > limit) {
+            if (list.size() >= limit) {
                 break;
             }
         }
