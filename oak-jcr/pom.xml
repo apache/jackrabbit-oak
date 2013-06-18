@@ -426,14 +426,13 @@
 
     <!-- Test dependencies -->
     <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-mongomk</artifactId>
-      <version>${project.version}</version>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongo-java-driver</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

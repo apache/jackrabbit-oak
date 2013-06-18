@@ -22,7 +22,7 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.mongomk.util.NodeBuilder;
+import org.apache.jackrabbit.oak.plugins.mongomk.util.NodeBuilder;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 public class RandomJsopGenerator {

@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.mk.testing;
 
-import java.util.Arrays;
 import java.util.Collections;
 
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
-import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
-import org.apache.jackrabbit.mongomk.impl.model.MongoSync;
-import org.omg.Messaging.SYNC_WITH_TRANSPORT;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.model.MongoCommit;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.model.MongoNode;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.model.MongoSync;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;

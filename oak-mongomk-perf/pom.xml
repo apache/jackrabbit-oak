@@ -78,11 +78,6 @@
 
 		<!-- Oak MongoMK -->
 		<dependency>
-			<groupId>org.apache.jackrabbit</groupId>
-			<artifactId>oak-mongomk</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.16</version>

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.perf;
 
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.MongoConnection;
 import org.apache.log4j.Logger;
 
 public class PrepareEnvironment {

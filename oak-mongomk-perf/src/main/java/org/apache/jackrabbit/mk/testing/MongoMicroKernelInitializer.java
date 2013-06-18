@@ -21,10 +21,10 @@ import java.util.ArrayList;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.util.Configuration;
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.blob.*;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.blob.*;
 
 import com.mongodb.BasicDBObjectBuilder;
 
