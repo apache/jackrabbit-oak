@@ -41,7 +41,6 @@
     <module>oak-mk-api</module>
     <module>oak-mk</module>
     <module>oak-mk-remote</module>
-    <module>oak-mongomk</module>
     <module>oak-core</module>
     <module>oak-jcr</module>
     <module>oak-upgrade</module>

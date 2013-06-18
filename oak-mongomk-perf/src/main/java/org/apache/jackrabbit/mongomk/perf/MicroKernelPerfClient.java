@@ -23,11 +23,11 @@ import java.util.Map;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.json.DefaultJsopHandler;
-import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.json.DefaultJsopHandler;
+import org.apache.jackrabbit.oak.plugins.mongomk.impl.json.JsopParser;
 import org.apache.jackrabbit.mongomk.perf.RandomJsopGenerator.RandomJsop;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.log4j.Logger;
