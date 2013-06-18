@@ -28,14 +28,16 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Objects;
 
 public class AsyncIndexUpdate implements Runnable {
 
@@ -49,6 +51,9 @@ public class AsyncIndexUpdate implements Runnable {
     private static final String ASYNC = ":async";
 
     private static final long DEFAULT_LIFETIME = TimeUnit.HOURS.toMillis(1);
+
+    private static final CommitFailedException CONCURRENT_UPDATE =
+            new CommitFailedException("Async", 1, "Concurrent update detected");
 
     private final String name;
 
@@ -78,9 +83,9 @@ public class AsyncIndexUpdate implements Runnable {
         NodeBuilder async = builder.child(ASYNC);
 
         NodeState before = null;
-        PropertyState property = async.getProperty(name);
-        if (property != null && property.getType() == STRING) {
-            before = store.retrieve(property.getValue(STRING));
+        final PropertyState state = async.getProperty(name);
+        if (state != null && state.getType() == STRING) {
+            before = store.retrieve(state.getValue(STRING));
         }
         if (before == null) {
             before = MISSING_NODE;
@@ -96,9 +101,25 @@ public class AsyncIndexUpdate implements Runnable {
                 try {
                     async.setProperty(name, checkpoint);
                     branch.setRoot(builder.getNodeState());
-                    branch.merge(EmptyHook.INSTANCE);
+                    branch.merge(new CommitHook() {
+                        @Override @Nonnull
+                        public NodeState processCommit(
+                                NodeState before, NodeState after)
+                                throws CommitFailedException {
+                            // check for concurrent updates by this async task
+                            PropertyState stateAfterRebase =
+                                    before.getChildNode(ASYNC).getProperty(name);
+                            if (Objects.equal(state, stateAfterRebase)) {
+                                return after;
+                            } else {
+                                throw CONCURRENT_UPDATE;
+                            }
+                        }
+                    });
                 } catch (CommitFailedException e) {
-                    exception = e;
+                    if (e != CONCURRENT_UPDATE) {
+                        exception = e;
+                    }
                 }
             }
 
