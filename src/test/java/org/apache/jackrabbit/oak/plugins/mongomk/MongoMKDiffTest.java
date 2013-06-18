@@ -246,4 +246,22 @@ public class MongoMKDiffTest extends AbstractMongoConnectionTest {
         obj = parseJSONObject(mk.getNodes("/level1", null, 0, 0, -1, null));
         assertPropertyValue(obj, "prop1", "value1");
     }
+
+    @Test
+    public void diffManyChildren() {
+        String baseRev = mk.getHeadRevision();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            sb.append("+\"node-").append(i).append("\":{}");
+        }
+        String rev = mk.commit("/", sb.toString(), null, null);
+        String jsop = mk.diff(baseRev, rev, "/", 0);
+        for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            assertTrue(jsop.contains("+\"/node-" + i + "\""));
+        }
+        jsop = mk.diff(rev, baseRev, "/", 0);
+        for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            assertTrue(jsop.contains("-\"/node-" + i + "\""));
+        }
+    }
 }
