@@ -105,7 +105,7 @@ class ChangeProcessor implements Runnable {
         runnable = WhiteboardUtils.scheduleWithFixedDelay(whiteboard, this, 1);
         mbean = WhiteboardUtils.registerMBean(
                 whiteboard, EventListenerMBean.class, tracker.getListenerMBean(),
-                "ObservationListener", tracker.toString());
+                "EventListener", tracker.toString());
     }
 
     /**
