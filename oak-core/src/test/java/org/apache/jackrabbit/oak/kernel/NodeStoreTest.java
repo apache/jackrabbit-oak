@@ -229,8 +229,6 @@ public class NodeStoreTest {
 
     @Test
     public void manyChildNodes() throws CommitFailedException {
-        // OAK-872
-        Assume.assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
         NodeStoreBranch branch = store.branch();
         NodeBuilder root = branch.getHead().builder();
         NodeBuilder parent = root.child("parent");
@@ -334,8 +332,6 @@ public class NodeStoreTest {
 
     @Test
     public void compareAgainstBaseState100() throws CommitFailedException {
-        // OAK-872
-        Assume.assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
         compareAgainstBaseState(KernelNodeState.MAX_CHILD_NODE_NAMES);
     }
 

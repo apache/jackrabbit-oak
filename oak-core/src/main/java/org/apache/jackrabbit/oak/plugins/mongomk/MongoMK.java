@@ -852,7 +852,25 @@ public class MongoMK implements MicroKernel {
             }
             String id = e.get(UpdateOp.ID).toString();
             String p = Utils.getPathFromId(id);
-            w.tag('^').key(p).object().endObject().newline();
+            if (getNode(p, fromRev) != null) {
+                // exists in fromRev
+                if (getNode(p, toRev) != null) {
+                    // exists in both revisions
+                    w.tag('^').key(p).object().endObject().newline();
+                } else {
+                    // does not exist in toRev -> was removed
+                    w.tag('-').value(p).newline();
+                }
+            } else {
+                // does not exist in fromRev
+                if (getNode(p, toRev) != null) {
+                    // exists in toRev
+                    w.tag('+').key(p).object().endObject().newline();
+                } else {
+                    // does not exist in either revisions
+                    // -> do nothing
+                }
+            }
         }
     }
     
