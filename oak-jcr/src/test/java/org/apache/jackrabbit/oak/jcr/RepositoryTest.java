@@ -2155,7 +2155,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     //------------------------------------------------------------< ExpectationListener >---
 
     private static class ExpectationListener implements EventListener {
-        private final Map<String, SettableFuture<Event>> expected = Maps.newHashMap();
+        private final Map<String, SettableFuture<Event>> expected = Maps.newConcurrentMap();
         private final List<Event> unexpected = Lists.newCopyOnWriteArrayList();
         private volatile Exception failed;
 
