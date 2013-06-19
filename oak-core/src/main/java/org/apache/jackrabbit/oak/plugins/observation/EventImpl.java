@@ -26,9 +26,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 
-/**
- * TODO document
- */
+// michid doc
 public class EventImpl implements JackrabbitEvent {
 
     private final int type;
