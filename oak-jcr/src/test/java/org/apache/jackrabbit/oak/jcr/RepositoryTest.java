@@ -1914,6 +1914,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore
     public void observationDispose() throws RepositoryException, InterruptedException, ExecutionException,
             TimeoutException {
 
