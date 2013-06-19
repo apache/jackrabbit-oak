@@ -16,8 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static javax.jcr.PropertyType.UNDEFINED;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.PATH;
+import static org.apache.jackrabbit.oak.api.Type.PATHS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -35,23 +39,22 @@ import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.value.ValueHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
 public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property {
-    private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
     private static final Value[] NO_VALUES = new Value[0];
 
@@ -124,7 +127,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     public void setValue(Value value) throws RepositoryException {
         if (value == null) {
-            internalRemove();
+            remove();
         } else {
             internalSetValue(value);
         }
@@ -133,88 +136,94 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     public void setValue(final Value[] values) throws RepositoryException {
         if (values == null) {
-            internalRemove();
+            remove();
         } else {
-            internalSetValues(values, ValueHelper.getType(values));
+            internalSetValue(values);
         }
     }
 
     @Override
     public void setValue(String value) throws RepositoryException {
         if (value == null) {
-            internalRemove();
+            remove();
         } else {
-            internalSetValue(getValueFactory().createValue(value));
+            setValue(getValueFactory().createValue(value));
         }
     }
 
     @Override
-    public void setValue(String[] values) throws RepositoryException {
-        if (values == null) {
-            internalRemove();
+    public void setValue(String[] strings) throws RepositoryException {
+        if (strings == null) {
+            remove();
         } else {
-            Value[] vs = ValueHelper.convert(values, PropertyType.STRING, getValueFactory());
-            internalSetValues(vs, UNDEFINED);
+            ValueFactory factory = getValueFactory();
+            Value[] values = new Value[strings.length];
+            for (int i = 0; i < strings.length; i++) {
+                if (strings[i] != null) {
+                    values[i] = factory.createValue(strings[i]);
+                }
+            }
+            internalSetValue(values);
         }
     }
 
-    @Override
+    @Override @SuppressWarnings("deprecation")
     public void setValue(InputStream value) throws RepositoryException {
         if (value == null) {
-            internalRemove();
+            remove();
         } else {
-            internalSetValue(getValueFactory().createValue(value));
+            setValue(getValueFactory().createValue(value));
         }
     }
 
     @Override
     public void setValue(Binary value) throws RepositoryException {
         if (value == null) {
-            internalRemove();
+            remove();
         } else {
-            internalSetValue(getValueFactory().createValue(value));
+            setValue(getValueFactory().createValue(value));
         }
     }
 
     @Override
     public void setValue(long value) throws RepositoryException {
-        internalSetValue(getValueFactory().createValue(value));
+        setValue(getValueFactory().createValue(value));
     }
 
     @Override
     public void setValue(double value) throws RepositoryException {
-        internalSetValue(getValueFactory().createValue(value));
+        setValue(getValueFactory().createValue(value));
     }
 
     @Override
     public void setValue(BigDecimal value) throws RepositoryException {
         if (value == null) {
-            internalRemove();
+            remove();
         } else {
-            internalSetValue(getValueFactory().createValue(value));
+            setValue(getValueFactory().createValue(value));
         }
     }
 
     @Override
     public void setValue(Calendar value) throws RepositoryException {
         if (value == null) {
-            internalRemove();
+            remove();
         } else {
-            internalSetValue(getValueFactory().createValue(value));
+            setValue(getValueFactory().createValue(value));
         }
     }
 
     @Override
     public void setValue(boolean value) throws RepositoryException {
-        internalSetValue(getValueFactory().createValue(value));
+        setValue(getValueFactory().createValue(value));
     }
 
     @Override
     public void setValue(Node value) throws RepositoryException {
         if (value == null) {
-            internalRemove();
+            remove();
         } else {
-            internalSetValue(getValueFactory().createValue(value));
+            setValue(getValueFactory().createValue(value));
         }
     }
 
@@ -427,39 +436,76 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         }
     }
 
-    private void internalRemove() throws RepositoryException {
-        perform(new ItemWriteOperation<Void>() {
-            @Override
-            protected Void perform() throws RepositoryException {
-                dlg.remove();
-                return null;
-            }
-        });
-    }
-
-    private void internalSetValue(@Nonnull final Value value)
+    private void internalSetValue(final @Nonnull Value value)
             throws RepositoryException {
-        checkNotNull(value);
         perform(new ItemWriteOperation<Void>() {
             @Override
             protected Void perform() throws RepositoryException {
-                // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = internalGetDefinition();
-                PropertyState state = createSingleState(dlg.getName(), value, definition);
+                Type<?> type = dlg.getPropertyState().getType();
+                if (type.isArray()) {
+                    throw new ValueFormatException(
+                            "This is a multi-valued property");
+                }
+
+                Value converted = ValueHelper.convert(
+                        value, type.tag(), getValueFactory());
+
+                PropertyState state;
+                if (type == NAME) {
+                    String name = getOakName(converted.getString());
+                    state = createProperty(dlg.getName(), name, NAME);
+                } else if (type == PATH) {
+                    String path = getOakPathOrThrow(converted.getString());
+                    state = createProperty(dlg.getName(), path, PATH);
+                } else {
+                    state = createProperty(dlg.getName(), converted);
+                }
+
                 dlg.setState(state);
                 return null;
             }
         });
     }
 
-    private void internalSetValues(@Nonnull final Value[] values, final int type) throws RepositoryException {
-        checkNotNull(values);
+    private void internalSetValue(final @Nonnull Value[] values)
+            throws RepositoryException {
         perform(new ItemWriteOperation<Void>() {
             @Override
             protected Void perform() throws RepositoryException {
-                // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = internalGetDefinition();
-                PropertyState state = createMultiState(dlg.getName(), type, values, definition);
+                Type<?> type = dlg.getPropertyState().getType();
+                if (!type.isArray()) {
+                    throw new ValueFormatException(
+                            "This is a single-valued property");
+                }
+
+                List<Value> converted = newArrayListWithCapacity(values.length);
+                ValueFactory factory = getValueFactory();
+                for (int i = 0; i < values.length; i++) {
+                    if (values[i] != null) {
+                        converted.add(ValueHelper.convert(
+                                values[i], type.tag(), factory));
+                    }
+                }
+
+                PropertyState state;
+                if (type == NAMES) {
+                    List<String> names =
+                            newArrayListWithCapacity(converted.size());
+                    for (Value name : converted) {
+                        names.add(getOakName(name.getString()));
+                    }
+                    state = createProperty(dlg.getName(), names, NAMES);
+                } else if (type == PATHS) {
+                    List<String> paths =
+                            newArrayListWithCapacity(converted.size());
+                    for (Value path : converted) {
+                        paths.add(getOakPathOrThrow(path.getString()));
+                    }
+                    state = createProperty(dlg.getName(), paths, PATHS);
+                } else {
+                    state = createProperty(dlg.getName(), converted, type.tag());
+                }
+
                 dlg.setState(state);
                 return null;
             }

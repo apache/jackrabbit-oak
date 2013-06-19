@@ -27,9 +27,11 @@ import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
+import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -179,8 +181,12 @@ public class ValueFactoryImpl implements ValueFactory {
         return createValue(value, false);
     }
 
-    @Override
+    @Override @SuppressWarnings("deprecation")
     public Value createValue(Node value, boolean weak) throws RepositoryException {
+        if (!value.isNodeType(NodeType.MIX_REFERENCEABLE)) {
+            throw new ValueFormatException(
+                    "Node is not referenceable: " + value.getPath());
+        }
         return weak
             ? new ValueImpl(GenericPropertyState.weakreferenceProperty("", value.getUUID()), namePathMapper)
             : new ValueImpl(GenericPropertyState.referenceProperty("", value.getUUID()), namePathMapper);

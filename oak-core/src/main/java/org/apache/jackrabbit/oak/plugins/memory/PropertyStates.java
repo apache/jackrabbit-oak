@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -33,8 +34,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ValueImpl;
-
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Utility class for creating {@link PropertyState} instances.
@@ -87,13 +86,20 @@ public final class PropertyStates {
      * @throws RepositoryException forwarded from {@code value}
      */
     @Nonnull
-    public static PropertyState createProperty(String name, Iterable<Value> values) throws RepositoryException {
+    public static PropertyState createProperty(
+            String name, Iterable<Value> values)
+            throws RepositoryException {
+        int type = PropertyType.STRING;
         Value first = Iterables.getFirst(values, null);
-        if (first == null) {
-            return EmptyPropertyState.emptyProperty(name, STRINGS);
+        if (first != null) {
+            type = first.getType();
         }
+        return createProperty(name, values, type);
+    }
 
-        int type = first.getType();
+    public static PropertyState createProperty(
+            String name, Iterable<Value> values, int type)
+            throws RepositoryException {
         switch (type) {
             case PropertyType.STRING:
                 List<String> strings = Lists.newArrayList();
@@ -272,6 +278,8 @@ public final class PropertyStates {
             return LongPropertyState.createLongProperty(name, (long) (Integer) value);
         } else if (value instanceof Double) {
             return DoublePropertyState.doubleProperty(name, (Double) value);
+        } else if (value instanceof Calendar) {
+            return LongPropertyState.createDateProperty(name, (Calendar) value);
         } else if (value instanceof Boolean) {
             return BooleanPropertyState.booleanProperty(name, (Boolean) value);
         } else if (value instanceof BigDecimal) {
