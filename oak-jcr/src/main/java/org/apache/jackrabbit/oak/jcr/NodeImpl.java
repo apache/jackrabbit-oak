@@ -918,7 +918,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new ItemReadOperation<NodeDefinition>() {
             @Override
             protected NodeDefinition perform() throws RepositoryException {
-                return internalGetDefinition();
+                NodeDelegate parent = dlg.getParent();
+                if (parent == null) {
+                    return getDefinitionProvider().getRootDefinition();
+                } else {
+                    return getDefinitionProvider().getDefinition(
+                            parent.getTree(), dlg.getTree());
+                }
             }
         });
     }
@@ -1284,16 +1290,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     //------------------------------------------------------------< internal >---
-
-    private final NodeDefinition internalGetDefinition() throws RepositoryException {
-        NodeDelegate parent = dlg.getParent();
-        if (parent == null) {
-            return getDefinitionProvider().getRootDefinition();
-        } else {
-            return getDefinitionProvider().getDefinition(
-                    parent.getTree(), dlg.getTree());
-        }
-    }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
         return getEffectiveNodeTypeProvider().getEffectiveNodeType(dlg.getTree());
