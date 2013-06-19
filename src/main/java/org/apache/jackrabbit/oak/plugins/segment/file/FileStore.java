@@ -55,11 +55,19 @@ public class FileStore implements SegmentStore {
 
     private static final long JOURNAL_MAGIC = 0xdf36544212c0cb24L;
 
+    private static final long PADDING_MAGIC = 0x786da7779516c12L;
+
     private static final String JOURNALS_UUID = new UUID(0, 0).toString();
+
+    private static final String PADDING_UUID = new UUID(-1, -1).toString();
 
     private static final long FILE_SIZE = 256 * 1024 * 1024;
 
     private static final String FILE_NAME_FORMAT = "data%05d.tar";
+
+    private static final int SEGMENT_SIZE = 0x200; // 512
+
+    private static final byte[] PADDING_BYTES = new byte[SEGMENT_SIZE];
 
     private final Map<String, Journal> journals = Maps.newHashMap();
 
@@ -121,11 +129,11 @@ public class FileStore implements SegmentStore {
             rw = f.getChannel().map(READ_WRITE, 0, size);
             ro = rw.asReadOnlyBuffer();
 
-            while (ro.remaining() >= 4 * 0x200) {
+            while (ro.remaining() >= 4 * SEGMENT_SIZE) {
                 // skip tar header and get the magic bytes; TODO: verify?
-                long magic = ro.getLong(ro.position() + 0x200);
+                long magic = ro.getLong(ro.position() + SEGMENT_SIZE);
                 if (magic == SEGMENT_MAGIC) {
-                    ro.position(ro.position() + 0x200 + 8);
+                    ro.position(ro.position() + SEGMENT_SIZE + 8);
 
                     int length = ro.getInt();
                     int count = ro.getInt();
@@ -151,7 +159,7 @@ public class FileStore implements SegmentStore {
                     // advance to next entry in the file
                     ro.position((ro.position() + length + 0x1ff) & ~0x1ff);
                 } else if (magic == JOURNAL_MAGIC) {
-                    ro.position(ro.position() + 0x200 + 8);
+                    ro.position(ro.position() + SEGMENT_SIZE + 8);
 
                     int count = ro.getInt();
                     for (int i = 0; i < count; i++) {
@@ -167,6 +175,8 @@ public class FileStore implements SegmentStore {
 
                     // advance to next entry in the file
                     ro.position((ro.position() + 0x1ff) & ~0x1ff);
+                } else if (magic == PADDING_MAGIC) {
+                    return true;
                 } else {
                     // still space for more segments: position the write
                     // buffer at this point and return false to stop looking
@@ -228,8 +238,10 @@ public class FileStore implements SegmentStore {
         ByteBuffer buffer = ro.slice();
         ro.limit(rw.limit());
 
-        rw.position((rw.position() + 0x1ff) & ~0x1ff);
-        ro.position(rw.position());
+        int n = rw.position() % SEGMENT_SIZE;
+        if (n > 0) {
+            rw.put(PADDING_BYTES, 0, SEGMENT_SIZE - n);
+        }
 
         Segment segment = new Segment(
                 this, segmentId, buffer,
@@ -265,12 +277,31 @@ public class FileStore implements SegmentStore {
             rw.putLong(head.getSegmentId().getLeastSignificantBits());
             rw.putInt(head.getOffset());
         }
-        rw.position((rw.position() + 0x1ff) & ~0x1ff);
+
+        int n = rw.position() % SEGMENT_SIZE;
+        if (n > 0) {
+            rw.put(PADDING_BYTES, 0, SEGMENT_SIZE - n);
+        }
     }
 
     private void prepare(int size) {
-        if (0x200 + ((size + 0x1ff) & ~0x1ff) + 2 * 0x200 > rw.remaining()) {
+        int segments = (size + SEGMENT_SIZE - 1) / SEGMENT_SIZE;
+        if ((1 + segments + 2) * SEGMENT_SIZE > rw.remaining()) {
+            if (rw.remaining() >= 3 * SEGMENT_SIZE) {
+                // Add a padding entry to avoid problems during reopening
+                rw.put(createTarHeader(
+                        PADDING_UUID,
+                        rw.remaining() - 3 * SEGMENT_SIZE));
+                if (rw.remaining() > 2 * SEGMENT_SIZE) {
+                    rw.putLong(PADDING_MAGIC);
+                    rw.put(PADDING_BYTES, 0, SEGMENT_SIZE - 8);
+                }
+            }
+            while (rw.remaining() > 0) {
+                rw.put(PADDING_BYTES);
+            }
             rw.force();
+
             String name = String.format(FILE_NAME_FORMAT, ++index);
             File file = new File(directory, name);
             try {
@@ -288,73 +319,55 @@ public class FileStore implements SegmentStore {
     }
 
     private static byte[] createTarHeader(String name, int length) {
-        byte[] header = new byte[] {
-                // File name
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0,
-                // File mode
-                '0', '0', '0', '0', '4', '0', '0', 0,
-                // User's numeric user ID
-                '0', '0', '0', '0', '0', '0', '0', 0,
-                // Group's numeric user ID
-                '0', '0', '0', '0', '0', '0', '0', 0,
-                // File size in bytes (octal basis)
-                '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',  0,
-                // Last modification time in numeric Unix time format (octal)
-                '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',  0,
-                // Checksum for header record
-                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                // Type flag
-                '0',
-                // Name of linked file
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0,
-                // unused
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        };
+        byte[] header = new byte[SEGMENT_SIZE];
 
+        // File name
         byte[] n = name.getBytes(UTF_8);
         System.arraycopy(n, 0, header, 0, n.length);
 
-        byte[] l = Integer.toOctalString(length).getBytes(UTF_8);
-        System.arraycopy(l, 0, header, 124 + 11 - l.length, l.length);
+        // File mode
+        System.arraycopy(
+                String.format("%07o", 0400).getBytes(UTF_8), 0,
+                header, 100, 7);
 
+        // User's numeric user ID
+        System.arraycopy(
+                String.format("%07o", 0).getBytes(UTF_8), 0,
+                header, 108, 7);
+
+        // Group's numeric user ID
+        System.arraycopy(
+                String.format("%07o", 0).getBytes(UTF_8), 0,
+                header, 116, 7);
+
+        // File size in bytes (octal basis)
+        System.arraycopy(
+                String.format("%011o", length).getBytes(UTF_8), 0,
+                header, 124, 11);
+
+        // Last modification time in numeric Unix time format (octal)
         long time = System.currentTimeMillis() / 1000;
-        byte[] t = Long.toOctalString(time).getBytes(UTF_8);
-        System.arraycopy(t, 0, header, 136 + 11 - t.length, t.length);
+        System.arraycopy(
+                String.format("%011o", time).getBytes(UTF_8), 0,
+                header, 136, 11);
 
+        // Checksum for header record
+        System.arraycopy(
+                new byte[] { ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' }, 0,
+                header, 148, 8);
+
+        // Type flag
+        header[156] = '0';
+
+        // Compute checksum
         int checksum = 0;
         for (int i = 0; i < header.length; i++) {
             checksum += header[i] & 0xff;
         }
-        byte[] c = Integer.toOctalString(checksum).getBytes(UTF_8);
-        System.arraycopy(c, 0, header, 148 + 6 - c.length, c.length);
-        header[148 + 6] = 0;
+        System.arraycopy(
+                String.format("%06o", checksum).getBytes(UTF_8), 0,
+                header, 148, 6);
+        header[154] = 0;
 
         return header;
     }
