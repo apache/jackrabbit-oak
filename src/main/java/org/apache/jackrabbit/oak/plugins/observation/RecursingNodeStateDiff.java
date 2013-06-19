@@ -24,8 +24,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-// michid unify with NodeStateDiff
-// michid move
 public class RecursingNodeStateDiff extends DefaultNodeStateDiff {
     public static final RecursingNodeStateDiff EMPTY = new RecursingNodeStateDiff();
 
