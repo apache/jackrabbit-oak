@@ -2200,7 +2200,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 throws ExecutionException, InterruptedException {
             List<String> missing = Lists.newArrayList();
             try {
-                Futures.allAsList(expected.values()).get(2, TimeUnit.SECONDS);
+                Futures.allAsList(expected.values()).get(time, timeUnit);
             }
             catch (TimeoutException e) {
                 for (Entry<String, SettableFuture<Event>> entry : expected.entrySet()) {
