@@ -162,13 +162,15 @@ class ChangeProcessor implements Runnable {
 
         try {
             ChangeSet changes = changeListener.getChanges();
-            if (changes != null &&
-                    !(filterRef.get().excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
-                EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes);
-                changes.diff(VisibleDiff.wrap(diff));
-                if (!stopping) {
-                    diff.sendEvents();
+            while (changes != null) {
+                if (!(filterRef.get().excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
+                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes);
+                    changes.diff(VisibleDiff.wrap(diff));
+                    if (!stopping) {
+                        diff.sendEvents();
+                    }
                 }
+                changes = changeListener.getChanges();
             }
         } catch (Exception e) {
             log.error("Unable to generate or send events", e);
