@@ -388,7 +388,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return perform(new ItemReadOperation<PropertyDefinition>() {
             @Override
             protected PropertyDefinition perform() throws RepositoryException {
-                return internalGetDefinition();
+                return getDefinitionProvider().getDefinition(
+                        dlg.getParent().getTree(), dlg.getPropertyState(), true);
             }
         });
     }
@@ -414,12 +415,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     //------------------------------------------------------------< internal >---
-
-    @Override
-    protected final PropertyDefinition internalGetDefinition() throws RepositoryException {
-        return getDefinitionProvider().getDefinition(
-                dlg.getParent().getTree(), dlg.getPropertyState(), true);
-    }
 
     /**
      * Return the length of the specified JCR value object.

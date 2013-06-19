@@ -274,8 +274,6 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         dlg.checkNotStale();
     }
 
-    protected abstract ItemDefinition internalGetDefinition() throws RepositoryException;
-
     void checkProtected() throws RepositoryException {
         if (dlg.isProtected()) {
             throw new ConstraintViolationException("Item is protected.");
