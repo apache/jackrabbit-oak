@@ -35,7 +35,9 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-// michid doc
+/**
+ * TODO document
+ */
 class EventFilter {
 
     private final ReadOnlyNodeTypeManager ntMgr;

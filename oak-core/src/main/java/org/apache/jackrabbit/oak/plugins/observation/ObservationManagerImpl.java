@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-// michid doc (contentSession needs to implement Observable)
 public class ObservationManagerImpl implements ObservationManager {
     private static final Logger log = LoggerFactory.getLogger(ObservationManagerImpl.class);
 

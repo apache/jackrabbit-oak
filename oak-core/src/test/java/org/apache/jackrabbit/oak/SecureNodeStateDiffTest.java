@@ -31,10 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.junit.Before;
 import org.junit.Test;
 
-/**
- * michid document
- * michid move
- */
 public class SecureNodeStateDiffTest {
     private NodeState base;
 
