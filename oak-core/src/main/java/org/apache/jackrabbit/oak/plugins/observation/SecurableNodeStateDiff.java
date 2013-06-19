@@ -23,10 +23,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-/**
- * michid document
- * michid move
- */
 public abstract class SecurableNodeStateDiff implements NodeStateDiff {
     private final SecurableNodeStateDiff parent;
 

@@ -23,10 +23,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-/**
- * michid document
- * michid move
- */
 public class SecureNodeStateDiff extends SecurableNodeStateDiff {
     private SecureNodeStateDiff(RecursingNodeStateDiff diff) {
         super(diff);
@@ -49,25 +45,25 @@ public class SecureNodeStateDiff extends SecurableNodeStateDiff {
 
     @Override
     protected boolean canRead(PropertyState before, PropertyState after) {
-        // michid implement canRead
+        // TODO implement canRead
         return true;
     }
 
     @Override
     protected boolean canRead(String name, NodeState before, NodeState after) {
-        // michid implement canRead
+        // TODO implement canRead
         return true;
     }
 
     @Override
     protected NodeState secureBefore(String name, NodeState nodeState) {
-        // michid implement secureBefore
+        // TODO implement secureBefore
         return nodeState;
     }
 
     @Override
     protected NodeState secureAfter(String name, NodeState nodeState) {
-        // michid implement secureAfter
+        // TODO implement secureAfter
         return nodeState;
     }
 

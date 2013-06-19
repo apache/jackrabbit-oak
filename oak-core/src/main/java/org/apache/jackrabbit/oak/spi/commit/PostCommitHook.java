@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * michid unify with either Observer or CommitHook
+ * TODO unify with either Observer or CommitHook
  */
 public interface PostCommitHook {
     PostCommitHook EMPTY = new PostCommitHook() {
