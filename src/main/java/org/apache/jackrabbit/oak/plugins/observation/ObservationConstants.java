@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation;
 
+// michid doc
 public final class ObservationConstants {
     public static final String OAK_UNKNOWN = "oak:unknown";
 

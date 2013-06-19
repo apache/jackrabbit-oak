@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 
+/**
+ * michid document
+ */
 public interface Observable {
     Listener newListener();
 }
