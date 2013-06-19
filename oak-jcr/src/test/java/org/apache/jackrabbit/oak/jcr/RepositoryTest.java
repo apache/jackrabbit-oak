@@ -1914,7 +1914,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore
     public void observationDispose() throws RepositoryException, InterruptedException, ExecutionException,
             TimeoutException {
 
@@ -1961,7 +1960,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
                     hasEvents.set(new CountDownLatch(1));
                     return null;
                 }
-            }).get(2, TimeUnit.SECONDS);
+            }).get(10, TimeUnit.SECONDS);
 
             // Make sure we don't see any more events
             assertFalse(hasEvents.get().await(2, TimeUnit.SECONDS));
