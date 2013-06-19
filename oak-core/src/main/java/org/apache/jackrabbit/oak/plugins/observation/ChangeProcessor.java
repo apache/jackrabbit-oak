@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// michid doc
 class ChangeProcessor implements Runnable {
 
     private static final Logger log =
@@ -209,7 +210,7 @@ class ChangeProcessor implements Runnable {
         }
 
         public EventGeneratingNodeStateDiff(ChangeSet changes) {
-            // FIXME parent nodes should be the root here
+            // michid parent nodes should be the root here
             this(changes, "/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
         }
 
