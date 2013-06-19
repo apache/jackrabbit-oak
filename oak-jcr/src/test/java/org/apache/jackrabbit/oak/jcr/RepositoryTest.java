@@ -19,6 +19,13 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static java.util.Arrays.asList;
+import static javax.jcr.observation.Event.NODE_ADDED;
+import static javax.jcr.observation.Event.NODE_MOVED;
+import static javax.jcr.observation.Event.NODE_REMOVED;
+import static javax.jcr.observation.Event.PERSIST;
+import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_CHANGED;
+import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -32,15 +39,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,7 +83,10 @@ import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
@@ -1806,228 +1818,96 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void observation() throws RepositoryException, InterruptedException {
-        final Set<String> addNodes = Sets.newHashSet(
-                TEST_PATH + "/1",
-                TEST_PATH + "/2",
-                TEST_PATH + "/3",
-                TEST_PATH + "/{4}");
-
-        final Set<String> removeNodes = Sets.newHashSet(
-                TEST_PATH + "/2");
-
-        final Set<String> addProperties = Sets.newHashSet(
-                TEST_PATH + "/property",
-                TEST_PATH + "/prop0",
-                TEST_PATH + "/1/prop1",
-                TEST_PATH + "/1/prop2",
-                TEST_PATH + "/1/jcr:primaryType",
-                TEST_PATH + "/2/jcr:primaryType",
-                TEST_PATH + "/3/jcr:primaryType",
-                TEST_PATH + "/{4}/jcr:primaryType",
-                TEST_PATH + "/3/prop3");
-
-        final Set<String> setProperties = Sets.newHashSet(
-                TEST_PATH + "/1/prop1");
-
-        final Set<String> removeProperties = Sets.newHashSet(
-                TEST_PATH + "/1/prop2",
-                TEST_PATH + "/2/jcr:primaryType");
-
-        final List<Event> failedEvents = new ArrayList<Event>();
-        final AtomicReference<CountDownLatch> eventCount = new AtomicReference<CountDownLatch>();
+    public void observation() throws RepositoryException, ExecutionException, InterruptedException {
         final Session observingSession = createAnonymousSession();
         try {
             ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
-            obsMgr.addEventListener(new EventListener() {
-                @Override
-                public void onEvent(EventIterator events) {
-                    while (events.hasNext()) {
-                        Event event = events.nextEvent();
-                        try {
-                            String path = event.getPath();
-                            if (path.startsWith("/jcr:system")) {
-                                // ignore changes in jcr:system
-                                continue;
-                            }
-                            switch (event.getType()) {
-                                case Event.NODE_ADDED:
-                                    if (!addNodes.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    if (!observingSession.nodeExists(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.NODE_REMOVED:
-                                    if (!removeNodes.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    if (observingSession.nodeExists(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_ADDED:
-                                    if (!addProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    if (!observingSession.propertyExists(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_CHANGED:
-                                    if (!setProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_REMOVED:
-                                    if (!removeProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    if (observingSession.propertyExists(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                default:
-                                    failedEvents.add(event);
-                            }
-                        } catch (RepositoryException e) {
-                            failedEvents.add(event);
-                        }
-                        eventCount.get().countDown();
-                    }
-                }
-            },
-            Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
-                    Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
+            ExpectationListener listener = new ExpectationListener();
+            obsMgr.addEventListener(listener, NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
+                    PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST, "/", true, null, null, false);
 
-            eventCount.set(new CountDownLatch(7));
             Node n = getNode(TEST_PATH);
-            n.setProperty("prop0", "val0");
-            Node n1 = n.addNode("1");
-            n1.setProperty("prop1", "val1");
-            n1.setProperty("prop2", "val2");
-            n.addNode("2");
+            listener.expectAdd(n.setProperty("p0", "v0"));
+            Node n1 = listener.expectAdd(n.addNode("n1"));
+            listener.expectAdd(n1.setProperty("p1", "v1"));
+            listener.expectAdd(n1.setProperty("p2", "v2"));
+            listener.expectAdd(n.addNode("n2"));
             getAdminSession().save();
-            assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-            eventCount.set(new CountDownLatch(10));
-            n.setProperty("property", 42);
-            n.addNode("3").setProperty("prop3", "val3");
-            n1.setProperty("prop1", "val1 new");
-            n1.getProperty("prop2").remove();
-            n.getNode("2").remove();
-            n.addNode("{4}");
+            List<String> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            List<Event> unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+            listener.expectAdd(n.setProperty("property", 42));
+            Node n3 = listener.expectAdd(n.addNode("n3"));
+            listener.expectAdd(n3.setProperty("p3", "v3"));
+            listener.expectChange(n1.setProperty("p1", "v1.1"));
+            listener.expectRemove(n1.getProperty("p2")).remove();
+            listener.expectRemove(n.getNode("n2")).remove();
+            listener.expectAdd(n.addNode("{4}"));
             getAdminSession().save();
-            assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-            assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
-            assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
-            assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
-            assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
-            assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
-            assertTrue("setProperties not empty: " + setProperties, setProperties.isEmpty());
+            missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
         } finally {
             observingSession.logout();
         }
     }
 
     @Test
-    public void observation2() throws RepositoryException, InterruptedException {
-        final Set<String> addNodes = Sets.newHashSet(
-                TEST_PATH + "/1",
-                TEST_PATH + "/2");
-
-        final Set<String> removeNodes = Sets.newHashSet(
-                TEST_PATH + "/1");
-
-        final Set<String> addProperties = Sets.newHashSet(
-                TEST_PATH + "/1/jcr:primaryType",
-                TEST_PATH + "/2/jcr:primaryType");
-
-        final Set<String> removeProperties = Sets.newHashSet(
-                TEST_PATH + "/1/jcr:primaryType");
-
-        final List<Event> failedEvents = new ArrayList<Event>();
-        final AtomicReference<CountDownLatch> eventCount = new AtomicReference<CountDownLatch>();
-
+    public void observation2() throws RepositoryException, InterruptedException, ExecutionException {
         final Session observingSession = createAnonymousSession();
         try {
             ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
-            obsMgr.addEventListener(new EventListener() {
-                @Override
-                public void onEvent(EventIterator events) {
-                    while (events.hasNext()) {
-                        Event event = events.nextEvent();
-                        try {
-                            String path = event.getPath();
-                            if (path.startsWith("/jcr:system")) {
-                                // ignore changes in jcr:system
-                                continue;
-                            }
-                            switch (event.getType()) {
-                                case Event.NODE_ADDED:
-                                    if (!addNodes.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    if (!observingSession.nodeExists(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.NODE_REMOVED:
-                                    if (!removeNodes.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    if (observingSession.nodeExists(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_ADDED:
-                                    if (!addProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    if (!observingSession.propertyExists(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                case Event.PROPERTY_REMOVED:
-                                    if (!removeProperties.remove(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    if (observingSession.propertyExists(path)) {
-                                        failedEvents.add(event);
-                                    }
-                                    break;
-                                default:
-                                    failedEvents.add(event);
-                            }
-                        } catch (RepositoryException e) {
-                            failedEvents.add(event);
-                        }
-                        eventCount.get().countDown();
-                    }
-                }
-            },
-                    Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
-                            Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
+            ExpectationListener listener = new ExpectationListener();
+            obsMgr.addEventListener(listener, NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
+                    PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST, "/", true, null, null, false);
 
-            eventCount.set(new CountDownLatch(2));
             Node n = getNode(TEST_PATH);
-            n.addNode("1");
+            listener.expectAdd(n.addNode("n1"));
             getAdminSession().save();
-            assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-            eventCount.set(new CountDownLatch(4));
-            n.addNode("2");
-            n.getNode("1").remove();
+            List<String> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            List<Event> unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+            listener.expectAdd(n.addNode("n2"));
+            listener.expectRemove(n.getNode("n1")).remove();
             getAdminSession().save();
-            assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-            assertTrue("failedEvents not empty: " + failedEvents, failedEvents.isEmpty());
-            assertTrue("addNodes not empty: " + addNodes, addNodes.isEmpty());
-            assertTrue("removeNodes not empty: " + removeNodes, removeNodes.isEmpty());
-            assertTrue("addProperties not empty: " + addProperties, addProperties.isEmpty());
-            assertTrue("removeProperties not empty: " + removeProperties, removeProperties.isEmpty());
+            missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        } finally {
+            observingSession.logout();
+        }
+    }
+
+    @Test
+    public void observationOnRootNode() throws Exception {
+        final AtomicReference<CountDownLatch> hasEvents = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
+        Session observingSession = createAdminSession();
+        try {
+            ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
+            ExpectationListener listener = new ExpectationListener();
+            obsMgr.addEventListener(listener, PROPERTY_ADDED, "/", true, null, null, false);
+
+            // add property to root node
+            Node root = getNode("/");
+            listener.expectAdd(root.setProperty("prop", "value"));
+            root.getSession().save();
+
+            List<String> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            List<Event> unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+            obsMgr.removeEventListener(listener);
         } finally {
             observingSession.logout();
         }
@@ -2052,8 +1932,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 }
             };
 
-            obsMgr.addEventListener(listener, Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED |
-                    Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
+            obsMgr.addEventListener(listener, NODE_ADDED | NODE_REMOVED | NODE_MOVED |
+                    PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST,
                     "/", true, null, null, false);
 
             // Generate events
@@ -2116,8 +1996,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 }
             };
 
-            obsMgr.addEventListener(listener, Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED |
-                    Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
+            obsMgr.addEventListener(listener, NODE_ADDED | NODE_REMOVED | NODE_MOVED |
+                    PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST,
                     "/", true, null, null, false);
 
             // Ensure the listener is there
@@ -2136,37 +2016,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
             assertFalse(obsMgr.getRegisteredEventListeners().hasNext());
         }
         finally {
-            observingSession.logout();
-        }
-    }
-
-    @Test
-    public void observationOnRootNode() throws Exception {
-        final AtomicReference<CountDownLatch> hasEvents = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
-        Session observingSession = createAdminSession();
-        try {
-            ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
-            EventListener listener = new EventListener() {
-                @Override
-                public void onEvent(EventIterator events) {
-                    while (events.hasNext()) {
-                        events.next();
-                        hasEvents.get().countDown();
-                    }
-                }
-            };
-
-            obsMgr.addEventListener(listener, Event.PROPERTY_ADDED,
-                    "/", true, null, null, false);
-
-            // add property to root node
-            Node root = getNode("/");
-            root.setProperty("prop", "value");
-            root.getSession().save();
-
-            assertTrue(hasEvents.get().await(2, TimeUnit.SECONDS));
-            obsMgr.removeEventListener(listener);
-        } finally {
             observingSession.logout();
         }
     }
@@ -2279,6 +2128,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    //------------------------------------------------------------< NumberStream >---
+
     /**
      * Dummy stream class used by the binary property tests.
      */
@@ -2299,6 +2150,95 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 : -1;
         }
 
+    }
+
+    //------------------------------------------------------------< ExpectationListener >---
+
+    private static class ExpectationListener implements EventListener {
+        private final Map<String, SettableFuture<Event>> expected = Maps.newHashMap();
+        private final List<Event> unexpected = Lists.newCopyOnWriteArrayList();
+        private volatile Exception failed;
+
+        public Future<Event> expect(String path, int type) {
+            if (failed == null) {
+                SettableFuture<Event> expect = SettableFuture.create();
+                expected.put(key(path, type), expect);
+                return expect;
+            } else {
+                return Futures.immediateFailedFuture(failed);
+            }
+        }
+
+        public Node expectAdd(Node node) throws RepositoryException {
+            expect(node.getPath(), NODE_ADDED);
+            expect(node.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+            return node;
+        }
+
+        public Node expectRemove(Node node) throws RepositoryException {
+            expect(node.getPath(), NODE_REMOVED);
+            expect(node.getPath() + "/jcr:primaryType", PROPERTY_REMOVED);
+            return node;
+        }
+
+        public Property expectAdd(Property property) throws RepositoryException {
+            expect(property.getPath(), PROPERTY_ADDED);
+            return property;
+        }
+
+        public Property expectRemove(Property property) throws RepositoryException {
+            expect(property.getPath(), PROPERTY_REMOVED);
+            return property;
+        }
+
+        public Property expectChange(Property property) throws RepositoryException {
+            expect(property.getPath(), PROPERTY_CHANGED);
+            return property;
+        }
+
+        public List<String> getMissing(int time, TimeUnit timeUnit)
+                throws ExecutionException, InterruptedException {
+            List<String> missing = Lists.newArrayList();
+            try {
+                Futures.allAsList(expected.values()).get(2, TimeUnit.SECONDS);
+            }
+            catch (TimeoutException e) {
+                for (Entry<String, SettableFuture<Event>> entry : expected.entrySet()) {
+                    if (!entry.getValue().isDone()) {
+                        missing.add(entry.getKey());
+                    }
+                }
+            }
+            return missing;
+        }
+
+        public List<Event> getUnexpected() {
+            return Lists.newArrayList(unexpected);
+        }
+
+        @Override
+        public void onEvent(EventIterator events) {
+            try {
+                while (events.hasNext() && failed == null) {
+                    Event event = events.nextEvent();
+                    SettableFuture<Event> f = expected.get(key(event.getPath(), event.getType()));
+                    if (f != null) {
+                        f.set(event);
+                    } else {
+                        unexpected.add(event);
+                    }
+                }
+            } catch (Exception e) {
+                for (SettableFuture<Event> f : expected.values()) {
+                    f.setException(e);
+                }
+                failed = e;
+            }
+        }
+
+        private static String key(String path, int type) {
+            return path + ':' + type;
+        }
     }
 
 }
