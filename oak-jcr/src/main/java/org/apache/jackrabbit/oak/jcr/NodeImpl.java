@@ -1285,8 +1285,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     //------------------------------------------------------------< internal >---
 
-    @Override
-    protected final NodeDefinition internalGetDefinition() throws RepositoryException {
+    private final NodeDefinition internalGetDefinition() throws RepositoryException {
         NodeDelegate parent = dlg.getParent();
         if (parent == null) {
             return getDefinitionProvider().getRootDefinition();
