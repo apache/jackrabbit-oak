@@ -101,7 +101,7 @@ public class Oak {
 
     private SecurityProvider securityProvider;
 
-    private ScheduledExecutorService executor = newScheduledThreadPool(0);
+    private ScheduledExecutorService executor = newScheduledThreadPool(1);
 
     private MBeanServer mbeanServer;
 
