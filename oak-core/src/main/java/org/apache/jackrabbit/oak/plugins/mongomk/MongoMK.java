@@ -29,7 +29,9 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -66,12 +68,6 @@ public class MongoMK implements MicroKernel {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
-    /**
-     * The number of diffs to cache.
-     */
-    private static final int CACHE_DIFF = 
-            Integer.getInteger("oak.mongoMK.cacheNodes", 16);
-    
     /**
      * When trying to access revisions that are older than this many
      * milliseconds, a warning is logged. The default is one minute.
@@ -236,7 +232,8 @@ public class MongoMK implements MicroKernel {
                         .build();
         
         diffCache = CacheBuilder.newBuilder()
-                .maximumSize(CACHE_DIFF)
+                .weigher(builder.getWeigher())
+                .maximumWeight(builder.getDiffCacheSize())
                 .build();
         
         init();
@@ -764,18 +761,28 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public synchronized String diff(String fromRevisionId, String toRevisionId, String path,
-            int depth) throws MicroKernelException {
+    public String diff(final String fromRevisionId,
+                       final String toRevisionId,
+                       final String path,
+                       final int depth) throws MicroKernelException {
         String key = fromRevisionId + "-" + toRevisionId + "-" + path + "-" + depth;
-        String d = diffCache.getIfPresent(key);
-        if (d == null) {
-            d = diffImpl(fromRevisionId, toRevisionId, path, depth);
-            diffCache.put(key, d);
+        try {
+            return diffCache.get(key, new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                    return diffImpl(fromRevisionId, toRevisionId, path, depth);
+                }
+            });
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof MicroKernelException) {
+                throw (MicroKernelException) e.getCause();
+            } else {
+                throw new MicroKernelException(e.getCause());
+            }
         }
-        return d;
     }
     
-    private String diffImpl(String fromRevisionId, String toRevisionId, String path,
+    private synchronized String diffImpl(String fromRevisionId, String toRevisionId, String path,
             int depth) throws MicroKernelException {
         if (fromRevisionId.equals(toRevisionId)) {
             return "";
@@ -1561,6 +1568,7 @@ public class MongoMK implements MicroKernel {
         private Weigher<String, Object> weigher = new EmpericalWeigher();
         private long nodeCacheSize;
         private long childrenCacheSize;
+        private long diffCacheSize;
         private long documentCacheSize;
 
         public Builder() {
@@ -1676,7 +1684,8 @@ public class MongoMK implements MicroKernel {
         public Builder memoryCacheSize(long memoryCacheSize) {
             this.nodeCacheSize = memoryCacheSize * 20 / 100;
             this.childrenCacheSize = memoryCacheSize * 10 / 100;
-            this.documentCacheSize = memoryCacheSize - nodeCacheSize - childrenCacheSize;
+            this.diffCacheSize = memoryCacheSize * 2 / 100;
+            this.documentCacheSize = memoryCacheSize - nodeCacheSize - childrenCacheSize - diffCacheSize;
             return this;
         }
 
@@ -1690,6 +1699,10 @@ public class MongoMK implements MicroKernel {
 
         public long getDocumentCacheSize() {
             return documentCacheSize;
+        }
+
+        public long getDiffCacheSize() {
+            return diffCacheSize;
         }
 
         /**

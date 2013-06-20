@@ -38,6 +38,8 @@ public class EmpericalWeigher implements Weigher<String, Object> {
             size += ((Node.Children) value).getMemory();
         } else if (value instanceof MongoDocumentStore.CachedDocument) {
             size += Utils.estimateMemoryUsage(((MongoDocumentStore.CachedDocument) value).value);
+        } else if (value instanceof String) {
+            size += ((String) value).length() * 2;
         } else if (value != null) {
             throw new IllegalArgumentException("Cannot determine weight for object of type " + value.getClass());
         }
