@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 public abstract class SecurableNodeStateDiff implements NodeStateDiff {
     private final SecurableNodeStateDiff parent;
@@ -102,6 +103,11 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(final String name, final NodeState before, final NodeState after) {
+        // FIXME temporary solution to skip look ahead on hidden child nodes
+        if (NodeStateUtils.isHidden(name)) {
+            return true;
+        }
+
         final SecurableNodeStateDiff childDiff = create(this, name, before, after);
         deferred = new Deferred() {
             @Override
