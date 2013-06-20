@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.Nonnull;
@@ -44,8 +46,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class Jcr {
 
@@ -81,6 +82,10 @@ public class Jcr {
 
     public Jcr(MicroKernel kernel) {
         this(new Oak(kernel));
+    }
+
+    public Jcr(NodeStore store) {
+        this(new Oak(store));
     }
 
     @Nonnull
