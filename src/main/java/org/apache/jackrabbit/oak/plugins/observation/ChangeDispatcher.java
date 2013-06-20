@@ -93,34 +93,26 @@ public class ChangeDispatcher {
         return listener;
     }
 
-    private void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after, ContentSession contentSession) {
-        ChangeSet extChanges;
-        ChangeSet intChange;
-        synchronized (this) {
-            extChanges = externalChange(checkNotNull(before));
-            intChange = internalChange(checkNotNull(after), contentSession);
-        }
-        if (extChanges != null) {
-            add(extChanges);
-        }
-        add(intChange);
+    private synchronized void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after,
+            ContentSession contentSession) {
+        externalChange(checkNotNull(before));
+        internalChange(checkNotNull(after), contentSession);
     }
 
-    @CheckForNull
-    private synchronized ChangeSet externalChange(NodeState root) {
-        if (root != previousRoot) {
-            ChangeSet changeSet = ChangeSet.external(previousRoot, root);
+    private void externalChange(NodeState root) {
+        if (!root.equals(previousRoot)) {
+            add(ChangeSet.external(previousRoot, root));
             previousRoot = root;
-            return changeSet;
         }
-        return null;
     }
 
-    @Nonnull
-    private synchronized ChangeSet internalChange(NodeState root, ContentSession contentSession) {
-        ChangeSet changeSet = ChangeSet.local(previousRoot, root, contentSession);
+    private void internalChange(NodeState root, ContentSession contentSession) {
+        add(ChangeSet.local(previousRoot, root, contentSession));
         previousRoot = root;
-        return changeSet;
+    }
+
+    private synchronized void externalChange() {
+        externalChange(store.getRoot());
     }
 
     private void register(Listener listener) {
@@ -192,10 +184,7 @@ public class ChangeDispatcher {
         @CheckForNull
         public ChangeSet getChanges() {
             if (changeSets.isEmpty()) {
-                ChangeSet changeSet = externalChange(store.getRoot());
-                if (changeSet != null) {
-                    add(changeSet);
-                }
+                externalChange();
             }
             return changeSets.isEmpty() ? null : changeSets.remove();
         }
