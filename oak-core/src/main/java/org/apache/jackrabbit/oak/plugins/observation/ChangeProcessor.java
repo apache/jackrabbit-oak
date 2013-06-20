@@ -296,7 +296,7 @@ class ChangeProcessor implements Runnable {
                         changes, PathUtils.concat(path, name), events, before, after, this, name);
                 return VisibleDiff.wrap(diff);
             } else {
-                return new RecursingNodeStateDiff();
+                return RecursingNodeStateDiff.EMPTY;
             }
         }
 
