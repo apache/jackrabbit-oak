@@ -54,6 +54,7 @@ import com.google.common.util.concurrent.ForwardingListenableFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.junit.After;
 import org.junit.Before;
@@ -170,6 +171,33 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void pathFilter() throws Exception {
+        final String path = "/events/only/here";
+        ExpectationListener listener = new ExpectationListener();
+        listener.expect(new Expectation(path){
+            @Override
+            public boolean onEvent(Event event) throws Exception {
+                return PathUtils.isAncestor(path, event.getPath());
+            }
+        });
+
+        observationManager.addEventListener(listener, NODE_ADDED, path, true, null, null, false);
+        try {
+            Node root = getNode("/");
+            root.addNode("events").addNode("only").addNode("here").addNode("at");
+            root.getSession().save();
+
+            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            List<Event> unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        }
+        finally {
+            observationManager.removeEventListener(listener);
+        }
+    }
+
+    @Test
     public void observationDispose()
             throws RepositoryException, InterruptedException, ExecutionException, TimeoutException {
 
@@ -189,9 +217,9 @@ public class ObservationTest extends AbstractRepositoryTest {
             public void run() {
                 try {
                     getNode(TEST_PATH)
-                        .addNode("c" + c++)
-                        .getSession()
-                        .save();
+                            .addNode("c" + c++)
+                            .getSession()
+                            .save();
                 }
                 catch (RepositoryException e) {
                     throw new RuntimeException(e);
