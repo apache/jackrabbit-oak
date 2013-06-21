@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.observation.ObservationConstants.OAK_UNKNOWN;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 import java.util.Queue;
 import java.util.Set;
@@ -250,10 +251,11 @@ public class ChangeDispatcher {
         /**
          * {@link NodeStateDiff} of the changes
          * @param diff  node state diff instance for traversing the changes.
+         * @param path  path where diffing should start
          */
-        public void diff(RecursingNodeStateDiff diff) {
+        public void diff(RecursingNodeStateDiff diff, String path) {
             NodeStateDiff secureDiff = SecureNodeStateDiff.wrap(diff);
-            after.compareAgainstBaseState(before, secureDiff);
+            getNode(after, path).compareAgainstBaseState(getNode(before, path), secureDiff);
         }
 
         @Override
