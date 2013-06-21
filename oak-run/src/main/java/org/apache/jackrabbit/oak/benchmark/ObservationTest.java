@@ -72,9 +72,11 @@ public class ObservationTest extends Benchmark {
 
     private void run(Repository repository) throws RepositoryException, ExecutionException, InterruptedException {
         Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        long t0 = System.currentTimeMillis();
         try {
             observationThroughput(repository, session.getWorkspace().getObservationManager());
         } finally {
+            System.out.println("Time elapsed: " + (System.currentTimeMillis() - t0) + " ms");
             session.logout();
         }
     }
