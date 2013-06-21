@@ -162,9 +162,10 @@ class ChangeProcessor implements Runnable {
         try {
             ChangeSet changes = changeListener.getChanges();
             while (!stopping && changes != null) {
-                if (!(filterRef.get().excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
+                EventFilter filter = filterRef.get();
+                if (!(filter.excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
                     EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes);
-                    changes.diff(VisibleDiff.wrap(diff));
+                    changes.diff(VisibleDiff.wrap(diff), filter.getPath());
                     if (!stopping) {
                         diff.sendEvents();
                     }
@@ -212,7 +213,7 @@ class ChangeProcessor implements Runnable {
 
         public EventGeneratingNodeStateDiff(ChangeSet changes) {
             // FIXME parent nodes should be the root here
-            this(changes, "/", new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
+            this(changes, filterRef.get().getPath(), new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
         }
 
         public void sendEvents() {

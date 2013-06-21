@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * Utility method for code that deals with node states.
@@ -47,4 +50,19 @@ public final class NodeStateUtils {
         PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
         return (ps == null) ? null : ps.getValue(Type.NAME);
     }
+
+    /**
+     * Get a possibly non existing child node of a node.
+     * @param node  node whose child node to get
+     * @param path  path of the child node
+     * @return  child node of {@code node} at {@code path}.
+     */
+    @Nonnull
+    public static NodeState getNode(@Nonnull NodeState node, @Nonnull String path) {
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            node = node.getChildNode(checkNotNull(name));
+        }
+        return node;
+    }
+
 }

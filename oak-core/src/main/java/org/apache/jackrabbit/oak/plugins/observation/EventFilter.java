@@ -93,6 +93,10 @@ class EventFilter {
             .toString();
     }
 
+    public String getPath() {
+        return path;
+    }
+
     //-----------------------------< internal >---------------------------------
 
     private boolean include(int eventType) {
