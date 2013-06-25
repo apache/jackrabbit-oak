@@ -108,7 +108,10 @@ class EventFilter {
         if (!deep && !equalPaths) {
             return false;
         }
-        if (deep && !(PathUtils.isAncestor(this.path, path) || equalPaths)) {
+
+        String thisOakPath = namePathMapper.getOakPath(this.path);
+        String thatOakPath = namePathMapper.getOakPath(path);
+        if (deep && !(PathUtils.isAncestor(thisOakPath, thatOakPath) || equalPaths)) {
             return false;
         }
         return true;
