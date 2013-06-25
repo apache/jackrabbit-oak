@@ -71,7 +71,6 @@ public class ObservationTest extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws RepositoryException {
-        executor = Executors.newScheduledThreadPool(1);
         Session session = getAdminSession();
         session.getRootNode().addNode(TEST_NODE);
         session.save();

@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.NamespaceException;
@@ -37,8 +37,8 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,9 +58,7 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
 
         // create a separate repository in order to be able to remove registered privileges.
         String dir = "target/mk-tck-" + System.currentTimeMillis();
-        repository = new Jcr(new MicroKernelImpl(dir))
-            .with(Executors.newScheduledThreadPool(1))
-            .createRepository();
+        repository = new Jcr(new MicroKernelImpl(dir)).createRepository();
         session = getAdminSession();
         privilegeManager = getPrivilegeManager(session);
 

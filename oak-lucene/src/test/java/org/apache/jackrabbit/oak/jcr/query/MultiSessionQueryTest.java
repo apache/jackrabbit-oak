@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -30,7 +27,6 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,16 +39,12 @@ public class MultiSessionQueryTest {
 
     final static int THREAD_COUNT = 3;
 
-    protected ScheduledExecutorService executor = null;
     private Repository repository = null;
 
     @Before
     public void before() {
-        executor = Executors.newScheduledThreadPool(1);
-
         String dir = "target/mk-tck-" + System.currentTimeMillis();
         Jcr jcr = new Jcr(new MicroKernelImpl(dir));
-        jcr.with(executor);
 
         // lucene specific
         jcr.with(new LuceneInitializerHelper("lucene").async());
@@ -60,13 +52,6 @@ public class MultiSessionQueryTest {
         jcr.with(new LuceneIndexEditorProvider());
 
         repository = jcr.createRepository();
-    }
-
-    @After
-    public void after() {
-        if (executor != null) {
-            executor.shutdown();
-        }
     }
 
     protected Session createAdminSession() throws RepositoryException {
