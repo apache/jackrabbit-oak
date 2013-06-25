@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.Properties;
-import java.util.concurrent.Executors;
+
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
@@ -47,7 +47,6 @@ public class OakRepositoryStubBase extends RepositoryStub {
 
         String dir = "target/mk-tck-" + System.currentTimeMillis();
         Jcr jcr = new Jcr(new MicroKernelImpl(dir));
-        jcr.with(Executors.newScheduledThreadPool(1));
         preCreateRepository(jcr);
         repository = jcr.createRepository();
     }

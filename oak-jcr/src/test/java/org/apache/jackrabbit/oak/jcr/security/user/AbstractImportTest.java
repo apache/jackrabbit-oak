@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.Executors;
+
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -76,8 +76,7 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
             SecurityProvider securityProvider = new SecurityProviderImpl(config);
             String dir = "target/mk-tck-" + System.currentTimeMillis();
             Jcr jcr = new Jcr(new MicroKernelImpl(dir));
-            jcr.with(Executors.newScheduledThreadPool(1))
-                    .with(securityProvider);
+            jcr.with(securityProvider);
             repo = jcr.createRepository();
             adminSession = repo.login(getHelper().getSuperuserCredentials());
         } else {

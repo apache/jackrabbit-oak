@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.lang.ref.WeakReference;
 import java.security.Principal;
 import java.util.Properties;
-import java.util.concurrent.Executors;
 
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -28,13 +27,12 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import com.mongodb.BasicDBObject;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
-
-import com.mongodb.BasicDBObject;
 
 /**
  * A repository stub implementation for Oak on MongoMK
@@ -75,7 +73,6 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
             MongoMK m = new MongoMK.Builder().setClusterId(1).
                     setMongoDB(connection.getDB()).open();
             Jcr jcr = new Jcr(m);
-            jcr.with(Executors.newScheduledThreadPool(1));
             this.repository = jcr.createRepository();
 
             session = getRepository().login(superuser);

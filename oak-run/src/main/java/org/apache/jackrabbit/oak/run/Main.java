@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import javax.jcr.Repository;
 
@@ -105,8 +103,6 @@ public class Main {
 
         private final MicroKernel[] kernels;
 
-        private final ScheduledExecutorService executor;
-
         public HttpServer(String uri, String[] args) throws Exception {
             int port = java.net.URI.create(uri).getPort();
             if (port == -1) {
@@ -116,8 +112,6 @@ public class Main {
 
             context = new ServletContextHandler();
             context.setContextPath("/");
-
-            executor = Executors.newScheduledThreadPool(3);
 
             if (args.length == 0) {
                 System.out.println("Starting an in-memory repository");
@@ -151,12 +145,11 @@ public class Main {
 
         public void stop() throws Exception {
             server.stop();
-            executor.shutdown();
         }
 
         private void addServlets(NodeStore store, String path) {
             Oak oak = new Oak(store);
-            Jcr jcr = new Jcr(oak).with(executor);
+            Jcr jcr = new Jcr(oak);
 
             ContentRepository repository = oak.createContentRepository();
 

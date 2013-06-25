@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.security.Principal;
 import java.util.Properties;
-import java.util.concurrent.Executors;
 
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -27,6 +26,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import com.mongodb.Mongo;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -35,8 +35,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
-
-import com.mongodb.Mongo;
 
 /**
  * A repository stub implementation for Oak on MongoMK
@@ -70,7 +68,6 @@ public class OakSegmentMKRepositoryStub extends RepositoryStub {
             this.connection = new Mongo(HOST, PORT);
             Jcr jcr = new Jcr(new Oak(new SegmentNodeStore(
                     new MongoStore(connection.getDB(DB), 100 * 1024 * 1024))));
-            jcr.with(Executors.newScheduledThreadPool(1));
             this.repository = jcr.createRepository();
 
             session = getRepository().login(superuser);
