@@ -18,14 +18,16 @@ package org.apache.jackrabbit.oak;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
@@ -36,7 +38,6 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -101,7 +102,33 @@ public class Oak {
 
     private SecurityProvider securityProvider;
 
-    private ScheduledExecutorService executor = newScheduledThreadPool(1);
+    private ScheduledExecutorService executor = defaultExecutor();
+
+    /**
+     * Default {@code ScheduledExecutorService} used for scheduling background tasks.
+     * This default spawns up to 32 background thread on an as need basis. Idle
+     * threads are pruned after one minute.
+     * @return  fresh ScheduledExecutorService
+     */
+    public static ScheduledExecutorService defaultExecutor() {
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(32, new ThreadFactory() {
+            private final AtomicInteger counter = new AtomicInteger();
+
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r, createName());
+                thread.setDaemon(true);
+                return thread;
+            }
+
+            private String createName() {
+                return "oak-executor-" + counter.getAndIncrement();
+            }
+        });
+        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
+    }
 
     private MBeanServer mbeanServer;
 
