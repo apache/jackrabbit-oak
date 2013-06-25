@@ -72,9 +72,12 @@ class EventFilter {
     }
 
     public boolean includeChildren(String path) {
-        return PathUtils.isAncestor(path, this.path) ||
-                path.equals(this.path) ||
-                deep && PathUtils.isAncestor(this.path, path);
+        String thisOakPath = namePathMapper.getOakPath(this.path);
+        String thatOakPath = namePathMapper.getOakPath(path);
+
+        return PathUtils.isAncestor(thatOakPath, thisOakPath) ||
+                path.equals(thisOakPath) ||
+                deep && PathUtils.isAncestor(thisOakPath, thatOakPath);
     }
 
     public boolean excludeLocal() {
