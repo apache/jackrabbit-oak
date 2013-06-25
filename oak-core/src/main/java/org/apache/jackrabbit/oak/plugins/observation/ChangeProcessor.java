@@ -165,7 +165,8 @@ class ChangeProcessor implements Runnable {
                 EventFilter filter = filterRef.get();
                 if (!(filter.excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
                     EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes);
-                    changes.diff(VisibleDiff.wrap(diff), filter.getPath());
+                    String path = namePathMapper.getOakPath(filter.getPath());
+                    changes.diff(VisibleDiff.wrap(diff), path);
                     if (!stopping) {
                         diff.sendEvents();
                     }
