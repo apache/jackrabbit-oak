@@ -78,6 +78,12 @@ public final class KernelNodeState extends AbstractNodeState {
     static final int MAX_CHILD_NODE_NAMES = 100;
 
     /**
+     * Number of child nodes beyond which {@link MicroKernel#diff(String, String, String, int)}
+     * is used for diffing.
+     */
+    public static final int LOCAL_DIFF_THRESHOLD = 10;
+
+    /**
      * Dummy cache instance for static {@link #NULL} kernel node state.
      */
     private static final LoadingCache<String, KernelNodeState> DUMMY_CACHE =
@@ -420,7 +426,7 @@ public final class KernelNodeState extends AbstractNodeState {
                     } else if (id != null && id.equals(kbase.id)) {
                         return true; // no differences
                     } else if (path.equals(kbase.path)
-                            && childNodeCount > MAX_CHILD_NODE_NAMES) {
+                            && childNodeCount > LOCAL_DIFF_THRESHOLD) {
                         // use MK.diff() when there are 'many' child nodes
                         String jsonDiff = kernel.diff(kbase.getRevision(), revision, path, 0);
                         processJsonDiff(jsonDiff, kbase, diff);
