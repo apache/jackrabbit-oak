@@ -36,10 +36,9 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TODO document
+ * Filter for filtering observation events according to a certain criterion.
  */
 class EventFilter {
-
     private final ReadOnlyNodeTypeManager ntMgr;
     private final NamePathMapper namePathMapper;
     private final int eventTypes;
@@ -49,6 +48,21 @@ class EventFilter {
     private final String[] nodeTypeOakName;
     private final boolean noLocal;
 
+    /**
+     * Create a new instance of a filter for a certain criterion
+     * @param ntMgr
+     * @param namePathMapper
+     * @param eventTypes  event types to include encoded as a bit mask
+     * @param path        path to include
+     * @param deep        {@code true} if descendants of {@code path} should be included. {@code false} otherwise.
+     * @param uuids       uuids to include
+     * @param nodeTypeName  node type names to include
+     * @param noLocal       exclude session local events if {@code true}. Include otherwise.
+     * @throws NoSuchNodeTypeException  if any of the node types in {@code nodeTypeName} does not exist
+     * @throws RepositoryException      if an error occurs while reading from the node type manager.
+     * @see javax.jcr.observation.ObservationManager#addEventListener(javax.jcr.observation.EventListener,
+     * int, String, boolean, String[], String[], boolean)
+     */
     public EventFilter(ReadOnlyNodeTypeManager ntMgr,
             NamePathMapper namePathMapper, int eventTypes,
             String path, boolean deep, String[] uuids,
@@ -64,6 +78,13 @@ class EventFilter {
         this.noLocal = noLocal;
     }
 
+    /**
+     * Match an event against this filter.
+     * @param eventType  type of the event
+     * @param path       path of the event
+     * @param associatedParentNode  associated parent node of the event
+     * @return  {@code true} if the filter matches this event. {@code false} otherwise.
+     */
     public boolean include(int eventType, String path, @Nullable NodeState associatedParentNode) {
         return include(eventType)
                 && include(path)
@@ -71,6 +92,11 @@ class EventFilter {
                 && (associatedParentNode == null || includeByUuid(associatedParentNode));
     }
 
+    /**
+     * Determine whether the children of a {@code path} would be matched by this filter
+     * @param path  path whose children to test
+     * @return  {@code true} if the children of {@code path} could be matched by this filter
+     */
     public boolean includeChildren(String path) {
         String thisOakPath = namePathMapper.getOakPath(this.path);
         String thatOakPath = namePathMapper.getOakPath(path);
@@ -80,8 +106,18 @@ class EventFilter {
                 deep && PathUtils.isAncestor(thisOakPath, thatOakPath);
     }
 
+    /**
+     * @return  the no local flag of this filter
+     */
     public boolean excludeLocal() {
         return noLocal;
+    }
+
+    /**
+     * @return  path of this filter
+     */
+    public String getPath() {
+        return path;
     }
 
     @Override
@@ -94,10 +130,6 @@ class EventFilter {
                 .add("node types", nodeTypeOakName)
                 .add("noLocal", noLocal)
             .toString();
-    }
-
-    public String getPath() {
-        return path;
     }
 
     //-----------------------------< internal >---------------------------------

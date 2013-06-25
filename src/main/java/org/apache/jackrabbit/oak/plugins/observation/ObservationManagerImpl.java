@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 
 import java.util.HashMap;
@@ -31,8 +32,6 @@ import javax.jcr.observation.EventJournal;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
-
-import com.google.common.base.Preconditions;
 
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
@@ -62,10 +61,21 @@ public class ObservationManagerImpl implements ObservationManager {
     private final NamePathMapper namePathMapper;
     private final Whiteboard whiteboard;
 
+    /**
+     * Create a new instance based on a {@link ContentSession} that needs to implement
+     * {@link Observable}.
+     *
+     * @param contentSession   the content session in whose context this observation manager
+     *                         operates.
+     * @param nodeTypeManager  node type manager for the content session
+     * @param namePathMapper   name path mapper for the content session
+     * @param whiteboard
+     * @throws IllegalArgumentException if {@code contentSession} doesn't implement {@code Observable}.
+     */
     public ObservationManagerImpl(ContentSession contentSession, ReadOnlyNodeTypeManager nodeTypeManager,
             NamePathMapper namePathMapper, Whiteboard whiteboard) {
 
-        Preconditions.checkArgument(contentSession instanceof Observable);
+        checkArgument(contentSession instanceof Observable);
 
         this.contentSession = contentSession;
         this.ntMgr = nodeTypeManager;
