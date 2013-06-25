@@ -255,7 +255,7 @@ public class Commit {
         } catch (MicroKernelException e) {
             rollback(newNodes, opLog);
             String msg = "Exception committing " + diff.toString();
-            LOG.error(msg, e);
+            LOG.debug(msg, e);
             throw new MicroKernelException(msg, e);
         }
     }
