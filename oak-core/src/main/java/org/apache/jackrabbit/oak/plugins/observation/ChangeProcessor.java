@@ -52,6 +52,14 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A {@code ChangeProcessor} generates observation {@link javax.jcr.observation.Event}s
+ * based on a {@link EventFilter} and delivers them to an {@link javax.jcr.observation.EventListener}.
+ * <p>
+ * After instantiation a {@code ChangeProcessor} must be started in order for its
+ * {@link #run()} methods to be regularly executed and stopped in order to not
+ * execute its run method anymore.
+ */
 class ChangeProcessor implements Runnable {
 
     private static final Logger log =
@@ -84,17 +92,26 @@ class ChangeProcessor implements Runnable {
         filterRef = new AtomicReference<EventFilter>(filter);
     }
 
+    /**
+     * Set the filter for the events this change processor will generate.
+     * @param filter
+     */
     public void setFilter(EventFilter filter) {
         filterRef.set(filter);
     }
 
+    /**
+     * Set the user data to return with {@link javax.jcr.observation.Event#getUserData()}.
+     * @param userData
+     */
     public void setUserData(String userData) {
         userDataRef.set(userData);
     }
 
     /**
-     * Start the change processor on the passed {@code executor}.
-     * @param whiteboard
+     * Start this change processor
+     * @param whiteboard  the whiteboard instance to used for scheduling individual
+     *                    runs of this change processor.
      * @throws IllegalStateException if started already
      */
     public synchronized void start(Whiteboard whiteboard) {

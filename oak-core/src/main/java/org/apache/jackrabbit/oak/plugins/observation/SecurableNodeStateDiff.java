@@ -24,6 +24,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
+/**
+ * Base class for {@code NodeStateDiff} implementations that can be secured.
+ * That is its call back methods are only called when its receiver has sufficient
+ * rights to access respective items.
+ */
 public abstract class SecurableNodeStateDiff implements NodeStateDiff {
     private final SecurableNodeStateDiff parent;
 

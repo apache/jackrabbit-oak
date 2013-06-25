@@ -24,9 +24,25 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * A {@code RecursingNodeStateDiff} extends {@link DefaultNodeStateDiff}
+ * with a factory method for diffing child nodes.
+ * In contrast to {@code DefaultNodeStateDiff}, {@link #childNodeChanged(String, NodeState, NodeState)}
+ * should <em>not</em> recurse into child nodes but rather only be concerned about whether to continue
+ * diffing or not. The {@link #createChildDiff(String, NodeState, NodeState)} will be called instead
+ * for diffing child nodes.
+ * TODO unify with NodeStateDiff
+ */
 public class RecursingNodeStateDiff extends DefaultNodeStateDiff {
     public static final RecursingNodeStateDiff EMPTY = new RecursingNodeStateDiff();
 
+    /**
+     * Create a {@code RecursingNodeStateDiff} for a child node
+     * @param name  name of the child node
+     * @param before  before state of the child node
+     * @param after   after state of the child node
+     * @return  {@code RecursingNodeStateDiff} for the child node
+     */
     @Nonnull
     public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
         return this;
