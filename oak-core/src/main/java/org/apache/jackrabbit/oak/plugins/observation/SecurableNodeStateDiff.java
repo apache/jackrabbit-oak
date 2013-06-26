@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
  * Base class for {@code NodeStateDiff} implementations that can be secured.
  * That is its call back methods are only called when its receiver has sufficient
  * rights to access respective items.
+ * michid doc
+ * michid move
  */
 public abstract class SecurableNodeStateDiff implements NodeStateDiff {
     private final SecurableNodeStateDiff parent;
@@ -108,7 +110,7 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(final String name, final NodeState before, final NodeState after) {
-        // FIXME temporary solution to skip look ahead on hidden child nodes
+        // michid temporary solution to skip look ahead on hidden child nodes
         if (NodeStateUtils.isHidden(name)) {
             return true;
         }
