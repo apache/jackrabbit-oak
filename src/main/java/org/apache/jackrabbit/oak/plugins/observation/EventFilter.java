@@ -139,13 +139,14 @@ class EventFilter {
     }
 
     private boolean include(String path) {
-        boolean equalPaths = this.path.equals(path);
+        String thisOakPath = namePathMapper.getOakPath(this.path);
+        String thatOakPath = namePathMapper.getOakPath(path);
+
+        boolean equalPaths = thisOakPath.equals(thatOakPath);
         if (!deep && !equalPaths) {
             return false;
         }
 
-        String thisOakPath = namePathMapper.getOakPath(this.path);
-        String thatOakPath = namePathMapper.getOakPath(path);
         if (deep && !(PathUtils.isAncestor(thisOakPath, thatOakPath) || equalPaths)) {
             return false;
         }
