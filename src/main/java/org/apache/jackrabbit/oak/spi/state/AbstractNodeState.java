@@ -250,6 +250,7 @@ public abstract class AbstractNodeState implements NodeState {
      *
      * @param base the base node state.
      * @param diff the node state diff.
+     * @return {@code true} to continue the comparison, {@code false} to stop
      */
     protected boolean comparePropertiesAgainstBaseState(NodeState base,
                                                      NodeStateDiff diff) {
