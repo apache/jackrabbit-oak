@@ -230,7 +230,7 @@ class ChangeProcessor implements Runnable {
         }
 
         public EventGeneratingNodeStateDiff(ChangeSet changes) {
-            // FIXME parent nodes should be the root here
+            // michid parent nodes should be the root here
             this(changes, filterRef.get().getPath(), new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
         }
 
