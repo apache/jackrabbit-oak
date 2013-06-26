@@ -429,8 +429,7 @@ public final class KernelNodeState extends AbstractNodeState {
                             && childNodeCount > LOCAL_DIFF_THRESHOLD) {
                         // use MK.diff() when there are 'many' child nodes
                         String jsonDiff = kernel.diff(kbase.getRevision(), revision, path, 0);
-                        processJsonDiff(jsonDiff, kbase, diff);
-                        return true;
+                        return processJsonDiff(jsonDiff, kbase, diff);
                     }
                 }
             }
@@ -546,16 +545,20 @@ public final class KernelNodeState extends AbstractNodeState {
      * @param jsonDiff the JSON diff.
      * @param base the base node state.
      * @param diff where diffs are reported to.
+     * @return {@code true} to continue the comparison, {@code false} to stop
      */
-    private void processJsonDiff(String jsonDiff,
+    private boolean processJsonDiff(String jsonDiff,
                                  KernelNodeState base,
                                  NodeStateDiff diff) {
         if (!hasChanges(jsonDiff)) {
-            return;
+            return true;
         }
-        comparePropertiesAgainstBaseState(base, diff);
+        if (!comparePropertiesAgainstBaseState(base, diff)) {
+            return false;
+        }
         JsopTokenizer t = new JsopTokenizer(jsonDiff);
-        while (true) {
+        boolean continueComparison = true;
+        while (continueComparison) {
             int r = t.read();
             if (r == JsopReader.END) {
                 break;
@@ -569,13 +572,13 @@ public final class KernelNodeState extends AbstractNodeState {
                         // skip properties
                     }
                     String name = PathUtils.getName(path);
-                    diff.childNodeAdded(name, getChildNode(name));
+                    continueComparison = diff.childNodeAdded(name, getChildNode(name));
                     break;
                 }
                 case '-': {
                     String path = t.readString();
                     String name = PathUtils.getName(path);
-                    diff.childNodeDeleted(name, base.getChildNode(name));
+                    continueComparison = diff.childNodeDeleted(name, base.getChildNode(name));
                     break;
                 }
                 case '^': {
@@ -584,7 +587,7 @@ public final class KernelNodeState extends AbstractNodeState {
                     if (t.matches('{')) {
                         t.read('}');
                         String name = PathUtils.getName(path);
-                        diff.childNodeChanged(name,
+                        continueComparison = diff.childNodeChanged(name,
                                 base.getChildNode(name), getChildNode(name));
                     } else if (t.matches('[')) {
                         // ignore multi valued property
@@ -602,9 +605,14 @@ public final class KernelNodeState extends AbstractNodeState {
                     t.read(':');
                     String to = t.readString();
                     String fromName = PathUtils.getName(from);
-                    diff.childNodeDeleted(fromName, base.getChildNode(fromName));
+                    continueComparison = diff.childNodeDeleted(
+                            fromName, base.getChildNode(fromName));
+                    if (!continueComparison) {
+                        break;
+                    }
                     String toName = PathUtils.getName(to);
-                    diff.childNodeAdded(toName, getChildNode(toName));
+                    continueComparison = diff.childNodeAdded(
+                            toName, getChildNode(toName));
                     break;
                 }
                 default:
@@ -612,6 +620,7 @@ public final class KernelNodeState extends AbstractNodeState {
                             + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
             }
         }
+        return continueComparison;
     }
 
     private String getChildPath(String name) {
