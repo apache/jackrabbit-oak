@@ -474,8 +474,6 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
         private final Iterator<PermissionEntry> it;
 
-        private PermissionEntry latestEntry;
-
         private EntryIterator(@Nonnull Map<Key, PermissionEntry> entries,
                               @Nonnull final Tree tree, @Nullable final PropertyState property) {
             it = Iterators.transform(
@@ -497,18 +495,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
         @Override
         public PermissionEntry next() {
-            if (latestEntry != null && latestEntry.next != null) {
-                // skip entries on the iterator
-                while (it.hasNext()) {
-                    if (it.next() == latestEntry.next) {
-                        break;
-                    }
-                }
-                latestEntry = latestEntry.next;
-            } else {
-                latestEntry = it.next();
-            }
-            return latestEntry;
+            // FIXME: use 'next' field in permission entry to skip siblings
+            return it.next();
         }
 
         @Override
