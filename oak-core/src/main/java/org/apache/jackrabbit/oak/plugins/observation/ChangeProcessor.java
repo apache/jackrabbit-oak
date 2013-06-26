@@ -181,8 +181,8 @@ class ChangeProcessor implements Runnable {
             while (!stopping && changes != null) {
                 EventFilter filter = filterRef.get();
                 if (!(filter.excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
-                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes);
                     String path = namePathMapper.getOakPath(filter.getPath());
+                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes, path);
                     changes.diff(VisibleDiff.wrap(diff), path);
                     if (!stopping) {
                         diff.sendEvents();
@@ -229,9 +229,9 @@ class ChangeProcessor implements Runnable {
             this.name = name;
         }
 
-        public EventGeneratingNodeStateDiff(ChangeSet changes) {
+        public EventGeneratingNodeStateDiff(ChangeSet changes, String path) {
             // michid parent nodes should be the root here
-            this(changes, filterRef.get().getPath(), new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
+            this(changes, path, new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
         }
 
         public void sendEvents() {
