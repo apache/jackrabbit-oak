@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Iterables;
 
 /**
  * Provides a QueryIndex that does lookups against a property index
@@ -131,6 +132,12 @@ class PropertyIndex implements QueryIndex {
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     return lookup.getCost(filter, propertyName, pr.first);
+                } else if (pr.list != null) {
+                    double cost = 0;
+                    for (PropertyValue p : pr.list) {
+                        cost += lookup.getCost(filter, propertyName, p);
+                    }
+                    return cost;
                 } else {
                     // processed as "[property] is not null"
                     return lookup.getCost(filter, propertyName, null);
@@ -158,6 +165,16 @@ class PropertyIndex implements QueryIndex {
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     paths = lookup.query(filter, propertyName, pr.first);
+                    break;
+                } else if (pr.list != null) {
+                    for (PropertyValue pv : pr.list) {
+                        Iterable<String> p = lookup.query(filter, propertyName, pv);
+                        if (paths == null) {
+                            paths = p;
+                        } else {
+                            paths = Iterables.concat(paths, p);
+                        }
+                    }
                     break;
                 } else {
                     // processed as "[property] is not null"
@@ -192,6 +209,16 @@ class PropertyIndex implements QueryIndex {
                 } else {
                     buff.append(' ').append(propertyName);
                 }
+            } else if (pr.list != null) {
+                buff.append(' ').append(propertyName).append(" IN(");
+                int i = 0;
+                for (PropertyValue pv : pr.list) {
+                    if (i++ > 0) {
+                        buff.append(", ");
+                    }
+                    buff.append(pv);
+                }
+                buff.append(')');
             } else {
                 notIndexed.append(' ').append(propertyName);
                 if (!pr.toString().isEmpty()) {
