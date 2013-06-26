@@ -13,6 +13,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.ArrayList;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -135,6 +137,11 @@ public class AstElementFactory {
 
     public UpperCaseImpl upperCase(DynamicOperandImpl operand) {
         return new UpperCaseImpl(operand);
+    }
+
+    public ConstraintImpl in(DynamicOperandImpl left,
+            ArrayList<StaticOperandImpl> list) {
+        return new InImpl(left, list);
     }
 
 }

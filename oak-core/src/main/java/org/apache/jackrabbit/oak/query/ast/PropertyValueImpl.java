@@ -170,6 +170,13 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             }
         }
     }
+    
+    @Override
+    public void restrictList(FilterImpl f, List<PropertyValue> list) {
+        if (f.getSelector() == selector) {
+            f.restrictPropertyAsList(propertyName, list);
+        }
+    }
 
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {

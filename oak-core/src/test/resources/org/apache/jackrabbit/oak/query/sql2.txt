@@ -292,4 +292,4 @@ select [jcr:path] from [nt:base] where name =+ 'Hello'
 java.text.ParseException: Query: select [jcr:path] from [nt:base] where name =+ 'Hello(*)'; expected: Illegal operation: + Hello
 
 select [jcr:path] from [nt:base] where name => 'Hello'
-java.text.ParseException: Query: select [jcr:path] from [nt:base] where name =>(*)'Hello'; expected: (, ., =, <>, <, >, <=, >=, LIKE, IS, NOT
+java.text.ParseException: Query: select [jcr:path] from [nt:base] where name =>(*)'Hello'; expected: (, ., =, <>, <, >, <=, >=, LIKE, IN, IS, NOT

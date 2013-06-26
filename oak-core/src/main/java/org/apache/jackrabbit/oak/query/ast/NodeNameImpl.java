@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.List;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -82,6 +84,11 @@ public class NodeNameImpl extends DynamicOperandImpl {
             throw new IllegalArgumentException("Invalid name value: " + v.toString());
         }
         // TODO support NAME(..) index conditions
+    }
+    
+    @Override
+    public void restrictList(FilterImpl f, List<PropertyValue> list) {
+        // optimizations of type "NAME(..) IN(A, B)" are not supported
     }
 
     @Override

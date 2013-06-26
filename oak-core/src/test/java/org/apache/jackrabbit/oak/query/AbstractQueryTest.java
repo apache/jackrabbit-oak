@@ -114,8 +114,10 @@ public abstract class AbstractQueryTest {
     protected void test(String file) throws Exception {
         InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
         LineNumberReader r = new LineNumberReader(new InputStreamReader(in));
+        String className = getClass().getName();
+        String shortClassName = className.replaceAll("org.apache.jackrabbit.oak.plugins.index.", "oajopi.");
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
-                new FileOutputStream("target/" + getClass().getName() + "_"
+                new FileOutputStream("target/" + shortClassName + "_"
                         + file)));
         HashSet<String> knownQueries = new HashSet<String>();
         boolean errors = false;

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.List;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -71,6 +73,11 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     @Override
     public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         // TODO support LOCALNAME index conditions
+    }
+    
+    @Override
+    public void restrictList(FilterImpl f, List<PropertyValue> list) {
+        // optimizations of type "LOCALNAME(..) IN(A, B)" are not supported
     }
 
     @Override
