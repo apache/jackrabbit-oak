@@ -42,6 +42,18 @@ public abstract class AstVisitorBase implements AstVisitor {
         node.getOperand2().accept(this);
         return true;
     }
+    
+    /**
+     * Calls accept on the all operands in the "in" node.
+     */
+    @Override
+    public boolean visit(InImpl node) {
+        node.getOperand1().accept(this);
+        for (StaticOperandImpl s : node.getOperand2List()) {
+            s.accept(this);
+        }
+        return true;
+    }
 
     /**
      * Calls accept on the static operand in the fulltext search constraint.

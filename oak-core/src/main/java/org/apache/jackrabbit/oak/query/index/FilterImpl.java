@@ -198,26 +198,25 @@ public class FilterImpl implements Filter {
             // not restricted
             return;
         }
-        PropertyRestriction x = propertyRestrictions.get(propertyName);
-        if (x == null) {
-            x = new PropertyRestriction();
-            x.propertyName = propertyName;
-            propertyRestrictions.put(propertyName, x);
-        }
+        PropertyRestriction x = addRestricition(propertyName);
         if (x.propertyType != PropertyType.UNDEFINED && x.propertyType != propertyType) {
             // already restricted to another property type - always false
             setAlwaysFalse();
         }
         x.propertyType = propertyType;
     }
+    
+    public void restrictPropertyAsList(String propertyName, List<PropertyValue> list) {
+        PropertyRestriction x = addRestricition(propertyName);
+        if (x.list == null) {
+            x.list = list;
+        } else {
+            x.list.retainAll(list);
+        }
+    }
 
     public void restrictProperty(String propertyName, Operator op, PropertyValue v) {
-        PropertyRestriction x = propertyRestrictions.get(propertyName);
-        if (x == null) {
-            x = new PropertyRestriction();
-            x.propertyName = propertyName;
-            propertyRestrictions.put(propertyName, x);
-        }
+        PropertyRestriction x = addRestricition(propertyName);
         PropertyValue oldFirst = x.first;
         PropertyValue oldLast = x.last;
         switch (op) {
@@ -253,6 +252,8 @@ public class FilterImpl implements Filter {
             x.isLike = true;
             x.first = v;
             break;
+        case IN:
+            
         }
         if (x.first != null && x.last != null) {
             if (x.first.compareTo(x.last) > 0) {
@@ -262,7 +263,17 @@ public class FilterImpl implements Filter {
             }
         }
     }
-
+    
+    private PropertyRestriction addRestricition(String propertyName) {
+        PropertyRestriction x = propertyRestrictions.get(propertyName);
+        if (x == null) {
+            x = new PropertyRestriction();
+            x.propertyName = propertyName;
+            propertyRestrictions.put(propertyName, x);
+        }
+        return x;
+    }
+    
     static PropertyValue maxValue(PropertyValue a, PropertyValue b) {
         if (a == null) {
             return b;

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.List;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -75,6 +77,11 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
             }
             f.restrictProperty(Query.JCR_SCORE, operator, v);
         }
+    }
+    
+    @Override
+    public void restrictList(FilterImpl f, List<PropertyValue> list) {
+        // optimizations of the type "jcr:score() in(a, b, c)" are not supported
     }
 
     @Override
