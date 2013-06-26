@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ObservationTest extends AbstractRepositoryTest {
@@ -198,7 +197,6 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-880")
     public void pathFilterWithTrailingSlash() throws Exception {
         final String path = "/events/only/here";
         ExpectationListener listener = new ExpectationListener();
