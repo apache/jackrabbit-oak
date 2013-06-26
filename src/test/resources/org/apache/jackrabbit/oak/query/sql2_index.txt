@@ -37,6 +37,9 @@ explain select * from [nt:base] where length([jcr:uuid])=1 or upper([jcr:uuid])=
 explain select * from [nt:base] where [jcr:uuid] = '1' or ([jcr:uuid] = '2' and [b] = '3')
 [nt:base] as [nt:base] /* property jcr:uuid */
 
+explain select * from [nt:base] where [jcr:uuid] in('1', '2')
+[nt:base] as [nt:base] /* property jcr:uuid where [nt:base].[jcr:uuid] in(cast('1' as string), cast('2' as string)) */
+
 explain select * from [nt:base] where [jcr:uuid] = '1' or [jcr:uuid] = '2'
 [nt:base] as [nt:base] /* property jcr:uuid */
 

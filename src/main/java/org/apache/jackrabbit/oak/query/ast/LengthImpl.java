@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.List;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -91,6 +93,11 @@ public class LengthImpl extends DynamicOperandImpl {
         }
         // LENGTH(x) implies x is not null
         propertyValue.restrict(f, Operator.NOT_EQUAL, null);
+    }
+    
+    @Override
+    public void restrictList(FilterImpl f, List<PropertyValue> list) {
+        // optimizations of the type "length(x) in(1, 2, 3)" are not supported
     }
 
     @Override

@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -159,6 +160,12 @@ public interface Filter {
          * value should be taken into consideration
          */
         public boolean isLike;
+        
+        /**
+         * A list of possible values, for conditions of the type
+         * "x=1 or x=2 or x=3".
+         */
+        public List<PropertyValue> list;
 
         /**
          * The property type, if restricted.
@@ -168,6 +175,26 @@ public interface Filter {
 
         @Override
         public String toString() {
+            return (toStringFromTo() + " " + toStringList()).trim();
+        }
+        
+        private String toStringList() {
+            if (list == null) {
+                return "";
+            }
+            StringBuilder buff = new StringBuilder("in(");
+            int i = 0;
+            for (PropertyValue p : list) {
+                if (i++ > 0) {
+                    buff.append(", ");
+                }
+                buff.append(p.toString());
+            }
+            buff.append(' ');
+            return buff.toString();
+        }
+        
+        private String toStringFromTo() {
             String f = first == null ? "" : first.toString();
             String l = last == null ? "" : last.toString();
             if (f.equals(l)) {

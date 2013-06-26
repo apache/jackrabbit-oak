@@ -367,6 +367,15 @@ public class SQL2Parser {
                     }
                 }
             }
+        } else if (readIf("IN")) {
+            read("(");
+            ArrayList<StaticOperandImpl> list = new ArrayList<StaticOperandImpl>();
+            do {
+                StaticOperandImpl x = parseStaticOperand();
+                list.add(x);
+            } while (readIf(","));
+            read(")");
+            c = factory.in(left, list);
         } else if (readIf("IS")) {
             boolean not = readIf("NOT");
             read("NULL");

@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.List;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -71,6 +73,12 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     @Override
     public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         // LOWER(x) implies x is not null
+        operand.restrict(f, Operator.NOT_EQUAL, null);
+    }
+    
+    @Override
+    public void restrictList(FilterImpl f, List<PropertyValue> list) {
+        // "LOWER(x) IN (A, B)" implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
     }
 
