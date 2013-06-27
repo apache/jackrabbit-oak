@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -61,6 +62,8 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     private final LoadingCache<String, KernelNodeState> cache;
 
+    private final CacheStats cacheStats;
+
     /**
      * State of the current root node.
      */
@@ -68,14 +71,17 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     public KernelNodeStore(final MicroKernel kernel, long cacheSize) {
         this.kernel = checkNotNull(kernel);
+
+        Weigher<String, KernelNodeState> weigher = new Weigher<String, KernelNodeState>() {
+            @Override
+            public int weigh(String key, KernelNodeState state) {
+                return state.getMemory();
+            }
+        };
         this.cache = CacheBuilder.newBuilder()
                 .maximumWeight(cacheSize)
-                .weigher(new Weigher<String, KernelNodeState>() {
-                    @Override
-                    public int weigh(String key, KernelNodeState state) {
-                        return state.getMemory();
-                    }
-                }).build(new CacheLoader<String, KernelNodeState>() {
+                .weigher(weigher)
+                .build(new CacheLoader<String, KernelNodeState>() {
                     @Override
                     public KernelNodeState load(String key) {
                         int slash = key.indexOf('/');
@@ -83,6 +89,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                         String path = key.substring(slash);
                         return new KernelNodeState(kernel, path, revision, cache);
                     }
+
                     @Override
                     public ListenableFuture<KernelNodeState> reload(
                             String key, KernelNodeState oldValue) {
@@ -94,6 +101,8 @@ public class KernelNodeStore extends AbstractNodeStore {
                         return future;
                     }
                 });
+
+        cacheStats = new CacheStats(cache, "NodeStore", weigher, cacheSize);
 
         try {
             this.root = cache.get(kernel.getHeadRevision() + '/');
@@ -160,6 +169,10 @@ public class KernelNodeStore extends AbstractNodeStore {
             // TODO: caused by the checkpoint no longer being available?
             return null;
         }
+    }
+
+    public CacheStats getCacheStats(){
+        return cacheStats;
     }
 
     //-----------------------------------------------------------< internal >---

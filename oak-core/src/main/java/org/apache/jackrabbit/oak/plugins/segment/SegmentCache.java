@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 
 /**
  * Combined memory and disk cache for segments.
@@ -31,6 +32,8 @@ public class SegmentCache {
     private static final long DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
 
     private final Cache<UUID, Segment> memoryCache;
+
+    private final CacheStats cacheStats;
 
     // private final Cache<UUID, File> diskCache;
 
@@ -48,6 +51,7 @@ public class SegmentCache {
 //                }).build();
         this.memoryCache = CacheBuilder.newBuilder()
                 .maximumWeight(memoryCacheSize)
+                .recordStats()
                 .weigher(Segment.WEIGHER)
 //                .removalListener(new RemovalListener<UUID, Segment>() {
 //                    @Override
@@ -57,6 +61,8 @@ public class SegmentCache {
 //                    }
 //                })
                 .build();
+
+        cacheStats = new CacheStats(memoryCache, "Segment", Segment.WEIGHER, memoryCacheSize);
     }
 
     public SegmentCache() {
@@ -80,4 +86,7 @@ public class SegmentCache {
         memoryCache.invalidate(segmentId);
     }
 
+    public CacheStats getCacheStats() {
+        return cacheStats;
+    }
 }
