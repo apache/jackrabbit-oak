@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,6 +137,7 @@ public class MongoMK implements MicroKernel {
      * Key: path@rev, value: node
      */
     private final Cache<String, Node> nodeCache;
+    private final CacheStats nodeCacheStats;
 
     /**
      * Child node cache.
@@ -143,11 +145,12 @@ public class MongoMK implements MicroKernel {
      * Key: path@rev, value: children
      */
     private final Cache<String, Node.Children> nodeChildrenCache;
-
+    private final CacheStats nodeChildrenCacheStats;
     /**
      * Diff cache.
      */
     private final Cache<String, String> diffCache;
+    private final CacheStats diffCacheStats;
 
     /**
      * The unsaved last revisions. This contains the parents of all changed
@@ -191,7 +194,7 @@ public class MongoMK implements MicroKernel {
     private final UnmergedBranches branches;
 
     private boolean stopBackground;
-    
+
     MongoMK(Builder builder) {
         DocumentStore s = builder.getDocumentStore();
         if (builder.getTiming()) {
@@ -222,20 +225,27 @@ public class MongoMK implements MicroKernel {
         nodeCache = CacheBuilder.newBuilder()
                         .weigher(builder.getWeigher())
                         .maximumWeight(builder.getNodeCacheSize())
-                        // .recordStats() FIXME: OAK-863
+                        .recordStats()
                         .build();
+        nodeCacheStats = new CacheStats(nodeCache, "MongoMk-Node",
+                builder.getWeigher(), builder.getNodeCacheSize());
 
         nodeChildrenCache =  CacheBuilder.newBuilder()
                         .weigher(builder.getWeigher())
-                        //.recordStats() FIXME: OAK-863
+                        .recordStats()
                         .maximumWeight(builder.getChildrenCacheSize())
                         .build();
-        
+        nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "MongoMk-NodeChildren",
+                builder.getWeigher(), builder.getNodeCacheSize());
+
         diffCache = CacheBuilder.newBuilder()
+                .recordStats()
                 .weigher(builder.getWeigher())
                 .maximumWeight(builder.getDiffCacheSize())
                 .build();
-        
+        diffCacheStats = new CacheStats(diffCache, "MongoMk-DiffCache",
+                builder.getWeigher(), builder.getNodeCacheSize());
+
         init();
         // initial reading of the revisions of other cluster nodes
         backgroundRead();
@@ -243,7 +253,7 @@ public class MongoMK implements MicroKernel {
         headRevision = newRevision();
         LOG.info("Initialized MongoMK with clusterNodeId: {}", clusterId);
     }
-    
+
     void init() {
         headRevision = newRevision();
         Node n = readNode("/", headRevision);
@@ -1521,7 +1531,7 @@ public class MongoMK implements MicroKernel {
             nodeChildrenCache.put(key, c2);
         }
     }
-    
+
     /**
      * A background thread.
      */
@@ -1553,6 +1563,18 @@ public class MongoMK implements MicroKernel {
                 }
             }
         }
+    }
+
+    public CacheStats getNodeCacheStats() {
+        return nodeCacheStats;
+    }
+
+    public CacheStats getNodeChildrenCacheStats() {
+        return nodeChildrenCacheStats;
+    }
+
+    public CacheStats getDiffCacheStats() {
+        return diffCacheStats;
     }
 
     /**
@@ -1676,7 +1698,7 @@ public class MongoMK implements MicroKernel {
             return weigher;
         }
 
-        public Builder weigher(Weigher<String, Object> weigher) {
+        public Builder withWeigher(Weigher<String, Object> weigher) {
             this.weigher = weigher;
             return this;
         }

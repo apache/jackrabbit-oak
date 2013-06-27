@@ -25,6 +25,7 @@ import java.util.Properties;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.OsgiRepositoryInitializer.RepositoryInitializerObserver;
@@ -32,6 +33,9 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -39,13 +43,17 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 public class Activator implements BundleActivator, ServiceTrackerCustomizer, RepositoryInitializerObserver {
 
     private BundleContext context;
 
     private ServiceTracker microKernelTracker;
 
-    // see OAK-795 for a reason why the nodeStore tracker is disabled 
+    private Whiteboard whiteboard;
+
+    // see OAK-795 for a reason why the nodeStore tracker is disabled
     // private ServiceTracker nodeStoreTracker;
 
     private final OsgiIndexProvider indexProvider = new OsgiIndexProvider();
@@ -58,12 +66,14 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     private final Map<ServiceReference, ServiceRegistration> services = new HashMap<ServiceReference, ServiceRegistration>();
 
+    private final List<Registration> registrations = new ArrayList<Registration>();
+
     //----------------------------------------------------< BundleActivator >---
 
     @Override
     public void start(BundleContext bundleContext) throws Exception {
         context = bundleContext;
-
+        whiteboard = new OsgiWhiteboard(bundleContext);
         indexProvider.start(bundleContext);
         indexEditorProvider.start(bundleContext);
         validatorProvider.start(bundleContext);
@@ -85,6 +95,10 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         indexEditorProvider.stop();
         validatorProvider.stop();
         repositoryInitializerTracker.stop();
+
+        for(Registration r : registrations){
+            r.unregister();
+        }
     }
 
     //-------------------------------------------< ServiceTrackerCustomizer >---
@@ -94,10 +108,13 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         Object service = context.getService(reference);
         if (service instanceof MicroKernel) {
             MicroKernel kernel = (MicroKernel) service;
+            KernelNodeStore store = new KernelNodeStore(kernel);
             services.put(reference, context.registerService(
                     NodeStore.class.getName(),
-                    new KernelNodeStore(kernel),
+                    store,
                     new Properties()));
+            registrations.add(registerMBean(whiteboard, CacheStatsMBean.class,
+                store.getCacheStats(), CacheStatsMBean.TYPE, store.getCacheStats().getName()));
         } else if (service instanceof NodeStore) {
             NodeStore store = (NodeStore) service;
             OakInitializer.initialize(store, repositoryInitializerTracker, indexEditorProvider);
@@ -106,6 +123,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
                 .with(new SecurityProviderImpl())
                 .with(validatorProvider)
                 .with(indexProvider)
+                .with(whiteboard)
                 .with(indexEditorProvider);
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),

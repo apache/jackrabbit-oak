@@ -30,15 +30,20 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.osgi.service.component.ComponentContext;
 
 import com.mongodb.Mongo;
+
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(NodeStore.class)
@@ -72,6 +77,8 @@ public class SegmentNodeStoreService extends AbstractNodeStore {
 
     private NodeStore delegate;
 
+    private Registration cacheStatsReg;
+
     private synchronized NodeStore getDelegate() {
         assert delegate != null : "service must be activated when used";
         return delegate;
@@ -95,7 +102,11 @@ public class SegmentNodeStoreService extends AbstractNodeStore {
             int cache = Integer.parseInt(String.valueOf(properties.get(CACHE)));
 
             mongo = new Mongo(host, port);
-            store = new MongoStore(mongo.getDB(db), cache * MB);
+            SegmentCache sc = new SegmentCache(cache * MB);
+            store = new MongoStore(mongo.getDB(db), sc);
+
+            cacheStatsReg = registerMBean(new OsgiWhiteboard(context.getBundleContext()), CacheStatsMBean.class,
+                    sc.getCacheStats(), CacheStatsMBean.TYPE, sc.getCacheStats().getName());
         }
 
         delegate = new SegmentNodeStore(store);
@@ -104,6 +115,10 @@ public class SegmentNodeStoreService extends AbstractNodeStore {
     @Deactivate
     public synchronized void deactivate() {
         delegate = null;
+
+        if(cacheStatsReg != null){
+            cacheStatsReg.unregister();
+        }
 
         store.close();
         if (mongo != null) {

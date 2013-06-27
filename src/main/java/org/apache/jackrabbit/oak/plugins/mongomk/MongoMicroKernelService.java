@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -27,7 +29,11 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
+import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -36,6 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
+
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 /**
  * The OSGi service to start/stop a MongoMK instance.
@@ -69,6 +77,7 @@ public class MongoMicroKernelService {
 
     private ServiceRegistration reg;
     private MongoMK mk;
+    private final List<Registration> registrations = new ArrayList<Registration>();
 
     @Activate
     private void activate(BundleContext context, Map<String, ?> config)
@@ -86,15 +95,59 @@ public class MongoMicroKernelService {
 
         logger.info("Connected to database {}", mongoDB);
 
-        mk = new MongoMK.Builder().memoryCacheSize(cacheSize * MB).setMongoDB(mongoDB).open();
+        mk = new MongoMK.Builder()
+                        .memoryCacheSize(cacheSize * MB)
+                        .setMongoDB(mongoDB)
+                        .open();
 
-        Properties props = new Properties();
-        props.setProperty("oak.mk.type", "mongo");
-        reg = context.registerService(MicroKernel.class.getName(), mk, props);
+        registerJMXBeans(mk, context);
+
+        reg = context.registerService(MicroKernel.class.getName(), mk, new Properties());
+    }
+
+    private void registerJMXBeans(MongoMK mk, BundleContext context) {
+        Whiteboard wb = new OsgiWhiteboard(context);
+        registrations.add(
+            registerMBean(wb,
+                    CacheStatsMBean.class,
+                    mk.getNodeCacheStats(),
+                    CacheStatsMBean.TYPE,
+                    mk.getNodeCacheStats().getName())
+        );
+        registrations.add(
+            registerMBean(wb,
+                    CacheStatsMBean.class,
+                    mk.getNodeChildrenCacheStats(),
+                    CacheStatsMBean.TYPE,
+                    mk.getNodeCacheStats().getName())
+        );
+        registrations.add(
+            registerMBean(wb,
+                    CacheStatsMBean.class,
+                    mk.getDiffCacheStats(),
+                    CacheStatsMBean.TYPE,
+                    mk.getDiffCacheStats().getName())
+        );
+
+        DocumentStore ds = mk.getDocumentStore();
+        if(ds instanceof MongoDocumentStore){
+            MongoDocumentStore mds = (MongoDocumentStore) ds;
+            registrations.add(
+                    registerMBean(wb,
+                            CacheStatsMBean.class,
+                            mds.getCacheStats(),
+                            CacheStatsMBean.TYPE,
+                            mds.getCacheStats().getName())
+            );
+        }
     }
 
     @Deactivate
     private void deactivate() {
+        for(Registration r : registrations){
+            r.unregister();
+        }
+
         if (reg != null) {
             reg.unregister();
         }
