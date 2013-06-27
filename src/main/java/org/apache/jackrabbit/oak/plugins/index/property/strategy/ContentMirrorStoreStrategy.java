@@ -200,6 +200,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
         
         void setPathContainsValue(boolean pathContainsValue) {
+            if (init) {
+                throw new IllegalStateException("This iterator is already initialized");
+            }
             this.pathContainsValue = pathContainsValue;
         }
 
@@ -211,8 +214,28 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
             return !closed;
         }
-        
+
         private void fetchNext() {
+            while (true) {
+                fetchNextPossiblyDuplicate();
+                if (closed) {
+                    return;
+                }
+                if (pathContainsValue) {
+                    String value = PathUtils.elements(currentPath).iterator().next();
+                    currentPath = PathUtils.relativize(value, currentPath);
+                    // don't return duplicate paths:
+                    // Set.add returns true if the entry was new,
+                    // so if it returns false, it was already known
+                    if (!knownPaths.add(currentPath)) {
+                        continue;
+                    }
+                }
+                break;
+            }
+        }
+        
+        private void fetchNextPossiblyDuplicate() {
             while (!nodeIterators.isEmpty()) {
                 Iterator<? extends ChildNodeEntry> iterator = nodeIterators.getLast();
                 if (iterator.hasNext()) {
@@ -247,7 +270,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             closed = true;
         }
 
-
         @Override
         public String next() {
             if (closed) {
@@ -257,23 +279,11 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 fetchNext();
                 init = true;
             }
-            while (true) {
-                String result = currentPath;
-                fetchNext();
-                if (pathContainsValue) {
-                    String value = PathUtils.elements(result).iterator().next();
-                    result = PathUtils.relativize(value, result);
-                    // don't return duplicate paths:
-                    // Set.add returns true if the entry was new,
-                    // so if it returns false, it was already known
-                    if (!knownPaths.add(result)) {
-                        continue;
-                    }
-                }
-                return result;
-            }
+            String result = currentPath;
+            fetchNext();
+            return result;
         }
-
+        
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
