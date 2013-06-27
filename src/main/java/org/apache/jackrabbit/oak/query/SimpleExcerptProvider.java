@@ -78,7 +78,7 @@ public class SimpleExcerptProvider {
         return noHighlight(text);
     }
 
-    private String extractExcerptProperty(String column) {
+    private static String extractExcerptProperty(String column) {
         // most frequent case first
         if (REP_EXCERPT_FN.equalsIgnoreCase(column)) {
             return null;
