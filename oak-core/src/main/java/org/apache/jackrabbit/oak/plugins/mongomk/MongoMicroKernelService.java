@@ -119,7 +119,7 @@ public class MongoMicroKernelService {
                     CacheStatsMBean.class,
                     mk.getNodeChildrenCacheStats(),
                     CacheStatsMBean.TYPE,
-                    mk.getNodeCacheStats().getName())
+                    mk.getNodeChildrenCacheStats().getName())
         );
         registrations.add(
             registerMBean(wb,
