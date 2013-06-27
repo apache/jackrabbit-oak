@@ -21,11 +21,15 @@ import java.util.HashSet;
 import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
+import javax.jcr.util.TraversingItemVisitor;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
@@ -410,5 +414,44 @@ public class ReadTest extends AbstractEvaluationTest {
         assertTrue(test.hasNode("a"));
         Node n2 = test.getNode("a");
         assertTrue(n.isSame(n2));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-878">OAK-878 :
+     * IllegalArgumentException while adding/removing permission to user/group</a>
+     */
+    @Test
+    public void testImplicitReorder() throws Exception{
+        allow(path, testUser.getPrincipal(), readPrivileges);
+        assertEntry(0, true);
+
+        allow(path, getTestGroup().getPrincipal(), readPrivileges);
+        assertEntry(0, true);
+
+        deny(path, testUser.getPrincipal(), readPrivileges);
+        assertEntry(1, false);
+
+        deny(path, getTestGroup().getPrincipal(), readPrivileges);
+        assertEntry(0, false);
+
+        allow(path, testUser.getPrincipal(), readPrivileges);
+    }
+
+    private void assertEntry(final int index, final boolean isAllow) throws RepositoryException {
+        AccessControlEntry first = AccessControlUtils.getAccessControlList(superuser, path).getAccessControlEntries()[index];
+
+        assertEquals(testUser.getPrincipal(), first.getPrincipal());
+
+        Node n = superuser.getNode("/jcr:system/rep:permissionStore/default/" + testUser.getPrincipal().getName());
+        TraversingItemVisitor v = new TraversingItemVisitor.Default(true, -1) {
+            @Override
+            protected void entering(Node node, int level) throws RepositoryException {
+                if (node.isNodeType("rep:Permissions") && path.equals(node.getProperty("rep:accessControlledPath").getString())) {
+                    assertEquals(index, node.getProperty("rep:index").getLong());
+                    assertEquals(isAllow, node.getProperty("rep:isAllow").getBoolean());
+                }
+            }
+        };
+        v.visit(n);
     }
 }
