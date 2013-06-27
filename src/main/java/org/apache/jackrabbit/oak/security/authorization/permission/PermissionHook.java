@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
@@ -40,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -103,38 +102,17 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         private final Node parentBefore;
         private final AfterNode parentAfter;
 
-        private final List<String> processed = new ArrayList<String>();
-
         private Diff(@Nonnull Node parentBefore, @Nonnull AfterNode parentAfter) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
         }
 
         @Override
-        public boolean propertyChanged(PropertyState before, PropertyState after) {
-            if (isACL(parentAfter) && TreeImpl.OAK_CHILD_ORDER.equals(before.getName())) {
-                List<String> reordered = new ChildOrderDiff(before, after).getReordered();
-                for (String name : reordered) {
-                    NodeState beforeNode = parentBefore.getNodeState().getChildNode(name);
-                    removeEntry(name, beforeNode);
-                }
-                for (String name : reordered) {
-                    NodeState afterNode = parentAfter.getNodeState().getChildNode(name);
-                    addEntry(name, afterNode);
-
-                    log.debug("Processed reordered child node " + name);
-                    processed.add(name);
-                }
-            }
-            return true;
-        }
-
-        @Override
         public boolean childNodeAdded(String name, NodeState after) {
             if (NodeStateUtils.isHidden(name)) {
                 // ignore hidden nodes
-            } else if (isACE(name, after)) {
-                addEntry(name, after);
+            } else if (isACL(name, after)) {
+                addEntries(name, after);
             } else {
                 Node before = new BeforeNode(parentBefore.getPath(), name, EMPTY_NODE);
                 AfterNode node = new AfterNode(parentAfter, name);
@@ -147,8 +125,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         public boolean childNodeChanged(String name, final NodeState before, NodeState after) {
             if (NodeStateUtils.isHidden(name)) {
                 // ignore hidden nodes
-            } else if (isACE(name, before) || isACE(name, after)) {
-                updateEntry(name, before, after);
+            } else if (isACL(name, before) || isACL(name, after)) {
+                removeEntries(name, before);
+                addEntries(name, after);
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
                 AfterNode nodeAfter = new AfterNode(parentAfter, name);
@@ -161,8 +140,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         public boolean childNodeDeleted(String name, NodeState before) {
             if (NodeStateUtils.isHidden(name)) {
                 // ignore hidden nodes
-            } else if (isACE(name, before)) {
-                removeEntry(name, before);
+            } else if (isACL(name, before)) {
+                removeEntries(name, before);
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
                 AfterNode after = new AfterNode(parentAfter.getPath(), name, EMPTY_NODE);
@@ -172,34 +151,34 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
 
         //--------------------------------------------------------< private >---
-        private boolean isACL(Node parent) {
-            return ntMgr.isNodeType(getTree(parent.getName(), parent.getNodeState()), NT_REP_POLICY);
+
+        private boolean isACL(String name, NodeState nodeState) {
+            return ntMgr.isNodeType(getTree(name, nodeState), NT_REP_ACL);
         }
 
         private boolean isACE(String name, NodeState nodeState) {
             return ntMgr.isNodeType(getTree(name, nodeState), NT_REP_ACE);
         }
 
-        private void addEntry(String name, NodeState ace) {
-            PermissionEntry entry = createPermissionEntry(name, ace, parentAfter);
-            entry.add();
-        }
-
-        private void removeEntry(String name, NodeState ace) {
-            PermissionEntry entry = createPermissionEntry(name, ace, parentBefore);
-            entry.remove();
-        }
-
-        private void updateEntry(String name, NodeState before, NodeState after) {
-            if (processed.contains(name)) {
-                log.debug("ACE entry already processed -> skip updateEntry.");
-                return;
+        private void addEntries(String aclName, NodeState acl) {
+            for (ChildNodeEntry cne : acl.getChildNodeEntries()) {
+                NodeState child = cne.getNodeState();
+                if (isACE(cne.getName(), child)) {
+                    PermissionEntry entry = createPermissionEntry(cne.getName(),
+                            child, new AfterNode(parentAfter, aclName));
+                    entry.add();
+                }
             }
-            PermissionEntry beforeEntry = createPermissionEntry(name, before, parentBefore);
-            PermissionEntry afterEntry = createPermissionEntry(name, after, parentAfter);
-            if (!beforeEntry.equals(afterEntry)) {
-                beforeEntry.remove();
-                afterEntry.add();
+        }
+
+        private void removeEntries(String aclName, NodeState acl) {
+            for (ChildNodeEntry cne : acl.getChildNodeEntries()) {
+                NodeState child = cne.getNodeState();
+                if (isACE(cne.getName(), child)) {
+                    PermissionEntry entry = createPermissionEntry(cne.getName(),
+                            child, new BeforeNode(parentBefore, aclName, acl));
+                    entry.remove();
+                }
             }
         }
 
@@ -244,9 +223,13 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             this.nodeState = root;
         }
 
-
         BeforeNode(String parentPath, String name, NodeState nodeState) {
             super(parentPath, name);
+            this.nodeState = nodeState;
+        }
+
+        BeforeNode(Node parent, String name, NodeState nodeState) {
+            super(parent.getPath(), name);
             this.nodeState = nodeState;
         }
 
