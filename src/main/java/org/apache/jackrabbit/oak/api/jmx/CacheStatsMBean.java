@@ -134,5 +134,5 @@ public interface CacheStatsMBean {
     /**
      * Reset the cache stats
      */
-    void resetCache();
+    void resetStats();
 }
