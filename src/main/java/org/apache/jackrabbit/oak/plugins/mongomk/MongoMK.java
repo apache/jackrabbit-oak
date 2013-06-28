@@ -236,7 +236,7 @@ public class MongoMK implements MicroKernel {
                         .maximumWeight(builder.getChildrenCacheSize())
                         .build();
         nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "MongoMk-NodeChildren",
-                builder.getWeigher(), builder.getNodeCacheSize());
+                builder.getWeigher(), builder.getChildrenCacheSize());
 
         diffCache = CacheBuilder.newBuilder()
                 .recordStats()
@@ -244,7 +244,7 @@ public class MongoMK implements MicroKernel {
                 .maximumWeight(builder.getDiffCacheSize())
                 .build();
         diffCacheStats = new CacheStats(diffCache, "MongoMk-DiffCache",
-                builder.getWeigher(), builder.getNodeCacheSize());
+                builder.getWeigher(), builder.getDiffCacheSize());
 
         init();
         // initial reading of the revisions of other cluster nodes
