@@ -31,7 +31,7 @@ public class CacheStats implements CacheStatsMBean{
     private final Weigher weigher;
     private final long maxWeight;
     private final String name;
-    private com.google.common.cache.CacheStats statsSnapShot =
+    private com.google.common.cache.CacheStats lastSnapshot =
             new com.google.common.cache.CacheStats(0,0,0,0,0,0);
 
     public CacheStats(Cache cache, String name, Weigher weigher, long maxWeight) {
@@ -124,10 +124,10 @@ public class CacheStats implements CacheStatsMBean{
     }
 
     @Override
-    public synchronized void resetCache(){
+    public synchronized void resetStats(){
         //Cache stats cannot be rest at Guava level. Instead we
         //take a snapshot and then subtract it from future stats calls
-        statsSnapShot = cache.stats();
+        lastSnapshot = cache.stats();
     }
 
     @Override
@@ -142,11 +142,11 @@ public class CacheStats implements CacheStatsMBean{
                 .add("loadSuccessCount", getLoadSuccessCount())
                 .add("loadExceptionCount", getLoadExceptionCount())
                 .add("totalLoadTime", getTotalLoadTime())
-                .add("averageLoadPenalty", String.format("%1.2f",getAverageLoadPenalty()))
+                .add("averageLoadPenalty", String.format("%1.2f", getAverageLoadPenalty()))
                 .add("evictionCount", getEvictionCount())
                 .add("elementCount", getElementCount())
                 .add("totalWeight", humanReadableByteCount(estimateCurrentWeight(), true))
-                .add("maxWeight", humanReadableByteCount(getMaxTotalWeight(),true))
+                .add("maxWeight", humanReadableByteCount(getMaxTotalWeight(), true))
                 .toString();
     }
 
@@ -155,7 +155,7 @@ public class CacheStats implements CacheStatsMBean{
     }
 
     private com.google.common.cache.CacheStats stats() {
-        return cache.stats().minus(statsSnapShot);
+        return cache.stats().minus(lastSnapshot);
     }
 
     /**
