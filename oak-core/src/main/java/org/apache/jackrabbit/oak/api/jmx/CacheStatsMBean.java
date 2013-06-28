@@ -112,6 +112,11 @@ public interface CacheStatsMBean {
      */
     long getElementCount();
 
+    /**
+     * The maximum weight of entries the cache may contain.
+     * @return  the maximum total weight of entries the cache may contain
+     */
+    long getMaxTotalWeight();
 
     /**
      * Total weight of the complete cache. Depending on implementation it might be the amount
@@ -122,13 +127,12 @@ public interface CacheStatsMBean {
     long estimateCurrentWeight();
 
     /**
-     * The maximum weight of entries the cache may contain.
-     * @return  the maximum total weight of entries the cache may contain
-     */
-    long getMaxTotalWeight();
-
-    /**
      * Gathers the stats of the cache for logging.
      */
     String cacheInfoAsString();
+
+    /**
+     * Reset the cache stats
+     */
+    void resetCache();
 }
