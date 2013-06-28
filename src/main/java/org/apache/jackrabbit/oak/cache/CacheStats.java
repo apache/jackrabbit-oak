@@ -31,6 +31,8 @@ public class CacheStats implements CacheStatsMBean{
     private final Weigher weigher;
     private final long maxWeight;
     private final String name;
+    private com.google.common.cache.CacheStats statsSnapShot =
+            new com.google.common.cache.CacheStats(0,0,0,0,0,0);
 
     public CacheStats(Cache cache, String name, Weigher weigher, long maxWeight) {
         this.cache = cache;
@@ -122,6 +124,13 @@ public class CacheStats implements CacheStatsMBean{
     }
 
     @Override
+    public synchronized void resetCache(){
+        //Cache stats cannot be rest at Guava level. Instead we
+        //take a snapshot and then subtract it from future stats calls
+        statsSnapShot = cache.stats();
+    }
+
+    @Override
     public String cacheInfoAsString() {
         return Objects.toStringHelper("CacheStats")
                 .add("hitCount", getHitCount())
@@ -146,7 +155,7 @@ public class CacheStats implements CacheStatsMBean{
     }
 
     private com.google.common.cache.CacheStats stats() {
-        return cache.stats();
+        return cache.stats().minus(statsSnapShot);
     }
 
     /**
