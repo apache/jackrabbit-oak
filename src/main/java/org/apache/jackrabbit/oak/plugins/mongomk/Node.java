@@ -115,29 +115,22 @@ public class Node {
      * A list of children for a node.
      */
     static class Children {
-        
-        final String path;
-        final Revision rev;
+
         final ArrayList<String> children = new ArrayList<String>();
         boolean hasMore;
         long offset;
-        
-        Children(String path, Revision rev) {
-            this.path = path;
-            this.rev = rev;
-        }
 
         public int getMemory() {
-            int size = 200 + path.length() * 2;
+            int size = 114;
             for (String c : children) {
-                size += c.length() * 2 + 40;
+                size += c.length() * 2 + 56;
             }
             return size;
         }
-        
+
         @Override
         public String toString() {
-            return path + ": " + children.toString();
+            return children.toString();
         }
         
     }

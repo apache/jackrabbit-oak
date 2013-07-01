@@ -89,13 +89,24 @@ public class MeasureMemory {
             }
         });
     }
+    
+    @Test
+    public void nodeChildManyChildren() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() {
+                Children n = generateNodeChild(100);
+                return new Object[]{n, n.getMemory() + OVERHEAD};
+            }
+        });
+    }
 
     @Test
     public void nodeChild() throws Exception {
         measureMemory(new Callable<Object[]>() {
             @Override
             public Object[] call() {
-                Children n = generateNodeChild(15);
+                Children n = generateNodeChild(5);
                 return new Object[]{n, n.getMemory() + OVERHEAD};
             }
         });
@@ -106,7 +117,7 @@ public class MeasureMemory {
         measureMemory(new Callable<Object[]>() {
             @Override
             public Object[] call() {
-                Children n = generateNodeChild(15);
+                Children n = generateNodeChild(0);
                 return new Object[]{n, n.getMemory() + OVERHEAD};
             }
         });
@@ -157,7 +168,7 @@ public class MeasureMemory {
     }
 
     static Children generateNodeChild(int childCount) {
-        Children n = new Children(new String("_id"), new Revision(1, 2, 3));
+        Children n = new Children();
         for (int i = 0; i < childCount; i++) {
             n.children.add("child" + i);
         }

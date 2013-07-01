@@ -631,7 +631,7 @@ public class MongoMK implements MicroKernel {
         String to = Utils.getKeyUpperLimit(path);
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, 
                 from, to, limit);
-        Children c = new Children(path, rev);
+        Children c = new Children();
         Set<Revision> validRevisions = new HashSet<Revision>();
         if (list.size() >= limit) {
             c.hasMore = true;
@@ -841,7 +841,7 @@ public class MongoMK implements MicroKernel {
         fromChildren = getChildren(path, fromRev, max);
         toChildren = getChildren(path, toRev, max);
         if (!fromChildren.hasMore && !toChildren.hasMore) {
-            diffFewChildren(w, fromChildren, toChildren);
+            diffFewChildren(w, fromChildren, fromRev, toChildren, toRev);
         } else {
             if (FAST_DIFF) {
                 diffManyChildren(w, path, fromRev, toRev);
@@ -849,7 +849,7 @@ public class MongoMK implements MicroKernel {
                 max = Integer.MAX_VALUE;
                 fromChildren = getChildren(path, fromRev, max);
                 toChildren = getChildren(path, toRev, max);
-                diffFewChildren(w, fromChildren, toChildren);
+                diffFewChildren(w, fromChildren, fromRev, toChildren, toRev);
             }
         }
         return w.toString();
@@ -891,14 +891,14 @@ public class MongoMK implements MicroKernel {
         }
     }
     
-    private void diffFewChildren(JsopWriter w, Children fromChildren, Children toChildren) {
+    private void diffFewChildren(JsopWriter w, Children fromChildren, Revision fromRev, Children toChildren, Revision toRev) {
         Set<String> childrenSet = new HashSet<String>(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('-').value(n).newline();
             } else {
-                Node n1 = getNode(n, fromChildren.rev);
-                Node n2 = getNode(n, toChildren.rev);
+                Node n1 = getNode(n, fromRev);
+                Node n2 = getNode(n, toRev);
                 // this is not fully correct:
                 // a change is detected if the node changed recently,
                 // even if the revisions are well in the past
@@ -1520,7 +1520,7 @@ public class MongoMK implements MicroKernel {
         Children c = nodeChildrenCache.getIfPresent(path + "@" + rev);
         if (isNew || (!isDelete && c != null)) {
             String key = path + "@" + rev;
-            Children c2 = new Children(path, rev);
+            Children c2 = new Children();
             TreeSet<String> set = new TreeSet<String>();
             if (c != null) {
                 set.addAll(c.children);
