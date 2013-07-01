@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -46,7 +47,6 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
@@ -56,6 +56,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
@@ -83,7 +85,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.singleton;
 import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
-import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
@@ -313,10 +314,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         if (value != null) {
             boolean exactTypeMatch = true;
             if (type == PropertyType.UNDEFINED) {
-                type = PropertyType.STRING;
+                type = value.getType();
                 exactTypeMatch = false;
+            } else {
+                value = ValueHelper.convert(value, type, getValueFactory());
             }
-            value = ValueHelper.convert(value, type, getValueFactory());
             return internalSetProperty(name, value, exactTypeMatch);
         } else {
             return internalRemoveProperty(name);
@@ -327,6 +329,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, Value[] values)
             throws RepositoryException {
         if (values != null) {
+            // TODO: type
             return internalSetProperty(name, values, ValueHelper.getType(values), false);
         } else {
             return internalRemoveProperty(name);
@@ -336,11 +339,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override @Nonnull
     public Property setProperty(String jcrName, Value[] values, int type)
             throws RepositoryException {
-        if (type == UNDEFINED) {
-            return setProperty(jcrName, values);
-        } else if (values != null) {
+        if (values != null) {
+            boolean exactTypeMatch = true;
+            if (type == PropertyType.UNDEFINED) {
+                type = PropertyType.STRING;
+                exactTypeMatch = false;
+            }
             values = ValueHelper.convert(values, type, getValueFactory());
-            return internalSetProperty(jcrName, values, type, true);
+            return internalSetProperty(jcrName, values, type, exactTypeMatch);
         } else {
             return internalRemoveProperty(jcrName);
         }
@@ -350,9 +356,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, String[] values)
             throws RepositoryException {
         if (values != null) {
-            Value[] vs = ValueHelper.convert(
-                    values, PropertyType.STRING, getValueFactory());
-            return internalSetProperty(name, vs, UNDEFINED, false);
+            int type = PropertyType.STRING;
+            Value[] vs = ValueHelper.convert(values, type, getValueFactory());
+            return internalSetProperty(name, vs, type, false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -361,11 +367,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override @Nonnull
     public Property setProperty(String name, String[] values, int type)
             throws RepositoryException {
-        if (type == UNDEFINED) {
-            return setProperty(name, values);
-        } else if (values != null) {
+        if (values != null) {
+            boolean exactTypeMatch = true;
+            if (type == PropertyType.UNDEFINED) {
+                type = PropertyType.STRING;
+                exactTypeMatch = false;
+            }
             Value[] vs = ValueHelper.convert(values, type, getValueFactory());
-            return internalSetProperty(name, vs, type, true);
+            return internalSetProperty(name, vs, type, exactTypeMatch);
         } else {
             return internalRemoveProperty(name);
         }
@@ -1332,10 +1341,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
         // TODO: END
 
-        String jcrPrimaryType = getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
-        Value value = getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
-
-        dlg.setProperty(PropertyStates.createProperty(jcrPrimaryType, value));
+        PropertyState state = PropertyStates.createProperty(
+                JCR_PRIMARYTYPE, getOakName(nodeTypeName), NAME);
+        dlg.setProperty(state, true, true);
         dlg.setOrderableChildren(nt.hasOrderableChildNodes());
     }
 
@@ -1343,25 +1351,22 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             String jcrName, final Value value, final boolean exactTypeMatch)
             throws RepositoryException {
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
-        checkNotNull(value);
+        final PropertyState state = createSingleState(
+                oakName, value, Type.fromTag(value.getType(), false));
         return perform(new ItemWriteOperation<Property>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!isCheckedOut()) {
-                    throw new VersionException("Cannot set property. Node is checked in.");
+                    throw new VersionException(
+                            "Cannot set property. Node is checked in.");
                 }
             }
-
             @Override
             public Property perform() throws RepositoryException {
-                // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = getEffectiveNodeType()
-                        .getPropertyDefinition(oakName, false, value.getType(), exactTypeMatch);
-
-                checkProtected(definition);
-                PropertyState state = createSingleState(oakName, value, definition);
-                return new PropertyImpl(dlg.setProperty(state), sessionContext);
+                return new PropertyImpl(
+                        dlg.setProperty(state, exactTypeMatch, false),
+                        sessionContext);
             }
         });
     }
@@ -1371,20 +1376,42 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             final int type, final boolean exactTypeMatch)
             throws RepositoryException {
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
-        checkNotNull(values);
+        final PropertyState state = createMultiState(
+                oakName, compact(values), Type.fromTag(type, true));
         return perform(new ItemWriteOperation<Property>() {
             @Override
+            protected void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!isCheckedOut()) {
+                    throw new VersionException(
+                            "Cannot set property. Node is checked in.");
+                }
+            }
+            @Override
             public Property perform() throws RepositoryException {
-                // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = getEffectiveNodeType()
-                        .getPropertyDefinition(oakName, true, type, exactTypeMatch);
-
-                checkProtected(definition);
-                PropertyState state = createMultiState(oakName, type, values, definition);
-                return new PropertyImpl(dlg.setProperty(state), sessionContext);
+                return new PropertyImpl(
+                        dlg.setProperty(state, exactTypeMatch, false),
+                        sessionContext);
             }
         });
     }
+
+    /**
+     * Removes all {@code null} values from the given array.
+     *
+     * @param values value array
+     * @return value list without {@code null} entries
+     */
+    private static List<Value> compact(Value[] values) {
+        List<Value> list = Lists.newArrayListWithCapacity(values.length);
+        for (Value value : values) {
+            if (value != null) {
+                list.add(value);
+            }
+        }
+        return list;
+    }
+
 
     private Property internalRemoveProperty(final String jcrName)
             throws RepositoryException {

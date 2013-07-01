@@ -36,13 +36,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
+import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_CREATEDBY;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
@@ -419,18 +423,120 @@ public class NodeDelegate extends ItemDelegate {
      * @return the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(PropertyState propertyState) throws RepositoryException {
+    public PropertyDelegate setProperty(
+            PropertyState propertyState, boolean exactTypeMatch,
+            boolean setProtected) throws RepositoryException {
         Tree tree = getTree();
-        String propName = propertyState.getName();
-        PropertyState old = tree.getProperty(propName);
+        String name = propertyState.getName();
+        Type<?> type = propertyState.getType();
+
+        PropertyState old = tree.getProperty(name);
         if (old != null && old.isArray() && !propertyState.isArray()) {
-            throw new ValueFormatException("Attempt to assign a single value to multi-valued property.");
+            throw new ValueFormatException(
+                    "Can not assign a single value to multi-valued property: "
+                    + propertyState);
         }
         if (old != null && !old.isArray() && propertyState.isArray()) {
-            throw new ValueFormatException("Attempt to assign multiple values to single valued property.");
+            throw new ValueFormatException(
+                    "Can not assign multiple values to single valued property: "
+                    + propertyState);
         }
+
+        Tree definition = findMatchingPropertyDefinition(
+                tree, name, type, exactTypeMatch);
+        if (definition == null) {
+            throw new ConstraintViolationException(
+                    "No matching property definition: " + propertyState);
+        } else if (!setProtected && getBoolean(definition, JCR_PROTECTED)) {
+            throw new ConstraintViolationException(
+                    "Property is protected: " + propertyState);
+        }
+        Type<?> requiredType =
+                Type.fromString(getString(definition, JCR_REQUIREDTYPE));
+        if (requiredType != Type.UNDEFINED) {
+            if (getBoolean(definition, JCR_MULTIPLE)) {
+                requiredType = requiredType.getArrayType();
+            }
+            propertyState = PropertyStates.convert(propertyState, requiredType);
+        }
+
         tree.setProperty(propertyState);
-        return new PropertyDelegate(sessionDelegate, tree, propName);
+        return new PropertyDelegate(sessionDelegate, tree, name);
+    }
+
+    private Tree findMatchingPropertyDefinition(
+            Tree tree, String propertyName, Type<?> propertyType,
+            boolean exactTypeMatch) {
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+
+        // Find applicable node types
+        List<Tree> types = newArrayList();
+        String primaryName = getName(tree, JCR_PRIMARYTYPE);
+        if (primaryName == null) {
+            primaryName = NT_BASE;
+        }
+        types.add(typeRoot.getChild(primaryName));
+        for (String mixinName : getNames(tree, JCR_MIXINTYPES)) {
+            types.add(typeRoot.getChild(mixinName));
+        }
+
+        // Escape the property name for looking up a matching definition
+        String escapedName;
+        if (JCR_PRIMARYTYPE.equals(propertyName)) {
+            escapedName = "oak:primaryType";
+        } else if (JCR_MIXINTYPES.equals(propertyName)) {
+            escapedName = "oak:mixinTypes";
+        } else if (JCR_UUID.equals(propertyName)) {
+            escapedName = "oak:uuid";
+        } else {
+            escapedName = propertyName;
+        }
+
+        String definedType = propertyType.toString();
+        String undefinedType = UNDEFINED.toString();
+        if (propertyType.isArray()) {
+            undefinedType = UNDEFINEDS.toString();
+        }
+
+        // First look for a matching named property definition
+        for (Tree type : types) {
+            Tree definitions = type
+                    .getChild(OAK_NAMED_PROPERTY_DEFINITIONS)
+                    .getChild(escapedName);
+            Tree definition = definitions.getChild(definedType);
+            if (definition.exists()) {
+                return definition;
+            }
+            definition = definitions.getChild(undefinedType);
+            if (definition.exists()) {
+                return definition;
+            }
+            if (!exactTypeMatch) {
+                for (Tree def : definitions.getChildren()) {
+                    return def;
+                }
+            }
+        }
+
+        // Then look through any residual property definitions
+        for (Tree type : types) {
+            Tree definitions = type.getChild(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+            Tree definition = definitions.getChild(definedType);
+            if (definition.exists()) {
+                return definition;
+            }
+            definition = definitions.getChild(undefinedType);
+            if (definition.exists()) {
+                return definition;
+            }
+            if (!exactTypeMatch) {
+                for (Tree def : definitions.getChildren()) {
+                    return def;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -704,6 +810,16 @@ public class NodeDelegate extends ItemDelegate {
         return property != null
                 && property.getType() == BOOLEAN
                 && property.getValue(BOOLEAN);
+    }
+
+    @CheckForNull
+    private static String getString(Tree tree, String name) {
+        PropertyState property = tree.getProperty(name);
+        if (property != null && property.getType() == STRING) {
+            return property.getValue(STRING);
+        } else {
+            return null;
+        }
     }
 
     @CheckForNull

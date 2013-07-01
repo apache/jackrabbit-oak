@@ -289,4 +289,14 @@ public final class PropertyStates {
         }
     }
 
+    public static PropertyState convert(PropertyState state, Type<?> type) {
+        if (type == state.getType()
+                || (type == Type.UNDEFINED && !state.isArray())
+                || (type == Type.UNDEFINEDS && state.isArray())) {
+            return state;
+        } else {
+            return createProperty(state.getName(), state.getValue(type), type);
+        }
+    }
+
 }
