@@ -39,7 +39,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.lock.Lock;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -311,13 +310,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override @Nonnull
     public Property setProperty(String name, Value value, int type)
             throws RepositoryException {
-        if (type == UNDEFINED) {
-            return setProperty(name, value);
-        } else if (value != null) {
-            if (value.getType() != type) {
-                value = ValueHelper.convert(value, type, getValueFactory());
+        if (value != null) {
+            boolean exactTypeMatch = true;
+            if (type == PropertyType.UNDEFINED) {
+                type = PropertyType.STRING;
+                exactTypeMatch = false;
             }
-            return internalSetProperty(name, value, true);
+            value = ValueHelper.convert(value, type, getValueFactory());
+            return internalSetProperty(name, value, exactTypeMatch);
         } else {
             return internalRemoveProperty(name);
         }
@@ -385,28 +385,25 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override @Nonnull
     public Property setProperty(String name, String value, int type)
             throws RepositoryException {
-        if (type == PropertyType.UNDEFINED) {
-            return setProperty(name, value);
-        } else if (value != null) {
+        if (value != null) {
+            boolean exactTypeMatch = true;
+            if (type == PropertyType.UNDEFINED) {
+                type = PropertyType.STRING;
+                exactTypeMatch = false;
+            }
             Value v = getValueFactory().createValue(value, type);
-            return internalSetProperty(name, v, true);
+            return internalSetProperty(name, v, exactTypeMatch);
         } else {
             return internalRemoveProperty(name);
         }
     }
 
-    @Override @Nonnull
+    @Override @Nonnull @SuppressWarnings("deprecation")
     public Property setProperty(String name, InputStream value)
             throws RepositoryException {
         if (value != null) {
-            ValueFactory factory = getValueFactory();
-            Binary binary = factory.createBinary(value);
-            try {
-                Value v = factory.createValue(binary);
-                return internalSetProperty(name, v, false);
-            } finally {
-                binary.dispose();
-            }
+            Value v = getValueFactory().createValue(value);
+            return internalSetProperty(name, v, false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -1395,15 +1392,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new ItemWriteOperation<Property>() {
             @Override
             protected Property perform() throws RepositoryException {
-                // TODO: Avoid extra JCR method calls (OAK-672)
-                if (hasProperty(jcrName)) {
-                    Property property = getProperty(jcrName);
+                PropertyDelegate property = dlg.getPropertyOrNull(oakName);
+                if (property != null) {
                     property.remove();
-                    return property;
                 } else {
-                    // Return a property instance which throws on access. See OAK-395
-                    return new PropertyImpl(dlg.getProperty(oakName), sessionContext);
+                    // Return an instance which throws on access; see OAK-395
+                    property = dlg.getProperty(oakName);
                 }
+                return new PropertyImpl(property, sessionContext);
             }
         });
     }
