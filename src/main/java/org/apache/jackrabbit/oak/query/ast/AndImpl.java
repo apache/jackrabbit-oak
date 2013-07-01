@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -50,6 +53,40 @@ public class AndImpl extends ConstraintImpl {
         Set<PropertyExistenceImpl> s2 = constraint2.getPropertyExistenceConditions();
         Set<PropertyExistenceImpl> result = Sets.newHashSet(s1);
         result.addAll(s2);
+        return result;
+    }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        Set<SelectorImpl> s1 = constraint1.getSelectors();
+        Set<SelectorImpl> s2 = constraint1.getSelectors();
+        if (s1.isEmpty()) {
+            return s2;
+        } else if (s2.isEmpty()) {
+            return s1;
+        }
+        return Sets.union(s1, s2);
+    }
+    
+    @Override 
+    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
+        Map<DynamicOperandImpl, Set<StaticOperandImpl>> m1 = constraint1.getInMap();
+        Map<DynamicOperandImpl, Set<StaticOperandImpl>> m2 = constraint2.getInMap();
+        if (m1.isEmpty()) {
+            return m2;
+        } else if (m2.isEmpty()) {
+            return m1;
+        }
+        Map<DynamicOperandImpl, Set<StaticOperandImpl>> result = Maps.newHashMap();
+        result.putAll(m1);
+        for (Entry<DynamicOperandImpl, Set<StaticOperandImpl>> e2 : m2.entrySet()) {
+            Set<StaticOperandImpl> s = result.get(e2.getKey());
+            if (s != null) {
+                s.retainAll(e2.getValue());
+            } else {
+                result.put(e2.getKey(), e2.getValue());
+            }
+        }
         return result;
     }
 

@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -49,6 +50,16 @@ public class SameNodeImpl extends ConstraintImpl {
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.emptySet();
     }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        return Collections.singleton(selector);
+    }
+    
+    @Override 
+    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
+        return Collections.emptyMap();
+    }  
 
     @Override
     boolean accept(AstVisitor v) {

@@ -351,5 +351,20 @@ public class SelectorImpl extends SourceImpl {
             selectorCondition = new AndImpl(selectorCondition, constraint);
         }
     }
+    
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        } else if (!(this instanceof SelectorImpl)) {
+            return false;
+        }
+        return selectorName.equals(((SelectorImpl) other).selectorName);
+    }
+    
+    @Override
+    public int hashCode() {
+        return selectorName.hashCode();
+    }
 
 }
