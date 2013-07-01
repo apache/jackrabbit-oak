@@ -246,9 +246,9 @@ public class SimpleTest {
         test = mk.getNodes("/test", r0, 0, 0, Integer.MAX_VALUE, null);
         Children c;
         c = mk.getChildren("/", Revision.fromString(r0), Integer.MAX_VALUE);
-        assertEquals("/: [/test]", c.toString());
+        assertEquals("[/test]", c.toString());
         c = mk.getChildren("/test", Revision.fromString(r1), Integer.MAX_VALUE);
-        assertEquals("/test: [/test/a, /test/b]", c.toString());
+        assertEquals("[/test/a, /test/b]", c.toString());
 
         rev = mk.commit("", "^\"/test\":1", null, null);
         test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, null);
