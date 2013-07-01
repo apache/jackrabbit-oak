@@ -67,6 +67,12 @@ import com.mongodb.DB;
  */
 public class MongoMK implements MicroKernel {
 
+    /**
+     * The threshold where special handling for many child node starts.
+     */
+    static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
+            "oak.mongoMK.manyChildren", 50);
+
     private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
     /**
@@ -88,12 +94,6 @@ public class MongoMK implements MicroKernel {
     private static final boolean FAST_DIFF = Boolean.parseBoolean(
             System.getProperty("oak.mongoMK.fastDiff", "true"));
     
-    /**
-     * The threshold where special handling for many child node starts.
-     */
-    static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
-            "oak.mongoMK.manyChildren", 50);
-
     /**
      * How long to remember the relative order of old revision of all cluster
      * nodes, in milliseconds. The default is one hour.
@@ -792,7 +792,7 @@ public class MongoMK implements MicroKernel {
         }
     }
     
-    private synchronized String diffImpl(String fromRevisionId, String toRevisionId, String path,
+    synchronized String diffImpl(String fromRevisionId, String toRevisionId, String path,
             int depth) throws MicroKernelException {
         if (fromRevisionId.equals(toRevisionId)) {
             return "";

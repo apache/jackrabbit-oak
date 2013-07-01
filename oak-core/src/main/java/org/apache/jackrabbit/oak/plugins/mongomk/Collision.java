@@ -21,7 +21,6 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore.Collection;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
