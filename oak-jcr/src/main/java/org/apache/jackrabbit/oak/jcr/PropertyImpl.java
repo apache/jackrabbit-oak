@@ -17,11 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.PATH;
-import static org.apache.jackrabbit.oak.api.Type.PATHS;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -43,7 +38,6 @@ import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -444,19 +438,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
                 Value converted = ValueHelper.convert(
                         value, type.tag(), getValueFactory());
-
-                PropertyState state;
-                if (type == NAME) {
-                    String name = getOakName(converted.getString());
-                    state = createProperty(dlg.getName(), name, NAME);
-                } else if (type == PATH) {
-                    String path = getOakPathOrThrow(converted.getString());
-                    state = createProperty(dlg.getName(), path, PATH);
-                } else {
-                    state = createProperty(dlg.getName(), converted);
-                }
-
-                dlg.setState(state);
+                dlg.setState(createSingleState(dlg.getName(), converted, type));
                 return null;
             }
         });
@@ -481,27 +463,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                                 values[i], type.tag(), factory));
                     }
                 }
-
-                PropertyState state;
-                if (type == NAMES) {
-                    List<String> names =
-                            newArrayListWithCapacity(converted.size());
-                    for (Value name : converted) {
-                        names.add(getOakName(name.getString()));
-                    }
-                    state = createProperty(dlg.getName(), names, NAMES);
-                } else if (type == PATHS) {
-                    List<String> paths =
-                            newArrayListWithCapacity(converted.size());
-                    for (Value path : converted) {
-                        paths.add(getOakPathOrThrow(path.getString()));
-                    }
-                    state = createProperty(dlg.getName(), paths, PATHS);
-                } else {
-                    state = createProperty(dlg.getName(), converted, type.tag());
-                }
-
-                dlg.setState(state);
+                dlg.setState(createMultiState(dlg.getName(), converted, type));
                 return null;
             }
         });
