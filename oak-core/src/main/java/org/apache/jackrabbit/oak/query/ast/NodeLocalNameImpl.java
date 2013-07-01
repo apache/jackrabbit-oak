@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.PropertyType;
 
@@ -57,6 +59,11 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return null;
+    }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        return Collections.singleton(selector);
     }
 
     @Override

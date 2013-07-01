@@ -31,17 +31,20 @@ explain select excerpt(.) from [nt:resource] where contains(*, 'jackrabbit')
 explain select * from [nt:base] where [jcr:uuid]=1 or [b]=2
 [nt:base] as [nt:base] /* traverse "*" */
 
+explain select b.[jcr:uuid] from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2') and b.[jcr:uuid] is not null
+[nt:base] as [a] /* property jcr:uuid where ([a].[jcr:uuid] is not null) and ([a].[jcr:uuid] in(cast('1' as string), cast('2' as string))) */ inner join [nt:base] as [b] /* property jcr:uuid where [b].[jcr:uuid] is not null */ on isdescendantnode([b], [a])
+
 explain select * from [nt:base] where length([jcr:uuid])=1 or upper([jcr:uuid])='1' or lower([jcr:uuid])='3'
-[nt:base] as [nt:base] /* property jcr:uuid */
+[nt:base] as [nt:base] /* property jcr:uuid where [nt:base].[jcr:uuid] is not null */
 
 explain select * from [nt:base] where [jcr:uuid] = '1' or ([jcr:uuid] = '2' and [b] = '3')
-[nt:base] as [nt:base] /* property jcr:uuid */
+[nt:base] as [nt:base] /* property jcr:uuid where ([nt:base].[jcr:uuid] is not null) and ([nt:base].[jcr:uuid] in(cast('1' as string), cast('2' as string))) */
 
 explain select * from [nt:base] where [jcr:uuid] in('1', '2')
 [nt:base] as [nt:base] /* property jcr:uuid where [nt:base].[jcr:uuid] in(cast('1' as string), cast('2' as string)) */
 
 explain select * from [nt:base] where [jcr:uuid] = '1' or [jcr:uuid] = '2'
-[nt:base] as [nt:base] /* property jcr:uuid */
+[nt:base] as [nt:base] /* property jcr:uuid where ([nt:base].[jcr:uuid] is not null) and ([nt:base].[jcr:uuid] in(cast('1' as string), cast('2' as string))) */
 
 explain select * from [nt:base] where [jcr:uuid] = '123'
 [nt:base] as [nt:base] /* property jcr:uuid=123 where [nt:base].[jcr:uuid] = cast('123' as string) */
@@ -51,6 +54,9 @@ explain select * from [nt:base] where [jcr:uuid] is not null
 
 explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where a.[jcr:uuid] is not null and b.[jcr:uuid] is not null
 [nt:base] as [a] /* property jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* property jcr:uuid where [b].[jcr:uuid] is not null */ on isdescendantnode([b], [a])
+
+explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where (a.[jcr:uuid]=1 or a.[jcr:uuid]=2) and (b.[jcr:uuid]=3 or b.[jcr:uuid]=4)
+[nt:base] as [a] /* property jcr:uuid where ([a].[jcr:uuid] is not null) and ([a].[jcr:uuid] in(cast('1' as long), cast('2' as long))) */ inner join [nt:base] as [b] /* property jcr:uuid where ([b].[jcr:uuid] is not null) and ([b].[jcr:uuid] in(cast('3' as long), cast('4' as long))) */ on isdescendantnode([b], [a])
 
 explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where a.[jcr:uuid] is not null and b.[x] is not null
 [nt:base] as [a] /* property jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* traverse "/path/from/the/join/selector/*" where [b].[x] is not null */ on isdescendantnode([b], [a])

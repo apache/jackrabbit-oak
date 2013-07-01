@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -70,7 +71,20 @@ public class ComparisonImpl extends ConstraintImpl {
         }
         return Collections.singleton(p);
     }
-
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        return operand1.getSelectors();
+    }
+    
+    @Override 
+    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
+        if (operator == Operator.EQUAL) {
+            return Collections.singletonMap(operand1, Collections.singleton(operand2));
+        }
+        return Collections.emptyMap();
+    }    
+    
     @Override
     public boolean evaluate() {
         // JCR 2.0 spec, 6.7.16 Comparison:

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -56,5 +57,28 @@ public abstract class DynamicOperandImpl extends AstElement {
      * @return the property existence condition, or null if none
      */
     public abstract PropertyExistenceImpl getPropertyExistence();
+
+    /**
+     * Get the set of selectors for this operand.
+     * 
+     * @return the set of selectors
+     */
+    public abstract Set<SelectorImpl> getSelectors();
+    
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        } else if (!(other instanceof DynamicOperandImpl)) {
+            return false;
+        }
+        DynamicOperandImpl o = (DynamicOperandImpl) other;
+        return o.toString().equals(toString());
+    }
+    
+    @Override
+    public int hashCode() {
+        return toString().hashCode();
+    }
 
 }

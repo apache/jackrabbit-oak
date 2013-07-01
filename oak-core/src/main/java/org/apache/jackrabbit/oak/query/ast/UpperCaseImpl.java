@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.PropertyType;
 
@@ -56,6 +57,11 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return operand.getPropertyExistence();
+    }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        return operand.getSelectors();
     }
 
     @Override

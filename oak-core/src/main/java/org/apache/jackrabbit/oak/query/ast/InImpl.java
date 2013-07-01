@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -28,6 +29,8 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+
+import com.google.common.collect.Sets;
 
 /**
  * A "in" comparison operation.
@@ -58,6 +61,17 @@ public class InImpl extends ConstraintImpl {
         }
         return Collections.singleton(p);
     }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        return operand1.getSelectors();
+    }
+    
+    @Override 
+    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
+        Set<StaticOperandImpl> set = Sets.newHashSet(operand2List);
+        return Collections.singletonMap(operand1, set);
+    }  
 
     @Override
     public boolean evaluate() {

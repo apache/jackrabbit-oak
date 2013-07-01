@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -47,6 +48,16 @@ public class NotImpl extends ConstraintImpl {
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.emptySet();
     }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        return constraint.getSelectors();
+    }
+    
+    @Override 
+    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
+        return Collections.emptyMap();
+    }    
 
     @Override
     boolean accept(AstVisitor v) {
@@ -61,12 +72,11 @@ public class NotImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         if (f.getSelector().outerJoinRightHandSide) {
-            // we need to be careful with the condition 
+            // we need to be careful with the condition
             // "NOT (property IS NOT NULL)"
-            // (which is the same as 
-            // "property IS NULL") because
-            // this might cause an index to ignore
-            // the join condition "property = x"
+            // (which is the same as "property IS NULL")
+            // because this might cause an index
+            // to ignore the join condition "property = x"
             // for example in:
             // "select * from a left outer join b on a.x = b.y
             // where not b.y is not null"

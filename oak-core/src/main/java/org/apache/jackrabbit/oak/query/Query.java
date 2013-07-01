@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ChildNodeImpl;
@@ -43,6 +44,8 @@ import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.LowerCaseImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeLocalNameImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeNameImpl;
+import org.apache.jackrabbit.oak.query.ast.NotImpl;
+import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyExistenceImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
@@ -124,8 +127,8 @@ public class Query {
                 bindVariableMap.put(node.getBindVariableName(), null);
                 return true;
             }
-
-            @Override
+            
+             @Override
             public boolean visit(ChildNodeImpl node) {
                 node.setQuery(query);
                 node.bindSelector(source);
@@ -265,6 +268,24 @@ public class Query {
 
             @Override
             public boolean visit(InImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
+            }
+            
+            @Override
+            public boolean visit(AndImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
+            }
+
+            @Override
+            public boolean visit(OrImpl node) {
+                node.setQuery(query);
+                return super.visit(node);
+            }
+
+            @Override
+            public boolean visit(NotImpl node) {
                 node.setQuery(query);
                 return super.visit(node);
             }

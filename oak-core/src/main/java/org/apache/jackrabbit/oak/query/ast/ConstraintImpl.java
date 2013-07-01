@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -42,6 +43,20 @@ public abstract class ConstraintImpl extends AstElement {
      * @return the common property existence condition (possibly empty)
      */
     public abstract Set<PropertyExistenceImpl> getPropertyExistenceConditions();
+    
+    /**
+     * Get the set of selectors for the given condition.
+     * 
+     * @return the set of selectors (possibly empty)
+     */
+    public abstract Set<SelectorImpl> getSelectors();
+    
+    /**
+     * Get the map of "in(..)" conditions.
+     * 
+     * @return the map
+     */
+    public abstract Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap();
 
     /**
      * Apply the condition to the filter, further restricting the filter if
@@ -54,7 +69,12 @@ public abstract class ConstraintImpl extends AstElement {
 
     /**
      * Push as much of the condition down to this selector, further restricting
-     * the selector condition if possible.
+     * the selector condition if possible. This is important for a join: for
+     * example, the query
+     * "select * from a inner join b on a.x=b.x where a.y=1 and b.y=1", the
+     * condition "a.y=1" can be pushed down to "a", and the condition "b.y=1"
+     * can be pushed down to "b". That means it is possible to use an index in
+     * this case.
      *
      * @param s the selector
      */
