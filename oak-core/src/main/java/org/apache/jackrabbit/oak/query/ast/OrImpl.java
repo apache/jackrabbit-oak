@@ -18,10 +18,14 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -47,6 +51,8 @@ public class OrImpl extends ConstraintImpl {
     
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
+        // for the condition "x=1 or x=2", the existence condition
+        // "x is not null" be be derived
         Set<PropertyExistenceImpl> s1 = constraint1.getPropertyExistenceConditions();
         if (s1.isEmpty()) {
             return s1;
@@ -57,6 +63,39 @@ public class OrImpl extends ConstraintImpl {
         }
         return Sets.intersection(s1, s2);
     }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        Set<SelectorImpl> s1 = constraint1.getSelectors();
+        Set<SelectorImpl> s2 = constraint1.getSelectors();
+        if (s1.isEmpty()) {
+            return s2;
+        } else if (s2.isEmpty()) {
+            return s1;
+        }
+        return Sets.union(s1, s2);
+    }
+    
+    @Override 
+    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
+        Map<DynamicOperandImpl, Set<StaticOperandImpl>> m1 = constraint1.getInMap();
+        Map<DynamicOperandImpl, Set<StaticOperandImpl>> m2 = constraint2.getInMap();
+        if (m1.isEmpty()) {
+            return m1;
+        } else if (m2.isEmpty()) {
+            return m2;
+        }
+        Map<DynamicOperandImpl, Set<StaticOperandImpl>> result = Maps.newHashMap();
+        result.putAll(m1);
+        for (Entry<DynamicOperandImpl, Set<StaticOperandImpl>> e2 : m2.entrySet()) {
+            Set<StaticOperandImpl> l2 = e2.getValue();
+            Set<StaticOperandImpl> l1 = m1.get(e2.getKey());
+            // l1 might be null (l2 not, as it's from the iterator)
+            Set<StaticOperandImpl> list = l1 == null ? l2 : Sets.union(l1, l2);
+            result.put(e2.getKey(), list);
+        }
+        return result;
+    }    
 
     @Override
     public boolean evaluate() {
@@ -86,11 +125,71 @@ public class OrImpl extends ConstraintImpl {
 
     @Override
     public void restrictPushDown(SelectorImpl s) {
-        // ignore
-        // TODO some OR conditions can be applied to a selector,
-        // for example WHERE X.ID = 1 OR X.ID = 2
-        // can be applied to X as a whole,
-        // but X.ID = 1 OR Y.ID = 2 can't be applied to either
+        restrictPushDownNotExists(s);
+        restrictPushDownInList(s);
+    }
+    
+    /**
+     * Push down the "property in(1, 2, 3)" conditions to the selector, if there
+     * are any that can be derived.
+     * 
+     * @param s the selector
+     */
+    private void restrictPushDownInList(SelectorImpl s) {
+        if (isOnlySelector(s)) {
+            Map<DynamicOperandImpl, Set<StaticOperandImpl>> m = getInMap();
+            for (Entry<DynamicOperandImpl, Set<StaticOperandImpl>> e : m.entrySet()) {
+                Set<StaticOperandImpl> set = e.getValue();
+                if (set.size() > 1) {
+                    InImpl in = new InImpl(e.getKey(), Lists.newArrayList(set));
+                    in.setQuery(query);
+                    in.restrictPushDown(s);
+                }
+            }
+        }
+    }
+
+    /**
+     * Push down the "not exists" conditions to the selector.
+     * 
+     * @param s the selector
+     */
+    private void restrictPushDownNotExists(SelectorImpl s) {
+        Set<PropertyExistenceImpl> set = getPropertyExistenceConditions();
+        if (set.isEmpty()) {
+            return;
+        }
+        for (PropertyExistenceImpl p : set) {
+            p.restrictPushDown(s);
+        }
+    }
+
+    /**
+     * Check whether there are no other selectors in this "or" condition.
+     * 
+     * @param s the selector
+     * @return true if there are no other selectors
+     */
+    private boolean isOnlySelector(SelectorImpl s) {
+        Set<SelectorImpl> set = getSelectors();
+        if (set.size() == 0) {
+            // conditions without selectors, for example "1=0":
+            // the condition can be pushed down; 
+            // (currently there are no such conditions,
+            // but in the future we might add them)
+            return true;
+        } else if (set.size() > 1) {
+            // "x.a=1 or y.a=2" can't be pushed down to either "x" or "y"
+            return false;
+        } else {
+            // exactly one selector: check if it's the right one
+            SelectorImpl s2 = set.iterator().next();
+            if (s2 != s) {
+                // a different selector
+                return false;
+            }
+        }
+        return true;
     }
 
 }

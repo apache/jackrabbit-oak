@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.PropertyType;
 
@@ -54,6 +55,11 @@ public class LengthImpl extends DynamicOperandImpl {
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
         return propertyValue.getPropertyExistence();
+    }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        return propertyValue.getSelectors();
     }
 
     @Override

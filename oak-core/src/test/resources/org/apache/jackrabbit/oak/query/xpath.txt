@@ -28,6 +28,9 @@
 xpath2sql testroot//child/..[@foo1]
 select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'child' and isdescendantnode(a, '/testroot') and b.[foo1] is not null /* xpath: testroot//child/..[@foo1] */
 
+xpath2sql //*[@jcr:uuid='1' or @jcr:uuid='2']//*[@jcr:uuid]/(@jcr:uuid)
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.[jcr:uuid] as [jcr:uuid] from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2') and b.[jcr:uuid] is not null /* xpath: //*[@jcr:uuid='1' or @jcr:uuid='2']//*[@jcr:uuid]/(@jcr:uuid) */
+
 xpath2sql testroot//child/.[@foo1]
 select [jcr:path], [jcr:score], * from [nt:base] as a where [foo1] is not null and name(a) = 'child' and isdescendantnode(a, '/testroot') /* xpath: testroot//child/.[@foo1] */
 

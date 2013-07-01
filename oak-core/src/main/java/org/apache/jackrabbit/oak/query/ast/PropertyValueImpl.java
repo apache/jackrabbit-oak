@@ -19,8 +19,10 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import javax.jcr.PropertyType;
 
@@ -96,6 +98,11 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             return null;
         }
         return new PropertyExistenceImpl(selector, selectorName, propertyName);
+    }
+    
+    @Override
+    public Set<SelectorImpl> getSelectors() {
+        return Collections.singleton(selector);
     }
 
     @Override
