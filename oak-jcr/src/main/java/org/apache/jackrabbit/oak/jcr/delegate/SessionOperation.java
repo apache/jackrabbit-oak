@@ -24,6 +24,26 @@ import javax.jcr.RepositoryException;
  * A {@code SessionOperation} provides an execution context for executing session scoped operations.
  */
 public abstract class SessionOperation<T> {
+
+    private final boolean update;
+
+    protected SessionOperation(boolean update) {
+        this.update = update;
+    }
+
+    protected SessionOperation() {
+        this(false);
+    }
+
+    /**
+     * Returns {@code true} if this operation updates the the transient
+     * @return
+     */
+    public boolean isUpdate() {
+        return update;
+    }
+
     protected void checkPreconditions() throws RepositoryException {}
     protected abstract T perform() throws RepositoryException;
+
 }

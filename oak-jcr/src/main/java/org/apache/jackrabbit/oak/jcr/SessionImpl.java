@@ -92,15 +92,26 @@ public class SessionImpl implements JackrabbitSession {
         }
     }
 
-    private abstract class CheckedSessionOperation<T> extends SessionOperation<T> {
+    private abstract class ReadOperation<T> extends SessionOperation<T> {
         @Override
         protected void checkPreconditions() throws RepositoryException {
             sd.checkAlive();
         }
     }
 
+    private abstract class WriteOperation<T> extends SessionOperation<T> {
+        @Override
+        protected void checkPreconditions() throws RepositoryException {
+            sd.checkAlive();
+        }
+        @Override
+        public boolean isUpdate() {
+            return true;
+        }
+    }
+
     @CheckForNull
-    private <T> T perform(@Nonnull CheckedSessionOperation<T> op) throws RepositoryException {
+    private <T> T perform(@Nonnull SessionOperation<T> op) throws RepositoryException {
         return sd.perform(op);
     }
 
@@ -146,7 +157,7 @@ public class SessionImpl implements JackrabbitSession {
      */
     @CheckForNull
     public Node getNodeOrNull(final String absPath) throws RepositoryException {
-        return perform(new CheckedSessionOperation<Node>() {
+        return perform(new ReadOperation<Node>() {
             @Override
             public Node perform() throws RepositoryException {
                 return sessionContext.createNodeOrNull(sd.getNode(getOakPathOrThrow(absPath)));
@@ -167,7 +178,7 @@ public class SessionImpl implements JackrabbitSession {
         if (absPath.equals("/")) {
             return null;
         } else {
-            return perform(new CheckedSessionOperation<Property>() {
+            return perform(new ReadOperation<Property>() {
                 @Override
                 public Property perform() throws RepositoryException {
                     return createPropertyOrNull(sd.getProperty(getOakPathOrThrow(absPath)));
@@ -187,7 +198,7 @@ public class SessionImpl implements JackrabbitSession {
      */
     @CheckForNull
     public Item getItemOrNull(final String absPath) throws RepositoryException {
-        return perform(new CheckedSessionOperation<Item>() {
+        return perform(new ReadOperation<Item>() {
             @Override
             public Item perform() throws RepositoryException {
                 return getItemInternal(getOakPathOrThrow(absPath));
@@ -243,7 +254,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nonnull
     public Node getRootNode() throws RepositoryException {
-        return perform(new CheckedSessionOperation<Node>() {
+        return perform(new ReadOperation<Node>() {
             @Override
             protected Node perform() throws AccessDeniedException, RepositoryException {
                 NodeDelegate nd = sd.getRootNode();
@@ -271,7 +282,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Nonnull
     private Node getNodeById(final String id) throws RepositoryException {
-        return perform(new CheckedSessionOperation<Node>() {
+        return perform(new ReadOperation<Node>() {
             @Override
             public Node perform() throws ItemNotFoundException, RepositoryException {
                 NodeDelegate nd = sd.getNodeByIdentifier(id);
@@ -325,7 +336,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void move(final String srcAbsPath, final String destAbsPath) throws RepositoryException {
-        sd.perform(new CheckedSessionOperation<Void>() {
+        sd.perform(new WriteOperation<Void>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -347,7 +358,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void removeItem(final String absPath) throws RepositoryException {
-        perform(new CheckedSessionOperation<Void>() {
+        perform(new WriteOperation<Void>() {
             @Override
             protected Void perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
@@ -365,7 +376,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void save() throws RepositoryException {
-        perform(new CheckedSessionOperation<Void>() {
+        perform(new WriteOperation<Void>() {
             @Override
             protected Void perform() throws RepositoryException {
                 sd.save();
@@ -377,7 +388,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void refresh(final boolean keepChanges) throws RepositoryException {
-        perform(new CheckedSessionOperation<Void>() {
+        perform(new WriteOperation<Void>() {
             @Override
             protected Void perform() throws RepositoryException {
                 sd.refresh(keepChanges);
@@ -548,7 +559,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean hasPermission(final String absPath, final String actions) throws RepositoryException {
-        return perform(new CheckedSessionOperation<Boolean>() {
+        return perform(new ReadOperation<Boolean>() {
             @Override
             protected Boolean perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrow(absPath);

@@ -67,10 +67,13 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     protected final T dlg;
     protected final SessionDelegate sessionDelegate;
 
+    private long updateCount;
+
     protected ItemImpl(T itemDelegate, SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.dlg = itemDelegate;
         this.sessionDelegate = sessionContext.getSessionDelegate();
+        this.updateCount = sessionDelegate.getUpdateCount();
     }
 
     protected abstract class ItemReadOperation<U> extends SessionOperation<U> {
@@ -81,6 +84,9 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     protected abstract class ItemWriteOperation<U> extends SessionOperation<U> {
+        protected ItemWriteOperation() {
+            super(true);
+        }
         @Override
         protected void checkPreconditions() throws RepositoryException {
             checkAlive();
@@ -274,9 +280,13 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @throws RepositoryException if this item has been rendered invalid for some reason
      * or the associated session has been logged out.
      */
-    void checkAlive() throws RepositoryException {
+    synchronized void checkAlive() throws RepositoryException {
         sessionDelegate.checkAlive();
-        dlg.checkNotStale();
+        long count = sessionDelegate.getUpdateCount();
+        if (updateCount != count) {
+            dlg.checkNotStale();
+            updateCount = count;
+        }
     }
 
     void checkProtected() throws RepositoryException {
