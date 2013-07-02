@@ -130,7 +130,7 @@ public class MongoMicroKernelService {
         );
 
         DocumentStore ds = mk.getDocumentStore();
-        if(ds instanceof MongoDocumentStore){
+        if (ds instanceof MongoDocumentStore) {
             MongoDocumentStore mds = (MongoDocumentStore) ds;
             registrations.add(
                     registerMBean(wb,
@@ -144,7 +144,7 @@ public class MongoMicroKernelService {
 
     @Deactivate
     private void deactivate() {
-        for(Registration r : registrations){
+        for (Registration r : registrations) {
             r.unregister();
         }
 

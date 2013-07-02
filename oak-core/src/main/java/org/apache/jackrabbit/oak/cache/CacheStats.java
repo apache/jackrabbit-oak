@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.cache;
 
 import java.util.Map;
@@ -26,18 +25,24 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 
-public class CacheStats implements CacheStatsMBean{
-    private final Cache<Object,Object> cache;
-    private final Weigher weigher;
+/**
+ * Cache statistics.
+ */
+public class CacheStats implements CacheStatsMBean {
+    private final Cache<Object, Object> cache;
+    private final Weigher<Object, Object> weigher;
     private final long maxWeight;
     private final String name;
-    private com.google.common.cache.CacheStats lastSnapshot =
-            new com.google.common.cache.CacheStats(0,0,0,0,0,0);
+    private com.google.common.cache.CacheStats lastSnapshot = 
+            new com.google.common.cache.CacheStats(
+            0, 0, 0, 0, 0, 0);
 
-    public CacheStats(Cache cache, String name, Weigher weigher, long maxWeight) {
-        this.cache = cache;
+    @SuppressWarnings("unchecked")
+    public CacheStats(Cache<?, ?> cache, String name, 
+            Weigher<?, ?> weigher, long maxWeight) {
+        this.cache = (Cache<Object, Object>) cache;
         this.name = name;
-        this.weigher = weigher;
+        this.weigher = (Weigher<Object, Object>) weigher;
         this.maxWeight = maxWeight;
     }
 
@@ -108,12 +113,14 @@ public class CacheStats implements CacheStatsMBean{
 
     @Override
     public long estimateCurrentWeight() {
-        if(weigher == null){
+        if (weigher == null) {
             return -1;
         }
         long size = 0;
-        for(Map.Entry e : cache.asMap().entrySet()){
-            size += weigher.weigh(e.getKey(),e.getValue());
+        for (Map.Entry<?, ?> e : cache.asMap().entrySet()) {
+            Object k = e.getKey();
+            Object v = e.getValue();
+            size += weigher.weigh(k, v);
         }
         return size;
     }
@@ -124,7 +131,7 @@ public class CacheStats implements CacheStatsMBean{
     }
 
     @Override
-    public synchronized void resetStats(){
+    public synchronized void resetStats() {
         //Cache stats cannot be rest at Guava level. Instead we
         //take a snapshot and then subtract it from future stats calls
         lastSnapshot = cache.stats();
@@ -134,9 +141,9 @@ public class CacheStats implements CacheStatsMBean{
     public String cacheInfoAsString() {
         return Objects.toStringHelper("CacheStats")
                 .add("hitCount", getHitCount())
-                .add("hitRate", String.format("%1.2f",getHitRate()))
+                .add("hitRate", String.format("%1.2f", getHitRate()))
                 .add("missCount", getMissCount())
-                .add("missRate", String.format("%1.2f",getMissRate()))
+                .add("missRate", String.format("%1.2f", getMissRate()))
                 .add("requestCount", getRequestCount())
                 .add("loadCount", getLoadCount())
                 .add("loadSuccessCount", getLoadSuccessCount())
@@ -162,13 +169,15 @@ public class CacheStats implements CacheStatsMBean{
      * Based on http://stackoverflow.com/a/3758880/1035417
      */
     private static String humanReadableByteCount(long bytes, boolean si) {
-        if(bytes < 0){
+        if (bytes < 0) {
             return "0";
         }
         int unit = si ? 1000 : 1024;
-        if (bytes < unit) return bytes + " B";
+        if (bytes < unit) {
+            return bytes + " B";
+        }
         int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }

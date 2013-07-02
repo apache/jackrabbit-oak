@@ -38,9 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
@@ -49,17 +46,23 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.json.JsopWriter;
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore.Collection;
 import org.apache.jackrabbit.oak.plugins.mongomk.Node.Children;
 import org.apache.jackrabbit.oak.plugins.mongomk.Revision.RevisionComparator;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.Weigher;
 import com.mongodb.DB;
 
 /**
@@ -72,6 +75,12 @@ public class MongoMK implements MicroKernel {
      */
     static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
             "oak.mongoMK.manyChildren", 50);
+    
+    /**
+     * Enable the LIRS cache.
+     */
+    static final boolean LIRS_CACHE = Boolean.parseBoolean(
+            System.getProperty("oak.mongoMK.lirsCache", "true"));
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
@@ -93,7 +102,7 @@ public class MongoMK implements MicroKernel {
      */
     private static final boolean FAST_DIFF = Boolean.parseBoolean(
             System.getProperty("oak.mongoMK.fastDiff", "true"));
-    
+        
     /**
      * How long to remember the relative order of old revision of all cluster
      * nodes, in milliseconds. The default is one hour.
@@ -146,10 +155,11 @@ public class MongoMK implements MicroKernel {
      */
     private final Cache<String, Node.Children> nodeChildrenCache;
     private final CacheStats nodeChildrenCacheStats;
+    
     /**
      * Diff cache.
      */
-    private final Cache<String, String> diffCache;
+    private final Cache<String, Diff> diffCache;
     private final CacheStats diffCacheStats;
 
     /**
@@ -222,27 +232,15 @@ public class MongoMK implements MicroKernel {
         //TODO Make stats collection configurable as it add slight overhead
         //TODO Expose the stats as JMX beans
 
-        nodeCache = CacheBuilder.newBuilder()
-                        .weigher(builder.getWeigher())
-                        .maximumWeight(builder.getNodeCacheSize())
-                        .recordStats()
-                        .build();
+        nodeCache = builder.buildCache(builder.getNodeCacheSize());
         nodeCacheStats = new CacheStats(nodeCache, "MongoMk-Node",
                 builder.getWeigher(), builder.getNodeCacheSize());
 
-        nodeChildrenCache =  CacheBuilder.newBuilder()
-                        .weigher(builder.getWeigher())
-                        .recordStats()
-                        .maximumWeight(builder.getChildrenCacheSize())
-                        .build();
+        nodeChildrenCache = builder.buildCache(builder.getChildrenCacheSize());
         nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "MongoMk-NodeChildren",
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
-        diffCache = CacheBuilder.newBuilder()
-                .recordStats()
-                .weigher(builder.getWeigher())
-                .maximumWeight(builder.getDiffCacheSize())
-                .build();
+        diffCache = builder.buildCache(builder.getDiffCacheSize());
         diffCacheStats = new CacheStats(diffCache, "MongoMk-DiffCache",
                 builder.getWeigher(), builder.getDiffCacheSize());
 
@@ -777,12 +775,12 @@ public class MongoMK implements MicroKernel {
                        final int depth) throws MicroKernelException {
         String key = fromRevisionId + "-" + toRevisionId + "-" + path + "-" + depth;
         try {
-            return diffCache.get(key, new Callable<String>() {
+            return diffCache.get(key, new Callable<Diff>() {
                 @Override
-                public String call() throws Exception {
-                    return diffImpl(fromRevisionId, toRevisionId, path, depth);
+                public Diff call() throws Exception {
+                    return new Diff(diffImpl(fromRevisionId, toRevisionId, path, depth));
                 }
-            });
+            }).diff;
         } catch (ExecutionException e) {
             if (e.getCause() instanceof MicroKernelException) {
                 throw (MicroKernelException) e.getCause();
@@ -1532,6 +1530,38 @@ public class MongoMK implements MicroKernel {
         }
     }
 
+    public CacheStats getNodeCacheStats() {
+        return nodeCacheStats;
+    }
+
+    public CacheStats getNodeChildrenCacheStats() {
+        return nodeChildrenCacheStats;
+    }
+
+    public CacheStats getDiffCacheStats() {
+        return diffCacheStats;
+    }
+    
+    public ClusterNodeInfo getClusterInfo() {
+        return clusterNodeInfo;
+    }
+
+    public int getPendingWriteCount() {
+        return unsavedLastRevisions.size();
+    }
+
+    public boolean isCached(String path) {
+        return store.isCached(Collection.NODES, Utils.getIdFromPath(path));
+    }
+    
+    public void stopBackground() {
+        stopBackground = true;
+    }
+    
+    RevisionComparator getRevisionComparator() {
+        return revisionComparator;
+    }
+    
     /**
      * A background thread.
      */
@@ -1564,17 +1594,23 @@ public class MongoMK implements MicroKernel {
             }
         }
     }
+    
+    /**
+     * A (cached) result of the diff operation.
+     */
+    private static class Diff implements CacheValue {
+        
+        final String diff;
+        
+        Diff(String diff) {
+            this.diff = diff;
+        }
 
-    public CacheStats getNodeCacheStats() {
-        return nodeCacheStats;
-    }
-
-    public CacheStats getNodeChildrenCacheStats() {
-        return nodeChildrenCacheStats;
-    }
-
-    public CacheStats getDiffCacheStats() {
-        return diffCacheStats;
+        @Override
+        public int getMemory() {
+            return diff.length() * 2;
+        }
+        
     }
 
     /**
@@ -1587,7 +1623,7 @@ public class MongoMK implements MicroKernel {
         private int clusterId  = Integer.getInteger("oak.mongoMK.clusterId", 0);
         private int asyncDelay = 1000;
         private boolean timing;
-        private Weigher<String, Object> weigher = new EmpericalWeigher();
+        private Weigher<String, CacheValue> weigher = new EmpiricalWeigher();
         private long nodeCacheSize;
         private long childrenCacheSize;
         private long diffCacheSize;
@@ -1694,11 +1730,11 @@ public class MongoMK implements MicroKernel {
             return asyncDelay;
         }
 
-        public Weigher<String, Object> getWeigher() {
+        public Weigher<String, CacheValue> getWeigher() {
             return weigher;
         }
 
-        public Builder withWeigher(Weigher<String, Object> weigher) {
+        public Builder withWeigher(Weigher<String, CacheValue> weigher) {
             this.weigher = weigher;
             return this;
         }
@@ -1735,26 +1771,22 @@ public class MongoMK implements MicroKernel {
         public MongoMK open() {
             return new MongoMK(this);
         }
-    }
-
-    public ClusterNodeInfo getClusterInfo() {
-        return clusterNodeInfo;
-    }
-
-    public int getPendingWriteCount() {
-        return unsavedLastRevisions.size();
-    }
-
-    public boolean isCached(String path) {
-        return store.isCached(Collection.NODES, Utils.getIdFromPath(path));
-    }
-    
-    public void stopBackground() {
-        stopBackground = true;
-    }
-    
-    RevisionComparator getRevisionComparator() {
-        return revisionComparator;
+        
+        /**
+         * Create a cache.
+         * 
+         * @param <V> the value type
+         * @param maxWeight
+         * @return the cache
+         */
+        public <V extends CacheValue> Cache<String, V> buildCache(long maxWeight) {
+            if (LIRS_CACHE) {
+                return CacheLIRS.newBuilder().weigher(weigher).
+                        maximumWeight(maxWeight).recordStats().build();
+            }
+            return CacheBuilder.newBuilder().weigher(weigher).
+                    maximumWeight(maxWeight).recordStats().build();
+        }
     }
 
 }
