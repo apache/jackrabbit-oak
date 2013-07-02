@@ -268,8 +268,12 @@ public class NodeDelegate extends ItemDelegate {
     @CheckForNull
     public PropertyDelegate getPropertyOrNull(String relPath) throws RepositoryException {
         Tree parent = getTree(PathUtils.getParentPath(relPath));
-        String name = PathUtils.getName(relPath);
-        return PropertyDelegate.create(sessionDelegate, parent, name);
+        if (parent != null) {
+            String name = PathUtils.getName(relPath);
+            return PropertyDelegate.create(sessionDelegate, parent, name);
+        } else {
+            return null;
+        }
     }
 
     /**
