@@ -365,16 +365,26 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void save() throws RepositoryException {
-        sd.checkAlive();
-        sd.save();
-        sessionContext.refresh();
+        perform(new CheckedSessionOperation<Void>() {
+            @Override
+            protected Void perform() throws RepositoryException {
+                sd.save();
+                sessionContext.refresh();
+                return null;
+            }
+        });
     }
 
     @Override
-    public void refresh(boolean keepChanges) throws RepositoryException {
-        sd.checkAlive();
-        sd.refresh(keepChanges);
-        sessionContext.refresh();
+    public void refresh(final boolean keepChanges) throws RepositoryException {
+        perform(new CheckedSessionOperation<Void>() {
+            @Override
+            protected Void perform() throws RepositoryException {
+                sd.refresh(keepChanges);
+                sessionContext.refresh();
+                return null;
+            }
+        });
     }
 
     @Override

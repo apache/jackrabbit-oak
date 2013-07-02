@@ -41,12 +41,12 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
+import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
-import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -90,7 +89,7 @@ public class SessionContext implements NamePathMapper {
     private PrincipalManager principalManager;
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
-    private ObservationManager observationManager;
+    private ObservationManagerImpl observationManager;
 
     SessionContext(
             RepositoryImpl repository, Whiteboard whiteboard,
@@ -227,22 +226,17 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     public ObservationManager getObservationManager() throws UnsupportedRepositoryOperationException {
         if (observationManager == null) {
-            ContentRepository contentRepository = repository.getContentRepository();
             ContentSession contentSession = getSessionDelegate().getContentSession();
             if (!(contentSession instanceof Observable)) {
                 throw new UnsupportedRepositoryOperationException("Observation not supported for session " + contentSession);
             }
 
             observationManager = new ObservationManagerImpl(
-                contentSession,
+                delegate,
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
                 namePathMapper, whiteboard);
         }
         return observationManager;
-    }
-
-    public boolean hasPendingEvents() {
-        return observationManager != null && (((ObservationManagerImpl) observationManager).hasEvents());
     }
 
     //-----------------------------------------------------< NamePathMapper >---
@@ -331,7 +325,7 @@ public class SessionContext implements NamePathMapper {
 
     void dispose() {
         if (observationManager != null) {
-            ((ObservationManagerImpl) observationManager).dispose();
+            observationManager.dispose();
         }
         namespaces.clear();
     }

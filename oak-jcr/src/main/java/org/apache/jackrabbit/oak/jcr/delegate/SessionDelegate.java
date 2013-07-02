@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -53,6 +54,10 @@ public class SessionDelegate {
 
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
+    // TODO implement auto refresh configuration. See OAK-803, OAK-88
+    private static final long AUTO_REFRESH_INTERVAL =
+            TimeUnit.SECONDS.toMillis(1);
+
     private final ContentSession contentSession;
     private final Root root;
     private final IdentifierManager idManager;
@@ -60,18 +65,16 @@ public class SessionDelegate {
     private boolean isAlive = true;
     private int sessionOpCount;
 
+    private long lastAccessed = System.currentTimeMillis();
+
     public SessionDelegate(@Nonnull ContentSession contentSession) {
         this.contentSession = checkNotNull(contentSession);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
     }
 
-    /**
-     * Called by {@link #perform(SessionOperation)} when the session needs to be
-     * refreshed before the actual {@link SessionOperation} is executed.
-     * This default implementation is empty.
-     */
-    protected void refresh() {
+    public void refreshAtNextAccess() {
+        lastAccessed = -1;
     }
 
     /**
@@ -85,11 +88,17 @@ public class SessionDelegate {
      * @return  the result of {@code sessionOperation.perform()}
      * @throws RepositoryException
      */
-    public synchronized <T> T perform(SessionOperation<T> sessionOperation) throws RepositoryException {
+    public synchronized <T> T perform(SessionOperation<T> sessionOperation)
+            throws RepositoryException {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
         if (sessionOpCount == 0) {
             // Refresh and checks only for non re-entrant session operations
-            refresh();
+            long now = System.currentTimeMillis();
+            if (now > lastAccessed + AUTO_REFRESH_INTERVAL) {
+                refresh(true);
+            }
+            lastAccessed = now;
+
             sessionOperation.checkPreconditions();
         }
         try {
@@ -247,6 +256,7 @@ public class SessionDelegate {
                 throw new RepositoryException("Cannot copy node at " + srcPath + " to " + destPath);
             }
             currentRoot.commit();
+            refresh(false);
         } catch (CommitFailedException e) {
             throw newRepositoryException(e);
         }
@@ -291,6 +301,7 @@ public class SessionDelegate {
             }
             if (!transientOp) {
                 moveRoot.commit();
+                refresh(true);
             }
         } catch (CommitFailedException e) {
             throw newRepositoryException(e);
