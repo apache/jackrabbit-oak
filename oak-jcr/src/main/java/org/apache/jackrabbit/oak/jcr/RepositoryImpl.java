@@ -121,25 +121,12 @@ public class RepositoryImpl implements Repository {
      */
     @Override
     public Session login(@Nullable Credentials credentials, @Nullable String workspaceName) throws RepositoryException {
-        // TODO implement auto refresh configuration. See OAK-803, OAK-88
-        final boolean autoRefresh = true;
         try {
-            ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-
-            final SessionContext[] context = new SessionContext[1];  // FIXME hack[]
-            SessionDelegate sessionDelegate = new SessionDelegate(contentSession) {
-                @Override
-                protected void refresh() {
-                    // Refresh is always needed if this is an auto refresh session or there
-                    // are pending observation events
-                    if (autoRefresh || context[0].hasPendingEvents()) {
-                        refresh(true);
-                    }
-                }
-            };
-
-            context[0] = new SessionContext(this, whiteboard, sessionDelegate);
-            return context[0].getSession();
+            ContentSession contentSession =
+                    contentRepository.login(credentials, workspaceName);
+            SessionContext context = new SessionContext(
+                    this, whiteboard, new SessionDelegate(contentSession));
+            return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
         }

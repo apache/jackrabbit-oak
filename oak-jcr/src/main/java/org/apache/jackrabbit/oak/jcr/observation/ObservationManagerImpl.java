@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
@@ -24,7 +24,6 @@ import static com.google.common.collect.Lists.newArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -36,9 +35,10 @@ import javax.jcr.observation.ObservationManager;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +46,7 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 public class ObservationManagerImpl implements ObservationManager {
+
     private static final Logger log = LoggerFactory.getLogger(ObservationManagerImpl.class);
 
     public static final Marker OBSERVATION =
@@ -54,8 +55,10 @@ public class ObservationManagerImpl implements ObservationManager {
     private static final Marker DEPRECATED =
             MarkerFactory.getMarker("deprecated");
 
-    private final Map<EventListener, ChangeProcessor> processors = new HashMap<EventListener, ChangeProcessor>();
-    private final AtomicBoolean hasEvents = new AtomicBoolean(false);
+    private final Map<EventListener, ChangeProcessor> processors =
+            new HashMap<EventListener, ChangeProcessor>();
+
+    private final SessionDelegate sessionDelegate;
     private final ContentSession contentSession;
     private final ReadOnlyNodeTypeManager ntMgr;
     private final NamePathMapper namePathMapper;
@@ -72,12 +75,13 @@ public class ObservationManagerImpl implements ObservationManager {
      * @param whiteboard
      * @throws IllegalArgumentException if {@code contentSession} doesn't implement {@code Observable}.
      */
-    public ObservationManagerImpl(ContentSession contentSession, ReadOnlyNodeTypeManager nodeTypeManager,
+    public ObservationManagerImpl(
+            SessionDelegate sessionDelegate, ReadOnlyNodeTypeManager nodeTypeManager,
             NamePathMapper namePathMapper, Whiteboard whiteboard) {
 
+        this.sessionDelegate = sessionDelegate;
+        this.contentSession = sessionDelegate.getContentSession();
         checkArgument(contentSession instanceof Observable);
-
-        this.contentSession = contentSession;
         this.ntMgr = nodeTypeManager;
         this.namePathMapper = namePathMapper;
         this.whiteboard = whiteboard;
@@ -96,15 +100,6 @@ public class ObservationManagerImpl implements ObservationManager {
         }
     }
 
-    /**
-     * Determine whether events have been generated since the time this method has been called.
-     * @return  {@code true} if this {@code ObservationManager} instance has generated events
-     *          since the last time this method has been called, {@code false} otherwise.
-     */
-    public boolean hasEvents() {
-        return hasEvents.getAndSet(false);
-    }
-
     @Override
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
@@ -116,12 +111,17 @@ public class ObservationManagerImpl implements ObservationManager {
             ListenerTracker tracker = new ListenerTracker(
                     listener, eventTypes, absPath, isDeep,
                     uuid, nodeTypeName, noLocal) {
-                        @Override
-                        protected void warn(String message) {
-                            log.warn(DEPRECATED, message, initStackTrace);
-                        }
+                @Override
+                protected void warn(String message) {
+                    log.warn(DEPRECATED, message, initStackTrace);
+                }
+                @Override
+                protected void beforeEventDelivery() {
+                    sessionDelegate.refreshAtNextAccess();
+                }
             };
-            processor = new ChangeProcessor(this, tracker, filter);
+            processor = new ChangeProcessor(
+                    contentSession, namePathMapper, tracker, filter);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
@@ -164,21 +164,4 @@ public class ObservationManagerImpl implements ObservationManager {
         throw new UnsupportedRepositoryOperationException();
     }
 
-    //------------------------------------------------------------< internal >---
-
-    NamePathMapper getNamePathMapper() {
-        return namePathMapper;
-    }
-
-    void setHasEvents() {
-        hasEvents.set(true);
-    }
-
-    Listener newChangeListener() {
-        return ((Observable) contentSession).newListener();
-    }
-
-    public ContentSession getContentSession() {
-        return contentSession;
-    }
 }

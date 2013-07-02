@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -36,10 +36,14 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.observation.EventImpl;
+import org.apache.jackrabbit.oak.plugins.observation.Observable;
+import org.apache.jackrabbit.oak.plugins.observation.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -65,7 +69,7 @@ class ChangeProcessor implements Runnable {
     private static final Logger log =
             LoggerFactory.getLogger(ChangeProcessor.class);
 
-    private final ObservationManagerImpl observationManager;
+    private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
     private final AtomicReference<EventFilter> filterRef;
     private final AtomicReference<String> userDataRef = new AtomicReference<String>(null);
@@ -82,11 +86,10 @@ class ChangeProcessor implements Runnable {
     private Listener changeListener;
 
     public ChangeProcessor(
-            ObservationManagerImpl observationManager,
-            ListenerTracker tracker,
-            EventFilter filter) {
-        this.observationManager = observationManager;
-        this.namePathMapper = observationManager.getNamePathMapper();
+            ContentSession contentSession, NamePathMapper namePathMapper,
+            ListenerTracker tracker, EventFilter filter) {
+        this.contentSession = contentSession;
+        this.namePathMapper = namePathMapper;
         this.tracker = tracker;
         this.listener = tracker.getTrackedListener();
         filterRef = new AtomicReference<EventFilter>(filter);
@@ -118,7 +121,7 @@ class ChangeProcessor implements Runnable {
         checkState(runnable == null, "Change processor started already");
 
         stopping = false;
-        changeListener = observationManager.newChangeListener();
+        changeListener = ((Observable) contentSession).newListener();
         runnable = WhiteboardUtils.scheduleWithFixedDelay(whiteboard, this, 1);
         mbean = WhiteboardUtils.registerMBean(
                 whiteboard, EventListenerMBean.class, tracker.getListenerMBean(),
@@ -180,7 +183,7 @@ class ChangeProcessor implements Runnable {
             ChangeSet changes = changeListener.getChanges();
             while (!stopping && changes != null) {
                 EventFilter filter = filterRef.get();
-                if (!(filter.excludeLocal() && changes.isLocal(observationManager.getContentSession()))) {
+                if (!(filter.excludeLocal() && changes.isLocal(contentSession))) {
                     String path = namePathMapper.getOakPath(filter.getPath());
                     EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes, path);
                     changes.diff(VisibleDiff.wrap(diff), path);
@@ -237,7 +240,6 @@ class ChangeProcessor implements Runnable {
         public void sendEvents() {
             Iterator<Event> eventIt = Iterators.concat(events.iterator());
             if (eventIt.hasNext()) {
-                observationManager.setHasEvents();
                 listener.onEvent(new EventIteratorAdapter(eventIt) {
                     @Override
                     public boolean hasNext() {

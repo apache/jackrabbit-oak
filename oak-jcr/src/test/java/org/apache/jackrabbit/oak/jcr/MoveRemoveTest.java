@@ -76,6 +76,7 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         n.remove();
         session.save();
 
+        session2.refresh(false);
         try {
             n2.getPath();
             fail();
@@ -83,6 +84,8 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
 
         session.getRootNode().addNode("new");
         session.save();
+
+        session2.refresh(false);
         assertEquals("/new", n2.getPath());
 
         session2.logout();
@@ -136,6 +139,7 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         n.getParent().remove();
         session.save();
 
+        session2.refresh(false);
         try {
             n2.getPath();
             fail();
@@ -143,6 +147,8 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
 
         session.getRootNode().addNode("parent").addNode("new");
         session.save();
+
+        session2.refresh(false);
         assertEquals("/parent/new", n2.getPath());
 
         session2.logout();
@@ -184,6 +190,7 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         session.move("/new", "/moved");
         session.save();
 
+        session2.refresh(false);
         try {
             n2.getPath();
             fail();
@@ -191,6 +198,8 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
 
         session.getRootNode().addNode("new");
         session.save();
+
+        session2.refresh(false);
         assertEquals("/new", n2.getPath());
 
         session2.logout();
@@ -234,6 +243,7 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         session.move("/parent", "/moved");
         session.save();
 
+        session2.refresh(false);
         try {
             n2.getPath();
             fail();
@@ -241,6 +251,8 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
 
         session.getRootNode().addNode("parent").addNode("new");
         session.save();
+
+        session2.refresh(false);
         assertEquals("/parent/new", n2.getPath());
 
         session2.logout();
