@@ -454,7 +454,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     /**
      * @since OAK 1.0 As of OAK AccessControlManager#hasPrivilege will throw
      * PathNotFoundException in case the node associated with a given path is
-     * not readable to the editing session.
+     * not readable to the editing session (compatibility with the specification
+     * which was missing in jackrabbit).
      */
     @Test
     public void testHasPrivilegesNotAccessiblePath() throws Exception {
