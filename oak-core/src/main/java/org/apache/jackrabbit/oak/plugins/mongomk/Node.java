@@ -22,12 +22,13 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.json.JsopWriter;
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 
 /**
  * Represents a node held in memory (in the cache for example).
  */
-public class Node {
+public class Node implements CacheValue {
 
     final String path;
     final Revision rev;
@@ -102,7 +103,8 @@ public class Node {
     public void setLastRevision(Revision lastRevision) {
         this.lastRevision = lastRevision;
     }
-
+    
+    @Override
     public int getMemory() {
         int size = 180 + path.length() * 2;
         for (Entry<String, String> e : properties.entrySet()) {
@@ -114,12 +116,13 @@ public class Node {
     /**
      * A list of children for a node.
      */
-    static class Children {
+    static class Children implements CacheValue {
 
         final ArrayList<String> children = new ArrayList<String>();
         boolean hasMore;
         long offset;
 
+        @Override
         public int getMemory() {
             int size = 114;
             for (String c : children) {
