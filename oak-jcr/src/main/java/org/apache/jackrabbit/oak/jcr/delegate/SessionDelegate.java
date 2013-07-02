@@ -64,6 +64,7 @@ public class SessionDelegate {
 
     private boolean isAlive = true;
     private int sessionOpCount;
+    private long updateCount = 0;
 
     private long lastAccessed = System.currentTimeMillis();
 
@@ -73,7 +74,7 @@ public class SessionDelegate {
         this.idManager = new IdentifierManager(root);
     }
 
-    public void refreshAtNextAccess() {
+    public synchronized void refreshAtNextAccess() {
         lastAccessed = -1;
     }
 
@@ -96,6 +97,7 @@ public class SessionDelegate {
             long now = System.currentTimeMillis();
             if (now > lastAccessed + AUTO_REFRESH_INTERVAL) {
                 refresh(true);
+                updateCount++;
             }
             lastAccessed = now;
 
@@ -106,6 +108,9 @@ public class SessionDelegate {
             return sessionOperation.perform();
         } finally {
             sessionOpCount--;
+            if (sessionOperation.isUpdate()) {
+                updateCount++;
+            }
         }
     }
 
@@ -133,6 +138,14 @@ public class SessionDelegate {
             throw new RepositoryException("This session has been closed.");
         }
     }
+
+    /**
+     * @return session update counter
+     */
+    public long getUpdateCount() {
+        return updateCount;
+    }
+
 
     @Nonnull
     public AuthInfo getAuthInfo() {
