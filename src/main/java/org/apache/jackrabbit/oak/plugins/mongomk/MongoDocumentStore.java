@@ -31,11 +31,11 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -64,7 +64,6 @@ public class MongoDocumentStore implements DocumentStore {
     private long timeSum;
     
     private final Cache<String, CachedDocument> nodesCache;
-    
     private final CacheStats cacheStats;
 
     public MongoDocumentStore(DB db, MongoMK.Builder builder) {
@@ -83,12 +82,7 @@ public class MongoDocumentStore implements DocumentStore {
         nodes.ensureIndex(index, options);
 
         // TODO expire entries if the parent was changed
-        nodesCache = CacheBuilder.newBuilder()
-                .weigher(builder.getWeigher())
-                .recordStats() 
-                .maximumWeight(builder.getDocumentCacheSize())
-                .build();
-
+        nodesCache = builder.buildCache(builder.getDocumentCacheSize());
         cacheStats = new CacheStats(nodesCache, "MongoMk-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
     }
@@ -469,12 +463,20 @@ public class MongoDocumentStore implements DocumentStore {
     /**
      * A cache entry.
      */
-    static class CachedDocument {
+    static class CachedDocument implements CacheValue {
+        
         final long time = System.currentTimeMillis();
         final Map<String, Object> value;
+        
         CachedDocument(Map<String, Object> value) {
             this.value = value;
         }
+        
+        @Override
+        public int getMemory() {
+            return Utils.estimateMemoryUsage(value);
+        }
+        
     }
 
     @Override
