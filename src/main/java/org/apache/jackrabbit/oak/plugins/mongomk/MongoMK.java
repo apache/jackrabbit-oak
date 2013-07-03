@@ -80,7 +80,7 @@ public class MongoMK implements MicroKernel {
      * Enable the LIRS cache.
      */
     static final boolean LIRS_CACHE = Boolean.parseBoolean(
-            System.getProperty("oak.mongoMK.lirsCache", "true"));
+            System.getProperty("oak.mongoMK.lirsCache", "false"));
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
