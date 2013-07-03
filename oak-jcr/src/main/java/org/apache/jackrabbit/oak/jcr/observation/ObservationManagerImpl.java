@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 
 import java.util.HashMap;
@@ -59,7 +58,6 @@ public class ObservationManagerImpl implements ObservationManager {
             new HashMap<EventListener, ChangeProcessor>();
 
     private final SessionDelegate sessionDelegate;
-    private final ContentSession contentSession;
     private final ReadOnlyNodeTypeManager ntMgr;
     private final NamePathMapper namePathMapper;
     private final Whiteboard whiteboard;
@@ -68,7 +66,7 @@ public class ObservationManagerImpl implements ObservationManager {
      * Create a new instance based on a {@link ContentSession} that needs to implement
      * {@link Observable}.
      *
-     * @param contentSession   the content session in whose context this observation manager
+     * @param sessionDelegate  session delegate of the session in whose context this observation manager
      *                         operates.
      * @param nodeTypeManager  node type manager for the content session
      * @param namePathMapper   name path mapper for the content session
@@ -80,8 +78,6 @@ public class ObservationManagerImpl implements ObservationManager {
             NamePathMapper namePathMapper, Whiteboard whiteboard) {
 
         this.sessionDelegate = sessionDelegate;
-        this.contentSession = sessionDelegate.getContentSession();
-        checkArgument(contentSession instanceof Observable);
         this.ntMgr = nodeTypeManager;
         this.namePathMapper = namePathMapper;
         this.whiteboard = whiteboard;
@@ -121,7 +117,7 @@ public class ObservationManagerImpl implements ObservationManager {
                 }
             };
             processor = new ChangeProcessor(
-                    contentSession, namePathMapper, tracker, filter);
+                    sessionDelegate.getContentSession(), namePathMapper, tracker, filter);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
