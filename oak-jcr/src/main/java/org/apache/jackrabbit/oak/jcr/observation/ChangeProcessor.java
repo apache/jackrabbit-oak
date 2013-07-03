@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
-import org.apache.jackrabbit.oak.plugins.observation.EventImpl;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.plugins.observation.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
