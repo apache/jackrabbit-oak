@@ -127,8 +127,18 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
     public void invalidateAll() {
         long max = Math.max(1, maxMemory / segmentCount);
         for (int i = 0; i < segmentCount; i++) {
-            segments[i] = new Segment<K, V>(this,
+            Segment<K, V> old = segments[i];
+            Segment<K, V> s = new Segment<K, V>(this,
                     max, averageMemory, stackMoveDistance);
+            if (old != null) {
+                s.hitCount = old.hitCount;
+                s.missCount = old.missCount;
+                s.loadSuccessCount = old.loadSuccessCount;
+                s.loadExceptionCount = old.loadExceptionCount;
+                s.totalLoadTime = old.totalLoadTime;
+                s.evictionCount = old.evictionCount;
+            }
+            segments[i] = s;
         }
     }
 
@@ -455,8 +465,9 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
             totalLoadTime += s.totalLoadTime;
             evictionCount += s.evictionCount;
         }
-        return new CacheStats(hitCount, missCount, loadSuccessCount, 
+        CacheStats stats = new CacheStats(hitCount, missCount, loadSuccessCount, 
                 loadExceptionCount, totalLoadTime, evictionCount);
+        return stats;
     }
 
     /**
@@ -750,6 +761,7 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
             mapSize++;
             // added entries are always added to the stack
             addToStack(e);
+            missCount++;
             return old;
         }
 
@@ -1117,7 +1129,7 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
     @Override
     @Nullable
     public V getIfPresent(Object key) {
-        return peek((K) key);
+        return get((K) key);
     }
 
     @Override
