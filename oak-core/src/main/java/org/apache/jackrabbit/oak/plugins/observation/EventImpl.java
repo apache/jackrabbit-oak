@@ -32,7 +32,7 @@ import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 public class EventImpl implements JackrabbitEvent {
 
     private final int type;
-    private final String path;
+    private final String jcrPath;
     private final String userID;
     private final String identifier;
     private final Map<?, ?> info;
@@ -41,10 +41,10 @@ public class EventImpl implements JackrabbitEvent {
     private final boolean external;
 
     public EventImpl(
-            int type, String path, String userID, String identifier,
+            int type, String jcrPath, String userID, String identifier,
             Map<?, ?> info, long date, String userData, boolean external) {
         this.type = type;
-        this.path = path;
+        this.jcrPath = jcrPath;
         this.userID = userID;
         this.identifier = identifier;
         this.info = info == null ? Collections.emptyMap() : info;
@@ -60,7 +60,7 @@ public class EventImpl implements JackrabbitEvent {
 
     @Override
     public String getPath() throws RepositoryException {
-        return path;
+        return jcrPath;
     }
 
     @Override
@@ -106,7 +106,7 @@ public class EventImpl implements JackrabbitEvent {
         return date == that.date && type == that.type &&
                 (identifier == null ? that.identifier == null : identifier.equals(that.identifier)) &&
                 (info == null ? that.info == null : info.equals(that.info)) &&
-                (path == null ? that.path == null : path.equals(that.path)) &&
+                (jcrPath == null ? that.jcrPath == null : jcrPath.equals(that.jcrPath)) &&
                 (userID == null ? that.userID == null : userID.equals(that.userID)) &&
                 (userData == null ? that.userData == null : userData.equals(that.userData)) &&
                 external == that.external;
@@ -116,7 +116,7 @@ public class EventImpl implements JackrabbitEvent {
     @Override
     public final int hashCode() {
         int result = type;
-        result = 31 * result + (path == null ? 0 : path.hashCode());
+        result = 31 * result + (jcrPath == null ? 0 : jcrPath.hashCode());
         result = 31 * result + (userID == null ? 0 : userID.hashCode());
         result = 31 * result + (identifier == null ? 0 : identifier.hashCode());
         result = 31 * result + (info == null ? 0 : info.hashCode());
@@ -129,7 +129,7 @@ public class EventImpl implements JackrabbitEvent {
     public String toString() {
         return "EventImpl{" +
                 "type=" + type +
-                ", path='" + path + '\'' +
+                ", jcrPath='" + jcrPath + '\'' +
                 ", userID='" + userID + '\'' +
                 ", identifier='" + identifier + '\'' +
                 ", info=" + info +

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Objects.toStringHelper;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -40,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class EventFilter {
     private final ReadOnlyNodeTypeManager ntMgr;
-    private final NamePathMapper namePathMapper;
     private final int eventTypes;
     private final String path;
     private final boolean deep;
@@ -50,8 +47,8 @@ class EventFilter {
 
     /**
      * Create a new instance of a filter for a certain criterion
+     *
      * @param ntMgr
-     * @param namePathMapper
      * @param eventTypes  event types to include encoded as a bit mask
      * @param path        path to include
      * @param deep        {@code true} if descendants of {@code path} should be included. {@code false} otherwise.
@@ -63,18 +60,14 @@ class EventFilter {
      * @see javax.jcr.observation.ObservationManager#addEventListener(javax.jcr.observation.EventListener,
      * int, String, boolean, String[], String[], boolean)
      */
-    public EventFilter(ReadOnlyNodeTypeManager ntMgr,
-            NamePathMapper namePathMapper, int eventTypes,
-            String path, boolean deep, String[] uuids,
-            String[] nodeTypeName, boolean noLocal)
-            throws NoSuchNodeTypeException, RepositoryException {
+    public EventFilter(ReadOnlyNodeTypeManager ntMgr, int eventTypes, String path, boolean deep, String[] uuids,
+            String[] nodeTypeName, boolean noLocal) {
         this.ntMgr = ntMgr;
-        this.namePathMapper = namePathMapper;
         this.eventTypes = eventTypes;
         this.path = path;
         this.deep = deep;
         this.uuids = uuids;
-        this.nodeTypeOakName = validateNodeTypeNames(nodeTypeName);
+        this.nodeTypeOakName = nodeTypeName;
         this.noLocal = noLocal;
     }
 
@@ -98,12 +91,9 @@ class EventFilter {
      * @return  {@code true} if the children of {@code path} could be matched by this filter
      */
     public boolean includeChildren(String path) {
-        String thisOakPath = namePathMapper.getOakPath(this.path);
-        String thatOakPath = namePathMapper.getOakPath(path);
-
-        return PathUtils.isAncestor(thatOakPath, thisOakPath) ||
-                path.equals(thisOakPath) ||
-                deep && PathUtils.isAncestor(thisOakPath, thatOakPath);
+        return PathUtils.isAncestor(path, this.path) ||
+                path.equals((this.path)) ||
+                deep && PathUtils.isAncestor(this.path, path);
     }
 
     /**
@@ -139,15 +129,12 @@ class EventFilter {
     }
 
     private boolean include(String path) {
-        String thisOakPath = namePathMapper.getOakPath(this.path);
-        String thatOakPath = namePathMapper.getOakPath(path);
-
-        boolean equalPaths = thisOakPath.equals(thatOakPath);
+        boolean equalPaths = this.path.equals(path);
         if (!deep && !equalPaths) {
             return false;
         }
 
-        if (deep && !(PathUtils.isAncestor(thisOakPath, thatOakPath) || equalPaths)) {
+        if (deep && !(PathUtils.isAncestor(this.path, path) || equalPaths)) {
             return false;
         }
         return true;
@@ -197,27 +184,4 @@ class EventFilter {
         return false;
     }
 
-    /**
-     * Validates the given node type names.
-     *
-     * @param nodeTypeNames the node type names.
-     * @return the node type names as oak names.
-     * @throws javax.jcr.nodetype.NoSuchNodeTypeException if one of the node type names refers to
-     *                                 an non-existing node type.
-     * @throws javax.jcr.RepositoryException     if an error occurs while reading from the
-     *                                 node type manager.
-     */
-    @CheckForNull
-    private String[] validateNodeTypeNames(@Nullable String[] nodeTypeNames)
-            throws NoSuchNodeTypeException, RepositoryException {
-        if (nodeTypeNames == null) {
-            return null;
-        }
-        String[] oakNames = new String[nodeTypeNames.length];
-        for (int i = 0; i < nodeTypeNames.length; i++) {
-            ntMgr.getNodeType(nodeTypeNames[i]);
-            oakNames[i] = namePathMapper.getOakName(nodeTypeNames[i]);
-        }
-        return oakNames;
-    }
 }
