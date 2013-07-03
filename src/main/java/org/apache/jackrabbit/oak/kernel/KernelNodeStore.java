@@ -80,6 +80,7 @@ public class KernelNodeStore extends AbstractNodeStore {
         };
         this.cache = CacheBuilder.newBuilder()
                 .maximumWeight(cacheSize)
+                .recordStats()
                 .weigher(weigher)
                 .build(new CacheLoader<String, KernelNodeState>() {
                     @Override
