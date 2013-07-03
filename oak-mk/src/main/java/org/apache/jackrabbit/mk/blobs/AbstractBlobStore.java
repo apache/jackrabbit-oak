@@ -87,7 +87,10 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
      */
     private int blockSize = 2 * 1024 * 1024;
 
-    private Cache<AbstractBlobStore.BlockId, Data> cache = Cache.newInstance(this, 8 * 1024 * 1024);
+    /**
+     * The cache (16 MB).
+     */
+    private Cache<AbstractBlobStore.BlockId, Data> cache = Cache.newInstance(this, 16 * 1024 * 1024);
     
     /**
      * The byte array is re-used if possible, to avoid having to create a new,
