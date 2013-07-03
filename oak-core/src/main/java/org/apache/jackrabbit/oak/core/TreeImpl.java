@@ -18,6 +18,32 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.RootImpl.Move;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -33,36 +59,15 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.RootImpl.Move;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
-
 public class TreeImpl implements Tree {
 
     /**
      * Internal and hidden property that contains the child order
      */
     public static final String OAK_CHILD_ORDER = ":childOrder";
+
+    // TODO: make this configurable
+    public static final Set<String> HIDDEN_NAMES = ImmutableSet.of(IndexConstants.INDEX_CONTENT_NODE_NAME, MicroKernel.CONFLICT_NAME);
 
     /**
      * Underlying {@code Root} of this {@code Tree} instance
@@ -122,7 +127,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public Status getStatus() {
-        enter();
+        checkExists();
         if (nodeBuilder.isNew()) {
             return NEW;
         } else if (nodeBuilder.isModified()) {
@@ -207,13 +212,19 @@ public class TreeImpl implements Tree {
         checkNotNull(name);
         enter();
         TreeImpl child = new TreeImpl(root, this, name, pendingMoves);
-        return child.nodeBuilder.exists();
+        return child.exists();
     }
 
     @Override
     public long getChildrenCount() {
         enter();
-        return nodeBuilder.getChildNodeCount();
+        long childCnt = nodeBuilder.getChildNodeCount();
+        for (String name : HIDDEN_NAMES) {
+            if (nodeBuilder.hasChildNode(name)) {
+                childCnt--;
+            }
+        }
+        return childCnt;
     }
 
     @Override
@@ -226,7 +237,12 @@ public class TreeImpl implements Tree {
             childNames = nodeBuilder.getChildNodeNames();
         }
         return transform(
-                childNames,
+                filter(childNames, new Predicate<String>() {
+                    @Override
+                    public boolean apply(@Nullable String name) {
+                        return !isHidden(name);
+                    }
+                }),
                 new Function<String, Tree>() {
                     @Override
                     public Tree apply(String input) {
@@ -455,7 +471,9 @@ public class TreeImpl implements Tree {
 
     private boolean enter() {
         root.checkLive();
-        if (applyPendingMoves()) {
+        if (isHidden(name)) {
+            return false;
+        } else if (applyPendingMoves()) {
             return reconnect();
         } else {
             return nodeBuilder.exists();
@@ -463,7 +481,6 @@ public class TreeImpl implements Tree {
     }
 
     private static boolean isHidden(String name) {
-        // FIXME clarify handling of hidden items (OAK-753).
         return NodeStateUtils.isHidden(name);
     }
 
