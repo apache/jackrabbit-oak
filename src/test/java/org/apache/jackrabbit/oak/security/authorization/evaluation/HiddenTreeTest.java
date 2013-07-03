@@ -18,12 +18,13 @@ package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test to make sure hidden trees are never exposed.
@@ -44,26 +45,54 @@ public class HiddenTreeTest extends AbstractOakCoreTest {
         assertTrue(parent.exists());
     }
 
-    @Ignore("OAK-753") // FIXME
     @Test
     public void testHasHiddenTree() {
         assertFalse(parent.hasChild(hiddenName));
     }
 
-    @Ignore("OAK-753") // FIXME
     @Test
     public void testGetHiddenTree() {
-        assertFalse(parent.getChild(hiddenName).exists());
+        Tree hidden = parent.getChild(hiddenName);
+        assertNotNull(hidden);
+        assertFalse(hidden.exists());
     }
 
-    @Ignore("OAK-753") // FIXME
+    @Test
+    public void testOrderBeforeOnHiddenTree() {
+        try {
+            Tree hidden = parent.getChild(hiddenName);
+            hidden.orderBefore("someother");
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testSetOrderableChildNodesOnHiddenTree() {
+        try {
+            Tree hidden = parent.getChild(hiddenName);
+            hidden.setOrderableChildren(true);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            // success
+        }
+
+        try {
+            Tree hidden = parent.getChild(hiddenName);
+            hidden.setOrderableChildren(false);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            // success
+        }
+    }
+
     @Test
     public void testGetHiddenChildren() {
         Iterable<Tree> children = parent.getChildren();
         assertFalse(children.iterator().hasNext());
     }
 
-    @Ignore("OAK-753") // FIXME
     @Test
     public void testGetHiddenChildrenCount() {
         assertEquals(0, parent.getChildrenCount());
