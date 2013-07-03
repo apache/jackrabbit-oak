@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.ArrayList;
@@ -41,11 +42,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.plugins.observation.EventImpl;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.plugins.observation.RecursingNodeStateDiff;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -88,6 +89,7 @@ class ChangeProcessor implements Runnable {
     public ChangeProcessor(
             ContentSession contentSession, NamePathMapper namePathMapper,
             ListenerTracker tracker, EventFilter filter) {
+        checkArgument(contentSession instanceof Observable);
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
