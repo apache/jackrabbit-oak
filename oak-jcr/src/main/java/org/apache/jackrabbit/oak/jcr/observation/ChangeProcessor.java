@@ -196,7 +196,7 @@ class ChangeProcessor implements Runnable {
                 changes = changeListener.getChanges();
             }
         } catch (Exception e) {
-            log.error("Unable to generate or send events", e);
+            log.debug("Error while dispatching observation events", e);
         } finally {
             running = null;
             synchronized (this) { notifyAll(); }
@@ -242,12 +242,17 @@ class ChangeProcessor implements Runnable {
         public void sendEvents() {
             Iterator<Event> eventIt = Iterators.concat(events.iterator());
             if (eventIt.hasNext()) {
-                listener.onEvent(new EventIteratorAdapter(eventIt) {
-                    @Override
-                    public boolean hasNext() {
-                        return !stopping && super.hasNext();
-                    }
-                });
+                try {
+                    listener.onEvent(new EventIteratorAdapter(eventIt) {
+                        @Override
+                        public boolean hasNext() {
+                            return !stopping && super.hasNext();
+                        }
+                    });
+                }
+                catch (Exception e) {
+                    log.warn("Unhandled exception in observation listener: " + listener, e);
+                }
                 events = new ArrayList<Iterator<Event>>(PURGE_LIMIT);
             }
         }
