@@ -24,8 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.observation.EventJournal;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
@@ -99,8 +102,8 @@ public class ObservationManagerImpl implements ObservationManager {
     @Override
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
-        EventFilter filter = new EventFilter(ntMgr, namePathMapper, eventTypes,
-                absPath, isDeep, uuid, nodeTypeName, noLocal);
+        EventFilter filter = new EventFilter(ntMgr, eventTypes, oakPath(absPath), isDeep,
+                uuid, validateNodeTypeNames(nodeTypeName), noLocal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
             log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filter);
@@ -158,6 +161,36 @@ public class ObservationManagerImpl implements ObservationManager {
     public EventJournal getEventJournal(int eventTypes, String absPath, boolean isDeep, String[] uuid, String[]
             nodeTypeName) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
+    }
+
+    //------------------------------------------------------------< private >---
+
+    private String oakPath(String jcrPath) {
+        return namePathMapper.getOakPath(jcrPath);
+    }
+
+    /**
+     * Validates the given node type names.
+     *
+     * @param nodeTypeNames the node type names.
+     * @return the node type names as oak names.
+     * @throws javax.jcr.nodetype.NoSuchNodeTypeException if one of the node type names refers to
+     *                                 an non-existing node type.
+     * @throws javax.jcr.RepositoryException     if an error occurs while reading from the
+     *                                 node type manager.
+     */
+    @CheckForNull
+    private String[] validateNodeTypeNames(@Nullable String[] nodeTypeNames)
+            throws NoSuchNodeTypeException, RepositoryException {
+        if (nodeTypeNames == null) {
+            return null;
+        }
+        String[] oakNames = new String[nodeTypeNames.length];
+        for (int i = 0; i < nodeTypeNames.length; i++) {
+            ntMgr.getNodeType(nodeTypeNames[i]);
+            oakNames[i] = namePathMapper.getOakName(nodeTypeNames[i]);
+        }
+        return oakNames;
     }
 
 }
