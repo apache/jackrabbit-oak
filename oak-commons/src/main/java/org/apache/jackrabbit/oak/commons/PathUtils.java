@@ -185,6 +185,9 @@ public final class PathUtils {
     public static int getDepth(String path) {
         assert isValid(path);
 
+        if (path.isEmpty()) {
+            return 0;
+        }
         int count = 1, i = 0;
         if (isAbsolutePath(path)) {
             if (denotesRootPath(path)) {
