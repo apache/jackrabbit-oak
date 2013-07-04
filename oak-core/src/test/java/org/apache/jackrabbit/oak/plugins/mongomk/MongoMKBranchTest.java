@@ -20,6 +20,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -73,5 +74,56 @@ public class MongoMKBranchTest extends BaseMongoMKTest {
         JSONParser parser = new JSONParser();
         JSONObject obj = (JSONObject) parser.parse(json);
         assertTrue(obj.containsKey("foo"));
+    }
+
+    @Test
+    public void branchIsolation1() throws Exception {
+        String filter = "{\"properties\":[\"*\",\":hash\",\":id\"]}";
+        String baseRev = mk.commit("/", "+\"test\":{\"node\":{}}", null, null);
+
+        // branch commit under /test/node
+        String branchRev = mk.branch(baseRev);
+        String branchRev1 = mk.commit("/test/node", "+\"branch-node\":{}", branchRev, null);
+
+        // trunk commit under /test/node
+        String rev1 = mk.commit("/test/node", "+\"trunk-node\":{}", null, null);
+
+        // branch commit on /
+        String branchRev2 = mk.commit("/", "+\"other\":{}", branchRev1, null);
+
+        // get /test on branch and use returned identifier to get next level
+        String json = mk.getNodes("/test", branchRev2, 0, 0, 1000, filter);
+
+        JSONObject test = parseJSONObject(json);
+        String id = resolveValue(test, ":id").toString();
+        String revision = id.split("@")[1];
+        assertNodesExist(revision, "/test/node/branch-node");
+        assertNodesNotExist(revision, "/test/node/trunk-node");
+    }
+
+    @Test
+    public void branchIsolation2() throws Exception {
+        String filter = "{\"properties\":[\"*\",\":hash\",\":id\"]}";
+        String baseRev = mk.commit("/", "+\"test\":{\"node\":{}}", null, null);
+        String branchRev = mk.branch(baseRev);
+
+        // trunk commit under /test/node
+        String rev1 = mk.commit("/test/node", "+\"trunk-node\":{}", null, null);
+
+        // branch commit under /test/node
+        String branchRev1 = mk.commit("/test/node", "+\"branch-node\":{}", branchRev, null);
+
+        // trunk commit on /
+        String rev2 = mk.commit("/", "+\"other\":{}", null, null);
+
+        // get /test on trunk and use returned identifier to get next level
+        String json = mk.getNodes("/test", rev2, 0, 0, 1000, filter);
+
+        JSONObject test = parseJSONObject(json);
+        String id = resolveValue(test, ":id").toString();
+        String revision = id.split("@")[1];
+        assertEquals(rev1, revision);
+        assertNodesExist(revision, "/test/node/trunk-node");
+        assertNodesNotExist(revision, "/test/node/branch-node");
     }
 }

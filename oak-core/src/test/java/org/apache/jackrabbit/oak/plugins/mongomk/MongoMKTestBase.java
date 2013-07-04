@@ -163,7 +163,7 @@ public abstract class MongoMKTestBase {
         throw new AssertionError("failed to resolve JSONObject value at " + relPath + ": " + val);
     }
 
-    private static Object resolveValue(JSONObject obj, String relPath) {
+    protected static Object resolveValue(JSONObject obj, String relPath) {
         String[] names = relPath.split("/");
         Object val = obj;
         for (String name : names) {
