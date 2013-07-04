@@ -117,7 +117,6 @@ public class Commit {
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);
         op.setMapEntry(key, revision.toString(), value);
-        op.setMapEntry(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());        
     }
 
     void addNode(Node n) {
@@ -136,14 +135,14 @@ public class Commit {
     void apply() {
         if (!operations.isEmpty()) {
             applyToDocumentStore();
-            applyToCache();
+            applyToCache(false);
         }
     }
 
     void prepare(Revision baseRevision) {
         if (!operations.isEmpty()) {
             applyToDocumentStore(baseRevision);
-            applyToCache();
+            applyToCache(true);
         }
     }
 
@@ -197,7 +196,11 @@ public class Commit {
         UpdateOp commitRoot = getUpdateOperationForNode(commitRootPath);
         for (String p : operations.keySet()) {
             UpdateOp op = operations.get(p);
-            op.setMapEntry(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());
+            if (baseBranchRevision == null) {
+                // only apply _lastRev for trunk commits, _lastRev for
+                // branch commits only become visible on merge
+                op.setMapEntry(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());
+            }
             if (op.isNew) {
                 op.setMapEntry(UpdateOp.DELETED, revision.toString(), "false");
             }
@@ -465,7 +468,7 @@ public class Commit {
     /**
      * Apply the changes to the MongoMK (to update the cache).
      */
-    public void applyToCache() {
+    public void applyToCache(boolean isBranchCommit) {
         HashMap<String, ArrayList<String>> nodesWithChangedChildren = new HashMap<String, ArrayList<String>>();
         ArrayList<String> addOrRemove = new ArrayList<String>();
         addOrRemove.addAll(addedNodes);
@@ -497,7 +500,7 @@ public class Commit {
             boolean isWritten = op != null;
             boolean isDelete = op != null && op.isDelete;
             mk.applyChanges(revision, path, 
-                    isNew, isDelete, isWritten, 
+                    isNew, isDelete, isWritten, isBranchCommit,
                     added, removed);
         }
     }
@@ -536,7 +539,6 @@ public class Commit {
         UpdateOp op = getUpdateOperationForNode(path);
         op.setDelete(true);
         op.setMapEntry(UpdateOp.DELETED, revision.toString(), "true");
-        op.setMapEntry(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());
     }
 
 }
