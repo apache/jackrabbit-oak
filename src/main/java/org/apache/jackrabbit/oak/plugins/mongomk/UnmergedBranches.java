@@ -93,7 +93,7 @@ class UnmergedBranches {
                     commits.add(base);
                     base = tmp.remove(base);
                 }
-                branches.add(new Branch(commits, base));
+                branches.add(new Branch(commits, base, comparator));
             }
         }
     }
@@ -109,7 +109,7 @@ class UnmergedBranches {
     Branch create(@Nonnull Revision base, @Nonnull Revision initial) {
         SortedSet<Revision> commits = new TreeSet<Revision>(comparator);
         commits.add(checkNotNull(initial));
-        Branch b = new Branch(commits, checkNotNull(base));
+        Branch b = new Branch(commits, checkNotNull(base), comparator);
         synchronized (branches) {
             branches.add(b);
         }

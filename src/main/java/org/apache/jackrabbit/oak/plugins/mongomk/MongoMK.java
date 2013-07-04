@@ -21,6 +21,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -171,8 +172,7 @@ public class MongoMK implements MicroKernel {
      * 
      * Key: path, value: revision.
      */
-    private final Map<String, Revision> unsavedLastRevisions = 
-            new ConcurrentHashMap<String, Revision>();
+    private final UnsavedModifications unsavedLastRevisions = new UnsavedModifications();
     
     /**
      * The last known revision for each cluster instance.
@@ -365,10 +365,10 @@ public class MongoMK implements MicroKernel {
     }
     
     void backgroundWrite() {
-        if (unsavedLastRevisions.size() == 0) {
+        if (unsavedLastRevisions.getPaths().size() == 0) {
             return;
         }
-        ArrayList<String> paths = new ArrayList<String>(unsavedLastRevisions.keySet());
+        ArrayList<String> paths = new ArrayList<String>(unsavedLastRevisions.getPaths());
         // sort by depth (high depth first), then path
         Collections.sort(paths, new Comparator<String>() {
 
@@ -655,43 +655,19 @@ public class MongoMK implements MicroKernel {
         return c;
     }
 
-    private Node readNode(String path, Revision rev) {
+    private Node readNode(String path, Revision readRevision) {
         String id = Utils.getIdFromPath(path);
         Map<String, Object> map = store.find(DocumentStore.Collection.NODES, id);
         if (map == null) {
             return null;
         }
-        Revision min = getLiveRevision(map, rev);
+        Revision min = getLiveRevision(map, readRevision);
         if (min == null) {
             // deleted
             return null;
         }
-        Node n = new Node(path, rev);
-        Revision lastRevision = null;
-        Revision revision =  unsavedLastRevisions.get(path);
-        if (revision != null) {
-            if (isRevisionNewer(revision, rev)) {
-                // at most the read revision
-                revision = rev;
-            }
-            lastRevision = revision;
-        }
+        Node n = new Node(path, readRevision);
         for (String key : map.keySet()) {
-            if (key.equals(UpdateOp.LAST_REV)) {
-                Object v = map.get(key);
-                @SuppressWarnings("unchecked")
-                Map<String, String> valueMap = (Map<String, String>) v;
-                for (String r : valueMap.keySet()) {
-                    revision = Revision.fromString(valueMap.get(r));
-                    if (isRevisionNewer(revision, rev)) {
-                        // at most the read revision
-                        revision = rev;
-                    }
-                    if (lastRevision == null || isRevisionNewer(revision, lastRevision)) {
-                        lastRevision = revision;
-                    }
-                }
-            }
             if (!Utils.isPropertyName(key)) {
                 continue;
             }
@@ -704,10 +680,64 @@ public class MongoMK implements MicroKernel {
                     // use descending keys (newest first) if map is sorted
                     valueMap = ((TreeMap<String, String>) valueMap).descendingMap();
                 }
-                String value = getLatestValue(valueMap, min, rev);
+                String value = getLatestValue(valueMap, min, readRevision);
                 String propertyName = Utils.unescapePropertyName(key);
                 n.setProperty(propertyName, value);
             }
+        }
+
+        // when was this node last modified?
+        Revision lastRevision = null;
+        Map<String, Revision> lastRevs = new HashMap<String, Revision>();
+        @SuppressWarnings("unchecked")
+        Map<String, String> valueMap = (Map<String, String>) map.get(UpdateOp.LAST_REV);
+        if (valueMap != null) {
+            for (String clusterId : valueMap.keySet()) {
+                lastRevs.put(clusterId, Revision.fromString(valueMap.get(clusterId)));
+            }
+        }
+        // overlay with unsaved last modified from this instance
+        Revision lastModified = unsavedLastRevisions.get(path);
+        Branch branch = branches.getBranch(readRevision);
+        if (lastModified != null) {
+            if (branch != null) {
+                // visible from this branch if revision is
+                // not newer than base of branch
+                if (!isRevisionNewer(lastModified, branch.getBase())) {
+                    lastRevs.put(String.valueOf(clusterId), lastModified);
+                }
+            } else {
+                // non-branch read -> check if newer
+                if (isRevisionNewer(lastModified, readRevision)) {
+                    // at most readRevision
+                    lastRevs.put(String.valueOf(clusterId), readRevision);
+                } else {
+                    lastRevs.put(String.valueOf(clusterId), lastModified);
+                }
+            }
+        }
+        if (branch != null) {
+            // read from a branch
+            // -> overlay with unsaved last revs from branch
+            Revision r = branch.getUnsavedLastRevision(path, readRevision);
+            if (r != null) {
+                lastRevs.put(String.valueOf(clusterId), r);
+            }
+        }
+
+        for (String r : lastRevs.keySet()) {
+            lastModified = lastRevs.get(r);
+            if (isRevisionNewer(lastModified, readRevision)) {
+                // at most the read revision
+                lastModified = readRevision;
+            }
+            if (lastRevision == null || isRevisionNewer(lastModified, lastRevision)) {
+                lastRevision = lastModified;
+            }
+        }
+        if (lastRevision == null) {
+            // use readRevision if none found
+            lastRevision = readRevision;
         }
         n.setLastRevision(lastRevision);
         return n;
@@ -1089,7 +1119,7 @@ public class MongoMK implements MicroKernel {
             } finally {
                 if (!success) {
                     b.removeCommit(rev);
-                    if (b.getCommits().isEmpty()) {
+                    if (!b.hasCommits()) {
                         branches.remove(b);
                     }
                 }
@@ -1432,6 +1462,7 @@ public class MongoMK implements MicroKernel {
             }
             if (store.findAndUpdate(DocumentStore.Collection.NODES, op) != null) {
                 // remove from branchCommits map after successful update
+                b.applyTo(unsavedLastRevisions);
                 branches.remove(b);
             } else {
                 throw new MicroKernelException("Conflicting concurrent change. Update operation failed: " + op);
@@ -1499,18 +1530,28 @@ public class MongoMK implements MicroKernel {
      * @param isNew whether this is a new node
      * @param isDelete whether the node is deleted
      * @param isWritten whether the MongoDB documented was added / updated
+     * @param isBranchCommit whether this is from a branch commit
      * @param added the list of added child nodes
      * @param removed the list of removed child nodes
+     *
      */
     public void applyChanges(Revision rev, String path, 
-            boolean isNew, boolean isDelete, boolean isWritten, 
-            ArrayList<String> added, ArrayList<String> removed) {
-        if (!isWritten) {
-            Revision prev = unsavedLastRevisions.put(path, rev);
+            boolean isNew, boolean isDelete, boolean isWritten,
+            boolean isBranchCommit, ArrayList<String> added,
+            ArrayList<String> removed) {
+        UnsavedModifications unsaved = unsavedLastRevisions;
+        if (isBranchCommit) {
+            unsaved = branches.getBranch(rev).getModifications(rev);
+        }
+        // track unsaved modifications of nodes that were not
+        // written in the commit (implicitly modified parent)
+        // or any modification if this is a branch commit
+        if (!isWritten || isBranchCommit) {
+            Revision prev = unsaved.put(path, rev);
             if (prev != null) {
                 if (isRevisionNewer(prev, rev)) {
                     // revert
-                    unsavedLastRevisions.put(path, prev);
+                    unsaved.put(path, prev);
                     String msg = String.format("Attempt to update " +
                             "unsavedLastRevision for %s with %s, which is " +
                             "older than current %s.",
@@ -1521,7 +1562,7 @@ public class MongoMK implements MicroKernel {
         } else {
             // the document was updated:
             // we no longer need to update it in a background process
-            unsavedLastRevisions.remove(path);
+            unsaved.remove(path);
         }
         Children c = nodeChildrenCache.getIfPresent(path + "@" + rev);
         if (isNew || (!isDelete && c != null)) {
@@ -1555,7 +1596,7 @@ public class MongoMK implements MicroKernel {
     }
 
     public int getPendingWriteCount() {
-        return unsavedLastRevisions.size();
+        return unsavedLastRevisions.getPaths().size();
     }
 
     public boolean isCached(String path) {

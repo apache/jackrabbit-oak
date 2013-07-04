@@ -168,20 +168,23 @@ public class ClusterTest {
     }    
     
     @Test
-    public void clusterBranchInVisibility() {
-        MongoMK mk1 = createMK(0);
+    public void clusterBranchInVisibility() throws InterruptedException {
+        MongoMK mk1 = createMK(1);
         mk1.commit("/", "+\"regular\": {}", null, null);
         String b1 = mk1.branch(null);
         String b2 = mk1.branch(null);
         b1 = mk1.commit("/", "+\"branchVisible\": {}", b1, null);
         b2 = mk1.commit("/", "+\"branchInvisible\": {}", b2, null);
         mk1.merge(b1, null);
-        
-        MongoMK mk2 = createMK(0);
+        // mk1.merge only becomes visible to mk2 after async delay
+        // therefore dispose mk1 now to make sure it flushes
+        // unsaved last revisions
+        mk1.dispose();
+
+        MongoMK mk2 = createMK(2);
         String nodes = mk2.getNodes("/", null, 0, 0, 100, null);
         assertEquals("{\"branchVisible\":{},\"regular\":{},\":childNodeCount\":2}", nodes);
         
-        mk1.dispose();
         mk2.dispose();
     }
     

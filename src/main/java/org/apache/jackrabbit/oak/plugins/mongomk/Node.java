@@ -79,7 +79,6 @@ public class Node implements CacheValue {
         op.set(UpdateOp.ID, id);
         Commit.setModified(op, rev);
         op.setMapEntry(UpdateOp.DELETED, rev.toString(), "false");
-        op.setMapEntry(UpdateOp.LAST_REV, "" + rev.getClusterId(), rev.toString());
         for (String p : properties.keySet()) {
             String key = Utils.escapePropertyName(p);
             op.setMapEntry(key, rev.toString(), properties.get(p));
