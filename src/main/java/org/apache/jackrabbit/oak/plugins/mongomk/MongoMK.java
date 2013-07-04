@@ -601,16 +601,24 @@ public class MongoMK implements MicroKernel {
         return includeRevision(revision, readRevision);
     }
 
-    public Children getChildren(String path, Revision rev, int limit) {
+    public Children getChildren(final String path, final Revision rev, final int limit)  throws MicroKernelException{
         checkRevisionAge(rev, path);
         String key = path + "@" + rev;
-        Children children = nodeChildrenCache.getIfPresent(key);
-        if (children == null) {
-            children = readChildren(path, rev, limit);
-            if (children != null) {
-                nodeChildrenCache.put(key, children);
-            }
-        } else if (children.hasMore) {
+        Children children;
+        try {
+            children = nodeChildrenCache.get(key, new Callable<Children>() {
+                @Override
+                public Children call() throws Exception {
+                    return readChildren(path, rev, limit);
+                }
+            });
+        } catch (ExecutionException e) {
+            throw new MicroKernelException("Error occurred while fetching children nodes for path "+path,e);
+        }
+
+        //In case the limit > cached children size and there are more child nodes
+        //available then refresh the cache
+        if (children.hasMore) {
             if (limit > children.children.size()) {
                 children = readChildren(path, rev, limit);
                 if (children != null) {
