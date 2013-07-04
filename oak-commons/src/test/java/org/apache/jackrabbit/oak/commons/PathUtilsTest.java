@@ -18,17 +18,19 @@ package org.apache.jackrabbit.oak.commons;
 
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * Test the PathUtils class.
  */
-public class PathTest extends TestCase {
+public class PathUtilsTest extends TestCase {
     static boolean assertsEnabled;
 
     static {
         assert assertsEnabled = true;
     }
 
+    @Test
     public void test() {
 
         try {
@@ -56,6 +58,17 @@ public class PathTest extends TestCase {
         test("parent", "child");
         test("x", "y");
     }
+
+    @Test
+    public void testGetDepth() {
+        assertEquals(0, PathUtils.getDepth("/"));
+        assertEquals(0, PathUtils.getDepth(""));
+        assertEquals(1, PathUtils.getDepth("/a"));
+        assertEquals(1, PathUtils.getDepth("a"));
+        assertEquals(2, PathUtils.getDepth("/a/b"));
+        assertEquals(2, PathUtils.getDepth("a/b"));
+    }
+
 
     private static int getElementCount(String path) {
         int count = 0;
@@ -157,13 +170,6 @@ public class PathTest extends TestCase {
         // denotesRoot
         assertTrue(PathUtils.denotesRoot("/"));
         assertFalse(PathUtils.denotesRoot("/" + parent));
-
-        // getDepth
-        assertEquals(0, PathUtils.getDepth("/"));
-        assertEquals(1, PathUtils.getDepth("/" + parent));
-        assertEquals(2, PathUtils.getDepth("/" + parent + "/" + child));
-        assertEquals(1, PathUtils.getDepth(parent));
-        assertEquals(2, PathUtils.getDepth(parent + "/" + child));
 
         // getName
         assertEquals("", PathUtils.getName("/"));
