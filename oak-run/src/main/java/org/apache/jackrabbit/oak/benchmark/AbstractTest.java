@@ -34,6 +34,11 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
  */
 abstract class AbstractTest extends Benchmark {
 
+    private static final int WARMUP = Integer.getInteger("warmup", 5);
+
+    private static final long RUNTIME =
+            TimeUnit.SECONDS.toMillis(Long.getLong("runtime", 60));
+
     private Repository repository;
 
     private Credentials credentials;
@@ -111,15 +116,13 @@ abstract class AbstractTest extends Benchmark {
         setUp(repository, CREDENTIALS);
         try {
             // Run a few iterations to warm up the system
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < WARMUP; i++) {
                 execute();
             }
 
             // Run test iterations, and capture the execution times
             int iterations = 0;
-            long runtimeEnd =
-                    System.currentTimeMillis()
-                    + TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
+            long runtimeEnd = System.currentTimeMillis() + RUNTIME;
             while (iterations++ < 10
                     || System.currentTimeMillis() < runtimeEnd) {
                 statistics.addValue(execute());

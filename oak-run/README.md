@@ -33,6 +33,11 @@ java.hprof.txt` to produce a somewhat easier-to-read top-down and
 bottom-up summaries of how the execution time is distributed across
 the benchmarked codebase.
 
+Some system properties are also used to control the benchmarks. For example:
+
+    -Dwarmup=5         - number of warmup iterations
+    -Druntime=60       - how long a single benchmark should run (in seconds)
+
 The test case names like `ReadPropertyTest`, `SmallFileReadTest` and
 `SmallFileWriteTest` indicate the specific test case being run. You can
 specify one or more test cases in the benchmark command line, and

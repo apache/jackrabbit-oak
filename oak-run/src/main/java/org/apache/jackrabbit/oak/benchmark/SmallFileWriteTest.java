@@ -32,6 +32,11 @@ public class SmallFileWriteTest extends AbstractTest {
 
     private Node root;
 
+    /**
+     * Iteration counter used to avoid the slit document edge case in MongoMK.
+     */
+    private int iteration = 0;
+
     @Override
     public void beforeSuite() throws RepositoryException {
         session = loginWriter();
@@ -39,11 +44,12 @@ public class SmallFileWriteTest extends AbstractTest {
 
     @Override
     public void beforeTest() throws RepositoryException {
-        root = session.getRootNode().addNode("SmallFileWriteTest", "nt:folder");
+        root = session.getRootNode().addNode(
+                "SmallFileWriteTest" + iteration++, "nt:folder");
         session.save();
     }
 
-    @Override
+    @Override @SuppressWarnings("deprecation")
     public void runTest() throws Exception {
         for (int i = 0; i < FILE_COUNT; i++) {
             Node file = root.addNode("file" + i, "nt:file");
