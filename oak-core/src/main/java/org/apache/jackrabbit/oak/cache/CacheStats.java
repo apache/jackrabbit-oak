@@ -152,7 +152,7 @@ public class CacheStats implements CacheStatsMBean {
                 .add("loadSuccessCount", getLoadSuccessCount())
                 .add("loadExceptionCount", getLoadExceptionCount())
                 .add("totalLoadTime", timeInWords(getTotalLoadTime()))
-                .add("averageLoadPenalty (nanos)", getAverageLoadPenalty())
+                .add("averageLoadPenalty (nanos)", String.format("%1.2f", getAverageLoadPenalty()))
                 .add("evictionCount", getEvictionCount())
                 .add("elementCount", getElementCount())
                 .add("totalWeight", humanReadableByteCount(estimateCurrentWeight(), true))
