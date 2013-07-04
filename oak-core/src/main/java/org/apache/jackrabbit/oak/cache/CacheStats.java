@@ -18,7 +18,10 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
@@ -148,8 +151,8 @@ public class CacheStats implements CacheStatsMBean {
                 .add("loadCount", getLoadCount())
                 .add("loadSuccessCount", getLoadSuccessCount())
                 .add("loadExceptionCount", getLoadExceptionCount())
-                .add("totalLoadTime", getTotalLoadTime())
-                .add("averageLoadPenalty", String.format("%1.2f", getAverageLoadPenalty()))
+                .add("totalLoadTime", timeInWords(getTotalLoadTime()))
+                .add("averageLoadPenalty (nanos)", getAverageLoadPenalty())
                 .add("evictionCount", getEvictionCount())
                 .add("elementCount", getElementCount())
                 .add("totalWeight", humanReadableByteCount(estimateCurrentWeight(), true))
@@ -163,6 +166,16 @@ public class CacheStats implements CacheStatsMBean {
 
     private com.google.common.cache.CacheStats stats() {
         return cache.stats().minus(lastSnapshot);
+    }
+
+    private static String timeInWords(long nanos){
+        long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
+        return String.format("%d min, %d sec",
+                TimeUnit.MILLISECONDS.toMinutes(millis),
+                TimeUnit.MILLISECONDS.toSeconds(millis) -
+                        TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+        );
+        //return (new SimpleDateFormat("mm:ss:SSS")).format(new Date(millis));
     }
 
     /**
