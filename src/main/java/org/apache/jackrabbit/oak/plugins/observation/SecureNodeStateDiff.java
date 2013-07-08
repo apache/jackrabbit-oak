@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -40,7 +42,7 @@ public class SecureNodeStateDiff extends SecurableNodeStateDiff {
     protected SecurableNodeStateDiff create(SecurableNodeStateDiff parent,
             String name, NodeState before, NodeState after) {
 
-        return new SecureNodeStateDiff(parent);
+        return isHidden(name) ? null : new SecureNodeStateDiff(parent);
     }
 
     @Override

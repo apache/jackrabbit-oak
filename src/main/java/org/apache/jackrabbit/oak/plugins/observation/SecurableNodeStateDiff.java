@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 /**
  * Base class for {@code NodeStateDiff} implementations that can be secured.
@@ -48,6 +50,7 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
         this(null, diff);
     }
 
+    @CheckForNull
     protected abstract SecurableNodeStateDiff create(SecurableNodeStateDiff parent,
             String name, NodeState before, NodeState after);
 
@@ -59,10 +62,12 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
         return true;
     }
 
+    @Nonnull
     protected NodeState secureBefore(String name, NodeState nodeState) {
         return nodeState;
     }
 
+    @Nonnull
     protected NodeState secureAfter(String name, NodeState nodeState) {
         return nodeState;
     }
@@ -108,12 +113,12 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(final String name, final NodeState before, final NodeState after) {
-        // FIXME temporary solution to skip look ahead on hidden child nodes
-        if (NodeStateUtils.isHidden(name)) {
+        final SecurableNodeStateDiff childDiff = create(this, name, before, after);
+        if (childDiff == null) {
+            // Continue with siblings but don't decent into this subtree
             return true;
         }
 
-        final SecurableNodeStateDiff childDiff = create(this, name, before, after);
         deferred = new Deferred() {
             @Override
             boolean call() {
