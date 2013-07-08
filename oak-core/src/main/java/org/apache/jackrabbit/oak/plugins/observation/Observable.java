@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 
 /**
  * An {@code Observable} supports attaching {@link Listener} instances for
- * listening to changes in a {@code ContentRepository}.
+ * listening to changes in a {@code ContentSession}.
  * @see ChangeDispatcher
  */
 public interface Observable {
