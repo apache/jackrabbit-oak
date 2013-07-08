@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**

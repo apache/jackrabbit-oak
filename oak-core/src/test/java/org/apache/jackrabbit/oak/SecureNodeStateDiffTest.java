@@ -23,7 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.assertEquals;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.observation.RecursingNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.plugins.observation.SecurableNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
