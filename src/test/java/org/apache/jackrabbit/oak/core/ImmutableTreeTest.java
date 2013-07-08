@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 
 public class ImmutableTreeTest extends OakBaseTest {
 
@@ -118,4 +119,34 @@ public class ImmutableTreeTest extends OakBaseTest {
             // success
         }
     }
+    
+    @Test
+    public void orderBefore() throws Exception {
+    	 TreeImpl t = (TreeImpl) root.getTree("/x/y/z");
+   
+         t.addChild("node1");
+         t.addChild("node2");
+         t.addChild("node3");
+        
+         
+         t.getChild("node1").orderBefore("node2");
+         t.getChild("node3").orderBefore(null);
+         
+         root.commit();
+         
+         ImmutableTree tree = new ImmutableTree(t.getNodeState());
+         assertSequence(tree.getChildren(), "node1", "node2", "node3");
+ 
+         t.getChild("node3").orderBefore("node2");         
+         root.commit();        
+         
+         tree = new ImmutableTree(t.getNodeState());
+         assertSequence(tree.getChildren(), "node1", "node3", "node2");         
+         
+         t.getChild("node1").orderBefore(null);
+         root.commit();
+         
+         tree = new ImmutableTree(t.getNodeState());
+         assertSequence(tree.getChildren(), "node3", "node2", "node1");
+     }   
 }
