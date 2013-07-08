@@ -21,22 +21,31 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import java.util.Iterator;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class ReadOnlyTree implements Tree {
+	
+    /**
+     * Internal and hidden property that contains the child order
+     */
+    public static final String OAK_CHILD_ORDER = ":childOrder";
 
     /**
      * Parent of this tree, {@code null} for the root
@@ -159,38 +168,25 @@ public class ReadOnlyTree implements Tree {
      * This implementation does not respect ordered child nodes, but always
      * returns them in some implementation specific order.
      * <p/>
-     * TODO: respect orderable children (needed?)
      *
      * @return the children.
      */
     @Override
     public Iterable<Tree> getChildren() {
-        return new Iterable<Tree>() {
-            @Override
-            public Iterator<Tree> iterator() {
-                final Iterator<? extends ChildNodeEntry> iterator =
-                        state.getChildNodeEntries().iterator();
-                return new Iterator<Tree>() {
+        Iterable<String> childNames;
+        if (hasOrderableChildren()) {
+            childNames = getOrderedChildNames();
+        } else {
+            childNames = state.getChildNodeNames();
+        }
+        return transform(
+                filter(childNames, new Predicate<String>() {
                     @Override
-                    public boolean hasNext() {
-                        return iterator.hasNext();
+                    public boolean apply(String name) {
+                        return !isHidden(name);
                     }
-
-                    @Override
-                    public Tree next() {
-                        ChildNodeEntry entry = iterator.next();
-                        return new ReadOnlyTree(
-                                ReadOnlyTree.this,
-                                entry.getName(), entry.getNodeState());
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-                };
-            }
-        };
+                }),
+                createChild());
     }
 
     @Override
@@ -251,4 +247,56 @@ public class ReadOnlyTree implements Tree {
             return PathUtils.concat(parent.getIdentifier(), name);
         }
     }
+    
+    /**
+     * @return {@code true} if this tree has orderable children;
+     *         {@code false} otherwise.
+     */
+    private boolean hasOrderableChildren() {
+        return state.hasProperty(OAK_CHILD_ORDER);
+    }
+    
+    /**
+     * Returns the ordered child names. This method must only be called when
+     * this tree {@link #hasOrderableChildren()}.
+     *
+     * @return the ordered child names.
+     */
+    private Iterable<String> getOrderedChildNames() {
+        assert hasOrderableChildren();
+        return new Iterable<String>() {
+            @Override
+            public Iterator<String> iterator() {
+                return new Iterator<String>() {
+                    final PropertyState childOrder = state.getProperty(OAK_CHILD_ORDER);
+                    int index = 0;
+
+                    @Override
+                    public boolean hasNext() {
+                        return index < childOrder.count();
+                    }
+
+                    @Override
+                    public String next() {
+                        return childOrder.getValue(STRING, index++);
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+        };
+    }
+
+    protected Function<String, Tree> createChild(){
+    	return new Function<String, Tree>() {
+            @Override
+            public Tree apply(String name) {
+                return new ReadOnlyTree(ReadOnlyTree.this, name, state.getChildNode(name));
+            }
+        };
+    }
+
 }
