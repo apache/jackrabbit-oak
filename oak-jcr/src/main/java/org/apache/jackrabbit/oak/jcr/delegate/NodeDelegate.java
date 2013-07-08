@@ -517,7 +517,9 @@ public class NodeDelegate extends ItemDelegate {
             }
             if (!exactTypeMatch) {
                 for (Tree def : definitions.getChildren()) {
-                    return def;
+                    if (propertyType.isArray() == getBoolean(def, JCR_MULTIPLE)) {
+                        return def;
+                    }
                 }
             }
         }
@@ -535,7 +537,9 @@ public class NodeDelegate extends ItemDelegate {
             }
             if (!exactTypeMatch) {
                 for (Tree def : definitions.getChildren()) {
-                    return def;
+                    if (propertyType.isArray() == getBoolean(def, JCR_MULTIPLE)) {
+                        return def;
+                    }
                 }
             }
         }
