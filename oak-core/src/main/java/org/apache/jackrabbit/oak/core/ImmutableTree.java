@@ -18,19 +18,15 @@ package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-
-import java.util.Iterator;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -176,37 +172,12 @@ public final class ImmutableTree extends ReadOnlyTree {
      * This implementation does not respect ordered child nodes, but always
      * returns them in some implementation specific order.
      * <p/>
-     * TODO: respect orderable children (needed?)
      *
      * @return the children.
      */
     @Override
     public Iterable<Tree> getChildren() {
-        return new Iterable<Tree>() {
-            @Override
-            public Iterator<Tree> iterator() {
-                final Iterator<? extends ChildNodeEntry> iterator = state.getChildNodeEntries().iterator();
-                return new Iterator<Tree>() {
-                    @Override
-                    public boolean hasNext() {
-                        return iterator.hasNext();
-                    }
-
-                    @Override
-                    public Tree next() {
-                        ChildNodeEntry entry = iterator.next();
-                        return new ImmutableTree(
-                                ImmutableTree.this,
-                                entry.getName(), entry.getNodeState());
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-                };
-            }
-        };
+        return super.getChildren();
     }
 
     //-------------------------------------------------------------< Object >---
@@ -263,6 +234,16 @@ public final class ImmutableTree extends ReadOnlyTree {
             return PathUtils.concat(getParent().getIdentifier(), getName());
         }
     }
+    
+    @Override
+    protected Function<String, Tree> createChild(){
+    	return new Function<String, Tree>() {
+            @Override
+            public Tree apply(String name) {
+                return new ImmutableTree(ImmutableTree.this, name, state.getChildNode(name));
+            }
+        };
+    }
 
     //--------------------------------------------------------------------------
     public interface ParentProvider {
@@ -286,7 +267,6 @@ public final class ImmutableTree extends ReadOnlyTree {
     }
 
     public static final class DefaultParentProvider implements ParentProvider {
-
         private ImmutableTree parent;
 
         DefaultParentProvider(ImmutableTree parent) {
@@ -298,4 +278,5 @@ public final class ImmutableTree extends ReadOnlyTree {
             return parent;
         }
     }
+
 }
