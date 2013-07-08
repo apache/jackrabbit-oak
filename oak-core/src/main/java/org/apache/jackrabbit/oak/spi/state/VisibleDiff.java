@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.observation.RecursingNodeStateDiff;
 
 /**
  * {@code NodeStateDiff} wrapper that passes only changes to non-hidden nodes and properties

@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 
 public class SecureNodeStateDiff extends SecurableNodeStateDiff {
     private SecureNodeStateDiff(RecursingNodeStateDiff diff) {

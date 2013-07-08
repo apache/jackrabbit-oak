@@ -17,12 +17,9 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.spi.state;
 
 import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A {@code RecursingNodeStateDiff} extends {@link DefaultNodeStateDiff}
@@ -31,7 +28,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * should <em>not</em> recurse into child nodes but rather only be concerned about whether to continue
  * diffing or not. The {@link #createChildDiff(String, NodeState, NodeState)} will be called instead
  * for diffing child nodes.
- * TODO unify with NodeStateDiff
  */
 public class RecursingNodeStateDiff extends DefaultNodeStateDiff {
     public static final RecursingNodeStateDiff EMPTY = new RecursingNodeStateDiff();
