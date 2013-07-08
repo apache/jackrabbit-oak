@@ -24,7 +24,11 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TODO unify with either Observer or CommitHook
+ * Extension point for observing content changes of an Oak
+ * {@link org.apache.jackrabbit.oak.api.Root}. Content changes are
+ * reported by passing the <em>before</em> and <em>after</em> state of the content
+ * tree to the {@link #contentChanged(NodeState, NodeState)} callback
+ * method.
  */
 public interface PostCommitHook {
     PostCommitHook EMPTY = new PostCommitHook() {
@@ -32,5 +36,15 @@ public interface PostCommitHook {
         public void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after) { }
     };
 
+    /**
+     * Observes a content change on the associated {@link org.apache.jackrabbit.oak.api.Root}.
+     * <p>
+     * Post-commit hooks are executed synchronously within the context of
+     * a repository instance, so to prevent delaying access to latest changes
+     * the after-commit hooks should avoid any potentially blocking operations.
+     *
+     * @param before content tree before the commit
+     * @param after content tree after the commit
+     */
     void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after);
 }
