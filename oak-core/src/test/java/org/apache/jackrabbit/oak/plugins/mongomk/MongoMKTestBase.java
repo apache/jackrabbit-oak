@@ -73,6 +73,14 @@ public abstract class MongoMKTestBase {
         doAssertNodes(false, revision, paths);
     }
 
+    protected void assertChildNodeCount(String path,
+                                        String revision,
+                                        long numChildNodes) {
+        JSONObject json = parseJSONObject(getMicroKernel().getNodes(
+                path, revision, 0, 0, -1, null));
+        assertPropertyValue(json, ":childNodeCount", numChildNodes);
+    }
+
     protected void assertPropExists(String rev, String path, String property) {
         String nodes = getMicroKernel().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
