@@ -16,12 +16,19 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
+import org.junit.Ignore;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * Abstract base class for repository tests providing methods for accessing
@@ -30,10 +37,28 @@ import org.junit.After;
  * Users of this class must call clear to close the session associated with
  * this instance and clean up the repository when done.
  */
+@RunWith(Parameterized.class)
+@Ignore("This abstract base class does not have any tests")
 public abstract class AbstractRepositoryTest {
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> fixtures() {
+        Object[][] fixtures = new Object[][] {
+                {NodeStoreFixture.MK_IMPL},
+                {NodeStoreFixture.MONGO_MK},
+                {NodeStoreFixture.SEGMENT_MK},
+        };
+        return Arrays.asList(fixtures);
+    }
+
+    protected NodeStoreFixture fixture;
+    private NodeStore nodeStore = null;
     private Repository repository = null;
     private Session adminSession = null;
+
+    public AbstractRepositoryTest(NodeStoreFixture fixture) {
+        this.fixture = fixture;
+    }
 
     @After
     public void logout() throws RepositoryException {
@@ -44,11 +69,15 @@ public abstract class AbstractRepositoryTest {
         }
         // release repository field
         repository = null;
+        if (nodeStore != null) {
+            fixture.dispose(nodeStore);
+        }
     }
 
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
-            repository  = new Jcr().createRepository();
+            nodeStore = fixture.createNodeStore();
+            repository  = new Jcr(nodeStore).createRepository();
         }
         return repository;
     }

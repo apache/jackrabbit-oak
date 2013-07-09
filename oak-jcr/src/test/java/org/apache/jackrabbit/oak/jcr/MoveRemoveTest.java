@@ -28,6 +28,10 @@ import org.junit.Test;
 
 public class MoveRemoveTest extends AbstractRepositoryTest {
 
+    public MoveRemoveTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Test
     public void removeExistingNode() throws RepositoryException {
         Session session = getAdminSession();

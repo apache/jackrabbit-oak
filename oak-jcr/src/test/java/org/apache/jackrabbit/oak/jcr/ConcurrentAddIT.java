@@ -31,19 +31,26 @@ import com.google.common.collect.Iterables;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 /**
- * <code>ConcurrentAddTest</code> adds nodes with multiple sessions in separate
+ * <code>ConcurrentAddIT</code> adds nodes with multiple sessions in separate
  * locations of the repository.
  */
-public class ConcurrentAddTest extends AbstractRepositoryTest {
+public class ConcurrentAddIT extends AbstractRepositoryTest {
 
     private static final int NUM_WORKERS = 10;
 
     private static final int NODES_PER_WORKER = 100;
 
+    public ConcurrentAddIT(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Test
     public void addNodes() throws Exception {
+        // OAK-786
+        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);
         List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
         Node test = getAdminSession().getRootNode().addNode("test");

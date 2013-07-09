@@ -32,6 +32,10 @@ import static org.junit.Assert.assertTrue;
  */
 public class AutoCreatedItemsTest extends AbstractRepositoryTest {
 
+    public AutoCreatedItemsTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Test
     public void autoCreatedItems() throws Exception {
         Session s = getAdminSession();

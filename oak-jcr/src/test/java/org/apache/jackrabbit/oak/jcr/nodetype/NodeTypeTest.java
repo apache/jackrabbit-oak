@@ -24,9 +24,14 @@ import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Test;
 
 public class NodeTypeTest extends AbstractRepositoryTest {
+
+    public NodeTypeTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     /**
      * Add a node to a node type that does not accept child nodes

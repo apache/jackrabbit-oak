@@ -59,6 +59,7 @@ import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.UpperCase;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -71,6 +72,10 @@ public class QomTest extends AbstractRepositoryTest {
 
     private ValueFactory vf;
     private QueryObjectModelFactory f;
+
+    public QomTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Before
     public void before() throws RepositoryException {
