@@ -33,6 +33,10 @@ public class ValueFactoryTest extends AbstractRepositoryTest {
 
     private ValueFactory valueFactory;
 
+    public ValueFactoryTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Before
     public void setup() throws RepositoryException {
         valueFactory = getAdminSession().getValueFactory();

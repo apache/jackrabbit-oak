@@ -72,6 +72,10 @@ public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
 
+    public RepositoryTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Before
     public void setup() throws RepositoryException {
         Session session = getAdminSession();

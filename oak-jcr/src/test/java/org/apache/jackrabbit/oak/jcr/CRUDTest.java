@@ -33,6 +33,10 @@ import static junit.framework.Assert.fail;
 
 public class CRUDTest extends AbstractRepositoryTest {
 
+    public CRUDTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Test
     public void testCRUD() throws RepositoryException {
         Session session = getAdminSession();

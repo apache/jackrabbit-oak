@@ -33,7 +33,6 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -74,8 +73,7 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
             ConfigurationParameters config = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
 
             SecurityProvider securityProvider = new SecurityProviderImpl(config);
-            String dir = "target/mk-tck-" + System.currentTimeMillis();
-            Jcr jcr = new Jcr(new MicroKernelImpl(dir));
+            Jcr jcr = new Jcr();
             jcr.with(securityProvider);
             repo = jcr.createRepository();
             adminSession = repo.login(getHelper().getSuperuserCredentials());

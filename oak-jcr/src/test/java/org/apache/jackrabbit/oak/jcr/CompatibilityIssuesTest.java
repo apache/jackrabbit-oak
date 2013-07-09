@@ -33,6 +33,10 @@ import org.junit.Test;
  */
 public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
+    public CompatibilityIssuesTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     private static void check(Session session) throws RepositoryException {
         if (session.getNode("/testNode").getProperty("p1").getLong() +
                 session.getNode("/testNode").getProperty("p2").getLong() < 0) {

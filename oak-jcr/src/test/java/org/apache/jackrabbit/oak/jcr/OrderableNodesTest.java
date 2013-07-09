@@ -33,6 +33,10 @@ import static org.junit.Assert.assertTrue;
 
 public class OrderableNodesTest extends AbstractRepositoryTest {
 
+    public OrderableNodesTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Test
     public void testSimpleOrdering() throws RepositoryException {
         doTest("nt:unstructured");

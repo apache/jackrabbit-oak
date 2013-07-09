@@ -56,6 +56,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -68,6 +69,10 @@ public class ObservationTest extends AbstractRepositoryTest {
 
     private Session observingSession;
     private ObservationManager observationManager;
+
+    public ObservationTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Before
     public void setup() throws RepositoryException {

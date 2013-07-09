@@ -45,6 +45,7 @@ import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.iterator.RowIterable;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Test;
 
 
@@ -52,6 +53,10 @@ import org.junit.Test;
  * Tests the query feature.
  */
 public class QueryTest extends AbstractRepositoryTest {
+
+    public QueryTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @SuppressWarnings("deprecation")
     @Test
