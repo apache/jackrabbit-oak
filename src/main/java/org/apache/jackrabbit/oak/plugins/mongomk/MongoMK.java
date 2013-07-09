@@ -1471,16 +1471,22 @@ public class MongoMK implements MicroKernel {
 
     @Override
     @Nonnull
-    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId)
+    public String rebase(@Nonnull String branchRevisionId,
+                         @Nullable String newBaseRevisionId)
             throws MicroKernelException {
+        // TODO conflict handling
         Revision r = Revision.fromString(stripBranchRevMarker(branchRevisionId));
+        Revision base = newBaseRevisionId != null ?
+                Revision.fromString(newBaseRevisionId) :
+                headRevision;
         Branch b = branches.getBranch(r);
         if (b == null) {
-            throw new MicroKernelException(branchRevisionId
-                    + " is not a valid branch revision");
+            // empty branch
+            return "b" + base.toString();
         }
-        // TODO conflict handling
-        Revision base = Revision.fromString(newBaseRevisionId);
+        if (b.getBase().equals(base)) {
+            return branchRevisionId;
+        }
         b.setBase(base);
         // add a pseudo commit to make sure current head of branch
         // has a higher revision than base of branch
