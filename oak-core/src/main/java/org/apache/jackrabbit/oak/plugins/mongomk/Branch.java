@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Contains commit information about a branch and its base revision.
+ * TODO document
  */
 class Branch {
 
@@ -36,7 +37,7 @@ class Branch {
      */
     private final TreeMap<Revision, UnsavedModifications> commits;
 
-    private final Revision base;
+    private volatile Revision base;
 
     Branch(@Nonnull SortedSet<Revision> commits,
            @Nonnull Revision base,
@@ -53,6 +54,9 @@ class Branch {
         return base;
     }
 
+    public void setBase(Revision base) {
+        this.base = base;
+    }
     synchronized void addCommit(@Nonnull Revision r) {
         checkArgument(commits.comparator().compare(r, commits.lastKey()) > 0);
         commits.put(r, new UnsavedModifications());
