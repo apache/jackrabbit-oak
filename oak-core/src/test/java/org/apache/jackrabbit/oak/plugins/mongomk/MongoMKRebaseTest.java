@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import org.json.simple.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -28,7 +29,6 @@ import static org.junit.Assert.assertTrue;
  * Tests for {@code MicroKernel#rebase}
  * FIXME: this is copied from MicroKernelImplTest. Factor out.
  */
-@Ignore    
 public class MongoMKRebaseTest extends BaseMongoMKTest {
 
     @Test
@@ -47,20 +47,22 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore    
     public void rebaseEmptyBranch() {
         String branch = mk.branch(null);
         String trunk = mk.commit("", "+\"/a\":{}", null, null);
         String rebased = mk.rebase(branch, null);
 
-        assertEquals("{\":childNodeCount\":1,\"a\":{}}", mk.getNodes("/", rebased, 0, 0, -1, null));
-        assertEquals("{\":childNodeCount\":1,\"a\":{}}", mk.getNodes("/", null, 0, 0, -1, null));
+        JSONObject json = parseJSONObject(mk.getNodes("/", rebased, 0, 0, -1, null));
+        assertPropertyValue(json, ":childNodeCount", 1L);
+        assertNotNull(json.get("a"));
+        json = parseJSONObject(mk.getNodes("/", null, 0, 0, -1, null));
+        assertPropertyValue(json, ":childNodeCount", 1L);
+        assertNotNull(json.get("a"));
         assertEquals(trunk, mk.getHeadRevision());
         assertFalse(trunk.equals(rebased));
     }
 
     @Test
-    @Ignore    
     public void rebaseAddNode() {
         mk.commit("", "+\"/x\":{}", null, null);
         String branch = mk.branch(null);
@@ -68,19 +70,18 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
         mk.commit("", "+\"/x/a\":{}", null, null);
         String rebased = mk.rebase(branch, null);
 
-        assertEquals(1, mk.getChildNodeCount("/x", null));
+        assertChildNodeCount("/x", null, 1);
         assertNotNull(mk.getNodes("/x/a", null, 0, 0, -1, null));
 
-        assertEquals(1, mk.getChildNodeCount("/x", branch));
+        assertChildNodeCount("/x", branch, 1);
         assertNotNull(mk.getNodes("/x/b", branch, 0, 0, -1, null));
 
-        assertEquals(2, mk.getChildNodeCount("/x", rebased));
+        assertChildNodeCount("/x", rebased, 2);
         assertNotNull(mk.getNodes("/x/a", rebased, 0, 0, -1, null));
         assertNotNull(mk.getNodes("/x/b", rebased, 0, 0, -1, null));
     }
 
     @Test
-    @Ignore    
     public void rebaseRemoveNode() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -88,18 +89,18 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
         mk.commit("", "+\"/x/a\":{}", null, null);
         String rebased = mk.rebase(branch, null);
 
-        assertEquals(2, mk.getChildNodeCount("/x", null));
+        assertChildNodeCount("/x", null, 2);
         assertNotNull(mk.getNodes("/x/a", null, 0, 0, -1, null));
         assertNotNull(mk.getNodes("/x/y", null, 0, 0, -1, null));
 
-        assertEquals(0, mk.getChildNodeCount("/x", branch));
+        assertChildNodeCount("/x", branch, 0);
 
-        assertEquals(1, mk.getChildNodeCount("/x", rebased));
+        assertChildNodeCount("/x", rebased, 1);
         assertNotNull(mk.getNodes("/x/a", rebased, 0, 0, -1, null));
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void rebaseAddProperty() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -121,7 +122,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void rebaseRemoveProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -143,7 +144,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void rebaseChangeProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -183,6 +184,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseAddExistingNode() {
         mk.commit("", "+\"/x\":{}", null, null);
         String branch = mk.branch(null);
@@ -199,6 +201,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseAddExistingProperty() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -216,6 +219,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseChangeRemovedProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -233,6 +237,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseRemoveChangedProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -250,6 +255,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseChangedChangedProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -267,6 +273,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseRemoveChangedNode() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -284,6 +291,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseChangeRemovedNode() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -301,6 +309,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseRemoveRemovedProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -318,6 +327,7 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("Conflict handling")
     public void rebaseRemoveRemovedNode() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -334,7 +344,6 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore    
     public void mergeRebased() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
