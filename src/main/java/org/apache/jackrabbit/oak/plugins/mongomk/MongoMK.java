@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -687,52 +688,46 @@ public class MongoMK implements MicroKernel {
         }
 
         // when was this node last modified?
+        Branch branch = branches.getBranch(readRevision);
         Revision lastRevision = null;
-        Map<String, Revision> lastRevs = new HashMap<String, Revision>();
+        Map<Integer, Revision> lastRevs = new HashMap<Integer, Revision>();
         @SuppressWarnings("unchecked")
         Map<String, String> valueMap = (Map<String, String>) map.get(UpdateOp.LAST_REV);
         if (valueMap != null) {
             for (String clusterId : valueMap.keySet()) {
-                lastRevs.put(clusterId, Revision.fromString(valueMap.get(clusterId)));
+                lastRevs.put(Integer.parseInt(clusterId),
+                        Revision.fromString(valueMap.get(clusterId)));
             }
         }
         // overlay with unsaved last modified from this instance
         Revision lastModified = unsavedLastRevisions.get(path);
-        Branch branch = branches.getBranch(readRevision);
         if (lastModified != null) {
-            if (branch != null) {
-                // visible from this branch if revision is
-                // not newer than base of branch
-                if (!isRevisionNewer(lastModified, branch.getBase())) {
-                    lastRevs.put(String.valueOf(clusterId), lastModified);
+            lastRevs.put(clusterId, lastModified);
+        }
+        // filter out revisions newer than branch base
+        if (branch != null) {
+            for (Iterator<Revision> it = lastRevs.values().iterator(); it.hasNext(); ) {
+                Revision r = it.next();
+                if (isRevisionNewer(r, branch.getBase())) {
+                    it.remove();
                 }
-            } else {
-                // non-branch read -> check if newer
-                if (isRevisionNewer(lastModified, readRevision)) {
-                    // at most readRevision
-                    lastRevs.put(String.valueOf(clusterId), readRevision);
-                } else {
-                    lastRevs.put(String.valueOf(clusterId), lastModified);
-                }
+            }
+        }
+        for (Revision r : lastRevs.values()) {
+            // ignore if newer than readRevision
+            if (isRevisionNewer(r, readRevision)) {
+                continue;
+            }
+            if (lastRevision == null || isRevisionNewer(r, lastRevision)) {
+                lastRevision = r;
             }
         }
         if (branch != null) {
             // read from a branch
-            // -> overlay with unsaved last revs from branch
+            // -> possibly overlay with unsaved last revs from branch
             Revision r = branch.getUnsavedLastRevision(path, readRevision);
             if (r != null) {
-                lastRevs.put(String.valueOf(clusterId), r);
-            }
-        }
-
-        for (String r : lastRevs.keySet()) {
-            lastModified = lastRevs.get(r);
-            if (isRevisionNewer(lastModified, readRevision)) {
-                // at most the read revision
-                lastModified = readRevision;
-            }
-            if (lastRevision == null || isRevisionNewer(lastModified, lastRevision)) {
-                lastRevision = lastModified;
+                lastRevision = r;
             }
         }
         if (lastRevision == null) {
@@ -1476,10 +1471,22 @@ public class MongoMK implements MicroKernel {
 
     @Override
     @Nonnull
-    public String rebase(String branchRevisionId, String newBaseRevisionId)
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId)
             throws MicroKernelException {
-        // TODO improve implementation if needed
-        return branchRevisionId;
+        Revision r = Revision.fromString(stripBranchRevMarker(branchRevisionId));
+        Branch b = branches.getBranch(r);
+        if (b == null) {
+            throw new MicroKernelException(branchRevisionId
+                    + " is not a valid branch revision");
+        }
+        // TODO conflict handling
+        Revision base = Revision.fromString(newBaseRevisionId);
+        b.setBase(base);
+        // add a pseudo commit to make sure current head of branch
+        // has a higher revision than base of branch
+        Revision head = newRevision();
+        b.addCommit(head);
+        return "b" + head.toString();
     }
 
     @Override
