@@ -68,13 +68,13 @@ public abstract class ItemDelegate {
     public abstract boolean isProtected() throws InvalidItemStateException;
 
     /**
-     * Determine whether this item is stale
-     * @return  {@code true} iff stale
+     * Determine whether the underlying item exists
+     * @return  {@code true} the underlying tree exists, {@code false} otherwise.
      */
-    public abstract boolean isStale();
+    public abstract boolean exists();
 
     public void checkNotStale() throws InvalidItemStateException {
-        if (isStale()) {
+        if (!exists()) {
             throw new InvalidItemStateException("stale");
         }
     }

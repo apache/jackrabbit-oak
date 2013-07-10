@@ -16,12 +16,23 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.singleton;
+import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
+import static javax.jcr.Property.JCR_LOCK_OWNER;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -57,7 +68,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
@@ -80,16 +90,6 @@ import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.singleton;
-import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
-import static javax.jcr.Property.JCR_LOCK_OWNER;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 /**
  * TODO document
@@ -147,7 +147,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return safePerform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() {
-                return !dlg.isStale() && dlg.getStatus() == Status.NEW;
+                return dlg.exists() && dlg.getStatus() == Status.NEW;
             }
         });
     }
@@ -160,7 +160,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return safePerform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() {
-                return !dlg.isStale() && dlg.getStatus() == Status.MODIFIED;
+                return dlg.exists() && dlg.getStatus() == Status.MODIFIED;
             }
         });
     }

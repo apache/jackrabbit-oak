@@ -141,8 +141,8 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     @Override
-    public boolean isStale() {
-        return !tree.exists();
+    public boolean exists() {
+        return tree.exists();
     }
 
     @Override
