@@ -35,31 +35,61 @@ class Branch {
     /**
      * The commits to the branch
      */
-    private final TreeMap<Revision, UnsavedModifications> commits;
+    private final TreeMap<Revision, Commit> commits;
 
-    private volatile Revision base;
+    private final Revision base;
 
     Branch(@Nonnull SortedSet<Revision> commits,
            @Nonnull Revision base,
            @Nonnull Revision.RevisionComparator comparator) {
         this.base = checkNotNull(base);
-        this.commits = new TreeMap<Revision, UnsavedModifications>(
+        this.commits = new TreeMap<Revision, Commit>(
                 checkNotNull(comparator));
         for (Revision r : commits) {
-            this.commits.put(r, new UnsavedModifications());
+            this.commits.put(r, new Commit(base));
         }
     }
 
+    /**
+     * @return the initial base of this branch.
+     */
     Revision getBase() {
         return base;
     }
 
-    public void setBase(Revision base) {
-        this.base = base;
+    /**
+     * Returns the base revision for the given branch revision <code>r</code>.
+     *
+     * @param r revision of a commit in this branch.
+     * @return the base revision for <code>r</code>.
+     * @throws IllegalArgumentException if <code>r</code> is not a commit of
+     *                                  this branch.
+     */
+    synchronized Revision getBase(Revision r) {
+        Commit c = commits.get(r);
+        if (c == null) {
+            throw new IllegalArgumentException(
+                    "Revision " + r + " is not a commit in this branch");
+        }
+        return c.getBase();
     }
+
+    /**
+     * Rebases the last commit of this branch to the given revision.
+     *
+     * @param head the new head of the branch.
+     * @param base rebase to this revision.
+     */
+    synchronized void rebase(Revision head, Revision base) {
+        Revision last = commits.lastKey();
+        checkArgument(commits.comparator().compare(head, last) > 0);
+        commits.put(head, new Commit(base));
+    }
+
     synchronized void addCommit(@Nonnull Revision r) {
-        checkArgument(commits.comparator().compare(r, commits.lastKey()) > 0);
-        commits.put(r, new UnsavedModifications());
+        Revision last = commits.lastKey();
+        checkArgument(commits.comparator().compare(r, last) > 0);
+        commits.put(r, new Commit(commits.get(last).getBase()));
     }
 
     synchronized SortedSet<Revision> getCommits() {
@@ -90,12 +120,12 @@ class Branch {
      */
     @Nonnull
     public synchronized UnsavedModifications getModifications(@Nonnull Revision r) {
-        UnsavedModifications modifications = commits.get(r);
-        if (modifications == null) {
+        Commit c = commits.get(r);
+        if (c == null) {
             throw new IllegalArgumentException(
                     "Revision " + r + " is not a commit in this branch");
         }
-        return modifications;
+        return c.getModifications();
     }
 
     /**
@@ -108,8 +138,8 @@ class Branch {
      */
     public synchronized void applyTo(@Nonnull UnsavedModifications trunk) {
         checkNotNull(trunk);
-        for (UnsavedModifications modifications : commits.values()) {
-            modifications.applyTo(trunk);
+        for (Commit c : commits.values()) {
+            c.getModifications().applyTo(trunk);
         }
     }
 
@@ -129,12 +159,30 @@ class Branch {
             if (readRevision.compareRevisionTime(r) < 0) {
                 continue;
             }
-            UnsavedModifications modifications = commits.get(r);
-            Revision modRevision = modifications.get(path);
+            Commit c = commits.get(r);
+            Revision modRevision = c.getModifications().get(path);
             if (modRevision != null) {
                 return modRevision;
             }
         }
         return null;
+    }
+
+    private static final class Commit {
+
+        private final UnsavedModifications modifications = new UnsavedModifications();
+        private final Revision base;
+
+        Commit(Revision base) {
+            this.base = base;
+        }
+
+        Revision getBase() {
+            return base;
+        }
+
+        UnsavedModifications getModifications() {
+            return modifications;
+        }
     }
 }

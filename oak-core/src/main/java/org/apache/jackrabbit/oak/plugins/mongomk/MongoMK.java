@@ -477,7 +477,7 @@ public class MongoMK implements MicroKernel {
             // reset requestRevision to branch base revision to make
             // sure we don't include revisions committed after branch
             // was created
-            requestRevision = b.getBase();
+            requestRevision = b.getBase(requestRevision);
         }
         return revisionComparator.compare(requestRevision, x) >= 0;
     }
@@ -706,9 +706,10 @@ public class MongoMK implements MicroKernel {
         }
         // filter out revisions newer than branch base
         if (branch != null) {
+            Revision base = branch.getBase(readRevision);
             for (Iterator<Revision> it = lastRevs.values().iterator(); it.hasNext(); ) {
                 Revision r = it.next();
-                if (isRevisionNewer(r, branch.getBase())) {
+                if (isRevisionNewer(r, base)) {
                     it.remove();
                 }
             }
@@ -1461,11 +1462,10 @@ public class MongoMK implements MicroKernel {
         if (b.getBase().equals(base)) {
             return branchRevisionId;
         }
-        b.setBase(base);
         // add a pseudo commit to make sure current head of branch
         // has a higher revision than base of branch
         Revision head = newRevision();
-        b.addCommit(head);
+        b.rebase(head, base);
         return "b" + head.toString();
     }
 

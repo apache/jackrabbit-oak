@@ -100,7 +100,6 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void rebaseAddProperty() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -122,7 +121,6 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void rebaseRemoveProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -144,7 +142,6 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void rebaseChangeProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
