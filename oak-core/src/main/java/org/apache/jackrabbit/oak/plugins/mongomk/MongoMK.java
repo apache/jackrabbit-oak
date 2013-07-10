@@ -895,23 +895,25 @@ public class MongoMK implements MicroKernel {
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, fromKey, toKey, 
                 UpdateOp.MODIFIED, minValue, Integer.MAX_VALUE);
         for (Map<String, Object> e : list) {
-            if (isOlder(e, rev)) {
-                continue;
-            }
             String id = e.get(UpdateOp.ID).toString();
             String p = Utils.getPathFromId(id);
-            if (getNode(p, fromRev) != null) {
+            Node fromNode = getNode(p, fromRev);
+            Node toNode = getNode(p, toRev);
+            if (fromNode != null) {
                 // exists in fromRev
-                if (getNode(p, toRev) != null) {
+                if (toNode != null) {
                     // exists in both revisions
-                    w.tag('^').key(p).object().endObject().newline();
+                    // check if different
+                    if (!fromNode.getLastRevision().equals(toNode.getLastRevision())) {
+                        w.tag('^').key(p).object().endObject().newline();
+                    }
                 } else {
                     // does not exist in toRev -> was removed
                     w.tag('-').value(p).newline();
                 }
             } else {
                 // does not exist in fromRev
-                if (getNode(p, toRev) != null) {
+                if (toNode != null) {
                     // exists in toRev
                     w.tag('+').key(p).object().endObject().newline();
                 } else {
@@ -1274,34 +1276,6 @@ public class MongoMK implements MicroKernel {
             }
         }
         return liveRev;
-    }
-    
-    boolean isOlder(Map<String, Object> map, Revision rev) {
-        Revision revision;
-        for (String key : map.keySet()) {
-            if (!Utils.isPropertyName(key)) {
-                if (key.equals(UpdateOp.ID)) {
-                    continue;
-                } else if (key.equals(UpdateOp.LAST_REV)) {
-                    // TODO could use just this property? it would be faster
-                    continue;
-                } else if (key.equals(UpdateOp.PREVIOUS)) {
-                    continue;
-                } else if (key.equals(UpdateOp.MODIFIED)) {
-                    continue;
-                }                    
-            }
-            Object v = map.get(key);
-            @SuppressWarnings("unchecked")
-            Map<String, String> valueMap = (Map<String, String>) v;
-            for (String r : valueMap.keySet()) {
-                revision = Revision.fromString(r);
-                if (!isRevisionNewer(rev, revision)) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
     
     /**

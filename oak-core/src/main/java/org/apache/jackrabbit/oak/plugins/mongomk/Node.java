@@ -102,6 +102,10 @@ public class Node implements CacheValue {
     public void setLastRevision(Revision lastRevision) {
         this.lastRevision = lastRevision;
     }
+
+    public Revision getLastRevision() {
+        return lastRevision;
+    }
     
     @Override
     public int getMemory() {
