@@ -31,7 +31,11 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -248,6 +252,51 @@ public class ChangeDispatcher {
          * @return  date or {@code 0} if {@link #isExternal()} is {@code true}.
          */
         public abstract long getDate();
+
+        /**
+         * Get the id of the node at the given path as it was before this change set.
+         * @param path  path to determine the id for
+         * @return  id for the item at {@code path} or {@code path} if the item doesn't exit.
+         */
+        @Nonnull
+        public String getBeforeId(String path) {
+            return getId(before, path);
+        }
+
+        /**
+         * Get the id of the node at the given path as it is after this change set.
+         * @param path  path to determine the id for
+         * @return  id for the item at {@code path} or {@code path} if the item doesn't exit.
+         */
+        @Nonnull
+        public String getAfterId(String path) {
+            return getId(after, path);
+        }
+
+        private static String getId(NodeState nodeState, String path) {
+            StringBuilder id = new StringBuilder();
+
+            id.append(getIdOrName(nodeState, ""));
+            for (String name : PathUtils.elements(path)) {
+                nodeState = nodeState.getChildNode(name);
+                id.append('/').append(getIdOrName(nodeState, name));
+            }
+
+            if (id.length() == 0) {
+                return "/";
+            } else {
+                return id.toString();
+            }
+        }
+
+        private static String getIdOrName(NodeState nodeState, String name) {
+            PropertyState uuid = nodeState.getProperty(JcrConstants.JCR_UUID);
+            if (uuid == null) {
+                return name;
+            } else {
+                return uuid.getValue(Type.STRING);
+            }
+        }
 
         /**
          * {@link NodeStateDiff} of the changes
