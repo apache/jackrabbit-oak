@@ -74,7 +74,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
     }
 
-    private void remove(NodeBuilder index, String key, String value) {
+    private static void remove(NodeBuilder index, String key, String value) {
         NodeBuilder builder = index.getChildNode(key);
         if (builder.exists()) {
             // Collect all builders along the given path
@@ -103,7 +103,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
     }
 
-    private void insert(NodeBuilder index, String key, String value) {
+    private static void insert(NodeBuilder index, String key, String value) {
         NodeBuilder builder = index.child(key);
         for (String name : PathUtils.elements(value)) {
             builder = builder.child(name);
@@ -143,6 +143,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             CountingNodeVisitor v = new CountingNodeVisitor(max);
             v.visit(index);
             count = v.getEstimatedCount();
+            // "is not null" queries typically read more data
+            count *= 10;
         } else {
             int size = values.size();
             if (size == 0) {
