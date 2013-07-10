@@ -144,7 +144,7 @@ public interface MicroKernel {
      * has elapsed or a new head revision has become available.
      * <p/>
      * if a zero or negative {@code timeout} value has been specified the method
-     * will return immediately, i.e. calling {@code waitForCommit(0)} is
+     * will return immediately, i.e. calling {@code waitForCommit(oldHeadRevisionId, 0)} is
      * equivalent to calling {@code getHeadRevision()}.
      * <p/>
      * Note that commits on a <i>private</i> branch will be ignored.
