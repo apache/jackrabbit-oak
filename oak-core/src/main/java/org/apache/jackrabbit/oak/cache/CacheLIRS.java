@@ -761,7 +761,6 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
             mapSize++;
             // added entries are always added to the stack
             addToStack(e);
-            missCount++;
             return old;
         }
 
@@ -835,6 +834,7 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
             while (usedMemory > maxMemory && queueSize > 1) {
                 Entry<K, V> e = queue.queuePrev;
                 usedMemory -= e.memory;
+                evictionCount++;
                 removeFromQueue(e);
                 e.value = null;
                 e.memory = 0;
