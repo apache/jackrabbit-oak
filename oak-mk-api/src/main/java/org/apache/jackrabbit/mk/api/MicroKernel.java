@@ -244,7 +244,7 @@ public interface MicroKernel {
      * @param path           optional path filter; if {@code null} or {@code ""}
      *                       the default ({@code "/"}) will be assumed, i.e. no
      *                       filter will be applied
-     * @param depth          depth  limit; if {@code -1} no limit will be applied
+     * @param depth          depth limit; if {@code -1} no limit will be applied
      * @return JSON diff representation of the changes
      * @throws MicroKernelException if any of the specified revisions doesn't exist or if another error occurs
      */
