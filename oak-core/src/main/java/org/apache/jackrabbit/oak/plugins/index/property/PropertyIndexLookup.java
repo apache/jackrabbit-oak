@@ -139,7 +139,7 @@ public class PropertyIndexLookup {
      *         definition or index data node was found
      */
     @Nullable
-    private NodeState getIndexDataNode(
+    private static NodeState getIndexDataNode(
             NodeState node, String propertyName, Set<String> supertypes) {
         //keep a fallback to a matching index def that has *no* node type constraints
         NodeState fallback = MISSING_NODE;

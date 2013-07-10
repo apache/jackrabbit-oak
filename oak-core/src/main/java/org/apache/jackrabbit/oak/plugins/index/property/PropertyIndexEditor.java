@@ -86,19 +86,19 @@ class PropertyIndexEditor implements IndexEditor {
      * Flag to indicate whether individual property changes should
      * be tracked for this node.
      */
-    private boolean trackChanges = false;
+    private boolean trackChanges;
 
     /**
      * Matching property value keys from the before state,
      * or {@code null} if this node is not indexed.
      */
-    private Set<String> beforeKeys = null;
+    private Set<String> beforeKeys;
 
     /**
      * Matching property value keys from the after state,
      * or {@code null} if this node is not indexed.
      */
-    private Set<String> afterKeys = null;
+    private Set<String> afterKeys;
 
     public PropertyIndexEditor(NodeBuilder definition, NodeState root) {
         this.parent = null;
@@ -161,7 +161,8 @@ class PropertyIndexEditor implements IndexEditor {
     }
 
     private boolean isOfMatchingType(NodeState state) {
-        return primaryTypes == null // no type limitations
+        // no type limitations
+        return primaryTypes == null 
                 || primaryTypes.contains(state.getName(JCR_PRIMARYTYPE))
                 || any(state.getNames(JCR_MIXINTYPES), in(mixinTypes));
     }
