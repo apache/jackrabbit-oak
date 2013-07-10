@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.query.ast;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+
+import org.apache.jackrabbit.oak.query.fulltext.LikePattern;
 import org.junit.Test;
 
 /**
@@ -37,7 +39,7 @@ public class LikePatternTest {
     }
 
     private static void pattern(String pattern, String match, String noMatch, String lower, String upper) {
-        ComparisonImpl.LikePattern p = new ComparisonImpl.LikePattern(pattern);
+        LikePattern p = new LikePattern(pattern);
         if (match != null) {
             assertTrue(p.matches(match));
         }
