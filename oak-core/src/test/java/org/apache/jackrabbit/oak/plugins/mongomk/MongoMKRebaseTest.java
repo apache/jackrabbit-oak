@@ -181,6 +181,22 @@ public class MongoMKRebaseTest extends BaseMongoMKTest {
     }
 
     @Test
+    @Ignore("OAK-893")
+    public void phantomRead() {
+        String base = mk.commit("/", "+\"test\":{}", null, null);
+        String branchRev1 = mk.branch(base);
+        String branchRev2 = mk.branch(base);
+        branchRev1 = mk.commit("/test", "+\"node1\":{}", branchRev1, null);
+        branchRev2 = mk.commit("/test", "+\"node2\":{}", branchRev2, null);
+        String r = mk.commit("/test", "+\"node3\":{}", null, null);
+        branchRev1 = mk.rebase(branchRev1, r);
+        mk.merge(branchRev2, null);
+
+        assertNodesExist(branchRev1, "/test/node1", "/test/node3");
+        assertNodesNotExist(branchRev1, "/test/node2");
+    }
+
+    @Test
     @Ignore("Conflict handling")
     public void rebaseAddExistingNode() {
         mk.commit("", "+\"/x\":{}", null, null);
