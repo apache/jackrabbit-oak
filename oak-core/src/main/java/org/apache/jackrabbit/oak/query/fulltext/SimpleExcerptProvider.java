@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.query;
+package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;

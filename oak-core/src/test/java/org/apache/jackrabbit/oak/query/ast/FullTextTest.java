@@ -23,6 +23,8 @@ import static org.junit.Assert.fail;
 
 import java.text.ParseException;
 
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextParser;
 import org.junit.Test;
 
 /**
@@ -32,6 +34,8 @@ public class FullTextTest {
 
     @Test
     public void and() throws ParseException {
+        assertEquals("\"hello\" \"world\"", convertPattern("hello world"));
+        assertEquals("\"hello\" \"or\" \"world\"", convertPattern("hello or world"));
         assertFalse(test("hello world", "hello"));
         assertFalse(test("hello world", "world"));
         assertTrue(test("hello world", "world hello"));
@@ -40,6 +44,7 @@ public class FullTextTest {
 
     @Test
     public void or() throws ParseException {
+        assertEquals("\"hello\" OR \"world\"", convertPattern("hello OR world"));
         assertTrue(test("hello OR world", "hello"));
         assertTrue(test("hello OR world", "world"));
         assertFalse(test("hello OR world", "hi"));
@@ -47,12 +52,15 @@ public class FullTextTest {
 
     @Test
     public void not() throws ParseException {
+        assertEquals("\"hello\" -\"world\"", convertPattern("hello -world"));
         assertTrue(test("hello -world", "hello"));
         assertFalse(test("hello -world", "hello world"));
     }
 
     @Test
     public void quoted() throws ParseException {
+        assertEquals("\"hello world\"", convertPattern("\"hello world\""));
+        assertEquals("\"hello world\" \"world\"", convertPattern("\"hello world\" world"));
         assertTrue(test("\"hello world\"", "hello world"));
         assertFalse(test("\"hello world\"", "world hello"));
         assertTrue(test("\"hello-world\"", "hello-world"));
@@ -64,11 +72,20 @@ public class FullTextTest {
 
     @Test
     public void escaped() throws ParseException {
+        assertEquals("\"\\\"hello world\\\"\"", convertPattern("\"\\\"hello world\\\"\""));
         assertFalse(test("\\\"hello\\\"", "hello"));
         assertTrue(test("\"hello\"", "\"hello\""));
         assertTrue(test("\\\"hello\\\"", "\"hello\""));
         assertFalse(test("\\-1 2 3", "1 2 3"));
         assertTrue(test("\\-1 2 3", "-1 2 3"));
+    }
+
+    @Test
+    public void boost() throws ParseException {
+        assertEquals("\"hello\"^2", convertPattern("hello^2"));
+        assertEquals("\"hello world\"^2", convertPattern("\"hello world\"^2"));
+        assertTrue(test("hello^2", "hello"));
+        assertTrue(test("\"hello\"^0.2", "hello"));
     }
 
     @Test
@@ -94,9 +111,14 @@ public class FullTextTest {
             assertEquals(expectedMessage, msg);
         }
     }
+    
+    private static String convertPattern(String pattern) throws ParseException {
+        FullTextExpression e = FullTextParser.parse(pattern);
+        return e.toString();
+    }
 
     private static boolean test(String pattern, String value) throws ParseException {
-        FullTextSearchImpl.FullTextExpression e = FullTextSearchImpl.FullTextParser.parse(pattern);
+        FullTextExpression e = FullTextParser.parse(pattern);
         return e.evaluate(value);
     }
 
