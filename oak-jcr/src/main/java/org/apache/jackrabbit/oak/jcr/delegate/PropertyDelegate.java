@@ -82,8 +82,8 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Override
-    public boolean isStale() {
-        return !parent.exists() || !parent.hasProperty(name);
+    public boolean exists() {
+        return parent.exists() && parent.hasProperty(name);
     }
 
     @Override
