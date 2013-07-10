@@ -165,7 +165,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             if (index == null) {
                 return null;
             }
-            return new ReadOnlyOakDirectory(new ReadOnlyBuilder(index));
+            return new OakDirectory(new ReadOnlyBuilder(index));
         }
 
         if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
