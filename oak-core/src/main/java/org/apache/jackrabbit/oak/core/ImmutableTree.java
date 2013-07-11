@@ -247,13 +247,6 @@ public final class ImmutableTree implements Tree {
         return state.getChildNodeCount();
     }
 
-    /**
-     * This implementation does not respect ordered child nodes, but always
-     * returns them in some implementation specific order.
-     * <p/>
-     *
-     * @return the children.
-     */
     @Override
     public Iterable<Tree> getChildren() {
         return transform(
