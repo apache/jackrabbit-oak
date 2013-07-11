@@ -117,11 +117,112 @@ node as deleted in this revision.
 Reading the node in previous revisions is still possible, even if it is now
 marked as deleted as of revision `r13f38835063-2-1`.
 
-Revision Model
---------------
+Revisions
+---------
 
-* Explain revision, cluster node id, etc.
-* Explain branches
+As seen in the examples above, a revision is a String and may look like this:
+`r13f38835063-2-1`. It consists of three parts:
+
+* A timestamp derived from the system time of the machine it was generated on: `13f38835063`
+* A counter to distinguish revisions created with the same timestamp: `-2`
+* The cluster node id where this revision was created: `-1`
+
+Branches
+--------
+
+MicroKernel implementations support branches, which allows a client to stage
+multiple commits and make them visible with a single merge call. In MongoMK
+a branch commit looks very similar to a regular commit, but instead of setting
+the value of an entry in `_revisions` to `c` (committed), it marks it with
+the base revision of the branch commit. In contrast to regular commits where
+the commit root is the common ancestor of all nodes modified in a commit, the
+commit root of a branch commit is always the root node. This is because a
+branch will likely have multiple commits and a commit root must already be
+known when the first commit happens on a branch. To make sure the following
+branch commits can use the same commit root, MongoMK simply picks the root
+node, which always works in this case.
+
+A root node may look like this:
+
+    {
+        "_deleted" : {
+            "r13fcda88ac0-0-1" : "false",
+        },
+        "_id" : "0:/",
+        "_lastRev" : {
+            "1" : "r13fcda91720-0-1"
+        },
+        "_modified" : NumberLong(274708995),
+        "_revisions" : {
+            "r13fcda88ac0-0-1" : "c",
+            "r13fcda91720-0-1" : "c"
+        },
+        "prop" : {
+            "r13fcda91720-0-1" : "\"foo\""
+        }
+    }
+
+The root node was created in revision `r13fcda88ac0-0-1` and later
+in revision `r13fcda91720-0-1` property `prop` was set to `foo`.
+To keep the example simple, we now assume a branch is created based
+on the revision the root node was last modified and a branch commit
+is done to modify the existing property. After the branch commit
+the root node looks like this:
+
+    {
+        "_deleted" : {
+            "r13fcda88ac0-0-1" : "false",
+        },
+        "_id" : "0:/",
+        "_lastRev" : {
+            "1" : "r13fcda91720-0-1"
+        },
+        "_modified" : NumberLong(274708995),
+        "_revisions" : {
+            "r13fcda88ac0-0-1" : "c",
+            "r13fcda91720-0-1" : "c",
+			"r13fcda919eb-0-1" : "r13fcda91720-0-1"
+        },
+        "prop" : {
+            "r13fcda91720-0-1" : "\"foo\"",
+			"r13fcda919eb-0-1" : "\"bar\"",
+        }
+    }
+
+At this point the modified property is only visible to a reader
+when it reads with the branch revision `r13fcda919eb-0-1` because
+the revision is marked with the base version of this commit in
+the `_revisions` sub-document. Note, the `_lastRev` is not updated
+for branch commits but only when a branch is merged.
+
+When the branch is later merged, the root node will look like this:
+
+    {
+        "_deleted" : {
+            "r13fcda88ac0-0-1" : "false",
+        },
+        "_id" : "0:/",
+        "_lastRev" : {
+            "1" : "r13fcda91b12-0-1"
+        },
+        "_modified" : NumberLong(274708995),
+        "_revisions" : {
+            "r13fcda88ac0-0-1" : "c",
+            "r13fcda91720-0-1" : "c",
+			"r13fcda919eb-0-1" : "c-r13fcda91b12-0-1"
+        },
+        "prop" : {
+            "r13fcda91720-0-1" : "\"foo\"",
+			"r13fcda919eb-0-1" : "\"bar\"",
+        }
+    }
+
+Now, the changed property is visible to readers with a revision equal or
+newer than `r13fcda91b12-0-1`.
+
+The same logic is used for changes to other nodes that belong to a branch
+commit. MongoMK internally resolves the commit revision for a modification
+before it decides whether a reader is able to see a given change.
 
 Background Operations
 ---------------------
