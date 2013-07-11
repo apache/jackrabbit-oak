@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
@@ -165,6 +169,11 @@ public class ReadOnlyBuilder implements NodeBuilder {
 
     @Override @Nonnull
     public NodeBuilder setChildNode(@Nonnull String name) {
+        throw unsupported();
+    }
+
+    @Override
+    public Blob createBlob(InputStream stream) throws IOException {
         throw unsupported();
     }
 
