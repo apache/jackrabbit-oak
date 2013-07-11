@@ -28,25 +28,27 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Contains commit information about a branch and its base revision.
- * TODO document
  */
 class Branch {
 
     /**
      * The commits to the branch
      */
-    private final TreeMap<Revision, Commit> commits;
+    private final TreeMap<Revision, BranchCommit> commits;
 
+    /**
+     * The initial base revision of this branch.
+     */
     private final Revision base;
 
     Branch(@Nonnull SortedSet<Revision> commits,
            @Nonnull Revision base,
            @Nonnull Revision.RevisionComparator comparator) {
         this.base = checkNotNull(base);
-        this.commits = new TreeMap<Revision, Commit>(
+        this.commits = new TreeMap<Revision, BranchCommit>(
                 checkNotNull(comparator));
         for (Revision r : commits) {
-            this.commits.put(r, new Commit(base));
+            this.commits.put(r, new BranchCommit(base));
         }
     }
 
@@ -66,7 +68,7 @@ class Branch {
      *                                  this branch.
      */
     synchronized Revision getBase(Revision r) {
-        Commit c = commits.get(r);
+        BranchCommit c = commits.get(r);
         if (c == null) {
             throw new IllegalArgumentException(
                     "Revision " + r + " is not a commit in this branch");
@@ -83,31 +85,56 @@ class Branch {
     synchronized void rebase(Revision head, Revision base) {
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(head, last) > 0);
-        commits.put(head, new Commit(base));
+        commits.put(head, new BranchCommit(base));
     }
 
+    /**
+     * Adds a new commit with revision <code>r</code> to this branch.
+     *
+     * @param r the revision of the branch commit to add.
+     */
     synchronized void addCommit(@Nonnull Revision r) {
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(r, last) > 0);
-        commits.put(r, new Commit(commits.get(last).getBase()));
+        commits.put(r, new BranchCommit(commits.get(last).getBase()));
     }
 
+    /**
+     * @return the commits to this branch.
+     */
     synchronized SortedSet<Revision> getCommits() {
         SortedSet<Revision> revisions = new TreeSet<Revision>(commits.comparator());
         revisions.addAll(commits.keySet());
         return revisions;
     }
 
+    /**
+     * @return <code>true</code> if this branch contains any commits;
+     *         <code>false</code> otherwise.
+     */
     synchronized boolean hasCommits() {
         return !commits.isEmpty();
     }
 
+    /**
+     * Checks if this branch contains a commit with the given revision.
+     *
+     * @param r the revision of a commit.
+     * @return <code>true</code> if this branch contains a commit with the given
+     *         revision; <code>false</code> otherwise.
+     */
     synchronized boolean containsCommit(@Nonnull Revision r) {
         return commits.containsKey(r);
     }
 
-    public synchronized void removeCommit(@Nonnull Revision rev) {
-        commits.remove(rev);
+    /**
+     * Removes the commit with the given revision <code>r</code>. Does nothing
+     * if there is no such commit.
+     *
+     * @param r the revision of the commit to remove.
+     */
+    public synchronized void removeCommit(@Nonnull Revision r) {
+        commits.remove(r);
     }
 
     /**
@@ -120,7 +147,7 @@ class Branch {
      */
     @Nonnull
     public synchronized UnsavedModifications getModifications(@Nonnull Revision r) {
-        Commit c = commits.get(r);
+        BranchCommit c = commits.get(r);
         if (c == null) {
             throw new IllegalArgumentException(
                     "Revision " + r + " is not a commit in this branch");
@@ -138,7 +165,7 @@ class Branch {
     public synchronized void applyTo(@Nonnull UnsavedModifications trunk,
                                      @Nonnull Revision mergeCommit) {
         checkNotNull(trunk);
-        for (Commit c : commits.values()) {
+        for (BranchCommit c : commits.values()) {
             c.getModifications().applyTo(trunk, mergeCommit);
         }
     }
@@ -159,7 +186,7 @@ class Branch {
             if (readRevision.compareRevisionTime(r) < 0) {
                 continue;
             }
-            Commit c = commits.get(r);
+            BranchCommit c = commits.get(r);
             Revision modRevision = c.getModifications().get(path);
             if (modRevision != null) {
                 return modRevision;
@@ -168,12 +195,12 @@ class Branch {
         return null;
     }
 
-    private static final class Commit {
+    private static final class BranchCommit {
 
         private final UnsavedModifications modifications = new UnsavedModifications();
         private final Revision base;
 
-        Commit(Revision base) {
+        BranchCommit(Revision base) {
             this.base = base;
         }
 
