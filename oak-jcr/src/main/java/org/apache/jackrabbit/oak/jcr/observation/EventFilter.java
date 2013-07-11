@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -81,7 +81,7 @@ class EventFilter {
     public boolean include(int eventType, String path, @Nullable NodeState associatedParentNode) {
         return include(eventType)
                 && include(path)
-                && (associatedParentNode == null || includeByType(new ReadOnlyTree(associatedParentNode)))
+                && (associatedParentNode == null || includeByType(new ImmutableTree(associatedParentNode)))
                 && (associatedParentNode == null || includeByUuid(associatedParentNode));
     }
 

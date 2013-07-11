@@ -61,7 +61,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -406,7 +406,7 @@ class VersionableState {
 
     private void resetToDefaultValue(NodeBuilder dest, PropertyState p)
             throws RepositoryException {
-        ReadOnlyTree tree = new ReadOnlyTree(dest.getNodeState());
+        ImmutableTree tree = new ImmutableTree(dest.getNodeState());
         PropertyDefinition def = ntMgr.getDefinition(tree, p, true);
         Value[] values = def.getDefaultValues();
         if (values != null) {
@@ -444,7 +444,7 @@ class VersionableState {
                         "Checkin aborted due to OPV abort in " + name);
             }
             if (opv == OnParentVersionAction.VERSION) {
-                if (ntMgr.isNodeType(new ReadOnlyTree(child.getNodeState()), MIX_VERSIONABLE)) {
+                if (ntMgr.isNodeType(new ImmutableTree(child.getNodeState()), MIX_VERSIONABLE)) {
                     // create frozen versionable child
                     versionedChild(child, dest.child(name));
                 } else {
@@ -509,14 +509,14 @@ class VersionableState {
             // quick check without looking at type hierarchy
             return false;
         }
-        ReadOnlyTree tree = new ReadOnlyTree(node.getNodeState());
+        ImmutableTree tree = new ImmutableTree(node.getNodeState());
         return ntMgr.isNodeType(tree, MIX_REFERENCEABLE);
     }
 
     private int getOPV(NodeBuilder parent, NodeBuilder child, String childName)
             throws RepositoryException {
-        ReadOnlyTree parentTree = new ReadOnlyTree(parent.getNodeState());
-        ReadOnlyTree childTree = new ReadOnlyTree(
+        ImmutableTree parentTree = new ImmutableTree(parent.getNodeState());
+        ImmutableTree childTree = new ImmutableTree(
                 parentTree, childName, child.getNodeState());
         return ntMgr.getDefinition(parentTree, childTree).getOnParentVersion();
     }
@@ -527,7 +527,7 @@ class VersionableState {
             // FIXME: handle child order properly
             return OnParentVersionAction.COPY;
         } else {
-            return ntMgr.getDefinition(new ReadOnlyTree(node.getNodeState()),
+            return ntMgr.getDefinition(new ImmutableTree(node.getNodeState()),
                     property, false).getOnParentVersion();
         }
     }
