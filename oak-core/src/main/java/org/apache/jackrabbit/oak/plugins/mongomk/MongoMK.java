@@ -564,9 +564,9 @@ public class MongoMK implements MicroKernel {
     }
 
     /**
-     * Returns <code>true</code> if the given revision is set to committed in
-     * the revisions map. That is, the revision exists in the map and the string
-     * value is <code>"true"</code> or equals the <code>readRevision</code>.
+     * Returns <code>true</code> if the given revision
+     * {@link Utils#isCommitted(String)} in the revisions map and is visible
+     * from the <code>readRevision</code>.
      *
      * @param revision  the revision to check.
      * @param readRevision the read revision.
@@ -587,9 +587,13 @@ public class MongoMK implements MicroKernel {
         if (value == null) {
             return false;
         }
-        if (value.equals("true")) {
+        if (Utils.isCommitted(value)) {
+            // resolve commit revision
+            revision = Utils.resolveCommitRevision(revision, value);
             if (branches.getBranch(readRevision) == null) {
-                return true;
+                // readRevision is not from a branch
+                // compare resolved revision as is
+                return !isRevisionNewer(revision, readRevision);
             }
         } else {
             // branch commit
@@ -1423,16 +1427,17 @@ public class MongoMK implements MicroKernel {
         // make branch commits visible
         UpdateOp op = new UpdateOp("/", Utils.getIdFromPath("/"), false);
         Revision revision = Revision.fromString(revisionId);
-        Commit.setModified(op, revision);
         Branch b = branches.getBranch(revision);
+        Revision mergeCommit = newRevision();
+        Commit.setModified(op, mergeCommit);
         if (b != null) {
             for (Revision rev : b.getCommits()) {
-                op.setMapEntry(UpdateOp.REVISIONS, rev.toString(), "true");
+                op.setMapEntry(UpdateOp.REVISIONS, rev.toString(), "c-" + mergeCommit.toString());
                 op.containsMapEntry(UpdateOp.COLLISIONS, rev.toString(), false);
             }
             if (store.findAndUpdate(DocumentStore.Collection.NODES, op) != null) {
                 // remove from branchCommits map after successful update
-                b.applyTo(unsavedLastRevisions);
+                b.applyTo(unsavedLastRevisions, mergeCommit);
                 branches.remove(b);
             } else {
                 throw new MicroKernelException("Conflicting concurrent change. Update operation failed: " + op);
@@ -1440,7 +1445,7 @@ public class MongoMK implements MicroKernel {
         } else {
             // no commits in this branch -> do nothing
         }
-        headRevision = newRevision();
+        headRevision = mergeCommit;
         return headRevision.toString();
     }
 

@@ -76,7 +76,7 @@ class UnmergedBranches {
             SortedMap<Revision, Revision> tmp =
                     new TreeMap<Revision, Revision>(comparator);
             for (Map.Entry<String, String> commit : valueMap.entrySet()) {
-                if (!commit.getValue().equals("true")) {
+                if (!Utils.isCommitted(commit.getValue())) {
                     Revision r = Revision.fromString(commit.getKey());
                     if (r.getClusterId() == clusterId) {
                         Revision b = Revision.fromString(commit.getValue());

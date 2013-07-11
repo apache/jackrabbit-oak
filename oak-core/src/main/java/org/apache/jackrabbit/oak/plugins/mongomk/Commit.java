@@ -161,10 +161,10 @@ public class Commit {
      */
     void applyToDocumentStore(Revision baseBranchRevision) {
         // the value in _revisions.<revision> property of the commit root node
-        // regular commits use "true", which makes the commit visible to
+        // regular commits use "c", which makes the commit visible to
         // other readers. branch commits use the base revision to indicate
         // the visibility of the commit
-        String commitValue = baseBranchRevision != null ? baseBranchRevision.toString() : "true";
+        String commitValue = baseBranchRevision != null ? baseBranchRevision.toString() : "c";
         DocumentStore store = mk.getDocumentStore();
         String commitRootPath = null;
         if (baseBranchRevision != null) {

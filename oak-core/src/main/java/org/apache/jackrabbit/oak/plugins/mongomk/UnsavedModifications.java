@@ -56,16 +56,18 @@ class UnsavedModifications {
     /**
      * Applies all modifications from this instance to the <code>other</code>.
      * A modification is only applied if there is no modification in other
-     * for a given path or if the other modification is earlier.
+     * for a given path or if the other modification is earlier than the
+     * merge commit revision.
      *
      * @param other the other <code>UnsavedModifications</code>.
+     * @param mergeCommit the merge commit revision.
      */
-    public void applyTo(UnsavedModifications other) {
+    public void applyTo(UnsavedModifications other, Revision mergeCommit) {
         for (Map.Entry<String, Revision> entry : map.entrySet()) {
             Revision r = other.map.putIfAbsent(entry.getKey(), entry.getValue());
             if (r != null) {
-                if (r.compareRevisionTime(entry.getValue()) < 0) {
-                    other.map.put(entry.getKey(), entry.getValue());
+                if (r.compareRevisionTime(mergeCommit) < 0) {
+                    other.map.put(entry.getKey(), mergeCommit);
                 }
             }
         }

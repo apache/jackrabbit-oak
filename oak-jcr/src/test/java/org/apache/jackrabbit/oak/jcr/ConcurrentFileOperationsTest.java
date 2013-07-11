@@ -72,8 +72,6 @@ public class ConcurrentFileOperationsTest extends AbstractRepositoryTest {
      */
     @Test
     public void concurrent() throws Exception {
-        // OAK-893
-        assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
         List<Session> sessions = new ArrayList<Session>();
         for (int i = 0; i < NUM_WRITERS; i++) {
             sessions.add(createAdminSession());
