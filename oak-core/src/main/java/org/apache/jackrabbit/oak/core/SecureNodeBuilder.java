@@ -24,12 +24,16 @@ import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -244,6 +248,11 @@ class SecureNodeBuilder implements NodeBuilder {
         } else {
             return size(getChildNodeNames());
         }
+    }
+
+    @Override
+    public Blob createBlob(InputStream stream) throws IOException {
+        return builder.createBlob(stream);
     }
 
     //------------------------------------------------------< inner classes >---
