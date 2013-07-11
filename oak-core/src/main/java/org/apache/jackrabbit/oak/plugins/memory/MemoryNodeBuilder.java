@@ -25,12 +25,18 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.io.ByteStreams;
 
 /**
  * In-memory node state builder.
@@ -353,6 +359,15 @@ public class MemoryNodeBuilder implements NodeBuilder {
             updated();
         }
         return this;
+    }
+
+    @Override
+    public Blob createBlob(InputStream stream) throws IOException {
+        try {
+            return new ArrayBasedBlob(ByteStreams.toByteArray(stream));
+        } finally {
+            stream.close();
+        }
     }
 
     /**

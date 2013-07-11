@@ -16,13 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static com.google.common.base.Preconditions.checkElementIndex;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkPositionIndexes;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.List;
 
 import com.google.common.collect.Iterables;
+import com.google.common.io.ByteStreams;
+
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
@@ -62,30 +75,31 @@ class OakDirectory extends Directory {
 
     @Override
     public long fileLength(String name) throws IOException {
-        if (!fileExists(name)) {
-            return 0;
+        NodeBuilder file = directoryBuilder.getChildNode(name);
+        OakIndexInput input = new OakIndexInput(name, file);
+        try {
+            return input.length();
+        } finally {
+            input.close();
         }
-
-        NodeBuilder fileBuilder = directoryBuilder.child(name);
-        PropertyState property = fileBuilder.getProperty("jcr:data");
-        if (property == null || property.isArray()) {
-            return 0;
-        }
-
-        return property.size();
     }
 
     @Override
     public IndexOutput createOutput(String name, IOContext context)
             throws IOException {
-        return new OakIndexOutput(name);
+        return new OakIndexOutput(name, directoryBuilder.child(name));
     }
 
 
     @Override
     public IndexInput openInput(String name, IOContext context)
             throws IOException {
-        return new OakIndexInput(name);
+        NodeBuilder file = directoryBuilder.getChildNode(name);
+        if (file.exists()) {
+            return new OakIndexInput(name, file);
+        } else {
+            throw new FileNotFoundException(name);
+        }
     }
 
     @Override
@@ -98,88 +112,212 @@ class OakDirectory extends Directory {
         // do nothing
     }
 
-    protected byte[] readFile(String name) throws IOException {
-        if (!fileExists(name)) {
-            return new byte[0];
+    private static final int BLOB_SIZE = 4092;
+
+    private static class OakIndexFile {
+
+        private final String name;
+
+        private final NodeBuilder file;
+
+        private long position = 0;
+
+        private long length;
+
+        private final List<Blob> data;
+
+        private boolean dataModified = false;
+
+        private int index = -1;
+
+        private final byte[] blob = new byte[BLOB_SIZE];
+
+        private boolean blobModified = false;
+
+        public OakIndexFile(String name, NodeBuilder file) {
+            this.name = name;
+            this.file = file;
+
+            PropertyState property = file.getProperty(JCR_DATA);
+            if (property != null && property.getType() == BINARIES) {
+                this.data = newArrayList(property.getValue(BINARIES));
+            } else {
+                this.data = newArrayList();
+            }
+
+            this.length = data.size() * BLOB_SIZE;
+            if (!data.isEmpty()) {
+                Blob last = data.get(data.size() - 1);
+                this.length -= BLOB_SIZE - last.length();
+            }
         }
 
-        NodeBuilder fileBuilder = directoryBuilder.child(name);
-        PropertyState property = fileBuilder.getProperty("jcr:data");
-        if (property == null || property.isArray()) {
-            return new byte[0];
+        private OakIndexFile(OakIndexFile that) {
+            this.name = that.name;
+            this.file = that.file;
+
+            this.position = that.position;
+            this.length = that.length;
+            this.data = newArrayList(that.data);
+            this.dataModified = that.dataModified;
         }
 
-        InputStream stream = property.getValue(BINARY).getNewStream();
-        try {
-            byte[] buffer = new byte[(int) property.size()];
+        private void loadBlob(int i) throws IOException {
+            checkElementIndex(i, data.size());
+            if (index != i) {
+                flushBlob();
+                checkState(!blobModified);
 
-            int size = 0;
-            do {
-                int n = stream.read(buffer, size, buffer.length - size);
-                if (n == -1) {
-                    throw new IOException(
-                            "Unexpected end of index file: " + name);
+                int n = (int) Math.min(BLOB_SIZE, length - i * BLOB_SIZE);
+                InputStream stream = data.get(i).getNewStream();
+                try {
+                    ByteStreams.readFully(stream, blob, 0, n);
+                } finally {
+                    stream.close();
                 }
-                size += n;
-            } while (size < buffer.length);
-
-            return buffer;
-        } finally {
-            stream.close();
+                index = i;
+            }
         }
-    }
 
-    private final class OakIndexInput extends IndexInput {
+        private void flushBlob() throws IOException {
+            if (blobModified) {
+                System.out.format("%s flush blob %d%n", name, index);
+                int n = (int) Math.min(BLOB_SIZE, length - index * BLOB_SIZE);
+                Blob b = file.createBlob(new ByteArrayInputStream(blob, 0, n));
+                if (index < data.size()) {
+                    data.set(index, b);
+                } else {
+                    checkState(index == data.size());
+                    data.add(b);
+                }
+                dataModified = true;
+                blobModified = false;
+            }
+        }
 
-        private final byte[] data;
+        public void seek(long pos) throws IOException {
+            // seek() may be called with pos == length
+            // see https://issues.apache.org/jira/browse/LUCENE-1196
+            if (pos < 0 || pos > length) {
+                throw new IOException("Invalid seek request");
+            } else {
+                position = pos;
+            }
+        }
 
-        private int position;
+        public void readBytes(byte[] b, int offset, int len)
+                throws IOException {
+            checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
 
-        public OakIndexInput(String name) throws IOException {
-            super(name);
-            this.data = readFile(name);
-            this.position = 0;
+            if (len < 0 || position + len > length) {
+                throw new IOException("Invalid byte range request");
+            }
+
+            int i = (int) (position / BLOB_SIZE);
+            int o = (int) (position % BLOB_SIZE);
+            while (len > 0) {
+                loadBlob(i);
+
+                int l = Math.min(len, BLOB_SIZE - o);
+                System.arraycopy(blob, o, b, offset, l);
+
+                offset += l;
+                len -= l;
+                position += l;
+
+                i++;
+                o = 0;
+            }
+        }
+
+        public void writeBytes(byte[] b, int offset, int len)
+                throws IOException {
+            int i = (int) (position / BLOB_SIZE);
+            int o = (int) (position % BLOB_SIZE);
+            while (len > 0) {
+                int l = Math.min(len, BLOB_SIZE - o);
+
+                if (index != i) {
+                    if (o > 0 || (l < BLOB_SIZE && position + l < length)) {
+                        loadBlob(i);
+                    } else {
+                        flushBlob();
+                        index = i;
+                    }
+                }
+                System.arraycopy(b, offset, blob, o, l);
+                blobModified = true;
+
+                offset += l;
+                len -= l;
+                position += l;
+                length = Math.max(length, position);
+
+                i++;
+                o = 0;
+            }
+        }
+
+        public void flush() throws IOException {
+            flushBlob();
+            if (dataModified) {
+                file.setProperty(JCR_LASTMODIFIED, System.currentTimeMillis());
+                file.setProperty(JCR_DATA, data, BINARIES);
+                dataModified = false;
+            }
         }
 
         @Override
-        public void readBytes(byte[] b, int offset, int len)
-                throws IOException {
-            if (len < 0 || position + len > data.length) {
-                throw new IOException("Invalid byte range request");
-            } else {
-                System.arraycopy(data, position, b, offset, len);
-                position += len;
-            }
+        public String toString() {
+            return name;
+        }
+
+    }
+
+    private static class OakIndexInput extends IndexInput {
+
+        private final OakIndexFile file;
+
+        public OakIndexInput(String name, NodeBuilder file) {
+            super(name);
+            this.file = new OakIndexFile(name, file);
+        }
+
+        private OakIndexInput(OakIndexInput that) {
+            super(that.toString());
+            this.file = new OakIndexFile(that.file);
+        }
+
+        @Override
+        public OakIndexInput clone() {
+            return new OakIndexInput(this);
+        }
+
+        @Override
+        public void readBytes(byte[] b, int o, int n) throws IOException {
+            file.readBytes(b, o, n);
         }
 
         @Override
         public byte readByte() throws IOException {
-            if (position >= data.length) {
-                throw new IOException("Invalid byte range request");
-            } else {
-                return data[position++];
-            }
+            byte[] b = new byte[1];
+            readBytes(b, 0, 1);
+            return b[0];
         }
 
         @Override
         public void seek(long pos) throws IOException {
-            //seek() may be called with pos == data.length
-            //see https://issues.apache.org/jira/browse/LUCENE-1196
-            if (pos < 0 || pos > data.length) {
-                throw new IOException("Invalid seek request");
-            } else {
-                position = (int) pos;
-            }
+            file.seek(pos);
         }
 
         @Override
         public long length() {
-            return data.length;
+            return file.length;
         }
 
         @Override
         public long getFilePointer() {
-            return position;
+            return file.position;
         }
 
         @Override
@@ -191,77 +329,48 @@ class OakDirectory extends Directory {
 
     private final class OakIndexOutput extends IndexOutput {
 
-        private final String name;
+        private final OakIndexFile file;
 
-        private byte[] buffer;
-
-        private int size;
-
-        private int position;
-
-        public OakIndexOutput(String name) throws IOException {
-            this.name = name;
-            this.buffer = readFile(name);
-            this.size = buffer.length;
-            this.position = 0;
+        public OakIndexOutput(String name, NodeBuilder file) throws IOException {
+            this.file = new OakIndexFile(name, file);
         }
 
         @Override
         public long length() {
-            return size;
+            return file.length;
         }
 
         @Override
         public long getFilePointer() {
-            return position;
+            return file.position;
         }
 
         @Override
         public void seek(long pos) throws IOException {
-            if (pos < 0 || pos > Integer.MAX_VALUE) {
-                throw new IOException("Invalid file position: " + pos);
-            }
-            this.position = (int) pos;
+            file.seek(pos);
         }
 
         @Override
-        public void writeBytes(byte[] b, int offset, int length) {
-            while (position + length > buffer.length) {
-                byte[] tmp = new byte[Math.max(4096, buffer.length * 2)];
-                System.arraycopy(buffer, 0, tmp, 0, size);
-                buffer = tmp;
-            }
-
-            System.arraycopy(b, offset, buffer, position, length);
-
-            position += length;
-            if (position > size) {
-                size = position;
-            }
+        public void writeBytes(byte[] b, int offset, int length)
+                throws IOException {
+            file.writeBytes(b, offset, length);
         }
 
         @Override
-        public void writeByte(byte b) {
+        public void writeByte(byte b) throws IOException {
             writeBytes(new byte[] { b }, 0, 1);
         }
 
         @Override
         public void flush() throws IOException {
-            byte[] data = buffer;
-            if (data.length > size) {
-                data = new byte[size];
-                System.arraycopy(buffer, 0, data, 0, size);
-            }
-
-            NodeBuilder fileBuilder = directoryBuilder.child(name);
-            fileBuilder.setProperty("jcr:lastModified", System.currentTimeMillis());
-            fileBuilder.setProperty("jcr:data", data);
+            file.flush();
         }
 
         @Override
         public void close() throws IOException {
             flush();
         }
+
     }
 
 }
