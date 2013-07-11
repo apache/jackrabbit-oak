@@ -181,7 +181,6 @@ class OakDirectory extends Directory {
 
         private void flushBlob() throws IOException {
             if (blobModified) {
-                System.out.format("%s flush blob %d%n", name, index);
                 int n = (int) Math.min(BLOB_SIZE, length - index * BLOB_SIZE);
                 Blob b = file.createBlob(new ByteArrayInputStream(blob, 0, n));
                 if (index < data.size()) {
