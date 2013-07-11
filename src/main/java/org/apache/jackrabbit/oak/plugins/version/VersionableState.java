@@ -68,7 +68,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**
- * <code>VersionableState</code> provides methods to create a versionable state
+ * {@code VersionableState} provides methods to create a versionable state
  * for a version based on a versionable node.
  * <p>
  * The restore implementation of this class does not handle the removeExisting
@@ -227,8 +227,8 @@ class VersionableState {
     //--------------------------< internal >------------------------------------
 
     /**
-     * Restores the state from <code>src</code> to a child node of
-     * <code>destParent</code> with the same name as <code>src</code>.
+     * Restores the state from {@code src} to a child node of
+     * {@code destParent} with the same name as {@code src}.
      *
      * @param src the source node.
      * @param destParent the parent of the destination node.
@@ -353,7 +353,7 @@ class VersionableState {
     }
 
     /**
-     * Restores children of a <code>src</code>.
+     * Restores children of a {@code src}.
      */
     private void restoreChildren(NodeBuilder src,
                                  NodeBuilder dest,
@@ -534,9 +534,9 @@ class VersionableState {
 
     private interface OPVProvider {
 
-        public int getAction(NodeBuilder src,
-                             NodeBuilder dest,
-                             PropertyState prop)
+        int getAction(NodeBuilder src,
+                NodeBuilder dest,
+                PropertyState prop)
                 throws RepositoryException;
     }
 

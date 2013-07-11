@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 /**
- * <code>VersionExceptionCode</code> contains the codes for version related
+ * {@code VersionExceptionCode} contains the codes for version related
  * commit failures.
  */
 public enum VersionExceptionCode {
@@ -32,7 +32,7 @@ public enum VersionExceptionCode {
 
     private final String desc;
 
-    private VersionExceptionCode(String desc) {
+    VersionExceptionCode(String desc) {
         this.desc = desc;
     }
 

@@ -134,7 +134,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         // use jcr:rootVersion node to detect if we need to initialize the
         // version history
         if (!node.hasChildNode(JCR_ROOTVERSION)) {
-            // jcr:versionableUuuid property
+            // jcr:versionableUuid property
             node.setProperty(JCR_VERSIONABLEUUID, vUUID, Type.STRING);
             node.setProperty(JCR_UUID,
                     IdentifierManager.generateUUID(), Type.STRING);
@@ -188,8 +188,8 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     /**
-     * Restores a version from the history identified by <code>historyIdentifier</code>
-     * using the given version <code>selector</code>.
+     * Restores a version from the history identified by {@code historyIdentifier}
+     * using the given version {@code selector}.
      *
      * @param historyIdentifier identifier of the version history node.
      * @param selector the version selector.
@@ -224,7 +224,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
     //------------------------------< internal >--------------------------------
 
     /**
-     * Resolves the <code>relPath</code> based on the given <code>node</code>
+     * Resolves the {@code relPath} based on the given {@code node}
      * and returns the resulting node, possibly non-existing.
      *
      * @param node the resolved node.
