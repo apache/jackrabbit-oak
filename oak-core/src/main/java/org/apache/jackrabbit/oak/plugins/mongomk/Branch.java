@@ -130,16 +130,16 @@ class Branch {
 
     /**
      * Applies all unsaved modification of this branch to the given collection
-     * of unsaved trunk modifications. A modification is only applied if there
-     * is no modification in <code>trunk</code> for a given path or if the
-     * <code>trunk</code> modification is earlier.
+     * of unsaved trunk modifications with the given merge commit revision.
      *
      * @param trunk the unsaved trunk modifications.
+     * @param mergeCommit the revision of the merge commit.
      */
-    public synchronized void applyTo(@Nonnull UnsavedModifications trunk) {
+    public synchronized void applyTo(@Nonnull UnsavedModifications trunk,
+                                     @Nonnull Revision mergeCommit) {
         checkNotNull(trunk);
         for (Commit c : commits.values()) {
-            c.getModifications().applyTo(trunk);
+            c.getModifications().applyTo(trunk, mergeCommit);
         }
     }
 

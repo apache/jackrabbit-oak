@@ -22,10 +22,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.mongodb.BasicDBObject;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.mongomk.Revision;
 import org.bson.types.ObjectId;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Utility methods.
@@ -231,5 +237,32 @@ public class Utils {
         to = getIdFromPath(to);
         to = to.substring(0, to.length() - 2) + "0";
         return to;
+    }
+
+    /**
+     * Returns <code>true</code> if a revision tagged with the given revision
+     * should be considered committed, <code>false</code> otherwise. Committed
+     * revisions have a tag, which equals 'c' or starts with 'c-'.
+     *
+     * @param tag the tag (may be <code>null</code>).
+     * @return <code>true</code> if committed; <code>false</code> otherwise.
+     */
+    public static boolean isCommitted(@Nullable String tag) {
+        return tag != null && (tag.equals("c") || tag.startsWith("c-"));
+    }
+
+    /**
+     * Resolve the commit revision for the given revision <code>rev</code> and
+     * the associated commit tag.
+     *
+     * @param rev a revision.
+     * @param tag the associated commit tag.
+     * @return the actual commit revision for <code>rev</code>.
+     */
+    @Nonnull
+    public static Revision resolveCommitRevision(@Nonnull Revision rev,
+                                                 @Nonnull String tag) {
+        return checkNotNull(tag).startsWith("c-") ?
+                Revision.fromString(tag.substring(2)) : rev;
     }
 }
