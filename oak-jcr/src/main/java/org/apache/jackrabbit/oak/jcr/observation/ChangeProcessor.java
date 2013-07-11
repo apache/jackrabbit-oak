@@ -234,7 +234,6 @@ class ChangeProcessor implements Runnable {
         }
 
         public EventGeneratingNodeStateDiff(ChangeSet changes, String path) {
-            // FIXME parent nodes should be the root here
             this(changes, path, new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
         }
 
