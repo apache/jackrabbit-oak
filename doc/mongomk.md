@@ -27,7 +27,7 @@ The basic MongoDB document of a node in Oak looks like this:
         },
         "_modified" : NumberLong(274208361),
         "_revisions" : {
-            "r13f3875b5d1-0-1" : "true"
+            "r13f3875b5d1-0-1" : "c"
         }
     }
 
@@ -46,15 +46,16 @@ the revision the node was deleted in.
 The sub-document `_lastRev` contains the last revision written to this node by
 each cluster node. In the above example the MongoMK cluster node with id `1`
 modified the node the last time in revision `r13f3875b5d1-0-1`, when it created
-the node.
+the node. These revisions are only updated for non-branch commits.
 
 The `_modified` field contains a low-resolution timestamp when the node was last
-modified. The time resolution is five seconds.
+modified. The time resolution is five seconds. This field is also updated when
+a branch commit modifies a node.
 
 The sub-document `_commitRoot` contains commit root depth for the commit in which
 the node was created against the revision.
 
-Finally, the `_revision` sub-document contains commit information about changes
+Finally, the `_revisions` sub-document contains commit information about changes
 marked with a revision. E.g. the single entry in the above document tells us
 that everything marked with revision `r13f3875b5d1-0-1` is committed and
 therefore valid. In case the change is done in a branch then the value would be the
@@ -74,8 +75,8 @@ result in the following document:
         },
         "_modified" : NumberLong(274208516),
         "_revisions" : {
-            "r13f3875b5d1-0-1" : "true",
-            "r13f38818ab6-0-1" : "true"
+            "r13f3875b5d1-0-1" : "c",
+            "r13f38818ab6-0-1" : "c"
         },
         "prop" : {
             "r13f38818ab6-0-1" : "\"foo\""
@@ -85,7 +86,7 @@ result in the following document:
 Now the document contains a new sub-document with the name of the new property.
 The value of the property is annotated with the revision the property was set.
 With each successful commit to this node, a new field is added to the
-`_revision` sub-document. Similarly the `_lastRev` sub-document and `_modified`
+`_revisions` sub-document. Similarly the `_lastRev` sub-document and `_modified`
 field are updated.
 
 After the node is deleted the document looks like this:
@@ -101,9 +102,9 @@ After the node is deleted the document looks like this:
         },
         "_modified" : NumberLong(274208539),
         "_revisions" : {
-            "r13f3875b5d1-0-1" : "true",
-            "r13f38818ab6-0-1" : "true",
-            "r13f38835063-2-1" : "true"
+            "r13f3875b5d1-0-1" : "c",
+            "r13f38818ab6-0-1" : "c",
+            "r13f38835063-2-1" : "c"
         },
         "prop" : {
             "r13f38818ab6-0-1" : "\"foo\""
@@ -124,7 +125,7 @@ Revision Model
 
 Background Operations
 ---------------------
-Each MongoMK instance connecting to same database in Mongo server performs certain backgroun task
+Each MongoMK instance connecting to same database in Mongo server performs certain background task.
 
 ### Renew Cluster Id Lease
 
@@ -133,7 +134,7 @@ Each MongoMK instance connecting to same database in Mongo server performs certa
 While performing commits there are certain nodes which are modified but do not become part
 of commit. For example when a node under /a/b/c is updated then the `_lastRev` property also
 needs to be updated to the commit revision. Such changes are accumulated and flushed periodically
-through a asynch job
+through a asynch job.
 
 ### Background Reads
 
