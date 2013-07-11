@@ -17,15 +17,24 @@
 package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
+
+import java.util.Iterator;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.base.Predicate;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -57,7 +66,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * <ul>
  *     <li>{@link DefaultParentProvider}: used with the default usage where the
  *     parent tree is passed to the constructor</li>
- *     <li>{@link ParentProvider#ROOTPROVIDER}: the default parent provider for
+ *     <li>{@link ParentProvider#ROOT_PROVIDER}: the default parent provider for
  *     the root tree. All children will get {@link DefaultParentProvider}</li>
  *     <li>{@link ParentProvider#UNSUPPORTED}: throws {@code UnsupportedOperationException}
  *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()} and
@@ -87,10 +96,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * are consider equal if their name and the underlying {@code NodeState}s are equal. Note
  * however, that according to the contract defined in {@code NodeState} these
  * objects are not expected to be used as hash keys.
- *
- * FIXME: merge with ReadOnlyTree
  */
-public final class ImmutableTree extends ReadOnlyTree {
+public final class ImmutableTree implements Tree {
+
+    /**
+     * Internal and hidden property that contains the child order
+     */
+    public static final String OAK_CHILD_ORDER = ":childOrder";
+
+    /**
+     * Name of this tree
+     */
+    private final String name;
+
+    /**
+     * Underlying node state
+     */
+    final NodeState state;
 
     private final ParentProvider parentProvider;
     private final TreeTypeProvider typeProvider;
@@ -98,11 +120,11 @@ public final class ImmutableTree extends ReadOnlyTree {
     private String path;
 
     public ImmutableTree(@Nonnull NodeState rootState) {
-        this(ParentProvider.ROOTPROVIDER, "", rootState, TreeTypeProvider.EMPTY);
+        this(ParentProvider.ROOT_PROVIDER, "", rootState, TreeTypeProvider.EMPTY);
     }
 
     public ImmutableTree(@Nonnull NodeState rootState, @Nonnull TreeTypeProvider typeProvider) {
-        this(ParentProvider.ROOTPROVIDER, "", rootState, typeProvider);
+        this(ParentProvider.ROOT_PROVIDER, "", rootState, typeProvider);
     }
 
     public ImmutableTree(@Nonnull ImmutableTree parent, @Nonnull String name, @Nonnull NodeState state) {
@@ -115,7 +137,8 @@ public final class ImmutableTree extends ReadOnlyTree {
 
     public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name,
                          @Nonnull NodeState state, @Nonnull TreeTypeProvider typeProvider) {
-        super(null, name, state);
+        this.name = checkNotNull(name);
+        this.state = checkNotNull(state);
         this.parentProvider = checkNotNull(parentProvider);
         this.typeProvider = typeProvider;
     }
@@ -126,11 +149,17 @@ public final class ImmutableTree extends ReadOnlyTree {
         } else if (root instanceof ImmutableRoot) {
             return ((ImmutableRoot) root).getTree("/");
         } else {
-            throw new IllegalArgumentException("Unsupported Root implementation.");
+            throw new IllegalArgumentException("Unsupported Root implementation: " + root.getClass());
         }
     }
 
     //---------------------------------------------------------------< Tree >---
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
     @Override
     public boolean isRoot() {
         return "".equals(getName());
@@ -140,20 +169,31 @@ public final class ImmutableTree extends ReadOnlyTree {
     public String getPath() {
         if (path == null) {
             if (isRoot()) {
-                // shortcut
                 path = "/";
             } else {
                 StringBuilder sb = new StringBuilder();
-                ImmutableTree parent = getParent();
-                sb.append(parent.getPath());
-                if (!parent.isRoot()) {
-                    sb.append('/');
-                }
-                sb.append(getName());
+                buildPath(sb);
                 path = sb.toString();
             }
         }
         return path;
+    }
+
+    private void buildPath(StringBuilder sb) {
+        if (!isRoot()) {
+            getParent().buildPath(sb);
+            sb.append('/').append(name);
+        }
+    }
+
+    @Override
+    public Status getStatus() {
+        return Status.EXISTING;
+    }
+
+    @Override
+    public boolean exists() {
+        return state.exists();
     }
 
     @Override
@@ -161,11 +201,50 @@ public final class ImmutableTree extends ReadOnlyTree {
         return parentProvider.getParent();
     }
 
+    @Override
+    public PropertyState getProperty(String name) {
+        return state.getProperty(name);
+    }
+
+    @Override
+    public Status getPropertyStatus(String name) {
+        if (hasProperty(name)) {
+            return Status.EXISTING;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public boolean hasProperty(String name) {
+        return state.hasProperty(name);
+    }
+
+    @Override
+    public long getPropertyCount() {
+        return state.getPropertyCount();
+    }
+
+    @Override
+    public Iterable<? extends PropertyState> getProperties() {
+        return state.getProperties();
+    }
+
     @Nonnull
     @Override
     public ImmutableTree getChild(@Nonnull String name) {
         NodeState child = state.getChildNode(name);
         return new ImmutableTree(this, name, child);
+    }
+
+    @Override
+    public boolean hasChild(@Nonnull String name) {
+        return state.hasChildNode(name);
+    }
+
+    @Override
+    public long getChildrenCount() {
+        return state.getChildNodeCount();
     }
 
     /**
@@ -177,10 +256,63 @@ public final class ImmutableTree extends ReadOnlyTree {
      */
     @Override
     public Iterable<Tree> getChildren() {
-        return super.getChildren();
+        return transform(
+                filter(getChildNames(), new Predicate<String>() {
+                    @Override
+                    public boolean apply(String name) {
+                        return !isHidden(name);
+                    }
+                }),
+                new Function<String, Tree>() {
+                    @Override
+                    public Tree apply(String name) {
+                        return new ImmutableTree(ImmutableTree.this, name, state.getChildNode(name));
+                    }
+                });
+    }
+
+    @Override
+    public boolean remove() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Tree addChild(String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setOrderableChildren(boolean enable) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean orderBefore(String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setProperty(PropertyState property) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <T> void setProperty(String name, T value) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <T> void setProperty(String name, T value, Type<T> type) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeProperty(String name) {
+        throw new UnsupportedOperationException();
     }
 
     //-------------------------------------------------------------< Object >---
+
     @Override
     public int hashCode() {
         return Objects.hashCode(getName(), state);
@@ -200,11 +332,11 @@ public final class ImmutableTree extends ReadOnlyTree {
 
     @Override
     public String toString() {
-        return new StringBuilder().append("ImmutableTree '").append(getName()).append("':").append(state.toString()).toString();
+        return "ImmutableTree '" + getName() + "':" + state.toString();
     }
 
-
     //--------------------------------------------------------------------------
+
     public NodeState getNodeState() {
         return state;
     }
@@ -222,7 +354,6 @@ public final class ImmutableTree extends ReadOnlyTree {
         }
     }
 
-    @Override
     @Nonnull
     String getIdentifier() {
         PropertyState property = state.getProperty(JcrConstants.JCR_UUID);
@@ -234,18 +365,46 @@ public final class ImmutableTree extends ReadOnlyTree {
             return PathUtils.concat(getParent().getIdentifier(), getName());
         }
     }
-    
-    @Override
-    protected Function<String, Tree> createChild(){
-    	return new Function<String, Tree>() {
-            @Override
-            public Tree apply(String name) {
-                return new ImmutableTree(ImmutableTree.this, name, state.getChildNode(name));
-            }
-        };
+
+    /**
+     * Returns the list of child names considering the its ordering
+     * when the {@link #OAK_CHILD_ORDER} property is set.
+     *
+     * @return the list of child names.
+     */
+    private Iterable<String> getChildNames() {
+        if (state.hasProperty(OAK_CHILD_ORDER)) {
+            return new Iterable<String>() {
+                @Override
+                public Iterator<String> iterator() {
+                    return new Iterator<String>() {
+                        final PropertyState childOrder = state.getProperty(OAK_CHILD_ORDER);
+                        int index = 0;
+
+                        @Override
+                        public boolean hasNext() {
+                            return index < childOrder.count();
+                        }
+
+                        @Override
+                        public String next() {
+                            return childOrder.getValue(STRING, index++);
+                        }
+
+                        @Override
+                        public void remove() {
+                            throw new UnsupportedOperationException();
+                        }
+                    };
+                }
+            };
+        } else {
+            return state.getChildNodeNames();
+        }
     }
 
     //--------------------------------------------------------------------------
+
     public interface ParentProvider {
 
         ParentProvider UNSUPPORTED = new ParentProvider() {
@@ -255,7 +414,7 @@ public final class ImmutableTree extends ReadOnlyTree {
             }
         };
 
-        ParentProvider ROOTPROVIDER = new ParentProvider() {
+        ParentProvider ROOT_PROVIDER = new ParentProvider() {
             @Override
             public ImmutableTree getParent() {
                 throw new IllegalStateException("root tree does not have a parent");
@@ -267,7 +426,7 @@ public final class ImmutableTree extends ReadOnlyTree {
     }
 
     public static final class DefaultParentProvider implements ParentProvider {
-        private ImmutableTree parent;
+        private final ImmutableTree parent;
 
         DefaultParentProvider(ImmutableTree parent) {
             this.parent = checkNotNull(parent);

@@ -96,8 +96,8 @@ public class IdentifierManager {
     public String getIdentifier(Tree tree) {
         if (tree instanceof TreeImpl) {
             return ((TreeImpl) tree).getIdentifier();
-        } else if (tree instanceof ReadOnlyTree) {
-            return ((ReadOnlyTree) tree).getIdentifier();
+        } else if (tree instanceof ImmutableTree) {
+            return ((ImmutableTree) tree).getIdentifier();
         } else {
             return tree.getPath();
         }
