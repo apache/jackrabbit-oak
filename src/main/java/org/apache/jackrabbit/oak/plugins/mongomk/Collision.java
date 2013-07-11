@@ -39,7 +39,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * or some other branch.</li>
  * </ul>
  * Other collisions like concurrent commits to trunk are handled earlier and
- * do not require collision marking. See {@link Commit#createOrUpdateNode()}.
+ * do not require collision marking.
+ * See {@link Commit#createOrUpdateNode(DocumentStore, UpdateOp)}.
  */
 class Collision {
 
@@ -105,7 +106,7 @@ class Collision {
         Map<String, String> revisions = (Map<String, String>) document.get(UpdateOp.REVISIONS);
         if (revisions != null && revisions.containsKey(revision)) {
             String value = revisions.get(revision);
-            if ("true".equals(value)) {
+            if (Utils.isCommitted(value)) {
                 // already committed
                 return false;
             }
@@ -165,10 +166,6 @@ class Collision {
     private static boolean isCommitted(String revision, Map<String, Object> document) {
         @SuppressWarnings("unchecked")
         Map<String, String> revisions = (Map<String, String>) document.get(UpdateOp.REVISIONS);
-        if (revisions != null && revisions.containsKey(revision)) {
-            String value = revisions.get(revision);
-            return "true".equals(value);
-        }
-        return false;
+        return revisions != null && Utils.isCommitted(revisions.get(revision));
     }
 }
