@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -170,7 +170,7 @@ class VersionEditor implements Editor {
             // this is not 100% correct, because t.getPath() will
             // not return the correct path for node after, but is
             // sufficient to check if it is versionable
-            Tree t = new ReadOnlyTree(after);
+            Tree t = new ImmutableTree(after);
             isVersionable = vMgr.isVersionable(t);
         }
         return isVersionable;

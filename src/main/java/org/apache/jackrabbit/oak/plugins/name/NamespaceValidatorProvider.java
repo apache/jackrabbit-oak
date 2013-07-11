@@ -21,7 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAME
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -40,7 +40,7 @@ public class NamespaceValidatorProvider extends ValidatorProvider {
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
         Validator validator = new NamespaceValidator(
-                Namespaces.getNamespaceMap(new ReadOnlyTree(before)));
+                Namespaces.getNamespaceMap(new ImmutableTree(before)));
         return new SubtreeValidator(validator, JCR_SYSTEM, REP_NAMESPACES);
     }
 

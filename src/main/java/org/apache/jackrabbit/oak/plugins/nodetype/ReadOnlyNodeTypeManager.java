@@ -52,7 +52,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
@@ -150,7 +150,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             typesNode = typesNode.getChildNode(name);
         }
 
-        final Tree typesTree = new ReadOnlyTree(typesNode);
+        final Tree typesTree = new ImmutableTree(typesNode);
         return new ReadOnlyNodeTypeManager() {
             @Override
             protected Tree getTypes() {
