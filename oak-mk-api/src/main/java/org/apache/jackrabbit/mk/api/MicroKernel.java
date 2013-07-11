@@ -535,7 +535,7 @@ public interface MicroKernel {
      *     <dt>changeDeletedNode:</dt>
      *     <dd>A node has been changed while a node of the same name has been removed in trunk.</dd>
      * </dl>
-     * In this context a node is regarded as changed if a property way added, a property was removed,
+     * In this context a node is regarded as changed if a property was added, a property was removed,
      * a property was set to a different value, a child node was added, a child node was removed or
      * a child node was changed.
      * <p/>
