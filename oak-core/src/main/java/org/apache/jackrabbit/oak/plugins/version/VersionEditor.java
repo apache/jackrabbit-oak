@@ -160,9 +160,9 @@ class VersionEditor implements Editor {
     }
 
     /**
-     * Returns <code>true</code> if the node of this VersionDiff is versionable;
-     * <code>false</code> otherwise.
-     * 
+     * Returns {@code true} if the node of this VersionDiff is versionable;
+     * {@code false} otherwise.
+     *
      * @return whether the node is versionable.
      */
     private boolean isVersionable() {
@@ -182,7 +182,7 @@ class VersionEditor implements Editor {
     }
 
     /**
-     * @return <code>true</code> if this node <b>was</b> checked in. That is,
+     * @return {@code true} if this node <b>was</b> checked in. That is,
      *         this method checks the base state for the jcr:isCheckedOut
      *         property.
      */
