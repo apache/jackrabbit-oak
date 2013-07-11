@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import javax.jcr.Node;
+import javax.jcr.Session;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -65,6 +67,30 @@ public class MoveTest extends AbstractJCRTest {
         move(node1.getPath(), destPath, true);
 
         assertEquals(destPath, node1.getPath());
+    }
+
+    /**
+     * Simulate a 'rename' call using 2 sessions:
+     * - 1st create a node that has a '.tmp' extension 
+     * - 2nd remove the '.tmp' by issuing a Session#move call on a fresh session
+     */
+    @Test
+    @Ignore("OAK-898")
+    public void testMoveTmp() throws Exception {
+        String n = "testMoveTmp";
+
+        Node node1 = testRootNode.addNode(n + ".tmp");
+        superuser.save();
+
+        String destPath = testRootNode.getPath() + "/" + n;
+
+        Session ts = getHelper().getSuperuserSession();
+        try {
+            ts.move(node1.getPath(), destPath);
+            assertEquals(destPath, node1.getPath());
+        } finally {
+            ts.logout();
+        }
     }
 
     @Test
