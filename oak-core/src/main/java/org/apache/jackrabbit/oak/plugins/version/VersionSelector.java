@@ -35,12 +35,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
  * the scope of this specification."</em>
  * <p/>
  * The version selection in jackrabbit works as follows:<br/>
- * The <code>Node.restore()</code> methods uses the
+ * The {@code Node.restore()} methods uses the
  * {@link DateVersionSelector} which is initialized with the creation date of
  * the parent version. This selector selects the latest version that is equal
  * or older than the given date. if no such version exists, the initial one
  * is restored.<br/>
- * The <code>Node.restoreByLabel()</code> uses the
+ * The {@code Node.restoreByLabel()} uses the
  * {@link LabelVersionSelector} which is initialized with the label of the
  * version to be restored. This selector selects the version with the same
  * label. if no such version exists, the initial one is restored.
@@ -54,11 +54,11 @@ public interface VersionSelector {
 
     /**
      * Selects a version of the given version history. If this VersionSelector
-     * is unable to select one, it can return <code>null</code>. Please note,
+     * is unable to select one, it can return {@code null}. Please note,
      * that a version selector is not allowed to return the root version.
      *
      * @param versionHistory version history to select a version from
-     * @return A version or <code>null</code>.
+     * @return A version or {@code null}.
      * @throws RepositoryException if an error occurs.
      */
     @CheckForNull

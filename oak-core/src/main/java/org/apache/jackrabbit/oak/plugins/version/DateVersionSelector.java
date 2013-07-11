@@ -30,8 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
  * <p/>
  * This Class implements a version selector that selects a version by creation
  * date. The selected version is the latest that is older or equal than the
- * given date. If no version could be found <code>null</code> is returned
- * unless the <code>returnLatest</code> flag is set to <code>true</code>, where
+ * given date. If no version could be found {@code null} is returned
+ * unless the {@code returnLatest} flag is set to {@code true}, where
  * the latest version is returned.
  * <pre>
  * V1.0 - 02-Sep-2006
@@ -53,7 +53,7 @@ public class DateVersionSelector implements VersionSelector {
     private final long timestamp;
 
     /**
-     * Creates a <code>DateVersionSelector</code> that will select the latest
+     * Creates a {@code DateVersionSelector} that will select the latest
      * version of all those that are older than the given timestamp.
      *
      * @param timestamp reference timestamp

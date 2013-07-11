@@ -18,23 +18,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-
 /**
- * <code>Utils</code> provide some utility methods.
+ * {@code Utils} provide some utility methods.
  */
-public class Utils {
+public final class Utils {
+    private Utils() {
+    }
 
     /**
-     * Returns the jcr:uuid value of given <code>node</code>.
+     * Returns the jcr:uuid value of given {@code node}.
      *
      * @param node a referenceable node.
      * @return the value of the jcr:uuid property.
@@ -51,12 +53,12 @@ public class Utils {
     }
 
     /**
-     * Returns the <code>jcr:primaryType</code> value of the given
-     * <code>node</code>.
+     * Returns the {@code jcr:primaryType} value of the given
+     * {@code node}.
      *
      * @param node a node.
-     * @return the <code>jcr:primaryType</code> value.
-     * @throws IllegalStateException if the node does not have a <code>jcr:primaryType</code>
+     * @return the {@code jcr:primaryType} value.
+     * @throws IllegalStateException if the node does not have a {@code jcr:primaryType}
      *                               property.
      */
     @Nonnull
