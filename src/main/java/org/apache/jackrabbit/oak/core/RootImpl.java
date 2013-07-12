@@ -194,6 +194,7 @@ public class RootImpl implements Root {
             getTree(getParentPath(sourcePath)).updateChildOrder();
             getTree(getParentPath(destPath)).updateChildOrder();
             lastMove = lastMove.setMove(sourcePath, destParent, getName(destPath));
+            updated();
         }
         return success;
     }
@@ -206,6 +207,7 @@ public class RootImpl implements Root {
         reset();
         if (success) {
             getTree(getParentPath(destPath)).updateChildOrder();
+            updated();
         }
         return success;
     }
