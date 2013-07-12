@@ -189,7 +189,11 @@ public class MongoMK implements MicroKernel {
     private volatile Revision headRevision;
     
     private Thread backgroundThread;
-    
+
+    /**
+     * Enable using simple revisions (just a counter). This feature is useful
+     * for testing.
+     */
     private AtomicInteger simpleRevisionCounter;
     
     /**
@@ -207,6 +211,11 @@ public class MongoMK implements MicroKernel {
     private boolean stopBackground;
 
     MongoMK(Builder builder) {
+
+        if(builder.isUseSimpleRevision()){
+            this.simpleRevisionCounter = new AtomicInteger(0);
+        }
+
         DocumentStore s = builder.getDocumentStore();
         if (builder.getTiming()) {
             s = new TimingDocumentStoreWrapper(s);
@@ -273,15 +282,7 @@ public class MongoMK implements MicroKernel {
         backgroundThread.start();
     }
     
-    /**
-     * Enable using simple revisions (just a counter). This feature is useful
-     * for testing.
-     */
-    void useSimpleRevisions() {
-        this.simpleRevisionCounter = new AtomicInteger(1);
-        init();
-    }
-    
+
     /**
      * Create a new revision.
      * 
@@ -1669,6 +1670,7 @@ public class MongoMK implements MicroKernel {
         private long childrenCacheSize;
         private long diffCacheSize;
         private long documentCacheSize;
+        private boolean useSimpleRevision;
 
         public Builder() {
             memoryCacheSize(DEFAULT_MEMORY_CACHE_SIZE);
@@ -1802,6 +1804,15 @@ public class MongoMK implements MicroKernel {
 
         public long getDiffCacheSize() {
             return diffCacheSize;
+        }
+
+        public Builder setUseSimpleRevision(boolean useSimpleRevision){
+            this.useSimpleRevision = useSimpleRevision;
+            return this;
+        }
+
+        public boolean isUseSimpleRevision(){
+            return useSimpleRevision;
         }
 
         /**
