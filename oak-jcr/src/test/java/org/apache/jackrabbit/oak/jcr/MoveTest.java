@@ -72,7 +72,8 @@ public class MoveTest extends AbstractJCRTest {
     /**
      * Simulate a 'rename' call using 2 sessions:
      * - 1st create a node that has a '.tmp' extension 
-     * - 2nd remove the '.tmp' by issuing a Session#move call on a fresh session
+     * - 2nd remove the '.tmp' by issuing a Session#move call on a new session
+     * - 3rd verify the move by issuing a #getNode call on the destination path using a new session
      */
     @Test
     @Ignore("OAK-898")
@@ -87,7 +88,13 @@ public class MoveTest extends AbstractJCRTest {
         Session ts = getHelper().getSuperuserSession();
         try {
             ts.move(node1.getPath(), destPath);
-            assertEquals(destPath, node1.getPath());
+        } finally {
+            ts.logout();
+        }
+
+        ts = getHelper().getSuperuserSession();
+        try {
+            assertNotNull(ts.getNode(destPath));
         } finally {
             ts.logout();
         }
