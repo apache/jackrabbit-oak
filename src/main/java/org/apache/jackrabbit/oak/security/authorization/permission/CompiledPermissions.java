@@ -22,6 +22,8 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 
 /**
@@ -29,17 +31,55 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatu
  */
 public interface CompiledPermissions {
 
+    void refresh(@Nonnull ImmutableTree permissionsTree,
+                 @Nonnull PrivilegeBitsProvider bitsProvider);
+
+    /**
+     *
+     * @param tree
+     * @param property
+     * @return
+     */
     @Nonnull
     ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property);
 
+    /**
+     *
+     * @param permissions
+     * @return
+     */
     boolean isGranted(long permissions);
 
+    /**
+     *
+     * @param parent
+     * @param property
+     * @param permissions
+     * @return
+     */
     boolean isGranted(@Nonnull Tree parent, @Nullable PropertyState property, long permissions);
 
+    /**
+     *
+     * @param path Path of an OAK tree
+     * @param permissions
+     * @return
+     */
     boolean isGranted(@Nonnull String path, long permissions);
 
+    /**
+     *
+     * @param tree
+     * @return
+     */
     @Nonnull
     Set<String> getPrivileges(@Nullable Tree tree);
 
+    /**
+     *
+     * @param tree
+     * @param privilegeNames
+     * @return
+     */
     boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames);
 }
