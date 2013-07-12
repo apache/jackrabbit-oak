@@ -93,7 +93,7 @@ public class IdentifierManager {
      * @return  identifier of {@code tree}
      */
     @Nonnull
-    public String getIdentifier(Tree tree) {
+    public static String getIdentifier(Tree tree) {
         if (tree instanceof AbstractTree) {
             return ((AbstractTree) tree).getIdentifier();
         } else {

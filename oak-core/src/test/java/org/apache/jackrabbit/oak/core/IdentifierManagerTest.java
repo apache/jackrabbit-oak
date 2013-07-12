@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -30,10 +35,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 public class IdentifierManagerTest {
     private static final String UUID_Y = IdentifierManager.generateUUID();
@@ -74,16 +75,16 @@ public class IdentifierManagerTest {
     @Test
     public void getIdentifierTest() {
         Tree rootTree = root.getTree("/");
-        assertEquals(ID_ROOT, identifierManager.getIdentifier(rootTree));
+        assertEquals(ID_ROOT, getIdentifier(rootTree));
 
         Tree xx1 = root.getTree(PATH_X1);
-        assertEquals(ID_X1, identifierManager.getIdentifier(xx1));
+        assertEquals(ID_X1, getIdentifier(xx1));
 
         Tree yy1 = root.getTree(PATH_Y1);
-        assertEquals(ID_Y1, identifierManager.getIdentifier(yy1));
+        assertEquals(ID_Y1, getIdentifier(yy1));
 
         Tree zz1 = root.getTree(PATH_Z1);
-        assertEquals(ID_Z1, identifierManager.getIdentifier(zz1));
+        assertEquals(ID_Z1, getIdentifier(zz1));
     }
 
     @Test
