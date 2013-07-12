@@ -87,9 +87,8 @@ public class SimpleTest {
     
     @Test
     public void nodeIdentifier() {
-        MongoMK mk = createMK();
-        mk.useSimpleRevisions();
-        
+        MongoMK mk = createMK(true);
+
         String rev0 = mk.getHeadRevision();
         String rev1 = mk.commit("/", "+\"test\":{}", null, null);
         String rev2 = mk.commit("/test", "+\"a\":{}", null, null);
@@ -419,12 +418,20 @@ public class SimpleTest {
     }
 
     private static MongoMK createMK() {
+        return createMK(false);
+    }
+
+    private static MongoMK createMK(boolean useSimpleRevision) {
         MongoMK.Builder builder = new MongoMK.Builder();
+
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
             builder.setMongoDB(db);
         }
+
+        builder.setUseSimpleRevision(useSimpleRevision);
+
         return builder.open();
     }
 
