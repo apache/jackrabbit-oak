@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
+
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -29,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -58,8 +62,6 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Default implementation of the {@code TokenProvider} interface that keeps login
@@ -215,7 +217,7 @@ public class TokenProviderImpl implements TokenProvider {
                 tokenNode.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
 
                 String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
-                String nodeId = identifierManager.getIdentifier(tokenNode.getTree());
+                String nodeId = getIdentifier(tokenNode.getTree());
                 String token = new StringBuilder(nodeId).append(DELIM).append(key).toString();
 
                 String keyHash = PasswordUtility.buildPasswordHash(key);

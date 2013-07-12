@@ -80,7 +80,6 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
@@ -153,7 +152,7 @@ public class NodeDelegate extends ItemDelegate {
 
     @Nonnull
     public String getIdentifier() throws InvalidItemStateException {
-        return sessionDelegate.getIdManager().getIdentifier(getTree());
+        return IdentifierManager.getIdentifier(getTree());
     }
 
     @Override
