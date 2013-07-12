@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
-public class TreeImpl extends AbstractTree {
+public class MutableTree extends AbstractTree {
 
     /**
      * Underlying {@code Root} of this {@code Tree} instance
@@ -60,18 +60,18 @@ public class TreeImpl extends AbstractTree {
     /**
      * Parent of this tree. Null for the root.
      */
-    private TreeImpl parent;
+    private MutableTree parent;
 
     /** Pointer into the list of pending moves */
     private Move pendingMoves;
 
-    TreeImpl(RootImpl root, NodeBuilder builder, Move pendingMoves) {
+    MutableTree(RootImpl root, NodeBuilder builder, Move pendingMoves) {
         super("", builder, false);
         this.root = checkNotNull(root);
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
-    private TreeImpl(RootImpl root, TreeImpl parent, String name, Move pendingMoves) {
+    private MutableTree(RootImpl root, MutableTree parent, String name, Move pendingMoves) {
         super(name, parent.nodeBuilder.getChildNode(name), false);
         this.root = checkNotNull(root);
         this.parent = checkNotNull(parent);
@@ -79,8 +79,8 @@ public class TreeImpl extends AbstractTree {
     }
 
     @Override
-    protected TreeImpl createChild(String name) {
-        return new TreeImpl(root, this, name, pendingMoves);
+    protected MutableTree createChild(String name) {
+        return new MutableTree(root, this, name, pendingMoves);
     }
 
     //------------------------------------------------------------< Tree >---
@@ -109,7 +109,7 @@ public class TreeImpl extends AbstractTree {
     }
 
     @Override
-    public TreeImpl getParent() {
+    public MutableTree getParent() {
         checkState(parent != null, "root tree does not have a parent");
         root.checkLive();
         return parent;
@@ -251,7 +251,7 @@ public class TreeImpl extends AbstractTree {
                 new Predicate<String>() {
                     @Override
                     public boolean apply(String name) {
-                        return !TreeImpl.this.name.equals(name);
+                        return !MutableTree.this.name.equals(name);
                     }
                 });
         // create head and tail
@@ -320,7 +320,7 @@ public class TreeImpl extends AbstractTree {
      * @param destParent new parent for this tree
      * @param destName   new name for this tree
      */
-    void moveTo(TreeImpl destParent, String destName) {
+    void moveTo(MutableTree destParent, String destName) {
         name = destName;
         parent = destParent;
     }
@@ -331,11 +331,11 @@ public class TreeImpl extends AbstractTree {
      * @return a {@link Tree} instance for the child at {@code path}.
      */
     @CheckForNull
-    TreeImpl getTree(@Nonnull String path) {
+    MutableTree getTree(@Nonnull String path) {
         checkArgument(isAbsolute(checkNotNull(path)));
-        TreeImpl child = this;
+        MutableTree child = this;
         for (String name : elements(path)) {
-            child = new TreeImpl(root, child, name, pendingMoves);
+            child = new MutableTree(root, child, name, pendingMoves);
         }
         return child;
     }
