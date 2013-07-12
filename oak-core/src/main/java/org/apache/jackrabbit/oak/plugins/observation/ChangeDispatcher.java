@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.observation.ObservationConstants.OAK_UNKNOWN;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 import java.util.Queue;
 import java.util.Set;
@@ -31,16 +30,10 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**
@@ -254,58 +247,19 @@ public class ChangeDispatcher {
         public abstract long getDate();
 
         /**
-         * Get the id of the node at the given path as it was before this change set.
-         * @param path  path to determine the id for
-         * @return  id for the item at {@code path} or {@code path} if the item doesn't exit.
+         * State before the change
+         * @return  before state
          */
-        @Nonnull
-        public String getBeforeId(String path) {
-            return getId(before, path);
+        public NodeState getBeforeState() {
+            return before;
         }
 
         /**
-         * Get the id of the node at the given path as it is after this change set.
-         * @param path  path to determine the id for
-         * @return  id for the item at {@code path} or {@code path} if the item doesn't exit.
+         * State after the change
+         * @return  after state
          */
-        @Nonnull
-        public String getAfterId(String path) {
-            return getId(after, path);
-        }
-
-        private static String getId(NodeState nodeState, String path) {
-            StringBuilder id = new StringBuilder();
-
-            id.append(getIdOrName(nodeState, ""));
-            for (String name : PathUtils.elements(path)) {
-                nodeState = nodeState.getChildNode(name);
-                id.append('/').append(getIdOrName(nodeState, name));
-            }
-
-            if (id.length() == 0) {
-                return "/";
-            } else {
-                return id.toString();
-            }
-        }
-
-        private static String getIdOrName(NodeState nodeState, String name) {
-            PropertyState uuid = nodeState.getProperty(JcrConstants.JCR_UUID);
-            if (uuid == null) {
-                return name;
-            } else {
-                return uuid.getValue(Type.STRING);
-            }
-        }
-
-        /**
-         * {@link NodeStateDiff} of the changes
-         * @param diff  node state diff instance for traversing the changes.
-         * @param path  path where diffing should start
-         */
-        public void diff(RecursingNodeStateDiff diff, String path) {
-            NodeStateDiff secureDiff = SecureNodeStateDiff.wrap(diff);
-            getNode(after, path).compareAgainstBaseState(getNode(before, path), secureDiff);
+        public NodeState getAfterState() {
+            return after;
         }
 
         @Override

@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Objects.toStringHelper;
 
-import javax.annotation.Nullable;
+import javax.annotation.CheckForNull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
@@ -29,9 +29,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Filter for filtering observation events according to a certain criterion.
@@ -74,15 +72,15 @@ class EventFilter {
     /**
      * Match an event against this filter.
      * @param eventType  type of the event
-     * @param path       path of the event
-     * @param associatedParentNode  associated parent node of the event
+     * @param associatedParent  associated parent node of the event
      * @return  {@code true} if the filter matches this event. {@code false} otherwise.
      */
-    public boolean include(int eventType, String path, @Nullable NodeState associatedParentNode) {
-        return include(eventType)
-                && include(path)
-                && (associatedParentNode == null || includeByType(new ImmutableTree(associatedParentNode)))
-                && (associatedParentNode == null || includeByUuid(associatedParentNode));
+    public boolean include(int eventType, @CheckForNull Tree associatedParent) {
+        return includeByEvent(eventType)
+            && associatedParent != null
+            && includeByPath(associatedParent.getPath())
+            && includeByType(associatedParent)
+            && includeByUuid(associatedParent);
     }
 
     /**
@@ -124,11 +122,11 @@ class EventFilter {
 
     //-----------------------------< internal >---------------------------------
 
-    private boolean include(int eventType) {
+    private boolean includeByEvent(int eventType) {
         return (this.eventTypes & eventType) != 0;
     }
 
-    private boolean include(String path) {
+    private boolean includeByPath(String path) {
         boolean equalPaths = this.path.equals(path);
         if (!deep && !equalPaths) {
             return false;
@@ -144,16 +142,16 @@ class EventFilter {
      * Checks whether to include an event based on the type of the associated
      * parent node and the node type filter.
      *
-     * @param associatedParentNode the associated parent node of the event.
+     * @param associatedParent the associated parent node of the event.
      * @return whether to include the event based on the type of the associated
      *         parent node.
      */
-    private boolean includeByType(Tree associatedParentNode) {
+    private boolean includeByType(Tree associatedParent) {
         if (nodeTypeOakName == null) {
             return true;
         } else {
             for (String oakName : nodeTypeOakName) {
-                if (ntMgr.isNodeType(associatedParentNode, oakName)) {
+                if (ntMgr.isNodeType(associatedParent, oakName)) {
                     return true;
                 }
             }
@@ -162,7 +160,7 @@ class EventFilter {
         }
     }
 
-    private boolean includeByUuid(NodeState associatedParentNode) {
+    private boolean includeByUuid(Tree associatedParent) {
         if (uuids == null) {
             return true;
         }
@@ -170,7 +168,7 @@ class EventFilter {
             return false;
         }
 
-        PropertyState uuidProperty = associatedParentNode.getProperty(JcrConstants.JCR_UUID);
+        PropertyState uuidProperty = associatedParent.getProperty(JcrConstants.JCR_UUID);
         if (uuidProperty == null) {
             return false;
         }
