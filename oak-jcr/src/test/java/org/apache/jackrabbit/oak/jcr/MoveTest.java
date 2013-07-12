@@ -21,7 +21,6 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -70,37 +69,34 @@ public class MoveTest extends AbstractJCRTest {
     }
 
     /**
-     * Simulate a 'rename' call using 2 sessions:
+     * Simulate a 'rename' call using 3 sessions:
      * - 1st create a node that has a '.tmp' extension 
      * - 2nd remove the '.tmp' by issuing a Session#move call on a new session
      * - 3rd verify the move by issuing a #getNode call on the destination path using a new session
      */
     @Test
-    @Ignore("OAK-898")
-    public void testMoveTmp() throws Exception {
-        String n = "testMoveTmp";
-
-        Node node1 = testRootNode.addNode(n + ".tmp");
+    public void testOak898() throws Exception {
+        String name = "testMove";
+        Node node = testRootNode.addNode(name + ".tmp");
         superuser.save();
+        String destPath = testRootNode.getPath() + '/' + name;
 
-        String destPath = testRootNode.getPath() + "/" + n;
-
-        Session ts = getHelper().getSuperuserSession();
+        Session session2 = getHelper().getSuperuserSession();
         try {
-            ts.move(node1.getPath(), destPath);
-            if (ts.hasPendingChanges()) {
-                ts.save();
-            }
+            assertFalse(session2.hasPendingChanges());
+            session2.move(node.getPath(), destPath);
+            assertTrue(session2.hasPendingChanges());
+            session2.save();
 
         } finally {
-            ts.logout();
+            session2.logout();
         }
 
-        ts = getHelper().getSuperuserSession();
+        Session session3 = getHelper().getSuperuserSession();
         try {
-            assertNotNull(ts.getNode(destPath));
+            assertNotNull(session3.getNode(destPath));
         } finally {
-            ts.logout();
+            session3.logout();
         }
     }
 
