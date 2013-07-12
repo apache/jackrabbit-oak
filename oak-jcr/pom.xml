@@ -334,7 +334,6 @@
       org.apache.jackrabbit.core.query.SelectClauseTest#testSameNameSiblingSQL                       <!-- OAK-203 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
-      org.apache.jackrabbit.oak.jcr.MoveTest#testMoveTmp                          <!-- OAK-898 -->
     </known.issues>
   </properties>
 
