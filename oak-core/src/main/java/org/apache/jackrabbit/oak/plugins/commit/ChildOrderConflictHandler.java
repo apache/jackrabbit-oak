@@ -21,7 +21,7 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.TreeImpl;
+import org.apache.jackrabbit.oak.core.AbstractTree;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
  * This conflict handler instance takes care of properly merging conflicts
  * occurring by concurrent reorder operations.
  *
- * @see TreeImpl#OAK_CHILD_ORDER
+ * @see AbstractTree#OAK_CHILD_ORDER
  */
 public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
 
@@ -122,7 +122,7 @@ public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
     //----------------------------< internal >----------------------------------
 
     private static boolean isChildOrderProperty(PropertyState p) {
-        return TreeImpl.OAK_CHILD_ORDER.equals(p.getName());
+        return AbstractTree.OAK_CHILD_ORDER.equals(p.getName());
     }
 }
 
