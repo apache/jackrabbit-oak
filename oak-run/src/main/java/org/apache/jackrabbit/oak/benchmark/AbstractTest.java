@@ -239,6 +239,25 @@ abstract class AbstractTest extends Benchmark {
             throw new RuntimeException(e);
         }
     }
+    
+    /**
+    * Returns a new session for the given user
+    * that will be automatically closed once
+    * all the iterations of this test have been executed.
+    * 
+    * @param credentials the user credentials
+    * @return user session
+    */
+   protected Session login(Credentials credentials) {
+       try {
+           Session session = repository.login(credentials);
+           sessions.add(session);
+           return session;
+       } catch (RepositoryException e) {
+           throw new RuntimeException(e);
+       }
+   }
+    
 
     /**
      * Returns a new writer session that will be automatically closed once
