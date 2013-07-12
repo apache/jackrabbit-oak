@@ -19,8 +19,12 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.Collections;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 
@@ -37,6 +41,11 @@ public final class AllPermissions implements CompiledPermissions {
 
     public static CompiledPermissions getInstance() {
         return INSTANCE;
+    }
+
+    @Override
+    public void refresh(@Nonnull ImmutableTree permissionsTree, @Nonnull PrivilegeBitsProvider bitsProvider) {
+        // nop
     }
 
     @Override

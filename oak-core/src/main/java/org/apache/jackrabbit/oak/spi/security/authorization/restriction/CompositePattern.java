@@ -56,4 +56,14 @@ public final class CompositePattern implements RestrictionPattern {
         }
         return true;
     }
+
+    @Override
+    public boolean matches() {
+        for (RestrictionPattern pattern : patterns) {
+            if (!pattern.matches()) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

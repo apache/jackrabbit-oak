@@ -18,26 +18,25 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.security.acl.Group;
-import java.util.Collections;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
+import com.google.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
@@ -59,15 +58,13 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     private final Set<Principal> principals;
     private final RestrictionProvider restrictionProvider;
-    private final Map<String, ImmutableTree> trees;
 
-    // TODO: merge readPaths with readStatus structure
+    private final Map<String, Tree> userTrees;
+    private final Map<String, Tree> groupTrees;
+
     private final Set<String> readPaths;
 
     private PrivilegeBitsProvider bitsProvider;
-    private Map<Key, PermissionEntry> repoEntries;
-    private Map<Key, PermissionEntry> userEntries;
-    private Map<Key, PermissionEntry> groupEntries;
 
     CompiledPermissionImpl(@Nonnull Set<Principal> principals,
                            @Nonnull ImmutableTree permissionsTree,
@@ -79,51 +76,47 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         this.restrictionProvider = restrictionProvider;
         this.bitsProvider = bitsProvider;
         this.readPaths = readPaths;
-        this.trees = new HashMap<String, ImmutableTree>(principals.size());
 
-        // FIXME: load entries lazily or partially
-        buildEntries(permissionsTree);
-    }
-
-    void refresh(@Nonnull ImmutableTree permissionsTree,
-                 @Nonnull PrivilegeBitsProvider bitsProvider) {
-        this.bitsProvider = bitsProvider;
-        boolean refresh = false;
-        // test if a permission has been added for those principals that didn't have one before
-        if (trees.size() != principals.size()) {
+        userTrees = new HashMap<String, Tree>(principals.size());
+        groupTrees = new HashMap<String, Tree>(principals.size());
+        if (permissionsTree.exists()) {
             for (Principal principal : principals) {
-                if (!trees.containsKey(principal.getName()) && getPrincipalRoot(permissionsTree, principal).exists()) {
-                    refresh = true;
-                    break;
+                Tree t = getPrincipalRoot(permissionsTree, principal);
+                if (t.exists()) {
+                    Map<String, Tree> target = getTargetMap(principal);
+                    target.put(principal.getName(), t);
                 }
             }
-        }
-        // test if any of the trees has been modified in the mean time
-        if (!refresh) {
-            for (Map.Entry<String, ImmutableTree> entry : trees.entrySet()) {
-                ImmutableTree t = entry.getValue();
-                ImmutableTree t2 = permissionsTree.getChild(t.getName());
-                if (t2.exists() && !t.equals(t2)) {
-                    refresh = true;
-                    break;
-                }
-            }
-        }
-
-        if (refresh) {
-            buildEntries(permissionsTree);
         }
     }
 
     //------------------------------------------------< CompiledPermissions >---
     @Override
+    public void refresh(@Nonnull ImmutableTree permissionsTree,
+                 @Nonnull PrivilegeBitsProvider bitsProvider) {
+        this.bitsProvider = bitsProvider;
+        // test if a permission has been added for those principals that didn't have one before
+        for (Principal principal : principals) {
+            Map<String, Tree> target = getTargetMap(principal);
+            Tree principalRoot = getPrincipalRoot(permissionsTree, principal);
+            String pName = principal.getName();
+            if (principalRoot.exists()) {
+                if (!target.containsKey(pName) || !principalRoot.equals(target.get(pName))) {
+                    target.put(pName, principalRoot);
+                }
+            } else {
+                target.remove(pName);
+            }
+        }
+    }
+
+    @Override
     public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
-        // TODO merge with readstatus
         if (isReadablePath(tree, null)) {
             return ReadStatus.ALLOW_ALL_REGULAR;
         }
         long permission = (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY;
-        Iterator<PermissionEntry> it = getEntryIterator(tree, property);
+        Iterator<PermissionEntry> it = getEntryIterator(new EntryPredicate(tree, property));
         while (it.hasNext()) {
             PermissionEntry entry = it.next();
             if (entry.readStatus != null) {
@@ -137,17 +130,19 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     @Override
     public boolean isGranted(long permissions) {
-        return hasPermissions(repoEntries.values().iterator(), permissions, null, null);
+        return hasPermissions(getEntryIterator(new EntryPredicate()), permissions, null, null);
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        return hasPermissions(getEntryIterator(tree, property), permissions, tree, null);
+        Iterator<PermissionEntry> it = getEntryIterator(new EntryPredicate(tree, property));
+        return hasPermissions(it, permissions, tree, null);
     }
 
     @Override
     public boolean isGranted(@Nonnull String path, long permissions) {
-        return hasPermissions(getEntryIterator(path), permissions, null, path);
+        Iterator<PermissionEntry> it = getEntryIterator(new EntryPredicate(path));
+        return hasPermissions(it, permissions, null, path);
     }
 
     @Override
@@ -162,33 +157,13 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     //------------------------------------------------------------< private >---
     @Nonnull
-    private static ImmutableTree getPrincipalRoot(ImmutableTree permissionsTree, Principal principal) {
+    private static Tree getPrincipalRoot(Tree permissionsTree, Principal principal) {
         return permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
     }
 
-    private void buildEntries(@Nonnull ImmutableTree permissionsTree) {
-        if (!permissionsTree.exists()) {
-            repoEntries = Collections.emptyMap();
-            userEntries = Collections.emptyMap();
-            groupEntries = Collections.emptyMap();
-        } else {
-            EntriesBuilder builder = new EntriesBuilder();
-            for (Principal principal : principals) {
-                ImmutableTree t = getPrincipalRoot(permissionsTree, principal);
-                if (t.exists()) {
-                    trees.put(principal.getName(), t);
-                    builder.addEntries(principal, t, restrictionProvider);
-                }
-            }
-            repoEntries = builder.getRepoEntries();
-            userEntries = builder.getUserEntries();
-            groupEntries = builder.getGroupEntries();
-            buildReadStatus(Iterables.<PermissionEntry>concat(userEntries.values(), groupEntries.values()));
-        }
-    }
-
-    private static void buildReadStatus(Iterable<PermissionEntry> permissionEntries) {
-        // TODO
+    @Nonnull
+    private Map<String, Tree> getTargetMap(Principal principal) {
+        return (principal instanceof Group) ? groupTrees : userTrees;
     }
 
     private boolean hasPermissions(@Nonnull Iterator<PermissionEntry> entries,
@@ -214,26 +189,24 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         PrivilegeBits denyBits = PrivilegeBits.getInstance();
         PrivilegeBits parentAllowBits;
         PrivilegeBits parentDenyBits;
-
-        Tree parent;
-        String parentPath;
+        String parentPath = null;
 
         if (respectParent) {
             parentAllowBits = PrivilegeBits.getInstance();
             parentDenyBits = PrivilegeBits.getInstance();
-            parent = (tree != null) ? getParentOrNull(tree) : null;
-            parentPath = (path != null) ? Strings.emptyToNull(Text.getRelativeParent(path, 1)) : null;
+            if (path != null || tree != null) {
+                parentPath = PermissionUtil.getParentPathOrNull((path != null) ? path : tree.getPath());
+            }
         } else {
             parentAllowBits = PrivilegeBits.EMPTY;
             parentDenyBits = PrivilegeBits.EMPTY;
-            parent = null;
             parentPath = null;
         }
 
         while (entries.hasNext()) {
             PermissionEntry entry = entries.next();
-            if (respectParent && (parent != null || parentPath != null)) {
-                boolean matchesParent = (parent != null) ? entry.matches(parent, null) : entry.matches(parentPath);
+            if (respectParent && (parentPath != null)) {
+                boolean matchesParent = entry.matchesParent(parentPath);
                 if (matchesParent) {
                     if (entry.isAllow) {
                         parentAllowBits.addDifference(entry.privilegeBits, parentDenyBits);
@@ -263,15 +236,10 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         return (allows | ~permissions) == -1;
     }
 
-    private static Tree getParentOrNull(Tree tree) {
-        Tree parent = tree.getParent();
-        return parent.exists() ? parent : null;
-    }
-
+    @Nonnull
     private PrivilegeBits getPrivilegeBits(@Nullable Tree tree) {
-        Iterator<PermissionEntry> entries = (tree == null) ?
-                repoEntries.values().iterator() :
-                getEntryIterator(tree, null);
+        EntryPredicate pred = (tree == null) ? new EntryPredicate() : new EntryPredicate(tree, null);
+        Iterator<PermissionEntry> entries = getEntryIterator(pred);
 
         PrivilegeBits allowBits = PrivilegeBits.getInstance();
         PrivilegeBits denyBits = PrivilegeBits.getInstance();
@@ -292,12 +260,15 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         return allowBits;
     }
 
-    private Iterator<PermissionEntry> getEntryIterator(@Nonnull Tree tree, @Nullable PropertyState property) {
-        return Iterators.concat(new EntryIterator(userEntries, tree, property), new EntryIterator(groupEntries, tree, property));
-    }
-
-    private Iterator<PermissionEntry> getEntryIterator(@Nonnull String path) {
-        return Iterators.concat(new EntryIterator(userEntries, path), new EntryIterator(groupEntries, path));
+    @Nonnull
+    private Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
+        Iterator<PermissionEntry> userEntries = (userTrees.isEmpty()) ?
+                Iterators.<PermissionEntry>emptyIterator() :
+                new EntryIterator(userTrees, predicate);
+        Iterator<PermissionEntry> groupEntries = (groupTrees.isEmpty()) ?
+                Iterators.<PermissionEntry>emptyIterator():
+                new EntryIterator(groupTrees, predicate);
+        return Iterators.concat(userEntries, groupEntries);
     }
 
     private boolean isReadablePath(@Nullable Tree tree, @Nullable String treePath) {
@@ -314,237 +285,163 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         return false;
     }
 
-    private static final class Key implements Comparable<Key> {
-
-        private final String path;
-        private final int depth;
-        private final long index;
-
-        private Key(Tree tree) {
-            path = Strings.emptyToNull(TreeUtil.getString(tree, REP_ACCESS_CONTROLLED_PATH));
-            depth = (path == null) ? 0 : PathUtils.getDepth(path);
-            index = checkNotNull(tree.getProperty(REP_INDEX).getValue(Type.LONG)).longValue();
-        }
-
-        @Override
-        public int compareTo(Key key) {
-            checkNotNull(key);
-            if (Objects.equal(path, key.path)) {
-                if (index == key.index) {
-                    return 0;
-                } else if (index <                                                                                                                                                                                 key.index) {
-                    return 1;
-                } else {
-                    return -1;
-                }
-            } else {
-                if (depth == key.depth) {
-                    return path.compareTo(key.path);
-                } else {
-                    return (depth < key.depth) ? 1 : -1;
-                }
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(path, index);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            }
-            if (o instanceof Key) {
-                Key other = (Key) o;
-                return index == other.index && Objects.equal(path, other.path);
-            }
-            return false;
-        }
-    }
-
     private static final class PermissionEntry {
 
         private final boolean isAllow;
         private final PrivilegeBits privilegeBits;
+        private final long index;
         private final String path;
         private final RestrictionPattern restriction;
 
-        private ReadStatus readStatus;
-        private PermissionEntry next;
+        private ReadStatus readStatus = null; // TODO
 
-        private PermissionEntry(String accessControlledPath, Tree entryTree, RestrictionProvider restrictionsProvider) {
+        private PermissionEntry(Tree entryTree, RestrictionProvider restrictionsProvider) {
             isAllow = entryTree.getProperty(REP_IS_ALLOW).getValue(Type.BOOLEAN);
             privilegeBits = PrivilegeBits.getInstance(entryTree.getProperty(REP_PRIVILEGE_BITS));
-            path = accessControlledPath;
-            restriction = restrictionsProvider.getPattern(accessControlledPath, entryTree);
+            index = checkNotNull(entryTree.getProperty(REP_INDEX).getValue(Type.LONG)).longValue();
+            path = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_ACCESS_CONTROLLED_PATH));
+            restriction = restrictionsProvider.getPattern(path, entryTree);
         }
 
         private boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
-            String treePath = tree.getPath();
-            if (Text.isDescendantOrEqual(path, treePath)) {
-                return restriction.matches(tree, property);
-            } else {
-                return false;
-            }
+            return restriction.matches(tree, property);
         }
 
         private boolean matches(@Nonnull String treePath) {
-            if (Text.isDescendantOrEqual(path, treePath)) {
-                return restriction.matches(treePath);
+            return restriction.matches(treePath);
+        }
+
+        private boolean matches() {
+            return restriction.matches();
+        }
+
+        private boolean matchesParent(@Nonnull String parentPath) {
+            if (Text.isDescendantOrEqual(path, parentPath)) {
+                return restriction.matches(parentPath);
             } else {
                 return false;
             }
         }
     }
 
-    /**
-     * Collects permission entries for different principals and asserts they are
-     * in the correct order for proper and efficient evaluation.
-     */
-    private static final class EntriesBuilder {
+    private class EntryIterator implements Iterator<PermissionEntry> {
 
-        private ImmutableSortedMap.Builder<Key, PermissionEntry> repoEntries = ImmutableSortedMap.naturalOrder();
-        private ImmutableSortedMap.Builder<Key, PermissionEntry> userEntries = ImmutableSortedMap.naturalOrder();
-        private ImmutableSortedMap.Builder<Key, PermissionEntry> groupEntries = ImmutableSortedMap.naturalOrder();
+        private final Collection<Tree> principalTrees;
+        private final EntryPredicate predicate;
 
-        private void addEntries(@Nonnull Principal principal,
-                                @Nonnull Tree principalRoot,
-                                @Nonnull RestrictionProvider restrictionProvider) {
-            boolean isGroup = (principal instanceof Group);
-            for (Tree entryTree : principalRoot.getChildren()) {
-                traverse(entryTree, isGroup, restrictionProvider);
-            }
-        }
+        // the next oak path for which to retrieve permission entries
+        private String path;
+        // the ordered permission entries at a given path in the hierarchy
+        private Iterator<PermissionEntry> nextEntries = Iterators.emptyIterator();
+        // the next permission entry
+        private PermissionEntry next;
 
-        private void traverse(@Nonnull Tree entryTree, boolean isGroup, @Nonnull RestrictionProvider restrictionProvider) {
-
-            Key key = new Key(entryTree);
-            PermissionEntry entry = new PermissionEntry(key.path, entryTree, restrictionProvider);
-            if (!entry.privilegeBits.isEmpty()) {
-                if (key.path == null) {
-                    repoEntries.put(key, entry);
-                } else if (isGroup) {
-                    groupEntries.put(key, entry);
-                } else {
-                    userEntries.put(key, entry);
-                }
-            }
-
-            for (Tree child : entryTree.getChildren()) {
-                traverse(child, isGroup, restrictionProvider);
-            }
-        }
-
-
-        private Map<Key, PermissionEntry> getRepoEntries() {
-            return repoEntries.build();
-        }
-
-        private Map<Key, PermissionEntry> getUserEntries() {
-            return getEntries(userEntries);
-        }
-
-        private Map<Key, PermissionEntry> getGroupEntries() {
-            return getEntries(groupEntries);
-        }
-
-        private static Map<Key, PermissionEntry> getEntries(ImmutableSortedMap.Builder builder) {
-            Map<Key, PermissionEntry> entryMap = builder.build();
-            Set<Map.Entry<Key, PermissionEntry>> toProcess = new HashSet<Map.Entry<Key, PermissionEntry>>();
-            for (Map.Entry<Key, PermissionEntry> entry : entryMap.entrySet()) {
-                Key currentKey = entry.getKey();
-                Iterator<Map.Entry<Key,PermissionEntry>> it = toProcess.iterator();
-                while (it.hasNext()) {
-                    Map.Entry<Key,PermissionEntry> before = it.next();
-                    Key beforeKey = before.getKey();
-                    if (Text.isDescendantOrEqual(currentKey.path, beforeKey.path)) {
-                        before.getValue().next = entry.getValue();
-                        it.remove();
-                    }
-                }
-                toProcess.add(entry);
-            }
-            return entryMap;
-        }
-    }
-
-    private static class EntryIterator implements Iterator<PermissionEntry> {
-
-        private final Iterator<PermissionEntry> it;
-
-        private EntryIterator(@Nonnull Map<Key, PermissionEntry> entries,
-                              @Nonnull final Tree tree, @Nullable final PropertyState property) {
-            it = Iterators.transform(
-                    Iterators.filter(entries.entrySet().iterator(), new EntryPredicate(tree, property)),
-                    new EntryFunction());
-        }
-
-        private EntryIterator(@Nonnull Map<Key, PermissionEntry> entries,
-                              @Nonnull final String path) {
-            it = Iterators.transform(
-                    Iterators.filter(entries.entrySet().iterator(), new EntryPredicate(path)),
-                    new EntryFunction());
+        private EntryIterator(@Nonnull Map<String, Tree> principalTrees,
+                              @Nonnull EntryPredicate predicate) {
+            this.principalTrees = principalTrees.values();
+            this.predicate = predicate;
+            this.path = Strings.nullToEmpty(predicate.path);
+            next = seekNext();
         }
 
         @Override
         public boolean hasNext() {
-            return it.hasNext();
+            return next != null;
         }
 
         @Override
         public PermissionEntry next() {
-            // FIXME: use 'next' field in permission entry to skip siblings
-            return it.next();
+            if (next == null) {
+                throw new NoSuchElementException();
+            }
+
+            PermissionEntry pe = next;
+            next = seekNext();
+            return pe;
         }
 
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
         }
+
+        @CheckForNull
+        private PermissionEntry seekNext() {
+            // calculate the ordered entries for the next hierarchy level.
+            while (!nextEntries.hasNext() && path != null) {
+                nextEntries = getNextEntries();
+                path = PermissionUtil.getParentPathOrNull(path);
+            }
+
+            if (nextEntries.hasNext()) {
+                return nextEntries.next();
+            } else {
+                return null;
+            }
+        }
+
+        @Nonnull
+        private Iterator<PermissionEntry> getNextEntries() {
+            ImmutableSortedSet.Builder<PermissionEntry> entries = new ImmutableSortedSet.Builder(new EntryComparator());
+            for (Tree principalRoot : principalTrees) {
+                String name = PermissionUtil.getEntryName(path);
+                Tree parent = principalRoot;
+                while (parent.hasChild(name)) {
+                    parent = parent.getChild(name);
+                    PermissionEntry pe = new PermissionEntry(parent, restrictionProvider);
+                    if (predicate.apply(pe)) {
+                        entries.add(pe);
+                    }
+                }
+            }
+            return entries.build().iterator();
+        }
     }
 
-    private static class EntryPredicate implements Predicate<Map.Entry<Key, PermissionEntry>> {
+    private static final class EntryComparator implements Comparator<PermissionEntry> {
+        @Override
+        public int compare(@Nonnull PermissionEntry entry,
+                           @Nonnull PermissionEntry otherEntry) {
+            return Longs.compare(otherEntry.index, entry.index);
+        }
+    }
+
+    private static final class EntryPredicate implements Predicate<PermissionEntry> {
 
         private final Tree tree;
         private final PropertyState property;
         private final String path;
-        private final int depth;
 
         private EntryPredicate(@Nonnull Tree tree, @Nullable PropertyState property) {
             this.tree = tree;
             this.property = property;
             this.path = tree.getPath();
-            this.depth = PathUtils.getDepth(path);
         }
 
         private EntryPredicate(@Nonnull String path) {
             this.tree = null;
             this.property = null;
             this.path = path;
-            this.depth = PathUtils.getDepth(path);
+        }
+
+        private EntryPredicate() {
+            this.tree = null;
+            this.property = null;
+            this.path = null;
         }
 
         @Override
-        public boolean apply(@Nullable Map.Entry<Key, PermissionEntry> entry) {
+        public boolean apply(@Nullable PermissionEntry entry) {
             if (entry == null) {
                 return false;
             }
-            if (depth < entry.getKey().depth) {
-                return false;
-            } else if (tree != null) {
-                return entry.getValue().matches(tree, property);
+            if (tree != null) {
+                return entry.matches(tree, property);
+            } else if (path != null) {
+                return entry.matches(path);
             } else {
-                return entry.getValue().matches(path);
+                return entry.matches();
             }
-        }
-    }
-
-    private static class EntryFunction implements Function<Map.Entry<Key, PermissionEntry>, PermissionEntry> {
-        @Override
-        public PermissionEntry apply(Map.Entry<Key, PermissionEntry> input) {
-            return input.getValue();
         }
     }
 }

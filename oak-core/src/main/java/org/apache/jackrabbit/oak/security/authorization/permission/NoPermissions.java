@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 
 /**
@@ -37,6 +39,11 @@ public final class NoPermissions implements CompiledPermissions {
 
     public static CompiledPermissions getInstance() {
         return INSTANCE;
+    }
+
+    @Override
+    public void refresh(@Nonnull ImmutableTree permissionsTree, @Nonnull PrivilegeBitsProvider bitsProvider) {
+        // nop
     }
 
     @Override
