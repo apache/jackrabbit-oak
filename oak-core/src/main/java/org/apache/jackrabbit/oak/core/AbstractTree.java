@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * {@code AbstractTree} provides default implementations for most
  * read methods of {@code Tree}. Furthermore it handles the
  * {@link #setOrderableChildren(boolean) ordering} of child nodes
- * and controls visibility of internal items.
+ * and hides internal items.
  */
 public abstract class AbstractTree implements Tree {
 
@@ -59,11 +59,6 @@ public abstract class AbstractTree implements Tree {
 
     // TODO: make this configurable
     private static final String[] INTERNAL_NODE_NAMES = {IndexConstants.INDEX_CONTENT_NODE_NAME, MicroKernel.CONFLICT_NAME};
-
-    /**
-     * Flag to control visibility of internal properties
-     */
-    private final boolean showInternalProperties;
 
     /**
      * Name of this tree
@@ -79,12 +74,10 @@ public abstract class AbstractTree implements Tree {
      * Create a new {@code AbstractTree} instance
      * @param name  name of the tree
      * @param nodeBuilder  {@code NodeBuilder} for the underlying node state
-     * @param showInternalProperties  whether to show internal properties
      */
-    protected AbstractTree(@Nonnull String name, @Nonnull NodeBuilder nodeBuilder, boolean showInternalProperties) {
+    protected AbstractTree(@Nonnull String name, @Nonnull NodeBuilder nodeBuilder) {
         this.name = checkNotNull(name);
         this.nodeBuilder = checkNotNull(nodeBuilder);
-        this.showInternalProperties = showInternalProperties;
     }
 
     /**
@@ -192,14 +185,14 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public PropertyState getProperty(String name) {
-        return showInternalProperties || !isHidden(checkNotNull(name))
+        return !isHidden(checkNotNull(name))
             ? nodeBuilder.getProperty(name)
             : null;
     }
 
     @Override
     public boolean hasProperty(String name) {
-        return (showInternalProperties || !isHidden(checkNotNull(name))) && nodeBuilder.hasProperty(name);
+        return (!isHidden(checkNotNull(name))) && nodeBuilder.hasProperty(name);
     }
 
     @Override
@@ -213,7 +206,7 @@ public abstract class AbstractTree implements Tree {
             new Predicate<PropertyState>() {
                 @Override
                 public boolean apply(PropertyState propertyState) {
-                    return showInternalProperties || !isHidden(propertyState.getName());
+                    return !isHidden(propertyState.getName());
                 }
             });
     }

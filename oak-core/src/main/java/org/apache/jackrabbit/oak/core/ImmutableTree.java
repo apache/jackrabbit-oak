@@ -118,7 +118,7 @@ public final class ImmutableTree extends AbstractTree {
 
     public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name,
                          @Nonnull NodeState state, @Nonnull TreeTypeProvider typeProvider) {
-        super(name, new ReadOnlyBuilder(state), true);
+        super(name, new ReadOnlyBuilder(state));
         this.state = state;
         this.parentProvider = checkNotNull(parentProvider);
         this.typeProvider = checkNotNull(typeProvider);
