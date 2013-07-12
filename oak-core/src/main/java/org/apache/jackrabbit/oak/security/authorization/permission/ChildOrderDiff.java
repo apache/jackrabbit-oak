@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.Type;
 
 /**
  * Helper class to handle modifications to the hidden
- * {@link org.apache.jackrabbit.oak.core.TreeImpl#OAK_CHILD_ORDER} property.
+ * {@link org.apache.jackrabbit.oak.core.AbstractTree#OAK_CHILD_ORDER} property.
  */
 class ChildOrderDiff {
 
@@ -41,7 +41,7 @@ class ChildOrderDiff {
 
     /**
      * Tests if there was any user-supplied reordering involved with the
-     * modification of the {@link org.apache.jackrabbit.oak.core.TreeImpl#OAK_CHILD_ORDER}
+     * modification of the {@link org.apache.jackrabbit.oak.core.AbstractTree#OAK_CHILD_ORDER}
      * property.
      *
      * @return the name of the first reordered child if any user-supplied node

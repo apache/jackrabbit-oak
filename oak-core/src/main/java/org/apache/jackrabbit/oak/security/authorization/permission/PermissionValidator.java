@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -24,7 +27,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.TreeImpl;
+import org.apache.jackrabbit.oak.core.AbstractTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -34,9 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * Validator implementation that checks for sufficient permission for all
@@ -80,7 +80,7 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-        if (TreeImpl.OAK_CHILD_ORDER.equals(after.getName())) {
+        if (AbstractTree.OAK_CHILD_ORDER.equals(after.getName())) {
             String childName = new ChildOrderDiff(before, after).firstReordered();
             if (childName != null) {
                 Tree child = parentAfter.getChild(childName);

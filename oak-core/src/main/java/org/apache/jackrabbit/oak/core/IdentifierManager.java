@@ -94,10 +94,8 @@ public class IdentifierManager {
      */
     @Nonnull
     public String getIdentifier(Tree tree) {
-        if (tree instanceof TreeImpl) {
-            return ((TreeImpl) tree).getIdentifier();
-        } else if (tree instanceof ImmutableTree) {
-            return ((ImmutableTree) tree).getIdentifier();
+        if (tree instanceof AbstractTree) {
+            return ((AbstractTree) tree).getIdentifier();
         } else {
             return tree.getPath();
         }

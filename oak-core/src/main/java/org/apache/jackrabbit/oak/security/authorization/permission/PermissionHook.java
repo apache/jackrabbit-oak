@@ -16,7 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
@@ -27,9 +33,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.AbstractTree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
@@ -47,11 +53,6 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
@@ -185,7 +186,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         @Nonnull
         private PermissionEntry createPermissionEntry(String name, NodeState ace, Node acl) {
             String accessControlledPath = (REP_REPO_POLICY.equals(acl.getName()) ? "" : Text.getRelativeParent(acl.getPath(), 1));
-            PropertyState ordering = checkNotNull(acl.getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+            PropertyState ordering = checkNotNull(acl.getNodeState().getProperty(AbstractTree.OAK_CHILD_ORDER));
             int index = Lists.newArrayList(ordering.getValue(Type.STRINGS)).indexOf(name);
             return new PermissionEntry(getTree(name, ace), accessControlledPath, index);
         }
