@@ -214,27 +214,24 @@ class ChangeProcessor implements Runnable {
         private final String path;
         private final NodeState beforeParentNode;
         private final NodeState afterParentNode;
-        private final EventGeneratingNodeStateDiff parent;
         private final String name;
 
         private List<Iterator<Event>> events;
         private int childNodeCount;
 
         EventGeneratingNodeStateDiff(ChangeSet changes, String path, List<Iterator<Event>> events,
-                NodeState beforeParentNode, NodeState afterParentNode,
-                EventGeneratingNodeStateDiff parent, String name) {
+                NodeState beforeParentNode, NodeState afterParentNode, String name) {
 
             this.changes = changes;
             this.path = path;
             this.events = events;
             this.beforeParentNode = beforeParentNode;
             this.afterParentNode = afterParentNode;
-            this.parent = parent;
             this.name = name;
         }
 
         public EventGeneratingNodeStateDiff(ChangeSet changes, String path) {
-            this(changes, path, new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, null, "");
+            this(changes, path, new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, "");
         }
 
         public void sendEvents() {
@@ -315,7 +312,7 @@ class ChangeProcessor implements Runnable {
         public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
             if (filterRef.get().includeChildren(path)) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
-                        changes, PathUtils.concat(path, name), events, before, after, this, name);
+                        changes, PathUtils.concat(path, name), events, before, after, name);
                 return VisibleDiff.wrap(diff);
             } else {
                 return RecursingNodeStateDiff.EMPTY;
