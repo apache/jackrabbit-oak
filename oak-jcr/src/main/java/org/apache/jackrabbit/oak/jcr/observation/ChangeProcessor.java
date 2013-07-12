@@ -20,6 +20,15 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterators.emptyIterator;
+import static com.google.common.collect.Iterators.singletonIterator;
+import static com.google.common.collect.Iterators.transform;
+import static javax.jcr.observation.Event.NODE_ADDED;
+import static javax.jcr.observation.Event.NODE_REMOVED;
+import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -31,24 +40,24 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
-import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.observation.SecureNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.VisibleDiff;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -185,9 +194,13 @@ class ChangeProcessor implements Runnable {
             while (!stopping && changes != null) {
                 EventFilter filter = filterRef.get();
                 if (!(filter.excludeLocal() && changes.isLocal(contentSession))) {
+                    NodeState beforeState = changes.getBeforeState();
+                    NodeState afterState = changes.getAfterState();
                     String path = namePathMapper.getOakPath(filter.getPath());
-                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes, path);
-                    changes.diff(VisibleDiff.wrap(diff), path);
+                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
+                            changes, new ImmutableRoot(beforeState), new ImmutableRoot(afterState), path);
+                    NodeStateDiff secureDiff = SecureNodeStateDiff.wrap(VisibleDiff.wrap(diff));
+                    getNode(afterState, path).compareAgainstBaseState(getNode(beforeState, path), secureDiff);
                     if (!stopping) {
                         diff.sendEvents();
                     }
@@ -208,30 +221,24 @@ class ChangeProcessor implements Runnable {
     //------------------------------------------------------------< private >---
 
     private class EventGeneratingNodeStateDiff extends RecursingNodeStateDiff {
-        public static final int PURGE_LIMIT = 8192;
+        public static final int EVENT_LIMIT = 8192;
 
         private final ChangeSet changes;
-        private final String path;
-        private final NodeState beforeParentNode;
-        private final NodeState afterParentNode;
-        private final String name;
+        private final Tree beforeTree;
+        private final Tree afterTree;
 
         private List<Iterator<Event>> events;
-        private int childNodeCount;
+        private int eventCount;
 
-        EventGeneratingNodeStateDiff(ChangeSet changes, String path, List<Iterator<Event>> events,
-                NodeState beforeParentNode, NodeState afterParentNode, String name) {
-
+        EventGeneratingNodeStateDiff(ChangeSet changes, Tree beforeTree, Tree afterTree, List<Iterator<Event>> events) {
             this.changes = changes;
-            this.path = path;
+            this.beforeTree = beforeTree;
+            this.afterTree = afterTree;
             this.events = events;
-            this.beforeParentNode = beforeParentNode;
-            this.afterParentNode = afterParentNode;
-            this.name = name;
         }
 
-        public EventGeneratingNodeStateDiff(ChangeSet changes, String path) {
-            this(changes, path, new ArrayList<Iterator<Event>>(PURGE_LIMIT), null, null, "");
+        public EventGeneratingNodeStateDiff(ChangeSet changes, Root beforeRoot, Root afterRoot, String path) {
+            this(changes, beforeRoot.getTree(path), afterRoot.getTree(path), new ArrayList<Iterator<Event>>(EVENT_LIMIT));
         }
 
         public void sendEvents() {
@@ -248,44 +255,44 @@ class ChangeProcessor implements Runnable {
                 catch (Exception e) {
                     log.warn("Unhandled exception in observation listener: " + listener, e);
                 }
-                events = new ArrayList<Iterator<Event>>(PURGE_LIMIT);
+                events = new ArrayList<Iterator<Event>>(EVENT_LIMIT);
             }
         }
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            if (filterRef.get().include(Event.PROPERTY_ADDED, path, afterParentNode)) {
-                Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after, changes.getAfterId(path));
-                events.add(Iterators.singletonIterator(event));
+            if (filterRef.get().include(PROPERTY_ADDED, afterTree)) {
+                Event event = generatePropertyEvent(PROPERTY_ADDED, afterTree, after);
+                events.add(singletonIterator(event));
             }
             return !stopping;
         }
 
         @Override
         public boolean propertyChanged(PropertyState before, PropertyState after) {
-            if (filterRef.get().include(Event.PROPERTY_CHANGED, path, afterParentNode)) {
-                Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after, changes.getAfterId(path));
-                events.add(Iterators.singletonIterator(event));
+            if (filterRef.get().include(Event.PROPERTY_CHANGED, afterTree)) {
+                Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, afterTree, after);
+                events.add(singletonIterator(event));
             }
             return !stopping;
         }
 
         @Override
         public boolean propertyDeleted(PropertyState before) {
-            if (filterRef.get().include(Event.PROPERTY_REMOVED, path, afterParentNode)) {
-                Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before, changes.getBeforeId(path));
-                events.add(Iterators.singletonIterator(event));
+            if (filterRef.get().include(PROPERTY_REMOVED, afterTree)) {
+                Event event = generatePropertyEvent(PROPERTY_REMOVED, beforeTree, before);
+                events.add(singletonIterator(event));
             }
             return !stopping;
         }
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            if (filterRef.get().includeChildren(path)) {
-                Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name,
-                        after, afterParentNode, changes.getAfterId(PathUtils.concat(path, name)));
+            if (filterRef.get().includeChildren(afterTree.getPath())) {
+                Iterator<Event> events = generateNodeEvents(
+                        NODE_ADDED, afterTree.getChild(name));
                 this.events.add(events);
-                if (++childNodeCount > PURGE_LIMIT) {
+                if (++eventCount > EVENT_LIMIT) {
                     sendEvents();
                 }
             }
@@ -294,9 +301,9 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public boolean childNodeDeleted(String name, NodeState before) {
-            if (filterRef.get().includeChildren(path)) {
-                Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name,
-                        before, beforeParentNode, changes.getBeforeId(PathUtils.concat(path, name)));
+            if (filterRef.get().includeChildren(beforeTree.getPath())) {
+                Iterator<Event> events = generateNodeEvents(
+                        NODE_REMOVED, beforeTree.getChild(name));
                 this.events.add(events);
             }
             return !stopping;
@@ -310,9 +317,9 @@ class ChangeProcessor implements Runnable {
         @Nonnull
         @Override
         public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
-            if (filterRef.get().includeChildren(path)) {
+            if (filterRef.get().includeChildren(afterTree.getPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
-                        changes, PathUtils.concat(path, name), events, before, after, name);
+                        changes, beforeTree.getChild(name), afterTree.getChild(name), events);
                 return VisibleDiff.wrap(diff);
             } else {
                 return RecursingNodeStateDiff.EMPTY;
@@ -327,81 +334,53 @@ class ChangeProcessor implements Runnable {
                     changes.isExternal());
         }
 
-        private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property, String id) {
-            String path = PathUtils.concat(parentPath, property.getName());
-            return createEvent(eventType, path, id);
+        private Event generatePropertyEvent(int eventType, Tree parent, PropertyState property) {
+            String path = PathUtils.concat(parent.getPath(), property.getName());
+            return createEvent(eventType, path, getIdentifier(parent));
         }
 
-        private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String childName,
-                NodeState node, NodeState parentNode, final String id) {
+        private Iterator<Event> generateNodeEvents(int eventType, final Tree tree) {
             EventFilter filter = filterRef.get();
-            final String path = PathUtils.concat(parentPath, childName);
             Iterator<Event> nodeEvent;
-            if (filter.include(eventType, parentPath, parentNode)) {
-                Event event = createEvent(eventType, path, id);
-                nodeEvent = Iterators.singletonIterator(event);
+            if (filter.include(eventType, tree.isRoot() ? null : tree.getParent())) {
+                Event event = createEvent(eventType, tree.getPath(), getIdentifier(tree));
+                nodeEvent = singletonIterator(event);
             } else {
-                nodeEvent = Iterators.emptyIterator();
+                nodeEvent = emptyIterator();
             }
 
-            final int propertyEventType = eventType == Event.NODE_ADDED
-                    ? Event.PROPERTY_ADDED
-                    : Event.PROPERTY_REMOVED;
+            final int propertyEventType = eventType == NODE_ADDED
+                    ? PROPERTY_ADDED
+                    : PROPERTY_REMOVED;
 
             Iterator<Event> propertyEvents;
-            if (filter.include(propertyEventType, path, parentNode)) {
-                propertyEvents = Iterators.transform(
-                        Iterators.filter(
-                                node.getProperties().iterator(),
-                                new Predicate<PropertyState>() {
-                                    @Override
-                                    public boolean apply(PropertyState propertyState) {
-                                        return !NodeStateUtils.isHidden(propertyState.getName());
-                                    }
-                                }),
+            if (filter.include(propertyEventType, tree)) {
+                propertyEvents = transform(
+                        tree.getProperties().iterator(),
                         new Function<PropertyState, Event>() {
                             @Override
                             public Event apply(PropertyState property) {
-                                return generatePropertyEvent(propertyEventType, path, property, id);
+                                return generatePropertyEvent(propertyEventType, tree, property);
                             }
                         });
             } else {
-                propertyEvents = Iterators.emptyIterator();
+                propertyEvents = emptyIterator();
             }
 
-            Iterator<Event> childNodeEvents = filter.includeChildren(path)
-                    ? Iterators.concat(generateChildEvents(eventType, path, node, id))
+            Iterator<Event> childNodeEvents = filter.includeChildren(tree.getPath())
+                    ? Iterators.concat(generateChildEvents(eventType, tree))
                     : Iterators.<Event>emptyIterator();
 
             return Iterators.concat(nodeEvent, propertyEvents, childNodeEvents);
         }
 
-        private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath,
-                final NodeState parentNode, final String parentId) {
-            return Iterators.transform(
-                    Iterators.filter(parentNode.getChildNodeEntries().iterator(),
-                            new Predicate<ChildNodeEntry>() {
-                                @Override
-                                public boolean apply(ChildNodeEntry entry) {
-                                    return !NodeStateUtils.isHidden(entry.getName());
-                                }
-                            }),
-                    new Function<ChildNodeEntry, Iterator<Event>>() {
+        private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final Tree tree) {
+            return transform(
+                    tree.getChildren().iterator(),
+                    new Function<Tree, Iterator<Event>>() {
                         @Override
-                        public Iterator<Event> apply(ChildNodeEntry entry) {
-                            NodeState node = entry.getNodeState();
-                            String name = entry.getName();
-                            return generateNodeEvents(eventType, parentPath, name,
-                                    node, parentNode, getId(parentId, node, name));
-                        }
-
-                        private String getId(String parentId, NodeState node, String name) {
-                            PropertyState uuid = node.getProperty(JcrConstants.JCR_UUID);
-                            if (uuid == null) {
-                                return parentId + '/' + namePathMapper.getJcrName(name);
-                            } else {
-                                return uuid.getValue(Type.STRING);
-                            }
+                        public Iterator<Event> apply(Tree child) {
+                            return generateNodeEvents(eventType, child);
                         }
                     });
         }
