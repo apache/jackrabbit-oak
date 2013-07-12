@@ -56,7 +56,13 @@ class NodeTypePattern implements RestrictionPattern {
         return false;
     }
 
-       //-------------------------------------------------------------< Object >---
+    @Override
+    public boolean matches() {
+        // node type pattern never matches for repository level permissions
+        return false;
+    }
+
+    //-------------------------------------------------------------< Object >---
     /**
      * @see Object#hashCode()
      */

@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.jcr.RepositoryException;
@@ -34,7 +32,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
@@ -45,6 +42,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -56,14 +54,14 @@ import static org.junit.Assert.fail;
 /**
  * Testing the {@code PermissionHook}
  */
-public class PermissionHookTest extends AbstractAccessControlTest implements AccessControlConstants, PermissionConstants, PrivilegeConstants {
+public abstract class AbstractPermissionHookTest extends AbstractAccessControlTest implements AccessControlConstants, PermissionConstants, PrivilegeConstants {
 
-    private String testPath = "/testPath";
-    private String childPath = "/testPath/childNode";
+    protected String testPath = "/testPath";
+    protected String childPath = "/testPath/childNode";
 
-    private String testPrincipalName;
-    private PrivilegeBitsProvider bitsProvider;
-    private List<Principal> principals = new ArrayList<Principal>();
+    protected String testPrincipalName;
+    protected PrivilegeBitsProvider bitsProvider;
+    protected List<Principal> principals = new ArrayList<Principal>();
 
     @Override
     @Before
@@ -105,16 +103,16 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         }
     }
 
-    private Tree getPrincipalRoot(String principalName) {
+    protected Tree getPrincipalRoot(String principalName) {
         return root.getTree(PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(principalName);
     }
 
-    private Tree getEntry(String principalName, String accessControlledPath, long index) throws Exception {
+    protected Tree getEntry(String principalName, String accessControlledPath, long index) throws Exception {
         Tree principalRoot = getPrincipalRoot(principalName);
 		return traverse(principalRoot, accessControlledPath, index);
     }
 	
-	private Tree traverse(Tree parent, String accessControlledPath, long index) throws Exception {
+	protected Tree traverse(Tree parent, String accessControlledPath, long index) throws Exception {
 		for (Tree entry : parent.getChildren()) {
 		    String path = entry.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING);
             long entryIndex = entry.getProperty(REP_INDEX).getValue(Type.LONG);
@@ -131,7 +129,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
 	    throw new RepositoryException("no such entry");
 	}
 	
-	private long cntEntries(Tree parent) {
+	protected long cntEntries(Tree parent) {
         long cnt = parent.getChildrenCount();
 		for (Tree child : parent.getChildren()) {
 			cnt += cntEntries(child);
@@ -139,7 +137,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
 		return cnt;	
 	}
 
-    private void createPrincipals() throws Exception {
+    protected void createPrincipals() throws Exception {
         if (principals.isEmpty()) {
             for (int i = 0; i < 10; i++) {
                 Group gr = getUserManager(root).createGroup("testGroup"+i);
@@ -149,6 +147,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         }
     }
 
+    @Ignore() // FIXME: refuse out duplicate entries in ac-validation hook.
     @Test
     public void testDuplicateAce() throws Exception {
         // add duplicate policy on OAK-API
@@ -385,135 +384,5 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         // session wasn't able to access them.
         principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
         assertEquals(1, cntEntries(principalRoot));
-    }
-
-    @Test
-    public void testReorderForSinglePrincipal() throws Exception {
-        Principal testPrincipal = getTestPrincipal();
-        AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        acl.addEntry(testPrincipal, privilegesFromNames(JCR_MODIFY_ACCESS_CONTROL), false);
-        acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ_ACCESS_CONTROL), true, Collections.singletonMap(REP_GLOB, getValueFactory().createValue("/*")));
-        acMgr.setPolicy(testPath, acl);
-        root.commit();
-
-        /*
-        Original setup with 3 access control entries for testPrincipal @ testPath
-        Expected result:
-        0 - testuser - allow - JCR_ADD_CHILD_NODES       - NA
-        1 - everyone - allow - READ                      - NA
-        2 - testuser - deny  - JCR_MODIFY_ACCESS_CONTROL - NA
-        3 - testuser - allow - JCR_READ_ACCESS_CONTROL   - /*
-        */
-        long rootDepths = PathUtils.getDepth(getPrincipalRoot(testPrincipalName).getPath());
-        assertEntry(getEntry(testPrincipalName, testPath, 0), bitsProvider.getBits(JCR_ADD_CHILD_NODES), true, ++rootDepths);
-        assertEntry(getEntry(testPrincipalName, testPath, 2), bitsProvider.getBits(JCR_MODIFY_ACCESS_CONTROL), false, ++rootDepths);
-        assertEntry(getEntry(testPrincipalName, testPath, 3), bitsProvider.getBits(JCR_READ_ACCESS_CONTROL), true, ++rootDepths);
-
-        /*
-        Reorder entries
-        Expected result:
-        0 - allow - JCR_ADD_CHILD_NODES       - NA
-        2 - allow - JCR_READ_ACCESS_CONTROL   - /*
-        3 - deny  - JCR_MODIFY_ACCESS_CONTROL - NA
-        */
-        acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        for (AccessControlEntry ace : acl.getAccessControlEntries()) {
-            if (testPrincipal.equals(ace.getPrincipal()) && Arrays.equals(privilegesFromNames(JCR_MODIFY_ACCESS_CONTROL), ace.getPrivileges())) {
-                acl.orderBefore(ace, null);
-            }
-        }
-        acMgr.setPolicy(testPath, acl);
-        root.commit();
-
-        rootDepths = PathUtils.getDepth(getPrincipalRoot(testPrincipalName).getPath());
-        assertEntry(getEntry(testPrincipalName, testPath, 0), bitsProvider.getBits(JCR_ADD_CHILD_NODES), true, ++rootDepths);
-        assertEntry(getEntry(testPrincipalName, testPath, 2), bitsProvider.getBits(JCR_READ_ACCESS_CONTROL), true, ++rootDepths);
-        assertEntry(getEntry(testPrincipalName, testPath, 3), bitsProvider.getBits(JCR_MODIFY_ACCESS_CONTROL), false, ++rootDepths);
-
-        /*
-        Remove all entries
-        */
-        acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        for (AccessControlEntry ace : acl.getAccessControlEntries()) {
-            if (testPrincipal.equals(ace.getPrincipal())) {
-                acl.removeAccessControlEntry(ace);
-            }
-        }
-        acMgr.setPolicy(testPath, acl);
-        root.commit();
-
-        assertEquals(0, cntEntries(getPrincipalRoot(testPrincipalName)));
-    }
-
-    @Test
-    public void testReorderForSinglePrincipal2() throws Exception {
-        Principal testPrincipal = getTestPrincipal();
-        AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        acl.addEntry(testPrincipal, privilegesFromNames(JCR_MODIFY_ACCESS_CONTROL), false);
-        acl.addEntry(testPrincipal, privilegesFromNames(JCR_READ_ACCESS_CONTROL), true, Collections.singletonMap(REP_GLOB, getValueFactory().createValue("/*")));
-        acMgr.setPolicy(testPath, acl);
-        root.commit();
-
-        /*
-        Original setup with 3 access control entries for testPrincipal @ testPath
-        Expected result:
-        0 - testuser - allow - JCR_ADD_CHILD_NODES       - NA
-        1 - everyone - allow - READ                      - NA
-        2 - testuser - deny  - JCR_MODIFY_ACCESS_CONTROL - NA
-        3 - testuser - allow - JCR_READ_ACCESS_CONTROL   - /*
-        */
-        long rootDepths = PathUtils.getDepth(getPrincipalRoot(testPrincipalName).getPath());
-        assertEntry(getEntry(testPrincipalName, testPath, 0), bitsProvider.getBits(JCR_ADD_CHILD_NODES), true, ++rootDepths);
-        assertEntry(getEntry(testPrincipalName, testPath, 2), bitsProvider.getBits(JCR_MODIFY_ACCESS_CONTROL), false, ++rootDepths);
-        assertEntry(getEntry(testPrincipalName, testPath, 3), bitsProvider.getBits(JCR_READ_ACCESS_CONTROL), true, ++rootDepths);
-
-        /*
-        Reorder entries
-        Expected result:
-        0 - allow - JCR_READ_ACCESS_CONTROL   - /*
-        1 - allow - JCR_ADD_CHILD_NODES       - NA
-        3 - deny  - JCR_MODIFY_ACCESS_CONTROL - NA
-        */
-        acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        AccessControlEntry first = null;
-        for (AccessControlEntry ace : acl.getAccessControlEntries()) {
-            if (testPrincipal.equals(ace.getPrincipal())) {
-                if (first == null) {
-                    first = ace;
-                }
-                if (Arrays.equals(privilegesFromNames(JCR_READ_ACCESS_CONTROL), ace.getPrivileges())) {
-                    acl.orderBefore(ace, first);
-                }
-            }
-        }
-        acMgr.setPolicy(testPath, acl);
-        root.commit();
-
-        rootDepths = PathUtils.getDepth(getPrincipalRoot(testPrincipalName).getPath());
-        assertEntry(getEntry(testPrincipalName, testPath, 0), bitsProvider.getBits(JCR_READ_ACCESS_CONTROL), true, ++rootDepths);
-        assertEntry(getEntry(testPrincipalName, testPath, 1), bitsProvider.getBits(JCR_ADD_CHILD_NODES), true, ++rootDepths);
-        assertEntry(getEntry(testPrincipalName, testPath, 3), bitsProvider.getBits(JCR_MODIFY_ACCESS_CONTROL), false, ++rootDepths);
-
-        /*
-        Remove all entries
-        */
-        acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        for (AccessControlEntry ace : acl.getAccessControlEntries()) {
-            if (testPrincipal.equals(ace.getPrincipal())) {
-                acl.removeAccessControlEntry(ace);
-            }
-        }
-        acMgr.setPolicy(testPath, acl);
-        root.commit();
-
-        assertEquals(0, cntEntries(getPrincipalRoot(testPrincipalName)));
-    }
-
-    private static void assertEntry(Tree entry, PrivilegeBits expectedBits, boolean isAllow, long expectedDepth) {
-        assertEquals(expectedBits, PrivilegeBits.getInstance(entry.getProperty(REP_PRIVILEGE_BITS)));
-        assertEquals(isAllow, entry.getProperty(REP_IS_ALLOW).getValue(Type.BOOLEAN));
-        assertEquals(expectedDepth, PathUtils.getDepth(entry.getPath()));
     }
 }

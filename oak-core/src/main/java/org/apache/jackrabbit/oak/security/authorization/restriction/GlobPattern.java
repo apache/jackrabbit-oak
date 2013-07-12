@@ -114,6 +114,12 @@ final class GlobPattern implements RestrictionPattern {
         return pattern.matches(path);
     }
 
+    @Override
+    public boolean matches() {
+        // repository level permissions never match any glob pattern
+        return false;
+    }
+
     //-------------------------------------------------------------< Object >---
     /**
      * @see Object#hashCode()

@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
@@ -69,11 +70,15 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private final CompiledPermissions compiledPermissions;
 
+    private ImmutableRoot immutableRoot;
+
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
         this.root = root;
         this.workspaceName = root.getContentSession().getWorkspaceName();
+
         acConfig = securityProvider.getConfiguration(AccessControlConfiguration.class);
+        immutableRoot = getImmutableRoot(root, acConfig);
 
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
@@ -82,7 +87,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             if (!permissionsTree.exists() || principals.isEmpty()) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
-                String[] readPaths = acConfig.getParameters().getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS);
+                String[] readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
                 compiledPermissions = new CompiledPermissionImpl(principals,
                         permissionsTree, getBitsProvider(),
                         acConfig.getRestrictionProvider(),
@@ -93,9 +98,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public void refresh() {
-        if (compiledPermissions instanceof CompiledPermissionImpl) {
-            ((CompiledPermissionImpl) compiledPermissions).refresh(getPermissionsRoot(), getBitsProvider());
-        }
+        immutableRoot = getImmutableRoot(root, acConfig);
+        compiledPermissions.refresh(getPermissionsRoot(), getBitsProvider());
     }
 
     @Nonnull
@@ -158,7 +162,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
-        TreeLocation location = TreeLocation.create(getImmutableRoot(), oakPath);
+        TreeLocation location = TreeLocation.create(immutableRoot, oakPath);
         boolean isAcContent = acConfig.getContext().definesLocation(location);
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
 
@@ -188,22 +192,22 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return false;
     }
 
-    private ImmutableRoot getImmutableRoot() {
-        if (root instanceof ImmutableRoot) {
-            return (ImmutableRoot) root;
+    private static ImmutableRoot getImmutableRoot(Root base, SecurityConfiguration acConfig) {
+        if (base instanceof ImmutableRoot) {
+            return (ImmutableRoot) base;
         } else {
-            return new ImmutableRoot(root, new TreeTypeProviderImpl(acConfig.getContext()));
+            return new ImmutableRoot(base, new TreeTypeProviderImpl(acConfig.getContext()));
         }
     }
 
     @Nonnull
     private ImmutableTree getPermissionsRoot() {
-        return getImmutableRoot().getTree(PERMISSIONS_STORE_PATH + '/' + workspaceName);
+        return immutableRoot.getTree(PERMISSIONS_STORE_PATH + '/' + workspaceName);
     }
 
     @Nonnull
     private PrivilegeBitsProvider getBitsProvider() {
-        return new PrivilegeBitsProvider(getImmutableRoot());
+        return new PrivilegeBitsProvider(immutableRoot);
     }
 
     private static int getType(@Nonnull Tree tree, @Nullable PropertyState property) {
@@ -263,7 +267,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             log.debug("Unable to determine versionable path of the version store node.");
             return null;
         } else {
-            return TreeLocation.create(getImmutableRoot(), versionablePath);
+            return TreeLocation.create(immutableRoot, versionablePath);
         }
     }
 }

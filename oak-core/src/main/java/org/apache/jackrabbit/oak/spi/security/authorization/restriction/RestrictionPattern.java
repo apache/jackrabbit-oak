@@ -51,6 +51,16 @@ public interface RestrictionPattern {
     boolean matches(@Nonnull String path);
 
     /**
+     * Returns {@code true} if the underlying restriction matches for repository
+     * level permissions.
+     *
+     * @return {@code true} if the underlying restriction matches for repository
+     * level permissions that are not associated with a path or a dedicated item;
+     * {@code false} otherwise.
+     */
+    boolean matches();
+
+    /**
      * Default implementation of the {@code RestrictionPattern} that always
      * returns {@code true} and thus matches all items or paths.
      */
@@ -62,6 +72,11 @@ public interface RestrictionPattern {
 
         @Override
         public boolean matches(@Nonnull String path) {
+            return true;
+        }
+
+        @Override
+        public boolean matches() {
             return true;
         }
     };
