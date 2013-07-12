@@ -154,7 +154,7 @@ public interface Tree {
      *         if no such property state exists or the property is not accessible.
      */
     @CheckForNull
-    PropertyState getProperty(String name);
+    PropertyState getProperty(@Nonnull String name);
 
     /**
      * Get the {@code Status} of a property state or {@code null}.
@@ -165,7 +165,7 @@ public interface Tree {
      *         to a property that is not accessible.
      */
     @CheckForNull
-    Status getPropertyStatus(String name);
+    Status getPropertyStatus(@Nonnull String name);
 
     /**
      * Determine if a property state exists and is accessible.
@@ -174,7 +174,7 @@ public interface Tree {
      * @return {@code true} if and only if a property with the given {@code name}
      *         exists and is accessible.
      */
-    boolean hasProperty(String name);
+    boolean hasProperty(@Nonnull String name);
 
     /**
      * Determine the number of properties accessible to the current content session.
@@ -246,7 +246,7 @@ public interface Tree {
      * @return the {@code Tree} instance of the child with the given {@code name}.
      */
     @Nonnull
-    Tree addChild(String name);
+    Tree addChild(@Nonnull String name);
 
     /**
      * Changes the nature of this tree such that the order of the children
@@ -304,7 +304,7 @@ public interface Tree {
      * @param <T>   The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
      * @throws IllegalArgumentException if {@code T} is not one of the above types.
      */
-    <T> void setProperty(String name, @Nonnull T value);
+    <T> void setProperty(@Nonnull String name, @Nonnull T value);
 
     /**
      * Set a property state
@@ -314,7 +314,7 @@ public interface Tree {
      * @param type  The type of this property.
      * @param <T>   The type of this property.
      */
-    <T> void setProperty(String name, @Nonnull T value, Type<T> type);
+    <T> void setProperty(@Nonnull String name, @Nonnull T value, Type<T> type);
 
     /**
      * Remove the property with the given name. This method has no effect if a
@@ -322,6 +322,6 @@ public interface Tree {
      *
      * @param name The name of the property
      */
-    void removeProperty(String name);
+    void removeProperty(@Nonnull String name);
 
 }

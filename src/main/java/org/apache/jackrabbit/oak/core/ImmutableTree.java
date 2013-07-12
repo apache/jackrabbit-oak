@@ -17,26 +17,17 @@
 package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
-
-import java.util.Iterator;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
-import com.google.common.base.Predicate;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 
 /**
  * Immutable implementation of the {@code Tree} interface in order to provide
@@ -97,17 +88,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * however, that according to the contract defined in {@code NodeState} these
  * objects are not expected to be used as hash keys.
  */
-public final class ImmutableTree implements Tree {
-
-    /**
-     * Internal and hidden property that contains the child order
-     */
-    public static final String OAK_CHILD_ORDER = ":childOrder";
-
-    /**
-     * Name of this tree
-     */
-    private final String name;
+public final class ImmutableTree extends AbstractTree {
 
     /**
      * Underlying node state
@@ -137,10 +118,10 @@ public final class ImmutableTree implements Tree {
 
     public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name,
                          @Nonnull NodeState state, @Nonnull TreeTypeProvider typeProvider) {
-        this.name = checkNotNull(name);
-        this.state = checkNotNull(state);
+        super(name, new ReadOnlyBuilder(state), true);
+        this.state = state;
         this.parentProvider = checkNotNull(parentProvider);
-        this.typeProvider = typeProvider;
+        this.typeProvider = checkNotNull(typeProvider);
     }
 
     public static ImmutableTree createFromRoot(@Nonnull Root root, @Nonnull TreeTypeProvider typeProvider) {
@@ -153,37 +134,19 @@ public final class ImmutableTree implements Tree {
         }
     }
 
+    @Override
+    protected ImmutableTree createChild(String name) {
+        return new ImmutableTree(this, name, state.getChildNode(name));
+    }
+
     //---------------------------------------------------------------< Tree >---
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public boolean isRoot() {
-        return "".equals(getName());
-    }
 
     @Override
     public String getPath() {
         if (path == null) {
-            if (isRoot()) {
-                path = "/";
-            } else {
-                StringBuilder sb = new StringBuilder();
-                buildPath(sb);
-                path = sb.toString();
-            }
+            path = super.getPath();
         }
         return path;
-    }
-
-    private void buildPath(StringBuilder sb) {
-        if (!isRoot()) {
-            getParent().buildPath(sb);
-            sb.append('/').append(name);
-        }
     }
 
     @Override
@@ -192,18 +155,8 @@ public final class ImmutableTree implements Tree {
     }
 
     @Override
-    public boolean exists() {
-        return state.exists();
-    }
-
-    @Override
     public ImmutableTree getParent() {
         return parentProvider.getParent();
-    }
-
-    @Override
-    public PropertyState getProperty(String name) {
-        return state.getProperty(name);
     }
 
     @Override
@@ -216,52 +169,8 @@ public final class ImmutableTree implements Tree {
     }
 
     @Override
-    public boolean hasProperty(String name) {
-        return state.hasProperty(name);
-    }
-
-    @Override
-    public long getPropertyCount() {
-        return state.getPropertyCount();
-    }
-
-    @Override
-    public Iterable<? extends PropertyState> getProperties() {
-        return state.getProperties();
-    }
-
-    @Nonnull
-    @Override
-    public ImmutableTree getChild(@Nonnull String name) {
-        NodeState child = state.getChildNode(name);
-        return new ImmutableTree(this, name, child);
-    }
-
-    @Override
-    public boolean hasChild(@Nonnull String name) {
-        return state.hasChildNode(name);
-    }
-
-    @Override
-    public long getChildrenCount() {
-        return state.getChildNodeCount();
-    }
-
-    @Override
-    public Iterable<Tree> getChildren() {
-        return transform(
-                filter(getChildNames(), new Predicate<String>() {
-                    @Override
-                    public boolean apply(String name) {
-                        return !isHidden(name);
-                    }
-                }),
-                new Function<String, Tree>() {
-                    @Override
-                    public Tree apply(String name) {
-                        return new ImmutableTree(ImmutableTree.this, name, state.getChildNode(name));
-                    }
-                });
+    public ImmutableTree getChild(String name) {
+        return createChild(name);
     }
 
     @Override
@@ -328,13 +237,9 @@ public final class ImmutableTree implements Tree {
         return "ImmutableTree '" + getName() + "':" + state.toString();
     }
 
-    //--------------------------------------------------------------------------
+    //------------------------------------------------------------< internal >---
 
-    public NodeState getNodeState() {
-        return state;
-    }
-
-    public int getType() {
+    int getType() {
         return typeProvider.getType(this);
     }
 
@@ -344,55 +249,6 @@ public final class ImmutableTree implements Tree {
             return ((ImmutableTree) tree).getType();
         } else {
             return TreeTypeProvider.TYPE_DEFAULT;
-        }
-    }
-
-    @Nonnull
-    String getIdentifier() {
-        PropertyState property = state.getProperty(JcrConstants.JCR_UUID);
-        if (property != null) {
-            return property.getValue(STRING);
-        } else if (isRoot()) {
-            return "/";
-        } else {
-            return PathUtils.concat(getParent().getIdentifier(), getName());
-        }
-    }
-
-    /**
-     * Returns the list of child names considering the its ordering
-     * when the {@link #OAK_CHILD_ORDER} property is set.
-     *
-     * @return the list of child names.
-     */
-    private Iterable<String> getChildNames() {
-        if (state.hasProperty(OAK_CHILD_ORDER)) {
-            return new Iterable<String>() {
-                @Override
-                public Iterator<String> iterator() {
-                    return new Iterator<String>() {
-                        final PropertyState childOrder = state.getProperty(OAK_CHILD_ORDER);
-                        int index = 0;
-
-                        @Override
-                        public boolean hasNext() {
-                            return index < childOrder.count();
-                        }
-
-                        @Override
-                        public String next() {
-                            return childOrder.getValue(STRING, index++);
-                        }
-
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
-                }
-            };
-        } else {
-            return state.getChildNodeNames();
         }
     }
 
