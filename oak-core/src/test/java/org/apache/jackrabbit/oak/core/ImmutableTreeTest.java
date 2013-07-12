@@ -60,7 +60,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testGetPath() {
-        TreeImpl tree = (TreeImpl) root.getTree("/");
+        MutableTree tree = (MutableTree) root.getTree("/");
 
         ImmutableTree immutable = new ImmutableTree(tree.getNodeState());
         assertEquals("/", immutable.getPath());
@@ -122,7 +122,7 @@ public class ImmutableTreeTest extends OakBaseTest {
     
     @Test
     public void orderBefore() throws Exception {
-    	 TreeImpl t = (TreeImpl) root.getTree("/x/y/z");
+    	 MutableTree t = (MutableTree) root.getTree("/x/y/z");
    
          t.addChild("node1");
          t.addChild("node2");
