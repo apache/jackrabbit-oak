@@ -66,13 +66,13 @@ public class MutableTree extends AbstractTree {
     private Move pendingMoves;
 
     MutableTree(RootImpl root, NodeBuilder builder, Move pendingMoves) {
-        super("", builder, false);
+        super("", builder);
         this.root = checkNotNull(root);
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
     private MutableTree(RootImpl root, MutableTree parent, String name, Move pendingMoves) {
-        super(name, parent.nodeBuilder.getChildNode(name), false);
+        super(name, parent.nodeBuilder.getChildNode(name));
         this.root = checkNotNull(root);
         this.parent = checkNotNull(parent);
         this.pendingMoves = checkNotNull(pendingMoves);

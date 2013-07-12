@@ -94,7 +94,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
-        checkValidTree(parentAfter, treeAfter);
+        checkValidTree(parentAfter, treeAfter, after);
         return new AccessControlValidator(null, treeAfter, privileges, restrictionProvider, ntMgr);
     }
 
@@ -103,7 +103,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         Tree treeBefore = checkNotNull(parentBefore.getChild(name));
         Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
-        checkValidTree(parentAfter, treeAfter);
+        checkValidTree(parentAfter, treeAfter, after);
         return new AccessControlValidator(treeBefore, treeAfter, privileges, restrictionProvider, ntMgr);
     }
 
@@ -115,9 +115,9 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     //------------------------------------------------------------< private >---
 
-    private void checkValidTree(Tree parentAfter, Tree treeAfter) throws CommitFailedException {
+    private void checkValidTree(Tree parentAfter, Tree treeAfter, NodeState nodeAfter) throws CommitFailedException {
         if (isPolicy(treeAfter)) {
-            checkValidPolicy(parentAfter, treeAfter);
+            checkValidPolicy(parentAfter, treeAfter, nodeAfter);
         } else if (isAccessControlEntry(treeAfter)) {
             checkValidAccessControlEntry(treeAfter);
         } else if (NT_REP_RESTRICTIONS.equals(TreeUtil.getPrimaryTypeName(treeAfter))) {
@@ -141,8 +141,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         }
     }
 
-    private void checkValidPolicy(Tree parent, Tree policyNode) throws CommitFailedException {
-        String mixinType = (REP_REPO_POLICY.equals(policyNode.getName())) ?
+    private void checkValidPolicy(Tree parent, Tree policyTree, NodeState policyNode) throws CommitFailedException {
+        String mixinType = (REP_REPO_POLICY.equals(policyTree.getName())) ?
                 MIX_REP_REPO_ACCESS_CONTROLLABLE :
                 MIX_REP_ACCESS_CONTROLLABLE;
         checkValidAccessControlledNode(parent, mixinType);
@@ -150,8 +150,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         Collection<String> validPolicyNames = (parent.isRoot()) ?
                 POLICY_NODE_NAMES :
                 Collections.singleton(REP_POLICY);
-        if (!validPolicyNames.contains(policyNode.getName())) {
-            throw accessViolation(3, "Invalid policy name " + policyNode.getName());
+        if (!validPolicyNames.contains(policyTree.getName())) {
+            throw accessViolation(3, "Invalid policy name " + policyTree.getName());
         }
 
         if (!policyNode.hasProperty(AbstractTree.OAK_CHILD_ORDER)) {
