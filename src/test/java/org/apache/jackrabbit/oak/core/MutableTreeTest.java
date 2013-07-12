@@ -42,9 +42,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * TreeImplTest...
+ * MutableTreeTest...
  */
-public class TreeImplTest extends OakBaseTest {
+public class MutableTreeTest extends OakBaseTest {
 
     private Root root;
 
@@ -363,20 +363,20 @@ public class TreeImplTest extends OakBaseTest {
     public void testSetOrderableChildrenSetsProperty() throws Exception {
         Tree tree = root.getTree("/").addChild("test");
         tree.setOrderableChildren(true);
-        assertTrue(((TreeImpl) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertTrue(((MutableTree) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(false);
-        assertFalse(((TreeImpl) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertFalse(((MutableTree) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(true);
         root.commit();
 
-        assertTrue(((TreeImpl) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertTrue(((MutableTree) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(false);
         root.commit();
 
-        assertFalse(((TreeImpl) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertFalse(((MutableTree) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
     }
 
     @Test

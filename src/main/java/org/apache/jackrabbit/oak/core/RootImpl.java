@@ -92,7 +92,7 @@ public class RootImpl implements Root {
     /**
      * Current root {@code Tree}
      */
-    private final TreeImpl rootTree;
+    private final MutableTree rootTree;
 
     /**
      * Current branch this root operates on
@@ -144,7 +144,7 @@ public class RootImpl implements Root {
         NodeState root = branch.getHead();
         builder = root.builder();
         NodeBuilder secureBuilder = new SecureNodeBuilder(builder, getRootContext(root));
-        rootTree = new TreeImpl(this, secureBuilder, lastMove);
+        rootTree = new MutableTree(this, secureBuilder, lastMove);
     }
 
     // TODO: review if these constructors really make sense and cannot be replaced.
@@ -183,7 +183,7 @@ public class RootImpl implements Root {
         }
 
         checkLive();
-        TreeImpl destParent = rootTree.getTree(getParentPath(destPath));
+        MutableTree destParent = rootTree.getTree(getParentPath(destPath));
         if (!destParent.exists()) {
             return false;
         }
@@ -211,7 +211,7 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public TreeImpl getTree(@Nonnull String path) {
+    public MutableTree getTree(@Nonnull String path) {
         checkLive();
         return rootTree.getTree(path);
     }
@@ -458,7 +458,7 @@ public class RootImpl implements Root {
      * {@code setMove()}. This fills the slot with the source and destination of the move
      * and links this move to the next one which will be the new empty slot.
      *
-     * Moves can be applied to {@code TreeImpl} instances by calling {@code apply()},
+     * Moves can be applied to {@code MutableTree} instances by calling {@code apply()},
      * which will execute all moves in the list on the passed tree instance
      */
     class Move {
@@ -467,7 +467,7 @@ public class RootImpl implements Root {
         private String source;
 
         /** Parent tree of the destination */
-        private TreeImpl destParent;
+        private MutableTree destParent;
 
         /** Name at the destination */
         private String destName;
@@ -479,7 +479,7 @@ public class RootImpl implements Root {
          * Set this move to the given source and destination. Creates a new empty slot,
          * sets this as the next move and returns it.
          */
-        Move setMove(String source, TreeImpl destParent, String destName) {
+        Move setMove(String source, MutableTree destParent, String destName) {
             this.source = source;
             this.destParent = destParent;
             this.destName = destName;
@@ -489,7 +489,7 @@ public class RootImpl implements Root {
         /**
          * Apply this and all subsequent moves to the passed tree instance.
          */
-        Move apply(TreeImpl tree) {
+        Move apply(MutableTree tree) {
             Move move = this;
             while (move.next != null) {
                 if (move.source.equals(tree.getPathInternal())) {
