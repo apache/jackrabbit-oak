@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.core.IdentifierManager.generateUUID;
+import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -66,11 +68,11 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     @Nonnull
     String getContentID(@Nonnull Tree authorizableTree) {
-        return identifierManager.getIdentifier(authorizableTree);
+        return getIdentifier(authorizableTree);
     }
 
     @Nonnull
     static String getContentID(@Nonnull String authorizableId) {
-        return IdentifierManager.generateUUID(authorizableId.toLowerCase());
+        return generateUUID(authorizableId.toLowerCase());
     }
 }
