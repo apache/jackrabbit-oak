@@ -88,6 +88,10 @@ public class MoveTest extends AbstractJCRTest {
         Session ts = getHelper().getSuperuserSession();
         try {
             ts.move(node1.getPath(), destPath);
+            if (ts.hasPendingChanges()) {
+                ts.save();
+            }
+
         } finally {
             ts.logout();
         }
