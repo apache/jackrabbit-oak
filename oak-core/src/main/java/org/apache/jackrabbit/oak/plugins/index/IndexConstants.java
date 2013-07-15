@@ -32,6 +32,8 @@ public interface IndexConstants {
     String REINDEX_PROPERTY_NAME = "reindex";
 
     String ASYNC_PROPERTY_NAME = "async";
+    
+    String ENTRY_COUNT_PROPERTY_NAME = "entryCount";
 
     /**
      * Marks a unique property index.

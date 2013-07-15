@@ -61,7 +61,7 @@ public class IndexUtils {
     }
 
     /**
-     * Create a new property2 index definition below the given {@code indexNode}.
+     * Create a new property index definition below the given {@code indexNode}.
      *
      * @param index         The oak:index node builder
      * @param indexDefName  The name of the new property index.

@@ -45,21 +45,21 @@ public interface IndexStoreStrategy {
      * 
      * @param filter the filter (used for logging)
      * @param indexName the name of the index (for logging)
-     * @param index index node (may not be null)
+     * @param indexMeta the index metadata node (may not be null)
      * @param values values to look for (null to check for property existence)
      * @return an iterator of paths
      */
-    Iterable<String> query(Filter filter, String indexName, NodeState index, Iterable<String> values);
+    Iterable<String> query(Filter filter, String indexName, NodeState indexMeta, Iterable<String> values);
 
     /**
      * Count the occurrence of a given set of values. Used in calculating the
      * cost of an index.
      * 
-     * @param index the index node (may not be null)
+     * @param indexMeta the index metadata node (may not be null)
      * @param values values to look for (null to check for property existence)
      * @param max the maximum value to return
      * @return the aggregated count of occurrences for each provided value
      */
-    int count(NodeState index, Set<String> values, int max);
+    long count(NodeState indexMeta, Set<String> values, int max);
 
 }
