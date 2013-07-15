@@ -25,6 +25,16 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
  * The base class for constraints.
  */
 public abstract class ConstraintImpl extends AstElement {
+    
+    /**
+     * Simplify the expression if possible, for example by removing duplicate expressions.
+     * For example, "x=1 or x=1" should be simplified to "x=1".
+     * 
+     * @return the simplified constraint, or "this" if it is not possible to simplify
+     */
+    public ConstraintImpl simplify() {
+        return this;
+    }
 
     /**
      * Evaluate the result using the currently set values.
@@ -79,5 +89,20 @@ public abstract class ConstraintImpl extends AstElement {
      * @param s the selector
      */
     public abstract void restrictPushDown(SelectorImpl s);
+    
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        } else if (!(other instanceof ConstraintImpl)) {
+            return false;
+        }
+        return toString().equals(other.toString());
+    }
+
+    @Override
+    public int hashCode() {
+        return toString().hashCode();
+    }
 
 }

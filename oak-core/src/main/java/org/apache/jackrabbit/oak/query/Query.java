@@ -89,11 +89,11 @@ public class Query {
 
     final SourceImpl source;
     final String statement;
-    final ConstraintImpl constraint;
     final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
     final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
-
+    ConstraintImpl constraint;
+    
     private QueryEngineImpl queryEngine;
     private final OrderingImpl[] orderings;
     private ColumnImpl[] columns;
@@ -291,6 +291,9 @@ public class Query {
             }
 
         }.visit(this);
+        if (constraint != null) {
+            constraint = constraint.simplify();
+        }
         source.setQueryConstraint(constraint);
         source.init(this);
         for (ColumnImpl column : columns) {

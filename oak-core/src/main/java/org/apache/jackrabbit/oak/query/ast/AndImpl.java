@@ -46,6 +46,14 @@ public class AndImpl extends ConstraintImpl {
     public ConstraintImpl getConstraint2() {
         return constraint2;
     }
+
+    @Override
+    public ConstraintImpl simplify() {
+        if (constraint1.equals(constraint2)) {
+            return constraint1;
+        }
+        return this;
+    }
     
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
