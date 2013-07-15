@@ -17,11 +17,15 @@
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static com.google.common.collect.Queues.newArrayDeque;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -113,7 +117,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
     @Override
     public Iterable<String> query(final Filter filter, final String indexName, 
-            final NodeState index, final Iterable<String> values) {
+            final NodeState indexMeta, final Iterable<String> values) {
+        final NodeState index = indexMeta.getChildNode(INDEX_CONTENT_NODE_NAME);
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
@@ -137,9 +142,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public int count(NodeState index, Set<String> values, int max) {
+    public long count(NodeState indexMeta, Set<String> values, int max) {
+        NodeState index = indexMeta.getChildNode(INDEX_CONTENT_NODE_NAME);
         int count = 0;
         if (values == null) {
+            PropertyState ec = indexMeta.getProperty(ENTRY_COUNT_PROPERTY_NAME);
+            if (ec != null) {
+                return ec.getValue(Type.LONG);
+            }
             CountingNodeVisitor v = new CountingNodeVisitor(max);
             v.visit(index);
             count = v.getEstimatedCount();
