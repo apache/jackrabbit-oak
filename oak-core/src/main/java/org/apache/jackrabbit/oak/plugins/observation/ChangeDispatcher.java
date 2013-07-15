@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.util.TODO;
 
 /**
  * A {@code ChangeDispatcher} instance records changes to a {@link NodeStore}
@@ -291,9 +290,6 @@ public class ChangeDispatcher {
         }
 
         private static class InternalChangeSet extends ChangeSet {
-            private static final String DUMMY_USER_DATA =
-                    TODO.dummyImplementation().returnValueOrNull("oak:not implemented");
-
             private final ContentSession contentSession;
             private final String userId;
             private final long date;
