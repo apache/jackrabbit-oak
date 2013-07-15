@@ -50,6 +50,14 @@ public class OrImpl extends ConstraintImpl {
     }
     
     @Override
+    public ConstraintImpl simplify() {
+        if (constraint1.equals(constraint2)) {
+            return constraint1;
+        }
+        return this;
+    }
+    
+    @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         // for the condition "x=1 or x=2", the existence condition
         // "x is not null" be be derived
