@@ -72,7 +72,9 @@ public class NodeTypeIndexTest {
         NodeStoreBranch branch = store.branch();
         NodeBuilder root = branch.getHead().builder();
 
-        root.getChildNode("rep:security").remove(); // interferes with tests
+        // remove "rep:security" as it interferes with tests
+        root.getChildNode("rep:security").remove(); 
+        
         addFolder(root, "folder-1");
         addFolder(root, "folder-2");
         addFile(root, "file-1");
@@ -106,7 +108,7 @@ public class NodeTypeIndexTest {
         return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]");
     }
 
-    private void checkCursor(Cursor cursor, String... matches) {
+    private static void checkCursor(Cursor cursor, String... matches) {
         // make sure the index is actually used
         // and does not traverse
         assertEquals(Cursors.class.getName() + "$PathCursor",
@@ -120,7 +122,7 @@ public class NodeTypeIndexTest {
         assertEquals(expected, actual);
     }
 
-    private NodeBuilder addFolder(NodeBuilder node, String name) {
+    private static NodeBuilder addFolder(NodeBuilder node, String name) {
         return addChild(node, name, JcrConstants.NT_FOLDER);
     }
 
@@ -135,8 +137,9 @@ public class NodeTypeIndexTest {
         return file;
     }
 
-    private NodeBuilder addChild(NodeBuilder node, String name, String nodeType) {
+    private static NodeBuilder addChild(NodeBuilder node, String name, String nodeType) {
         return node.child(name).setProperty(
                 JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
     }
+    
 }
