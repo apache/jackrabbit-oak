@@ -69,8 +69,8 @@ public abstract class AstVisitorBase implements AstVisitor {
      */
     @Override
     public boolean visit(JoinImpl node) {
-        node.getRight().accept(this);
         node.getLeft().accept(this);
+        node.getRight().accept(this);
         node.getJoinCondition().accept(this);
         return true;
     }
