@@ -467,6 +467,8 @@ public class Commit {
 
     /**
      * Apply the changes to the MongoMK (to update the cache).
+     * 
+     * @param isBranchCommit whether this is a commit to a branch
      */
     public void applyToCache(boolean isBranchCommit) {
         HashMap<String, ArrayList<String>> nodesWithChangedChildren = new HashMap<String, ArrayList<String>>();

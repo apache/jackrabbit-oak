@@ -212,7 +212,7 @@ public class MongoMK implements MicroKernel {
 
     MongoMK(Builder builder) {
 
-        if(builder.isUseSimpleRevision()){
+        if (builder.isUseSimpleRevision()) {
             this.simpleRevisionCounter = new AtomicInteger(0);
         }
 
@@ -607,7 +607,7 @@ public class MongoMK implements MicroKernel {
         return includeRevision(revision, readRevision);
     }
 
-    public Children getChildren(final String path, final Revision rev, final int limit)  throws MicroKernelException{
+    public Children getChildren(final String path, final Revision rev, final int limit)  throws MicroKernelException {
         checkRevisionAge(rev, path);
         String key = path + "@" + rev;
         Children children;
@@ -619,7 +619,7 @@ public class MongoMK implements MicroKernel {
                 }
             });
         } catch (ExecutionException e) {
-            throw new MicroKernelException("Error occurred while fetching children nodes for path "+path,e);
+            throw new MicroKernelException("Error occurred while fetching children nodes for path "+path, e);
         }
 
         //In case the limit > cached children size and there are more child nodes
@@ -712,7 +712,8 @@ public class MongoMK implements MicroKernel {
         // filter out revisions newer than branch base
         if (branch != null) {
             Revision base = branch.getBase(readRevision);
-            for (Iterator<Revision> it = lastRevs.values().iterator(); it.hasNext(); ) {
+            for (Iterator<Revision> it = lastRevs.values().iterator(); it
+                    .hasNext();) {
                 Revision r = it.next();
                 if (isRevisionNewer(r, base)) {
                     it.remove();
@@ -894,7 +895,6 @@ public class MongoMK implements MicroKernel {
     
     private void diffManyChildren(JsopWriter w, String path, Revision fromRev, Revision toRev) {
         long minTimestamp = Math.min(fromRev.getTimestamp(), toRev.getTimestamp());
-        Revision rev = isRevisionNewer(fromRev, toRev) ? toRev : fromRev;
         long minValue = Commit.getModified(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
@@ -1806,12 +1806,12 @@ public class MongoMK implements MicroKernel {
             return diffCacheSize;
         }
 
-        public Builder setUseSimpleRevision(boolean useSimpleRevision){
+        public Builder setUseSimpleRevision(boolean useSimpleRevision) {
             this.useSimpleRevision = useSimpleRevision;
             return this;
         }
 
-        public boolean isUseSimpleRevision(){
+        public boolean isUseSimpleRevision() {
             return useSimpleRevision;
         }
 
