@@ -69,7 +69,6 @@ public class FullTextSearchImpl extends ConstraintImpl {
         } else {
             this.propertyName = propertyName;
         }
-
         this.fullTextSearchExpression = fullTextSearchExpression;
     }
 
@@ -95,6 +94,11 @@ public class FullTextSearchImpl extends ConstraintImpl {
         if (relativePath != null) {
             propertyName = relativePath + "/" + propertyName;
         }
+        
+        // temporary workaround to support using an index for
+        // "contains(*, 'x') or contains(a, x') or contains(b, 'x')"
+        // propertyName = "*";
+        
         builder.append(quote(propertyName));
         builder.append(", ");
         builder.append(getFullTextSearchExpression());
@@ -122,6 +126,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
+        // disable evaluation if a fulltext index is used, as
+        // we don't know what exact options are used in the fulltext index
+        // (stop word, special characters,...)
         if (selector.index instanceof FulltextQueryIndex) {
             return true;
         }
@@ -156,13 +163,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 }
             }
         }
-        // TODO fulltext conditions: need a way to disable evaluation
-        // if a fulltext index is used, to avoid filtering too much
-        // (we don't know what exact options are used in the fulltext index)
-        // (stop word, special characters,...)
         PropertyValue v = fullTextSearchExpression.currentValue();
         try {
-            FullTextExpression expr = FullTextParser.parse(v.getValue(Type.STRING));
+            FullTextExpression expr = FullTextParser.parse(propertyName, v.getValue(Type.STRING));
             return expr.evaluate(buff.toString());
         } catch (ParseException e) {
             throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);

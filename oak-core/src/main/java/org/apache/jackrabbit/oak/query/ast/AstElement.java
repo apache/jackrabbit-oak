@@ -56,6 +56,8 @@ abstract class AstElement {
      */
     protected String validateAndNormalizePath(String path) {
         // TODO normalize the path (remove superfluous ".." and "." where possible)
+        // possibly using
+        //  PropertyValues.getOakPath(name, query.getNamePathMapper());
         query.validatePath(path);
         return path;
     }

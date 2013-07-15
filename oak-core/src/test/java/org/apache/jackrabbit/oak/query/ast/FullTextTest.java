@@ -113,12 +113,12 @@ public class FullTextTest {
     }
     
     private static String convertPattern(String pattern) throws ParseException {
-        FullTextExpression e = FullTextParser.parse(pattern);
+        FullTextExpression e = FullTextParser.parse(null, pattern);
         return e.toString();
     }
 
     private static boolean test(String pattern, String value) throws ParseException {
-        FullTextExpression e = FullTextParser.parse(pattern);
+        FullTextExpression e = FullTextParser.parse(null, pattern);
         return e.evaluate(value);
     }
 

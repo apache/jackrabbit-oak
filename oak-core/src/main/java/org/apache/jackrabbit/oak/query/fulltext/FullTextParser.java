@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 
 
 /**
@@ -35,39 +36,43 @@ import java.text.ParseException;
  */
 public class FullTextParser {
 
-    String text;
-    int parseIndex;
+    private String propertyName;
+    private String text;
+    private int parseIndex;
 
-    public static FullTextExpression parse(String text) throws ParseException {
+    public static FullTextExpression parse(String propertyName, String text) throws ParseException {
         FullTextParser p = new FullTextParser();
+        p.propertyName = propertyName;
         p.text = text;
         FullTextExpression e = p.parseOr();
         return e;
     }
 
     FullTextExpression parseOr() throws ParseException {
-        FullTextOr or = new FullTextOr();
-        or.list.add(parseAnd());
+        ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+        list.add(parseAnd());
         while (parseIndex < text.length()) {
             if (text.substring(parseIndex).startsWith("OR ")) {
                 parseIndex += 3;
-                or.list.add(parseAnd());
+                list.add(parseAnd());
             } else {
                 break;
             }
         }
+        FullTextOr or = new FullTextOr(list);
         return or.simplify();
     }
 
     FullTextExpression parseAnd() throws ParseException {
-        FullTextAnd and = new FullTextAnd();
-        and.list.add(parseTerm());
+        ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+        list.add(parseTerm());
         while (parseIndex < text.length()) {
             if (text.substring(parseIndex).startsWith("OR ")) {
                 break;
             }
-            and.list.add(parseTerm());
+            list.add(parseTerm());
         }
+        FullTextAnd and = new FullTextAnd(list);
         return and.simplify();
     }
 
@@ -149,7 +154,7 @@ public class FullTextParser {
             throw getSyntaxError("term");
         }
         String text = buff.toString();
-        FullTextTerm term = new FullTextTerm(text, not, escaped, boost);
+        FullTextTerm term = new FullTextTerm(propertyName, text, not, escaped, boost);
         return term.simplify();
     }
 

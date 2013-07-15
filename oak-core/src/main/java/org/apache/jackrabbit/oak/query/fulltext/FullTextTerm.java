@@ -23,12 +23,14 @@ package org.apache.jackrabbit.oak.query.fulltext;
  */
 public class FullTextTerm extends FullTextExpression {
     private final boolean not;
+    private final String propertyName;
     private final String text;
     private final String filteredText;
     private final String boost;
     private final LikePattern like;
 
-    public FullTextTerm(String text, boolean not, boolean escaped, String boost) {
+    public FullTextTerm(String propertyName, String text, boolean not, boolean escaped, String boost) {
+        this.propertyName = propertyName;
         this.text = text;
         this.not = not;
         this.boost = boost;
@@ -71,7 +73,7 @@ public class FullTextTerm extends FullTextExpression {
 
     @Override
     public boolean evaluate(String value) {
-        // for testFulltextIntercapSQL
+        // toLowerCase for testFulltextIntercapSQL
         value = value.toLowerCase();
         if (like != null) {
             return like.matches(value);
@@ -94,6 +96,11 @@ public class FullTextTerm extends FullTextExpression {
         if (not) {
             buff.append('-');
         }
+        if (propertyName != null && "*".equals(propertyName)) {
+            // TODO support property name conditions
+            // (currently disabled)
+            buff.append(propertyName).append(':');
+        }
         buff.append('\"');
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
@@ -109,6 +116,10 @@ public class FullTextTerm extends FullTextExpression {
             buff.append('^').append(boost);
         }
         return buff.toString();
+    }
+    
+    public String getPropertyName() {
+        return propertyName;
     }
     
     @Override
