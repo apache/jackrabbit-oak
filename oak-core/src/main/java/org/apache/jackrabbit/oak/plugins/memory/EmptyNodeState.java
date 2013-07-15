@@ -70,6 +70,16 @@ public final class EmptyNodeState implements NodeState {
         return false;
     }
 
+    @Override
+    public long getLong(String name) {
+        return 0;
+    }
+
+    @Override
+    public String getString(String name) {
+        return null;
+    }
+
     @Override @CheckForNull
     public String getName(@Nonnull String name) {
         return null;

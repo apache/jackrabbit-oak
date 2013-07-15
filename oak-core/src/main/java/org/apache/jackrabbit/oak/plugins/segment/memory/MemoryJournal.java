@@ -37,12 +37,12 @@ public class MemoryJournal implements Journal {
 
     private RecordId head;
 
-    public MemoryJournal(SegmentStore store, NodeState root) {
+    public MemoryJournal(SegmentStore store, NodeState head) {
         this.store = checkNotNull(store);
         this.parent = null;
 
         SegmentWriter writer = new SegmentWriter(store);
-        RecordId id = writer.writeNode(root).getRecordId();
+        RecordId id = writer.writeNode(head).getRecordId();
         writer.flush();
 
         this.base = id;

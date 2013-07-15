@@ -24,8 +24,8 @@ class FileJournal extends MemoryJournal {
 
     private final FileStore store;
 
-    FileJournal(FileStore store, NodeState root) {
-        super(store, root);
+    FileJournal(FileStore store, NodeState head) {
+        super(store, head);
         this.store = store;
     }
 
