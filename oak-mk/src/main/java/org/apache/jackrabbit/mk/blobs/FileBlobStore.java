@@ -42,7 +42,7 @@ public class FileBlobStore extends AbstractBlobStore {
 
     // TODO file operations are not secure (return values not checked, no retry,...)
 
-    public FileBlobStore(String dir) throws IOException {
+    public FileBlobStore(String dir) {
         baseDir = new File(dir);
         baseDir.mkdirs();
     }
