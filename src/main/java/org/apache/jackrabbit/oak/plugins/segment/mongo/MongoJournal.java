@@ -61,7 +61,7 @@ class MongoJournal implements Journal {
 
     MongoJournal(
             SegmentStore store, DBCollection journals,
-            WriteConcern concern, NodeState root) {
+            WriteConcern concern, NodeState head) {
         this.store = checkNotNull(store);
         this.journals = checkNotNull(journals);
         this.concern = checkNotNull(concern);
@@ -71,11 +71,11 @@ class MongoJournal implements Journal {
         state = journals.findOne(id, null, primaryPreferred());
         if (state == null) {
             SegmentWriter writer = new SegmentWriter(store);
-            RecordId head = writer.writeNode(root).getRecordId();
+            RecordId headId = writer.writeNode(head).getRecordId();
             writer.flush();
             state = new BasicDBObject(of(
                     "_id",  "root",
-                    "head", head.toString()));
+                    "head", headId.toString()));
             try {
                 journals.insert(state, concern);
             } catch (MongoException.DuplicateKey e) {
