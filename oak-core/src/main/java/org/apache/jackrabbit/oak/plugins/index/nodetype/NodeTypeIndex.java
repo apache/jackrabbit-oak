@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;

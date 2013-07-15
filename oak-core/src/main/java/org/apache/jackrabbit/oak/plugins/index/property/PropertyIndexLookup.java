@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -80,19 +79,14 @@ public class PropertyIndexLookup {
      * @return true if the property is indexed
      */
     public boolean isIndexed(String propertyName, String path, Filter filter) {
-        Set<String> supertypes = null;
-        if (filter != null && !filter.matchesAllTypes()) {
-            supertypes = filter.getSupertypes();
-        }
-
         if (PathUtils.denotesRoot(path)) {
-            return getIndexDataNode(root, propertyName, supertypes).exists();
+            return getIndexNode(root, propertyName, filter) != null;
         }
 
         NodeState node = root;
         Iterator<String> it = PathUtils.elements(path).iterator();
         while (it.hasNext()) {
-            if (getIndexDataNode(node, propertyName, supertypes).exists()) {
+            if (getIndexNode(node, propertyName, filter) != null) {
                 return true;
             }
             node = node.getChildNode(it.next());
@@ -101,61 +95,55 @@ public class PropertyIndexLookup {
     }
 
     public Iterable<String> query(Filter filter, String propertyName, PropertyValue value) {
-        Set<String> supertypes = null;
-        if (filter != null && !filter.matchesAllTypes()) {
-            supertypes = filter.getSupertypes();
-        }
-
-        NodeState state = getIndexDataNode(root, propertyName, supertypes);
-        if (state.exists()) {
-            return store.query(filter, propertyName, state, encode(value));
-        } else {
+        NodeState indexMeta = getIndexNode(root, propertyName, filter);
+        if (indexMeta == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
+        return store.query(filter, propertyName, indexMeta, encode(value));
     }
 
-    public double getCost(Filter filter, String name, PropertyValue value) {
-        Set<String> supertypes = null;
-        if (filter != null && !filter.matchesAllTypes()) {
-            supertypes = filter.getSupertypes();
-        }
-
-        NodeState state = getIndexDataNode(root, name, supertypes);
-        if (state.exists()) {
-            return store.count(state, encode(value), MAX_COST);
-        } else {
+    public double getCost(Filter filter, String propertyName, PropertyValue value) {
+        NodeState indexMeta = getIndexNode(root, propertyName, filter);
+        if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
+        return store.count(indexMeta, encode(value), MAX_COST);
     }
 
     /**
-     * Get the node with the index data for the given property, if there is an
-     * applicable index with data.
+     * Get the node with the index definition for the given property, if there
+     * is an applicable index with data.
      * 
      * @param propertyName the property name
-     * @param supertypes the filter node type and all its supertypes,
-     *                   or {@code null} if the filter matches all types
-     * @return the node where the index data is stored, or null if no index
-     *         definition or index data node was found
+     * @param filter the filter (which contains information of all supertypes,
+     *            unless the filter matches all types)
+     * @return the node where the index definition (metadata) is stored (the
+     *         parent of ":index"), or null if no index definition or index data
+     *         node was found
      */
     @Nullable
-    private static NodeState getIndexDataNode(
-            NodeState node, String propertyName, Set<String> supertypes) {
-        //keep a fallback to a matching index def that has *no* node type constraints
-        NodeState fallback = MISSING_NODE;
+    private static NodeState getIndexNode(
+            NodeState node, String propertyName, Filter filter) {
+        // keep a fallback to a matching index def that has *no* node type constraints
+        // (initially, there is no fallback)
+        NodeState fallback = null;
 
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            NodeState ns = entry.getNodeState();
-            PropertyState type = ns.getProperty(TYPE_PROPERTY_NAME);
+            NodeState index = entry.getNodeState();
+            PropertyState type = index.getProperty(TYPE_PROPERTY_NAME);
             if (type == null || type.isArray() || !TYPE.equals(type.getValue(Type.STRING))) {
                 continue;
             }
-            if (contains(ns.getNames(PROPERTY_NAMES), propertyName)) {
-                NodeState index = ns.getChildNode(INDEX_CONTENT_NODE_NAME);
-                if (ns.hasProperty(DECLARING_NODE_TYPES)) {
+            if (contains(index.getNames(PROPERTY_NAMES), propertyName)) {
+                NodeState indexContent = index.getChildNode(INDEX_CONTENT_NODE_NAME);
+                if (!indexContent.exists()) {
+                    continue;
+                }
+                Set<String> supertypes = getSuperTypes(filter);
+                if (index.hasProperty(DECLARING_NODE_TYPES)) {
                     if (supertypes != null) {
-                        for (String typeName : ns.getNames(DECLARING_NODE_TYPES)) {
+                        for (String typeName : index.getNames(DECLARING_NODE_TYPES)) {
                             if (supertypes.contains(typeName)) {
                                 // TODO: prefer the most specific type restriction
                                 return index;
@@ -164,12 +152,20 @@ public class PropertyIndexLookup {
                     }
                 } else if (supertypes == null) {
                     return index;
-                } else if (index.exists() && !fallback.exists()) {
+                } else if (fallback == null) {
+                    // update the fallback
                     fallback = index;
                 }
             }
         }
         return fallback;
+    }
+    
+    private static Set<String> getSuperTypes(Filter filter) {
+        if (filter != null && !filter.matchesAllTypes()) {
+            return filter.getSupertypes();
+        }
+        return null;
     }
 
 }

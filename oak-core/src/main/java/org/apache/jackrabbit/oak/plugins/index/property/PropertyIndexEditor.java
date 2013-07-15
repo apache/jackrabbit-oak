@@ -227,14 +227,14 @@ class PropertyIndexEditor implements IndexEditor {
 
         if (parent == null) {
             // make sure that the index node exist, even with no content
-            NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
+            definition.child(INDEX_CONTENT_NODE_NAME);
 
             // check uniqueness constraints when leaving the root
             if (keysToCheckForUniqueness != null
                     && !keysToCheckForUniqueness.isEmpty()) {
-                NodeState state = index.getNodeState();
+                NodeState indexMeta = definition.getNodeState();
                 for (String key : keysToCheckForUniqueness) {
-                    if (STORE.count(state, singleton(key), 2) > 1) {
+                    if (STORE.count(indexMeta, singleton(key), 2) > 1) {
                         throw new CommitFailedException(
                                 CONSTRAINT, 30,
                                 "Uniqueness constraint violated for key " + key);
