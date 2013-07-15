@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.ROOT;
+
 import java.util.Random;
 
 import javax.annotation.Nonnull;
@@ -51,27 +53,30 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
 
     @Override @Nonnull
     public NodeState getBase() {
-        return base;
+        return base.getChildNode(ROOT);
     }
 
     @Override @Nonnull
     public synchronized NodeState getHead() {
-        return head;
+        return head.getChildNode(ROOT);
     }
 
     @Override
     public synchronized void setRoot(NodeState newRoot) {
-        head = writer.writeNode(newRoot);
+        NodeBuilder builder = head.builder();
+        builder.setChildNode(ROOT, newRoot);
+        head = writer.writeNode(builder.getNodeState());
         writer.flush();
     }
 
     @Override
     public synchronized void rebase() {
-        SegmentNodeState newBase = store.getRoot();
+        SegmentNodeState newBase = store.getHead();
         if (!base.getRecordId().equals(newBase.getRecordId())) {
             NodeBuilder builder = newBase.builder();
-            head.compareAgainstBaseState(
-                    base, new ConflictAnnotatingRebaseDiff(builder));
+            head.getChildNode(ROOT).compareAgainstBaseState(
+                    base.getChildNode(ROOT),
+                    new ConflictAnnotatingRebaseDiff(builder.child(ROOT)));
             base = newBase;
             head = writer.writeNode(builder.getNodeState());
             writer.flush();
@@ -81,19 +86,23 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
     @Override @Nonnull
     public synchronized NodeState merge(CommitHook hook)
             throws CommitFailedException {
+        int backoff = 1;
         SegmentNodeState originalBase = base;
         SegmentNodeState originalHead = head;
-        long backoff = 1;
         while (base != head) {
             // apply commit hooks on the rebased changes
-            SegmentNodeState root = writer.writeNode(
-                    hook.processCommit(base, head));
+            NodeBuilder builder = head.builder();
+            builder.removeProperty("token");
+            builder.removeProperty("timeout");
+            builder.setChildNode(ROOT, hook.processCommit(
+                    base.getChildNode(ROOT), head.getChildNode(ROOT)));
+            SegmentNodeState newHead = writer.writeNode(builder.getNodeState());
             writer.flush();
 
             // use optimistic locking to update the journal
-            if (store.setHead(base, root)) {
-                base = root;
-                head = root;
+            if (store.setHead(base, newHead)) {
+                base = newHead;
+                head = newHead;
             } else {
                 // someone else was faster, so restore state and retry later
                 base = originalBase;
@@ -105,6 +114,7 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                         Thread.sleep(backoff, RANDOM.nextInt(1000000));
                         backoff *= 2;
                     } catch (InterruptedException e) {
+                        // TODO: correct interrupt handling?
                         throw new CommitFailedException(
                                 "Segment", 1, "Commit was interrupted", e);
                     }
@@ -118,7 +128,6 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                 rebase();
             }
         }
-
         return getHead();
     }
 

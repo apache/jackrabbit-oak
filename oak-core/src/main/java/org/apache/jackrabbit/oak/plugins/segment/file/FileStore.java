@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.Template;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +96,9 @@ public class FileStore implements SegmentStore {
         }
 
         if (!journals.containsKey("root")) {
-            journals.put("root", new FileJournal(this, root));
+            NodeBuilder builder = EMPTY_NODE.builder();
+            builder.setChildNode("root", root);
+            journals.put("root", new FileJournal(this, builder.getNodeState()));
         }
     }
 

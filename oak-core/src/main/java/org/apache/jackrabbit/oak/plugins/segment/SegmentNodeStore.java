@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 public class SegmentNodeStore extends AbstractNodeStore {
 
+    static final String ROOT = "root";
+
     private final SegmentStore store;
 
     private final Journal journal;
@@ -42,18 +44,26 @@ public class SegmentNodeStore extends AbstractNodeStore {
 
     private final Observer observer;
 
-    private SegmentNodeState root;
+    private SegmentNodeState head;
 
     public SegmentNodeStore(SegmentStore store, String journal) {
         this.store = store;
         this.journal = store.getJournal(journal);
         this.reader = new SegmentReader(store);
         this.observer = EmptyObserver.INSTANCE;
-        this.root = new SegmentNodeState(store, this.journal.getHead());
+        this.head = new SegmentNodeState(store, this.journal.getHead());
     }
 
     public SegmentNodeStore(SegmentStore store) {
         this(store, "root");
+    }
+
+    synchronized SegmentNodeState getHead() {
+        NodeState before = head.getChildNode(ROOT);
+        head = new SegmentNodeState(store, journal.getHead());
+        NodeState after = head.getChildNode(ROOT);
+        observer.contentChanged(before, after);
+        return head;
     }
 
     boolean setHead(SegmentNodeState base, SegmentNodeState head) {
@@ -61,17 +71,14 @@ public class SegmentNodeStore extends AbstractNodeStore {
     }
 
     @Override @Nonnull
-    public synchronized SegmentNodeState getRoot() {
-        NodeState before = root;
-        root = new SegmentNodeState(store, journal.getHead());
-        observer.contentChanged(before, root);
-        return root;
+    public synchronized NodeState getRoot() {
+        return getHead().getChildNode(ROOT);
     }
 
     @Override @Nonnull
     public NodeStoreBranch branch() {
         return new SegmentNodeStoreBranch(
-                this, new SegmentWriter(store), getRoot());
+                this, new SegmentWriter(store), getHead());
     }
 
     @Override
@@ -86,14 +93,14 @@ public class SegmentNodeStore extends AbstractNodeStore {
     public synchronized String checkpoint(long lifetime) {
         checkArgument(lifetime > 0);
         // TODO: Guard the checkpoint from garbage collection
-        return getRoot().getRecordId().toString();
+        return getHead().getRecordId().toString();
     }
 
     @Override @CheckForNull
     public synchronized NodeState retrieve(@Nonnull String checkpoint) {
         // TODO: Verify validity of the checkpoint
         RecordId id = RecordId.fromString(checkNotNull(checkpoint));
-        return new SegmentNodeState(store, id);
+        return new SegmentNodeState(store, id).getChildNode(ROOT);
     }
 
 }

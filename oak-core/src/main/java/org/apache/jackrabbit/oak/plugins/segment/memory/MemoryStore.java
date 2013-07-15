@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.Template;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
@@ -41,7 +42,9 @@ public class MemoryStore implements SegmentStore {
             Maps.newConcurrentMap();
 
     public MemoryStore(NodeState root) {
-        journals.put("root", new MemoryJournal(this, root));
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setChildNode("root", root);
+        journals.put("root", new MemoryJournal(this, builder.getNodeState()));
     }
 
     public MemoryStore() {

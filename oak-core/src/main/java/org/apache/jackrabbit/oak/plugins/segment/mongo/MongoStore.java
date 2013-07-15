@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.Template;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -62,8 +63,11 @@ public class MongoStore implements SegmentStore {
         this.db = checkNotNull(db);
         this.segments = db.getCollection("segments");
         this.cache = cache;
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.child("root");
         journals.put("root", new MongoJournal(
-                this, db.getCollection("journals"), concern, EMPTY_NODE));
+                this, db.getCollection("journals"),
+                concern, builder.getNodeState()));
     }
 
     public MongoStore(DB db, long cacheSize) {
