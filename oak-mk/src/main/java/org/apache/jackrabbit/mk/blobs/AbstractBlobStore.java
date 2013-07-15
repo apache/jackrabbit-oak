@@ -146,6 +146,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         }
     }
 
+    @Override
     public String writeBlob(InputStream in) throws Exception {
         try {
             ByteArrayOutputStream idStream = new ByteArrayOutputStream();
@@ -259,6 +260,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         }
     }
 
+    @Override
     public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws Exception {
         if (isMarkEnabled()) {
             mark(blobId);
@@ -316,6 +318,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         return cache.get(id).data;
     }
 
+    @Override
     public Data load(BlockId id) {
         byte[] data;
         try {
@@ -338,6 +341,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
      */
     protected abstract byte[] readBlockFromBackend(BlockId id) throws Exception;
 
+    @Override
     public long getBlobLength(String blobId) throws IOException {
         if (isMarkEnabled()) {
             mark(blobId);
@@ -426,6 +430,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
             this.pos = pos;
         }
 
+        @Override
         public boolean equals(Object other) {
             if (this == other) {
                 return true;
@@ -438,11 +443,13 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
                     pos == o.pos;
         }
 
+        @Override
         public int hashCode() {
             return Arrays.hashCode(digest) ^
                     (int) (pos >> 32) ^ (int) pos;
         }
 
+        @Override
         public String toString() {
             return StringUtils.convertBytesToHex(digest) + "@" + pos;
         }
@@ -468,11 +475,13 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
             this.data = data;
         }
 
+        @Override
         public String toString() {
             String s = StringUtils.convertBytesToHex(data);
             return s.length() > 100 ? s.substring(0, 100) + ".. (len=" + data.length + ")" : s;
         }
 
+        @Override
         public int getMemory() {
             return data.length;
         }

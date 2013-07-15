@@ -38,6 +38,7 @@ public class BlobStoreInputStream extends InputStream {
         this.pos = pos;
     }
 
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
         int l;
         try {
@@ -52,6 +53,7 @@ public class BlobStoreInputStream extends InputStream {
         return l;
     }
 
+    @Override
     public int read() throws IOException {
         if (oneByteBuff == null) {
             oneByteBuff = new byte[1];
