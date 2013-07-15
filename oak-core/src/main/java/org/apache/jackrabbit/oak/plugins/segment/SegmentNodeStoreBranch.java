@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.ROOT;
 
 import java.util.Random;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
@@ -80,6 +81,54 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
             base = newBase;
             head = writer.writeNode(builder.getNodeState());
             writer.flush();
+        }
+    }
+
+    private synchronized NodeState pessimisticMerge(
+            CommitHook hook, long timeout) throws CommitFailedException {
+        while (true) {
+            SegmentNodeState before = store.getHead();
+            long now = System.currentTimeMillis();
+            if (before.hasProperty("token")
+                    && before.getLong("timeout") >= now) {
+                // locked by someone else, wait until unlocked or expired
+                // TODO: explicit sleep needed to avoid spinning?
+            } else {
+                // attempt to acquire the lock
+                NodeBuilder builder = before.builder();
+                builder.setProperty("token", UUID.randomUUID().toString());
+                builder.setProperty("timeout", now + timeout);
+
+                SegmentNodeState after =
+                        writer.writeNode(builder.getNodeState());
+                writer.flush();
+                if (store.setHead(before, after)) {
+                    SegmentNodeState originalBase = base;
+                    SegmentNodeState originalHead = head;
+
+                    // lock acquired; rebase, apply commit hooks, and unlock
+                    rebase();
+                    builder.setChildNode(ROOT, hook.processCommit(
+                            base.getChildNode(ROOT), head.getChildNode(ROOT)));
+                    builder.removeProperty("token");
+                    builder.removeProperty("timeout");
+
+                    // complete the commit
+                    SegmentNodeState newHead =
+                            writer.writeNode(builder.getNodeState());
+                    writer.flush();
+                    if (store.setHead(after, newHead)) {
+                        base = newHead;
+                        head = newHead;
+                        return getHead();
+                    } else {
+                        // something else happened, perhaps a timeout, so
+                        // undo the previous rebase and try again
+                        base = originalBase;
+                        head = originalHead;
+                    }
+                }
+            }
         }
     }
 
