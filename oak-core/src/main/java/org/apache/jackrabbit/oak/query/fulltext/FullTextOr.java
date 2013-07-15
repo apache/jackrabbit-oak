@@ -19,12 +19,18 @@
 package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 
 /**
  * A fulltext "or" condition.
  */
 public class FullTextOr extends FullTextExpression {
-    public ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+    
+    public final ArrayList<FullTextExpression> list;
+    
+    public FullTextOr(ArrayList<FullTextExpression> list) {
+        this.list = list;
+    }
 
     @Override
     public boolean evaluate(String value) {
@@ -38,7 +44,17 @@ public class FullTextOr extends FullTextExpression {
 
     @Override
     public FullTextExpression simplify() {
-        return list.size() == 1 ? list.get(0).simplify() : this;
+        // remove duplicates
+        LinkedHashSet<FullTextExpression> newList = new LinkedHashSet<FullTextExpression>();
+        for (int i = 0; i < list.size(); i++) {
+            newList.add(list.get(i).simplify());
+        }
+        if (newList.size() == 1) {
+            return newList.iterator().next();
+        }
+        ArrayList<FullTextExpression> l = new ArrayList<FullTextExpression>(newList.size());
+        l.addAll(newList);
+        return new FullTextOr(l);
     }
 
     @Override

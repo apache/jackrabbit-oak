@@ -19,13 +19,18 @@
 package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 
 /**
  * A fulltext "and" condition.
  */
 public class FullTextAnd extends FullTextExpression {
     
-    public ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+    public final ArrayList<FullTextExpression> list;
+    
+    public FullTextAnd(ArrayList<FullTextExpression> list) {
+        this.list = list;
+    }
 
     @Override
     public boolean evaluate(String value) {
@@ -39,7 +44,17 @@ public class FullTextAnd extends FullTextExpression {
 
     @Override
     public FullTextExpression simplify() {
-        return list.size() == 1 ? list.get(0) : this;
+        // remove duplicates
+        LinkedHashSet<FullTextExpression> newList = new LinkedHashSet<FullTextExpression>();
+        for (int i = 0; i < list.size(); i++) {
+            newList.add(list.get(i).simplify());
+        }
+        if (newList.size() == 1) {
+            return newList.iterator().next();
+        }
+        ArrayList<FullTextExpression> l = new ArrayList<FullTextExpression>(newList.size());
+        l.addAll(newList);
+        return new FullTextAnd(l);
     }
 
     @Override

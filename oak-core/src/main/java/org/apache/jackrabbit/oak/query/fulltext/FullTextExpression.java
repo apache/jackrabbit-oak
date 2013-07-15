@@ -23,10 +23,62 @@ package org.apache.jackrabbit.oak.query.fulltext;
  */
 public abstract class FullTextExpression {
     
-    public static final int PRECEDENCE_OR = 1, PRECEDENCE_AND = 2, PRECEDENCE_TERM = 3;
+    /**
+     * The operator precedence for OR conditions.
+     */
+    public static final int PRECEDENCE_OR = 1;
+
+    /**
+     * The operator precedence for AND conditions.
+     */
+    public static final int PRECEDENCE_AND = 2;
     
+    /**
+     * The operator precedence for terms.
+     */
+    public static final int PRECEDENCE_TERM = 3;
+
+    /**
+     * Get the operator precedence.
+     * 
+     * @return the precedence
+     */
     public abstract int getPrecedence();
+    
+    /**
+     * Evaluate whether the value matches the condition.
+     * 
+     * @param value the value
+     * @return true if it matches
+     */
     public abstract boolean evaluate(String value);
+    
+    /**
+     * Simplify the expression if possible (removing duplicate conditions).
+     * 
+     * @return the simplified expression
+     */
     abstract FullTextExpression simplify();
+    
+    /**
+     * Get the string representation of the condition.
+     */
+    @Override
+    public abstract String toString();
+    
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        } else if (!(other instanceof FullTextExpression)) {
+            return false;
+        }
+        return toString().equals(other.toString());
+    }
+    
+    @Override
+    public int hashCode() {
+        return toString().hashCode();
+    }
     
 }

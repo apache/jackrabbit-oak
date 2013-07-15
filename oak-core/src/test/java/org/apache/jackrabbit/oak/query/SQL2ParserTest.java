@@ -50,11 +50,7 @@ public class SQL2ParserTest {
                 .convert("/jcr:root/test/*/nt:resource[@jcr:encoding]"));
     }
 
-    /**
-     * @see <a
-     *      href="https://issues.apache.org/jira/browse/OAK-OAK-830">OAK-OAK-830:
-     *      XPathToSQL2Converter fails to wrap or clauses</a>
-     */
+    // see OAK-OAK-830: XPathToSQL2Converter fails to wrap or clauses
     @Test
     public void testUnwrappedOr() throws ParseException {
         String q = new XPathToSQL2Converter()
@@ -62,4 +58,5 @@ public class SQL2ParserTest {
         String token = "and (b.[type] = 't1' or b.[type] = 't2' or b.[type] = 't3')";
         assertTrue(q.contains(token));
     }
+    
 }
