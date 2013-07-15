@@ -23,6 +23,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
@@ -34,8 +35,8 @@ import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
  * <p>
  * Implementors must implement the {@link #create(SecurableNodeStateDiff, String, NodeState, NodeState)}
  * factory method for creating {@code SecurableNodeStateDiff} instances for child nodes.
- * Further implementors should override {@link #canRead(PropertyState, PropertyState)} and
- * {@link #canRead(String, NodeState, NodeState)} and determine whether the passed states are
+ * Further implementors should override {@link #canRead(Tree, PropertyState, Tree, PropertyState)} and
+ * {@link #canRead(Tree, Tree)} and determine whether the passed states are
  * accessible and the respective callbacks should thus be invoked. Finally implementors should override,
  * {@link #secureBefore(String, NodeState)}, and {@link #secureAfter(String, NodeState)}} wrapping the
  * passed node state into a node state that restricts access to accessible child nodes and properties.
@@ -46,6 +47,16 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
      * Parent diff
      */
     private final SecurableNodeStateDiff parent;
+
+    /**
+     * Tree before the changes
+     */
+    protected final Tree beforeTree;
+
+    /**
+     * Tree after the changes
+     */
+    protected final Tree afterTree;
 
     /**
      * Unsecured diff this secured diff delegates to after it has determined
@@ -61,25 +72,32 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
      */
     private Deferred deferred = Deferred.EMPTY;
 
-    private SecurableNodeStateDiff(SecurableNodeStateDiff parent, RecursingNodeStateDiff diff) {
+    private SecurableNodeStateDiff(SecurableNodeStateDiff parent, Tree beforeTree, Tree afterTree, RecursingNodeStateDiff diff) {
         this.parent = parent;
+        this.beforeTree = beforeTree;
+        this.afterTree = afterTree;
         this.diff = diff;
     }
 
     /**
      * Create a new child instance
      * @param parent  parent of this instance
+     * @param beforeParent parent tree before the changes
+     * @param afterParent parent tree after the changes
+     * @param name  name of the child node
      */
-    protected SecurableNodeStateDiff(SecurableNodeStateDiff parent) {
-        this(parent, RecursingNodeStateDiff.EMPTY);
+    protected SecurableNodeStateDiff(SecurableNodeStateDiff parent, Tree beforeParent, Tree afterParent, String name) {
+        this(parent, beforeParent.getChild(name), afterParent.getChild(name), RecursingNodeStateDiff.EMPTY);
     }
 
     /**
      * Create a new instance wrapping a unsecured diff.
      * @param diff  unsecured diff
+     * @param beforeTree parent tree before the changes
+     * @param afterTree parent tree after the changes
      */
-    protected SecurableNodeStateDiff(RecursingNodeStateDiff diff) {
-        this(null, diff);
+    protected SecurableNodeStateDiff(RecursingNodeStateDiff diff, Tree beforeTree, Tree afterTree) {
+        this(null, beforeTree, afterTree, diff);
     }
 
     /**
@@ -96,11 +114,13 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
 
     /**
      * Determine whether a property is accessible
+     * @param beforeParent parent before the changes
      * @param before  before state of the property
+     * @param afterParent parent after the changes
      * @param after   after state of the property
      * @return  {@code true} if accessible, {@code false} otherwise.
      */
-    protected boolean canRead(PropertyState before, PropertyState after) {
+    protected boolean canRead(Tree beforeParent, PropertyState before, Tree afterParent, PropertyState after) {
         return true;
     }
 
@@ -110,7 +130,7 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
      * @param after   after state of the node
      * @return  {@code true} if accessible, {@code false} otherwise.
      */
-    protected boolean canRead(String name, NodeState before, NodeState after) {
+    protected boolean canRead(Tree before, Tree after) {
         return true;
     }
 
@@ -138,9 +158,11 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
         return nodeState;
     }
 
+    //------------------------------------------------------------< NodeStateDiff >---
+
     @Override
     public boolean propertyAdded(PropertyState after) {
-        if (canRead(null, after)) {
+        if (canRead(beforeTree, null, afterTree, after)) {
             return applyDeferred() && diff.propertyAdded(after);
         }
         else {
@@ -150,7 +172,7 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean propertyChanged(PropertyState before, PropertyState after) {
-        if (canRead(before, after)) {
+        if (canRead(beforeTree, before, afterTree, after)) {
             return applyDeferred() && diff.propertyChanged(before, after);
         }
         else {
@@ -160,7 +182,7 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean propertyDeleted(PropertyState before) {
-        if (canRead(before, null)) {
+        if (canRead(beforeTree, before, afterTree, null)) {
             return applyDeferred() && diff.propertyDeleted(before);
         }
         else {
@@ -170,7 +192,7 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        if (canRead(name, null, after)) {
+        if (canRead(beforeTree.getChild(name), afterTree.getChild(name))) {
             return applyDeferred() && diff.childNodeAdded(name, secureAfter(name, after));
         } else {
             return true;
@@ -202,7 +224,7 @@ public abstract class SecurableNodeStateDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        if (canRead(name, before, null)) {
+        if (canRead(beforeTree.getChild(name), afterTree.getChild(name))) {
             return applyDeferred() && diff.childNodeDeleted(name, secureBefore(name, before));
         } else {
             return true;
