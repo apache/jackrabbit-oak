@@ -175,15 +175,15 @@ public class QueryResultImpl implements QueryResult {
     @Override
     public NodeIterator getNodes() throws RepositoryException {
         String[] selectorNames = getSelectorNames();
-        final String selectorName = selectorNames[0];
         if (getSelectorNames().length > 1) {
-            // use the first selector
-            // TODO verify using the first selector is allowed according to the specification,
+            // TODO verify using the last selector is allowed according to the specification,
             // otherwise just allow it when using XPath queries, or make XPath queries
             // look like they only contain one selector
             // throw new RepositoryException("Query contains more than one selector: " +
             //        Arrays.toString(getSelectorNames()));
         }
+        // use the last selector
+        final String selectorName = selectorNames[selectorNames.length - 1];
         Iterator<NodeImpl<NodeDelegate>> nodeIterator = new Iterator<NodeImpl<NodeDelegate>>() {
 
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();
