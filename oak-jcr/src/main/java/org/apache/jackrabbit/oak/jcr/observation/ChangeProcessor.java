@@ -28,7 +28,6 @@ import static javax.jcr.observation.Event.NODE_REMOVED;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -41,22 +40,22 @@ import javax.jcr.observation.EventListener;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.plugins.observation.SecureNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.VisibleDiff;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -194,13 +193,11 @@ class ChangeProcessor implements Runnable {
             while (!stopping && changes != null) {
                 EventFilter filter = filterRef.get();
                 if (!(filter.excludeLocal() && changes.isLocal(contentSession))) {
-                    NodeState beforeState = changes.getBeforeState();
-                    NodeState afterState = changes.getAfterState();
                     String path = namePathMapper.getOakPath(filter.getPath());
-                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
-                            changes, new ImmutableRoot(beforeState), new ImmutableRoot(afterState), path);
-                    NodeStateDiff secureDiff = SecureNodeStateDiff.wrap(VisibleDiff.wrap(diff));
-                    getNode(afterState, path).compareAgainstBaseState(getNode(beforeState, path), secureDiff);
+                    ImmutableTree beforeTree = getTree(changes.getBeforeState(), path);
+                    ImmutableTree afterTree = getTree(changes.getAfterState(), path);
+                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes, beforeTree, afterTree);
+                    SecureNodeStateDiff.compare(VisibleDiff.wrap(diff), beforeTree, afterTree);
                     if (!stopping) {
                         diff.sendEvents();
                     }
@@ -216,6 +213,10 @@ class ChangeProcessor implements Runnable {
                 deferredUnregister.run();
             }
         }
+    }
+
+    private static ImmutableTree getTree(NodeState beforeState, String path) {
+        return new ImmutableRoot(beforeState).getTree(path);
     }
 
     //------------------------------------------------------------< private >---
@@ -237,8 +238,8 @@ class ChangeProcessor implements Runnable {
             this.events = events;
         }
 
-        public EventGeneratingNodeStateDiff(ChangeSet changes, Root beforeRoot, Root afterRoot, String path) {
-            this(changes, beforeRoot.getTree(path), afterRoot.getTree(path), new ArrayList<Iterator<Event>>(EVENT_LIMIT));
+        public EventGeneratingNodeStateDiff(ChangeSet changes, Tree beforeTree, Tree afterTree) {
+            this(changes, beforeTree, afterTree, Lists.<Iterator<Event>>newArrayList());
         }
 
         public void sendEvents() {

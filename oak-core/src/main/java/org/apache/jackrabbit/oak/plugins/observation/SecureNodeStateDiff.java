@@ -22,38 +22,40 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 
 public class SecureNodeStateDiff extends SecurableNodeStateDiff {
-    private SecureNodeStateDiff(RecursingNodeStateDiff diff) {
-        super(diff);
+    private SecureNodeStateDiff(RecursingNodeStateDiff diff, Tree before, Tree after) {
+        super(diff, before, after);
     }
 
-    private SecureNodeStateDiff(SecurableNodeStateDiff parent) {
-        super(parent);
+    private SecureNodeStateDiff(SecurableNodeStateDiff parent, Tree beforeParent, Tree afterParent, String name) {
+        super(parent, beforeParent, afterParent, name);
     }
 
-    public static NodeStateDiff wrap(RecursingNodeStateDiff diff) {
-        return new SecureNodeStateDiff(diff);
+    public static void compare(RecursingNodeStateDiff diff, ImmutableTree before, ImmutableTree after) {
+        SecureNodeStateDiff secureDiff = new SecureNodeStateDiff(diff, before, after);
+        after.getNodeState().compareAgainstBaseState(before.getNodeState(), secureDiff);
     }
 
     @Override
     protected SecurableNodeStateDiff create(SecurableNodeStateDiff parent,
             String name, NodeState before, NodeState after) {
 
-        return isHidden(name) ? null : new SecureNodeStateDiff(parent);
+        return isHidden(name) ? null : new SecureNodeStateDiff(parent, beforeTree, afterTree, name);
     }
 
     @Override
-    protected boolean canRead(PropertyState before, PropertyState after) {
+    protected boolean canRead(Tree beforeParent, PropertyState before, Tree afterParent, PropertyState after) {
         // TODO implement canRead
         return true;
     }
 
     @Override
-    protected boolean canRead(String name, NodeState before, NodeState after) {
+    protected boolean canRead(Tree before, Tree after) {
         // TODO implement canRead
         return true;
     }

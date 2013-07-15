@@ -81,6 +81,14 @@ public abstract class AbstractTree implements Tree {
     }
 
     /**
+     * @return  the underlying {@code NodeState} of this tree
+     */
+    @Nonnull
+    public NodeState getNodeState() {
+        return nodeBuilder.getNodeState();
+    }
+
+    /**
      * Factory method for creating child trees
      * @param name  name of the child tree
      * @return  child tree of this tree with the given {@code name}
@@ -245,14 +253,6 @@ public abstract class AbstractTree implements Tree {
     }
 
     //------------------------------------------------------------< internal >---
-
-    /**
-     * @return  the underlying {@code NodeState} of this tree
-     */
-    @Nonnull
-    NodeState getNodeState() {
-        return nodeBuilder.getNodeState();
-    }
 
     /**
      * The identifier of a tree is the value of its {@code jcr:uuid} property.

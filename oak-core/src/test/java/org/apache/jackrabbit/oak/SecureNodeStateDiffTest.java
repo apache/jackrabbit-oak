@@ -23,11 +23,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.assertEquals;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.SecurableNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -113,26 +115,26 @@ public class SecureNodeStateDiffTest {
     }
 
     private static class SecureNodeStateDiff extends SecurableNodeStateDiff {
-        protected SecureNodeStateDiff(SecurableNodeStateDiff parent) {
-            super(parent);
+        protected SecureNodeStateDiff(SecurableNodeStateDiff parent, Tree beforeParent, Tree afterParent, String name) {
+            super(parent, beforeParent, afterParent, name);
         }
 
-        public static NodeStateDiff wrap(RecursingNodeStateDiff diff) {
-            return new SecureNodeStateDiff(diff);
+        public static NodeStateDiff wrap(RecursingNodeStateDiff diff, Tree before, Tree after) {
+            return new SecureNodeStateDiff(diff, before, after);
         }
 
-        private SecureNodeStateDiff(RecursingNodeStateDiff diff) {
-            super(diff);
+        private SecureNodeStateDiff(RecursingNodeStateDiff diff, Tree before, Tree after) {
+            super(diff, before, after);
         }
 
         @Override
         protected SecurableNodeStateDiff create(SecurableNodeStateDiff parent,
                 String name, NodeState before, NodeState after) {
-            return new SecureNodeStateDiff(parent);
+            return new SecureNodeStateDiff(parent, beforeTree, afterTree, name);
         }
 
         @Override
-        protected boolean canRead(PropertyState before, PropertyState after) {
+        protected boolean canRead(Tree beforeParent, PropertyState before, Tree afterParent, PropertyState after) {
             return canRead(before) && canRead(after);
         }
 
@@ -141,8 +143,8 @@ public class SecureNodeStateDiffTest {
         }
 
         @Override
-        protected boolean canRead(String name, NodeState before, NodeState after) {
-            return canRead(name);
+        protected boolean canRead(Tree before, Tree after) {
+            return canRead(before.getName());
         }
 
         private static boolean canRead(String name) {
@@ -161,7 +163,8 @@ public class SecureNodeStateDiffTest {
         }
 
         public void expect(String expected) {
-            after.compareAgainstBaseState(before, SecureNodeStateDiff.wrap(this));
+            NodeStateDiff secureDiff = SecureNodeStateDiff.wrap(this, new ImmutableTree(before), new ImmutableTree(after));
+            after.compareAgainstBaseState(before, secureDiff);
             assertEquals(expected, actual.toString());
         }
 
