@@ -43,11 +43,9 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.commons.iterator.RowIterable;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Test;
-
 
 /**
  * Tests the query feature.
@@ -227,8 +225,8 @@ public class QueryTest extends AbstractRepositoryTest {
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query q = qm.createQuery("//element(*, nt:folder)", Query.XPATH);
         Set<String> paths = new HashSet<String>();
-        for (Row r : new RowIterable(q.execute().getRows())) {
-            paths.add(r.getPath());
+        for (RowIterator it = q.execute().getRows(); it.hasNext();) {
+            paths.add(it.nextRow().getPath());
         }
         assertEquals(new HashSet<String>(Arrays.asList("/folder1", "/folder2", "/folder2/folder3")),
                 paths);
