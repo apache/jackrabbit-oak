@@ -195,6 +195,9 @@ class Branch {
         return null;
     }
 
+    /**
+     * Information about a commit within a branch.
+     */
     private static final class BranchCommit {
 
         private final UnsavedModifications modifications = new UnsavedModifications();
