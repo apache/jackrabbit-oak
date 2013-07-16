@@ -40,6 +40,6 @@ public interface QueryParser {
      * @return parsed query
      * @throws ParseException if the query string could not be parsed
      */
-    Query parse(String query, String language) throws ParseException;
+    AbstractQuery parse(String query, String language) throws ParseException;
 
 }

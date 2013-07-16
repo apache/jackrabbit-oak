@@ -19,14 +19,14 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 
 /**
  * The base class for all abstract syntax tree nodes.
  */
 abstract class AstElement {
 
-    protected Query query;
+    protected QueryImpl query;
 
     abstract boolean accept(AstVisitor v);
 
@@ -44,7 +44,7 @@ abstract class AstElement {
         return '[' + pathOrName + ']';
     }
 
-    public void setQuery(Query query) {
+    public void setQuery(QueryImpl query) {
         this.query = query;
     }
 

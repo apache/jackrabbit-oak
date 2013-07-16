@@ -267,7 +267,7 @@ public abstract class AbstractQueryTest {
 
     protected static String readRow(ResultRow row, boolean pathOnly) {
         if (pathOnly) {
-            return row.getValue(Query.JCR_PATH).getValue(Type.STRING);
+            return row.getValue(QueryImpl.JCR_PATH).getValue(Type.STRING);
         }
         StringBuilder buff = new StringBuilder();
         PropertyValue[] values = row.getValues();
@@ -424,7 +424,7 @@ public abstract class AbstractQueryTest {
                         values.add(Conversions.convert(value).toDouble());
                     } else if (type == PropertyType.DECIMAL) {
                         values.add(Conversions.convert(value).toDecimal());
-                    } else if(type == PropertyType.DATE) {
+                    } else if (type == PropertyType.DATE) {
                         values.add(Conversions.convert(value).toCalendar().getTimeInMillis());
                     } else {
                         values.add(value);

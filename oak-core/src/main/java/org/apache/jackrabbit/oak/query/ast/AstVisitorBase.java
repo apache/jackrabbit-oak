@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 
 /**
  * The base class to visit all elements.
@@ -128,7 +128,7 @@ public abstract class AstVisitorBase implements AstVisitor {
      *
      * @param query the query to visit
      */
-    public void visit(Query query) {
+    public void visit(QueryImpl query) {
         query.getSource().accept(this);
         ConstraintImpl constraint = query.getConstraint();
         if (constraint != null) {

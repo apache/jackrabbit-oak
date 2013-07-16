@@ -299,14 +299,14 @@ public class XPathToSQL2Converter {
         
         // select ...
         buff.append("select ");
-        buff.append(new Property(currentSelector, Query.JCR_PATH).toString());
+        buff.append(new Property(currentSelector, QueryImpl.JCR_PATH).toString());
         if (selectors.size() > 1) {
-            buff.append(" as ").append('[').append(Query.JCR_PATH).append(']');
+            buff.append(" as ").append('[').append(QueryImpl.JCR_PATH).append(']');
         }
         buff.append(", ");
-        buff.append(new Property(currentSelector, Query.JCR_SCORE).toString());
+        buff.append(new Property(currentSelector, QueryImpl.JCR_SCORE).toString());
         if (selectors.size() > 1) {
-            buff.append(" as ").append('[').append(Query.JCR_SCORE).append(']');
+            buff.append(" as ").append('[').append(QueryImpl.JCR_SCORE).append(']');
         }
         if (columnList.isEmpty()) {
             buff.append(", ");
