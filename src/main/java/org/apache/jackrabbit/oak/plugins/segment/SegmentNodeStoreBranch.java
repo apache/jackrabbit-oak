@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.ROOT;
 
 import java.util.Random;
@@ -43,6 +46,8 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
 
     private SegmentNodeState head;
 
+    private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
+
     SegmentNodeStoreBranch(
             SegmentNodeStore store, SegmentWriter writer,
             SegmentNodeState base) {
@@ -50,6 +55,10 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         this.writer = writer;
         this.base = base;
         this.head = base;
+    }
+
+    void setMaximumBackoff(long max) {
+        this.maximumBackoff = max;
     }
 
     @Override @Nonnull
@@ -84,8 +93,55 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         }
     }
 
-    private synchronized NodeState pessimisticMerge(
-            CommitHook hook, long timeout) throws CommitFailedException {
+    private synchronized long optimisticMerge(CommitHook hook)
+            throws CommitFailedException, InterruptedException {
+        long timeout = 1;
+
+        SegmentNodeState originalBase = base;
+        SegmentNodeState originalHead = head;
+
+        // use exponential backoff in case of concurrent commits
+        for (long backoff = 1; backoff < maximumBackoff; backoff *= 2) {
+            long start = System.nanoTime();
+
+            // apply commit hooks on the rebased changes
+            NodeBuilder builder = head.builder();
+            builder.setChildNode(ROOT, hook.processCommit(
+                    base.getChildNode(ROOT), head.getChildNode(ROOT)));
+            SegmentNodeState newHead = writer.writeNode(builder.getNodeState());
+            writer.flush();
+
+            // use optimistic locking to update the journal
+            if (base.hasProperty("token")
+                    && base.getLong("timeout") >= System.currentTimeMillis()) {
+                // someone else has a pessimistic lock on the journal,
+                // so we should not try to commit anything
+            } else if (store.setHead(base, newHead)) {
+                base = newHead;
+                head = newHead;
+                return -1;
+            }
+
+            // someone else was faster, so restore state and retry later
+            base = originalBase;
+            head = originalHead;
+
+            Thread.sleep(backoff, RANDOM.nextInt(1000000));
+
+            // rebase to latest head before trying again
+            rebase();
+
+            long stop = System.nanoTime();
+            if (stop - start > timeout) {
+                timeout = stop - start;
+            }
+        }
+
+        return MILLISECONDS.convert(timeout, NANOSECONDS);
+    }
+
+    private synchronized void pessimisticMerge(CommitHook hook, long timeout)
+            throws CommitFailedException {
         while (true) {
             SegmentNodeState before = store.getHead();
             long now = System.currentTimeMillis();
@@ -120,7 +176,7 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                     if (store.setHead(after, newHead)) {
                         base = newHead;
                         head = newHead;
-                        return getHead();
+                        return;
                     } else {
                         // something else happened, perhaps a timeout, so
                         // undo the previous rebase and try again
@@ -135,46 +191,15 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
     @Override @Nonnull
     public synchronized NodeState merge(CommitHook hook)
             throws CommitFailedException {
-        int backoff = 1;
-        SegmentNodeState originalBase = base;
-        SegmentNodeState originalHead = head;
-        while (base != head) {
-            // apply commit hooks on the rebased changes
-            NodeBuilder builder = head.builder();
-            builder.removeProperty("token");
-            builder.removeProperty("timeout");
-            builder.setChildNode(ROOT, hook.processCommit(
-                    base.getChildNode(ROOT), head.getChildNode(ROOT)));
-            SegmentNodeState newHead = writer.writeNode(builder.getNodeState());
-            writer.flush();
-
-            // use optimistic locking to update the journal
-            if (store.setHead(base, newHead)) {
-                base = newHead;
-                head = newHead;
-            } else {
-                // someone else was faster, so restore state and retry later
-                base = originalBase;
-                head = originalHead;
-
-                // use exponential backoff to reduce contention
-                if (backoff < 10000) {
-                    try {
-                        Thread.sleep(backoff, RANDOM.nextInt(1000000));
-                        backoff *= 2;
-                    } catch (InterruptedException e) {
-                        // TODO: correct interrupt handling?
-                        throw new CommitFailedException(
-                                "Segment", 1, "Commit was interrupted", e);
-                    }
-                } else {
-                    throw new CommitFailedException(
-                            "Segment", 2,
-                            "System overloaded, try again later");
+        if (base != head) {
+            try {
+                long timeout = optimisticMerge(hook);
+                if (timeout >= 0) {
+                    pessimisticMerge(hook, timeout);
                 }
-
-                // rebase to latest head before trying again
-                rebase();
+            } catch (InterruptedException e) {
+                throw new CommitFailedException(
+                        "Segment", 1, "Commit interrupted", e);
             }
         }
         return getHead();
