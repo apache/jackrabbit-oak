@@ -340,6 +340,7 @@
       org.apache.jackrabbit.core.observation.MixinTest#testDerivedMixin                              <!-- OAK-900 -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShare                         <!-- OAK-900 -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testRemoveShare                      <!-- OAK-900 -->
+      org.apache.jackrabbit.oak.jcr.nodetype.NodeDefinitionTest#testRootType                         <!-- OAK-901 -->
     </known.issues>
   </properties>
 

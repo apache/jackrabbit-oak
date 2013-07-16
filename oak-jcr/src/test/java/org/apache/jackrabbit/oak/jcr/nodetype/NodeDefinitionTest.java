@@ -30,6 +30,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class NodeDefinitionTest extends AbstractJCRTest {
@@ -98,5 +99,12 @@ public class NodeDefinitionTest extends AbstractJCRTest {
             pDefs.addAll(Arrays.asList(pd));
         }
         return pDefs.toArray(new PropertyDefinition[pDefs.size()]);
+    }
+
+    @Test
+    @Ignore("OAK-901")
+    public void testRootType() throws RepositoryException {
+        assertEquals(testNodeTypeTestRoot, testRootNode.getDefinition()
+                .getDeclaringNodeType().getName());
     }
 }
