@@ -31,7 +31,7 @@ public class XmlImportTest extends AbstractTest {
         InputStream in = getClass().getClassLoader().getResourceAsStream("deepTree.xml");
         adminSession.importXML(testRoot.getPath(), in, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
         adminSession.save();
-}
+    }
 
     @Override
     protected void beforeTest() throws Exception {
