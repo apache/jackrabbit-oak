@@ -1339,15 +1339,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
             session1.save();
 
-            // Make sure they are still not accessible through another session
-            assertFalse(session2.itemExists("/node1"));
-            assertFalse(session2.itemExists("/node1/node2"));
-            assertFalse(session2.itemExists("/node1/node3"));
-            assertFalse(session2.itemExists("/node1/node3/property1"));
-
-            session2.refresh(false);
-
-            // Make sure they are accessible through another session after refresh
+            // Make sure these items are still accessible through another session
             assertTrue(session2.itemExists("/node1"));
             assertTrue(session2.itemExists("/node1/node2"));
             assertTrue(session2.itemExists("/node1/node3"));
@@ -1450,8 +1442,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session1.save();
             session2.save();
             assertTrue(session1.getRootNode().hasNode("node1"));
-            assertFalse(session1.getRootNode().hasNode("node2")); // was not visible during save
-            assertTrue(session2.getRootNode().hasNode("node1")); // save refreshes
+            assertTrue(session1.getRootNode().hasNode("node2"));
+            assertTrue(session2.getRootNode().hasNode("node1"));
             assertTrue(session2.getRootNode().hasNode("node2"));
         } finally {
             session1.logout();
@@ -1504,7 +1496,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
             session1.save();
             assertFalse(session1.getRootNode().hasNode("node"));
-            assertTrue(session2.getRootNode().hasNode("node"));
+            assertFalse(session2.getRootNode().hasNode("node"));
 
             try {
                 session2.save();

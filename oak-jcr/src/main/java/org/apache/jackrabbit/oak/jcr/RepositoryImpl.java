@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.security.Principal;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,12 +131,25 @@ public class RepositoryImpl implements Repository {
         try {
             ContentSession contentSession =
                     contentRepository.login(credentials, workspaceName);
+
+            // For better backwards compatibility admin sessions should always
+            // be on the latest revision: set refresh interval to 0. See OAK-803.
             SessionContext context = new SessionContext(
-                    this, whiteboard, new SessionDelegate(contentSession, AUTO_REFRESH_INTERVAL));
+                    this, whiteboard, new SessionDelegate(
+                            contentSession, isAdmin(contentSession) ? 0 : AUTO_REFRESH_INTERVAL));
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
         }
+    }
+
+    private static boolean isAdmin(ContentSession contentSession) {
+        for (Principal p : contentSession.getAuthInfo().getPrincipals()) {
+            if (p instanceof AdminPrincipal) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
