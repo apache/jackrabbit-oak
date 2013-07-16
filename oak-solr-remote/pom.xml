@@ -106,6 +106,10 @@
           <artifactId>jmxtools</artifactId>
         </exclusion>
         <exclusion>
+          <groupId>javax.jms</groupId>
+          <artifactId>jms</artifactId>
+        </exclusion>
+        <exclusion>
           <groupId>com.sun.jmx</groupId>
           <artifactId>jmxri</artifactId>
         </exclusion>
