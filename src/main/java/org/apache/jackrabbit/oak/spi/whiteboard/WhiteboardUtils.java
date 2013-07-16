@@ -42,8 +42,8 @@ public class WhiteboardUtils {
             Class<T> iface, T bean, String type, String name) {
         try {
             Hashtable<String, String> table = new Hashtable<String, String>();
-            table.put("type", type);
-            table.put("name", name);
+            table.put("type", ObjectName.quote(type));
+            table.put("name", ObjectName.quote(name));
             table.put("id", String.valueOf(COUNTER.incrementAndGet()));
             return whiteboard.register(iface, bean, ImmutableMap.of(
                     "jmx.objectname",
