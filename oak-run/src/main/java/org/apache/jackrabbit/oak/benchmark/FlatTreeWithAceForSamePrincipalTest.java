@@ -27,12 +27,10 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.h2.util.Profiler;
 
 public class FlatTreeWithAceForSamePrincipalTest extends AbstractTest {
 
 	private Session reader;
-    Profiler profiler = new Profiler();
 
 	@Override
 	protected void beforeSuite() throws Exception {
@@ -60,8 +58,6 @@ public class FlatTreeWithAceForSamePrincipalTest extends AbstractTest {
 		writer.save();
 		reader = login(new SimpleCredentials(userId, userId.toCharArray()));
 
-		profiler.startCollecting();
-		
 		long end = System.currentTimeMillis();
 		System.out.println("time "+(end - start));
 	}
