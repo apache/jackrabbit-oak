@@ -13,7 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -78,7 +78,7 @@ public class JoinImpl extends SourceImpl {
     }
 
     @Override
-    public void init(Query query) {
+    public void init(QueryImpl query) {
         switch (joinType) {
         case INNER:
             left.addJoinCondition(joinCondition, false);

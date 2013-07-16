@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -89,7 +89,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         // the jcr:path pseudo-property doesn't support LIKE conditions,
         // because the path doesn't might be escaped, and possibly contain
         // expressions that would result in incorrect results (/test[1] for example)
-        return !propertyName.equals(Query.JCR_PATH);
+        return !propertyName.equals(QueryImpl.JCR_PATH);
     }
     
     @Override

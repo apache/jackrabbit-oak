@@ -29,9 +29,9 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
  */
 public class ResultImpl implements Result {
 
-    protected final Query query;
+    protected final AbstractQuery query;
 
-    ResultImpl(Query query) {
+    ResultImpl(AbstractQuery query) {
         this.query = query;
     }
 

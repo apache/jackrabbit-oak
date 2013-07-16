@@ -29,12 +29,12 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
  */
 public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
 
-    private final Query query;
+    private final QueryImpl query;
     private final String[] paths;
     private final PropertyValue[] values;
     private final PropertyValue[] orderValues;
 
-    ResultRowImpl(Query query, String[] paths, PropertyValue[] values, PropertyValue[] orderValues) {
+    ResultRowImpl(QueryImpl query, String[] paths, PropertyValue[] values, PropertyValue[] orderValues) {
         this.query = query;
         this.paths = paths;
         this.values = values;
@@ -69,7 +69,7 @@ public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
         if (JcrConstants.JCR_PATH.equals(columnName)) {
             return PropertyValues.newString(getPath());
         }
-        if (columnName.startsWith(Query.REP_EXCERPT)) {
+        if (columnName.startsWith(QueryImpl.REP_EXCERPT)) {
             String ex = new SimpleExcerptProvider().getExcerpt(getPath(),
                     columnName, query, true);
             // missing excerpt, generate a default value

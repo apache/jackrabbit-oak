@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
@@ -312,23 +312,23 @@ public class SelectorImpl extends SourceImpl {
         if (t == null || !t.exists()) {
             return null;
         }
-        if (propertyName.equals(Query.JCR_PATH)) {
+        if (propertyName.equals(QueryImpl.JCR_PATH)) {
             String local = getLocalPath(path);
             if (local == null) {
                 // not a local path
                 return null;
             }
             return PropertyValues.newString(local);
-        } else if (propertyName.equals(Query.JCR_SCORE)) {
-            return currentRow.getValue(Query.JCR_SCORE);
-        } else if (propertyName.equals(Query.REP_EXCERPT)) {
-            return currentRow.getValue(Query.REP_EXCERPT);
+        } else if (propertyName.equals(QueryImpl.JCR_SCORE)) {
+            return currentRow.getValue(QueryImpl.JCR_SCORE);
+        } else if (propertyName.equals(QueryImpl.REP_EXCERPT)) {
+            return currentRow.getValue(QueryImpl.REP_EXCERPT);
         }
         return PropertyValues.create(t.getProperty(propertyName));
     }
 
     @Override
-    public void init(Query query) {
+    public void init(QueryImpl query) {
         // nothing to do
     }
 

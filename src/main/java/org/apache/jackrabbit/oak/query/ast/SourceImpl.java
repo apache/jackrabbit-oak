@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.ArrayList;
 
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -108,7 +108,7 @@ public abstract class SourceImpl extends AstElement {
      *
      * @param query the query
      */
-    public abstract void init(Query query);
+    public abstract void init(QueryImpl query);
 
     /**
      * Get the selector with the given name, or null if not found.

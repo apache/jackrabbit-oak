@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
@@ -36,7 +36,7 @@ public class SimpleExcerptProvider {
 
     private static int maxFragmentSize = 150;
 
-    public String getExcerpt(String path, String columnName, Query query,
+    public String getExcerpt(String path, String columnName, QueryImpl query,
             boolean highlight) {
         if (path == null) {
             return null;
