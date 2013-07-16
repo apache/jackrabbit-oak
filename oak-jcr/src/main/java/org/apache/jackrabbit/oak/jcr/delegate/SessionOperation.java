@@ -43,6 +43,14 @@ public abstract class SessionOperation<T> {
         return update;
     }
 
+    /**
+     * Return {@code true} if this operation refreshed the transient space
+     * @return
+     */
+    public boolean isRefresh() {
+        return false;
+    }
+
     protected void checkPreconditions() throws RepositoryException {}
     protected abstract T perform() throws RepositoryException;
 

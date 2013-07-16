@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
@@ -45,6 +47,9 @@ public class RepositoryImpl implements Repository {
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
+
+    // TODO implement auto refresh configuration. See OAK-803, OAK-88
+    private static final long AUTO_REFRESH_INTERVAL = TimeUnit.SECONDS.toMillis(1);
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
@@ -125,7 +130,7 @@ public class RepositoryImpl implements Repository {
             ContentSession contentSession =
                     contentRepository.login(credentials, workspaceName);
             SessionContext context = new SessionContext(
-                    this, whiteboard, new SessionDelegate(contentSession));
+                    this, whiteboard, new SessionDelegate(contentSession, AUTO_REFRESH_INTERVAL));
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
