@@ -17,9 +17,10 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -51,16 +52,13 @@ import org.slf4j.LoggerFactory;
  * TODO document
  */
 public class SessionDelegate {
-
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
-    // TODO implement auto refresh configuration. See OAK-803, OAK-88
-    private static final long AUTO_REFRESH_INTERVAL =
-            TimeUnit.SECONDS.toMillis(1);
-
     private final ContentSession contentSession;
+    private final long refreshInterval;
     private final Root root;
     private final IdentifierManager idManager;
+    private final Exception initStackTrace;
 
     private boolean isAlive = true;
     private int sessionOpCount;
@@ -68,10 +66,19 @@ public class SessionDelegate {
 
     private long lastAccessed = System.currentTimeMillis();
 
-    public SessionDelegate(@Nonnull ContentSession contentSession) {
+    /**
+     * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
+     * session is governed by the value of the {@code refreshInterval} argument: if the session
+     * has been idle longer than that value, an implicit refresh will take place.
+     * @param contentSession  the content session
+     * @param refreshInterval  refresh interval in seconds or {@code -1} for never.
+     */
+    public SessionDelegate(@Nonnull ContentSession contentSession, long refreshInterval) {
         this.contentSession = checkNotNull(contentSession);
+        this.refreshInterval = refreshInterval;
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
+        this.initStackTrace = new Exception("The session was created here:");
     }
 
     public synchronized void refreshAtNextAccess() {
@@ -95,12 +102,24 @@ public class SessionDelegate {
         if (sessionOpCount == 0) {
             // Refresh and checks only for non re-entrant session operations
             long now = System.currentTimeMillis();
-            if (now > lastAccessed + AUTO_REFRESH_INTERVAL) {
-                refresh(true);
-                updateCount++;
+            long timeElapsed = now - lastAccessed;
+            if (!sessionOperation.isRefresh()) {
+                // Don't refresh if this operation is a refresh operation itself
+                if (refreshInterval > 0 && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
+                    // Warn if the refresh interval is neither zero nor never (-1) and this
+                    // session has been idle too long
+                    log.warn("This session has been idle for " + MINUTES.convert(timeElapsed, MILLISECONDS) +
+                            " minutes and might be out of date. Consider using a fresh session or explicitly" +
+                            " refresh the session.", initStackTrace);
+                }
+                if (refreshInterval != -1 && timeElapsed >= refreshInterval) {
+                    // Refresh if the refresh interval is not never (-1) and the session
+                    // has been idle too long
+                    refresh(true);
+                    updateCount++;
+                }
             }
             lastAccessed = now;
-
             sessionOperation.checkPreconditions();
         }
         try {

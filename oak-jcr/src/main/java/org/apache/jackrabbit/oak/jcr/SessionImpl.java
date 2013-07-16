@@ -395,6 +395,11 @@ public class SessionImpl implements JackrabbitSession {
                 sessionContext.refresh();
                 return null;
             }
+
+            @Override
+            public boolean isRefresh() {
+                return true;
+            }
         });
     }
 
