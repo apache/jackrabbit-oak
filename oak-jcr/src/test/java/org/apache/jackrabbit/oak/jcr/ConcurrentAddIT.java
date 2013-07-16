@@ -18,20 +18,20 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.commons.iterator.NodeIterable;
 import org.junit.Test;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
+import static org.apache.jackrabbit.commons.JcrUtils.in;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 /**
  * <code>ConcurrentAddIT</code> adds nodes with multiple sessions in separate
@@ -47,10 +47,8 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    @Test
+    @Test @SuppressWarnings("unchecked")
     public void addNodes() throws Exception {
-        // OAK-786
-        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);
         List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
         Node test = getAdminSession().getRootNode().addNode("test");
@@ -71,8 +69,8 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
             fail(e.toString());
         }
         getAdminSession().refresh(false);
-        for (Node n : new NodeIterable(test.getNodes())) {
-            assertEquals(NODES_PER_WORKER, Iterables.size(new NodeIterable(n.getNodes())));
+        for (Node n : in((Iterator<Node>) test.getNodes())) {
+            assertEquals(NODES_PER_WORKER, Iterators.size(n.getNodes()));
         }
     }
 
