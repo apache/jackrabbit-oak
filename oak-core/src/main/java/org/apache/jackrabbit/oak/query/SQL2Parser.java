@@ -112,7 +112,7 @@ public class SQL2Parser {
      * @return the query
      * @throws ParseException if parsing fails
      */
-    public Query parse(String query) throws ParseException {
+    public AbstractQuery parse(String query) throws ParseException {
         // TODO possibly support union,... as available at
         // http://docs.jboss.org/modeshape/latest/manuals/reference/html/jcr-query-and-search.html
 
@@ -130,8 +130,8 @@ public class SQL2Parser {
         read("SELECT");
         ArrayList<ColumnOrWildcard> list = parseColumns();
         if (supportSQL1) {
-            addColumnIfNecessary(list, Query.JCR_PATH, Query.JCR_PATH);
-            addColumnIfNecessary(list, Query.JCR_SCORE, Query.JCR_SCORE);
+            addColumnIfNecessary(list, QueryImpl.JCR_PATH, QueryImpl.JCR_PATH);
+            addColumnIfNecessary(list, QueryImpl.JCR_SCORE, QueryImpl.JCR_SCORE);
         }
         read("FROM");
         SourceImpl source = parseSource();
@@ -150,7 +150,7 @@ public class SQL2Parser {
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
-        Query q = new Query(statement, source, constraint, orderings, columnArray);
+        QueryImpl q = new QueryImpl(statement, source, constraint, orderings, columnArray);
         q.setExplain(explain);
         q.setMeasure(measure);
         try {

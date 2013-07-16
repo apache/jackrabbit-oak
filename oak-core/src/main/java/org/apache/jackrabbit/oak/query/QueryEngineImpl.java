@@ -102,11 +102,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
      */
     @Override
     public List<String> getBindVariableNames(String statement, String language) throws ParseException {
-        Query q = parseQuery(statement, language);
+        AbstractQuery q = parseQuery(statement, language);
         return q.getBindVariableNames();
     }
 
-    private Query parseQuery(String statement, String language) throws ParseException {
+    private AbstractQuery parseQuery(String statement, String language) throws ParseException {
         LOG.debug("Parsing {} statement: {}", language, statement);
         NodeState root = getRootState();
         NodeState system = root.getChildNode(JCR_SYSTEM);
@@ -146,7 +146,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         if (offset < 0) {
             throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
         }
-        Query q = parseQuery(statement, language);
+        AbstractQuery q = parseQuery(statement, language);
         q.setRootTree(getRootTree());
         q.setRootState(getRootState());
         q.setNamePathMapper(namePathMapper);
@@ -166,7 +166,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         this.traversalFallback = traversal;
     }
 
-    public QueryIndex getBestIndex(Query query, NodeState rootState, Filter filter) {
+    public QueryIndex getBestIndex(QueryImpl query, NodeState rootState, Filter filter) {
         QueryIndex best = null;
         if (LOG.isDebugEnabled()) {
             LOG.debug("cost using filter " + filter);

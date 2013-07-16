@@ -27,6 +27,9 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+/**
+ * Tests the SQL-2 parser.
+ */
 public class SQL2ParserTest {
 
     private final NodeState types = new InitialContent().initialize(EMPTY_NODE)
