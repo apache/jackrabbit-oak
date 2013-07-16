@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -228,14 +229,8 @@ abstract class AbstractTest extends Benchmark {
      *
      * @return reader session
      */
-    protected Session loginReader() {
-        try {
-            Session session = repository.login();
-            sessions.add(session);
-            return session;
-        } catch (RepositoryException e) {
-            throw new RuntimeException(e);
-        }
+    protected Session loginAnonymous() {
+        return login(new GuestCredentials());
     }
     
     /**

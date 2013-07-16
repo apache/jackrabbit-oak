@@ -63,7 +63,7 @@ public class FlatTreeWithAceForSamePrincipalTest extends AbstractTest {
 		reader = login(new SimpleCredentials(TEST_USER_ID, TEST_USER_ID.toCharArray()));
 
 		long end = System.currentTimeMillis();
-		System.out.println("time "+(end - start));
+		System.out.println("setup time "+(end - start));
 	}
 
 	@Override
