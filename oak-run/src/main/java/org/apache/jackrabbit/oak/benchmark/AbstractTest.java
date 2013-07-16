@@ -34,10 +34,11 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
  */
 abstract class AbstractTest extends Benchmark {
 
+    private static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+
     private static final int WARMUP = Integer.getInteger("warmup", 5);
 
-    private static final long RUNTIME =
-            TimeUnit.SECONDS.toMillis(Long.getLong("runtime", 60));
+    private static final long RUNTIME = TimeUnit.SECONDS.toMillis(Long.getLong("runtime", 60));
 
     private Repository repository;
 
@@ -106,9 +107,6 @@ abstract class AbstractTest extends Benchmark {
             }
         }
     }
-
-    private static final Credentials CREDENTIALS =
-            new SimpleCredentials("admin", "admin".toCharArray());
 
     private DescriptiveStatistics runTest(Repository repository) throws Exception {
         DescriptiveStatistics statistics = new DescriptiveStatistics();
