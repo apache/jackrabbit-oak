@@ -334,6 +334,12 @@
       org.apache.jackrabbit.core.query.SelectClauseTest#testSameNameSiblingSQL                       <!-- OAK-203 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
+      org.apache.jackrabbit.core.observation.MixinTest#testSingleMixin                               <!-- OAK-900 -->
+      org.apache.jackrabbit.core.observation.MixinTest#testMultipleMixin                             <!-- OAK-900 -->
+      org.apache.jackrabbit.core.observation.MixinTest#testMultipleMixinOnNode                       <!-- OAK-900 -->
+      org.apache.jackrabbit.core.observation.MixinTest#testDerivedMixin                              <!-- OAK-900 -->
+      org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShare                         <!-- OAK-900 -->
+      org.apache.jackrabbit.core.observation.ShareableNodesTest#testRemoveShare                      <!-- OAK-900 -->
     </known.issues>
   </properties>
 
