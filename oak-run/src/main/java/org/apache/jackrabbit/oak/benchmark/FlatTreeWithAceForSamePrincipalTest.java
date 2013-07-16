@@ -30,24 +30,28 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 public class FlatTreeWithAceForSamePrincipalTest extends AbstractTest {
 
+    private static final String TEST_USER_ID = "test";
+
+    private UserManager userManager;
+
+    private Session admin;
 	private Session reader;
 
 	@Override
 	protected void beforeSuite() throws Exception {
 
 		long start = System.currentTimeMillis();
-		Session writer = loginWriter();
 
-		UserManager userManager = ((JackrabbitSession) writer).getUserManager();
-        String userId = "test";
-		Principal userPrincipal = userManager.createUser(userId, userId).getPrincipal();
+		admin = loginWriter();
+		userManager = ((JackrabbitSession) admin).getUserManager();
+		Principal userPrincipal = userManager.createUser(TEST_USER_ID, TEST_USER_ID).getPrincipal();
 
-		AccessControlManager acm = writer.getAccessControlManager();
+		AccessControlManager acm = admin.getAccessControlManager();
 		JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, "/");
 		acl.addEntry(userPrincipal, AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_READ), true);
 		acm.setPolicy("/", acl);
 
-		Node a = writer.getRootNode().addNode("a");
+		Node a = admin.getRootNode().addNode("a");
 		for (int i = 1; i < 10000; i++) {
 			a.addNode("node" + i);
 			acl = AccessControlUtils.getAccessControlList(acm, "/a/node"+i);
@@ -55,8 +59,8 @@ public class FlatTreeWithAceForSamePrincipalTest extends AbstractTest {
 			acm.setPolicy("/a/node"+i, acl);
 		}
 
-		writer.save();
-		reader = login(new SimpleCredentials(userId, userId.toCharArray()));
+		admin.save();
+		reader = login(new SimpleCredentials(TEST_USER_ID, TEST_USER_ID.toCharArray()));
 
 		long end = System.currentTimeMillis();
 		System.out.println("time "+(end - start));
@@ -75,7 +79,13 @@ public class FlatTreeWithAceForSamePrincipalTest extends AbstractTest {
 	}
 
 	protected void afterSuite() throws Exception {
-		 
+        Node root = admin.getRootNode();
+        if (root.hasNode("a")) {
+            root.getNode("a").remove();
+        }
+		if (userManager != null) {
+            userManager.getAuthorizable(TEST_USER_ID).remove();
+        }
+        admin.save();
 	}
-
 }
