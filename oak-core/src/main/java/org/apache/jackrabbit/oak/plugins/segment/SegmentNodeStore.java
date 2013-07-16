@@ -76,7 +76,7 @@ public class SegmentNodeStore extends AbstractNodeStore {
     }
 
     @Override @Nonnull
-    public NodeStoreBranch branch() {
+    public SegmentNodeStoreBranch branch() {
         return new SegmentNodeStoreBranch(
                 this, new SegmentWriter(store), getHead());
     }
