@@ -49,6 +49,7 @@ import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
 import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -129,22 +130,17 @@ public class SessionImpl implements JackrabbitSession {
         return sessionContext.getOakPathOrThrowNotFound(absPath);
     }
 
-    private PropertyImpl createPropertyOrNull(PropertyDelegate pd) {
-        return pd == null ? null : new PropertyImpl(pd, sessionContext);
-    }
-
     @CheckForNull
     private ItemImpl<?> getItemInternal(@Nonnull String oakPath)
             throws RepositoryException {
-        NodeDelegate nd = sd.getNode(oakPath);
-        if (nd != null) {
-            return sessionContext.createNodeOrNull(nd);
+        ItemDelegate item = sd.getItem(oakPath);
+        if (item instanceof NodeDelegate) {
+            return sessionContext.createNodeOrNull((NodeDelegate) item);
+        } else if (item instanceof PropertyDelegate) {
+            return new PropertyImpl((PropertyDelegate) item, sessionContext);
+        } else {
+            return null;
         }
-        PropertyDelegate pd = sd.getProperty(oakPath);
-        if (pd != null) {
-            return createPropertyOrNull(pd);
-        }
-        return null;
     }
 
     /**
@@ -178,10 +174,16 @@ public class SessionImpl implements JackrabbitSession {
         if (absPath.equals("/")) {
             return null;
         } else {
+            final String oakPath = getOakPathOrThrow(absPath);
             return perform(new ReadOperation<Property>() {
                 @Override
                 public Property perform() throws RepositoryException {
-                    return createPropertyOrNull(sd.getProperty(getOakPathOrThrow(absPath)));
+                    PropertyDelegate pd = sd.getProperty(oakPath);
+                    if (pd != null) {
+                        return new PropertyImpl(pd, sessionContext);
+                    } else {
+                        return null;
+                    }
                 }
             });
         }

@@ -208,6 +208,31 @@ public class SessionDelegate {
         return NodeDelegate.create(this, root.getTree(path));
     }
 
+    /**
+     * Returns the node or property delegate at the given path.
+     *
+     * @param path Oak path
+     * @return node or property delegate, or {@code null} if none exists
+     */
+    @CheckForNull
+    public ItemDelegate getItem(String path) {
+        String name = PathUtils.getName(path);
+        if (name.isEmpty()) {
+            return getRootNode();
+        } else {
+            Tree parent = root.getTree(PathUtils.getParentPath(path));
+            if (parent.hasProperty(name)) {
+                return PropertyDelegate.create(this, parent, name);
+            }
+            Tree child = parent.getChild(name);
+            if (child.exists()) {
+                return NodeDelegate.create(this, child);
+            } else {
+                return null;
+            }
+        }
+    }
+
     @CheckForNull
     public NodeDelegate getNodeByIdentifier(String id) {
         Tree tree = idManager.getTree(id);
