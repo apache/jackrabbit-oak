@@ -21,10 +21,8 @@ package org.apache.jackrabbit.oak.benchmark;
  */
 public class ReadDeepTreeTest extends AbstractDeepTreeTest {
 
-    private int cnt = 1000;
-
-    public ReadDeepTreeTest(boolean runAsAdmin) {
-        super(runAsAdmin);
+    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead) {
+        super(runAsAdmin, itemsToRead, 0);
     }
     @Override
     protected void beforeSuite() throws Exception {
@@ -33,6 +31,6 @@ public class ReadDeepTreeTest extends AbstractDeepTreeTest {
 
     @Override
     protected void runTest() throws Exception {
-        randomRead(getTestSession(), allPaths, cnt, true);
+        randomRead(getTestSession(), allPaths, itemsToRead, true);
     }
 }
