@@ -145,21 +145,21 @@ public class SegmentNodeState extends AbstractNodeState {
         }
     }
 
+    @Override
     public boolean equals(Object object) {
         if (this == object) {
             return true;
-        } else if (object instanceof NodeState) {
-            if (object instanceof SegmentNodeState) {
-                SegmentNodeState that = (SegmentNodeState) object;
-                if (recordId.equals(that.recordId)) {
-                    return true;
-                } else if (!getTemplate().equals(that.getTemplate())) {
-                    return false;
-                }
+        } else if (object instanceof SegmentNodeState) {
+            SegmentNodeState that = (SegmentNodeState) object;
+            if (recordId.equals(that.recordId)) {
+                return true;
+            } else {
+                Template template = getTemplate();
+                return template.equals(that.getTemplate())
+                        && template.compare(store, recordId, that.recordId);
             }
-            return super.equals(object);
         } else {
-            return false;
+            return super.equals(object);
         }
     }
 

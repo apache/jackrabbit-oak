@@ -346,6 +346,54 @@ public class Template {
         }
     }
 
+    public boolean compare(
+            SegmentStore store, RecordId thisId, RecordId thatId) {
+        checkNotNull(thisId);
+        checkNotNull(thatId);
+
+        // Compare properties
+        for (int i = 0; i < properties.length; i++) {
+            PropertyState thisProperty = getProperty(store, thisId, i);
+            PropertyState thatProperty = getProperty(store, thatId, i);
+            if (!thisProperty.equals(thatProperty)) {
+                return false;
+            }
+        }
+
+        // Compare child nodes
+        if (hasNoChildNodes()) {
+            return true;
+        } else if (hasOneChildNode()) {
+            NodeState thisChild = getChildNode(childName, store, thisId);
+            NodeState thatChild = getChildNode(childName, store, thatId);
+            return thisChild.equals(thatChild);
+        } else {
+            // TODO: Leverage the HAMT data structure for the comparison
+            MapRecord thisMap = getChildNodeMap(store, thisId);
+            MapRecord thatMap = getChildNodeMap(store, thatId);
+            if (thisMap.getRecordId().equals(thatMap.getRecordId())) {
+                return true; // shortcut
+            } else if (thisMap.size() != thatMap.size()) {
+                return false; // shortcut
+            } else {
+                // TODO: can this be optimized?
+                for (MapEntry entry : thisMap.getEntries()) {
+                    String name = entry.getName();
+                    RecordId thisChild = entry.getValue();
+                    RecordId thatChild = thatMap.getEntry(name);
+                    if (thatChild == null) {
+                        return false;
+                    } else if (!thisChild.equals(thatChild)
+                            && !new SegmentNodeState(store, thisChild).equals(
+                                    new SegmentNodeState(store, thatChild))) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+    }
+
     public boolean compareAgainstBaseState(
             SegmentStore store, RecordId afterId,
             Template beforeTemplate, RecordId beforeId,
