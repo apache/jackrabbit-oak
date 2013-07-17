@@ -687,8 +687,23 @@ public class SegmentWriter {
             ids.add(writeNode(state.getChildNode(template.getChildName())).getRecordId());
         }
 
-        for (PropertyTemplate property : template.getPropertyTemplates()) {
-            ids.add(writeProperty(state.getProperty(property.getName())));
+        for (PropertyTemplate pt : template.getPropertyTemplates()) {
+            RecordId propertyId = null;
+            String name = pt.getName();
+            PropertyState property = state.getProperty(name);
+            if (before != null) {
+                // reuse previously stored property record, if possible
+                PropertyState beforeProperty = before.getProperty(name);
+                if (beforeProperty instanceof SegmentPropertyState
+                        && property.equals(beforeProperty)) {
+                    propertyId = ((SegmentPropertyState) beforeProperty)
+                            .getRecordId();
+                }
+            }
+            if (propertyId == null) {
+                propertyId = writeProperty(property);
+            }
+            ids.add(propertyId);
         }
 
         RecordId recordId = prepare(0, ids);
