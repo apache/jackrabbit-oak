@@ -33,8 +33,7 @@ import com.google.common.collect.Sets;
  */
 public class OrImpl extends ConstraintImpl {
 
-    private final ConstraintImpl constraint1;
-    private final ConstraintImpl constraint2;
+    private ConstraintImpl constraint1, constraint2;
 
     public OrImpl(ConstraintImpl constraint1, ConstraintImpl constraint2) {
         this.constraint1 = constraint1;
@@ -51,6 +50,8 @@ public class OrImpl extends ConstraintImpl {
     
     @Override
     public ConstraintImpl simplify() {
+        constraint1 = constraint1.simplify();
+        constraint2 = constraint2.simplify();
         if (constraint1.equals(constraint2)) {
             return constraint1;
         }

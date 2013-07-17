@@ -32,7 +32,7 @@ import com.google.common.collect.Sets;
  */
 public class AndImpl extends ConstraintImpl {
 
-    private final ConstraintImpl constraint1, constraint2;
+    private ConstraintImpl constraint1, constraint2;
 
     public AndImpl(ConstraintImpl constraint1, ConstraintImpl constraint2) {
         this.constraint1 = constraint1;
@@ -49,6 +49,8 @@ public class AndImpl extends ConstraintImpl {
 
     @Override
     public ConstraintImpl simplify() {
+        constraint1 = constraint1.simplify();
+        constraint2 = constraint2.simplify();
         if (constraint1.equals(constraint2)) {
             return constraint1;
         }
