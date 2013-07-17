@@ -485,6 +485,36 @@ public class Template {
                     }
                 }
             }
+        } else if (beforeTemplate.hasNoChildNodes()) {
+            for (ChildNodeEntry entry : getChildNodeEntries(store, afterId)) {
+                if (!diff.childNodeAdded(
+                        entry.getName(), entry.getNodeState())) {
+                    return false;
+                }
+            }
+        } else if (beforeTemplate.hasOneChildNode()) {
+            String name = beforeTemplate.getChildName();
+            for (ChildNodeEntry entry : getChildNodeEntries(store, afterId)) {
+                String childName = entry.getName();
+                NodeState afterChild = entry.getNodeState();
+                if (name.equals(childName)) {
+                    NodeState beforeChild =
+                            beforeTemplate.getChildNode(name, store, beforeId);
+                    if (beforeChild.exists()) {
+                        if (!afterChild.equals(beforeChild)
+                                && !diff.childNodeChanged(
+                                        childName, beforeChild, afterChild)) {
+                            return false;
+                        }
+                    } else {
+                        if (!diff.childNodeAdded(childName, afterChild)) {
+                            return false;
+                        }
+                    }
+                } else if (!diff.childNodeAdded(childName, afterChild)) {
+                    return false;
+                }
+            }
         } else {
             // TODO: Leverage the HAMT data structure for the comparison
             Set<String> baseChildNodes = new HashSet<String>();
@@ -499,7 +529,7 @@ public class Template {
                     }
                 } else {
                     baseChildNodes.add(name);
-                    if (!beforeChild.equals(afterChild)) {
+                    if (!afterChild.equals(beforeChild)) {
                         if (!diff.childNodeChanged(name, beforeChild, afterChild)) {
                             return false;
                         }
