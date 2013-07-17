@@ -50,8 +50,8 @@ public class QueryFulltextTest extends AbstractQueryTest {
         Query q;
         
         q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
-        assertEquals("[nt:base] as [nt:base] /* +text:{* TO *} +(+:fulltext:hello +:fulltext:or +:fulltext:hallo) " + 
-                "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
+        assertEquals("[nt:base] as [nt:base] /* +:fulltext:hello +:fulltext:or +:fulltext:hallo " + 
+                "where contains([nt:base].[*], cast('hello OR hallo' as string)) */", 
                 getResult(q.execute(), "plan"));
         
         // verify the result

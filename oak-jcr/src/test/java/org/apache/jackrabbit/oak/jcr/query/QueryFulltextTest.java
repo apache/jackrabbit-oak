@@ -42,7 +42,7 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
     }
     
     @Test
-    public void fulltext() throws Exception {
+    public void fulltextOrWithinText() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
         Node testRootNode = session.getRootNode().addNode("testroot");
@@ -61,7 +61,7 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         
         q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
         assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " + 
-                "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
+                "where contains([nt:base].[*], cast('hello OR hallo' as string)) */", 
                 getResult(q.execute(), "plan"));
         
         // verify the result

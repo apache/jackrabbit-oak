@@ -64,11 +64,17 @@ public class FullTextSearchImpl extends ConstraintImpl {
             propertyName = propertyName.substring(slash + 1);
         }
 
+        // temporary workaround to support using an index for
+        // "contains(a/*, 'x') or contains(a/a, x') or contains(a/b, 'x')"
+        // TODO this behavior does not match the specification
+        propertyName = null;
+
         if (propertyName == null || "*".equals(propertyName)) {
             this.propertyName = null;
         } else {
             this.propertyName = propertyName;
         }
+        
         this.fullTextSearchExpression = fullTextSearchExpression;
     }
 
@@ -91,13 +97,10 @@ public class FullTextSearchImpl extends ConstraintImpl {
         if (propertyName == null) {
             propertyName = "*";
         }
+        
         if (relativePath != null) {
             propertyName = relativePath + "/" + propertyName;
         }
-        
-        // temporary workaround to support using an index for
-        // "contains(*, 'x') or contains(a, x') or contains(b, 'x')"
-        // propertyName = "*";
         
         builder.append(quote(propertyName));
         builder.append(", ");
