@@ -37,11 +37,8 @@ import org.apache.jackrabbit.util.Text;
  */
 public class ConcurrentReadAccessControlledTreeTest extends AbstractDeepTreeTest {
 
-    private int bgReaders = 20;
-    private int cnt = 10000;
-
-    public ConcurrentReadAccessControlledTreeTest(boolean runAsAdmin) {
-        super(runAsAdmin);
+    public ConcurrentReadAccessControlledTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders) {
+        super(runAsAdmin, itemsToRead, bgReaders);
     }
 
     @Override
@@ -117,7 +114,7 @@ public class ConcurrentReadAccessControlledTreeTest extends AbstractDeepTreeTest
         }
         public void run() {
             try {
-                randomRead(testSession, allPaths, cnt, doReport);
+                randomRead(testSession, allPaths, itemsToRead, doReport);
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }

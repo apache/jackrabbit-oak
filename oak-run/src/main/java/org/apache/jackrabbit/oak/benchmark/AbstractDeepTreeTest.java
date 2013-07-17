@@ -30,15 +30,19 @@ import javax.jcr.util.TraversingItemVisitor;
 
 public abstract class AbstractDeepTreeTest extends AbstractTest {
 
-    private final boolean runAsAdmin;
+    protected final boolean runAsAdmin;
+    protected final int itemsToRead;
+    protected final int bgReaders;
 
     protected Session adminSession;
     protected Node testRoot;
 
     protected List<String> allPaths;
 
-    public AbstractDeepTreeTest(boolean runAsAdmin) {
+    public AbstractDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders) {
         this.runAsAdmin = runAsAdmin;
+        this.itemsToRead = itemsToRead;
+        this.bgReaders = bgReaders;
     }
 
     @Override
