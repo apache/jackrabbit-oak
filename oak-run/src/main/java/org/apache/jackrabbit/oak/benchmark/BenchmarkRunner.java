@@ -55,7 +55,7 @@ public class BenchmarkRunner {
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> bgReaders = parser.accepts("bgReaders", "Number of background readers")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(20);
 
 
         OptionSet options = parser.parse(args);
