@@ -45,6 +45,11 @@ class SegmentPropertyState extends AbstractPropertyState {
         this.recordId = checkNotNull(recordId);
     }
 
+    RecordId getRecordId() {
+        return recordId;
+    }
+
+
     @Override @Nonnull
     public String getName() {
         return template.getName();
