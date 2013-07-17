@@ -50,6 +50,8 @@ public class BenchmarkRunner {
         OptionSpec<File> wikipedia =
                 parser.accepts("wikipedia", "Wikipedia dump")
                 .withRequiredArg().ofType(File.class);
+        OptionSpec<Boolean> runAsAdmin = parser.accepts("runAsAdmin", "Run test using admin session")
+                .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
 
         OptionSet options = parser.parse(args);
         int cacheSize = cache.value(options);
@@ -87,9 +89,9 @@ public class BenchmarkRunner {
             new ObservationTest(),
             new XmlImportTest(),
             new FlatTreeWithAceForSamePrincipalTest(),
-            new ReadDeepTreeTest(),
-            new ConcurrentReadAccessControlledTreeTest(),
-            new ConcurrentReadDeepTreeTest(),
+            new ReadDeepTreeTest(runAsAdmin.value(options)),
+            new ConcurrentReadAccessControlledTreeTest(runAsAdmin.value(options)),
+            new ConcurrentReadDeepTreeTest(runAsAdmin.value(options)),
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
             ReadManyTest.linear("LinearReadNodes", 1, ReadManyTest.NODES),
