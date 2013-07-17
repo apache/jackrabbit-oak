@@ -31,6 +31,9 @@ explain select excerpt(.) from [nt:resource] where contains(*, 'jackrabbit')
 explain select excerpt(.) from [nt:resource] where contains(*, 'jackrabbit') or contains(*, 'jackrabbit')
 [nt:resource] as [nt:resource] /* traverse "*" where contains([nt:resource].[*], cast('jackrabbit' as string)) */
 
+explain select excerpt(.) from [nt:resource] where (contains(*, 'jackrabbit') or contains(*, 'jackrabbit')) and x = '1'
+[nt:resource] as [nt:resource] /* traverse "*" where (contains([nt:resource].[*], cast('jackrabbit' as string))) and ([nt:resource].[x] = cast('1' as string)) */
+
 explain select * from [nt:base] where [jcr:uuid]=1 or [b]=2
 [nt:base] as [nt:base] /* traverse "*" */
 
