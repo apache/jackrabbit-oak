@@ -19,8 +19,11 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
@@ -74,6 +77,7 @@ import static javax.jcr.Repository.QUERY_XPATH_POS_INDEX;
 import static javax.jcr.Repository.REP_NAME_DESC;
 import static javax.jcr.Repository.REP_VENDOR_DESC;
 import static javax.jcr.Repository.REP_VENDOR_URL_DESC;
+import static javax.jcr.Repository.REP_VERSION_DESC;
 import static javax.jcr.Repository.SPEC_NAME_DESC;
 import static javax.jcr.Repository.SPEC_VERSION_DESC;
 import static javax.jcr.Repository.WRITE_SUPPORTED;
@@ -231,10 +235,13 @@ public class Descriptors {
                 falseValue, true, true));
         put(new Descriptor(
                 REP_NAME_DESC,
-                valueFactory.createValue("Apache Jackrabbit Oak JCR implementation"), true, true));
+                valueFactory.createValue("Apache Jackrabbit Oak"), true, true));
+        put(new Descriptor(
+                REP_VERSION_DESC,
+                valueFactory.createValue(getVersion()), true, true));
         put(new Descriptor(
                 REP_VENDOR_DESC,
-                valueFactory.createValue("Apache Software Foundation"), true, true));
+                valueFactory.createValue("The Apache Software Foundation"), true, true));
         put(new Descriptor(
                 REP_VENDOR_URL_DESC,
                 valueFactory.createValue("http://www.apache.org/"), true, true));
@@ -247,6 +254,25 @@ public class Descriptors {
         put(new Descriptor(
                 WRITE_SUPPORTED,
                 trueValue, true, true));
+    }
+
+    private String getVersion() {
+        InputStream stream = Descriptors.class.getResourceAsStream(
+                "/META-INF/maven/org.apache.jackrabbit/oak-jcr/pom.properties");
+        if (stream != null) {
+            try {
+                try {
+                    Properties properties = new Properties();
+                    properties.load(stream);
+                    return properties.getProperty("version");
+                } finally {
+                    stream.close();
+                }
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+        return "SNAPSHOT";
     }
 
     public Descriptors(ValueFactory valueFactory, Iterable<Descriptor> descriptors) {
