@@ -28,6 +28,8 @@ import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
 
 import org.apache.jackrabbit.core.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.util.Text;
 
 /**
  * Concurrently reads random items from the deep tree where every 10th node is
@@ -60,6 +62,17 @@ public class ConcurrentReadAccessControlledTreeTest extends AbstractDeepTreeTest
             private void addPolicy(Node node) throws RepositoryException {
                 AccessControlManager acMgr = node.getSession().getAccessControlManager();
                 String path = node.getPath();
+                int level = 0;
+                if (node.isNodeType(AccessControlConstants.NT_REP_POLICY)) {
+                    level = 1;
+                } else if (node.isNodeType(AccessControlConstants.NT_REP_ACE)) {
+                    level = 2;
+                } else if (node.isNodeType(AccessControlConstants.NT_REP_RESTRICTIONS)) {
+                    level = 3;
+                }
+                if (level > 0) {
+                    path = Text.getRelativeParent(path, level);
+                }
                 AccessControlPolicyIterator acIterator = acMgr.getApplicablePolicies(path);
                 if (acIterator.hasNext()) {
                     AccessControlPolicy policy = acIterator.nextAccessControlPolicy();
