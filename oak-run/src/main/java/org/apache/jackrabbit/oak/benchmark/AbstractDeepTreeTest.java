@@ -30,10 +30,16 @@ import javax.jcr.util.TraversingItemVisitor;
 
 public abstract class AbstractDeepTreeTest extends AbstractTest {
 
+    private final boolean runAsAdmin;
+
     protected Session adminSession;
     protected Node testRoot;
 
     protected List<String> allPaths;
+
+    public AbstractDeepTreeTest(boolean runAsAdmin) {
+        this.runAsAdmin = runAsAdmin;
+    }
 
     @Override
     protected void beforeSuite() throws Exception {
@@ -106,6 +112,14 @@ public abstract class AbstractDeepTreeTest extends AbstractTest {
         long end = System.currentTimeMillis();
         if (doReport) {
             System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-noAccess) + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+") completed in " + (end - start));
+        }
+    }
+
+    protected Session getTestSession() {
+        if (runAsAdmin) {
+            return loginWriter();
+        } else {
+            return loginAnonymous();
         }
     }
 }

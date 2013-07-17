@@ -27,18 +27,22 @@ public class ConcurrentReadDeepTreeTest extends AbstractDeepTreeTest {
     private int bgReaders = 50;
     private int cnt = 10000;
 
+    public ConcurrentReadDeepTreeTest(boolean runAsAdmin) {
+        super(runAsAdmin);
+    }
+
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
 
         for (int i = 0; i < bgReaders; i++) {
-            addBackgroundJob(new RandomRead(loginAnonymous()));
+            addBackgroundJob(new RandomRead(getTestSession()));
         }
     }
 
     @Override
     protected void runTest() throws Exception {
-        Session testSession = loginAnonymous();
+        Session testSession = getTestSession();
         RandomRead randomRead = new RandomRead(testSession);
         randomRead.run();
         testSession.logout();
