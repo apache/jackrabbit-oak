@@ -108,9 +108,8 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>
-                README.md
-              </exclude>
+              <exclude>README.md</exclude>
+              <exclude>src/main/resources/deepTree.xml</exclude>
             </excludes>
           </configuration>
         </plugin>
