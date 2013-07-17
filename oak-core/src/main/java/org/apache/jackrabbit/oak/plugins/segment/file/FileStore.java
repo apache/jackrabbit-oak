@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Lists.newLinkedList;
+import static com.google.common.collect.Maps.newConcurrentMap;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.nio.channels.FileChannel.MapMode.READ_WRITE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -124,7 +125,7 @@ public class FileStore implements SegmentStore {
 
     private final Map<String, Journal> journals = newHashMap();
 
-    private final Map<UUID, SegmentReference> references = newHashMap();
+    private final Map<UUID, SegmentReference> references = newConcurrentMap();
 
     private final Cache<UUID, Segment> segments =
             CacheBuilder.newBuilder().maximumSize(1000).build();
@@ -237,7 +238,7 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
-    public synchronized Segment readSegment(final UUID id) {
+    public Segment readSegment(final UUID id) {
         try {
             return segments.get(id, new Callable<Segment>() {
                 @Override
@@ -294,7 +295,7 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
-    public synchronized void deleteSegment(UUID segmentId) {
+    public void deleteSegment(UUID segmentId) {
         if (references.remove(segmentId) == null) {
             throw new IllegalStateException("Missing segment: " + segmentId);
         }
