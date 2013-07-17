@@ -221,7 +221,6 @@ public class MemoryDocumentStore implements DocumentStore {
     public static void applyChanges(Map<String, Object> target, UpdateOp update) {
         for (Entry<String, Operation> e : update.changes.entrySet()) {
             String k = e.getKey();
-            String[] kv = k.split("\\.");
             Operation op = e.getValue();
             switch (op.type) {
             case SET: {
@@ -238,6 +237,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 break;
             }
             case SET_MAP_ENTRY: {
+                String[] kv = splitInTwo(k, '.');
                 Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> m = (Map<String, Object>) old;
@@ -249,6 +249,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 break;
             }
             case REMOVE_MAP_ENTRY: {
+                String[] kv = splitInTwo(k, '.');
                 Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> m = (Map<String, Object>) old;
@@ -258,6 +259,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 break;
             }
             case SET_MAP: {
+                String[] kv = splitInTwo(k, '.');
                 Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> m = (Map<String, Object>) old;
@@ -273,6 +275,14 @@ public class MemoryDocumentStore implements DocumentStore {
                 break;
             }
         }
+    }
+    
+    private static String[] splitInTwo(String s, char separator) {
+        int index = s.indexOf(separator);
+        if (index < 0) {
+            return new String[] { s };
+        }
+        return new String[] { s.substring(0, index), s.substring(index + 1) };
     }
 
     @Override
