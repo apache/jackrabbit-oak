@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 /**
- * Randomly read 100000 items from the deep tree.
+ * Randomly read 1000 items from the deep tree.
  */
 public class ReadDeepTreeTest extends AbstractDeepTreeTest {
 
-    private int cnt = 100000;
+    private int cnt = 1000;
 
     public ReadDeepTreeTest(boolean runAsAdmin) {
         super(runAsAdmin);
