@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.transform;
 import static java.lang.Integer.bitCount;
@@ -106,6 +107,50 @@ class MapBranch extends MapRecord {
                         }
                     }
                 }));
+    }
+
+    @Override
+    boolean compare(MapRecord base, MapDiff diff) {
+        if (base instanceof MapBranch) {
+            return compare((MapBranch) base, diff);
+        } else {
+            return super.compare(base, diff);
+        }
+    }
+
+    private boolean compare(MapBranch before, MapDiff diff) {
+        MapBranch after = this;
+        checkState(after.level == before.level);
+
+        RecordId[] afterBuckets = after.getBuckets();
+        RecordId[] beforeBuckets = before.getBuckets();
+        for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
+            if (afterBuckets[i] == null) {
+                if (beforeBuckets[i] != null) {
+                    MapRecord map = MapRecord.readMap(store, beforeBuckets[i]);
+                    for (MapEntry entry : map.getEntries()) {
+                        if (!diff.entryDeleted(entry.getName(), entry.getValue())) {
+                            return false;
+                        }
+                    }
+                }
+            } else if (beforeBuckets[i] == null) {
+                MapRecord map = MapRecord.readMap(store, afterBuckets[i]);
+                for (MapEntry entry : map.getEntries()) {
+                    if (!diff.entryAdded(entry.getName(), entry.getValue())) {
+                        return false;
+                    }
+                }
+            } else if (!afterBuckets[i].equals(beforeBuckets[i])) {
+                MapRecord afterMap = MapRecord.readMap(store, afterBuckets[i]);
+                MapRecord beforeMap = MapRecord.readMap(store, beforeBuckets[i]);
+                if (!afterMap.compare(beforeMap, diff)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
 }
