@@ -310,7 +310,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         }
 
         Tree type = types.getChild(typeName);
-        if (!types.exists()) {
+        if (!type.exists()) {
             return false;
         }
 
