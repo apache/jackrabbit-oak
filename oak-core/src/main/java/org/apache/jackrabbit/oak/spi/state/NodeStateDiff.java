@@ -80,7 +80,10 @@ public interface NodeStateDiff {
     boolean childNodeAdded(String name, NodeState after);
 
     /**
-     * Called for all changed child nodes.
+     * Called for all child nodes that may contain changes between the before
+     * and after states. The comparison implementation is expected to make an
+     * effort to avoid calling this method on child nodes under which nothing
+     * has changed.
      *
      * @param name name of the changed child node
      * @param before child node state before the change

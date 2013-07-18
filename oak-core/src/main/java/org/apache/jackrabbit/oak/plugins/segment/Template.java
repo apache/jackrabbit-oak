@@ -469,7 +469,7 @@ public class Template {
                 if (!diff.childNodeAdded(childName, afterNode)) {
                     return false;
                 }
-            } else if (!beforeNode.equals(afterNode)) {
+            } else if (!fastEquals(afterNode, beforeNode)) {
                 if (!diff.childNodeChanged(childName, beforeNode, afterNode)) {
                     return false;
                 }
@@ -502,7 +502,7 @@ public class Template {
                     NodeState beforeChild =
                             beforeTemplate.getChildNode(name, store, beforeId);
                     if (beforeChild.exists()) {
-                        if (!afterChild.equals(beforeChild)
+                        if (!fastEquals(afterChild, beforeChild)
                                 && !diff.childNodeChanged(
                                         childName, beforeChild, afterChild)) {
                             return false;
@@ -542,6 +542,18 @@ public class Template {
         }
 
         return true;
+    }
+
+    private boolean fastEquals(NodeState a, NodeState b) {
+        if (a == b) {
+            return true;
+        } else if (a instanceof SegmentNodeState
+                && b instanceof SegmentNodeState) {
+            return ((SegmentNodeState) a).getRecordId().equals(
+                    ((SegmentNodeState) b).getRecordId());
+        } else {
+            return false;
+        }
     }
 
     private boolean compareProperties(

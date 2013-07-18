@@ -370,7 +370,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                 if (!diff.childNodeAdded(name, after)) {
                     return false;
                 }
-            } else if (!before.equals(after)
+            } else if (before != after // TODO: fastEquals?
                     && !diff.childNodeChanged(name, before, after)) {
                 return false;
             }
