@@ -134,7 +134,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Nonnull
     @Override
     public Privilege[] getSupportedPrivileges(@Nullable String absPath) throws RepositoryException {
-        getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
+        getTree(getOakPath(absPath), Permissions.NO_PERMISSION, false);
         return privilegeManager.getRegisteredPrivileges();
     }
 
@@ -146,7 +146,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Override
     public boolean hasPrivileges(@Nullable String absPath, @Nullable Privilege[] privileges) throws RepositoryException {
-        return hasPrivileges(absPath, privileges, getPermissionProvider(), Permissions.NO_PERMISSION);
+        return hasPrivileges(absPath, privileges, getPermissionProvider(), Permissions.NO_PERMISSION, false);
     }
 
     @Nonnull
@@ -159,7 +159,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Override
     public AccessControlPolicy[] getPolicies(@Nullable String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
-        Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL);
+        Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
         AccessControlPolicy policy = createACL(oakPath, tree, false);
 
         List<AccessControlPolicy> policies = new ArrayList<AccessControlPolicy>(2);
@@ -176,7 +176,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Override
     public AccessControlPolicy[] getEffectivePolicies(@Nullable String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
-        Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL);
+        Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
 
         Root r = root.getContentSession().getLatestRoot();
         tree = r.getTree(tree.getPath());
@@ -207,7 +207,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Override
     public AccessControlPolicyIterator getApplicablePolicies(@Nullable String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
-        Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL);
+        Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
 
         AccessControlPolicy policy = null;
         Tree aclTree = getAclTree(oakPath, tree);
@@ -242,7 +242,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (policy instanceof PrincipalACL) {
             setPrincipalBasedAcl((PrincipalACL) policy);
         } else {
-            Tree tree = getTree(oakPath, Permissions.MODIFY_ACCESS_CONTROL);
+            Tree tree = getTree(oakPath, Permissions.MODIFY_ACCESS_CONTROL, true);
             setNodeBasedAcl(oakPath, tree, (ACL) policy);
         }
     }
@@ -262,7 +262,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         // add new entries
         for (ACE ace : toAdd) {
             String path = getNodePath(ace);
-            Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
+            Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL, true);
 
             ACL acl = (ACL) createACL(path, tree, false);
             if (acl == null) {
@@ -282,7 +282,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         // remove entries that are not longer present in the acl to write
         for (ACE ace : toRemove) {
             String path = getNodePath(ace);
-            Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
+            Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL, true);
 
             ACL acl = (ACL) createACL(path, tree, false);
             if (acl != null) {
@@ -328,7 +328,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             PrincipalACL principalAcl = (PrincipalACL) policy;
             for (ACE ace : principalAcl.getEntries()) {
                 String path = getNodePath(ace);
-                Tree aclTree = getAclTree(path, getTree(path, Permissions.MODIFY_ACCESS_CONTROL));
+                Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL, true);
+                Tree aclTree = getAclTree(path, tree);
                 if (aclTree == null) {
                     throw new AccessControlException("Unable to retrieve policy node at " + path);
                 }
@@ -344,7 +345,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 }
             }
         } else {
-            Tree tree = getTree(oakPath, Permissions.MODIFY_ACCESS_CONTROL);
+            Tree tree = getTree(oakPath, Permissions.MODIFY_ACCESS_CONTROL, true);
             Tree aclTree = getAclTree(oakPath, tree);
             if (aclTree != null) {
                 aclTree.remove();
@@ -418,7 +419,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             return hasPrivileges(absPath, privileges);
         } else {
             PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
-            return hasPrivileges(absPath, privileges, provider, Permissions.READ_ACCESS_CONTROL);
+            return hasPrivileges(absPath, privileges, provider, Permissions.READ_ACCESS_CONTROL, false);
         }
     }
 
@@ -447,7 +448,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
-    private Tree getTree(@Nullable String oakPath, long permissions) throws RepositoryException {
+    private Tree getTree(@Nullable String oakPath, long permissions, boolean checkAcContent) throws RepositoryException {
         Tree tree = (oakPath == null) ? root.getTree("/") : root.getTree(oakPath);
         if (!tree.exists()) {
             throw new PathNotFoundException("No tree at " + oakPath);
@@ -455,10 +456,10 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (permissions != Permissions.NO_PERMISSION) {
             // check permissions
             checkPermissions((oakPath == null) ? null : tree, permissions);
-            // check if the tree is access controlled
-            if (acConfig.getContext().definesTree(tree)) {
-                throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
-            }
+        }
+        // check if the tree defines access controlled content
+        if (checkAcContent && acConfig.getContext().definesTree(tree)) {
+            throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
         }
         return tree;
     }
@@ -648,7 +649,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 checkPermissions(null, permissions);
             }
         } else {
-            tree = getTree(getOakPath(absPath), permissions);
+            tree = getTree(getOakPath(absPath), permissions, false);
         }
         Set<String> pNames = provider.getPrivileges(tree);
         if (pNames.isEmpty()) {
@@ -663,7 +664,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     private boolean hasPrivileges(@Nullable String absPath, @Nullable Privilege[] privileges,
-                                  @Nonnull PermissionProvider provider, long permissions) throws RepositoryException {
+                                  @Nonnull PermissionProvider provider, long permissions,
+                                  boolean checkAcContent) throws RepositoryException {
         Tree tree;
         if (absPath == null) {
             tree = null;
@@ -671,7 +673,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 checkPermissions(null, permissions);
             }
         } else {
-            tree = getTree(getOakPath(absPath), permissions);
+            tree = getTree(getOakPath(absPath), permissions, checkAcContent);
         }
         if (privileges == null || privileges.length == 0) {
             // null or empty privilege array -> return true

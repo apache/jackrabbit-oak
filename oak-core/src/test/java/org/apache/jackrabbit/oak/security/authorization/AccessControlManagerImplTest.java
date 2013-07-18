@@ -324,6 +324,19 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         }
     }
 
+    @Test
+    public void testGetSupportedForPrivilegesAcContent() throws Exception {
+        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager(root).getRegisteredPrivileges());
+
+        for (String acPath : getAcContentPaths()) {
+            Privilege[] supported = acMgr.getSupportedPrivileges(acPath);
+
+            assertNotNull(supported);
+            assertEquals(allPrivileges.size(), supported.length);
+            assertTrue(allPrivileges.containsAll(Arrays.asList(supported)));
+        }
+    }
+
     //--------------------------------------------------< privilegeFromName >---
     @Test
     public void testPrivilegeFromName() throws Exception {
@@ -617,6 +630,15 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         for (String path : getAcContentPaths()) {
             assertArrayEquals(expected, acMgr.getPrivileges(path));
             assertArrayEquals(expected, acMgr.getPrivileges(path, getPrincipals(adminSession)));
+        }
+    }
+
+    @Test
+    public void testGetPrivilegesForPrincipalsAccessControlledNodePath() throws Exception {
+        Set<Principal> testPrincipals = ImmutableSet.of(testPrincipal);
+        Privilege[] expected = new Privilege[0];
+        for (String path : getAcContentPaths()) {
+            assertArrayEquals(expected, acMgr.getPrivileges(path, testPrincipals));
         }
     }
 
