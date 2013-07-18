@@ -136,7 +136,7 @@ public class RepositoryImpl implements Repository {
             // be on the latest revision: set refresh interval to 0. See OAK-803.
             SessionContext context = new SessionContext(
                     this, whiteboard, new SessionDelegate(
-                            contentSession, isAdmin(contentSession) ? 0 : AUTO_REFRESH_INTERVAL));
+                            contentSession, /* isAdmin(contentSession) ? 0 : */ AUTO_REFRESH_INTERVAL));
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
