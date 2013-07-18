@@ -45,15 +45,11 @@ public class FailingValidator implements Validator {
     }
 
     @Override
-    public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
-        throw new CommitFailedException(type, code, message);
+    public void enter(NodeState before, NodeState after) {
     }
 
     @Override
-    public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
-        throw new CommitFailedException(type, code, message);
+    public void leave(NodeState before, NodeState after) {
     }
 
     @Override
@@ -82,9 +78,8 @@ public class FailingValidator implements Validator {
 
     @Override
     public Validator childNodeChanged(
-            String name, NodeState before, NodeState after)
-            throws CommitFailedException {
-        throw new CommitFailedException(type, code, message);
+            String name, NodeState before, NodeState after) {
+        return this; // the subtree might not have changed, so recurse
     }
 
     @Override

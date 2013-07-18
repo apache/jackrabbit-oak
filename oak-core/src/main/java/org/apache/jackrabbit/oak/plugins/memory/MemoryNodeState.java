@@ -157,7 +157,7 @@ class MemoryNodeState extends AbstractNodeState {
                 if (!diff.childNodeDeleted(name, before)) {
                     return false;
                 }
-            } else if (!after.equals(before)) {
+            } else if (after != before) {
                 if (!diff.childNodeChanged(name, before, after)) {
                     return false;
                 }

@@ -162,7 +162,7 @@ public abstract class AbstractNodeState implements NodeState {
                 }
             } else {
                 baseChildNodes.add(name);
-                if (!beforeChild.equals(afterChild)) {
+                if (afterChild != beforeChild) { // TODO: fastEquals?
                     if (!diff.childNodeChanged(name, beforeChild, afterChild)) {
                         return false;
                     }

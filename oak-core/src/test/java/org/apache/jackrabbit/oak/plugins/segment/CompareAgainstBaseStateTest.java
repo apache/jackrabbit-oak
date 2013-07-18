@@ -41,7 +41,7 @@ public class CompareAgainstBaseStateTest {
     private final NodeStateDiff diff =
             createControl().createMock("diff", NodeStateDiff.class);
 
-    private final NodeBuilder builder = EMPTY_NODE.builder();
+    private NodeBuilder builder = EMPTY_NODE.builder();
 
     @Before
     public void setUp() {
@@ -63,7 +63,7 @@ public class CompareAgainstBaseStateTest {
     @Test
     public void testEqualState() {
         NodeState before = persist(builder);
-        NodeState after = persist(builder);
+        NodeState after = persist(before.builder());
 
         replay(diff);
 
@@ -74,6 +74,7 @@ public class CompareAgainstBaseStateTest {
     @Test
     public void testPropertyAdded() {
         NodeState before = persist(builder);
+        builder = before.builder();
         builder.setProperty("test", "test");
         NodeState after = persist(builder);
 
@@ -87,6 +88,7 @@ public class CompareAgainstBaseStateTest {
     @Test
     public void testPropertyChanged() {
         NodeState before = persist(builder);
+        builder = before.builder();
         builder.setProperty("foo", "test");
         NodeState after = persist(builder);
 
@@ -101,6 +103,7 @@ public class CompareAgainstBaseStateTest {
     @Test
     public void testPropertyDeleted() {
         NodeState before = persist(builder);
+        builder = before.builder();
         builder.removeProperty("foo");
         NodeState after = persist(builder);
 
@@ -114,6 +117,7 @@ public class CompareAgainstBaseStateTest {
     @Test
     public void testChildNodeAdded() {
         NodeState before = persist(builder);
+        builder = before.builder();
         builder.child("test");
         NodeState after = persist(builder);
 
