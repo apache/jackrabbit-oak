@@ -531,7 +531,7 @@ public class Template {
                         String key, RecordId before, RecordId after) {
                     SegmentNodeState b = new SegmentNodeState(store, before);
                     SegmentNodeState a = new SegmentNodeState(store, after);
-                    return a.equals(b) || diff.childNodeChanged(key, b, a);
+                    return fastEquals(a, b) || diff.childNodeChanged(key, b, a);
                 }
                 @Override
                 public boolean entryDeleted(String key, RecordId before) {
