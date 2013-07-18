@@ -266,11 +266,11 @@ public class MongoMKDiffTest extends AbstractMongoConnectionTest {
         String rev = mk.commit("/", sb.toString(), null, null);
         String jsop = mk.diff(baseRev, rev, "/", 0);
         for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
-            assertTrue(jsop.contains("+\"/node-" + i + "\""));
+            assertTrue(jsop, jsop.contains("+\"/node-" + i + "\""));
         }
         jsop = mk.diff(rev, baseRev, "/", 0);
         for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
-            assertTrue(jsop.contains("-\"/node-" + i + "\""));
+            assertTrue(jsop, jsop.contains("-\"/node-" + i + "\""));
         }
 
         if (onBranch) {
@@ -278,22 +278,22 @@ public class MongoMKDiffTest extends AbstractMongoConnectionTest {
         }
         String rev2 = mk.commit("/", "+\"node-new\":{}", rev, null);
         jsop = mk.diff(rev, rev2, "/", 0);
-        assertTrue(jsop.contains("+\"/node-new\""));
+        assertTrue(jsop, jsop.contains("+\"/node-new\""));
 
         String rev3 = mk.commit("/", "^\"node-new/prop\":\"value\"", rev2, null);
         jsop = mk.diff(rev2, rev3, "/", 0);
-        assertTrue(jsop.contains("^\"/node-new\""));
+        assertTrue(jsop, jsop.contains("^\"/node-new\""));
 
         String rev4 = mk.commit("/", "+\"node-new/foo\":{}", rev3, null);
         jsop = mk.diff(rev3, rev4, "/", 0);
-        assertTrue(jsop.contains("^\"/node-new\""));
+        assertTrue(jsop, jsop.contains("^\"/node-new\""));
 
         String rev5 = mk.commit("/", "^\"node-new/foo/prop\":\"value\"", rev4, null);
         jsop = mk.diff(rev4, rev5, "/", 0);
-        assertTrue(jsop.contains("^\"/node-new\""));
+        assertTrue(jsop, jsop.contains("^\"/node-new\""));
 
         String rev6 = mk.commit("/", "-\"node-new/foo\"", rev5, null);
         jsop = mk.diff(rev5, rev6, "/", 0);
-        assertTrue(jsop.contains("^\"/node-new\""));
+        assertTrue(jsop, jsop.contains("^\"/node-new\""));
     }
 }
