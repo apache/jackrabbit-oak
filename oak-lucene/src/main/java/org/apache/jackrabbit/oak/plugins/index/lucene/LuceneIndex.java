@@ -74,6 +74,8 @@ import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
  * 
@@ -411,8 +413,10 @@ public class LuceneIndex implements FulltextQueryIndex {
                 || filter.getFulltextConditions().isEmpty()) {
             return;
         }
-        List<String> tokens = tokenize(filter.getFulltextConditions()
-                .iterator().next().toLowerCase());
+        List<String> tokens = Lists.newArrayList();
+        for (String condition : filter.getFulltextConditions()) {
+            tokens.addAll(tokenize(condition.toLowerCase()));
+        }
         if (tokens.size() == 1) {
             String token = tokens.get(0);
             if (token.contains(" ")) {
