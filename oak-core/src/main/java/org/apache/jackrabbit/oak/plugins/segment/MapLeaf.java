@@ -96,6 +96,66 @@ class MapLeaf extends MapRecord {
         return getMapEntries().values();
     }
 
+    @Override
+    boolean compare(MapRecord base, MapDiff diff) {
+        if (base instanceof MapLeaf) {
+            return compare((MapLeaf) base, diff);
+        } else {
+            return super.compare(base, diff);
+        }
+    }
+
+    private boolean compare(MapLeaf before, MapDiff diff) {
+        Segment bs = before.getSegment();
+        int bi = 0;
+
+        MapLeaf after = this;
+        Segment as = after.getSegment();
+        int ai = 0;
+
+        while (ai < after.size) {
+            int afterHash = after.getHash(as, ai);
+            String afterKey = after.getKey(as, ai);
+            RecordId afterValue = after.getValue(as, ai);
+
+            while (bi < before.size
+                    && (before.getHash(bs, bi) < afterHash
+                        || (before.getHash(bs, bi) == afterHash
+                            && before.getKey(bs, bi).compareTo(afterKey) < 0))) {
+                if (!diff.entryDeleted(
+                        before.getKey(bs, bi), before.getValue(bs, bi))) {
+                    return false;
+                }
+                bi++;
+            }
+
+            if (bi < before.size
+                    && before.getHash(bs, bi) == afterHash
+                    && before.getKey(bs, bi).equals(afterKey)) {
+                RecordId beforeValue = before.getValue(bs, bi);
+                if (!afterValue.equals(beforeValue)
+                        && !diff.entryChanged(afterKey, beforeValue, afterValue)) {
+                    return false;
+                }
+                bi++;
+            } else if (!diff.entryAdded(afterKey, afterValue)) {
+                return false;
+            }
+
+            ai++;
+        }
+
+        while (bi < before.size) {
+            if (!diff.entryDeleted(
+                    before.getKey(bs, bi), before.getValue(bs, bi))) {
+                return false;
+            }
+            bi++;
+        }
+
+        return true;
+    }
+
     //-----------------------------------------------------------< private >--
 
     private Iterator<String> getKeyIterator() {

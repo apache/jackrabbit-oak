@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
+import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
 
+import java.util.Set;
 import java.util.UUID;
 
 abstract class MapRecord extends Record {
@@ -108,6 +110,40 @@ abstract class MapRecord extends Record {
     abstract Iterable<String> getKeys();
 
     abstract Iterable<MapEntry> getEntries();
+
+    interface MapDiff {
+        boolean entryAdded(String key, RecordId after);
+        boolean entryChanged(String key, RecordId before, RecordId after);
+        boolean entryDeleted(String key, RecordId before);
+    }
+
+    boolean compare(MapRecord that, MapDiff diff) {
+        Set<String> keys = newHashSet();
+        for (MapEntry entry : getEntries()) {
+            String name = entry.getName();
+            RecordId thisId = entry.getValue();
+            RecordId thatId = that.getEntry(name);
+            if (thatId == null) {
+                if (!diff.entryAdded(name, thisId)) {
+                    return false;
+                }
+            } else if (!thisId.equals(thatId)) {
+                if (!diff.entryChanged(name, thatId, thisId)) {
+                    return false;
+                }
+            }
+            keys.add(name);
+        }
+        for (MapEntry entry : that.getEntries()) {
+            String name = entry.getName();
+            if (!keys.contains(name)) {
+                if (!diff.entryDeleted(name, entry.getValue())) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
     //------------------------------------------------------------< Object >--
 
