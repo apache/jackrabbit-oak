@@ -36,6 +36,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.segment.MapRecord.MapDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -395,9 +396,9 @@ public class Template {
     }
 
     public boolean compareAgainstBaseState(
-            SegmentStore store, RecordId afterId,
+            final SegmentStore store, RecordId afterId,
             Template beforeTemplate, RecordId beforeId,
-            NodeStateDiff diff) {
+            final NodeStateDiff diff) {
         checkNotNull(store);
         checkNotNull(afterId);
         checkNotNull(beforeTemplate);
@@ -517,34 +518,27 @@ public class Template {
             }
         } else {
             // TODO: Leverage the HAMT data structure for the comparison
-            Set<String> baseChildNodes = new HashSet<String>();
-            for (ChildNodeEntry beforeCNE
-                    : beforeTemplate.getChildNodeEntries(store, beforeId)) {
-                String name = beforeCNE.getName();
-                NodeState beforeChild = beforeCNE.getNodeState();
-                NodeState afterChild = getChildNode(name, store, afterId);
-                if (!afterChild.exists()) {
-                    if (!diff.childNodeDeleted(name, beforeChild)) {
-                        return false;
-                    }
-                } else {
-                    baseChildNodes.add(name);
-                    if (!afterChild.equals(beforeChild)) {
-                        if (!diff.childNodeChanged(name, beforeChild, afterChild)) {
-                            return false;
-                        }
-                    }
+            MapRecord afterMap = getChildNodeMap(store, afterId);
+            MapRecord beforeMap = beforeTemplate.getChildNodeMap(store, beforeId);
+            return afterMap.compare(beforeMap, new MapDiff() {
+                @Override
+                public boolean entryAdded(String key, RecordId after) {
+                    return diff.childNodeAdded(
+                            key, new SegmentNodeState(store, after));
                 }
-            }
-            for (ChildNodeEntry afterChild
-                    : getChildNodeEntries(store, afterId)) {
-                String name = afterChild.getName();
-                if (!baseChildNodes.contains(name)) {
-                    if (!diff.childNodeAdded(name, afterChild.getNodeState())) {
-                        return false;
-                    }
+                @Override
+                public boolean entryChanged(
+                        String key, RecordId before, RecordId after) {
+                    SegmentNodeState b = new SegmentNodeState(store, before);
+                    SegmentNodeState a = new SegmentNodeState(store, after);
+                    return a.equals(b) || diff.childNodeChanged(key, b, a);
                 }
-            }
+                @Override
+                public boolean entryDeleted(String key, RecordId before) {
+                    return diff.childNodeDeleted(
+                            key, new SegmentNodeState(store, before));
+                }
+            });
         }
 
         return true;
