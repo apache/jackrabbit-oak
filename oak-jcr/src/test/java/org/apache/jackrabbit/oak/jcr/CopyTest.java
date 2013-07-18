@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.jcr;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
+import javax.jcr.version.Version;
+import javax.jcr.version.VersionHistory;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -35,6 +37,8 @@ public class CopyTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
 
+    private Node testNode;
+
     public CopyTest(NodeStoreFixture fixture) {
         super(fixture);
     }
@@ -42,34 +46,28 @@ public class CopyTest extends AbstractRepositoryTest {
     @Before
     public void setup() throws RepositoryException {
         Session session = getAdminSession();
-        ValueFactory valueFactory = session.getValueFactory();
         Node root = session.getRootNode();
-        Node foo = root.addNode("foo");
-        foo.setProperty("stringProp", "stringVal");
-        foo.setProperty("intProp", 42);
-        foo.setProperty("mvProp", new Value[]{
-                valueFactory.createValue(1),
-                valueFactory.createValue(2),
-                valueFactory.createValue(3),
-        });
-        root.addNode("bar");
-        root.addNode(TEST_NODE);
+        testNode = root.addNode(TEST_NODE);
+        testNode.addNode("source").addNode("node");
+        testNode.addNode("target");
         session.save();
+    }
+
+    @After
+    public void tearDown() throws RepositoryException {
+        Session s = testNode.getSession();
+        s.removeItem(TEST_PATH);
+        s.save();
     }
 
     @Test
     public void testCopyNode() throws RepositoryException {
         Session session = getAdminSession();
 
-        Node node = session.getNode(TEST_PATH);
-        node.addNode("source").addNode("node");
-        node.addNode("target");
-        session.save();
-
         session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
 
-        assertTrue(node.hasNode("source/node"));
-        assertTrue(node.hasNode("target/copied"));
+        assertTrue(testNode.hasNode("source/node"));
+        assertTrue(testNode.hasNode("target/copied"));
     }
 
     @Ignore("OAK-915") // FIXME
@@ -77,18 +75,18 @@ public class CopyTest extends AbstractRepositoryTest {
     public void testCopyReferenceableNode() throws Exception {
         Session session = getAdminSession();
 
-        Node node = session.getNode(TEST_PATH);
-        node.addNode("source").addNode("node").addMixin(JcrConstants.MIX_REFERENCEABLE);
-        node.addNode("target");
+        Node toCopy = session.getNode(TEST_PATH + "/source/node");
+        toCopy.addMixin(JcrConstants.MIX_REFERENCEABLE);
         session.save();
 
         session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
 
-        assertTrue(node.hasNode("source/node"));
-        assertTrue(node.hasNode("target/copied"));
-        Node copy = node.getNode("target/copied");
+        assertTrue(testNode.hasNode("source/node"));
+        assertTrue(testNode.hasNode("target/copied"));
+
+        Node copy = testNode.getNode("target/copied");
         assertTrue(copy.isNodeType(JcrConstants.MIX_REFERENCEABLE));
-        assertFalse(copy.getUUID().equals(node.getNode("source/node").getUUID()));
+        assertFalse(copy.getUUID().equals(testNode.getNode("source/node").getUUID()));
     }
 
     @Ignore("OAK-915") // FIXME
@@ -96,18 +94,63 @@ public class CopyTest extends AbstractRepositoryTest {
     public void testCopyReferenceableChildNode() throws Exception {
         Session session = getAdminSession();
 
-        Node node = session.getNode(TEST_PATH);
-        node.addNode("source").addNode("node").addNode("child").addMixin(JcrConstants.MIX_REFERENCEABLE);
-        node.addNode("target");
+        session.getNode(TEST_PATH + "/source/node").addNode("child").addMixin(JcrConstants.MIX_REFERENCEABLE);
         session.save();
 
         session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
 
-        assertTrue(node.hasNode("source/node"));
-        assertTrue(node.hasNode("target/copied"));
+        assertTrue(testNode.hasNode("source/node"));
+        assertTrue(testNode.hasNode("target/copied"));
 
-        Node childCopy = node.getNode("target/copied/child");
+        Node childCopy = testNode.getNode("target/copied/child");
         assertTrue(childCopy.isNodeType(JcrConstants.MIX_REFERENCEABLE));
-        assertFalse(childCopy.getUUID().equals(node.getNode("source/node/child").getUUID()));
+        assertFalse(childCopy.getUUID().equals(testNode.getNode("source/node/child").getUUID()));
+    }
+
+    @Ignore("OAK-918") // FIXME
+    @Test
+    public void testCopyVersionableNode() throws Exception {
+        Session session = getAdminSession();
+        Node toCopy = session.getNode(TEST_PATH + "/source/node");
+        toCopy.addMixin(JcrConstants.MIX_VERSIONABLE);
+        session.save();
+
+        Version baseV = toCopy.getBaseVersion();
+
+        session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
+
+        assertTrue(testNode.hasNode("source/node"));
+        assertTrue(testNode.hasNode("target/copied"));
+
+        Node copy = testNode.getNode("target/copied");
+
+        assertTrue(copy.isNodeType(JcrConstants.MIX_VERSIONABLE));
+        VersionHistory copiedVh = copy.getVersionHistory();
+        assertFalse(copy.getVersionHistory().isSame(toCopy.getVersionHistory()));
+
+        assertTrue(copiedVh.hasProperty(VersionConstants.JCR_COPIED_FROM));
+        Node copiedFrom = copiedVh.getProperty(VersionConstants.JCR_COPIED_FROM).getNode();
+        assertTrue(baseV.isSame(copiedFrom));
+    }
+
+    @Ignore("OAK-919") // FIXME
+    @Test
+    public void testCopyLockedNode() throws Exception {
+        Session session = getAdminSession();
+        Node toCopy = session.getNode(TEST_PATH + "/source/node");
+        toCopy.addMixin(JcrConstants.MIX_LOCKABLE);
+        session.save();
+
+        session.getWorkspace().getLockManager().lock(toCopy.getPath(), true, true, Long.MAX_VALUE, "my");
+        session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
+
+        assertTrue(testNode.hasNode("source/node"));
+        assertTrue(testNode.hasNode("target/copied"));
+
+        Node copy = testNode.getNode("target/copied");
+
+        assertFalse(copy.isNodeType(JcrConstants.MIX_LOCKABLE));
+        assertFalse(copy.hasProperty(JcrConstants.JCR_LOCKISDEEP));
+        assertFalse(copy.hasProperty(JcrConstants.JCR_LOCKOWNER));
     }
 }
