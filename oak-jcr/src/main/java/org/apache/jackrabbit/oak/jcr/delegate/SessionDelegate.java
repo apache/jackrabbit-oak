@@ -65,6 +65,7 @@ public class SessionDelegate {
     private long updateCount = 0;
 
     private long lastAccessed = System.currentTimeMillis();
+    private boolean refreshAtNextAccess = false;
 
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
@@ -82,7 +83,7 @@ public class SessionDelegate {
     }
 
     public synchronized void refreshAtNextAccess() {
-        lastAccessed = -1;
+        refreshAtNextAccess = true;
     }
 
     /**
@@ -103,18 +104,18 @@ public class SessionDelegate {
             // Refresh and checks only for non re-entrant session operations
             long now = System.currentTimeMillis();
             long timeElapsed = now - lastAccessed;
+            // Don't refresh if this operation is a refresh operation itself
             if (!sessionOperation.isRefresh()) {
-                // Don't refresh if this operation is a refresh operation itself
-                if (refreshInterval > 0 && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
-                    // Warn if the refresh interval is neither zero nor never (-1) and this
-                    // session has been idle too long
+                if (!refreshAtNextAccess
+                        && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
+                    // Warn if this session has been idle too long
                     log.warn("This session has been idle for " + MINUTES.convert(timeElapsed, MILLISECONDS) +
                             " minutes and might be out of date. Consider using a fresh session or explicitly" +
                             " refresh the session.", initStackTrace);
                 }
-                if (refreshInterval != -1 && timeElapsed >= refreshInterval) {
-                    // Refresh if the refresh interval is not never (-1) and the session
-                    // has been idle too long
+                if (refreshAtNextAccess || timeElapsed >= refreshInterval) {
+                    // Refresh if forced or if the session has been idle too long
+                    refreshAtNextAccess = false;
                     refresh(true);
                     updateCount++;
                 }
