@@ -18,14 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,7 +27,6 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
-
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
@@ -67,6 +58,14 @@ import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -1616,21 +1615,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));
         assertTrue(node.hasNode("target/moved"));
-    }
-
-    @Test
-    public void workspaceCopy() throws RepositoryException {
-        Session session = getAdminSession();
-
-        Node node = getNode(TEST_PATH);
-        node.addNode("source").addNode("node");
-        node.addNode("target");
-        session.save();
-
-        session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
-
-        assertTrue(node.hasNode("source/node"));
-        assertTrue(node.hasNode("target/copied"));
     }
 
     @Test

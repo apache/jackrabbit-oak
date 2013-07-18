@@ -31,6 +31,9 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 import com.google.common.primitives.Longs;
@@ -64,6 +67,9 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     private final Set<String> readPaths;
 
+    private final Cache<String, Collection<PermissionEntry>> userEntryCache;
+    private final Cache<String, Collection<PermissionEntry>> groupEntryCache;
+
     private PrivilegeBitsProvider bitsProvider;
 
     CompiledPermissionImpl(@Nonnull Set<Principal> principals,
@@ -88,6 +94,13 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                 }
             }
         }
+
+        userEntryCache = CacheBuilder.newBuilder().maximumSize(10000).recordStats()
+                .build();
+                //.build(new EntriesLoader(userTrees));
+        groupEntryCache = CacheBuilder.newBuilder().maximumSize(10000).recordStats()
+                .build();
+                //.build(new EntriesLoader(groupTrees));
     }
 
     //------------------------------------------------< CompiledPermissions >---
@@ -95,18 +108,38 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     public void refresh(@Nonnull ImmutableTree permissionsTree,
                  @Nonnull PrivilegeBitsProvider bitsProvider) {
         this.bitsProvider = bitsProvider;
+        boolean refreshU = false;
+        boolean refreshG = false;
         // test if a permission has been added for those principals that didn't have one before
         for (Principal principal : principals) {
             Map<String, Tree> target = getTargetMap(principal);
             Tree principalRoot = getPrincipalRoot(permissionsTree, principal);
             String pName = principal.getName();
+            boolean isGroup = (principal instanceof Group);
             if (principalRoot.exists()) {
                 if (!target.containsKey(pName) || !principalRoot.equals(target.get(pName))) {
                     target.put(pName, principalRoot);
+                    if (isGroup) {
+                        refreshG = true;
+                    } else {
+                        refreshU = true;
+                    }
                 }
             } else {
-                target.remove(pName);
+                if (target.remove(pName) != null) {
+                    if (isGroup) {
+                        refreshG = true;
+                    } else {
+                        refreshU = true;
+                    }
+                }
             }
+        }
+        if (refreshG) {
+            groupEntryCache.invalidateAll();
+        }
+        if (refreshU) {
+            userEntryCache.invalidateAll();
         }
     }
 
@@ -264,10 +297,10 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     private Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
         Iterator<PermissionEntry> userEntries = (userTrees.isEmpty()) ?
                 Iterators.<PermissionEntry>emptyIterator() :
-                new EntryIterator(userTrees, predicate);
+                new EntryIterator(userEntryCache, userTrees, predicate);
         Iterator<PermissionEntry> groupEntries = (groupTrees.isEmpty()) ?
                 Iterators.<PermissionEntry>emptyIterator():
-                new EntryIterator(groupTrees, predicate);
+                new EntryIterator(groupEntryCache, groupTrees, predicate);
         return Iterators.concat(userEntries, groupEntries);
     }
 
@@ -327,6 +360,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     private class EntryIterator implements Iterator<PermissionEntry> {
 
         private final Collection<Tree> principalTrees;
+        private final Cache<String, Collection<PermissionEntry>> cache;
         private final EntryPredicate predicate;
 
         // the next oak path for which to retrieve permission entries
@@ -336,8 +370,10 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         // the next permission entry
         private PermissionEntry next;
 
-        private EntryIterator(@Nonnull Map<String, Tree> principalTrees,
+        private EntryIterator(@Nonnull Cache<String, Collection<PermissionEntry>> cache,
+                              @Nonnull Map<String, Tree> principalTrees,
                               @Nonnull EntryPredicate predicate) {
+            this.cache = cache;
             this.principalTrees = principalTrees.values();
             this.predicate = predicate;
             this.path = Strings.nullToEmpty(predicate.path);
@@ -382,19 +418,49 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
         @Nonnull
         private Iterator<PermissionEntry> getNextEntries() {
-            ImmutableSortedSet.Builder<PermissionEntry> entries = new ImmutableSortedSet.Builder(new EntryComparator());
-            for (Tree principalRoot : principalTrees) {
+            Collection entries = cache.getIfPresent(path);
+            if (entries == null) {
+                ImmutableSortedSet.Builder<PermissionEntry> es = new ImmutableSortedSet.Builder(new EntryComparator());
+                for (Tree principalRoot : principalTrees) {
+                    String name = PermissionUtil.getEntryName(path);
+                    Tree parent = principalRoot;
+                    while (parent.hasChild(name)) {
+                        parent = parent.getChild(name);
+                        PermissionEntry pe = new PermissionEntry(parent, restrictionProvider);
+                        es.add(pe);
+//                        if (predicate.apply(pe)) {
+//                            es.add(pe);
+//                        }
+                    }
+                }
+                entries = es.build();
+                cache.put(path, entries);
+            }
+            return (entries == null) ? Iterators.<PermissionEntry>emptyIterator() : Iterators.filter(entries.iterator(), predicate);
+        }
+    }
+
+    private final class EntriesLoader extends CacheLoader<String, Collection<PermissionEntry>> {
+
+        private final Map<String, Tree> principalTrees;
+
+        private EntriesLoader(Map<String, Tree> principalTrees) {
+            this.principalTrees = principalTrees;
+        }
+
+        @Override
+        public Collection<PermissionEntry> load(String path) throws Exception {
+            ImmutableSortedSet.Builder<PermissionEntry> es = new ImmutableSortedSet.Builder(new EntryComparator());
+            for (Tree principalRoot : principalTrees.values()) {
                 String name = PermissionUtil.getEntryName(path);
                 Tree parent = principalRoot;
                 while (parent.hasChild(name)) {
                     parent = parent.getChild(name);
                     PermissionEntry pe = new PermissionEntry(parent, restrictionProvider);
-                    if (predicate.apply(pe)) {
-                        entries.add(pe);
-                    }
+                    es.add(pe);
                 }
             }
-            return entries.build().iterator();
+            return es.build();
         }
     }
 
