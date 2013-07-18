@@ -70,6 +70,24 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
     }
     
+    public void testFulltextRelativeProperty() throws Exception {
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("text", "hello");
+        session.save();
+       
+        String sql2 = "select [jcr:path] as [path] from [nt:base] " + 
+                "where contains([node1/text], 'hello') order by [jcr:path]";
+        
+        Query q;
+        
+        q = qm.createQuery(sql2, Query.JCR_SQL2);
+        // TODO OAK-913
+        // assertEquals("/testroot", getResult(q.execute(), "path"));
+
+    }
+    
     static String getResult(QueryResult result, String propertyName) throws RepositoryException {
         StringBuilder buff = new StringBuilder();
         RowIterator it = result.getRows();
