@@ -45,6 +45,9 @@ public final class PasswordUtility {
     private static final int NO_ITERATIONS = 1;
     private static final String ENCODING = "UTF-8";
 
+    /**
+     * @since OAK 1.0
+     */
     private static final String PBKDF2_PREFIX = "PBKDF2";
     
     public static final String DEFAULT_ALGORITHM = "SHA-256";
