@@ -21,6 +21,8 @@ import java.util.List;
 /**
  * {@code AuthorizableActionProvider} is used to provide {@code AuthorizableAction}s
  * for each instance of {@code UserManager}.
+ *
+ * @since OAK 1.0
  */
 public interface AuthorizableActionProvider {
 
