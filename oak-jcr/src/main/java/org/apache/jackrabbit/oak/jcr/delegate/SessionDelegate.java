@@ -65,6 +65,7 @@ public class SessionDelegate {
     private long updateCount = 0;
 
     private long lastAccessed = System.currentTimeMillis();
+    private boolean warnIfIdle = true;
     private boolean refreshAtNextAccess = false;
 
     /**
@@ -106,12 +107,13 @@ public class SessionDelegate {
             long timeElapsed = now - lastAccessed;
             // Don't refresh if this operation is a refresh operation itself
             if (!sessionOperation.isRefresh()) {
-                if (!refreshAtNextAccess
+                if (warnIfIdle && !refreshAtNextAccess
                         && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
-                    // Warn if this session has been idle too long
+                    // Warn once if this session has been idle too long
                     log.warn("This session has been idle for " + MINUTES.convert(timeElapsed, MILLISECONDS) +
                             " minutes and might be out of date. Consider using a fresh session or explicitly" +
                             " refresh the session.", initStackTrace);
+                    warnIfIdle = false;
                 }
                 if (refreshAtNextAccess || timeElapsed >= refreshInterval) {
                     // Refresh if forced or if the session has been idle too long
