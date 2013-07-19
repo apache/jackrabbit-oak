@@ -19,11 +19,15 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Collections.emptyMap;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.AbstractPropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -49,6 +53,37 @@ class SegmentPropertyState extends AbstractPropertyState {
         return recordId;
     }
 
+    private ListRecord getValueList() {
+        RecordId listId = recordId;
+        int size = 1;
+        if (isArray()) {
+            Segment segment = store.readSegment(recordId.getSegmentId());
+            size = segment.readInt(recordId.getOffset());
+            if (size > 0) {
+                listId = segment.readRecordId(recordId.getOffset() + 4);
+            }
+        }
+        return new ListRecord(listId, size);
+    }
+
+    Map<String, RecordId> getValueRecords() {
+        if (getType().tag() == PropertyType.BINARY) {
+            return emptyMap();
+        }
+
+        Map<String, RecordId> map = newHashMap();
+
+        ListRecord values = getValueList();
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        SegmentReader reader = new SegmentReader(store);
+        for (int i = 0; i < values.size(); i++) {
+            RecordId valueId = values.getEntry(reader, i);
+            String value = segment.readString(valueId);
+            map.put(value, valueId);
+        }
+
+        return map;
+    }
 
     @Override @Nonnull
     public String getName() {
@@ -119,25 +154,20 @@ class SegmentPropertyState extends AbstractPropertyState {
         checkNotNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");
 
-        Segment segment = store.readSegment(recordId.getSegmentId());
+        ListRecord values = getValueList();
+        checkElementIndex(index, values.size());
 
         Type<?> base = getType();
-        ListRecord values;
         if (base.isArray()) {
             base = base.getBaseType();
-            int size = segment.readInt(recordId.getOffset());
-            RecordId listId = segment.readRecordId(recordId.getOffset() + 4);
-            values = new ListRecord(listId, size);
-        } else {
-            values = new ListRecord(recordId, 1);
         }
-        checkElementIndex(index, values.size());
 
         SegmentReader reader = new SegmentReader(store);
         RecordId valueId = values.getEntry(reader, index);
         if (type == Type.BINARY) {
             return (T) new SegmentBlob(reader, valueId);
         } else {
+            Segment segment = store.readSegment(recordId.getSegmentId());
             String value = segment.readString(valueId);
             if (type == Type.STRING || type == Type.URI
                     || type == Type.NAME || type == Type.PATH
@@ -174,15 +204,7 @@ class SegmentPropertyState extends AbstractPropertyState {
 
     @Override
     public long size(int index) {
-        ListRecord values;
-        if (isArray()) {
-            Segment segment = store.readSegment(recordId.getSegmentId());
-            int size = segment.readInt(recordId.getOffset());
-            RecordId listId = segment.readRecordId(recordId.getOffset() + 4);
-            values = new ListRecord(listId, size);
-        } else {
-            values = new ListRecord(recordId, 1);
-        }
+        ListRecord values = getValueList();
         checkElementIndex(index, values.size());
         SegmentReader reader = new SegmentReader(store);
         return reader.readLength(values.getEntry(reader, 0));
