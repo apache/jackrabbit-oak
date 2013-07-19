@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
+
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -32,8 +35,6 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
 
 /**
  * Permission evaluation tests related to {@link javax.jcr.security.Privilege#JCR_READ} privilege.
@@ -65,6 +66,24 @@ public class ReadTest extends AbstractEvaluationTest {
         String rootPath = testSession.getRootNode().getPath();
         assertReadOnly(rootPath);
         testSession.checkPermission(rootPath + "nonExistingItem", Session.ACTION_READ);
+    }
+
+    @Test
+    public void testGetItem() throws Exception {
+        // withdraw READ privilege to 'testUser' at 'path'
+        deny(path, readPrivileges);
+        allow(childNPath, readPrivileges);
+        testSession.getItem(childNPath);
+    }
+
+    @Test
+    public void testItemExists() throws Exception {
+        // withdraw READ privilege to 'testUser' at 'path'
+        deny(path, readPrivileges);
+        allow(childNPath, readPrivileges);
+
+        assertFalse(testSession.itemExists(path));
+        assertTrue(testSession.itemExists(childNPath));
     }
 
     @Test
