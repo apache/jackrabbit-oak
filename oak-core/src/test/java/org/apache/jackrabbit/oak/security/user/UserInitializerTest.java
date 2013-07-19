@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
+import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
@@ -181,6 +182,53 @@ public class UserInitializerTest extends AbstractSecurityTest {
         } finally {
             if (adminSession != null) {
                 adminSession.close();
+            }
+        }
+    }
+
+    /**
+     * @since OAK 1.0 The anonymous user is optional.
+     */
+    @Test
+    public void testAnonymousConfiguration() throws Exception {
+        Map<String,Object> userParams = new HashMap();
+        userParams.put(UserConstants.PARAM_ANONYMOUS_ID, "");
+
+        ConfigurationParameters params = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
+        SecurityProvider sp = new SecurityProviderImpl(params);
+        final ContentRepository repo = new Oak().with(new InitialContent())
+                .with(new PropertyIndexEditorProvider())
+                .with(new PropertyIndexProvider())
+                .with(new RegistrationEditorProvider())
+                .with(sp)
+                .createContentRepository();
+
+        ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+            @Override
+            public ContentSession run() throws Exception {
+                return repo.login(null, null);
+            }
+        });
+        try {
+            Root root = cs.getLatestRoot();
+            UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
+            UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
+            Authorizable anonymous = umgr.getAuthorizable(UserConstants.DEFAULT_ANONYMOUS_ID);
+            assertNull(anonymous);
+        } finally {
+            cs.close();
+        }
+
+        // login as admin should fail
+        ContentSession anonymousSession = null;
+        try {
+            anonymousSession = repo.login(new GuestCredentials(), null);
+            fail();
+        } catch (LoginException e) {
+            //success
+        } finally {
+            if (anonymousSession != null) {
+                anonymousSession.close();
             }
         }
     }

@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -30,10 +29,10 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -46,6 +45,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -127,8 +128,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
                 boolean omitPw = params.getConfigValue(PARAM_OMIT_ADMIN_PW, false);
                 userManager.createUser(adminId, (omitPw) ? null : adminId);
             }
-            String anonymousId = params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID);
-            if (userManager.getAuthorizable(anonymousId) == null) {
+            String anonymousId = Strings.emptyToNull(params.getNullableConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID));
+            if (anonymousId != null && userManager.getAuthorizable(anonymousId) == null) {
                 userManager.createUser(anonymousId, null);
             }
             if (root.hasPendingChanges()) {
