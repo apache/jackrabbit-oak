@@ -21,6 +21,8 @@ import org.apache.jackrabbit.util.Text;
 /**
  * The {@code AuthorizableNodeName} is in charge of generating a valid node
  * name from a given authorizable ID.
+ *
+ * @since OAK 1.0
  */
 public interface AuthorizableNodeName {
 
