@@ -53,6 +53,8 @@ public abstract class AbstractPropertyState implements PropertyState {
                 return false;
             } else if (!getType().equals(that.getType())) {
                 return false;
+            } else if (isArray() && count() != that.count()) {
+                return false;
             } else if (getType().tag() == PropertyType.BINARY) {
                 return Iterables.elementsEqual(
                         getValue(BINARIES), that.getValue(BINARIES));
