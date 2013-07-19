@@ -22,6 +22,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Collections.emptyMap;
+import static javax.jcr.PropertyType.BINARY;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 
@@ -515,7 +517,8 @@ public class SegmentWriter {
         }
     }
 
-    private synchronized RecordId writeProperty(PropertyState state) {
+    private synchronized RecordId writeProperty(
+            PropertyState state, Map<String, RecordId> previousValues) {
         Type<?> type = state.getType();
         int count = state.count();
 
@@ -529,7 +532,12 @@ public class SegmentWriter {
                     throw new IllegalStateException("Unexpected IOException", e);
                 }
             } else {
-                valueIds.add(writeString(state.getValue(Type.STRING, i)));
+                String value = state.getValue(Type.STRING, i);
+                RecordId valueId = previousValues.get(value);
+                if (valueId == null) {
+                    valueId = writeString(value);
+                }
+                valueIds.add(valueId);
             }
         }
 
@@ -688,22 +696,26 @@ public class SegmentWriter {
         }
 
         for (PropertyTemplate pt : template.getPropertyTemplates()) {
-            RecordId propertyId = null;
             String name = pt.getName();
             PropertyState property = state.getProperty(name);
-            if (before != null) {
-                // reuse previously stored property record, if possible
-                PropertyState beforeProperty = before.getProperty(name);
-                if (beforeProperty instanceof SegmentPropertyState
-                        && property.equals(beforeProperty)) {
-                    propertyId = ((SegmentPropertyState) beforeProperty)
-                            .getRecordId();
+
+            if (property instanceof SegmentPropertyState) {
+                ids.add(((SegmentPropertyState) property).getRecordId());
+            } else {
+                Map<String, RecordId> previousValues = emptyMap();
+                if (before != null) {
+                    // reuse previously stored property values, if possible
+                    PropertyState beforeProperty = before.getProperty(name);
+                    if (beforeProperty instanceof SegmentPropertyState
+                            && beforeProperty.isArray()
+                            && beforeProperty.getType() != Type.BINARIES) {
+                        SegmentPropertyState segmentProperty =
+                                (SegmentPropertyState) beforeProperty;
+                        previousValues = segmentProperty.getValueRecords();
+                    }
                 }
+                ids.add(writeProperty(property, previousValues));
             }
-            if (propertyId == null) {
-                propertyId = writeProperty(property);
-            }
-            ids.add(propertyId);
         }
 
         RecordId recordId = prepare(0, ids);
