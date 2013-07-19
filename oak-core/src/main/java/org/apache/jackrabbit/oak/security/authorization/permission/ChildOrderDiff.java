@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.ArrayList;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newLinkedHashSet;
+
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
@@ -49,18 +53,33 @@ class ChildOrderDiff {
      */
     @CheckForNull
     String firstReordered() {
-        List<String> beforeNames = Lists.newArrayList(before.getValue(Type.NAMES));
-        List<String> afterNames = Lists.newArrayList(after.getValue(Type.NAMES));
-        // remove elements from before that have been deleted
-        beforeNames.retainAll(afterNames);
+        Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
+        Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));
 
-        for (int i = 0; i < beforeNames.size() && i < afterNames.size(); i++) {
-            String bName = beforeNames.get(i);
-            String aName = afterNames.get(i);
-            if (!bName.equals(aName)) {
-                return aName;
+        Iterator<String> a = afterNames.iterator();
+        Iterator<String> b = beforeNames.iterator();
+        while (a.hasNext() && b.hasNext()) {
+            String aName = a.next();
+            String bName = b.next();
+            while (!aName.equals(bName)) {
+                if (!beforeNames.contains(aName)) {
+                    if (a.hasNext()) {
+                        aName = a.next();
+                    } else {
+                        return null;
+                    }
+                } else if (!afterNames.contains(bName)) {
+                    if (b.hasNext()) {
+                        bName = b.next();
+                    } else {
+                        return null;
+                    }
+                } else {
+                    return aName;
+                }
             }
         }
+
         return null;
     }
 
@@ -71,19 +90,25 @@ class ChildOrderDiff {
      */
     @Nonnull
     List<String> getReordered() {
-        List<String> beforeNames = Lists.newArrayList(before.getValue(Type.NAMES));
-        List<String> afterNames = Lists.newArrayList(after.getValue(Type.NAMES));
-        // remove elements from before that have been deleted
+        List<String> reordered = newArrayList();
+
+        Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
+        Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));
+
+        afterNames.retainAll(beforeNames);
         beforeNames.retainAll(afterNames);
 
-        List<String> reordered = new ArrayList<String>();
-        for (int i = 0; i < afterNames.size(); i++) {
-            String aName = afterNames.get(i);
-            int index = beforeNames.indexOf(aName);
-            if (index != -1 && index != i) {
+        Iterator<String> a = afterNames.iterator();
+        Iterator<String> b = beforeNames.iterator();
+        while (a.hasNext() && b.hasNext()) {
+            String aName = a.next();
+            String bName = b.next();
+            if (!aName.equals(bName)) {
                 reordered.add(aName);
             }
         }
+
         return reordered;
     }
+
 }
