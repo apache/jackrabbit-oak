@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -67,6 +64,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -317,23 +316,27 @@ public class SessionContext implements NamePathMapper {
         }
     }
 
-    //-----------------------------------------------------------< internal >---
+    public void refresh(boolean includeRoot) {
+        if (includeRoot) {
+            getSessionDelegate().getRoot().refresh();
+        }
+        if (permissionProvider != null) {
+            permissionProvider.refresh();
+        }
+    }
+
     @Nonnull
-    AccessManager getAccessManager() throws RepositoryException {
+    public AccessManager getAccessManager() throws RepositoryException {
         return new AccessManager(getPermissionProvider());
     }
+
+    //-----------------------------------------------------------< internal >---
 
     void dispose() {
         if (observationManager != null) {
             observationManager.dispose();
         }
         namespaces.clear();
-    }
-
-    void refresh() {
-        if (permissionProvider != null) {
-            permissionProvider.refresh();
-        }
     }
 
     //------------------------------------------------------------< private >---

@@ -16,6 +16,15 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.jcr.AccessDeniedException;
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.ReferentialIntegrityException;
+import javax.jcr.RepositoryException;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.version.VersionException;
+
 import static java.lang.String.format;
 
 /**
@@ -126,4 +135,30 @@ public class CommitFailedException extends Exception {
         return code;
     }
 
+    /**
+     * Wraps the given {@link CommitFailedException} instance using the
+     * appropriate {@link javax.jcr.RepositoryException} subclass based on the
+     * {@link CommitFailedException#getType() type} of the given exception.
+     *
+     * @return matching repository exception
+     */
+    public RepositoryException asRepositoryException() {
+        if (isConstraintViolation()) {
+            return new ConstraintViolationException(this);
+        } else if (isOfType("Type")) {
+            return new NoSuchNodeTypeException(this);
+        } else if (isAccessViolation()) {
+            return new AccessDeniedException(this);
+        } else if (isOfType("Integrity")) {
+            return new ReferentialIntegrityException(this);
+        } else if (isOfType("State")) {
+            return new InvalidItemStateException(this);
+        } else if (isOfType("Version")) {
+            return new VersionException(this);
+        } else if (isOfType("Lock")) {
+            return new LockException(this);
+        } else {
+            return new RepositoryException(this);
+        }
+    }
 }

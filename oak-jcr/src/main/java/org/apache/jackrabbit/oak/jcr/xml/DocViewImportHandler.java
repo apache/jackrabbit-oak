@@ -29,6 +29,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
@@ -78,14 +79,14 @@ class DocViewImportHandler extends TargetImportHandler {
      * @return the parsed names
      * @throws SAXException if an invalid name was encountered
      */
-    private String[] parseNames(String value) throws SAXException {
+    private Iterable<String> parseNames(String value) throws SAXException {
         String[] names = value.split("\\p{Space}+");
-        String[] qnames = new String[names.length];
-        for (int i = 0; i < names.length; i++) {
+        List<String> qnames = Lists.newArrayListWithCapacity(names.length);
+        for (String name : names) {
             try {
-                qnames[i] = new NameInfo(names[i]).getRepoQualifiedName();
+                qnames.add(new NameInfo(name).getRepoQualifiedName());
             } catch (RepositoryException e) {
-                throw new SAXException("Invalid name: " + names[i], e);
+                throw new SAXException("Invalid name: " + name, e);
             }
         }
         return qnames;
@@ -224,7 +225,7 @@ class DocViewImportHandler extends TargetImportHandler {
             // properties
             String id = null;
             String nodeTypeName = null;
-            String[] mixinTypes = null;
+            Iterable<String> mixinTypes = null;
 
             List<PropInfo> props = new ArrayList<PropInfo>(atts.getLength());
             for (int i = 0; i < atts.getLength(); i++) {

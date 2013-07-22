@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.jcr.xml;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.commons.NamespaceHelper;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.slf4j.Logger;
@@ -53,17 +53,26 @@ import org.xml.sax.helpers.DefaultHandler;
 public class ImportHandler extends DefaultHandler {
     private static final Logger log = LoggerFactory.getLogger(ImportHandler.class);
 
+    private final Root root;
+    private final SessionContext sessionContext;
     private final Importer importer;
     private final NamespaceHelper helper;
     private final ValueFactory valueFactory;
+    private final boolean isWorkspaceImport;
+
     protected Locator locator;
     private TargetImportHandler targetHandler;
     private final Map<String, String> tempPrefixMap = new HashMap<String, String>();
 
-    public ImportHandler(Node importTargetNode, SessionContext sessionContext, int uuidBehavior) {
+    public ImportHandler(String absPath, SessionContext sessionContext,
+                         Root root, int uuidBehavior, boolean isWorkspaceImport)
+            throws RepositoryException {
+        this.root = root;
+        this.sessionContext = sessionContext;
         this.helper = new NamespaceHelper(sessionContext.getSession());
-        this.importer = new SessionImporter(importTargetNode, sessionContext, helper, uuidBehavior);
+        this.importer = new ImporterImpl(absPath, sessionContext, root, uuidBehavior, isWorkspaceImport);
         this.valueFactory = sessionContext.getValueFactory();
+        this.isWorkspaceImport = isWorkspaceImport;
     }
 
     //---------------------------------------------------------< ErrorHandler >
@@ -100,6 +109,14 @@ public class ImportHandler extends DefaultHandler {
         // delegate to target handler
         if (targetHandler != null) {
             targetHandler.endDocument();
+        }
+        if (isWorkspaceImport) {
+            try {
+                root.commit();
+                sessionContext.refresh(true);
+            } catch (CommitFailedException e) {
+                throw new SAXException(e);
+            }
         }
     }
 

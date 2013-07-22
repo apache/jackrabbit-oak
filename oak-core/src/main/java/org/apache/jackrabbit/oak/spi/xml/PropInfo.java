@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import java.util.Collections;
+import java.util.List;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 
 /**
@@ -132,12 +135,16 @@ public class PropInfo {
         return values[0].getValue(targetType);
     }
 
-    public Value[] getValues(int targetType) throws RepositoryException {
-        Value[] va = new Value[values.length];
-        for (int i = 0; i < values.length; i++) {
-            va[i] = values[i].getValue(targetType);
+    public List<Value> getValues(int targetType) throws RepositoryException {
+        if (values.length == 0) {
+            return Collections.emptyList();
+        } else {
+            List<Value> vs = Lists.newArrayListWithCapacity(values.length);
+            for (TextValue value : values) {
+                vs.add(value.getValue(targetType));
+            }
+            return vs;
         }
-        return va;
     }
 
     //TODO check multivalue handling

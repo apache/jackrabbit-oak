@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.AccessControlException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -37,7 +38,6 @@ import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.retention.RetentionManager;
-import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -382,7 +382,7 @@ public class SessionImpl implements JackrabbitSession {
             @Override
             protected Void perform() throws RepositoryException {
                 sd.save();
-                sessionContext.refresh();
+                sessionContext.refresh(false);
                 return null;
             }
         });
@@ -394,7 +394,7 @@ public class SessionImpl implements JackrabbitSession {
             @Override
             protected Void perform() throws RepositoryException {
                 sd.refresh(keepChanges);
-                sessionContext.refresh();
+                sessionContext.refresh(false);
                 return null;
             }
 
@@ -429,7 +429,7 @@ public class SessionImpl implements JackrabbitSession {
     @Nonnull
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior)
             throws RepositoryException {
-        return new ImportHandler(getNode(parentAbsPath), sessionContext, uuidBehavior);
+        return new ImportHandler(parentAbsPath, sessionContext, sd.getRoot(), uuidBehavior, false);
     }
 
     @Override

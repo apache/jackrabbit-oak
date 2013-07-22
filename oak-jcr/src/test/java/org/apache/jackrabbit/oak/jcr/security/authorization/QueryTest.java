@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import java.security.AccessControlException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.query.Query;
@@ -49,7 +49,7 @@ public class QueryTest extends AbstractEvaluationTest {
         try {
             testSession.checkPermission(invisible.getPath(), Session.ACTION_READ);        
             fail();
-        } catch (RepositoryException e) {
+        } catch (AccessControlException e) {
             // expected
         }
         Node x = testSession.getNode(visible.getPath());

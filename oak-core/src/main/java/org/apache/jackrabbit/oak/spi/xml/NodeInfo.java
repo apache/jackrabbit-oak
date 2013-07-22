@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import java.util.Collections;
+import javax.annotation.Nonnull;
+
 /**
  * Information about a node being imported. This class is used
  * by the XML import handlers to pass the parsed node information to the
@@ -40,7 +43,7 @@ public class NodeInfo {
     /**
      * Names of the mixin types of the node being imported.
      */
-    private final String[] mixinTypeNames;
+    private final Iterable<String> mixinTypeNames;
 
     /**
      * UUID of the node being imported.
@@ -55,11 +58,11 @@ public class NodeInfo {
      * @param mixinTypeNames names of the mixin types of the node being imported
      * @param uuid uuid of the node being imported
      */
-    public NodeInfo(String name, String primaryTypeName, String[] mixinTypeNames,
+    public NodeInfo(String name, String primaryTypeName, Iterable<String> mixinTypeNames,
                     String uuid) {
         this.name = name;
         this.primaryTypeName = primaryTypeName;
-        this.mixinTypeNames = mixinTypeNames;
+        this.mixinTypeNames = (mixinTypeNames == null) ? Collections.<String>emptyList() : mixinTypeNames;
         this.uuid = uuid;
     }
 
@@ -86,7 +89,8 @@ public class NodeInfo {
      *
      * @return mixin type names
      */
-    public String[] getMixinTypeNames() {
+    @Nonnull
+    public Iterable<String> getMixinTypeNames() {
         return mixinTypeNames;
     }
 

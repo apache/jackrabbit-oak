@@ -16,24 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import java.io.IOException;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.AccessDeniedException;
-import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
-import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -47,6 +35,10 @@ import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
  * TODO document
@@ -389,24 +381,7 @@ public class SessionDelegate {
      * @return matching repository exception
      */
     private static RepositoryException newRepositoryException(CommitFailedException exception) {
-        checkNotNull(exception);
-        if (exception.isConstraintViolation()) {
-            return new ConstraintViolationException(exception);
-        } else if (exception.isOfType("Type")) {
-            return new NoSuchNodeTypeException(exception);
-        } else if (exception.isAccessViolation()) {
-            return new AccessDeniedException(exception);
-        } else if (exception.isOfType("Integrity")) {
-            return new ReferentialIntegrityException(exception);
-        } else if (exception.isOfType("State")) {
-            return new InvalidItemStateException(exception);
-        } else if (exception.isOfType("Version")) {
-            return new VersionException(exception);
-        } else if (exception.isOfType("Lock")) {
-            return new LockException(exception);
-        } else {
-            return new RepositoryException(exception);
-        }
+        return exception.asRepositoryException();
     }
 
 }
