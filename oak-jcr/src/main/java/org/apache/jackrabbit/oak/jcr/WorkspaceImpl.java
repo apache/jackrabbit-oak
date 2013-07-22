@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.IOException;
 import java.io.InputStream;
 import javax.annotation.Nonnull;
+import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -34,18 +35,22 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionManagerImpl;
+import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.util.Text;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -233,16 +238,34 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
 
-        // TODO
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.getImportContentHandler");
+        Root writeRoot = sessionContext.getSessionDelegate().getContentSession().getLatestRoot();
+        return new ImportHandler(parentAbsPath, sessionContext, writeRoot, uuidBehavior, true);
     }
 
     @Override
     public void importXML(String parentAbsPath, InputStream in, int uuidBehavior) throws IOException, RepositoryException {
         ensureIsAlive();
 
-        // TODO -> SPI
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.importXML");
+        try {
+            ContentHandler handler = getImportContentHandler(parentAbsPath, uuidBehavior);
+            new ParsingContentHandler(handler).parse(in);
+        } catch (SAXException e) {
+            Throwable exception = e.getException();
+            if (exception instanceof RepositoryException) {
+                throw (RepositoryException) exception;
+            } else if (exception instanceof IOException) {
+                throw (IOException) exception;
+            } else if (exception instanceof CommitFailedException) {
+                throw ((CommitFailedException) exception).asRepositoryException();
+            } else {
+                throw new InvalidSerializedDataException("XML parse error", e);
+            }
+        } finally {
+            // JCR-2903
+            if (in != null) {
+                try { in.close(); } catch (IOException ignore) {}
+            }
+        }
     }
 
     @Override

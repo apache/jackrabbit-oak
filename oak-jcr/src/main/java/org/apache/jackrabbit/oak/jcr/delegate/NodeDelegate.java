@@ -16,59 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.collect.Iterables.addAll;
-import static com.google.common.collect.Iterables.contains;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.transform;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
-import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
-import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTVALUES;
-import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
-import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
-import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
-import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.DATE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
-import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
-import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_CREATEDBY;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_LASTMODIFIEDBY;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
-
-import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
@@ -89,6 +39,37 @@ import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.collect.Iterables.addAll;
+import static com.google.common.collect.Iterables.contains;
+import static com.google.common.collect.Iterators.filter;
+import static com.google.common.collect.Iterators.transform;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
+import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
+import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
+import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -167,14 +148,14 @@ public class NodeDelegate extends ItemDelegate {
         String name = dropIndexFromName(nameWithIndex);
         boolean sns = !name.equals(nameWithIndex);
         Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
-        List<Tree> types = getEffectiveType(parent, typeRoot);
+        List<Tree> types = TreeUtil.getEffectiveType(parent, typeRoot);
 
         boolean protectedResidual = false;
         for (Tree type : types) {
-            if (contains(getNames(type, OAK_PROTECTED_CHILD_NODES), name)) {
+            if (contains(TreeUtil.getNames(type, OAK_PROTECTED_CHILD_NODES), name)) {
                 return true;
             } else if (!protectedResidual) {
-                protectedResidual = getBoolean(
+                protectedResidual = TreeUtil.getBoolean(
                         type, OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES);
             }
         }
@@ -184,9 +165,9 @@ public class NodeDelegate extends ItemDelegate {
         // there's a matching, protected one.
         if (protectedResidual) {
             Set<String> typeNames = newHashSet();
-            for (Tree type : getEffectiveType(tree, typeRoot)) {
-                typeNames.add(getName(type, JCR_NODETYPENAME));
-                addAll(typeNames, getNames(type, OAK_SUPERTYPES));
+            for (Tree type : TreeUtil.getEffectiveType(tree, typeRoot)) {
+                typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
+                addAll(typeNames, TreeUtil.getNames(type, OAK_SUPERTYPES));
             }
 
             for (Tree type : types) {
@@ -194,8 +175,8 @@ public class NodeDelegate extends ItemDelegate {
                         type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
                 for (String typeName : typeNames) {
                     Tree definition = definitions.getChild(typeName);
-                    if ((!sns || getBoolean(definition, JCR_SAMENAMESIBLINGS))
-                            && getBoolean(definition, JCR_PROTECTED)) {
+                    if ((!sns || TreeUtil.getBoolean(definition, JCR_SAMENAMESIBLINGS))
+                            && TreeUtil.getBoolean(definition, JCR_PROTECTED)) {
                         return true;
                     }
                 }
@@ -208,14 +189,14 @@ public class NodeDelegate extends ItemDelegate {
     boolean isProtected(String property) throws InvalidItemStateException {
         Tree tree = getTree();
         Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
-        List<Tree> types = getEffectiveType(tree, typeRoot);
+        List<Tree> types = TreeUtil.getEffectiveType(tree, typeRoot);
 
         boolean protectedResidual = false;
         for (Tree type : types) {
-            if (contains(getNames(type, OAK_PROTECTED_PROPERTIES), property)) {
+            if (contains(TreeUtil.getNames(type, OAK_PROTECTED_PROPERTIES), property)) {
                 return true;
             } else if (!protectedResidual) {
-                protectedResidual = getBoolean(
+                protectedResidual = TreeUtil.getBoolean(
                         type, OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES);
             }
         }
@@ -228,7 +209,7 @@ public class NodeDelegate extends ItemDelegate {
                 Tree definitions = type.getChild(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
                 for (Tree definition : definitions.getChildren()) {
                     // TODO: check for matching property type?
-                    if (getBoolean(definition, JCR_PROTECTED)) {
+                    if (TreeUtil.getBoolean(definition, JCR_PROTECTED)) {
                         return true;
                     }
                 }
@@ -376,8 +357,8 @@ public class NodeDelegate extends ItemDelegate {
     public boolean canAddMixin(String typeName) throws RepositoryException {
         Tree type = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH).getChild(typeName);
         if (type.exists()) {
-            return !getBoolean(type, JCR_IS_ABSTRACT)
-                    && getBoolean(type, JCR_ISMIXIN);
+            return !TreeUtil.getBoolean(type, JCR_IS_ABSTRACT)
+                    && TreeUtil.getBoolean(type, JCR_ISMIXIN);
         } else {
             throw new NoSuchNodeTypeException(
                     "Node type " + typeName + " does not exist");
@@ -385,38 +366,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public void addMixin(String typeName) throws RepositoryException {
-        Tree type = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH).getChild(typeName);
-        if (!type.exists()) {
-            throw new NoSuchNodeTypeException(
-                    "Node type " + typeName + " does not exist");
-        } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
-            throw new ConstraintViolationException(
-                    "Node type " + typeName + " is abstract");
-        } else if (!getBoolean(type, JCR_ISMIXIN)) {
-            throw new ConstraintViolationException(
-                    "Node type " + typeName + " is a not a mixin type");
-        }
-
-        Tree tree = getTree();
-        List<String> mixins = newArrayList();
-
-        String primary = getName(tree, JCR_PRIMARYTYPE);
-        if (primary != null
-                && contains(getNames(type, OAK_PRIMARY_SUBTYPES), primary)) {
-            return;
-        }
-
-        Set<String> subMixins = newHashSet(getNames(type, OAK_MIXIN_SUBTYPES));
-        for (String mixin : getNames(tree, JCR_MIXINTYPES)) {
-            if (typeName.equals(mixin) || subMixins.contains(mixin)) {
-                return;
-            }
-            mixins.add(mixin);
-        }
-
-        mixins.add(typeName);
-        tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
-        autoCreateItems(tree, type, sessionDelegate.getRoot().getTree(NODE_TYPES_PATH));
+        TreeUtil.addMixin(getTree(), typeName, sessionDelegate.getRoot().getTree(NODE_TYPES_PATH), getUserID());
     }
 
     /**
@@ -450,14 +400,14 @@ public class NodeDelegate extends ItemDelegate {
         if (definition == null) {
             throw new ConstraintViolationException(
                     "No matching property definition: " + propertyState);
-        } else if (!setProtected && getBoolean(definition, JCR_PROTECTED)) {
+        } else if (!setProtected && TreeUtil.getBoolean(definition, JCR_PROTECTED)) {
             throw new ConstraintViolationException(
                     "Property is protected: " + propertyState);
         }
         Type<?> requiredType =
-                Type.fromString(getString(definition, JCR_REQUIREDTYPE));
+                Type.fromString(TreeUtil.getString(definition, JCR_REQUIREDTYPE));
         if (requiredType != Type.UNDEFINED) {
-            if (getBoolean(definition, JCR_MULTIPLE)) {
+            if (TreeUtil.getBoolean(definition, JCR_MULTIPLE)) {
                 requiredType = requiredType.getArrayType();
             }
             propertyState = PropertyStates.convert(propertyState, requiredType);
@@ -474,12 +424,12 @@ public class NodeDelegate extends ItemDelegate {
 
         // Find applicable node types
         List<Tree> types = newArrayList();
-        String primaryName = getName(tree, JCR_PRIMARYTYPE);
+        String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
         if (primaryName == null) {
             primaryName = NT_BASE;
         }
         types.add(typeRoot.getChild(primaryName));
-        for (String mixinName : getNames(tree, JCR_MIXINTYPES)) {
+        for (String mixinName : TreeUtil.getNames(tree, JCR_MIXINTYPES)) {
             types.add(typeRoot.getChild(mixinName));
         }
 
@@ -516,7 +466,7 @@ public class NodeDelegate extends ItemDelegate {
             }
             if (!exactTypeMatch) {
                 for (Tree def : definitions.getChildren()) {
-                    if (propertyType.isArray() == getBoolean(def, JCR_MULTIPLE)) {
+                    if (propertyType.isArray() == TreeUtil.getBoolean(def, JCR_MULTIPLE)) {
                         return def;
                     }
                 }
@@ -536,7 +486,7 @@ public class NodeDelegate extends ItemDelegate {
             }
             if (!exactTypeMatch) {
                 for (Tree def : definitions.getChildren()) {
-                    if (propertyType.isArray() == getBoolean(def, JCR_MULTIPLE)) {
+                    if (propertyType.isArray() == TreeUtil.getBoolean(def, JCR_MULTIPLE)) {
                         return def;
                     }
                 }
@@ -564,7 +514,7 @@ public class NodeDelegate extends ItemDelegate {
 
         Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
         if (typeName == null) {
-            typeName = getDefaultChildType(typeRoot, tree, name);
+            typeName = TreeUtil.getDefaultChildType(typeRoot, tree, name);
             if (typeName == null) {
                 throw new ConstraintViolationException(
                         "No default node type available for node "
@@ -605,191 +555,7 @@ public class NodeDelegate extends ItemDelegate {
     private Tree internalAddChild(
             Tree parent, String name, String typeName, Tree typeRoot)
             throws RepositoryException {
-        Tree type = typeRoot.getChild(typeName);
-        if (!type.exists()) {
-            throw new NoSuchNodeTypeException(
-                    "Node type " + typeName + " does not exist");
-        } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
-            throw new ConstraintViolationException(
-                    "Node type " + typeName + " is abstract");
-        } else if (getBoolean(type, JCR_ISMIXIN)) {
-            throw new ConstraintViolationException(
-                    "Node type " + typeName + " is a mixin type");
-        }
-
-        Tree child = parent.addChild(name);
-        child.setProperty(JCR_PRIMARYTYPE, typeName, NAME);
-        if (getBoolean(type, JCR_HASORDERABLECHILDNODES)) {
-            child.setOrderableChildren(true);
-        }
-        autoCreateItems(child, type, typeRoot);
-        return child;
-    }
-
-    private void autoCreateItems(Tree tree, Tree type, Tree typeRoot)
-            throws RepositoryException {
-        // TODO: use a separate oak:autoCreatePropertyDefinitions
-        Tree properties = type.getChild(OAK_NAMED_PROPERTY_DEFINITIONS);
-        for (Tree definitions : properties.getChildren()) {
-            String name = definitions.getName();
-            if (name.equals("oak:primaryType")
-                    || name.equals("oak:mixinTypes")) {
-                continue;
-            } else if (name.equals("oak:uuid")) {
-                name = JCR_UUID;
-            }
-            for (Tree definition : definitions.getChildren()) {
-                if (getBoolean(definition, JCR_AUTOCREATED)) {
-                    if (!tree.hasProperty(name)) {
-                        PropertyState property =
-                                autoCreateProperty(name, definition);
-                        if (property != null) {
-                            tree.setProperty(property);
-                        } else {
-                            throw new RepositoryException(
-                                    "Unable to auto-create value for "
-                                    + PathUtils.concat(tree.getPath(), name));
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
-        // TODO: use a separate oak:autoCreateChildNodeDefinitions
-        // Note that we use only named, non-SNS child node definitions
-        // as there can be no reasonable default values for residual or
-        // SNS child nodes
-        Tree childNodes = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-        for (Tree definitions : childNodes.getChildren()) {
-            String name = definitions.getName();
-            for (Tree definition : definitions.getChildren()) {
-                if (getBoolean(definition, JCR_AUTOCREATED)) {
-                    if (!tree.hasChild(name)) {
-                        String typeName =
-                                getName(definition, JCR_DEFAULTPRIMARYTYPE);
-                        internalAddChild(tree, name, typeName, typeRoot);
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    private PropertyState autoCreateProperty(String name, Tree definition) {
-        if (JCR_UUID.equals(name)) {
-            String uuid = IdentifierManager.generateUUID();
-            return PropertyStates.createProperty(name, uuid, STRING);
-        } else if (JCR_CREATED.equals(name)) {
-            long now = Calendar.getInstance().getTime().getTime();
-            return PropertyStates.createProperty(name, now, DATE);
-        } else if (JCR_CREATEDBY.equals(name)) {
-            String userID = sessionDelegate.getAuthInfo().getUserID();
-            if (userID != null) {
-                return PropertyStates.createProperty(name, userID, STRING);
-            }
-        } else if (JCR_LASTMODIFIED.equals(name)) {
-            long now = Calendar.getInstance().getTime().getTime();
-            return PropertyStates.createProperty(name, now, DATE);
-        } else if (JCR_LASTMODIFIEDBY.equals(name)) {
-            String userID = sessionDelegate.getAuthInfo().getUserID();
-            if (userID != null) {
-                return PropertyStates.createProperty(name, userID, STRING);
-            }
-        }
-
-        // does the definition have a default value?
-        PropertyState values = definition.getProperty(JCR_DEFAULTVALUES);
-        if (values != null) {
-            Type<?> type = values.getType();
-            if (getBoolean(definition, JCR_MULTIPLE)) {
-                return PropertyStates.createProperty(
-                        name, values.getValue(type), type);
-            } else if (values.count() > 0) {
-                type = type.getBaseType();
-                return PropertyStates.createProperty(
-                        name, values.getValue(type, 0), type);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Finds the default primary type for a new child node with the given name.
-     *
-     * @param typeRoot root of the {@code /jcr:system/jcr:nodeTypes} tree
-     * @param parent parent node
-     * @param childName name of the new child node
-     * @return name of the default type, or {@code null} if not available
-     */
-    private static String getDefaultChildType(
-            Tree typeRoot, Tree parent, String childName) {
-        String name = dropIndexFromName(childName);
-        boolean sns = !name.equals(childName);
-        List<Tree> types = getEffectiveType(parent, typeRoot);
-
-        // first look for named node definitions
-        for (Tree type : types) {
-            Tree definitions = type
-                    .getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS)
-                    .getChild(name);
-            String defaultName =
-                    findDefaultPrimaryType(typeRoot, definitions, sns);
-            if (defaultName != null) {
-                return defaultName;
-            }
-        }
-
-        // then check residual definitions
-        for (Tree type : types) {
-            Tree definitions = type
-                    .getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
-            String defaultName =
-                    findDefaultPrimaryType(typeRoot, definitions, sns);
-            if (defaultName != null) {
-                return defaultName;
-            }
-        }
-
-        // no matching child node definition found
-        return null;
-    }
-
-    /**
-     * Returns the effective node types of the given node.
-     */
-    private static List<Tree> getEffectiveType(Tree tree, Tree typeRoot) {
-        List<Tree> types = newArrayList();
-
-        String primary = getName(tree, JCR_PRIMARYTYPE);
-        if (primary != null) {
-            Tree type = typeRoot.getChild(primary);
-            if (type.exists()) {
-                types.add(type);
-            }
-        }
-
-        for (String mixin : getNames(tree, JCR_MIXINTYPES)) {
-            Tree type = typeRoot.getChild(mixin);
-            if (type.exists()) {
-                types.add(type);
-            }
-        }
-
-        return types;
-    }
-
-    private static String findDefaultPrimaryType(
-            Tree typeRoot, Tree definitions, boolean sns) {
-        for (Tree definition : definitions.getChildren()) {
-            String defaultName = getName(definition, JCR_DEFAULTPRIMARYTYPE);
-            if (defaultName != null
-                    && (!sns || getBoolean(definition, JCR_SAMENAMESIBLINGS))) {
-                return defaultName;
-            }
-        }
-        return null;
+        return TreeUtil.addChild(parent, name, typeName, typeRoot, getUserID());
     }
 
     @Nonnull // FIXME this should be package private. OAK-672
@@ -810,42 +576,7 @@ public class NodeDelegate extends ItemDelegate {
         return TreeUtil.getTree(tree, relPath);
     }
 
-    // Generic property value accessors. TODO: add to Tree?
-
-    private static boolean getBoolean(Tree tree, String name) {
-        PropertyState property = tree.getProperty(name);
-        return property != null
-                && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
-    }
-
-    @CheckForNull
-    private static String getString(Tree tree, String name) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null && property.getType() == STRING) {
-            return property.getValue(STRING);
-        } else {
-            return null;
-        }
-    }
-
-    @CheckForNull
-    private static String getName(Tree tree, String name) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null && property.getType() == NAME) {
-            return property.getValue(NAME);
-        } else {
-            return null;
-        }
-    }
-
-    @Nonnull
-    private static Iterable<String> getNames(Tree tree, String name) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null && property.getType() == NAMES) {
-            return property.getValue(NAMES);
-        } else {
-            return emptyList();
-        }
+    private String getUserID() {
+        return sessionDelegate.getAuthInfo().getUserID();
     }
 }

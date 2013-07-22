@@ -73,14 +73,8 @@ class SysViewImportHandler extends TargetImportHandler {
         if (!start && !end) {
             return;
         }
-        String[] mixinNames = null;
-        if (state.mixinNames != null) {
-            mixinNames = state.mixinNames.toArray(
-                    new String[state.mixinNames.size()]);
-        }
         String id = state.uuid;
-        NodeInfo node =
-                new NodeInfo(state.nodeName, state.nodeTypeName, mixinNames, id);
+        NodeInfo node = new NodeInfo(state.nodeName, state.nodeTypeName, state.mixinNames, id);
         // call Importer
         try {
             if (start) {
