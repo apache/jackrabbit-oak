@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -272,20 +274,23 @@ class UserProvider extends AuthorizableBaseProvider {
     private NodeUtil createFolderNodes(String authorizableId, String nodeName,
                                        boolean isGroup, String intermediatePath) throws RepositoryException {
         String authRoot = (isGroup) ? groupPath : userPath;
+        String folderPath = new StringBuilder()
+                .append(authRoot)
+                .append(getFolderPath(authorizableId, intermediatePath, authRoot)).toString();
         NodeUtil folder;
-        Tree authTree = root.getTree(authRoot);
-        if (!authTree.exists()) {
-            folder = new NodeUtil(root.getTree("/"));
-            for (String name : Text.explode(authRoot, '/', false)) {
-                folder = folder.getOrAddChild(name, NT_REP_AUTHORIZABLE_FOLDER);
+        Tree tree = root.getTree(folderPath);
+        while (!tree.isRoot() && !tree.exists()) {
+            tree = tree.getParent();
+        }
+        if (tree.exists()) {
+            folder = new NodeUtil(tree);
+            String relativePath = PathUtils.relativize(tree.getPath(), folderPath);
+            if (!relativePath.isEmpty()) {
+                folder = folder.getOrAddTree(relativePath, NT_REP_AUTHORIZABLE_FOLDER);
             }
         } else {
-            folder = new NodeUtil(authTree);
+            throw new AccessDeniedException("Missing permission to create intermediate authorizable folders.");
         }
-
-        // verification of hierarchy and node types is delegated to UserValidator upon commit
-        String folderPath = getFolderPath(authorizableId, intermediatePath, authRoot);
-        folder = folder.getOrAddTree(folderPath, NT_REP_AUTHORIZABLE_FOLDER);
 
         // test for colliding folder child node.
         while (folder.hasChild(nodeName)) {
@@ -315,7 +320,7 @@ class UserProvider extends AuthorizableBaseProvider {
 
         StringBuilder sb = new StringBuilder();
         if (intermediatePath != null && !intermediatePath.isEmpty()) {
-            sb.append(intermediatePath);
+            sb.append(DELIMITER).append(intermediatePath);
         } else {
             int idLength = authorizableId.length();
             StringBuilder segment = new StringBuilder();

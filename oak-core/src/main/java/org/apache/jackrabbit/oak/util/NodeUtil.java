@@ -30,6 +30,7 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -68,11 +69,6 @@ public class NodeUtil {
     }
 
     @Nonnull
-    public NameMapper getNameMapper() {
-        return mapper;
-    }
-
-    @Nonnull
     public Tree getTree() {
         return tree;
     }
@@ -101,16 +97,42 @@ public class NodeUtil {
         return child.exists() ? new NodeUtil(child, mapper) : null;
     }
 
+    /**
+     * Adds a new child tree with the given name and primary type name.
+     * This method is a shortcut for calling {@link Tree#addChild(String)} and
+     * {@link Tree#setProperty(String, Object, org.apache.jackrabbit.oak.api.Type)}
+     * where the property name is {@link JcrConstants#JCR_PRIMARYTYPE}.
+     * Note, that this method in addition verifies if the created tree exists
+     * and is accessible in order to avoid {@link IllegalStateException} upon
+     * subsequent modification of the new child.
+     *
+     * @param name            The name of the child item.
+     * @param primaryTypeName The name of the primary node type.
+     * @return The new child node with the specified name and primary type.
+     * @throws AccessDeniedException If the child does not exist after creation.
+     */
     @Nonnull
-    public NodeUtil addChild(String name, String primaryNodeTypeName) {
+    public NodeUtil addChild(String name, String primaryTypeName) throws AccessDeniedException {
         Tree child = tree.addChild(name);
+        if (!child.exists()) {
+            throw new AccessDeniedException();
+        }
         NodeUtil childUtil = new NodeUtil(child, mapper);
-        childUtil.setName(JcrConstants.JCR_PRIMARYTYPE, primaryNodeTypeName);
+        childUtil.setName(JcrConstants.JCR_PRIMARYTYPE, primaryTypeName);
         return childUtil;
     }
 
+    /**
+     * Combination of {@link #getChild(String)} and {@link #addChild(String, String)}
+     * in case no tree exists with the specified name.
+     *
+     * @param name            The name of the child item.
+     * @param primaryTypeName The name of the primary node type.
+     * @return The new child node with the specified name and primary type.
+     * @throws AccessDeniedException If the child does not exist after creation.
+     */
     @Nonnull
-    public NodeUtil getOrAddChild(String name, String primaryTypeName) {
+    public NodeUtil getOrAddChild(String name, String primaryTypeName) throws AccessDeniedException {
         NodeUtil child = getChild(name);
         return (child != null) ? child : addChild(name, primaryTypeName);
     }
@@ -130,9 +152,11 @@ public class NodeUtil {
      * @param primaryTypeName A oak name of a primary node type that is used
      *                        to create the missing trees.
      * @return The node util of the tree at the specified {@code relativePath}.
+     * @throws AccessDeniedException If the any intermediate tree does not exist
+     *                               and cannot be created.
      */
     @Nonnull
-    public NodeUtil getOrAddTree(String relativePath, String primaryTypeName) {
+    public NodeUtil getOrAddTree(String relativePath, String primaryTypeName) throws AccessDeniedException {
         if (relativePath.indexOf('/') == -1) {
             return getOrAddChild(relativePath, primaryTypeName);
         } else {
@@ -176,8 +200,8 @@ public class NodeUtil {
      *
      * @param name The name of the property.
      * @return the boolean representation of the property state with the given
-     * name. This utility returns {@code false} if the property does not exist
-     * or is an multivalued property.
+     *         name. This utility returns {@code false} if the property does not exist
+     *         or is an multivalued property.
      */
     public boolean getBoolean(String name) {
         return TreeUtil.getBoolean(tree, name);
