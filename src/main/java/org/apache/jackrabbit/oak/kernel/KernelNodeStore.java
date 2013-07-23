@@ -16,9 +16,14 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -29,18 +34,14 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-import org.apache.jackrabbit.oak.cache.CacheStats;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
@@ -63,6 +64,11 @@ public class KernelNodeStore extends AbstractNodeStore {
     private final LoadingCache<String, KernelNodeState> cache;
 
     private final CacheStats cacheStats;
+
+    /**
+     * Lock passed to branches for coordinating merges
+     */
+    private final Lock mergeLock = new ReentrantLock();
 
     /**
      * State of the current root node.
@@ -140,7 +146,7 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     @Override
     public NodeStoreBranch branch() {
-        return new KernelNodeStoreBranch(this, getRoot());
+        return new KernelNodeStoreBranch(this, getRoot(), mergeLock);
     }
 
     /**
