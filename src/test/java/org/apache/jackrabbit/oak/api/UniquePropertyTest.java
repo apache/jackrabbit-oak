@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import static org.junit.Assert.fail;
-
 import java.util.UUID;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -28,13 +26,15 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
+import static org.junit.Assert.fail;
+
 /**
  * UniquePropertyTest...
  */
 public class UniquePropertyTest {
 
     @Test
-    public void testUniqueness() throws CommitFailedException {
+    public void testUniqueness() throws Exception {
 
         Root root = new Oak()
                 .with(new OpenSecurityProvider())
@@ -42,7 +42,7 @@ public class UniquePropertyTest {
                 .with(new InitialContent()).createRoot();
 
         NodeUtil node = new NodeUtil(root.getTree("/"));
-        String uuid =  UUID.randomUUID().toString();
+        String uuid = UUID.randomUUID().toString();
         node.setString(JcrConstants.JCR_UUID, uuid);
         root.commit();
 

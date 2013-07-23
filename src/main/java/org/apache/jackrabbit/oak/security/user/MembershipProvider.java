@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -50,30 +51,30 @@ import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
  * with the {@code Tree} associated with a given {@link org.apache.jackrabbit.api.security.user.Group}.
  * Depending on the configuration there are two variants on how group members
  * are recorded:
- *
+ * <p/>
  * <h3>Membership stored in multi-valued property</h3>
  * This is the default way of storing membership information with the following
  * characteristics:
  * <ul>
- *     <li>Multivalued property {@link #REP_MEMBERS}</li>
- *     <li>Property type: {@link javax.jcr.PropertyType#WEAKREFERENCE}</li>
- *     <li>Used if the config option {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} is missing or &lt;4</li>
+ * <li>Multivalued property {@link #REP_MEMBERS}</li>
+ * <li>Property type: {@link javax.jcr.PropertyType#WEAKREFERENCE}</li>
+ * <li>Used if the config option {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} is missing or &lt;4</li>
  * </ul>
- *
+ * <p/>
  * <h3>Membership stored in individual properties</h3>
  * Variant to store group membership based on the
  * {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} configuration parameter:
- *
+ * <p/>
  * <ul>
- *     <li>Membership information stored underneath a {@link #REP_MEMBERS} node hierarchy</li>
- *     <li>Individual member information is stored each in a {@link javax.jcr.PropertyType#WEAKREFERENCE}
- *     property</li>
- *     <li>Node hierarchy is split based on the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE}
- *     configuration parameter.</li>
- *     <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} must be greater than 4
- *     in order to turn on this behavior</li>
+ * <li>Membership information stored underneath a {@link #REP_MEMBERS} node hierarchy</li>
+ * <li>Individual member information is stored each in a {@link javax.jcr.PropertyType#WEAKREFERENCE}
+ * property</li>
+ * <li>Node hierarchy is split based on the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE}
+ * configuration parameter.</li>
+ * <li>{@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} must be greater than 4
+ * in order to turn on this behavior</li>
  * </ul>
- *
+ * <p/>
  * <h3>Compatibility</h3>
  * This membership provider is able to deal with both options being present in
  * the content. If the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} configuration
@@ -102,7 +103,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
         Set<String> groupPaths = new HashSet<String>();
         Set<String> refPaths = identifierManager.getReferences(true, authorizableTree, REP_MEMBERS, NT_REP_GROUP, NT_REP_MEMBERS);
         for (String propPath : refPaths) {
-            int index = propPath.indexOf('/'+REP_MEMBERS);
+            int index = propPath.indexOf('/' + REP_MEMBERS);
             if (index > 0) {
                 groupPaths.add(propPath.substring(0, index));
             } else {
@@ -181,11 +182,11 @@ class MembershipProvider extends AuthorizableBaseProvider {
         return false;
     }
 
-    boolean addMember(Tree groupTree, Tree newMemberTree) {
+    boolean addMember(Tree groupTree, Tree newMemberTree) throws RepositoryException {
         return addMember(groupTree, newMemberTree.getName(), getContentID(newMemberTree));
     }
 
-    boolean addMember(Tree groupTree, String treeName, String memberContentId) {
+    boolean addMember(Tree groupTree, String treeName, String memberContentId) throws RepositoryException {
         if (useMemberNode(groupTree)) {
             NodeUtil groupNode = new NodeUtil(groupTree);
             NodeUtil membersNode = groupNode.getOrAddChild(REP_MEMBERS, NT_REP_MEMBERS);
@@ -233,10 +234,10 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * Returns {@code true} if the given {@code newMember} is a Group
      * and contains {@code this} Group as declared or inherited member.
      *
-     * @param newMemberTree The new member to be tested for cyclic membership.
+     * @param newMemberTree  The new member to be tested for cyclic membership.
      * @param groupContentId The content ID of the group.
      * @return true if the 'newMember' is a group and 'this' is an declared or
-     * inherited member of it.
+     *         inherited member of it.
      */
     boolean isCyclicMembership(Tree newMemberTree, String groupContentId) {
         if (UserUtility.isType(newMemberTree, AuthorizableType.GROUP)) {
@@ -271,8 +272,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * Returns an iterator of authorizables which includes all indirect members
      * of the given iterator of authorizables.
      *
-     *
-     * @param declaredMembers Iterator containing the paths to the declared members.
+     * @param declaredMembers  Iterator containing the paths to the declared members.
      * @param authorizableType Flag used to filter the result by authorizable type.
      * @return Iterator of Authorizable objects
      */
@@ -344,6 +344,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
     private static final class ProcessedPathPredicate implements Predicate<String> {
         private final Set<String> processed = new HashSet<String>();
+
         @Override
         public boolean apply(@Nullable String path) {
             return processed.add(path);

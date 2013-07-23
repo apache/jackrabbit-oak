@@ -489,13 +489,13 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     /**
-     *
      * @param oakPath the Oak path as specified with the ac mgr call.
      * @param tree    the access controlled node.
      * @return the new acl tree.
+     * @throws AccessDeniedException In case the new acl tree is not accessible.
      */
     @Nonnull
-    private Tree createAclTree(@Nullable String oakPath, @Nonnull Tree tree) {
+    private Tree createAclTree(@Nullable String oakPath, @Nonnull Tree tree) throws AccessDeniedException {
         if (!AccessControlUtils.isAccessControlled(oakPath, tree, ntMgr)) {
             PropertyState mixins = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
             String mixinName = AccessControlUtils.getMixinName(oakPath);
@@ -814,7 +814,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
         private static final NamedAccessControlPolicy INSTANCE = new ReadPolicy();
 
-        private ReadPolicy() {}
+        private ReadPolicy() {
+        }
 
         @Override
         public String getName() {
