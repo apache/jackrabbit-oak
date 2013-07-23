@@ -47,7 +47,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
      * Disabled until OAK-890 is fully implemented.
      * Enable for testing OAK-890 related changes.
      */
-    public static final boolean OAK_890_ADVANCED_FT_SEARCH = false;
+    public static final boolean OAK_890_ADVANCED_FT_SEARCH = true;
 
     /**
      * Compatibility for Jackrabbit 2.0 single quoted phrase queries.
