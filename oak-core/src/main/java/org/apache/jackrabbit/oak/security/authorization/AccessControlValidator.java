@@ -16,14 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
@@ -40,6 +36,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
 
 /**
  * Validation for access control information changed by regular JCR (and Jackrabbit)
@@ -220,7 +219,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         try {
             restrictionProvider.validateRestrictions(path, aceTree);
         } catch (AccessControlException e) {
-            throw new CommitFailedException(ACCESS, 1, "Access control violation", e);
+            throw new CommitFailedException(ACCESS_CONTROL, 1, "Access control violation", e);
         }
     }
 
@@ -239,6 +238,6 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     private static CommitFailedException accessViolation(int code, String message) {
-        return new CommitFailedException(ACCESS, code, message);
+        return new CommitFailedException(ACCESS_CONTROL, code, message);
     }
 }

@@ -16,12 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
 import java.util.Map;
-
-import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 
@@ -30,6 +25,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Writable namespace registry. Mainly for use to implement the full JCR API.
@@ -101,14 +99,8 @@ public abstract class ReadWriteNamespaceRegistry
         } catch (CommitFailedException e) {
             String message =
                     "Failed to register namespace mapping from "
-                    + prefix + " to " + uri;
-            if (e.isOfType("Namespace")) {
-                throw new NamespaceException(message, e);
-            }  else if (e.isAccessViolation()) {
-                throw new AccessDeniedException(message, e);
-            } else {
-                throw new RepositoryException(message, e);
-            }
+                            + prefix + " to " + uri;
+            throw e.asRepositoryException(message);
         }
     }
 
@@ -119,7 +111,7 @@ public abstract class ReadWriteNamespaceRegistry
         if (!namespaces.exists() || !namespaces.hasProperty(prefix)) {
             throw new NamespaceException(
                     "Namespace mapping from " + prefix + " to "
-                    + getURI(prefix) + " can not be unregistered");
+                            + getURI(prefix) + " can not be unregistered");
         }
 
         try {
@@ -128,13 +120,7 @@ public abstract class ReadWriteNamespaceRegistry
             refresh();
         } catch (CommitFailedException e) {
             String message = "Failed to unregister namespace mapping for prefix " + prefix;
-            if (e.isOfType("Namespace")) {
-                throw new NamespaceException(message, e);
-            } else if (e.isAccessViolation()) {
-                throw new AccessDeniedException(message, e);
-            } else {
-                throw new RepositoryException(message, e);
-            }
+            throw e.asRepositoryException(message);
         }
     }
 

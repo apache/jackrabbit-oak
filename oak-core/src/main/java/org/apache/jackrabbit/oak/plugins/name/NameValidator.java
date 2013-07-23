@@ -44,7 +44,7 @@ class NameValidator extends DefaultValidator {
             String prefix = name.substring(0, colon);
             if (prefix.isEmpty() || !prefixes.contains(prefix)) {
                 throw new CommitFailedException(
-                        "Name", 1, "Invalid namespace prefix: " + name);
+                        CommitFailedException.NAME, 1, "Invalid namespace prefix: " + name);
             }
         }
 
@@ -58,7 +58,7 @@ class NameValidator extends DefaultValidator {
             }
             if (local.charAt(i) != '[') {
                 throw new CommitFailedException(
-                        "Name", 2, "Invalid name index " + name);
+                        CommitFailedException.NAME, 2, "Invalid name index " + name);
             } else {
                 local = local.substring(0, i);
             }
@@ -66,7 +66,7 @@ class NameValidator extends DefaultValidator {
 
         if (!Namespaces.isValidLocalName(local)) {
             throw new CommitFailedException(
-                    "Name", 3, "Invalid name: " + name);
+                    CommitFailedException.NAME, 3, "Invalid name: " + name);
         }
     }
 
