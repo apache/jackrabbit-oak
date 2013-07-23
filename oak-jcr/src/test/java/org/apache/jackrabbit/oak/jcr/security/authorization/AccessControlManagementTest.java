@@ -500,7 +500,6 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         testSession.save();
     }
 
-    @Ignore("OAK-767 : Implement Node#removeMixin")
     @Test
     public void testRemoveMixin() throws Exception {
         Node n = superuser.getNode(path);

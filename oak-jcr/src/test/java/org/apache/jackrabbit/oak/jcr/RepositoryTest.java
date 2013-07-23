@@ -46,7 +46,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -1778,11 +1777,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        try {
-            testNode.removeMixin("mix:test");
-            fail("Expected ConstraintViolationException");
-        } catch (ConstraintViolationException expected) {
-        }
+        testNode.removeMixin("mix:test");
     }
 
     @Test
