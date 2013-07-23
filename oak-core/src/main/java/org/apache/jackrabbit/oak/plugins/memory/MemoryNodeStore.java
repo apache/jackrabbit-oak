@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -25,19 +31,13 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.io.ByteStreams;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * Basic in-memory node store implementation. Useful as a base class for
@@ -121,16 +121,14 @@ public class MemoryNodeStore extends AbstractNodeStore {
         }
 
         @Override
-        public NodeState merge(CommitHook hook) throws CommitFailedException {
+        public NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
+            // TODO: rebase();
             checkNotMerged();
-            while (!store.root.compareAndSet(
-                    base, ModifiedNodeState.squeeze(
-                            checkNotNull(hook).processCommit(base, root)))) {
-                // TODO: rebase();
-                throw new UnsupportedOperationException();
-            }
+            NodeState merged = ModifiedNodeState.squeeze(checkNotNull(hook).processCommit(base, root));
+            store.root.set(merged);
             root = null; // Mark as merged
-            return store.getRoot();
+            committed.contentChanged(base, merged);
+            return merged;
         }
 
         @Override

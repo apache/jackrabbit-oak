@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -59,7 +60,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             NodeStoreBranch branch = store.branch();
             try {
                 branch.setRoot(root.getNodeState());
-                branch.merge(EmptyHook.INSTANCE);
+                branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
             } catch (CommitFailedException e) {
                 log.error("Failed to initialize privilege content ", e);
                 throw new RuntimeException(e);

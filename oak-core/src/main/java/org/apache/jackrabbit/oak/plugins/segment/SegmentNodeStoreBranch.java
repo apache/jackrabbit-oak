@@ -29,6 +29,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -93,7 +94,7 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         }
     }
 
-    private synchronized long optimisticMerge(CommitHook hook)
+    private synchronized long optimisticMerge(CommitHook hook, PostCommitHook committed)
             throws CommitFailedException, InterruptedException {
         long timeout = 1;
 
@@ -119,6 +120,7 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
             } else if (store.setHead(base, newHead)) {
                 base = newHead;
                 head = newHead;
+                committed.contentChanged(originalBase.getChildNode(ROOT), newHead.getChildNode(ROOT));
                 return -1;
             }
 
@@ -140,7 +142,7 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         return MILLISECONDS.convert(timeout, NANOSECONDS);
     }
 
-    private synchronized void pessimisticMerge(CommitHook hook, long timeout)
+    private synchronized void pessimisticMerge(CommitHook hook, PostCommitHook committed, long timeout)
             throws CommitFailedException {
         while (true) {
             SegmentNodeState before = store.getHead();
@@ -176,6 +178,7 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                     if (store.setHead(after, newHead)) {
                         base = newHead;
                         head = newHead;
+                        committed.contentChanged(originalBase.getChildNode(ROOT), newHead.getChildNode(ROOT));
                         return;
                     } else {
                         // something else happened, perhaps a timeout, so
@@ -189,13 +192,13 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
     }
 
     @Override @Nonnull
-    public synchronized NodeState merge(CommitHook hook)
+    public synchronized NodeState merge(CommitHook hook, PostCommitHook committed)
             throws CommitFailedException {
         if (base != head) {
             try {
-                long timeout = optimisticMerge(hook);
+                long timeout = optimisticMerge(hook, committed);
                 if (timeout >= 0) {
-                    pessimisticMerge(hook, timeout);
+                    pessimisticMerge(hook, committed, timeout);
                 }
             } catch (InterruptedException e) {
                 throw new CommitFailedException(

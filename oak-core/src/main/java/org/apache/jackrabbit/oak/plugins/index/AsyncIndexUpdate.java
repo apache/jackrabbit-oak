@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -115,7 +116,7 @@ public class AsyncIndexUpdate implements Runnable {
                                 throw CONCURRENT_UPDATE;
                             }
                         }
-                    });
+                    }, PostCommitHook.EMPTY);
                 } catch (CommitFailedException e) {
                     if (e != CONCURRENT_UPDATE) {
                         exception = e;

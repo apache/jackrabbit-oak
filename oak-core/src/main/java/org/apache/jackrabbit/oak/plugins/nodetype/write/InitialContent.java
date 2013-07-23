@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -76,7 +77,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         NodeStoreBranch branch = store.branch();
         branch.setRoot(root.getNodeState());
         try {
-            branch.merge(EmptyHook.INSTANCE);
+            branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
