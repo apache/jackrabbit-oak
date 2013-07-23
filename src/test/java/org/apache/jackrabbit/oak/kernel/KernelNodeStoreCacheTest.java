@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.InputStream;
 
 import javax.annotation.Nonnull;
@@ -26,15 +29,13 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests if cache is used for repeated reads on unmodified subtree.
@@ -64,7 +65,7 @@ public class KernelNodeStoreCacheTest {
         b.child("e");
         branch.setRoot(builder.getNodeState());
 
-        branch.merge(EmptyHook.INSTANCE);
+        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
     }
 
     /**
@@ -143,7 +144,7 @@ public class KernelNodeStoreCacheTest {
         NodeBuilder builder = branch.getHead().builder();
         builder.child("a").setProperty("foo", "bar");
         branch.setRoot(builder.getNodeState());
-        branch.merge(EmptyHook.INSTANCE);
+        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
     }
 
     private void readTree(NodeState root) {

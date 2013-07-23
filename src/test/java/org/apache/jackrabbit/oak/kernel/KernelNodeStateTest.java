@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,6 +33,7 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -35,12 +42,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.api.Type.LONG;
 
 public class KernelNodeStateTest {
 
@@ -60,7 +61,7 @@ public class KernelNodeStateTest {
         builder.child("z");
         branch.setRoot(builder.getNodeState());
 
-        state = branch.merge(EmptyHook.INSTANCE);
+        state = branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
     }
 
     @After

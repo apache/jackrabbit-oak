@@ -253,8 +253,7 @@ public class RootImpl implements Root {
             public CommitFailedException run() {
                 try {
                     NodeState base = branch.getBase();
-                    NodeState newHead = branch.merge(getCommitHook());
-                    postHook.contentChanged(base, newHead);
+                    NodeState newHead = branch.merge(getCommitHook(), postHook);
                     return null;
                 } catch (CommitFailedException e) {
                     return e;

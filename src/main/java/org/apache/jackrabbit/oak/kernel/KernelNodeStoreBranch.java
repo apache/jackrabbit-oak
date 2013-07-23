@@ -27,6 +27,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -135,43 +136,48 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     }
 
     @Override
-    public NodeState merge(CommitHook hook) throws CommitFailedException {
+    public NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
         checkNotMerged();
-        NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-        NodeState oldRoot = head;
-        head = toCommit;
+        synchronized (this) {
+            rebase();
+            NodeState toCommit = checkNotNull(hook).processCommit(base, head);
+            NodeState oldRoot = head;
+            head = toCommit;
 
-        try {
-            if (head.equals(base)) {
-                // Nothing was written to this branch: return base state
-                head = null;  // Mark as merged
-                return base;
-            } else {
-                NodeState newRoot;
-                JsopDiff diff = new JsopDiff(store);
-                if (headRevision == null) {
-                    // no branch created yet, commit directly
-                    head.compareAgainstBaseState(base, diff);
-                    newRoot = store.commit(diff.toString(), base.getRevision());
+            try {
+                if (head.equals(base)) {
+                    // Nothing was written to this branch: return base state
+                    head = null;  // Mark as merged
+                    committed.contentChanged(base, base);
+                    return base;
                 } else {
-                    // commit into branch and merge
-                    head.compareAgainstBaseState(store.getRootState(headRevision), diff);
-                    String jsop = diff.toString();
-                    if (!jsop.isEmpty()) {
-                        headRevision = store.getKernel().commit(
-                                "", jsop, headRevision, null);
+                    NodeState newRoot;
+                    JsopDiff diff = new JsopDiff(store);
+                    if (headRevision == null) {
+                        // no branch created yet, commit directly
+                        head.compareAgainstBaseState(base, diff);
+                        newRoot = store.commit(diff.toString(), base.getRevision());
+                    } else {
+                        // commit into branch and merge
+                        head.compareAgainstBaseState(store.getRootState(headRevision), diff);
+                        String jsop = diff.toString();
+                        if (!jsop.isEmpty()) {
+                            headRevision = store.getKernel().commit(
+                                    "", jsop, headRevision, null);
+                        }
+                        newRoot = store.merge(headRevision);
+                        headRevision = null;
                     }
-                    newRoot = store.merge(headRevision);
-                    headRevision = null;
+                    head = null;  // Mark as merged
+                    committed.contentChanged(base, newRoot);
+                    return newRoot;
                 }
-                head = null;  // Mark as merged
-                return newRoot;
+            } catch (MicroKernelException e) {
+                head = oldRoot;
+                throw new CommitFailedException(
+                        "Kernel", 1,
+                        "Failed to merge changes to the underlying MicroKernel", e);
             }
-        } catch (MicroKernelException e) {
-            head = oldRoot;
-            throw new CommitFailedException(
-                    "Kernel", 1,
-                    "Failed to merge changes to the underlying MicroKernel", e);
         }
     }
 
