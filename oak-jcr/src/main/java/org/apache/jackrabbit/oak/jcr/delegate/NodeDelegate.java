@@ -16,30 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.jcr.InvalidItemStateException;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFormatException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.util.TreeUtil;
-
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Iterables.contains;
@@ -48,6 +24,7 @@ import static com.google.common.collect.Iterators.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
@@ -75,6 +52,33 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_R
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 import static org.apache.jackrabbit.oak.util.TreeUtil.getBoolean;
 import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFormatException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.util.TreeUtil;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -390,34 +394,44 @@ public class NodeDelegate extends ItemDelegate {
         // the client take care of that before save(), as it's hard to tell
         // whether removing such items really is the right thing to do.
 
-        Tree types = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
-        Tree type = types.getChild(typeName);
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        List<Tree> removed = singletonList(typeRoot.getChild(typeName));
+        List<Tree> remaining = getNodeTypes(tree, typeRoot);
 
-        Tree properties = type.getChild(OAK_NAMED_PROPERTY_DEFINITIONS);
-        for (Tree definitions : properties.getChildren()) {
-            String name = definitions.getName();
-            if (name.equals("oak:primaryType")
-                    || name.equals("oak:mixinTypes")) {
-                continue;
-            } else if (name.equals("oak:uuid")) {
-                name = JCR_UUID;
-            }
-            for (Tree definition : definitions.getChildren()) {
-                if (getBoolean(definition, JCR_PROTECTED)) {
+        for (PropertyState property : tree.getProperties()) {
+            String name = property.getName();
+            Type<?> type = property.getType();
+
+            Tree oldDefinition = findMatchingPropertyDefinition(
+                    removed, name, type, true);
+            if (oldDefinition != null) {
+                Tree newDefinition = findMatchingPropertyDefinition(
+                        remaining, name, type, true);
+                if (newDefinition == null
+                        || (getBoolean(oldDefinition, JCR_PROTECTED)
+                                && !getBoolean(newDefinition, JCR_PROTECTED))) {
                     tree.removeProperty(name);
                 }
             }
         }
 
-        Tree childNodes = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-        for (Tree definitions : childNodes.getChildren()) {
-            String name = definitions.getName();
-            for (Tree definition : definitions.getChildren()) {
-                if (getBoolean(definition, JCR_PROTECTED)) {
-                    Tree child = tree.getChild(name);
-                    if (child.exists()) {
-                        child.remove();
-                    }
+        for (Tree child : tree.getChildren()) {
+            String name = child.getName();
+            Set<String> typeNames = newLinkedHashSet();
+            for (Tree type : getNodeTypes(child, typeRoot)) {
+                typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
+                addAll(typeNames, getNames(type, OAK_SUPERTYPES));
+            }
+
+            Tree oldDefinition = findMatchingChildNodeDefinition(
+                    removed, name, typeNames);
+            if (oldDefinition != null) {
+                Tree newDefinition = findMatchingChildNodeDefinition(
+                        remaining, name, typeNames);
+                if (newDefinition == null
+                        || (getBoolean(oldDefinition, JCR_PROTECTED)
+                                && !getBoolean(newDefinition, JCR_PROTECTED))) {
+                    child.remove();
                 }
             }
         }
@@ -450,7 +464,7 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         Tree definition = findMatchingPropertyDefinition(
-                tree, name, type, exactTypeMatch);
+                getNodeTypes(tree), name, type, exactTypeMatch);
         if (definition == null) {
             throw new ConstraintViolationException(
                     "No matching property definition: " + propertyState);
@@ -471,11 +485,18 @@ public class NodeDelegate extends ItemDelegate {
         return new PropertyDelegate(sessionDelegate, tree, name);
     }
 
-    private Tree findMatchingPropertyDefinition(
-            Tree tree, String propertyName, Type<?> propertyType,
-            boolean exactTypeMatch) {
-        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+    /**
+     * Returns the type nodes of the primary and mixin types of the given node.
+     *
+     * @param tree node
+     * @return primary and mixin type nodes
+     */
+    private List<Tree> getNodeTypes(Tree tree) {
+        Root root = sessionDelegate.getRoot();
+        return getNodeTypes(tree, root.getTree(NODE_TYPES_PATH));
+    }
 
+    private List<Tree> getNodeTypes(Tree tree, Tree typeRoot) {
         // Find applicable node types
         List<Tree> types = newArrayList();
         String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
@@ -487,6 +508,12 @@ public class NodeDelegate extends ItemDelegate {
             types.add(typeRoot.getChild(mixinName));
         }
 
+        return types;
+    }
+
+    private Tree findMatchingPropertyDefinition(
+            List<Tree> types, String propertyName, Type<?> propertyType,
+            boolean exactTypeMatch) {
         // Escape the property name for looking up a matching definition
         String escapedName;
         if (JCR_PRIMARYTYPE.equals(propertyName)) {
@@ -543,6 +570,36 @@ public class NodeDelegate extends ItemDelegate {
                     if (propertyType.isArray() == TreeUtil.getBoolean(def, JCR_MULTIPLE)) {
                         return def;
                     }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private Tree findMatchingChildNodeDefinition(
+            List<Tree> types, String childNodeName, Set<String> typeNames) {
+        // First look for a matching named property definition
+        for (Tree type : types) {
+            Tree definitions = type
+                    .getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS)
+                    .getChild(childNodeName);
+            for (String typeName : typeNames) {
+                Tree definition = definitions.getChild(typeName);
+                if (definition.exists()) {
+                    return definition;
+                }
+            }
+        }
+
+        // Then look through any residual property definitions
+        for (Tree type : types) {
+            Tree definitions = type
+                    .getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+            for (String typeName : typeNames) {
+                Tree definition = definitions.getChild(typeName);
+                if (definition.exists()) {
+                    return definition;
                 }
             }
         }
