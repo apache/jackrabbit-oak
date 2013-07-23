@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.NamespaceException;
 import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.version.VersionException;
 
 import static java.lang.String.format;
@@ -44,16 +47,53 @@ public class CommitFailedException extends Exception {
     public static final String ACCESS = "Access";
 
     /**
+     * Type name for access control violation errors.
+     */
+    public static final String ACCESS_CONTROL = "AccessControl";
+
+    /**
      * Type name for constraint violation errors.
      */
     public static final String CONSTRAINT = "Constraint";
+
+    /**
+     * Type name for referencial integrity violation errors.
+     */
+    public static final String INTEGRITY = "Integrity";
+
+    /**
+     * Type name for lock violation errors.
+     */
+    public static final String LOCK = "Lock";
+
+    /**
+     * Type name for name violation errors.
+     */
+    public static final String NAME = "Name";
+
+    /**
+     * Type name for namespace violation errors.
+     */
+    public static final String NAMESPACE = "Namespace";
+
+    /**
+     * Type name for node type violation errors.
+     */
+    public static final String NODE_TYPE = "NodeType";
+
+    /**
+     * Type name for state violation errors.
+     */
+    public static final String STATE = "State";
 
     /**
      * Type name for version violation errors.
      */
     public static final String VERSION = "Version";
 
-    /** Serial version UID */
+    /**
+     * Serial version UID
+     */
     private static final long serialVersionUID = 2727602333350620918L;
 
     private final String source;
@@ -100,6 +140,15 @@ public class CommitFailedException extends Exception {
     }
 
     /**
+     * Checks whether this is an access control violation exception.
+     *
+     * @return {@code true} iff this is an access control violation exception
+     */
+    public boolean isAccessControlViolation() {
+        return isOfType(ACCESS_CONTROL);
+    }
+
+    /**
      * Checks whether this is a constraint violation exception.
      *
      * @return {@code true} iff this is a constraint violation exception
@@ -143,22 +192,38 @@ public class CommitFailedException extends Exception {
      * @return matching repository exception
      */
     public RepositoryException asRepositoryException() {
+        return asRepositoryException(this.getMessage());
+    }
+
+    /**
+     * Wraps the given {@link CommitFailedException} instance using the
+     * appropriate {@link javax.jcr.RepositoryException} subclass based on the
+     * {@link CommitFailedException#getType() type} of the given exception.
+     *
+     * @param message The exception message.
+     * @return matching repository exception
+     */
+    public RepositoryException asRepositoryException(@Nonnull String message) {
         if (isConstraintViolation()) {
-            return new ConstraintViolationException(this);
-        } else if (isOfType("Type")) {
-            return new NoSuchNodeTypeException(this);
+            return new ConstraintViolationException(message, this);
+        } else if (isOfType(NAMESPACE)) {
+            return new NamespaceException(message, this);
+        } else if (isOfType(NODE_TYPE)) {
+            return new NoSuchNodeTypeException(message, this);
         } else if (isAccessViolation()) {
-            return new AccessDeniedException(this);
-        } else if (isOfType("Integrity")) {
-            return new ReferentialIntegrityException(this);
-        } else if (isOfType("State")) {
-            return new InvalidItemStateException(this);
-        } else if (isOfType("Version")) {
-            return new VersionException(this);
-        } else if (isOfType("Lock")) {
-            return new LockException(this);
+            return new AccessDeniedException(message, this);
+        } else if (isAccessControlViolation()) {
+            return new AccessControlException(message, this);
+        } else if (isOfType(INTEGRITY)) {
+            return new ReferentialIntegrityException(message, this);
+        } else if (isOfType(STATE)) {
+            return new InvalidItemStateException(message, this);
+        } else if (isOfType(VERSION)) {
+            return new VersionException(message, this);
+        } else if (isOfType(LOCK)) {
+            return new LockException(message, this);
         } else {
-            return new RepositoryException(this);
+            return new RepositoryException(message, this);
         }
     }
 }

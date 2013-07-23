@@ -118,11 +118,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             root.commit();
 
         } catch (CommitFailedException e) {
-            if (e.isAccessViolation()) {
-                throw new AccessDeniedException(e);
-            } else {
-                throw new RepositoryException(e);
-            }
+            throw e.asRepositoryException();
         }
     }
 
