@@ -18,17 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -64,6 +59,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
 
@@ -104,7 +103,9 @@ public class RootImpl implements Root {
      */
     private NodeBuilder builder;
 
-    /** Sentinel for the next move operation to take place on the this root */
+    /**
+     * Sentinel for the next move operation to take place on the this root
+     */
     private Move lastMove = new Move();
 
     /**
@@ -169,13 +170,17 @@ public class RootImpl implements Root {
 
     }
 
+    protected String getWorkspaceName() {
+        return workspaceName;
+    }
+
     //---------------------------------------------------------------< Root >---
-    
-	@Override
-	public ContentSession getContentSession() {
-		throw new UnsupportedOperationException();
-	}
-    
+
+    @Override
+    public ContentSession getContentSession() {
+        throw new UnsupportedOperationException();
+    }
+
     @Override
     public boolean move(String sourcePath, String destPath) {
         if (PathUtils.isAncestor(sourcePath, destPath)) {
@@ -458,22 +463,30 @@ public class RootImpl implements Root {
      * The last entry in the list is always an empty slot to be filled in by calling
      * {@code setMove()}. This fills the slot with the source and destination of the move
      * and links this move to the next one which will be the new empty slot.
-     *
+     * <p/>
      * Moves can be applied to {@code MutableTree} instances by calling {@code apply()},
      * which will execute all moves in the list on the passed tree instance
      */
     class Move {
 
-        /** source path */
+        /**
+         * source path
+         */
         private String source;
 
-        /** Parent tree of the destination */
+        /**
+         * Parent tree of the destination
+         */
         private MutableTree destParent;
 
-        /** Name at the destination */
+        /**
+         * Name at the destination
+         */
         private String destName;
 
-        /** Pointer to the next move. {@code null} if this is the last, empty slot */
+        /**
+         * Pointer to the next move. {@code null} if this is the last, empty slot
+         */
         private Move next;
 
         /**
@@ -504,8 +517,8 @@ public class RootImpl implements Root {
         @Override
         public String toString() {
             return source == null
-                ? "NIL"
-                : '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
+                    ? "NIL"
+                    : '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
         }
     }
 }
