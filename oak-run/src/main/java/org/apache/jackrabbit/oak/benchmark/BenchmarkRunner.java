@@ -75,6 +75,7 @@ public class BenchmarkRunner {
         Benchmark[] allBenchmarks = new Benchmark[] {
             new LoginTest(),
             new LoginLogoutTest(),
+            new NamespaceTest(),
             new ReadPropertyTest(),
             new SetPropertyTest(),
             new SmallFileReadTest(),
