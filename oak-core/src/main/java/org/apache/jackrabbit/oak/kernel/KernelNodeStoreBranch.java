@@ -23,6 +23,8 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
+import java.util.concurrent.locks.Lock;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -43,6 +45,11 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     /** The underlying store to which this branch belongs */
     private final KernelNodeStore store;
 
+    /**
+     * Lock for coordinating concurrent merge operations
+     */
+    private final Lock mergeLock;
+
     /** Root state of the base revision of this branch */
     private KernelNodeState base;
 
@@ -55,10 +62,11 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     /** Number of updates to this branch via {@link #setRoot(NodeState)} */
     private int updates = 0;
 
-    KernelNodeStoreBranch(KernelNodeStore store, KernelNodeState root) {
+    KernelNodeStoreBranch(KernelNodeStore store, KernelNodeState root, Lock mergeLock) {
         this.store = store;
         this.base = root;
         this.head = root;
+        this.mergeLock = mergeLock;
     }
 
     @Override
@@ -138,46 +146,46 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     @Override
     public NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
         checkNotMerged();
-        synchronized (this) {
+        NodeState oldRoot = head;
+        mergeLock.lock();
+        try {
             rebase();
             NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-            NodeState oldRoot = head;
             head = toCommit;
-
-            try {
-                if (head.equals(base)) {
-                    // Nothing was written to this branch: return base state
-                    head = null;  // Mark as merged
-                    committed.contentChanged(base, base);
-                    return base;
+            if (head.equals(base)) {
+                // Nothing was written to this branch: return base state
+                head = null;  // Mark as merged
+                committed.contentChanged(base, base);
+                return base;
+            } else {
+                NodeState newRoot;
+                JsopDiff diff = new JsopDiff(store);
+                if (headRevision == null) {
+                    // no branch created yet, commit directly
+                    head.compareAgainstBaseState(base, diff);
+                    newRoot = store.commit(diff.toString(), base.getRevision());
                 } else {
-                    NodeState newRoot;
-                    JsopDiff diff = new JsopDiff(store);
-                    if (headRevision == null) {
-                        // no branch created yet, commit directly
-                        head.compareAgainstBaseState(base, diff);
-                        newRoot = store.commit(diff.toString(), base.getRevision());
-                    } else {
-                        // commit into branch and merge
-                        head.compareAgainstBaseState(store.getRootState(headRevision), diff);
-                        String jsop = diff.toString();
-                        if (!jsop.isEmpty()) {
-                            headRevision = store.getKernel().commit(
-                                    "", jsop, headRevision, null);
-                        }
-                        newRoot = store.merge(headRevision);
-                        headRevision = null;
+                    // commit into branch and merge
+                    head.compareAgainstBaseState(store.getRootState(headRevision), diff);
+                    String jsop = diff.toString();
+                    if (!jsop.isEmpty()) {
+                        headRevision = store.getKernel().commit(
+                                "", jsop, headRevision, null);
                     }
-                    head = null;  // Mark as merged
-                    committed.contentChanged(base, newRoot);
-                    return newRoot;
+                    newRoot = store.merge(headRevision);
+                    headRevision = null;
                 }
-            } catch (MicroKernelException e) {
-                head = oldRoot;
-                throw new CommitFailedException(
-                        "Kernel", 1,
-                        "Failed to merge changes to the underlying MicroKernel", e);
+                head = null;  // Mark as merged
+                committed.contentChanged(base, newRoot);
+                return newRoot;
             }
+        } catch (MicroKernelException e) {
+            head = oldRoot;
+            throw new CommitFailedException(
+                    "Kernel", 1,
+                    "Failed to merge changes to the underlying MicroKernel", e);
+        } finally {
+            mergeLock.unlock();
         }
     }
 

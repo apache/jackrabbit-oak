@@ -118,9 +118,10 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                 // someone else has a pessimistic lock on the journal,
                 // so we should not try to commit anything
             } else if (store.setHead(base, newHead)) {
+                NodeState previousBase = base;
                 base = newHead;
                 head = newHead;
-                committed.contentChanged(originalBase.getChildNode(ROOT), newHead.getChildNode(ROOT));
+                committed.contentChanged(previousBase.getChildNode(ROOT), newHead.getChildNode(ROOT));
                 return -1;
             }
 
@@ -176,9 +177,10 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                             writer.writeNode(builder.getNodeState());
                     writer.flush();
                     if (store.setHead(after, newHead)) {
+                        NodeState previousBase = base;
                         base = newHead;
                         head = newHead;
-                        committed.contentChanged(originalBase.getChildNode(ROOT), newHead.getChildNode(ROOT));
+                        committed.contentChanged(previousBase.getChildNode(ROOT), newHead.getChildNode(ROOT));
                         return;
                     } else {
                         // something else happened, perhaps a timeout, so
