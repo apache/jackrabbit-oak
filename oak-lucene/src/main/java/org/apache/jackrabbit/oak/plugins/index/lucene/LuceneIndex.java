@@ -349,6 +349,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                     HashSet<String> seenPaths = new HashSet<String>();
                     Query query = getQuery(filter, reader, nonFullTextConstraints);
                     if (query != null) {
+                        // TODO how to best avoid loading all entries in memory?
                         TopDocs docs = searcher
                                 .search(query, Integer.MAX_VALUE);
                         for (ScoreDoc doc : docs.scoreDocs) {
@@ -389,7 +390,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                 directory.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+			LOG.warn("query via {} failed.", this, e);
             return Cursors.newPathCursor(Collections.<String> emptySet());
         }        
     }
