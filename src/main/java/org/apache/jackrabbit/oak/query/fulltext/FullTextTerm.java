@@ -96,9 +96,7 @@ public class FullTextTerm extends FullTextExpression {
         if (not) {
             buff.append('-');
         }
-        if (propertyName != null && "*".equals(propertyName)) {
-            // TODO support property name conditions
-            // (currently disabled)
+        if (propertyName != null && !"*".equals(propertyName)) {
             buff.append(propertyName).append(':');
         }
         buff.append('\"');
@@ -122,9 +120,26 @@ public class FullTextTerm extends FullTextExpression {
         return propertyName;
     }
     
+    public String getBoost() {
+        return boost;
+    }
+    
+    public boolean isNot() {
+        return not;
+    }
+    
+    public String getText() {
+        return text;
+    }
+    
     @Override
     public int getPrecedence() {
         return PRECEDENCE_TERM;
+    }
+    
+    @Override
+    public boolean accept(FullTextVisitor v) {
+        return v.visit(this);
     }
 
 }

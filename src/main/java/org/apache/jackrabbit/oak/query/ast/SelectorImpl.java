@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
@@ -220,6 +221,8 @@ public class SelectorImpl extends SourceImpl {
         // (".. is null" must be written as "not .. is not null").
         if (queryConstraint != null) {
             queryConstraint.restrict(f);
+            FullTextExpression ft = queryConstraint.getFullTextConstraint(this);
+            f.setFullTextConstraint(ft);
         }
 
         return f;

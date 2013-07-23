@@ -19,7 +19,10 @@
 package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * A fulltext "or" condition.
@@ -44,17 +47,32 @@ public class FullTextOr extends FullTextExpression {
 
     @Override
     public FullTextExpression simplify() {
-        // remove duplicates
-        LinkedHashSet<FullTextExpression> newList = new LinkedHashSet<FullTextExpression>();
-        for (int i = 0; i < list.size(); i++) {
-            newList.add(list.get(i).simplify());
+        Set<FullTextExpression> set = getSortedAndUniqueSet(list);
+        if (set.size() == 1) {
+            return set.iterator().next();
         }
-        if (newList.size() == 1) {
-            return newList.iterator().next();
-        }
-        ArrayList<FullTextExpression> l = new ArrayList<FullTextExpression>(newList.size());
-        l.addAll(newList);
+        ArrayList<FullTextExpression> l = new ArrayList<FullTextExpression>(
+                set.size());
+        l.addAll(set);
         return new FullTextOr(l);
+    }
+    
+    static Set<FullTextExpression> getSortedAndUniqueSet(
+            List<FullTextExpression> list) {
+        // sort and remove duplicates
+        TreeSet<FullTextExpression> set = new TreeSet<FullTextExpression>(
+                new Comparator<FullTextExpression>() {
+
+                    @Override
+                    public int compare(FullTextExpression o1,
+                            FullTextExpression o2) {
+                        return o1.toString().compareTo(o2.toString());
+                    }
+                });
+        for (int i = 0; i < list.size(); i++) {
+            set.add(list.get(i).simplify());
+        }
+        return set;
     }
 
     @Override
@@ -79,6 +97,11 @@ public class FullTextOr extends FullTextExpression {
     @Override
     public int getPrecedence() {
         return PRECEDENCE_OR;
+    }
+    
+    @Override
+    public boolean accept(FullTextVisitor v) {
+        return v.visit(this);
     }
 
 }

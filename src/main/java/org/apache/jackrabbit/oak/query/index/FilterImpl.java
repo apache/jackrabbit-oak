@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
 /**
@@ -64,6 +65,8 @@ public class FilterImpl implements Filter {
      * The fulltext search conditions, if any.
      */
     private final ArrayList<String> fulltextConditions = new ArrayList<String>();
+    
+    private FullTextExpression fullTextConstraint;
 
     private final HashMap<String, PropertyRestriction> propertyRestrictions =
             new HashMap<String, PropertyRestriction>();
@@ -298,6 +301,9 @@ public class FilterImpl implements Filter {
         if (queryStatement != null) {
             buff.append("query=").append(queryStatement);
         }
+        if (fullTextConstraint != null) {
+            buff.append("fullText=").append(fullTextConstraint);
+        }
         buff.append(", path=").append(path).append(pathRestriction);
         if (!propertyRestrictions.isEmpty()) {
             buff.append(", property=[");
@@ -441,6 +447,15 @@ public class FilterImpl implements Filter {
 
     public void restrictFulltextCondition(String condition) {
         fulltextConditions.add(condition);
+    }
+    
+    public void setFullTextConstraint(FullTextExpression constraint) {
+        this.fullTextConstraint = constraint;
+    }
+    
+    @Override
+    public FullTextExpression getFullTextConstraint() {
+        return fullTextConstraint;
     }
 
     @Override

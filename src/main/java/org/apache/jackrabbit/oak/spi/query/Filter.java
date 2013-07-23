@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 
 /**
  * The filter for an index lookup that contains a number of restrictions that
@@ -54,6 +55,13 @@ public interface Filter {
      * @return the conditions (an empty collection if not used)
      */
     Collection<String> getFulltextConditions();
+    
+    /**
+     * Get the fulltext search condition expression, if any.
+     * 
+     * @return the condition (null if none)
+     */
+    FullTextExpression getFullTextConstraint();
 
     /**
      * Get the property restriction for the given property, if any.
