@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * A fulltext "and" condition.
@@ -44,16 +44,13 @@ public class FullTextAnd extends FullTextExpression {
 
     @Override
     public FullTextExpression simplify() {
-        // remove duplicates
-        LinkedHashSet<FullTextExpression> newList = new LinkedHashSet<FullTextExpression>();
-        for (int i = 0; i < list.size(); i++) {
-            newList.add(list.get(i).simplify());
+        Set<FullTextExpression> set = FullTextOr.getSortedAndUniqueSet(list);
+        if (set.size() == 1) {
+            return set.iterator().next();
         }
-        if (newList.size() == 1) {
-            return newList.iterator().next();
-        }
-        ArrayList<FullTextExpression> l = new ArrayList<FullTextExpression>(newList.size());
-        l.addAll(newList);
+        ArrayList<FullTextExpression> l = new ArrayList<FullTextExpression>(
+                set.size());
+        l.addAll(set);
         return new FullTextAnd(l);
     }
 
@@ -79,6 +76,11 @@ public class FullTextAnd extends FullTextExpression {
     @Override
     public int getPrecedence() {
         return PRECEDENCE_AND;
+    }
+    
+    @Override
+    public boolean accept(FullTextVisitor v) {
+        return v.visit(this);
     }
 
 }

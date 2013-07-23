@@ -41,6 +41,29 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
  * A fulltext "contains(...)" condition.
  */
 public class FullTextSearchImpl extends ConstraintImpl {
+    
+    /**
+     * Feature flag. 
+     * Disabled until OAK-890 is fully implemented.
+     * Enable for testing OAK-890 related changes.
+     */
+    public static final boolean OAK_890_ADVANCED_FT_SEARCH = false;
+
+    /**
+     * Compatibility for Jackrabbit 2.0 single quoted phrase queries.
+     * (contains(., "word ''hello world'' word") 
+     * These are queries that delimit a phrase with a single quote
+     * instead, as in the spec, using double quotes.
+     */
+    public static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
+
+    /**
+     * Compatibility for Jackrabbit 2.0 queries with ampersand.
+     * (contains(., "max&moritz"))
+     * The ampersand is converted to a space, and a search is made for the 
+     * two words "max" and "moritz" (not a phrase search).
+     */
+    public static final boolean JACKRABBIT_2_AMPERSAND_TO_SPACE = true;
 
     private final String selectorName;
     private final String relativePath;
@@ -64,10 +87,12 @@ public class FullTextSearchImpl extends ConstraintImpl {
             propertyName = propertyName.substring(slash + 1);
         }
 
-        // temporary workaround to support using an index for
-        // "contains(a/*, 'x') or contains(a/a, x') or contains(a/b, 'x')"
-        // TODO this behavior does not match the specification
-        propertyName = null;
+        if (!OAK_890_ADVANCED_FT_SEARCH) {
+            // temporary workaround to support using an index for
+            // "contains(a/*, 'x') or contains(a/a, x') or contains(a/b, 'x')"
+            // TODO this behavior does not match the specification
+            propertyName = null;
+        }
 
         if (propertyName == null || "*".equals(propertyName)) {
             this.propertyName = null;
@@ -118,6 +143,28 @@ public class FullTextSearchImpl extends ConstraintImpl {
     }
     
     @Override
+    public FullTextExpression getFullTextConstraint(SelectorImpl s) {
+        if (s != selector) {
+            return null;
+        }
+        PropertyValue v = fullTextSearchExpression.currentValue();
+        try {
+            String p = propertyName;
+            if (OAK_890_ADVANCED_FT_SEARCH) {
+                if (relativePath != null) {
+                    if (p == null) {
+                        p = "*";
+                    }
+                    p = PathUtils.concat(relativePath, p);
+                }
+            }
+            return FullTextParser.parse(p, v.getValue(Type.STRING));
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
+        }
+    }
+    
+    @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
     }
@@ -129,11 +176,17 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
-        // disable evaluation if a fulltext index is used, as
-        // we don't know what exact options are used in the fulltext index
-        // (stop word, special characters,...)
-        if (selector.index instanceof FulltextQueryIndex) {
-            return true;
+        if (OAK_890_ADVANCED_FT_SEARCH) {
+            // the LuceneIndex implementation doesn't currently support
+            // queries that search for words *within* fields; the
+            // field value must match exactly
+        } else {
+            // disable evaluation if a fulltext index is used, as
+            // we don't know what exact options are used in the fulltext index
+            // (stop word, special characters,...)
+            if (selector.index instanceof FulltextQueryIndex) {
+                return true;
+            }
         }
         
         StringBuilder buff = new StringBuilder();
@@ -166,15 +219,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 }
             }
         }
-        PropertyValue v = fullTextSearchExpression.currentValue();
-        try {
-            FullTextExpression expr = FullTextParser.parse(propertyName, v.getValue(Type.STRING));
-            return expr.evaluate(buff.toString());
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
-        }
+        return getFullTextConstraint(selector).evaluate(buff.toString());
     }
-
+    
     private static void appendString(StringBuilder buff, PropertyValue p) {
         if (p.isArray()) {
             for (String v : p.getValue(STRINGS)) {
