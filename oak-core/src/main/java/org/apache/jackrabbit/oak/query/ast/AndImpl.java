@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 import com.google.common.collect.Maps;
@@ -64,6 +67,21 @@ public class AndImpl extends ConstraintImpl {
         Set<PropertyExistenceImpl> result = Sets.newHashSet(s1);
         result.addAll(s2);
         return result;
+    }
+    
+    @Override
+    public FullTextExpression getFullTextConstraint(SelectorImpl s) {
+        FullTextExpression f1 = constraint1.getFullTextConstraint(s);
+        FullTextExpression f2 = constraint2.getFullTextConstraint(s);
+        if (f1 == null) {
+            return f2;
+        } else if (f2 == null) {
+            return f1;
+        }
+        ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+        list.add(f1);
+        list.add(f2);
+        return new FullTextAnd(list);
     }
     
     @Override

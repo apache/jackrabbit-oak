@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 import com.google.common.collect.Lists;
@@ -71,6 +74,21 @@ public class OrImpl extends ConstraintImpl {
             return s2;
         }
         return Sets.intersection(s1, s2);
+    }
+    
+    @Override
+    public FullTextExpression getFullTextConstraint(SelectorImpl s) {
+        FullTextExpression f1 = constraint1.getFullTextConstraint(s);
+        FullTextExpression f2 = constraint2.getFullTextConstraint(s);
+        if (f1 == null || f2 == null) {
+            // the full-text index can not be used for conditions of the form
+            // "contains(a, 'x') or b=123"
+            return null;
+        }
+        ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+        list.add(f1);
+        list.add(f2);
+        return new FullTextOr(list);
     }
     
     @Override
@@ -124,11 +142,10 @@ public class OrImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         Set<PropertyExistenceImpl> set = getPropertyExistenceConditions();
-        if (set.isEmpty()) {
-            return;
-        }
-        for (PropertyExistenceImpl p : set) {
-            p.restrict(f);
+        if (!set.isEmpty()) {
+            for (PropertyExistenceImpl p : set) {
+                p.restrict(f);
+            }
         }
     }
 

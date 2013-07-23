@@ -81,4 +81,12 @@ public abstract class FullTextExpression {
         return toString().hashCode();
     }
     
+    /**
+     * Let the expression call the applicable visit method of the visitor. 
+     * 
+     * @param v the visitor
+     * @return true if the visit method returned true
+     */
+    public abstract boolean accept(FullTextVisitor v);
+    
 }
