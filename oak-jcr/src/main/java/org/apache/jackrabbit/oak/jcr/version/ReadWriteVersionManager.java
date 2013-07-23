@@ -17,13 +17,9 @@
 package org.apache.jackrabbit.oak.jcr.version;
 
 import javax.annotation.Nonnull;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -48,7 +44,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     private final Root workspaceRoot;
 
     public ReadWriteVersionManager(@Nonnull Tree versionStorage,
-            @Nonnull Root workspaceRoot) {
+                                   @Nonnull Root workspaceRoot) {
         this.versionStorage = checkNotNull(versionStorage);
         this.workspaceRoot = checkNotNull(workspaceRoot);
     }
@@ -129,10 +125,10 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      *
      * @param versionable the versionable node to check out.
      * @throws UnsupportedRepositoryOperationException
-     *                                   if the versionable tree isn't actually
-     *                                   versionable.
-     * @throws RepositoryException       if an error occurs while checking the
-     *                                   node type of the tree.
+     *                             if the versionable tree isn't actually
+     *                             versionable.
+     * @throws RepositoryException if an error occurs while checking the
+     *                             node type of the tree.
      */
     public void checkout(@Nonnull Tree versionable)
             throws UnsupportedRepositoryOperationException,
@@ -171,18 +167,6 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      * @return matching repository exception
      */
     private static RepositoryException newRepositoryException(@Nonnull CommitFailedException exception) {
-        if (exception.isConstraintViolation()) {
-            return new ConstraintViolationException(exception);
-        } else if (exception.isAccessViolation()) {
-            return new AccessDeniedException(exception);
-        } else if (exception.isOfType("State")) {
-            return new InvalidItemStateException(exception);
-        } else if (exception.isOfType(CommitFailedException.VERSION)) {
-            return new VersionException(exception);
-        } else if (exception.isOfType("Lock")) {
-            return new LockException(exception);
-        } else {
-            return new RepositoryException(exception);
-        }
+        return exception.asRepositoryException();
     }
 }

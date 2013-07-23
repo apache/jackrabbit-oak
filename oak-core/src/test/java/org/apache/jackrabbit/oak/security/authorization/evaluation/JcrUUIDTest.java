@@ -55,6 +55,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             protected Root getWriteRoot() {
                 return root;
             }
+
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);
@@ -63,7 +64,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
         if (!ntMgr.hasNodeType(NT_NAME)) {
             NodeTypeTemplate tmpl = ntMgr.createNodeTypeTemplate();
             tmpl.setName(NT_NAME);
-            tmpl.setDeclaredSuperTypeNames(new String[] {JcrConstants.MIX_REFERENCEABLE, JcrConstants.NT_UNSTRUCTURED});
+            tmpl.setDeclaredSuperTypeNames(new String[]{JcrConstants.MIX_REFERENCEABLE, JcrConstants.NT_UNSTRUCTURED});
             ntMgr.registerNodeType(tmpl, true);
         }
 
@@ -113,7 +114,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             testRoot.commit();
             fail("Creating a referenceable node with an invalid uuid must fail.");
         } catch (CommitFailedException e) {
-            assertEquals(CommitFailedException.CONSTRAINT, e.getType());
+            assertTrue(e.isConstraintViolation());
             assertEquals(12, e.getCode());
         }
     }
@@ -135,7 +136,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             testRoot.commit();
             fail("Creating a referenceable node with an boolean uuid must fail.");
         } catch (CommitFailedException e) {
-            assertEquals(CommitFailedException.CONSTRAINT, e.getType());
+            assertTrue(e.isConstraintViolation());
         }
     }
 
@@ -173,7 +174,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             testRoot.commit();
             fail("An attempt to change the jcr:uuid property must fail");
         } catch (CommitFailedException e) {
-            assertEquals(CommitFailedException.CONSTRAINT, e.getType());
+            assertTrue(e.isConstraintViolation());
             assertEquals(12, e.getCode());
         }
     }
@@ -215,7 +216,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
             testRoot.commit();
             fail("Removing the jcr:uuid property of a referenceable node must fail.");
         } catch (CommitFailedException e) {
-            assertEquals(CommitFailedException.CONSTRAINT, e.getType());
+            assertTrue(e.isConstraintViolation());
             assertEquals(22, e.getCode());
         }
     }

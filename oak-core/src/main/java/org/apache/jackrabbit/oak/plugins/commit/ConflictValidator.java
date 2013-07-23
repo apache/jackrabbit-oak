@@ -80,7 +80,7 @@ public class ConflictValidator extends DefaultValidator {
             for (String v : property.getValue(STRINGS)) {
                 if (NodeTypeConstants.MIX_REP_MERGE_CONFLICT.equals(v)) {
                     throw new CommitFailedException(
-                            "State", 1, "Unresolved conflicts in " + getPath());
+                            CommitFailedException.STATE, 1, "Unresolved conflicts in " + getPath());
                 }
             }
         }

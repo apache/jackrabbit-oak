@@ -16,13 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
@@ -41,15 +36,19 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
  * with support for operations that modify node types.
  * <ul>
- *     <li>{@link #registerNodeType(NodeTypeDefinition, boolean)}</li>
- *     <li>{@link #registerNodeTypes(NodeTypeDefinition[], boolean)}</li>
- *     <li>{@link #unregisterNodeType(String)}</li>
- *     <li>{@link #unregisterNodeTypes(String[])}</li>
- *     <li>plus related template factory methods</li>
+ * <li>{@link #registerNodeType(NodeTypeDefinition, boolean)}</li>
+ * <li>{@link #registerNodeTypes(NodeTypeDefinition[], boolean)}</li>
+ * <li>{@link #unregisterNodeType(String)}</li>
+ * <li>{@link #unregisterNodeTypes(String[])}</li>
+ * <li>plus related template factory methods</li>
  * </ul>
  * Calling any of the above methods will result in a {@link #refresh()} callback
  * to e.g. inform an associated session that it should refresh to make the
@@ -62,14 +61,14 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
  * also want to override the default implementation of
  * {@link ReadOnlyNodeTypeManager} for the following methods:
  * <ul>
- *     <li>{@link #getValueFactory()}</li>
- *     <li>{@link ReadOnlyNodeTypeManager#getNamePathMapper()}</li>
+ * <li>{@link #getValueFactory()}</li>
+ * <li>{@link ReadOnlyNodeTypeManager#getNamePathMapper()}</li>
  * </ul>
  */
 public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
     /**
-     * Called by the methods {@link #registerNodeType(NodeTypeDefinition,boolean)},
+     * Called by the methods {@link #registerNodeType(NodeTypeDefinition, boolean)},
      * {@link #registerNodeTypes(NodeTypeDefinition[], boolean)},
      * {@link #unregisterNodeType(String)} and {@link #unregisterNodeTypes(String[])}
      * to acquire a fresh {@link Root} instance that can be used to persist the
@@ -123,7 +122,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             NodeTypeDefinition ntd, boolean allowUpdate)
             throws RepositoryException {
         return registerNodeTypes(
-                new NodeTypeDefinition[] { ntd }, allowUpdate).nextNodeType();
+                new NodeTypeDefinition[]{ntd}, allowUpdate).nextNodeType();
     }
 
     @Override
@@ -156,11 +155,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             return new NodeTypeIteratorAdapter(types);
         } catch (CommitFailedException e) {
             String message = "Failed to register node types.";
-            if (e.isAccessViolation()) {
-                throw new AccessDeniedException(message, e);
-            } else {
-                throw new RepositoryException(message, e);
-            }
+            throw e.asRepositoryException(message);
         }
     }
 
@@ -190,11 +185,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             refresh();
         } catch (CommitFailedException e) {
             String message = "Failed to unregister node type " + name;
-            if (e.isAccessViolation()) {
-                throw new AccessDeniedException(message, e);
-            } else {
-                throw new RepositoryException(message, e);
-            }
+            throw e.asRepositoryException(message);
         }
     }
 
@@ -218,11 +209,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             refresh();
         } catch (CommitFailedException e) {
             String message = "Failed to unregister node types.";
-            if (e.isAccessViolation()) {
-                throw new AccessDeniedException(message, e);
-            } else {
-                throw new RepositoryException(message, e);
-            }
+            throw e.asRepositoryException(message);
         }
     }
 }

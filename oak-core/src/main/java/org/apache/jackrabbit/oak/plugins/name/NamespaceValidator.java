@@ -47,23 +47,23 @@ class NamespaceValidator extends DefaultValidator {
         }
         if (map.containsKey(prefix)) {
             throw new CommitFailedException(
-                    "Namespace", 1,
+                    CommitFailedException.NAMESPACE, 1,
                     "Namespace mapping already registered: " + prefix);
         } else if (Namespaces.isValidPrefix(prefix)) {
             if (after.isArray() || !STRING.equals(after.getType())) {
                 throw new CommitFailedException(
-                        "Namespace", 2,
+                        CommitFailedException.NAMESPACE, 2,
                         "Invalid namespace mapping: " + prefix);
             } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
                 throw new CommitFailedException(
-                        "Namespace", 3,
+                        CommitFailedException.NAMESPACE, 3,
                         "XML prefixes are reserved: " + prefix);
             } else if (map.containsValue(after.getValue(STRING))) {
                 throw modificationNotAllowed(prefix);
             }
         } else {
             throw new CommitFailedException(
-                    "Namespace", 4,
+                    CommitFailedException.NAMESPACE, 4,
                     "Not a valid namespace prefix: " + prefix);
         }
     }
@@ -86,7 +86,7 @@ class NamespaceValidator extends DefaultValidator {
 
     private static CommitFailedException modificationNotAllowed(String prefix) {
         return new CommitFailedException(
-                "Namespace", 5,
+                CommitFailedException.NAMESPACE, 5,
                 "Namespace modification not allowed: " + prefix);
     }
 

@@ -84,7 +84,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         testSession.save();
     }
 
-    @Ignore("OAK-767 : Implement Node#removeMixin")
     @Test
     public void testRemoveMixinWithoutPermission() throws Exception {
         ((Node) superuser.getItem(childNode.getPath())).addMixin(mixinName);
@@ -100,7 +99,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         }
     }
 
-    @Ignore("OAK-767 : Implement Node#removeMixin")
     @Test
     public void testRemoveMixin() throws Exception {
         ((Node) superuser.getItem(childNode.getPath())).addMixin(mixinName);
