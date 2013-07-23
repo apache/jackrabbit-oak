@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -46,14 +47,14 @@ public class MergeTest {
 
         NodeStoreBranch a = store.branch();
         a.setRoot(a.getHead().builder().setProperty("foo", "abc").getNodeState());
-        a.merge(EmptyHook.INSTANCE);
+        a.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
 
         NodeStoreBranch b = store.branch();
         b.setRoot(b.getHead().builder().setProperty("bar", "xyz").getNodeState());
-        b.merge(EmptyHook.INSTANCE);
+        b.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertTrue(store.getRoot().hasProperty("bar"));
@@ -72,12 +73,12 @@ public class MergeTest {
         assertFalse(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
 
-        a.merge(EmptyHook.INSTANCE);
+        a.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
 
-        b.merge(EmptyHook.INSTANCE);
+        b.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertTrue(store.getRoot().hasProperty("bar"));
@@ -98,7 +99,7 @@ public class MergeTest {
                         NodeBuilder builder = a.getHead().builder();
                         builder.setProperty("foo", "abc" + i);
                         a.setRoot(builder.getNodeState());
-                        a.merge(EmptyHook.INSTANCE);
+                        a.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
                         semaphore.release();
                     } catch (CommitFailedException e) {
                         fail();
@@ -127,7 +128,7 @@ public class MergeTest {
                 }
                 return after;
             }
-        });
+        }, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertTrue(store.getRoot().hasProperty("bar"));

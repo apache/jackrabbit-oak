@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -45,8 +47,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -95,7 +95,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         NodeStoreBranch branch = store.branch();
         branch.setRoot(workspaceRoot);
         try {
-            branch.merge(EmptyHook.INSTANCE);
+            branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }

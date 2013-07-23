@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -82,7 +83,7 @@ public class AsyncIndexUpdateTest {
 
         // merge it back in
         branch.setRoot(builder.getNodeState());
-        branch.merge(EmptyHook.INSTANCE);
+        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
@@ -126,7 +127,7 @@ public class AsyncIndexUpdateTest {
 
         // merge it back in
         branch.setRoot(builder.getNodeState());
-        branch.merge(EmptyHook.INSTANCE);
+        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
@@ -181,7 +182,7 @@ public class AsyncIndexUpdateTest {
 
         // merge it back in
         branch.setRoot(builder.getNodeState());
-        branch.merge(EmptyHook.INSTANCE);
+        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();

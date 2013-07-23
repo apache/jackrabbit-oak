@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 /**
  * TODO document
  */
-class JsopDiff implements NodeStateDiff {
+public class JsopDiff implements NodeStateDiff {
 
     private final KernelNodeStore store;
 
