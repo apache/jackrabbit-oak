@@ -73,13 +73,13 @@ public class RestrictionProviderImplTest extends AbstractAccessControlTest imple
                 assertEquals(Type.NAMES, def.getRequiredType());
                 assertFalse(def.isMandatory());
             } else {
-                fail("unexpected restriction "+def.getName());
+                fail("unexpected restriction " + def.getName());
             }
         }
     }
 
     @Test
-    public void testGetRestrictionPattern() {
+    public void testGetRestrictionPattern() throws Exception {
         Map<PropertyState, RestrictionPattern> map = newHashMap();
         map.put(PropertyStates.createProperty(REP_GLOB, "/*/jcr:content"), GlobPattern.create("/testPath", "/*/jcr:content"));
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);

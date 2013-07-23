@@ -20,8 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
@@ -122,7 +120,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         }
     }
 
-    private void writePrivilegeNode(NodeUtil privilegesNode, PrivilegeDefinition definition) {
+    private void writePrivilegeNode(NodeUtil privilegesNode, PrivilegeDefinition definition) throws RepositoryException {
         String name = definition.getName();
         NodeUtil privNode = privilegesNode.addChild(name, NT_REP_PRIVILEGE);
         if (definition.isAbstract()) {
