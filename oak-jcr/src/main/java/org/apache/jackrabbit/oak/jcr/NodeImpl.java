@@ -54,7 +54,6 @@ import javax.jcr.Value;
 import javax.jcr.Workspace;
 import javax.jcr.lock.Lock;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -68,7 +67,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
@@ -867,7 +865,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             protected void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!isCheckedOut()) {
-                    throw new VersionException("Cannot add mixin type. Node is checked in.");
+                    throw new VersionException(
+                            "Cannot add mixin type. Node is checked in.");
                 }
             }
             @Override
@@ -879,25 +878,21 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    public void removeMixin(final String mixinName) throws RepositoryException {
+    public void removeMixin(String mixinName) throws RepositoryException {
+        final String oakTypeName = getOakName(checkNotNull(mixinName));
         perform(new ItemWriteOperation<Void>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!isCheckedOut()) {
-                    throw new VersionException("Cannot remove mixin type. Node is checked in.");
+                    throw new VersionException(
+                            "Cannot remove mixin type. Node is checked in.");
                 }
             }
             @Override
             public Void perform() throws RepositoryException {
-                PropertyDelegate propDlg = dlg.getPropertyOrNull(JcrConstants.JCR_MIXINTYPES);
-                String oakName = getOakName(mixinName);
-                if (propDlg == null || !ImmutableSet.copyOf(propDlg.getPropertyState().getValue(Type.NAMES)).contains(oakName)) {
-                    throw new NoSuchNodeTypeException("Mixin " + mixinName +" not contained in " + this);
-                }
-
-                // TODO: implement #removeMixin (OAK-767)
-                throw new ConstraintViolationException();
+                dlg.removeMixin(oakTypeName);
+                return null;
             }
         });
     }

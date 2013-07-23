@@ -47,6 +47,7 @@ import static com.google.common.collect.Iterators.filter;
 import static com.google.common.collect.Iterators.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
@@ -57,6 +58,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
@@ -64,12 +66,15 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
+import static org.apache.jackrabbit.oak.util.TreeUtil.getBoolean;
+import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -367,6 +372,55 @@ public class NodeDelegate extends ItemDelegate {
 
     public void addMixin(String typeName) throws RepositoryException {
         TreeUtil.addMixin(getTree(), typeName, sessionDelegate.getRoot().getTree(NODE_TYPES_PATH), getUserID());
+    }
+
+    public void removeMixin(String typeName) throws RepositoryException {
+        Tree tree = getTree();
+        Set<String> mixins = newLinkedHashSet(getNames(tree, JCR_MIXINTYPES));
+        if (!mixins.remove(typeName)) {
+            throw new NoSuchNodeTypeException(
+                    "Mixin " + typeName +" not contained in " + getPath());
+        }
+        tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
+
+        // We need to remove all protected properties and child nodes
+        // associated with the removed mixin type, as there's no way for
+        // the client to do that. Other items defined in this mixin type
+        // might also need to be removed, but it's probably best to let
+        // the client take care of that before save(), as it's hard to tell
+        // whether removing such items really is the right thing to do.
+
+        Tree types = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        Tree type = types.getChild(typeName);
+
+        Tree properties = type.getChild(OAK_NAMED_PROPERTY_DEFINITIONS);
+        for (Tree definitions : properties.getChildren()) {
+            String name = definitions.getName();
+            if (name.equals("oak:primaryType")
+                    || name.equals("oak:mixinTypes")) {
+                continue;
+            } else if (name.equals("oak:uuid")) {
+                name = JCR_UUID;
+            }
+            for (Tree definition : definitions.getChildren()) {
+                if (getBoolean(definition, JCR_PROTECTED)) {
+                    tree.removeProperty(name);
+                }
+            }
+        }
+
+        Tree childNodes = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+        for (Tree definitions : childNodes.getChildren()) {
+            String name = definitions.getName();
+            for (Tree definition : definitions.getChildren()) {
+                if (getBoolean(definition, JCR_PROTECTED)) {
+                    Tree child = tree.getChild(name);
+                    if (child.exists()) {
+                        child.remove();
+                    }
+                }
+            }
+        }
     }
 
     /**
