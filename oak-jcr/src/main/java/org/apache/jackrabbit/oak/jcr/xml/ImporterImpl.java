@@ -105,12 +105,17 @@ public class ImporterImpl implements Importer {
         if (oakPath == null) {
             throw new RepositoryException("Invalid name or path: " + absPath);
         }
+
+        if (isWorkspaceImport && sessionContext.getSessionDelegate().hasPendingChanges()) {
+            throw new RepositoryException("Pending changes on session. Cannot run workspace import.");
+        }
+
         importTargetTree = root.getTree(absPath);
         if (!importTargetTree.exists()) {
             throw new PathNotFoundException(absPath);
         }
 
-        VersionManager vMgr =  sessionContext.getVersionManager();
+        VersionManager vMgr = sessionContext.getVersionManager();
         if (!vMgr.isCheckedOut(absPath)) {
             throw new VersionException("Target node is checked in.");
         }
@@ -142,7 +147,7 @@ public class ImporterImpl implements Importer {
         }
     }
 
-    protected Tree createTree(@Nonnull Tree parent, @Nonnull NodeInfo nInfo, @CheckForNull String uuid) throws RepositoryException {
+    private Tree createTree(@Nonnull Tree parent, @Nonnull NodeInfo nInfo, @CheckForNull String uuid) throws RepositoryException {
         String ntName = nInfo.getPrimaryTypeName();
         String value = (ntName != null) ? ntName : TreeUtil.getDefaultChildType(ntTypesRoot, parent, nInfo.getName());
         Tree child = TreeUtil.addChild(parent, nInfo.getName(), value, ntTypesRoot, userID);
@@ -158,8 +163,7 @@ public class ImporterImpl implements Importer {
         return child;
     }
 
-    protected void
-    createProperty(Tree tree, PropInfo pInfo, PropertyDefinition def) throws RepositoryException {
+    private void createProperty(Tree tree, PropInfo pInfo, PropertyDefinition def) throws RepositoryException {
         List<Value> values = pInfo.getValues(pInfo.getTargetType(def));
         PropertyState propertyState;
         String name = pInfo.getName();
@@ -176,10 +180,9 @@ public class ImporterImpl implements Importer {
         }
     }
 
-    protected Tree resolveUUIDConflict(Tree parent,
-                                       String conflictingId,
-                                       NodeInfo nodeInfo)
-            throws RepositoryException {
+    private Tree resolveUUIDConflict(Tree parent,
+                                     String conflictingId,
+                                     NodeInfo nodeInfo) throws RepositoryException {
         Tree tree;
         Tree conflicting = idManager.getTree(conflictingId);
         if (conflicting != null && !conflicting.exists()) {
