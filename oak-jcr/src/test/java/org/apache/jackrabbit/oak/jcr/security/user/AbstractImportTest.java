@@ -68,7 +68,7 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
 
         String importBehavior = getImportBehavior();
         if (importBehavior != null) {
-            Map<String,String> userParams = new HashMap();
+            Map<String, String> userParams = new HashMap();
             userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
             ConfigurationParameters config = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
 
@@ -148,8 +148,7 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
     }
 
     protected void doImport(String parentPath, String xml) throws Exception {
-        InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-        adminSession.importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+        doImport(parentPath, xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
     }
 
     protected void doImport(String parentPath, String xml, int importUUIDBehavior) throws Exception {
@@ -157,7 +156,7 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
         adminSession.importXML(parentPath, in, importUUIDBehavior);
     }
 
-    protected static void assertNotDeclaredMember(Group gr, String potentialID, Session session ) throws RepositoryException {
+    protected static void assertNotDeclaredMember(Group gr, String potentialID, Session session) throws RepositoryException {
         // declared members must not list the invalid entry.
         Iterator<Authorizable> it = gr.getDeclaredMembers();
         while (it.hasNext()) {
