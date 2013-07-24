@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Reads and writes privilege definitions from and to the repository content
@@ -82,6 +81,30 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     @Nonnull
     public PrivilegeBits getBits(@Nonnull String... privilegeNames) {
         if (privilegeNames.length == 0) {
+            return PrivilegeBits.EMPTY;
+        }
+
+        Tree privilegesTree = getPrivilegesTree();
+        if (!privilegesTree.exists()) {
+            return PrivilegeBits.EMPTY;
+        }
+        PrivilegeBits bits = PrivilegeBits.getInstance();
+        for (String privilegeName : privilegeNames) {
+            Tree defTree = privilegesTree.getChild(checkNotNull(privilegeName));
+            if (defTree.exists()) {
+                bits.add(PrivilegeBits.getInstance(defTree));
+            }
+        }
+        return bits.unmodifiable();
+    }
+
+    /**
+     * @param privilegeNames
+     * @return
+     */
+    @Nonnull
+    public PrivilegeBits getBits(@Nonnull Iterable<String> privilegeNames) {
+        if (!privilegeNames.iterator().hasNext()) {
             return PrivilegeBits.EMPTY;
         }
 

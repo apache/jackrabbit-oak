@@ -20,18 +20,25 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.AbstractTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -49,15 +56,19 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     private final Tree parentBefore;
     private final Tree parentAfter;
 
+    private final PrivilegeBitsProvider privilegeBitsProvider;
     private final Map<String, Privilege> privileges;
     private final RestrictionProvider restrictionProvider;
     private final ReadOnlyNodeTypeManager ntMgr;
 
     AccessControlValidator(Tree parentBefore, Tree parentAfter,
                            Map<String, Privilege> privileges,
-                           RestrictionProvider restrictionProvider, ReadOnlyNodeTypeManager ntMgr) {
+                           PrivilegeBitsProvider privilegeBitsProvider,
+                           RestrictionProvider restrictionProvider,
+                           ReadOnlyNodeTypeManager ntMgr) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
+        this.privilegeBitsProvider = privilegeBitsProvider;
         this.privileges = privileges;
         this.restrictionProvider = restrictionProvider;
         this.ntMgr = ntMgr;
@@ -94,7 +105,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter, after);
-        return new AccessControlValidator(null, treeAfter, privileges, restrictionProvider, ntMgr);
+        return new AccessControlValidator(null, treeAfter, privileges, privilegeBitsProvider, restrictionProvider, ntMgr);
     }
 
     @Override
@@ -103,7 +114,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter, after);
-        return new AccessControlValidator(treeBefore, treeAfter, privileges, restrictionProvider, ntMgr);
+        return new AccessControlValidator(treeBefore, treeAfter, privileges, privilegeBitsProvider, restrictionProvider, ntMgr);
     }
 
     @Override
@@ -155,6 +166,15 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
         if (!policyNode.hasProperty(AbstractTree.OAK_CHILD_ORDER)) {
             throw accessViolation(4, "Invalid policy node: Order of children is not stable.");
+        }
+
+        Set<Entry> aceSet = Sets.newHashSet();
+        for (Tree child : policyTree.getChildren()) {
+            if (isAccessControlEntry(child)) {
+                if (!aceSet.add(new Entry(parent.getPath(), child))) {
+                    throw accessViolation(13, "Duplicate ACE found in policy");
+                }
+            }
         }
     }
 
@@ -239,5 +259,37 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private static CommitFailedException accessViolation(int code, String message) {
         return new CommitFailedException(ACCESS_CONTROL, code, message);
+    }
+
+    private class Entry {
+
+        private final String principalName;
+        private final PrivilegeBits privilegeBits;
+        private final Set<Restriction> restrictions;
+
+        private Entry(String path, Tree aceTree) {
+            principalName = aceTree.getProperty(REP_PRINCIPAL_NAME).getValue(Type.STRING);
+            privilegeBits = privilegeBitsProvider.getBits(aceTree.getProperty(REP_PRIVILEGES).getValue(Type.NAMES));
+            restrictions = restrictionProvider.readRestrictions(path, aceTree);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(principalName, privilegeBits, restrictions);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            }
+            if (o instanceof Entry) {
+                Entry other = (Entry) o;
+                return Objects.equal(principalName, other.principalName)
+                        && privilegeBits.equals(other.privilegeBits)
+                        && restrictions.equals(other.restrictions);
+            }
+            return false;
+        }
     }
 }

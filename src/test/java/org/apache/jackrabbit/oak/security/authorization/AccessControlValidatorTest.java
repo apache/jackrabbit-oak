@@ -17,10 +17,11 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
-
 import javax.jcr.AccessDeniedException;
+import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -326,6 +327,27 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Creating restriction with invalid type should fail.");
         } catch (CommitFailedException e) {
             // success
+            assertTrue(e.isAccessControlViolation());
+        }
+    }
+
+    @Test
+    public void testDuplicateAce() throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils.getAccessControlList(acMgr, testPath);
+        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        acMgr.setPolicy(testPath, acl);
+
+        // add duplicate ac-entry on OAK-API
+        NodeUtil policy = new NodeUtil(root.getTree(testPath + "/rep:policy"));
+        NodeUtil ace = policy.addChild("duplicateAce", NT_REP_GRANT_ACE);
+        ace.setString(REP_PRINCIPAL_NAME, testPrincipal.getName());
+        ace.setStrings(AccessControlConstants.REP_PRIVILEGES, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+
+        try {
+            root.commit();
+            fail("Creating duplicate ACE must be detected");
+        } catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
         }
     }
