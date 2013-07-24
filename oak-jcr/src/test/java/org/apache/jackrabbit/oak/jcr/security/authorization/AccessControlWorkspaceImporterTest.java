@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
-import javax.jcr.security.AccessControlException;
 import javax.jcr.Node;
+import javax.jcr.security.AccessControlException;
 
 public class AccessControlWorkspaceImporterTest extends AccessControlImporterTest {
 
@@ -35,6 +35,7 @@ public class AccessControlWorkspaceImporterTest extends AccessControlImporterTes
         try {
             Node target = testRootNode.addNode("test");
             target.addMixin("rep:RepoAccessControllable");
+            superuser.save();
 
             doImport(target.getPath(), XML_REPO_POLICY_TREE);
             fail("Importing repo policy to non-root node must fail");

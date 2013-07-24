@@ -17,7 +17,9 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -268,8 +270,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleProperty        <!-- OAK-920 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleAcContent       <!-- OAK-920 -->
 
-      org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportRepoACLAtTestNode  <!-- OAK-773 -->
-
       org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                        <!-- OAK-414, OAK-482 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupIntoUsersTree <!-- OAK-821 -->
 
@@ -345,7 +345,7 @@
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
-            <excludes />
+            <excludes/>
           </configuration>
         </plugin>
       </plugins>
