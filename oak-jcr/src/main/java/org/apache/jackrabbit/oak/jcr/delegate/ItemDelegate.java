@@ -102,4 +102,12 @@ public abstract class ItemDelegate {
      */
     public abstract boolean exists();
 
+    /**
+     * Removes this item.
+     *
+     * @return {@code true} if this item was removed;
+     *         or {@code false} if this is the root node that can't be removed
+     */
+    public abstract boolean remove() throws InvalidItemStateException;
+
 }

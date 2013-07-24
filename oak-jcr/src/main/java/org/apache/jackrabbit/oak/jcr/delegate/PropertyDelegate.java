@@ -143,8 +143,15 @@ public class PropertyDelegate extends ItemDelegate {
     /**
      * Remove the property
      */
-    public void remove() {
-        parent.removeProperty(name);
+    @Override
+    public boolean remove() {
+        boolean exists = parent.hasProperty(name);
+        if (exists) {
+            parent.removeProperty(name);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
