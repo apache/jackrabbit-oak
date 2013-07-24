@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
-import org.apache.jackrabbit.oak.jcr.operation.ItemOperation;
+import org.apache.jackrabbit.oak.jcr.operation.PropertyOperation;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.value.ValueHelper;
 
@@ -67,14 +67,14 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        return perform(new ItemOperation<Node>(dlg) {
+        return perform(new PropertyOperation<Node>(dlg) {
             @Override
             public Node perform() throws RepositoryException {
-                NodeDelegate parent = dlg.getParent();
+                NodeDelegate parent = property.getParent();
                 if (parent == null) {
                     throw new AccessDeniedException();
                 } else {
-                    return sessionContext.createNodeOrNull(dlg.getParent());
+                    return sessionContext.createNodeOrNull(parent);
                 }
             }
         });
@@ -82,20 +82,20 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public boolean isNew() {
-        return safePerform(new ItemOperation<Boolean>(dlg) {
+        return safePerform(new PropertyOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() {
-                return dlg.getStatus() == Status.NEW;
+                return property.getStatus() == Status.NEW;
             }
         });
     }
 
     @Override
     public boolean isModified() {
-        return safePerform(new ItemOperation<Boolean>(dlg) {
+        return safePerform(new PropertyOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() {
-                return dlg.getStatus() == Status.MODIFIED;
+                return property.getStatus() == Status.MODIFIED;
             }
         });
     }
@@ -224,10 +224,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Value getValue() throws RepositoryException {
-        return perform(new ItemOperation<Value>(dlg) {
+        return perform(new PropertyOperation<Value>(dlg) {
             @Override
             public Value perform() throws RepositoryException {
-                return ValueFactoryImpl.createValue(dlg.getSingleState(), sessionContext);
+                return ValueFactoryImpl.createValue(
+                        property.getSingleState(), sessionContext);
             }
         });
     }
@@ -235,10 +236,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Value[] getValues() throws RepositoryException {
-        return perform(new ItemOperation<List<Value>>(dlg) {
+        return perform(new PropertyOperation<List<Value>>(dlg) {
             @Override
             public List<Value> perform() throws RepositoryException {
-                return ValueFactoryImpl.createValues(dlg.getMultiState(), sessionContext);
+                return ValueFactoryImpl.createValues(
+                        property.getMultiState(), sessionContext);
             }
         }).toArray(NO_VALUES);
     }
@@ -292,9 +294,10 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getNode() throws RepositoryException {
-        return perform(new ItemOperation<Node>(dlg) {
+        return perform(new PropertyOperation<Node>(dlg) {
             @Override
             public Node perform() throws RepositoryException {
+                // TODO: avoid nested calls
                 Value value = getValue();
                 switch (value.getType()) {
                     case PropertyType.REFERENCE:
@@ -344,9 +347,10 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Property getProperty() throws RepositoryException {
-        return perform(new ItemOperation<Property>(dlg) {
+        return perform(new PropertyOperation<Property>(dlg) {
             @Override
             public Property perform() throws RepositoryException {
+                // TODO: avoid nested calls
                 Value value = getValue();
                 Value pathValue = ValueHelper.convert(value, PropertyType.PATH, getValueFactory());
                 String path = pathValue.getString();
@@ -379,31 +383,32 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        return perform(new ItemOperation<PropertyDefinition>(dlg) {
+        return perform(new PropertyOperation<PropertyDefinition>(dlg) {
             @Override
             public PropertyDefinition perform() throws RepositoryException {
                 return getDefinitionProvider().getDefinition(
-                        dlg.getParent().getTree(), dlg.getPropertyState(), true);
+                        property.getParent().getTree(),
+                        property.getPropertyState(), true);
             }
         });
     }
 
     @Override
     public int getType() throws RepositoryException {
-        return perform(new ItemOperation<Integer>(dlg) {
+        return perform(new PropertyOperation<Integer>(dlg) {
             @Override
             public Integer perform() throws RepositoryException {
-                return dlg.getPropertyState().getType().tag();
+                return property.getPropertyState().getType().tag();
             }
         });
     }
 
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return perform(new ItemOperation<Boolean>(dlg) {
+        return perform(new PropertyOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
-                return dlg.getPropertyState().isArray();
+                return property.getPropertyState().isArray();
             }
         });
     }
