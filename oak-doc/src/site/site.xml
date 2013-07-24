@@ -26,7 +26,6 @@ under the License.
   <body>
     <menu name="Overview">
       <item href="index.html" name="Jackrabbit Oak" />
-      <item href="info.html" name="Project info" />
       <item href="license.html" name="License" />
       <item href="downloads.html" name="Downloads" />
       <item href="from_here.html" name="From here" />
@@ -36,14 +35,15 @@ under the License.
       <item href="microkernel.html" name="Microkernel" />
     </menu>
     <menu name="Using Oak">
-      <item href="getting_started.html" name="Getting Started" />
+      <item href="use_getting_started.html" name="Getting Started" />
       <item href="differences.html" name="Differences to Jackrabbit 2" />
       <item href="dos_and_donts.html" name="Dos and don'ts" />
       <item href="when_things_go_wrong.html" name="When things go wrong" />
     </menu>
     <menu name="Developing Oak">
+      <item href="dev_getting_started.html" name="Getting Started" />
       <item href="resources.html" name="Resources" />
-      <item href="contributing.html" name="Contributing" />
+      <item href="participating.html" name="Participating" />
       <item href="api.html" name="API docs" />
     </menu>
     <menu name="Links">
@@ -59,6 +59,8 @@ under the License.
   <custom>
     <fluidoSkin>
       <sourceLineNumbersEnabled>true</sourceLineNumbersEnabled>
+      <topBarEnabled>true</topBarEnabled>
+      <sideBarEnabled>true</sideBarEnabled>
       <gitHub>
         <projectId>apache/jackrabbit-oak</projectId>
         <ribbonOrientation>right</ribbonOrientation>
