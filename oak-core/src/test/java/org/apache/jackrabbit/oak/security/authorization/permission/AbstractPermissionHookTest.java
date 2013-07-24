@@ -109,12 +109,12 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
 
     protected Tree getEntry(String principalName, String accessControlledPath, long index) throws Exception {
         Tree principalRoot = getPrincipalRoot(principalName);
-		return traverse(principalRoot, accessControlledPath, index);
+        return traverse(principalRoot, accessControlledPath, index);
     }
-	
-	protected Tree traverse(Tree parent, String accessControlledPath, long index) throws Exception {
-		for (Tree entry : parent.getChildren()) {
-		    String path = entry.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING);
+
+    protected Tree traverse(Tree parent, String accessControlledPath, long index) throws Exception {
+        for (Tree entry : parent.getChildren()) {
+            String path = entry.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING);
             long entryIndex = entry.getProperty(REP_INDEX).getValue(Type.LONG);
             if (accessControlledPath.equals(path)) {
                 if (index == entryIndex) {
@@ -123,60 +123,28 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
                     return traverse(entry, accessControlledPath, index);
                 }
             } else if (Text.isDescendant(path, accessControlledPath)) {
-				return traverse(entry, accessControlledPath, index);
-			}
+                return traverse(entry, accessControlledPath, index);
+            }
         }
-	    throw new RepositoryException("no such entry");
-	}
-	
-	protected long cntEntries(Tree parent) {
+        throw new RepositoryException("no such entry");
+    }
+
+    protected long cntEntries(Tree parent) {
         long cnt = parent.getChildrenCount();
-		for (Tree child : parent.getChildren()) {
-			cnt += cntEntries(child);
-		}
-		return cnt;	
-	}
+        for (Tree child : parent.getChildren()) {
+            cnt += cntEntries(child);
+        }
+        return cnt;
+    }
 
     protected void createPrincipals() throws Exception {
         if (principals.isEmpty()) {
             for (int i = 0; i < 10; i++) {
-                Group gr = getUserManager(root).createGroup("testGroup"+i);
+                Group gr = getUserManager(root).createGroup("testGroup" + i);
                 principals.add(gr.getPrincipal());
             }
             root.commit();
         }
-    }
-
-    @Ignore() // FIXME: refuse out duplicate entries in ac-validation hook.
-    @Test
-    public void testDuplicateAce() throws Exception {
-        // add duplicate policy on OAK-API
-        NodeUtil policy = new NodeUtil(root.getTree(testPath + "/rep:policy"));
-        NodeUtil ace = policy.addChild("duplicateAce", NT_REP_GRANT_ACE);
-        ace.setString(REP_PRINCIPAL_NAME, testPrincipalName);
-        ace.setStrings(AccessControlConstants.REP_PRIVILEGES, JCR_ADD_CHILD_NODES);
-        root.commit();
-
-        Tree principalRoot = getPrincipalRoot(testPrincipalName);
-        assertEquals(2, cntEntries(principalRoot));
-
-        assertEquals(1, principalRoot.getChildrenCount());
-		Tree entry1 = principalRoot.getChildren().iterator().next();
-		assertEquals(bitsProvider.getBits(JCR_ADD_CHILD_NODES), PrivilegeBits.getInstance(entry1.getProperty(REP_PRIVILEGE_BITS)));
-		assertEquals(testPath, entry1.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
-        assertEquals(0, entry1.getProperty(REP_INDEX).getValue(Type.LONG).intValue());
-		
-	    assertEquals(1, entry1.getChildrenCount());
-		Tree entry2 = entry1.getChildren().iterator().next();
-		assertEquals(bitsProvider.getBits(JCR_ADD_CHILD_NODES), PrivilegeBits.getInstance(entry2.getProperty(REP_PRIVILEGE_BITS)));
-		assertEquals(testPath, entry2.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
-        assertEquals(2, entry2.getProperty(REP_INDEX).getValue(Type.LONG).intValue());
-
-        // remove duplicate policy entry again
-        root.getTree(testPath + "/rep:policy/duplicateAce").remove();
-        root.commit();
-
-        assertEquals(1, cntEntries(getPrincipalRoot(testPrincipalName)));
     }
 
     @Test
@@ -340,7 +308,7 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         entry = getEntry(principals.get(2).getName(), testPath, 3);
         assertEquals(3, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
 
-        for (String pName : new String[] {testPrincipalName, principals.get(0).getName()}) {
+        for (String pName : new String[]{testPrincipalName, principals.get(0).getName()}) {
             try {
                 getEntry(pName, testPath, 0);
                 fail();
@@ -362,7 +330,7 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         acMgr.setPolicy(childPath, acl);
         root.commit();
 
-        assertTrue(root.getTree(childPath+"/rep:policy").exists());
+        assertTrue(root.getTree(childPath + "/rep:policy").exists());
 
         Tree principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
         assertEquals(2, cntEntries(principalRoot));
@@ -371,7 +339,7 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         Root testRoot = testSession.getLatestRoot();
 
         assertTrue(testRoot.getTree(childPath).exists());
-        assertFalse(testRoot.getTree(childPath+"/rep:policy").exists());
+        assertFalse(testRoot.getTree(childPath + "/rep:policy").exists());
 
         testRoot.getTree(childPath).remove();
         testRoot.commit();
@@ -379,7 +347,7 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
 
         root.refresh();
         assertFalse(root.getTree(testPath).hasChild("childNode"));
-        assertFalse(root.getTree(childPath+"/rep:policy").exists());
+        assertFalse(root.getTree(childPath + "/rep:policy").exists());
         // aces must be removed in the permission store even if the editing
         // session wasn't able to access them.
         principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
