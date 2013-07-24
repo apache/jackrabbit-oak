@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.Tree.Status;
 
@@ -32,8 +33,36 @@ public abstract class ItemDelegate {
 
     protected final SessionDelegate sessionDelegate;
 
+    /**
+     * The session update count. Used to avoid the overhead of extra
+     * {@link #exists()} calls every time this item is accessed.
+     *
+     * @see #checkAlive()
+     */
+    private long updateCount;
+
     ItemDelegate(SessionDelegate sessionDelegate) {
         this.sessionDelegate = checkNotNull(sessionDelegate);
+        this.updateCount  = sessionDelegate.getUpdateCount();
+    }
+
+    /**
+     * Performs a sanity check on this item and the associated session.
+     *
+     * @throws RepositoryException if this item has been rendered invalid
+     *                             for some reason or the associated session
+     *                             has been logged out
+     */
+    public synchronized void checkAlive() throws RepositoryException {
+        sessionDelegate.checkAlive();
+        long sessionCount = sessionDelegate.getUpdateCount();
+        if (updateCount != sessionCount) {
+            if (!exists()) {
+                throw new InvalidItemStateException(
+                        "This item does not exist anymore");
+            }
+            updateCount = sessionCount;
+        }
     }
 
     /**
@@ -72,11 +101,5 @@ public abstract class ItemDelegate {
      * @return  {@code true} the underlying tree exists, {@code false} otherwise.
      */
     public abstract boolean exists();
-
-    public void checkNotStale() throws InvalidItemStateException {
-        if (!exists()) {
-            throw new InvalidItemStateException("stale");
-        }
-    }
 
 }

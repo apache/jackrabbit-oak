@@ -181,12 +181,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
-    /**
-     * @see Item#accept(javax.jcr.ItemVisitor)
-     */
     @Override
     public void accept(ItemVisitor visitor) throws RepositoryException {
-        checkAlive();
         visitor.visit(this);
     }
 
@@ -933,7 +929,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public String getCorrespondingNodePath(String workspaceName) throws RepositoryException {
-        checkAlive();
+        // TODO: use perform()
         checkValidWorkspace(workspaceName);
         throw new UnsupportedRepositoryOperationException("TODO: Node.getCorrespondingNodePath");
     }
@@ -941,7 +937,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void update(String srcWorkspace) throws RepositoryException {
-        checkAlive();
+        // TODO: use perform()
         checkValidWorkspace(srcWorkspace);
 
         // check for pending changes

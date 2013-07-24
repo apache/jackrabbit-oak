@@ -112,7 +112,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public void accept(ItemVisitor visitor) throws RepositoryException {
-        checkAlive();
         visitor.visit(this);
     }
 
