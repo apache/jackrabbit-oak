@@ -47,11 +47,11 @@ import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
-import org.apache.jackrabbit.util.Text;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
@@ -126,31 +126,35 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws RepositoryException {
+        final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
+        final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
+
+        // TODO: use perform()
         ensureIsAlive();
 
         if (!getName().equals(srcWorkspace)) {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        // FIXME getRelativeParent doesn't work for fully qualified names. See OAK-724
-        SessionImpl.checkProtectedNodes(
-                getSession(), Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+        sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
+        sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
         SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
 
         sessionDelegate.copy(
-                getOakPathOrThrowNotFound(srcAbsPath),
-                getOakPathOrThrowNotFound(destAbsPath),
-                sessionContext.getAccessManager());
+                srcOakPath, destOakPath, sessionContext.getAccessManager());
     }
 
     @Override
     public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
+        final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
+        final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
+
+        // TODO: use perform()
         ensureIsAlive();
 
-        // FIXME getRelativeParent doesn't work for fully qualified names. See OAK-724
-        SessionImpl.checkProtectedNodes(
-                getSession(), Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+        sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
+        sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
         // TODO
         throw new UnsupportedRepositoryOperationException("Not implemented.");
@@ -158,18 +162,19 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
+        final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
+        final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
+
+        // TODO: use perform()
         ensureIsAlive();
 
-        // FIXME getRelativeParent doesn't work for fully qualified names. See OAK-724
-        SessionImpl.checkProtectedNodes(
-                getSession(), Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+        sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
+        sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
         SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
 
         sessionDelegate.move(
-                getOakPathOrThrowNotFound(srcAbsPath),
-                getOakPathOrThrowNotFound(destAbsPath),
-                false, sessionContext.getAccessManager());
+                srcOakPath, destOakPath, false, sessionContext.getAccessManager());
     }
 
     @Override

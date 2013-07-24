@@ -87,7 +87,9 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         @Override
         protected void checkPreconditions() throws RepositoryException {
             dlg.checkAlive();
-            checkProtected();
+            if (dlg.isProtected()) {
+                throw new ConstraintViolationException("Item is protected.");
+            }
         }
     }
 
@@ -270,12 +272,6 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     //-----------------------------------------------------------< internal >---
-
-    void checkProtected() throws RepositoryException {
-        if (dlg.isProtected()) {
-            throw new ConstraintViolationException("Item is protected.");
-        }
-    }
 
     void checkProtected(ItemDefinition definition) throws ConstraintViolationException {
         if (definition.isProtected()) {

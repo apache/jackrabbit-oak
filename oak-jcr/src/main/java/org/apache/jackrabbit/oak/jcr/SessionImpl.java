@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,6 +39,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
 
@@ -57,7 +60,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.util.TODO;
-import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
@@ -75,13 +77,6 @@ public class SessionImpl implements JackrabbitSession {
     SessionImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.sd = sessionContext.getSessionDelegate();
-    }
-
-    static void checkProtectedNodes(Session session, String... absJcrPaths) throws RepositoryException {
-        for (String absPath : absJcrPaths) {
-            NodeImpl<?> node = (NodeImpl<?>) session.getNode(absPath);
-            node.checkProtected();
-        }
     }
 
     static void checkIndexOnName(SessionContext sessionContext, String path) throws RepositoryException {
@@ -337,22 +332,22 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @Override
-    public void move(final String srcAbsPath, final String destAbsPath) throws RepositoryException {
+    public void move(String srcAbsPath, final String destAbsPath) throws RepositoryException {
+        final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
+        final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
         sd.perform(new WriteOperation<Void>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
-                // FIXME getRelativeParent doesn't work for fully qualified names. See OAK-724
-                checkProtectedNodes(SessionImpl.this,
-                        Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+                sd.checkProtectedNode(getParentPath(srcOakPath));
+                sd.checkProtectedNode(getParentPath(destOakPath));
                 checkIndexOnName(sessionContext, destAbsPath);
             }
 
             @Override
             public Void perform() throws RepositoryException {
-                sd.move(
-                        getOakPathOrThrowNotFound(srcAbsPath),
-                        getOakPathOrThrowNotFound(destAbsPath), true, sessionContext.getAccessManager());
+                sd.move(srcOakPath, destOakPath, true,
+                        sessionContext.getAccessManager());
                 return null;
             }
         });
@@ -360,18 +355,22 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void removeItem(final String absPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrowNotFound(absPath);
         perform(new WriteOperation<Void>() {
             @Override
             protected Void perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrowNotFound(absPath);
-                ItemImpl<?> item = getItemInternal(oakPath);
+                ItemDelegate item = sd.getItem(oakPath);
                 if (item == null) {
                     throw new PathNotFoundException(absPath);
+                } else if (item.isProtected()) {
+                    throw new ConstraintViolationException(
+                            item.getPath() + " is protected");
+                } else if (item.remove()) {
+                    return null;
+                } else {
+                    throw new RepositoryException(
+                            item.getPath() + " could not be removed");
                 }
-
-                item.checkProtected();
-                item.remove();
-                return null;
             }
         });
     }

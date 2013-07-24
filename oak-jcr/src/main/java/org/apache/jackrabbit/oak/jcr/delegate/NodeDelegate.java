@@ -642,6 +642,7 @@ public class NodeDelegate extends ItemDelegate {
      *
      * @return {@code true} if the node was removed; {@code false} otherwise.
      */
+    @Override
     public boolean remove() throws InvalidItemStateException {
         return getTree().remove();
     }
