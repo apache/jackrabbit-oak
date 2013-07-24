@@ -15,4 +15,10 @@
    limitations under the License.
   -->
 
-TODO
+Participating
+-------------
+
+The best place for Oak-related discussions is the [oak-dev@](mailto:oak-dev@jackrabbit.apache.org)
+mailing list. To subscribe, send a message to [oak-dev-subscribe@]
+(mailto:oak-dev-subscribe@jackrabbit.apache.org). Use the [OAK issue tracker]
+(https://issues.apache.org/jira/browse/OAK) to submit issues, comments or patches.
