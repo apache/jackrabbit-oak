@@ -66,7 +66,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        return perform(new ItemReadOperation<Node>() {
+        return perform(new ItemOperation<Node>(dlg) {
             @Override
             public Node perform() throws RepositoryException {
                 NodeDelegate parent = dlg.getParent();
@@ -81,7 +81,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public boolean isNew() {
-        return safePerform(new ItemReadOperation<Boolean>() {
+        return safePerform(new ItemOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() {
                 return dlg.getStatus() == Status.NEW;
@@ -91,7 +91,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public boolean isModified() {
-        return safePerform(new ItemReadOperation<Boolean>() {
+        return safePerform(new ItemOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() {
                 return dlg.getStatus() == Status.MODIFIED;
@@ -223,7 +223,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Value getValue() throws RepositoryException {
-        return perform(new ItemReadOperation<Value>() {
+        return perform(new ItemOperation<Value>(dlg) {
             @Override
             public Value perform() throws RepositoryException {
                 return ValueFactoryImpl.createValue(dlg.getSingleState(), sessionContext);
@@ -234,7 +234,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Value[] getValues() throws RepositoryException {
-        return perform(new ItemReadOperation<List<Value>>() {
+        return perform(new ItemOperation<List<Value>>(dlg) {
             @Override
             public List<Value> perform() throws RepositoryException {
                 return ValueFactoryImpl.createValues(dlg.getMultiState(), sessionContext);
@@ -291,7 +291,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getNode() throws RepositoryException {
-        return perform(new ItemReadOperation<Node>() {
+        return perform(new ItemOperation<Node>(dlg) {
             @Override
             public Node perform() throws RepositoryException {
                 Value value = getValue();
@@ -343,7 +343,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Property getProperty() throws RepositoryException {
-        return perform(new ItemReadOperation<Property>() {
+        return perform(new ItemOperation<Property>(dlg) {
             @Override
             public Property perform() throws RepositoryException {
                 Value value = getValue();
@@ -378,7 +378,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        return perform(new ItemReadOperation<PropertyDefinition>() {
+        return perform(new ItemOperation<PropertyDefinition>(dlg) {
             @Override
             protected PropertyDefinition perform() throws RepositoryException {
                 return getDefinitionProvider().getDefinition(
@@ -389,7 +389,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public int getType() throws RepositoryException {
-        return perform(new ItemReadOperation<Integer>() {
+        return perform(new ItemOperation<Integer>(dlg) {
             @Override
             public Integer perform() throws RepositoryException {
                 return dlg.getPropertyState().getType().tag();
@@ -399,7 +399,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return perform(new ItemReadOperation<Boolean>() {
+        return perform(new ItemOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
                 return dlg.getPropertyState().isArray();
