@@ -15,7 +15,7 @@ package org.apache.jackrabbit.oak.query;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -63,11 +63,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Represents a parsed query. Lifecycle: use the constructor to create a new
- * object. Call init() to initialize the bind variable map. If the query is
- * re-executed, a new instance is created.
+ * Represents a parsed query.
  */
-public class QueryImpl implements AbstractQuery {
+public class QueryImpl implements Query {
     
     /**
      * The "jcr:path" pseudo-property.
@@ -95,9 +93,10 @@ public class QueryImpl implements AbstractQuery {
     ConstraintImpl constraint;
     
     private QueryEngineImpl queryEngine;
-    private final OrderingImpl[] orderings;
+    private OrderingImpl[] orderings;
     private ColumnImpl[] columns;
     private boolean explain, measure;
+    private boolean distinct;
     private long limit = Long.MAX_VALUE;
     private long offset;
     private long size = -1;
@@ -106,15 +105,14 @@ public class QueryImpl implements AbstractQuery {
     private NodeState rootState;
     private NamePathMapper namePathMapper;
 
-    QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
-          ColumnImpl[] columns) {
+    QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint, ColumnImpl[] columns) {
         this.statement = statement;
         this.source = source;
         this.constraint = constraint;
-        this.orderings = orderings;
         this.columns = columns;
     }
 
+    @Override
     public void init() {
 
         final QueryImpl query = this;
@@ -333,12 +331,18 @@ public class QueryImpl implements AbstractQuery {
         this.offset = offset;
     }
 
+    @Override
     public void setExplain(boolean explain) {
         this.explain = explain;
     }
 
+    @Override
     public void setMeasure(boolean measure) {
         this.measure = measure;
+    }
+    
+    public void setDistinct(boolean distinct) {
+        this.distinct = distinct;
     }
 
     @Override
@@ -349,7 +353,6 @@ public class QueryImpl implements AbstractQuery {
     @Override
     public Iterator<ResultRowImpl> getRows() {
         prepare();
-        Iterator<ResultRowImpl> it;
         if (explain) {
             String plan = getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
@@ -357,137 +360,51 @@ public class QueryImpl implements AbstractQuery {
                     new String[0], 
                     new PropertyValue[] { PropertyValues.newString(plan)},
                     null);
-            it = Arrays.asList(r).iterator();
-        } else {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("query execute {} ", statement);
-                LOG.debug("query plan {}", getPlan());
+            return Arrays.asList(r).iterator();
+        }
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("query execute {} ", statement);
+            LOG.debug("query plan {}", getPlan());
+        }
+        RowIterator rowIt = new RowIterator(rootState);
+        Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
+        Iterator<ResultRowImpl> it = 
+                FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy);
+        if (measure) {
+            // run the query
+            while (it.hasNext()) {
+                it.next();
             }
-            if (orderings == null) {
-                // can apply limit and offset directly
-                it = new RowIterator(rootState, limit, offset);
-            } else {
-                // read and order first; skip and limit afterwards
-                it = new RowIterator(rootState, Long.MAX_VALUE, 0);
-            }
-            long readCount = 0;
-            if (orderings != null) {
-                // TODO "order by" is not necessary if the used index returns
-                // rows in the same order
-                    
-                // avoid overflow (both offset and limit could be Long.MAX_VALUE)
-                int keep = (int) Math.min(Integer.MAX_VALUE, 
-                        Math.min(Integer.MAX_VALUE, offset) + 
-                        Math.min(Integer.MAX_VALUE, limit));
-                
-                ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
-                while (it.hasNext()) {
-                    readCount++;
-                    ResultRowImpl r = it.next();
-                    list.add(r);
-                    // from time to time, sort and truncate
-                    // this should results in O(n*log(2*keep)) operations,
-                    // which is close to the optimum O(n*log(keep))
-                    if (list.size() > keep * 2) {
-                        // remove tail entries right now, to save memory
-                        Collections.sort(list);
-                        keepFirst(list, keep);
-                    }
-                }
-                Collections.sort(list);
-                keepFirst(list, keep);
-                
-                it = list.iterator();
-                // skip the head (this is more efficient than removing
-                // if there are many entries)
-                for (int i = 0; i < offset && it.hasNext(); i++) {
-                    it.next();
-                }
-                size = list.size() - offset;
-            } else if (measure) {
-                while (it.hasNext()) {
-                    readCount++;
-                    it.next();
-                }
-            }
-            if (measure) {
-                columns = new ColumnImpl[] {
-                        new ColumnImpl("measure", "selector", "selector"),
-                        new ColumnImpl("measure", "scanCount", "scanCount")
-                };
-                ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
-                ResultRowImpl r = new ResultRowImpl(this,
+            columns = new ColumnImpl[] {
+                    new ColumnImpl("measure", "selector", "selector"),
+                    new ColumnImpl("measure", "scanCount", "scanCount")
+            };
+            ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
+            ResultRowImpl r = new ResultRowImpl(this,
+                    new String[0],
+                    new PropertyValue[] {
+                            PropertyValues.newString("query"),
+                            PropertyValues.newLong(rowIt.getReadCount())
+                        },
+                    null);
+            list.add(r);
+            for (SelectorImpl selector : selectors) {
+                r = new ResultRowImpl(this,
                         new String[0],
                         new PropertyValue[] {
-                                PropertyValues.newString("query"),
-                                PropertyValues.newLong(readCount)
+                                PropertyValues.newString(selector.getSelectorName()),
+                                PropertyValues.newLong(selector.getScanCount()),
                             },
                         null);
                 list.add(r);
-                for (SelectorImpl selector : selectors) {
-                    r = new ResultRowImpl(this,
-                            new String[0],
-                            new PropertyValue[] {
-                                    PropertyValues.newString(selector.getSelectorName()),
-                                    PropertyValues.newLong(selector.getScanCount()),
-                                },
-                            null);
-                    list.add(r);
-                }
-                it = list.iterator();
             }
+            it = list.iterator();
         }
         return it;
     }
     
-    /**
-     * Truncate a list.
-     * 
-     * @param list the list
-     * @param keep the maximum number of entries to keep
-     */
-    private static void keepFirst(ArrayList<ResultRowImpl> list, int keep) {
-        while (list.size() > keep) {
-            // remove the entries starting at the end, 
-            // to avoid n^2 performance
-            list.remove(list.size() - 1);
-        }        
-    }
-
-    public int compareRows(PropertyValue[] orderValues,
-            PropertyValue[] orderValues2) {
-        int comp = 0;
-        for (int i = 0, size = orderings.length; i < size; i++) {
-            PropertyValue a = orderValues[i];
-            PropertyValue b = orderValues2[i];
-            if (a == null || b == null) {
-                if (a == b) {
-                    comp = 0;
-                } else if (a == null) {
-                    // TODO order by: nulls first (it looks like), or low?
-                    comp = -1;
-                } else {
-                    comp = 1;
-                }
-            } else {
-                comp = a.compareTo(b);
-            }
-            if (comp != 0) {
-                if (orderings[i].isDescending()) {
-                    comp = -comp;
-                }
-                break;
-            }
-        }
-        return comp;
-    }
-    
-    /**
-     * Get the query plan. The query must already be prepared.
-     * 
-     * @return the query plan
-     */
-    private String getPlan() {
+    @Override
+    public String getPlan() {
         return source.getPlan(rootState);
     }
 
@@ -508,20 +425,18 @@ public class QueryImpl implements AbstractQuery {
         private final NodeState rootState;
         private ResultRowImpl current;
         private boolean started, end;
-        private long limit, offset, rowIndex;
+        private long rowIndex;
 
-        RowIterator(NodeState rootState, long limit, long offset) {
+        RowIterator(NodeState rootState) {
             this.rootState = rootState;
-            this.limit = limit;
-            this.offset = offset;
+        }
+
+        public long getReadCount() {
+            return rowIndex;
         }
 
         private void fetchNext() {
             if (end) {
-                return;
-            }
-            if (rowIndex >= limit) {
-                end = true;
                 return;
             }
             if (!started) {
@@ -531,10 +446,6 @@ public class QueryImpl implements AbstractQuery {
             while (true) {
                 if (source.next()) {
                     if (constraint == null || constraint.evaluate()) {
-                        if (offset > 0) {
-                            offset--;
-                            continue;
-                        }
                         current = currentRow();
                         rowIndex++;
                         break;
@@ -604,7 +515,8 @@ public class QueryImpl implements AbstractQuery {
         return new ResultRowImpl(this, paths, values, orderValues);
     }
 
-    int getSelectorIndex(String selectorName) {
+    @Override
+    public int getSelectorIndex(String selectorName) {
         Integer index = selectorIndexes.get(selectorName);
         if (index == null) {
             throw new IllegalArgumentException("Unknown selector: " + selectorName);
@@ -612,7 +524,12 @@ public class QueryImpl implements AbstractQuery {
         return index;
     }
 
-    int getColumnIndex(String columnName) {
+    @Override
+    public int getColumnIndex(String columnName) {
+        return getColumnIndex(columns, columnName);
+    }
+    
+    static int getColumnIndex(ColumnImpl[] columns, String columnName) {
         for (int i = 0, size = columns.length; i < size; i++) {
             ColumnImpl c = columns[i];
             String cn = c.getColumnName();
@@ -632,8 +549,12 @@ public class QueryImpl implements AbstractQuery {
     }
 
     @Override
-    public List<SelectorImpl> getSelectors() {
-        return Collections.unmodifiableList(selectors);
+    public String[] getSelectorNames() {
+        String[] list = new String[selectors.size()];
+        for (int i = 0; i < list.length; i++) {
+            list[i] = selectors.get(i).getSelectorName();
+        }
+        return list;
     }
 
     @Override
@@ -659,6 +580,11 @@ public class QueryImpl implements AbstractQuery {
     public void setRootState(NodeState rootState) {
         this.rootState = rootState;
     }
+    
+    @Override
+    public void setOrderings(OrderingImpl[] orderings) {
+        this.orderings = orderings;
+    }
 
     @Override
     public void setNamePathMapper(NamePathMapper namePathMapper) {
@@ -669,6 +595,7 @@ public class QueryImpl implements AbstractQuery {
         return namePathMapper;
     }
 
+    @Override
     public Tree getTree(String path) {
         return TreeUtil.getTree(rootTree, PathUtils.isAbsolute(path) ? path.substring(1) : path);
     }

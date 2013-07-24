@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
@@ -36,7 +36,7 @@ public class SimpleExcerptProvider {
 
     private static int maxFragmentSize = 150;
 
-    public String getExcerpt(String path, String columnName, QueryImpl query,
+    public String getExcerpt(String path, String columnName, Query query, String searchToken,
             boolean highlight) {
         if (path == null) {
             return null;
@@ -72,9 +72,10 @@ public class SimpleExcerptProvider {
                 }
             }
         }
-        String searchToken = extractFulltext(query.getConstraint());
-        if (highlight && searchToken != null) {
-            return highlight(text, searchToken);
+        if (highlight) {
+            if (searchToken != null) {
+                return highlight(text, searchToken);
+            }
         }
         return noHighlight(text);
     }
@@ -87,7 +88,9 @@ public class SimpleExcerptProvider {
         return column.substring(column.indexOf("(") + 1, column.indexOf(")"));
     }
 
-    private static String extractFulltext(ConstraintImpl c) {
+    public static String extractFulltext(ConstraintImpl c) {
+        // TODO instanceof should not be used, 
+        // as it will break without us noticing if we extend the AST
         if (c instanceof FullTextSearchImpl) {
             FullTextSearchImpl f = (FullTextSearchImpl) c;
             if (f.getFullTextSearchExpression() instanceof LiteralImpl) {

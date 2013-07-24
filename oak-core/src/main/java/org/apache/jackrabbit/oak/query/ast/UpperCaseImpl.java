@@ -98,4 +98,9 @@ public class UpperCaseImpl extends DynamicOperandImpl {
         return PropertyType.STRING;
     }
 
+    @Override
+    public DynamicOperandImpl createCopy() {
+        return new UpperCaseImpl(operand.createCopy());
+    }
+
 }

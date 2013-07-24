@@ -194,5 +194,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     int getPropertyType() {
         return propertyType;
     }
+    
+    @Override
+    public PropertyValueImpl createCopy() {
+        return new PropertyValueImpl(selectorName, propertyName);
+    }
 
 }

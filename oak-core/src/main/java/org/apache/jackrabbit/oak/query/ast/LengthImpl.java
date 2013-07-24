@@ -115,5 +115,10 @@ public class LengthImpl extends DynamicOperandImpl {
     int getPropertyType() {
         return PropertyType.LONG;
     }
+    
+    @Override
+    public DynamicOperandImpl createCopy() {
+        return new LengthImpl(propertyValue.createCopy());
+    }
 
 }

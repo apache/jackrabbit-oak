@@ -98,4 +98,9 @@ public class LowerCaseImpl extends DynamicOperandImpl {
         return PropertyType.STRING;
     }
 
+    @Override
+    public DynamicOperandImpl createCopy() {
+        return new LowerCaseImpl(operand.createCopy());
+    }
+
 }
