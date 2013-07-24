@@ -268,6 +268,8 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleProperty        <!-- OAK-920 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleAcContent       <!-- OAK-920 -->
 
+      org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportRepoACLAtTestNode  <!-- OAK-773 -->
+
       org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                        <!-- OAK-414, OAK-482 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupIntoUsersTree <!-- OAK-821 -->
 
