@@ -22,63 +22,45 @@ import java.io.InputStream;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
+import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 public class AccessControlImporterTest extends AbstractJCRTest {
 
     public static final String XML_POLICY_TREE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<sv:node sv:name=\"test\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>nt:unstructured</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\">" +
-            "<sv:value>rep:AccessControllable</sv:value>" +
-            "<sv:value>mix:versionable</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"jcr:uuid\" sv:type=\"String\">" +
-            "<sv:value>0a0ca2e9-ab98-4433-a12b-d57283765207</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"jcr:baseVersion\" sv:type=\"Reference\">" +
-            "<sv:value>35d0d137-a3a4-4af3-8cdd-ce565ea6bdc9</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"jcr:isCheckedOut\" sv:type=\"Boolean\">" +
-            "<sv:value>true</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"jcr:predecessors\" sv:type=\"Reference\">" +
-            "<sv:value>35d0d137-a3a4-4af3-8cdd-ce565ea6bdc9</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"jcr:versionHistory\" sv:type=\"Reference\">" +
-            "<sv:value>428c9ef2-78e5-4f1c-95d3-16b4ce72d815</sv:value>" +
-            "</sv:property>" +
-            "<sv:node sv:name=\"rep:policy\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:ACL</sv:value>" +
-            "</sv:property>" +
-            "<sv:node sv:name=\"allow\">" +
-            "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
-            "<sv:value>rep:GrantACE</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>everyone</sv:value>" +
-            "</sv:property>" +
-            "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
-            "<sv:value>jcr:write</sv:value>" +
-            "</sv:property>" +
-            "</sv:node>" +
-            "</sv:node>" +
+            "  <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property>" +
+            "  <sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\">" +
+            "     <sv:value>rep:AccessControllable</sv:value>" +
+            "  </sv:property>" +
+            "  <sv:node sv:name=\"rep:policy\">" +
+            "     <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ACL</sv:value></sv:property>" +
+            "     <sv:node sv:name=\"allow\">" +
+            "         <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+            "             <sv:value>rep:GrantACE</sv:value>" +
+            "         </sv:property>" +
+            "         <sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+            "             <sv:value>everyone</sv:value>" +
+            "         </sv:property>" +
+            "         <sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
+            "             <sv:value>jcr:write</sv:value>" +
+            "         </sv:property>" +
+            "     </sv:node>" +
+            "  </sv:node>" +
             "</sv:node>";
 
     public static final String XML_POLICY_TREE_2 = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
@@ -198,7 +180,16 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             "</sv:node>" +
             "</sv:node>";
 
-    public static final String XML_POLICY_ONLY = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><sv:node sv:name=\"test\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property><sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\"><sv:value>rep:AccessControllable</sv:value><sv:value>mix:versionable</sv:value></sv:property><sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>0a0ca2e9-ab98-4433-a12b-d57283765207</sv:value></sv:property><sv:property sv:name=\"jcr:baseVersion\" sv:type=\"Reference\"><sv:value>35d0d137-a3a4-4af3-8cdd-ce565ea6bdc9</sv:value></sv:property><sv:property sv:name=\"jcr:isCheckedOut\" sv:type=\"Boolean\"><sv:value>true</sv:value></sv:property><sv:property sv:name=\"jcr:predecessors\" sv:type=\"Reference\"><sv:value>35d0d137-a3a4-4af3-8cdd-ce565ea6bdc9</sv:value></sv:property><sv:property sv:name=\"jcr:versionHistory\" sv:type=\"Reference\"><sv:value>428c9ef2-78e5-4f1c-95d3-16b4ce72d815</sv:value></sv:property><sv:node sv:name=\"rep:policy\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ACL</sv:value></sv:property></sv:node></sv:node>";
+    public static final String XML_POLICY_ONLY = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<sv:node sv:name=\"test\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+            "  <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property>" +
+            "  <sv:property sv:name=\"jcr:mixinTypes\" sv:type=\"Name\">" +
+            "     <sv:value>rep:AccessControllable</sv:value>" +
+            "  </sv:property>" +
+            "  <sv:node sv:name=\"rep:policy\">" +
+            "     <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:ACL</sv:value></sv:property>" +
+            "  </sv:node>" +
+            "</sv:node>";
 
     protected void doImport(String parentPath, String xml) throws IOException, RepositoryException {
         InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
@@ -212,6 +203,34 @@ public class AccessControlImporterTest extends AbstractJCRTest {
 
     protected boolean isSessionImport() {
         return true;
+    }
+
+    private Node createImportTarget() throws RepositoryException {
+        Node target = testRootNode.addNode(nodeName1);
+        target.addMixin("rep:AccessControllable");
+        if (!isSessionImport()) {
+            superuser.save();
+        }
+        return target;
+    }
+
+    private Node createImportTargetWithPolicy(@Nullable Principal principal) throws RepositoryException {
+        Node target = testRootNode.addNode("test", "test:sameNameSibsFalseChildNodeDefinition");
+        AccessControlManager acMgr = superuser.getAccessControlManager();
+        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(target.getPath()); it.hasNext(); ) {
+            AccessControlPolicy policy = it.nextAccessControlPolicy();
+            if (policy instanceof AccessControlList) {
+                if (principal != null) {
+                    Privilege[] privs = new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_LOCK_MANAGEMENT)};
+                    ((AccessControlList) policy).addAccessControlEntry(principal, privs);
+                }
+                acMgr.setPolicy(target.getPath(), policy);
+            }
+        }
+        if (!isSessionImport()) {
+            superuser.save();
+        }
+        return target;
     }
 
     /**
@@ -252,8 +271,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
 
     public void testImportACLOnly() throws Exception {
         try {
-            Node target = testRootNode.addNode(nodeName1);
-            target.addMixin("rep:AccessControllable");
+            Node target = createImportTarget();
 
             doImport(target.getPath(), XML_POLICY_TREE_3);
 
@@ -288,8 +306,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
 
     public void testImportACLRemoveACE() throws Exception {
         try {
-            Node target = testRootNode.addNode(nodeName1);
-            target.addMixin("rep:AccessControllable");
+            Node target = createImportTarget();
 
             doImport(target.getPath(), XML_POLICY_TREE_3);
             doImport(target.getPath(), XML_POLICY_TREE_5);
@@ -320,8 +337,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
 
     public void testImportACLUnknown() throws Exception {
         try {
-            Node target = testRootNode.addNode(nodeName1);
-            target.addMixin("rep:AccessControllable");
+            Node target = createImportTarget();
 
             doImport(target.getPath(), XML_POLICY_TREE_4);
 
@@ -359,22 +375,11 @@ public class AccessControlImporterTest extends AbstractJCRTest {
      * already exists: expected outcome its that the existing ACE is replaced.
      */
     public void testImportPolicyExists() throws Exception {
-        Principal everyone = ((JackrabbitSession) superuser).getPrincipalManager().getEveryone();
-        Node target = testRootNode;
-        target = target.addNode("test", "test:sameNameSibsFalseChildNodeDefinition");
-        AccessControlManager acMgr = superuser.getAccessControlManager();
-        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(target.getPath()); it.hasNext(); ) {
-            AccessControlPolicy policy = it.nextAccessControlPolicy();
-            if (policy instanceof AccessControlList) {
-                Privilege[] privs = new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_LOCK_MANAGEMENT)};
-                ((AccessControlList) policy).addAccessControlEntry(everyone, privs);
-                acMgr.setPolicy(target.getPath(), policy);
-            }
-        }
-
         try {
+            Node target = createImportTargetWithPolicy(EveryonePrincipal.getInstance());
             doImport(target.getPath(), XML_POLICY_TREE_2);
 
+            AccessControlManager acMgr = superuser.getAccessControlManager();
             AccessControlPolicy[] policies = acMgr.getPolicies(target.getPath());
             assertEquals(1, policies.length);
             assertTrue(policies[0] instanceof JackrabbitAccessControlList);
@@ -383,7 +388,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertEquals(1, entries.length);
 
             AccessControlEntry entry = entries[0];
-            assertEquals(everyone.getName(), entry.getPrincipal().getName());
+            assertEquals(EveryonePrincipal.getInstance(), entry.getPrincipal());
             List<Privilege> privs = Arrays.asList(entry.getPrivileges());
             assertEquals(1, privs.size());
             assertEquals(acMgr.privilegeFromName(Privilege.JCR_WRITE), entry.getPrivileges()[0]);
@@ -402,24 +407,11 @@ public class AccessControlImporterTest extends AbstractJCRTest {
      * @throws Exception
      */
     public void testImportEmptyExistingPolicy() throws Exception {
-        if (!isSessionImport()) {
-            return; // FIXME
-        }
-
-        Node target = testRootNode;
-        target = target.addNode("test", "test:sameNameSibsFalseChildNodeDefinition");
-        AccessControlManager acMgr = superuser.getAccessControlManager();
-        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(target.getPath()); it.hasNext(); ) {
-            AccessControlPolicy policy = it.nextAccessControlPolicy();
-            if (policy instanceof AccessControlList) {
-                acMgr.setPolicy(target.getPath(), policy);
-            }
-        }
-
         try {
+            Node target = createImportTargetWithPolicy(null);
             doImport(target.getPath(), XML_POLICY_ONLY);
 
-            AccessControlPolicy[] policies = acMgr.getPolicies(target.getPath());
+            AccessControlPolicy[] policies = superuser.getAccessControlManager().getPolicies(target.getPath());
 
             assertEquals(1, policies.length);
             assertTrue(policies[0] instanceof JackrabbitAccessControlList);
@@ -448,6 +440,9 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             // type of the imported policy nodes will be rep:root (unstructured)
             // and the items will not be detected as being protected.
             target.addMixin("rep:RepoAccessControllable");
+            if (!isSessionImport()) {
+                superuser.save();
+            }
 
             doImport(target.getPath(), XML_REPO_POLICY_TREE);
 
@@ -470,7 +465,12 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertFalse(target.hasNode("rep:repoPolicy/allow"));
 
         } finally {
-            superuser.refresh(false);
+            if (isSessionImport()) {
+                superuser.refresh(false);
+            } else {
+                superuser.save();
+            }
+            assertEquals(0, acMgr.getPolicies(null).length);
         }
     }
 
@@ -481,21 +481,24 @@ public class AccessControlImporterTest extends AbstractJCRTest {
      * @throws Exception
      */
     public void testImportRepoACLAtTestNode() throws Exception {
-        Node target = testRootNode.addNode("test");
-        target.addMixin("rep:RepoAccessControllable");
-
-        AccessControlManager acMgr = superuser.getAccessControlManager();
         try {
-            doImport(target.getPath(), XML_REPO_POLICY_TREE);
+            Node target = testRootNode.addNode("test");
+            target.addMixin("rep:RepoAccessControllable");
 
-            AccessControlPolicy[] policies = acMgr.getPolicies(null);
-            assertEquals(0, policies.length);
+            doImport(target.getPath(), XML_REPO_POLICY_TREE);
 
             assertTrue(target.hasNode("rep:repoPolicy"));
             assertFalse(target.hasNode("rep:repoPolicy/allow0"));
 
             Node n = target.getNode("rep:repoPolicy");
             assertEquals("rep:RepoAccessControllable", n.getDefinition().getDeclaringNodeType().getName());
+
+            try {
+                superuser.save();
+                fail("Importing repo policy to non-root node must fail");
+            } catch (AccessControlException e) {
+                // success
+            }
         } finally {
             superuser.refresh(false);
         }
