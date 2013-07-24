@@ -50,7 +50,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.operation.ItemOperation;
+import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
@@ -73,27 +74,12 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         this.sessionDelegate = sessionContext.getSessionDelegate();
     }
 
-    protected static abstract class ItemOperation<U> extends SessionOperation<U> {
-
-        protected final ItemDelegate item;
-
-        protected ItemOperation(ItemDelegate item) {
-            this.item = item;
-        }
-
-        @Override
-        protected void checkPreconditions() throws RepositoryException {
-            item.checkAlive();
-        }
-
-    }
-
     protected abstract class ItemWriteOperation<U> extends SessionOperation<U> {
         protected ItemWriteOperation() {
             super(true);
         }
         @Override
-        protected void checkPreconditions() throws RepositoryException {
+        public void checkPreconditions() throws RepositoryException {
             dlg.checkAlive();
             if (dlg.isProtected()) {
                 throw new ConstraintViolationException("Item is protected.");
@@ -180,7 +166,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
         ItemDelegate ancestor = perform(new ItemOperation<ItemDelegate>(dlg) {
             @Override
-            protected ItemDelegate perform() throws RepositoryException {
+            public ItemDelegate perform() throws RepositoryException {
                 String path = item.getPath();
 
                 int slash = 0;
@@ -212,12 +198,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     @Override
     public int getDepth() throws RepositoryException {
-        return perform(new ItemOperation<Integer>(dlg) {
-            @Override
-            public Integer perform() throws RepositoryException {
-                return PathUtils.getDepth(dlg.getPath());
-            }
-        });
+        return PathUtils.getDepth(getPath());
     }
 
     /**

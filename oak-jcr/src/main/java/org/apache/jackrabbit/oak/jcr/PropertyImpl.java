@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.operation.ItemOperation;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.value.ValueHelper;
 
@@ -380,7 +381,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     public PropertyDefinition getDefinition() throws RepositoryException {
         return perform(new ItemOperation<PropertyDefinition>(dlg) {
             @Override
-            protected PropertyDefinition perform() throws RepositoryException {
+            public PropertyDefinition perform() throws RepositoryException {
                 return getDefinitionProvider().getDefinition(
                         dlg.getParent().getTree(), dlg.getPropertyState(), true);
             }
@@ -428,7 +429,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             throws RepositoryException {
         perform(new ItemWriteOperation<Void>() {
             @Override
-            protected Void perform() throws RepositoryException {
+            public Void perform() throws RepositoryException {
                 Type<?> type = dlg.getPropertyState().getType();
                 if (type.isArray()) {
                     throw new ValueFormatException(
@@ -447,7 +448,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             throws RepositoryException {
         perform(new ItemWriteOperation<Void>() {
             @Override
-            protected Void perform() throws RepositoryException {
+            public Void perform() throws RepositoryException {
                 Type<?> type = dlg.getPropertyState().getType();
                 if (!type.isArray()) {
                     throw new ValueFormatException(

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.jcr.delegate;
+package org.apache.jackrabbit.oak.jcr.operation;
 
 import javax.jcr.RepositoryException;
 
@@ -51,7 +51,9 @@ public abstract class SessionOperation<T> {
         return false;
     }
 
-    protected void checkPreconditions() throws RepositoryException {}
-    protected abstract T perform() throws RepositoryException;
+    public void checkPreconditions() throws RepositoryException {
+    }
+
+    public abstract T perform() throws RepositoryException;
 
 }
