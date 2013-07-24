@@ -25,6 +25,7 @@ import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,6 @@ public class ImportHandler extends DefaultHandler {
     private final SessionContext sessionContext;
     private final Importer importer;
     private final NamespaceHelper helper;
-    private final ValueFactory valueFactory;
     private final boolean isWorkspaceImport;
 
     protected Locator locator;
@@ -65,14 +65,14 @@ public class ImportHandler extends DefaultHandler {
     private final Map<String, String> tempPrefixMap = new HashMap<String, String>();
 
     public ImportHandler(String absPath, SessionContext sessionContext,
-                         Root root, int uuidBehavior, boolean isWorkspaceImport)
-            throws RepositoryException {
-        this.root = root;
+                         int uuidBehavior, boolean isWorkspaceImport) throws RepositoryException {
         this.sessionContext = sessionContext;
-        this.helper = new NamespaceHelper(sessionContext.getSession());
-        this.importer = new ImporterImpl(absPath, sessionContext, root, uuidBehavior, isWorkspaceImport);
-        this.valueFactory = sessionContext.getValueFactory();
         this.isWorkspaceImport = isWorkspaceImport;
+
+        SessionDelegate sd = sessionContext.getSessionDelegate();
+        root = (isWorkspaceImport) ? sd.getContentSession().getLatestRoot() : sd.getRoot();
+        helper = new NamespaceHelper(sessionContext.getSession());
+        importer = new ImporterImpl(absPath, sessionContext, root, uuidBehavior, isWorkspaceImport);
     }
 
     //---------------------------------------------------------< ErrorHandler >
@@ -162,10 +162,11 @@ public class ImportHandler extends DefaultHandler {
         if (targetHandler == null) {
             // the namespace of the first element determines the type of XML
             // (system view/document view)
+            ValueFactory vf = sessionContext.getValueFactory();
             if (NamespaceConstants.NAMESPACE_SV.equals(namespaceURI)) {
-                targetHandler = new SysViewImportHandler(importer, valueFactory, helper);
+                targetHandler = new SysViewImportHandler(importer, vf, helper);
             } else {
-                targetHandler = new DocViewImportHandler(importer, valueFactory, helper);
+                targetHandler = new DocViewImportHandler(importer, vf, helper);
             }
 
             targetHandler.startDocument();

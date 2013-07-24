@@ -243,8 +243,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior) throws RepositoryException {
         ensureIsAlive();
 
-        Root writeRoot = sessionContext.getSessionDelegate().getContentSession().getLatestRoot();
-        return new ImportHandler(parentAbsPath, sessionContext, writeRoot, uuidBehavior, true);
+        return new ImportHandler(parentAbsPath, sessionContext, uuidBehavior, true);
     }
 
     @Override
@@ -268,7 +267,10 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         } finally {
             // JCR-2903
             if (in != null) {
-                try { in.close(); } catch (IOException ignore) {}
+                try {
+                    in.close();
+                } catch (IOException ignore) {
+                }
             }
         }
     }

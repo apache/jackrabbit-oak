@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -65,6 +63,8 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 /**
  * TODO document
  */
@@ -100,6 +100,7 @@ public class SessionImpl implements JackrabbitSession {
         protected void checkPreconditions() throws RepositoryException {
             sd.checkAlive();
         }
+
         @Override
         public boolean isUpdate() {
             return true;
@@ -144,7 +145,7 @@ public class SessionImpl implements JackrabbitSession {
      *
      * @param absPath An absolute path.
      * @return the specified {@code Node} or {@code null}.
-     * @throws RepositoryException   If another error occurs.
+     * @throws RepositoryException If another error occurs.
      */
     @CheckForNull
     public Node getNodeOrNull(final String absPath) throws RepositoryException {
@@ -162,7 +163,7 @@ public class SessionImpl implements JackrabbitSession {
      *
      * @param absPath An absolute path.
      * @return the specified {@code Property} or {@code null}.
-     * @throws RepositoryException   if another error occurs.
+     * @throws RepositoryException if another error occurs.
      */
     @CheckForNull
     public Property getPropertyOrNull(final String absPath) throws RepositoryException {
@@ -191,7 +192,7 @@ public class SessionImpl implements JackrabbitSession {
      *
      * @param absPath An absolute path.
      * @return the specified {@code Item} or {@code null}.
-     * @throws RepositoryException   if another error occurs.
+     * @throws RepositoryException if another error occurs.
      */
     @CheckForNull
     public Item getItemOrNull(final String absPath) throws RepositoryException {
@@ -428,7 +429,7 @@ public class SessionImpl implements JackrabbitSession {
     @Nonnull
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior)
             throws RepositoryException {
-        return new ImportHandler(parentAbsPath, sessionContext, sd.getRoot(), uuidBehavior, false);
+        return new ImportHandler(parentAbsPath, sessionContext, uuidBehavior, false);
     }
 
     @Override
@@ -449,7 +450,10 @@ public class SessionImpl implements JackrabbitSession {
         } finally {
             // JCR-2903
             if (in != null) {
-                try { in.close(); } catch (IOException ignore) {}
+                try {
+                    in.close();
+                } catch (IOException ignore) {
+                }
             }
         }
     }
@@ -457,9 +461,9 @@ public class SessionImpl implements JackrabbitSession {
     /**
      * Exports content at the given path using the given exporter.
      *
-     * @param path of the node to be exported
+     * @param path     of the node to be exported
      * @param exporter document or system view exporter
-     * @throws SAXException if the SAX event handler failed
+     * @throws SAXException        if the SAX event handler failed
      * @throws RepositoryException if another error occurs
      */
     private synchronized void export(String path, Exporter exporter)
@@ -498,7 +502,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void exportDocumentView(String absPath, ContentHandler contentHandler, boolean skipBinary,
-            boolean noRecurse) throws SAXException, RepositoryException {
+                                   boolean noRecurse) throws SAXException, RepositoryException {
         export(absPath, new DocumentViewExporter(this, contentHandler, !noRecurse, !skipBinary));
     }
 
