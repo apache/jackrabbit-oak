@@ -73,11 +73,19 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         this.sessionDelegate = sessionContext.getSessionDelegate();
     }
 
-    protected abstract class ItemReadOperation<U> extends SessionOperation<U> {
+    protected static abstract class ItemOperation<U> extends SessionOperation<U> {
+
+        protected final ItemDelegate item;
+
+        protected ItemOperation(ItemDelegate item) {
+            this.item = item;
+        }
+
         @Override
         protected void checkPreconditions() throws RepositoryException {
-            dlg.checkAlive();
+            item.checkAlive();
         }
+
     }
 
     protected abstract class ItemWriteOperation<U> extends SessionOperation<U> {
@@ -94,7 +102,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     /**
-     * Perform the passed {@link org.apache.jackrabbit.oak.jcr.ItemImpl.ItemReadOperation}.
+     * Perform the passed {@link SessionOperation}.
      * @param op  operation to perform
      * @param <U>  return type of the operation
      * @return  the result of {@code op.perform()}
@@ -106,9 +114,9 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     /**
-     * Perform the passed {@link org.apache.jackrabbit.oak.jcr.ItemImpl.ItemReadOperation} assuming it does not throw an
-     * {@code RepositoryException}. If it does, wrap it into and throw it as an
-     * {@code IllegalArgumentException}.
+     * Perform the passed {@link SessionOperation} assuming it does not throw an
+     * {@code RepositoryException}. If it does, wrap it into and throw it as a
+     * {@code RuntimeException}.
      * @param op  operation to perform
      * @param <U>  return type of the operation
      * @return  the result of {@code op.perform()}
@@ -117,11 +125,9 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     protected final <U> U safePerform(@Nonnull SessionOperation<U> op) {
         try {
             return sessionDelegate.perform(op);
-        }
-        catch (RepositoryException e) {
-            String msg = "Unexpected exception thrown by operation " + op;
-            log.error(msg, e);
-            throw new IllegalArgumentException(msg, e);
+        } catch (RepositoryException e) {
+            throw new RuntimeException(
+                    "Unexpected exception thrown by operation " + op, e);
         }
     }
 
@@ -133,14 +139,14 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     @Nonnull
     public String getName() throws RepositoryException {
-        return perform(new ItemReadOperation<String>() {
+        String oakName = perform(new ItemOperation<String>(dlg) {
             @Override
             public String perform() throws RepositoryException {
-                String oakName = dlg.getName();
-                // special case name of root node
-                return oakName.isEmpty() ? "" : toJcrPath(dlg.getName());
+                return item.getName();
             }
         });
+        // special case name of root node
+        return oakName.isEmpty() ? "" : toJcrPath(dlg.getName());
     }
 
     /**
@@ -149,12 +155,12 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     @Nonnull
     public String getPath() throws RepositoryException {
-        return perform(new ItemReadOperation<String>() {
+        return toJcrPath(perform(new ItemOperation<String>(dlg) {
             @Override
             public String perform() throws RepositoryException {
-                return toJcrPath(dlg.getPath());
+                return item.getPath();
             }
-        });
+        }));
     }
 
     @Override
@@ -165,44 +171,48 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     @Override
     public Item getAncestor(final int depth) throws RepositoryException {
-        return perform(new ItemReadOperation<Item>() {
-            @Override
-            protected Item perform() throws RepositoryException {
-                if (depth < 0) {
-                    throw new ItemNotFoundException(this + ": Invalid ancestor depth (" + depth + ')');
-                } else if (depth == 0) {
-                    NodeDelegate nd = sessionDelegate.getRootNode();
-                    if (nd == null) {
-                        throw new AccessDeniedException("Root node is not accessible.");
-                    }
-                    return sessionContext.createNodeOrNull(nd);
-                }
+        if (depth < 0) {
+            throw new ItemNotFoundException(
+                    getPath() + "Invalid ancestor depth " + depth);
+        } else if (depth == 0) {
+            return sessionContext.getSession().getRootNode();
+        }
 
-                String path = dlg.getPath();
+        ItemDelegate ancestor = perform(new ItemOperation<ItemDelegate>(dlg) {
+            @Override
+            protected ItemDelegate perform() throws RepositoryException {
+                String path = item.getPath();
+
                 int slash = 0;
                 for (int i = 0; i < depth - 1; i++) {
                     slash = PathUtils.getNextSlash(path, slash + 1);
                     if (slash == -1) {
-                        throw new ItemNotFoundException(this + ": Invalid ancestor depth (" + depth + ')');
+                        throw new ItemNotFoundException(
+                                path + ": Invalid ancestor depth " + depth);
                     }
                 }
                 slash = PathUtils.getNextSlash(path, slash + 1);
                 if (slash == -1) {
-                    return ItemImpl.this;
+                    return item;
                 }
 
-                NodeDelegate nd = sessionDelegate.getNode(path.substring(0, slash));
-                if (nd == null) {
-                    throw new AccessDeniedException(this + ": Ancestor access denied (" + depth + ')');
-                }
-                return sessionContext.createNodeOrNull(nd);
+                return sessionDelegate.getNode(path.substring(0, slash));
             }
         });
+
+        if (ancestor == dlg) {
+            return this;
+        } else if (ancestor instanceof NodeDelegate) {
+            return sessionContext.createNodeOrNull((NodeDelegate) ancestor);
+        } else {
+            throw new AccessDeniedException(
+                    getPath() + ": Access denied to ancestor at depth " + depth);
+        }
     }
 
     @Override
     public int getDepth() throws RepositoryException {
-        return perform(new ItemReadOperation<Integer>() {
+        return perform(new ItemOperation<Integer>(dlg) {
             @Override
             public Integer perform() throws RepositoryException {
                 return PathUtils.getDepth(dlg.getPath());
