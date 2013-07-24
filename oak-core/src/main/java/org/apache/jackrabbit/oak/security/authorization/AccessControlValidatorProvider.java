@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -64,14 +65,15 @@ class AccessControlValidatorProvider extends ValidatorProvider {
 
         RestrictionProvider restrictionProvider = getConfig(AccessControlConfiguration.class).getRestrictionProvider();
 
-        Map<String, Privilege> privileges = getPrivileges(before);
+        Root root = new ImmutableRoot(before);
+        Map<String, Privilege> privileges = getPrivileges(root);
+        PrivilegeBitsProvider privilegeBitsProvider = new PrivilegeBitsProvider(root);
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
 
-        return new AccessControlValidator(rootBefore, rootAfter, privileges, restrictionProvider, ntMgr);
+        return new AccessControlValidator(rootBefore, rootAfter, privileges, privilegeBitsProvider, restrictionProvider, ntMgr);
     }
 
-    private Map<String, Privilege> getPrivileges(NodeState beforeRoot) {
-        Root root = new ImmutableRoot(beforeRoot);
+    private Map<String, Privilege> getPrivileges(Root root) {
         PrivilegeManager pMgr = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
         ImmutableMap.Builder privileges = ImmutableMap.builder();
         try {
