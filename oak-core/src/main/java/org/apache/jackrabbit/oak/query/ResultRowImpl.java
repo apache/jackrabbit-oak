@@ -16,29 +16,37 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.util.Arrays;
+import java.util.Comparator;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
-import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.fulltext.SimpleExcerptProvider;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * A query result row that keeps all data (for this row only) in memory.
  */
-public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
+public class ResultRowImpl implements ResultRow {
 
-    private final QueryImpl query;
+    private final Query query;
     private final String[] paths;
     private final PropertyValue[] values;
     private final PropertyValue[] orderValues;
 
-    ResultRowImpl(QueryImpl query, String[] paths, PropertyValue[] values, PropertyValue[] orderValues) {
+    ResultRowImpl(Query query, String[] paths, PropertyValue[] values, PropertyValue[] orderValues) {
         this.query = query;
         this.paths = paths;
         this.values = values;
         this.orderValues = orderValues;
+    }
+    
+    PropertyValue[] getOrderValues() {
+        return orderValues;
     }
 
     @Override
@@ -62,21 +70,28 @@ public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
 
     @Override
     public PropertyValue getValue(String columnName) {
+        // OAK-318:
+        // somebody might call rep:excerpt(text)
+        // even thought the query doesn't contain that column
+        if (columnName.startsWith(QueryImpl.REP_EXCERPT)) {
+            // get the search token
+            int index = query.getColumnIndex(QueryImpl.REP_EXCERPT);
+            String searchToken = values[index].getValue(Type.STRING);
+            String ex = new SimpleExcerptProvider().getExcerpt(getPath(),
+                    columnName, query, searchToken, true);
+            // missing excerpt, generate a default value
+            if (ex != null) {
+                return PropertyValues.newString(ex);
+            }
+            return null;
+        }
+        
         int index = query.getColumnIndex(columnName);
         if (index >= 0) {
             return values[index];
         }
         if (JcrConstants.JCR_PATH.equals(columnName)) {
             return PropertyValues.newString(getPath());
-        }
-        if (columnName.startsWith(QueryImpl.REP_EXCERPT)) {
-            String ex = new SimpleExcerptProvider().getExcerpt(getPath(),
-                    columnName, query, true);
-            // missing excerpt, generate a default value
-            if (ex != null) {
-                return PropertyValues.newString(ex);
-            }
-            return null;
         }
         throw new IllegalArgumentException("Column not found: " + columnName);
     }
@@ -89,18 +104,12 @@ public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
     }
 
     @Override
-    public int compareTo(ResultRowImpl o) {
-        return query.compareRows(orderValues, o.orderValues);
-    }
-
-    @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        for (SelectorImpl s : query.getSelectors()) {
-            String n = s.getSelectorName();
-            String p = getPath(n);
+        for (String s : query.getSelectorNames()) {
+            String p = getPath(s);
             if (p != null) {
-                buff.append(n).append(": ").append(p).append(" ");
+                buff.append(s).append(": ").append(p).append(" ");
             }
         }
         ColumnImpl[] cols = query.getColumns();
@@ -112,6 +121,74 @@ public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
             }
         }
         return buff.toString();
+    }
+    
+
+    @Override
+    public int hashCode() {
+        int result = 1;
+        result = 31 * result + Arrays.hashCode(paths);
+        result = 31 * result + Arrays.hashCode(values);
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        } else if (obj == null) {
+            return false;
+        } else if (obj.getClass() != obj.getClass()) {
+            return false;
+        }
+        ResultRowImpl other = (ResultRowImpl) obj;
+        if (!Arrays.equals(paths, other.paths)) {
+            return false;
+        } else if (!Arrays.equals(values, other.values)) {
+            return false;
+        }
+        return true;
+    }
+
+    public static Comparator<ResultRowImpl> getComparator(
+            final OrderingImpl[] orderings) {
+        if (orderings == null) {
+            return null;
+        }
+        return new Comparator<ResultRowImpl>() {
+
+            @Override
+            public int compare(ResultRowImpl o1, ResultRowImpl o2) {
+                PropertyValue[] orderValues = o1.getOrderValues();
+                PropertyValue[] orderValues2 = o2.getOrderValues();
+                int comp = 0;
+                for (int i = 0, size = orderings.length; i < size; i++) {
+                    PropertyValue a = orderValues[i];
+                    PropertyValue b = orderValues2[i];
+                    if (a == null || b == null) {
+                        if (a == b) {
+                            comp = 0;
+                        } else if (a == null) {
+                            // TODO order by: nulls first (it looks like), or
+                            // low?
+                            comp = -1;
+                        } else {
+                            comp = 1;
+                        }
+                    } else {
+                        comp = a.compareTo(b);
+                    }
+                    if (comp != 0) {
+                        if (orderings[i].isDescending()) {
+                            comp = -comp;
+                        }
+                        break;
+                    }
+                }
+                return comp;
+            }
+        };
+
     }
 
 }

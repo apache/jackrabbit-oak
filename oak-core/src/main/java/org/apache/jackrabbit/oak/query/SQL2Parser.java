@@ -112,7 +112,7 @@ public class SQL2Parser {
      * @return the query
      * @throws ParseException if parsing fails
      */
-    public AbstractQuery parse(String query) throws ParseException {
+    public Query parse(String query) throws ParseException {
         // TODO possibly support union,... as available at
         // http://docs.jboss.org/modeshape/latest/manuals/reference/html/jcr-query-and-search.html
 
@@ -127,7 +127,40 @@ public class SQL2Parser {
         } else if (readIf("MEASURE")) {
             measure = true;
         }
+        Query q = parseSelect();
+        while (true) {
+            if (!readIf("UNION")) {
+                break;
+            }
+            boolean unionAll = readIf("ALL");
+            QueryImpl q2 = parseSelect();
+            q = new UnionQueryImpl(unionAll, q, q2);
+        }
+        OrderingImpl[] orderings = null;
+        if (readIf("ORDER")) {
+            read("BY");
+            orderings = parseOrder();
+        }
+        parseComment();
+        if (!currentToken.isEmpty()) {
+            throw getSyntaxError("<end>");
+        }
+        q.setOrderings(orderings);
+        q.setExplain(explain);
+        q.setMeasure(measure);
+        try {
+            q.init();
+        } catch (Exception e) {
+            ParseException e2 = new ParseException(query + ": " + e.getMessage(), 0);
+            e2.initCause(e);
+            throw e2;
+        }
+        return q;
+    }
+    
+    private QueryImpl parseSelect() throws ParseException {
         read("SELECT");
+        boolean distinct = readIf("DISTINCT");
         ArrayList<ColumnOrWildcard> list = parseColumns();
         if (supportSQL1) {
             addColumnIfNecessary(list, QueryImpl.JCR_PATH, QueryImpl.JCR_PATH);
@@ -140,26 +173,8 @@ public class SQL2Parser {
         if (readIf("WHERE")) {
             constraint = parseConstraint();
         }
-        OrderingImpl[] orderings = null;
-        if (readIf("ORDER")) {
-            read("BY");
-            orderings = parseOrder();
-        }
-        parseComment();
-
-        if (!currentToken.isEmpty()) {
-            throw getSyntaxError("<end>");
-        }
-        QueryImpl q = new QueryImpl(statement, source, constraint, orderings, columnArray);
-        q.setExplain(explain);
-        q.setMeasure(measure);
-        try {
-            q.init();
-        } catch (Exception e) {
-            ParseException e2 = new ParseException(query + ": " + e.getMessage(), 0);
-            e2.initCause(e);
-            throw e2;
-        }
+        QueryImpl q = new QueryImpl(statement, source, constraint, columnArray);
+        q.setDistinct(distinct);
         return q;
     }
 

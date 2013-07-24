@@ -102,11 +102,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
      */
     @Override
     public List<String> getBindVariableNames(String statement, String language) throws ParseException {
-        AbstractQuery q = parseQuery(statement, language);
+        Query q = parseQuery(statement, language);
         return q.getBindVariableNames();
     }
 
-    private AbstractQuery parseQuery(String statement, String language) throws ParseException {
+    private Query parseQuery(String statement, String language) throws ParseException {
         LOG.debug("Parsing {} statement: {}", language, statement);
         NodeState root = getRootState();
         NodeState system = root.getChildNode(JCR_SYSTEM);
@@ -146,7 +146,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         if (offset < 0) {
             throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
         }
-        AbstractQuery q = parseQuery(statement, language);
+        Query q = parseQuery(statement, language);
         q.setRootTree(getRootTree());
         q.setRootState(getRootState());
         q.setNamePathMapper(namePathMapper);

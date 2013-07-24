@@ -101,4 +101,9 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
         return PropertyType.DOUBLE;
     }
 
+    @Override
+    public DynamicOperandImpl createCopy() {
+        return new FullTextSearchScoreImpl(selectorName);
+    }
+
 }

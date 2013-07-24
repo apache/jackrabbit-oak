@@ -17,21 +17,19 @@
 package org.apache.jackrabbit.oak.query;
 
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
-import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 
 /**
  * A query result.
  */
 public class ResultImpl implements Result {
 
-    protected final AbstractQuery query;
+    protected final Query query;
 
-    ResultImpl(AbstractQuery query) {
+    ResultImpl(Query query) {
         this.query = query;
     }
 
@@ -47,12 +45,7 @@ public class ResultImpl implements Result {
 
     @Override
     public String[] getSelectorNames() {
-        List<SelectorImpl> selectors = query.getSelectors();
-        String[] names = new String[selectors.size()];
-        for (int i = 0; i < selectors.size(); i++) {
-            names[i] = selectors.get(i).getSelectorName();
-        }
-        return names;
+        return query.getSelectorNames();
     }
 
     @Override

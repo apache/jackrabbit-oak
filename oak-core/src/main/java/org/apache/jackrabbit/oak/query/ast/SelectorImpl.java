@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.query.fulltext.SimpleExcerptProvider;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
@@ -325,7 +326,12 @@ public class SelectorImpl extends SourceImpl {
         } else if (propertyName.equals(QueryImpl.JCR_SCORE)) {
             return currentRow.getValue(QueryImpl.JCR_SCORE);
         } else if (propertyName.equals(QueryImpl.REP_EXCERPT)) {
-            return currentRow.getValue(QueryImpl.REP_EXCERPT);
+            // The excerpt itself is calculated at runtime (this is weird,
+            // but Jackrabbit 2.x supports that, see OAK-318).
+            // We store the search token (the full-text condition text) 
+            // in this column (which is also weird), as this is needed for highlighting
+            String searchToken = SimpleExcerptProvider.extractFulltext(query.getConstraint());
+            return PropertyValues.newString(searchToken);
         }
         return PropertyValues.create(t.getProperty(propertyName));
     }
