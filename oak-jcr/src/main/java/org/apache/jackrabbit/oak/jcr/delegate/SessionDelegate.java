@@ -160,7 +160,6 @@ public class SessionDelegate {
         return updateCount;
     }
 
-
     @Nonnull
     public AuthInfo getAuthInfo() {
         return contentSession.getAuthInfo();
