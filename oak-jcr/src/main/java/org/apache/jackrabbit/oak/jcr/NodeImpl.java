@@ -63,7 +63,6 @@ import javax.jcr.version.VersionHistory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -81,6 +80,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.operation.NodeOperation;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -121,13 +121,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        return perform(new ItemOperation<Node>(dlg) {
+        return perform(new NodeOperation<Node>(dlg) {
             @Override
             public Node perform() throws RepositoryException {
-                if (dlg.isRoot()) {
+                if (node.isRoot()) {
                     throw new ItemNotFoundException("Root has no parent");
                 } else {
-                    NodeDelegate parent = dlg.getParent();
+                    NodeDelegate parent = node.getParent();
                     if (parent == null) {
                         throw new AccessDeniedException();
                     }
@@ -142,10 +142,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public boolean isNew() {
-        return safePerform(new ItemOperation<Boolean>(dlg) {
+        return safePerform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() {
-                return dlg.exists() && dlg.getStatus() == Status.NEW;
+                return node.exists() && node.getStatus() == Status.NEW;
             }
         });
     }
@@ -155,10 +155,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public boolean isModified() {
-        return safePerform(new ItemOperation<Boolean>(dlg) {
+        return safePerform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() {
-                return dlg.exists() && dlg.getStatus() == Status.MODIFIED;
+                return node.exists() && node.getStatus() == Status.MODIFIED;
             }
         });
     }
@@ -208,13 +208,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             oakTypeName = null;
         }
 
+        SessionImpl.checkIndexOnName(sessionContext, relPath);
         return perform(new ItemWriteOperation<Node>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                super.checkPreconditions();
-                SessionImpl.checkIndexOnName(sessionContext, relPath);
-            }
-
             @Override
             public Node perform() throws RepositoryException {
                 String oakName = PathUtils.getName(oakPath);
@@ -479,15 +474,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     @Nonnull
-    public Node getNode(final String relPath) throws RepositoryException {
-        return perform(new ItemOperation<Node>(dlg) {
+    public Node getNode(String relPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        return perform(new NodeOperation<Node>(dlg) {
             @Override
             public Node perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrowNotFound(relPath);
-
-                NodeDelegate nd = dlg.getChild(oakPath);
+                NodeDelegate nd = node.getChild(oakPath);
                 if (nd == null) {
-                    throw new PathNotFoundException(relPath);
+                    throw new PathNotFoundException(oakPath);
                 } else {
                     return sessionContext.createNodeOrNull(nd);
                 }
@@ -498,17 +492,17 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeIterator getNodes() throws RepositoryException {
-        return perform(new ItemOperation<NodeIterator>(dlg) {
+        return perform(new NodeOperation<NodeIterator>(dlg) {
             @Override
             public NodeIterator perform() throws RepositoryException {
-                Iterator<NodeDelegate> children = dlg.getChildren();
+                Iterator<NodeDelegate> children = node.getChildren();
                 return new NodeIteratorAdapter(nodeIterator(children)) {
                     private long size = -1;
                     @Override
                     public long getSize() {
                         if (size == -1) {
                             try {
-                                size = dlg.getChildCount();
+                                size = node.getChildCount(); // TODO: perform()
                             } catch (InvalidItemStateException e) {
                                 throw new IllegalStateException(
                                         "This iterator is no longer valid", e);
@@ -525,18 +519,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Nonnull
     public NodeIterator getNodes(final String namePattern)
             throws RepositoryException {
-
-        return perform(new ItemOperation<NodeIterator>(dlg) {
+        return perform(new NodeOperation<NodeIterator>(dlg) {
             @Override
             public NodeIterator perform() throws RepositoryException {
-                Iterator<NodeDelegate> children = Iterators.filter(dlg.getChildren(),
+                Iterator<NodeDelegate> children = Iterators.filter(
+                        node.getChildren(),
                         new Predicate<NodeDelegate>() {
                             @Override
                             public boolean apply(NodeDelegate state) {
+                                // TODO: use Oak names
                                 return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
                             }
                         });
-
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
         });
@@ -545,17 +539,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
-        return perform(new ItemOperation<NodeIterator>(dlg) {
+        return perform(new NodeOperation<NodeIterator>(dlg) {
             @Override
             public NodeIterator perform() throws RepositoryException {
-                Iterator<NodeDelegate> children = Iterators.filter(dlg.getChildren(),
+                Iterator<NodeDelegate> children = Iterators.filter(
+                        node.getChildren(),
                         new Predicate<NodeDelegate>() {
                             @Override
                             public boolean apply(NodeDelegate state) {
+                                // TODO: use Oak names
                                 return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
                             }
                         });
-
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
         });
@@ -563,14 +558,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     @Nonnull
-    public Property getProperty(final String relPath) throws RepositoryException {
-        return perform(new ItemOperation<PropertyImpl>(dlg) {
+    public Property getProperty(String relPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        return perform(new NodeOperation<PropertyImpl>(dlg) {
             @Override
             public PropertyImpl perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrowNotFound(relPath);
-                PropertyDelegate pd = dlg.getPropertyOrNull(oakPath);
+                PropertyDelegate pd = node.getPropertyOrNull(oakPath);
                 if (pd == null) {
-                    throw new PathNotFoundException(relPath + " not found on " + getPath());
+                    throw new PathNotFoundException(
+                            oakPath + " not found on " + node.getPath());
                 } else {
                     return new PropertyImpl(pd, sessionContext);
                 }
@@ -581,12 +577,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public PropertyIterator getProperties() throws RepositoryException {
-        return perform(new ItemOperation<PropertyIterator>(dlg) {
+        return perform(new NodeOperation<PropertyIterator>(dlg) {
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                Iterator<PropertyDelegate> properties = dlg.getProperties();
-                long size = dlg.getPropertyCount();
-                return new PropertyIteratorAdapter(propertyIterator(properties), size);
+                Iterator<PropertyDelegate> properties = node.getProperties();
+                long size = node.getPropertyCount();
+                return new PropertyIteratorAdapter(
+                        propertyIterator(properties), size);
             }
         });
     }
@@ -594,17 +591,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
-        return perform(new ItemOperation<PropertyIterator>(dlg) {
+        return perform(new NodeOperation<PropertyIterator>(dlg) {
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                Iterator<PropertyDelegate> properties = Iterators.filter(dlg.getProperties(),
+                Iterator<PropertyDelegate> properties = Iterators.filter(
+                        node.getProperties(),
                         new Predicate<PropertyDelegate>() {
                             @Override
                             public boolean apply(PropertyDelegate entry) {
+                                // TODO: use Oak names
                                 return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
                             }
                         });
-
                 return new PropertyIteratorAdapter(propertyIterator(properties));
             }
         });
@@ -613,17 +611,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
-        return perform(new ItemOperation<PropertyIterator>(dlg) {
+        return perform(new NodeOperation<PropertyIterator>(dlg) {
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                Iterator<PropertyDelegate> propertyNames = Iterators.filter(dlg.getProperties(),
+                Iterator<PropertyDelegate> propertyNames = Iterators.filter(
+                        node.getProperties(),
                         new Predicate<PropertyDelegate>() {
                             @Override
                             public boolean apply(PropertyDelegate entry) {
+                                // TODO: use Oak names
                                 return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
                             }
                         });
-
                 return new PropertyIteratorAdapter(propertyIterator(propertyNames));
             }
         });
@@ -635,9 +634,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public Item getPrimaryItem() throws RepositoryException {
-        return perform(new ItemOperation<Item>(dlg) {
+        return perform(new NodeOperation<Item>(dlg) {
             @Override
             public Item perform() throws RepositoryException {
+                // TODO: avoid nested calls
                 String name = getPrimaryNodeType().getPrimaryItemName();
                 if (name == null) {
                     throw new ItemNotFoundException("No primary item present on node " + this);
@@ -659,13 +659,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public String getUUID() throws RepositoryException {
-        return perform(new ItemOperation<String>(dlg) {
+        return perform(new NodeOperation<String>(dlg) {
             @Override
             public String perform() throws RepositoryException {
+                // TODO: avoid nested calls
                 if (isNodeType(NodeType.MIX_REFERENCEABLE)) {
                     return getIdentifier();
                 }
-
                 throw new UnsupportedRepositoryOperationException("Node is not referenceable.");
             }
         });
@@ -674,10 +674,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public String getIdentifier() throws RepositoryException {
-        return perform(new ItemOperation<String>(dlg) {
+        // TODO: name mapping for path identifiers
+        return perform(new NodeOperation<String>(dlg) {
             @Override
             public String perform() throws RepositoryException {
-                return dlg.getIdentifier();
+                return node.getIdentifier();
             }
         });
     }
@@ -685,16 +686,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public int getIndex() throws RepositoryException {
         // as long as we do not support same name siblings, index always is 1
-        return 1;
+        return 1; // TODO
     }
 
     private PropertyIterator internalGetReferences(final String name, final boolean weak) throws RepositoryException {
-        return perform(new ItemOperation<PropertyIterator>(dlg) {
+        return perform(new NodeOperation<PropertyIterator>(dlg) {
             @Override
             public PropertyIterator perform() throws InvalidItemStateException {
                 IdentifierManager idManager = sessionDelegate.getIdManager();
 
-                Set<String> propertyOakPaths = idManager.getReferences(weak, dlg.getTree(), name);
+                Set<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
                 Iterable<Property> properties = Iterables.transform(
                         propertyOakPaths,
                         new Function<String, Property>() {
@@ -742,23 +743,23 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    public boolean hasNode(final String relPath) throws RepositoryException {
-        return perform(new ItemOperation<Boolean>(dlg) {
+    public boolean hasNode(String relPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrow(relPath);
+        return perform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrow(relPath);
-                return dlg.getChild(oakPath) != null;
+                return node.getChild(oakPath) != null;
             }
         });
     }
 
     @Override
-    public boolean hasProperty(final String relPath) throws RepositoryException {
-        return perform(new ItemOperation<Boolean>(dlg) {
+    public boolean hasProperty(String relPath) throws RepositoryException {
+        final String oakPath = getOakPathOrThrow(relPath);
+        return perform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrow(relPath);
-                return dlg.getPropertyOrNull(oakPath) != null;
+                return node.getPropertyOrNull(oakPath) != null;
             }
         });
     }
@@ -770,10 +771,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean hasProperties() throws RepositoryException {
-        return perform(new ItemOperation<Boolean>(dlg) {
+        return perform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
-                return dlg.getPropertyCount() != 0;
+                return node.getPropertyCount() != 0;
             }
         });
     }
@@ -784,9 +785,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeType getPrimaryNodeType() throws RepositoryException {
-        return perform(new ItemOperation<NodeType>(dlg) {
+        return perform(new NodeOperation<NodeType>(dlg) {
             @Override
             public NodeType perform() throws RepositoryException {
+                // TODO: avoid nested calls
                 String primaryNtName;
                 if (hasProperty(Property.JCR_PRIMARY_TYPE)) {
                     primaryNtName = getProperty(Property.JCR_PRIMARY_TYPE).getString();
@@ -804,9 +806,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeType[] getMixinNodeTypes() throws RepositoryException {
-        return perform(new ItemOperation<NodeType[]>(dlg) {
+        return perform(new NodeOperation<NodeType[]>(dlg) {
             @Override
             public NodeType[] perform() throws RepositoryException {
+                // TODO: avoid nested calls
                 // TODO: check if transient changes to mixin-types are reflected here
                 if (hasProperty(Property.JCR_MIXIN_TYPES)) {
                     NodeTypeManager ntMgr = getNodeTypeManager();
@@ -824,12 +827,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    public boolean isNodeType(final String nodeTypeName) throws RepositoryException {
-        return perform(new ItemOperation<Boolean>(dlg) {
+    public boolean isNodeType(String nodeTypeName) throws RepositoryException {
+        final String oakName = getOakName(nodeTypeName);
+        return perform(new NodeOperation<Boolean>(dlg) {
             @Override
-            protected Boolean perform() throws RepositoryException {
-                String oakName = getOakName(nodeTypeName);
-                return getEffectiveNodeTypeProvider().isNodeType(dlg.getTree(), oakName);
+            public Boolean perform() throws RepositoryException {
+                return getEffectiveNodeTypeProvider().isNodeType(
+                        node.getTree(), oakName);
             }
         });
     }
@@ -838,7 +842,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public void setPrimaryType(final String nodeTypeName) throws RepositoryException {
         perform(new ItemWriteOperation<Void>() {
             @Override
-            protected void checkPreconditions() throws RepositoryException {
+            public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!isCheckedOut()) {
                     throw new VersionException("Cannot set primary type. Node is checked in.");
@@ -846,7 +850,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             }
 
             @Override
-            protected Void perform() throws RepositoryException {
+            public Void perform() throws RepositoryException {
                 internalSetPrimaryType(nodeTypeName);
                 return null;
             }
@@ -858,7 +862,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakTypeName = getOakName(checkNotNull(mixinName));
         perform(new ItemWriteOperation<Void>() {
             @Override
-            protected void checkPreconditions() throws RepositoryException {
+            public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!isCheckedOut()) {
                     throw new VersionException(
@@ -878,7 +882,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakTypeName = getOakName(checkNotNull(mixinName));
         perform(new ItemWriteOperation<Void>() {
             @Override
-            protected void checkPreconditions() throws RepositoryException {
+            public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!isCheckedOut()) {
                     throw new VersionException(
@@ -896,15 +900,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public boolean canAddMixin(String mixinName) throws RepositoryException {
         final String oakTypeName = getOakName(mixinName);
-        return perform(new ItemOperation<Boolean>(dlg) {
+        return perform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
                 PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, singleton(oakTypeName), NAMES);
                 return sessionContext.getAccessManager().hasPermissions(
-                    dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT)
-                        && !dlg.isProtected()
-                        && sessionContext.getVersionManager().isCheckedOut(toJcrPath(dlg.getPath()))
-                        && dlg.canAddMixin(oakTypeName);
+                    node.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT)
+                        && !node.isProtected()
+                        && sessionContext.getVersionManager().isCheckedOut(toJcrPath(dlg.getPath())) // TODO: avoid nested calls
+                        && node.canAddMixin(oakTypeName);
             }
         });
     }
@@ -912,15 +916,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeDefinition getDefinition() throws RepositoryException {
-        return perform(new ItemOperation<NodeDefinition>(dlg) {
+        return perform(new NodeOperation<NodeDefinition>(dlg) {
             @Override
-            protected NodeDefinition perform() throws RepositoryException {
-                NodeDelegate parent = dlg.getParent();
+            public NodeDefinition perform() throws RepositoryException {
+                NodeDelegate parent = node.getParent();
                 if (parent == null) {
                     return getDefinitionProvider().getRootDefinition();
                 } else {
                     return getDefinitionProvider().getDefinition(
-                            parent.getTree(), dlg.getTree());
+                            parent.getTree(), node.getTree());
                 }
             }
         });
@@ -1083,17 +1087,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public boolean isLocked() throws RepositoryException {
-        return perform(new ItemOperation<Boolean>(dlg) {
+        final String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
+        final String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
+        return perform(new NodeOperation<Boolean>(dlg) {
             @Override
-            protected Boolean perform() throws RepositoryException {
-                String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
-                String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
-
-                if (dlg.getPropertyOrNull(lockOwner) != null) {
+            public Boolean perform() throws RepositoryException {
+                if (node.getPropertyOrNull(lockOwner) != null) {
                     return true;
                 }
 
-                NodeDelegate parent = dlg.getParent();
+                NodeDelegate parent = node.getParent();
                 while (parent != null) {
                     if (parent.getPropertyOrNull(lockOwner) != null) {
                         PropertyDelegate isDeep =
@@ -1119,11 +1122,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public boolean holdsLock() throws RepositoryException {
-        return perform(new ItemOperation<Boolean>(dlg) {
+        final String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
+        return perform(new NodeOperation<Boolean>(dlg) {
             @Override
-            protected Boolean perform() throws RepositoryException {
-                String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
-                return dlg.getPropertyOrNull(lockOwner) != null;
+            public Boolean perform() throws RepositoryException {
+                return node.getPropertyOrNull(lockOwner) != null;
             }
         });
     }
@@ -1144,6 +1147,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Nonnull
     public Lock lock(final boolean isDeep, boolean isSessionScoped)
             throws RepositoryException {
+        // TODO: use perform()
         ContentSession session = sessionDelegate.getContentSession();
         final String userID = session.getAuthInfo().getUserID();
 
@@ -1220,6 +1224,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void unlock() throws RepositoryException {
+        // TODO: use perform
         String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
         String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
@@ -1238,22 +1243,17 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         getSession().refresh(true);
     }
 
-    @Override
-    @Nonnull
-    public NodeIterator getSharedSet() throws RepositoryException {
-        return perform(new ItemOperation<NodeIterator>(dlg) {
-            @Override
-            protected NodeIterator perform() {
-                return new NodeIteratorAdapter(ImmutableSet.of(NodeImpl.this));
-            }
-        });
+    @Override @Nonnull
+    public NodeIterator getSharedSet() {
+        return new NodeIteratorAdapter(singleton(this));
     }
 
     @Override
     public void removeSharedSet() throws RepositoryException {
         perform(new ItemWriteOperation<Void>() {
             @Override
-            protected Void perform() throws RepositoryException {
+            public Void perform() throws RepositoryException {
+                // TODO: avoid nested calls
                 NodeIterator sharedSet = getSharedSet();
                 while (sharedSet.hasNext()) {
                     sharedSet.nextNode().removeShare();
@@ -1346,7 +1346,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 oakName, value, Type.fromTag(value.getType(), false));
         return perform(new ItemWriteOperation<Property>() {
             @Override
-            protected void checkPreconditions() throws RepositoryException {
+            public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!isCheckedOut()) {
                     throw new VersionException(
@@ -1371,7 +1371,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 oakName, compact(values), Type.fromTag(type, true));
         return perform(new ItemWriteOperation<Property>() {
             @Override
-            protected void checkPreconditions() throws RepositoryException {
+            public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
                 if (!isCheckedOut()) {
                     throw new VersionException(
@@ -1409,7 +1409,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakName = getOakName(checkNotNull(jcrName));
         return perform(new ItemWriteOperation<Property>() {
             @Override
-            protected Property perform() throws RepositoryException {
+            public Property perform() throws RepositoryException {
                 PropertyDelegate property = dlg.getPropertyOrNull(oakName);
                 if (property != null) {
                     property.remove();
