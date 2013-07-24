@@ -66,7 +66,7 @@ public abstract class ConstraintImpl extends AstElement {
      * @param s the selector
      * @return the full-text constraint, if there is any, or null if not
      */
-    protected FullTextExpression getFullTextConstraint(SelectorImpl s) {
+    public FullTextExpression getFullTextConstraint(SelectorImpl s) {
         return null;
     }
     

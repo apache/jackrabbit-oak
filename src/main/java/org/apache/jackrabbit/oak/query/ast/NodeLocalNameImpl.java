@@ -97,4 +97,9 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         return PropertyType.STRING;
     }
 
+    @Override
+    public DynamicOperandImpl createCopy() {
+        return new NodeLocalNameImpl(selectorName);
+    }
+
 }

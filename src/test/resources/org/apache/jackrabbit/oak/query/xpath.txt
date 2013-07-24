@@ -25,6 +25,9 @@
 
 # jackrabbit test queries
 
+xpath2sql /*[jcr:contains(., 'hello')]/rep:excerpt(.)
+select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'hello') and issamenode(a, '/') /* xpath: /*[jcr:contains(., 'hello')]/rep:excerpt(.) */
+
 xpath2sql testroot//child/..[@foo1]
 select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'child' and isdescendantnode(a, '/testroot') and b.[foo1] is not null /* xpath: testroot//child/..[@foo1] */
 

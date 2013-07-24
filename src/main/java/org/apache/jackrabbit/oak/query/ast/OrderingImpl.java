@@ -50,4 +50,8 @@ public class OrderingImpl extends AstElement {
         return order == Order.DESCENDING;
     }
 
+    public OrderingImpl createCopy() {
+        return new OrderingImpl(operand.createCopy(), order);
+    }
+
 }

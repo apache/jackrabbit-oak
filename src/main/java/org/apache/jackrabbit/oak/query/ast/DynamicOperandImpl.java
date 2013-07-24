@@ -81,4 +81,6 @@ public abstract class DynamicOperandImpl extends AstElement {
         return toString().hashCode();
     }
 
+    public abstract DynamicOperandImpl createCopy();
+
 }

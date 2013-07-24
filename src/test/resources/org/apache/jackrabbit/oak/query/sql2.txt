@@ -23,6 +23,32 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# union, distinct
+
+commit / + "test": { "a": { "name": "Hello" }, "b": { "name" : "World" }}
+
+select [jcr:path] from [nt:base] where [a/name] = 'Hello' or [b/name] = 'World'
+/test
+
+select distinct [jcr:path] from [nt:base] where [a/name] = 'Hello' or [b/name] = 'World'
+/test
+
+select [jcr:path] from [nt:base] where [name] = 'Hello' union select [jcr:path] from [nt:base] where [name] = 'World'
+/test/a
+/test/b
+
+select [jcr:path] from [nt:base] where [name] is not null union select [jcr:path] from [nt:base] where [name] is not null
+/test/a
+/test/b
+
+select [jcr:path] from [nt:base] where [name] is not null union all select [jcr:path] from [nt:base] where [name] is not null
+/test/a
+/test/a
+/test/b
+/test/b
+
+commit / - "test"
+
 # test parent join
 
 commit / + "test": { "a": { "x": "1", "yes": { } }, "b": { "yes" : { } }, "c": { "x": "1", "no" : { } }}

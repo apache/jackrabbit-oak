@@ -139,4 +139,9 @@ public class NodeNameImpl extends DynamicOperandImpl {
         return PropertyType.NAME;
     }
 
+    @Override
+    public DynamicOperandImpl createCopy() {
+        return new NodeNameImpl(selectorName);
+    }
+
 }

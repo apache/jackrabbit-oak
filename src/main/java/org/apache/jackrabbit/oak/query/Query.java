@@ -21,13 +21,17 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
-import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A "select" or "union" query.
+ * <p>
+ * Lifecycle: use the constructor to create a new object. Call init() to
+ * initialize the bind variable map. If the query is re-executed, a new instance
+ * is created.
  */
-public interface AbstractQuery {
+public interface Query {
 
     void setRootTree(Tree rootTree);
 
@@ -50,11 +54,32 @@ public interface AbstractQuery {
     List<String> getBindVariableNames();
 
     ColumnImpl[] getColumns();
+    
+    int getColumnIndex(String columnName);
 
-    List<SelectorImpl> getSelectors();
+    String[] getSelectorNames();
+
+    int getSelectorIndex(String selectorName);
 
     Iterator<ResultRowImpl> getRows();
 
     long getSize();
+
+    void setExplain(boolean explain);
+
+    void setMeasure(boolean measure);
+
+    void init();
+
+    void setOrderings(OrderingImpl[] orderings);
+    
+    /**
+     * Get the query plan. The query must already be prepared.
+     * 
+     * @return the query plan
+     */
+    String getPlan();
+
+    Tree getTree(String path);
 
 }
