@@ -139,6 +139,32 @@ public class ReadTest extends AbstractEvaluationTest {
     }
 
     @Test
+    public void testDenyRoot() throws Exception {
+        try {
+            deny("/", readPrivileges);
+            testSession.getRootNode();
+            fail("root should not be accessible");
+        } catch (Exception e) {
+            // expected exception
+        } finally {
+            allow("/", readPrivileges);
+        }
+    }
+
+    @Test
+    public void testDenyPath() throws Exception {
+        try {
+            deny(path, readPrivileges);
+            testSession.getNode(path);
+            fail("nodet should not be accessible");
+        } catch (Exception e) {
+            // expected exception
+        } finally {
+            allow(path, readPrivileges);
+        }
+    }
+
+    @Test
     public void testReadDenied() throws Exception {
         /* deny READ privilege for testUser at 'path' */
         deny(path, readPrivileges);

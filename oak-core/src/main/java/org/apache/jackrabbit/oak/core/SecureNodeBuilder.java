@@ -32,14 +32,41 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class SecureNodeBuilder implements NodeBuilder {
+
+    /**
+     * Root builder, or {@code this} for the root builder itself.
+     */
+    private final SecureNodeBuilder rootBuilder;
+
+    /**
+     * Parent builder, or {@code null} for a root builder.
+     */
+    private final SecureNodeBuilder parent;
+
+    /**
+     * Name of this child node within the parent builder,
+     * or {@code null} for a root builder.
+     */
+    private final String name;
+
+    /**
+     * Permissions provider for evaluating access rights to the underlying raw builder
+     */
+    private final PermissionProvider permissionProvider;
+
+    /**
+     * Access control context for evaluating access rights to the underlying raw builder
+     */
+    private final Context acContext;
 
     /**
      * Underlying node builder.
@@ -47,33 +74,57 @@ class SecureNodeBuilder implements NodeBuilder {
     private final NodeBuilder builder;
 
     /**
-     * Security context of this subtree.
+     * Internal revision counter for the base state of this builder. The counter
+     * is incremented in the root builder whenever its base state is reset.
+     * Each builder instance has its own copy of this revision counter for
+     * quickly checking whether its security context needs updating
+     * @see #reset(org.apache.jackrabbit.oak.spi.state.NodeState)
+     * @see #securityContext
      */
-    private final SecurityContext context;
+    private long baseRevision;
 
-    SecureNodeBuilder(
-            @Nonnull NodeBuilder builder, @Nonnull SecurityContext context) {
+    /**
+     * Security context of this subtree. Use {@link #getSecurityContext()} for obtaining
+     * an up to date security context.
+     */
+    private SecurityContext securityContext;
+
+    SecureNodeBuilder(@Nonnull NodeBuilder builder, @Nonnull PermissionProvider permissionProvider,
+            @Nonnull Context acContext) {
+        this.rootBuilder = this;
+        this.parent = null;
+        this.name = null;
+        this.permissionProvider = checkNotNull(permissionProvider);
+        this.acContext = checkNotNull(acContext);
         this.builder = checkNotNull(builder);
-        this.context = checkNotNull(context);
+    }
+
+    private SecureNodeBuilder(SecureNodeBuilder parent, String name) {
+        this.rootBuilder = parent.rootBuilder;
+        this.parent = parent;
+        this.name = name;
+        this.permissionProvider = parent.permissionProvider;
+        this.acContext = parent.acContext;
+        this.builder = parent.builder.getChildNode(name);
     }
 
     @Override @CheckForNull
     public NodeState getBaseState() {
         NodeState base = builder.getBaseState();
         if (base != null) { // TODO: should use a missing state instead of null
-            base = new SecureNodeState(base, context); // TODO: baseContext?
+            base = new SecureNodeState(base, getSecurityContext()); // TODO: baseContext?
         }
         return base;
     }
 
     @Override @Nonnull
     public NodeState getNodeState() {
-        return new SecureNodeState(builder.getNodeState(), context);
+        return new SecureNodeState(builder.getNodeState(), getSecurityContext());
     }
 
     @Override
     public boolean exists() {
-        return builder.exists() && context.canReadThisNode(); // TODO: isNew()?
+        return builder.exists() && getSecurityContext().canReadThisNode(); // TODO: isNew()?
     }
 
     @Override
@@ -89,6 +140,8 @@ class SecureNodeBuilder implements NodeBuilder {
     @Override
     public void reset(@Nonnull NodeState state) throws IllegalStateException {
         builder.reset(state); // NOTE: can be dangerous with SecureNodeState
+        baseRevision++;
+        securityContext = null;
     }
 
     @Override
@@ -99,7 +152,7 @@ class SecureNodeBuilder implements NodeBuilder {
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
-        if (property != null && context.canReadProperty(property)) {
+        if (property != null && getSecurityContext().canReadProperty(property)) {
             return property;
         } else {
             return null;
@@ -113,7 +166,7 @@ class SecureNodeBuilder implements NodeBuilder {
 
     @Override
     public synchronized long getPropertyCount() {
-        if (context.canReadAll()) {
+        if (getSecurityContext().canReadAll()) {
             return builder.getPropertyCount();
         } else {
             return size(filter(
@@ -124,9 +177,9 @@ class SecureNodeBuilder implements NodeBuilder {
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        if (context.canReadAll()) {
+        if (getSecurityContext().canReadAll()) {
             return builder.getProperties();
-        } else if (context.canReadThisNode()) { // TODO: check DENY_PROPERTIES?
+        } else if (getSecurityContext().canReadThisNode()) { // TODO: check DENY_PROPERTIES?
             return filter(
                     builder.getProperties(),
                     new ReadablePropertyPredicate());
@@ -219,23 +272,20 @@ class SecureNodeBuilder implements NodeBuilder {
     @Override @Nonnull
     public NodeBuilder setChildNode(@Nonnull String name) {
         NodeBuilder child = builder.setChildNode(name);
-        return new SecureNodeBuilder(
-                child, context.getChildContext(name, child.getBaseState()));
+        return new SecureNodeBuilder(this, name);
     }
 
     @Override @Nonnull
     public NodeBuilder setChildNode(String name, @Nonnull NodeState nodeState) {
         NodeBuilder child = builder.setChildNode(name, nodeState);
-        return new SecureNodeBuilder(
-                child, context.getChildContext(name, child.getBaseState()));
+        return new SecureNodeBuilder(this, name);
     }
 
     @Override
     public NodeBuilder getChildNode(@Nonnull String name) {
         NodeBuilder child = builder.getChildNode(checkNotNull(name));
-        if (child.exists() && !context.canReadAll()) {
-            return new SecureNodeBuilder(
-                    child, context.getChildContext(name, child.getBaseState()));
+        if (child.exists() && !getSecurityContext().canReadAll()) {
+            return new SecureNodeBuilder(this, name);
         } else {
             return child;
         }
@@ -243,7 +293,7 @@ class SecureNodeBuilder implements NodeBuilder {
 
     @Override
     public synchronized long getChildNodeCount() {
-        if (context.canReadAll()) {
+        if (getSecurityContext().canReadAll()) {
             return builder.getChildNodeCount();
         } else {
             return size(getChildNodeNames());
@@ -255,6 +305,22 @@ class SecureNodeBuilder implements NodeBuilder {
         return builder.createBlob(stream);
     }
 
+    /**
+     * Security context of this subtree. This accessor memoizes the security context
+     * as long as {@link #reset(NodeState)} has not been called.
+     */
+    private SecurityContext getSecurityContext() {
+        if (securityContext == null || rootBuilder.baseRevision != baseRevision) {
+            if (parent == null) {
+                securityContext = new SecurityContext(builder.getNodeState(), permissionProvider, acContext);
+            } else {
+                securityContext = parent.getSecurityContext().getChildContext(name, parent.builder.getChildNode(name).getBaseState());
+            }
+            baseRevision = rootBuilder.baseRevision;
+        }
+        return securityContext;
+    }
+
     //------------------------------------------------------< inner classes >---
 
     /**
@@ -263,7 +329,7 @@ class SecureNodeBuilder implements NodeBuilder {
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
         public boolean apply(@Nonnull PropertyState property) {
-            return context.canReadProperty(property);
+            return getSecurityContext().canReadProperty(property);
         }
     }
 
