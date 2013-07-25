@@ -31,7 +31,7 @@ import org.junit.Test;
  *
  * @since OAK 1.0
  */
-public class PropertyWriteTest extends AbstractEvaluationTest {
+public class WritePropertyTest extends AbstractEvaluationTest {
 
     @Test
     public void testAddProperty() throws Exception {
