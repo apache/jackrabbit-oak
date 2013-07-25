@@ -110,6 +110,7 @@ public class ImporterImpl implements Importer {
             throw new RepositoryException("Pending changes on session. Cannot run workspace import.");
         }
 
+        this.uuidBehavior = uuidBehavior;
         importTargetTree = root.getTree(absPath);
         if (!importTargetTree.exists()) {
             throw new PathNotFoundException(absPath);
@@ -124,9 +125,6 @@ public class ImporterImpl implements Importer {
         }
 
         ntTypesRoot = root.getTree(NODE_TYPES_PATH);
-
-        this.uuidBehavior = uuidBehavior;
-
         userID = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
         accessManager = sessionContext.getAccessManager();
         idManager = new IdentifierManager(root);
@@ -338,8 +336,8 @@ public class ImporterImpl implements Importer {
                 } else {
                     // edge case: colliding node does have same uuid
                     // (see http://issues.apache.org/jira/browse/JCR-1128)
-                    String uuid = TreeUtil.getString(existing, JcrConstants.JCR_UUID);
-                    if (uuid != null && !(uuid.equals(id)
+                    String existingIdentifier = IdentifierManager.getIdentifier(existing);
+                    if (!(existingIdentifier.equals(id)
                             && (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING
                             || uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING))) {
                         throw new ItemExistsException(

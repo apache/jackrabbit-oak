@@ -67,16 +67,10 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied                       <!-- OAK-118 -->
 
       <!-- locking not implemented -->
-      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspaceWithHandler                    <!-- OAK-127: no session scoped locking -->
-      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionSessionWithHandler                      <!-- OAK-127: no session scoped locking -->
-      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspace                               <!-- OAK-127: no session scoped locking -->
-      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionSession                                 <!-- OAK-127: no session scoped locking -->
-
-      <!-- overwrite not detected during import -->
-      org.apache.jackrabbit.test.api.SerializationTest#testOverwriteExceptionWorkspaceWithHandler               <!-- OAK-127: overwrite -->
-      org.apache.jackrabbit.test.api.SerializationTest#testOverwriteExceptionSessionWithHandler                 <!-- OAK-127: overwrite -->
-      org.apache.jackrabbit.test.api.SerializationTest#testOverwriteExceptionWorkspace                          <!-- OAK-127: overwrite -->
-      org.apache.jackrabbit.test.api.SerializationTest#testOverwriteExceptionSession                            <!-- OAK-127: overwrite -->
+      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspaceWithHandler           <!-- OAK-127: no session scoped locking -->
+      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionSessionWithHandler             <!-- OAK-127: no session scoped locking -->
+      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspace                      <!-- OAK-127: no session scoped locking -->
+      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionSession                        <!-- OAK-127: no session scoped locking -->
 
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddInvalidLockToken                      <!-- OAK-150 ... -->
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockNonLockable
