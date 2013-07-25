@@ -82,9 +82,11 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         if (permissionsTree.exists()) {
             for (Principal principal : principals) {
                 Tree t = getPrincipalRoot(permissionsTree, principal);
+                Map<String, Tree> target = getTargetMap(principal);
                 if (t.exists()) {
-                    Map<String, Tree> target = getTargetMap(principal);
                     target.put(principal.getName(), t);
+                } else {
+                    target.remove(principal.getName());
                 }
             }
         }
