@@ -18,9 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -33,6 +30,9 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 /**
  * TODO document
@@ -138,7 +138,7 @@ class VersionEditor implements Editor {
             throws CommitFailedException {
         if (wasReadOnly) {
             if (!isVersionProperty(before)) {
-                throwProtected("Cannot delete property on checked in node");
+                throwCheckedIn("Cannot delete property on checked in node");
             }
         }
     }
