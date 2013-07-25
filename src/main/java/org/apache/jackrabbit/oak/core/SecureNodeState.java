@@ -29,6 +29,8 @@ import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -60,6 +62,13 @@ class SecureNodeState extends AbstractNodeState {
             @Nonnull NodeState state, @Nonnull SecurityContext context) {
         this.state = checkNotNull(state);
         this.context = checkNotNull(context);
+    }
+
+    SecureNodeState(
+            @Nonnull NodeState root, @Nonnull PermissionProvider permissionProvider,
+            @Nonnull Context acContext) {
+        this(root, new SecurityContext(
+                root, checkNotNull(permissionProvider), checkNotNull(acContext)));
     }
 
     @Override
