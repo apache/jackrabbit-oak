@@ -111,11 +111,14 @@ public class ImporterImpl implements Importer {
         }
 
         this.uuidBehavior = uuidBehavior;
+        userID = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
+
         importTargetTree = root.getTree(absPath);
         if (!importTargetTree.exists()) {
             throw new PathNotFoundException(absPath);
         }
 
+        // TODO: review usage of write-root and object obtained from session-context (OAK-931)
         VersionManager vMgr = sessionContext.getVersionManager();
         if (!vMgr.isCheckedOut(absPath)) {
             throw new VersionException("Target node is checked in.");
@@ -123,13 +126,12 @@ public class ImporterImpl implements Importer {
         if (sessionContext.getLockManager().isLocked(absPath)) {
             throw new LockException("Target node is locked.");
         }
-
         ntTypesRoot = root.getTree(NODE_TYPES_PATH);
-        userID = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
         accessManager = sessionContext.getAccessManager();
         idManager = new IdentifierManager(root);
         effectiveNodeTypeProvider = sessionContext.getEffectiveNodeTypeProvider();
         definitionProvider = sessionContext.getDefinitionProvider();
+        // TODO: end
 
         refTracker = new ReferenceChangeTracker();
 
@@ -137,7 +139,6 @@ public class ImporterImpl implements Importer {
         parents.push(importTargetTree);
 
         pItemImporters.clear();
-
         for (ProtectedItemImporter importer : sessionContext.getProtectedItemImporters()) {
             if (importer.init(sessionContext.getSession(), root, sessionContext, isWorkspaceImport, uuidBehavior, refTracker)) {
                 pItemImporters.add(importer);
