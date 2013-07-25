@@ -35,30 +35,29 @@
 
   <properties>
     <known.issues>
-      org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings<!-- OAK-203 -->
-      org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc<!--OAK-132-->
-      org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest<!--OAK-132-->
+      org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings                                  <!-- OAK-203 -->
+      org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc               <!-- OAK-132 -->
+      org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest              <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testHasCapability
       org.apache.jackrabbit.test.api.SessionTest#testMoveLockException
-      org.apache.jackrabbit.test.api.SessionUUIDTest#testSaveReferentialIntegrityException<!--OAK-66-->
-      org.apache.jackrabbit.test.api.NodeTest#testRefreshInvalidItemStateException<!--OAK-141-->
+      org.apache.jackrabbit.test.api.SessionUUIDTest#testSaveReferentialIntegrityException             <!-- OAK-66 -->
+      org.apache.jackrabbit.test.api.NodeTest#testRefreshInvalidItemStateException                     <!-- OAK-141 -->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeLockedItself
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
-      org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException<!--OAK-66-->
-      org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveMovedRefNode<!--OAK-66-->
+      org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException                <!-- OAK-66 -->
+      org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveMovedRefNode                                 <!-- OAK-66 -->
       org.apache.jackrabbit.test.api.SetValueValueFormatExceptionTest#testNodeNotReferenceable
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
-      org.apache.jackrabbit.test.api.WorkspaceCopyReferenceableTest#testCopyNodesNewUUID                    <!-- OAK-118 -->
-      org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn      <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceCopyReferenceableTest#testCopyNodesNewUUID               <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveReferenceableTest#testMoveNodesReferenceableNodesNewUUID  <!-- OAK-118 -->
-      org.apache.jackrabbit.test.api.WorkspaceMoveVersionableTest#testMoveNodesVersionableAndCheckedIn      <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceMoveVersionableTest#testMoveNodesVersionableAndCheckedIn <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedNode
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedChildItem
-      org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveCheckedInItem
       org.apache.jackrabbit.test.api.NodeAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeCanAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeRemoveMixinTest#testLocked
-      org.apache.jackrabbit.test.api.ValueFactoryTest#testValueFormatException<!--OAK-204-->
+      org.apache.jackrabbit.test.api.ValueFactoryTest#testValueFormatException                         <!-- OAK-204 -->
       org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest                                     <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesAccessDenied                       <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesLocked                             <!-- OAK-118 -->
@@ -250,10 +249,10 @@
       org.apache.jackrabbit.test.api.lock.LockTest#testCheckedInUnlock
       org.apache.jackrabbit.test.api.observation.GetUserDataTest#testVersioning
 
-      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testCopy                          <!-- OAK-711 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceMove                 <!-- OAK-711 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testSessionMove                   <!-- OAK-711 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testWriteOnParentWithNoReadePriv               <!-- OAK-869 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testCopy           <!-- OAK-711 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceMove  <!-- OAK-711 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testSessionMove    <!-- OAK-711 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testWriteOnParentWithNoReadePriv<!-- OAK-869 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion   <!-- OAK-168 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion2  <!-- OAK-168 -->
@@ -264,15 +263,15 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleProperty        <!-- OAK-920 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleAcContent       <!-- OAK-920 -->
 
-      org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                        <!-- OAK-414, OAK-482 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupIntoUsersTree <!-- OAK-821 -->
+      org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                               <!-- OAK-414, OAK-482 -->
+      org.apache.jackrabbit.oak.jcr.security.user.UserImportTest#testImportGroupIntoUsersTree        <!-- OAK-821 -->
 
-      org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                      <!-- OAK-318 -->
-      org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStart                    <!-- OAK-318 -->
-      org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStartAndEnd              <!-- OAK-318 -->
-      org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment              <!-- OAK-318 -->
-      org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots  <!-- OAK-318 -->
-      org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                           <!-- OAK-318 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStart                           <!-- OAK-318 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStartAndEnd                     <!-- OAK-318 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment                     <!-- OAK-318 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
 
       <!-- Jackrabbit query tests (OAK-237) -->
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoin                                      <!-- OAK-474 -->
@@ -288,8 +287,8 @@
       org.apache.jackrabbit.core.query.DerefTest#testRewrite                                         <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testDerefToVersionNode                              <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testMultipleDeref                                   <!-- OAK-321 -->
-      org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeSQL    <!-- OAK-902 -->
-      org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeXPath    <!-- OAK-902 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeSQL                    <!-- OAK-902 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeXPath                  <!-- OAK-902 -->
       org.apache.jackrabbit.core.query.XPathAxisTest#testIndex0Descendant                            <!-- OAK-322 -->
       org.apache.jackrabbit.core.query.XPathAxisTest#testIndex1Descendant                            <!-- OAK-322 -->
       org.apache.jackrabbit.core.query.XPathAxisTest#testIndex2Descendant                            <!-- OAK-322 -->
