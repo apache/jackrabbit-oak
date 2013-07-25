@@ -18,12 +18,17 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -59,10 +64,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
 
@@ -102,6 +103,11 @@ public class RootImpl implements Root {
      * Unsecured builder for the root tree
      */
     private NodeBuilder builder;
+
+    /**
+     * Secured builder for the root tree
+     */
+    private SecureNodeBuilder secureBuilder;
 
     /**
      * Sentinel for the next move operation to take place on the this root
@@ -144,7 +150,7 @@ public class RootImpl implements Root {
         branch = this.store.branch();
         NodeState root = branch.getHead();
         builder = root.builder();
-        NodeBuilder secureBuilder = new SecureNodeBuilder(builder, getRootContext(root));
+        secureBuilder = new SecureNodeBuilder(builder, getPermissionProvider(), getAcContext());
         rootTree = new MutableTree(this, secureBuilder, lastMove);
     }
 
@@ -377,7 +383,7 @@ public class RootImpl implements Root {
      */
     NodeState getSecureBase() {
         NodeState root = branch.getBase();
-        return new SecureNodeState(root, getRootContext(root));
+        return new SecureNodeState(root, getPermissionProvider(), getAcContext());
     }
 
     // TODO better way to determine purge limit. See OAK-175
@@ -398,22 +404,6 @@ public class RootImpl implements Root {
     @Nonnull
     private NodeState getRootState() {
         return builder.getNodeState();
-    }
-
-    /**
-     * Secure view of the root node state of the tree including all transient changes
-     * at the time of this call.
-     *
-     * @return secure root node state
-     */
-    @Nonnull
-    private NodeState getSecureRootState() {
-        return rootTree.getNodeState();
-    }
-
-    @Nonnull
-    private SecurityContext getRootContext(NodeState root) {
-        return new SecurityContext(root, getPermissionProvider(), getAcContext());
     }
 
     @Nonnull
@@ -437,7 +427,7 @@ public class RootImpl implements Root {
      */
     private void reset() {
         NodeState root = branch.getHead();
-        builder.reset(root);
+        secureBuilder.reset(root);
     }
 
     @Nonnull
