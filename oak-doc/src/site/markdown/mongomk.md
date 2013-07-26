@@ -76,7 +76,7 @@ Finally, the `_revisions` sub-document contains commit information about changes
 marked with a revision. E.g. the single entry in the above document tells us
 that everything marked with revision `r13f3875b5d1-0-1` is committed and
 therefore valid. In case the change is done in a branch then the value would be the
-base revision. It is only added for thode nodes which happen to be the commit root
+base revision. It is only added for those nodes which happen to be the commit root
 for any give commit.
 
 Adding a property `prop` with value `foo` to the node in a next step will
@@ -252,7 +252,7 @@ Each MongoMK instance connecting to same database in Mongo server performs certa
 While performing commits there are certain nodes which are modified but do not become part
 of commit. For example when a node under /a/b/c is updated then the `_lastRev` property also
 needs to be updated to the commit revision. Such changes are accumulated and flushed periodically
-through a asynch job.
+through a asynchronous job.
 
 ### Background Reads
 
