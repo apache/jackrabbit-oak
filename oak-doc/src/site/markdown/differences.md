@@ -15,4 +15,9 @@
    limitations under the License.
   -->
 
-TODO
+TODO Consolidate info from various sources:
+
+* https://issues.apache.org/jira/browse/OAK-14
+* http://wiki.apache.org/jackrabbit/Transactional%20model%20of%20the%20Microkernel%20based%20Jackrabbit%20prototype
+* MVCC side effects regarding session refresh
+* ...

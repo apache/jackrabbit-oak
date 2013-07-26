@@ -15,4 +15,9 @@
    limitations under the License.
   -->
 
-TODO
+TODO document where to look for additional help:
+
+* Log entries to watch out for
+* Compare with Jackrabbit 2
+* Known issues
+* ...
