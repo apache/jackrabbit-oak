@@ -30,7 +30,8 @@ under the License.
       <item href="downloads.html" name="Downloads" />
       <item href="from_here.html" name="From here" />
     </menu>
-    <menu name="Architecture">
+    <menu name="Concepts and architecture">
+      <item href="overview.html" name="Overview" />
       <item href="nodestate.html" name="Understanding the node state model" />
       <item href="microkernel.html" name="Microkernel" />
     </menu>
@@ -42,7 +43,6 @@ under the License.
     </menu>
     <menu name="Developing Oak">
       <item href="dev_getting_started.html" name="Getting Started" />
-      <item href="resources.html" name="Resources" />
       <item href="participating.html" name="Participating" />
       <item href="api.html" name="API docs" />
     </menu>

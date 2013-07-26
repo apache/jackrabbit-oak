@@ -15,4 +15,9 @@
    limitations under the License.
   -->
 
-TODO
+TODO Document patterns and anti patterns:
+
+* Observation
+* Session live time, explicit refresh
+* Use admin session
+* ...

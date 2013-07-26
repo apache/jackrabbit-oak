@@ -15,6 +15,8 @@
    limitations under the License.
   -->
 
-TODO
+TODO: Document how to use Oak:
 
-[Repository construction](construct.html)
+* Required (Maven) Dependencies
+* [Repository construction](construct.html)
+* Standalone

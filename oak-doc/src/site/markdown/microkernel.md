@@ -15,8 +15,7 @@
    limitations under the License.
   -->
 
-TODO
+TODO: Document Microkernel API and implementations
 
-[SegmentMK design overview](segmentmk.html)
-
-[Oak MongoMK](mongomk.html)
+* [SegmentMK design overview](segmentmk.html)
+* [Oak MongoMK](mongomk.html)
