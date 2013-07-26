@@ -33,6 +33,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
@@ -64,6 +65,7 @@ class DocViewImportHandler extends TargetImportHandler {
      *
      * @param importer     the importer
      * @param valueFactory a value factory
+     * @param helper The namespace helper
      */
     DocViewImportHandler(Importer importer, ValueFactory valueFactory, NamespaceHelper helper) {
         super(importer, valueFactory, helper);

@@ -31,6 +31,7 @@ import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -71,7 +72,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
     }
 
     /**
-     * Initializes the underlying {@link Importer} instance. This method
+     * Initializes the underlying {@link org.apache.jackrabbit.oak.spi.xml.Importer} instance. This method
      * is called by the XML parser when the XML document starts.
      *
      * @throws SAXException if the importer can not be initialized
@@ -87,7 +88,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
     }
 
     /**
-     * Closes the underlying {@link Importer} instance. This method
+     * Closes the underlying {@link org.apache.jackrabbit.oak.spi.xml.Importer} instance. This method
      * is called by the XML parser when the XML document ends.
      *
      * @throws SAXException if the importer can not be closed

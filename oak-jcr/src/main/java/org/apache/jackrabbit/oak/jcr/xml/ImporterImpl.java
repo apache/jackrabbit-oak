@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -91,7 +92,16 @@ public class ImporterImpl implements Importer {
     private ProtectedNodeImporter pnImporter;
 
     /**
-     * Creates a new {@code SessionImporter} instance.
+     * Creates a new importer instance.
+     * @param absPath  The absolute JCR paths such as passed to the JCR call.
+     * @param sessionContext The context of the editing session
+     * @param root The write {@code Root}, which in case of a workspace import
+     * is different from the {@code Root} associated with the editing session.
+     * @param uuidBehavior The uuid behavior
+     * @param isWorkspaceImport {@code true} if this is a workspace import,
+     * {@code false} otherwise.
+     * @throws javax.jcr.RepositoryException If the initial validation of the
+     * path or the state of target node/session fails.
      */
     public ImporterImpl(String absPath,
                         SessionContext sessionContext,
