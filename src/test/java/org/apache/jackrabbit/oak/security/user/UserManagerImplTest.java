@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
@@ -89,7 +89,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             userMgr.setPassword(userTree, pw, true);
             String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
             assertNotNull(pwHash);
-            assertTrue(PasswordUtility.isSame(pwHash, pw));
+            assertTrue(PasswordUtil.isSame(pwHash, pw));
         }
 
         for (String pw : pwds) {
@@ -97,9 +97,9 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
             assertNotNull(pwHash);
             if (!pw.startsWith("{")) {
-                assertTrue(PasswordUtility.isSame(pwHash, pw));
+                assertTrue(PasswordUtil.isSame(pwHash, pw));
             } else {
-                assertFalse(PasswordUtility.isSame(pwHash, pw));
+                assertFalse(PasswordUtil.isSame(pwHash, pw));
                 assertEquals(pw, pwHash);
             }
         }

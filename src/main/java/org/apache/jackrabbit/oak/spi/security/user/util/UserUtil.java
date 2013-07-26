@@ -30,9 +30,9 @@ import org.apache.jackrabbit.util.Text;
 /**
  * Utility methods for user management.
  */
-public final class UserUtility implements UserConstants {
+public final class UserUtil implements UserConstants {
 
-    private UserUtility() {
+    private UserUtil() {
     }
 
     @Nonnull

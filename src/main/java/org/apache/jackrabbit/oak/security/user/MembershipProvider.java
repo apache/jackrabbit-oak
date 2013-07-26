@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.PropertyUtil;
@@ -240,7 +240,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      *         inherited member of it.
      */
     boolean isCyclicMembership(Tree newMemberTree, String groupContentId) {
-        if (UserUtility.isType(newMemberTree, AuthorizableType.GROUP)) {
+        if (UserUtil.isType(newMemberTree, AuthorizableType.GROUP)) {
             for (Iterator<String> it = getMembers(newMemberTree, AuthorizableType.GROUP, true); it.hasNext(); ) {
                 Tree tree = root.getTree(it.next());
                 String contentId = getContentID(tree);
@@ -301,7 +301,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
             private Iterator<String> inherited(String authorizablePath) {
                 Tree group = getByPath(authorizablePath);
-                if (UserUtility.isType(group, AuthorizableType.GROUP)) {
+                if (UserUtil.isType(group, AuthorizableType.GROUP)) {
                     return getMembers(group, authorizableType, true);
                 } else {
                     return Iterators.emptyIterator();
@@ -331,7 +331,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
             private Iterator<String> inherited(String authorizablePath) {
                 Tree group = getByPath(authorizablePath);
-                if (UserUtility.isType(group, AuthorizableType.GROUP)) {
+                if (UserUtil.isType(group, AuthorizableType.GROUP)) {
                     return getMembership(group, true);
                 } else {
                     return Iterators.emptyIterator();

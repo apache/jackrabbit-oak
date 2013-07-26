@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 
 /**
  * Base class for {@link UserProvider} and {@link MembershipProvider}.
@@ -49,7 +49,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     @CheckForNull
     Tree getByID(@Nonnull String authorizableId, @Nonnull AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(getContentID(authorizableId));
-        if (UserUtility.isType(tree, authorizableType)) {
+        if (UserUtil.isType(tree, authorizableType)) {
             return tree;
         } else {
             return null;
@@ -59,7 +59,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     @CheckForNull
     Tree getByPath(@Nonnull String authorizableOakPath) {
         Tree tree = root.getTree(authorizableOakPath);
-        if (UserUtility.isType(tree, AuthorizableType.AUTHORIZABLE)) {
+        if (UserUtil.isType(tree, AuthorizableType.AUTHORIZABLE)) {
             return tree;
         } else {
             return null;

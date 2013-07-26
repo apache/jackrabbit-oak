@@ -27,8 +27,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -43,13 +43,13 @@ class UserImpl extends AuthorizableImpl implements User {
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
 
-        isAdmin = UserUtility.getAdminId(userManager.getConfig()).equals(id);
+        isAdmin = UserUtil.getAdminId(userManager.getConfig()).equals(id);
     }
 
     //---------------------------------------------------< AuthorizableImpl >---
     @Override
     void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !UserUtility.isType(tree, AuthorizableType.USER)) {
+        if (tree == null || !UserUtil.isType(tree, AuthorizableType.USER)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }
@@ -101,7 +101,7 @@ class UserImpl extends AuthorizableImpl implements User {
     public void changePassword(String password, String oldPassword) throws RepositoryException {
         // make sure the old password matches.
         String pwHash = getPasswordHash();
-        if (!PasswordUtility.isSame(pwHash, oldPassword)) {
+        if (!PasswordUtil.isSame(pwHash, oldPassword)) {
             throw new RepositoryException("Failed to change password: Old password does not match.");
         }
         changePassword(password);

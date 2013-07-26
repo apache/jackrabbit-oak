@@ -25,7 +25,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.util.Text;
 
 /**
@@ -47,11 +47,11 @@ public final class QueryUtil {
     public static String getSearchRoot(AuthorizableType type, ConfigurationParameters config) {
         String path;
         if (type == AuthorizableType.USER) {
-            path = UserUtility.getAuthorizableRootPath(config, AuthorizableType.USER);
+            path = UserUtil.getAuthorizableRootPath(config, AuthorizableType.USER);
         } else if (type == AuthorizableType.GROUP) {
-            path = UserUtility.getAuthorizableRootPath(config, AuthorizableType.GROUP);
+            path = UserUtil.getAuthorizableRootPath(config, AuthorizableType.GROUP);
         } else {
-            path = UserUtility.getAuthorizableRootPath(config, AuthorizableType.AUTHORIZABLE);
+            path = UserUtil.getAuthorizableRootPath(config, AuthorizableType.AUTHORIZABLE);
         }
         StringBuilder searchRoot = new StringBuilder();
         searchRoot.append("/jcr:root").append(path);
