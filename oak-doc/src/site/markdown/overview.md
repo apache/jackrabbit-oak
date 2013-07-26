@@ -12,4 +12,5 @@ TODO: Document core concepts and architecture:
 * Clustering
 * Search and indexing
 * Security
+* [Oak Core](https://github.com/rogoz/jackrabbit-oak/blob/trunk/oak-core/README.md)
 * ...

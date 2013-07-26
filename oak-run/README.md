@@ -1,6 +1,11 @@
 Oak Runnable Jar
 ================
 
+Standalone server mode
+----------------------
+
+TODO
+
 Benchmark mode
 --------------
 

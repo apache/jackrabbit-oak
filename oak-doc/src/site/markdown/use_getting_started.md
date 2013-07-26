@@ -19,4 +19,4 @@ TODO: Document how to use Oak:
 
 * Required (Maven) Dependencies
 * [Repository construction](construct.html)
-* Standalone
+* [Oak runnable jar](https://github.com/mduerig/jackrabbit-oak/blob/trunk/oak-run/README.md)
