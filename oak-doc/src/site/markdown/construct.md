@@ -19,7 +19,7 @@
 
 Oak comes with a simple mechanism for constructing content repositories
 for use in embedded deployments and test cases. This article describes this
-mechanism. Deployments in managed enviroments like OSGi should use the native
+mechanism. Deployments in managed environments like OSGi should use the native
 construction/configuration mechanism of the environment.
 
 The core class to use is called `Oak` and can be found in the
@@ -62,7 +62,7 @@ instance being used, so you can chain method calls like this:
 As you can see, constructing a fully featured JCR repository like this
 will require quite a few plugins. To avoid having to specify them all
 whenever constructing a new repository, we also have a class called
-`Jcr` in the `org.apache.jakcrabbit.oak.jcr` package in `oak-jcr`. That
+`Jcr` in the `org.apache.jackrabbit.oak.jcr` package in `oak-jcr`. That
 class works much like the `Oak` class, but it constructs
 `javax.jcr.Repository` instances instead of `ContentRepositories` and
 automatically includes all the plugin components needed for proper JCR

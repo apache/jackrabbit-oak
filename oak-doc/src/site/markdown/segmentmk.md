@@ -134,7 +134,7 @@ The hash code of each key is split into pieces of B bits each (exact
 size TBD, B ~ 6) and the keys are sorted into 2^B packs based on the
 first B bits. If a pack contains less than 2^B entries, then it is
 stored directly as a list of key-value pairs. Otherwise the keys are
-split into subpacks based on the next B bits of their hash codes.
+split into sub-packs based on the next B bits of their hash codes.
 When all packs are stored, the list of top-level pack references gets
 stored along with the total number of entries in the map.
 
