@@ -87,7 +87,7 @@ nothing but a simple property:
     ContentSession session = ...;
     Root root = session.getCurrentRoot();
     Tree tree = root.getTree("/");
-    Tree subtree = tree.addSubtree("hello");
+    Tree subtree = tree.addChild("hello");
     subtree.setProperty("message", "Hello, World!");
     root.commit();
 
