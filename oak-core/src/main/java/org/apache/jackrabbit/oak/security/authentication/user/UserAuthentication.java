@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.security.user.CredentialsImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +91,7 @@ class UserAuthentication implements Authentication {
                 SimpleCredentials creds = (SimpleCredentials) credentials;
                 Credentials userCreds = user.getCredentials();
                 if (userId.equals(creds.getUserID()) && userCreds instanceof CredentialsImpl) {
-                    success = PasswordUtility.isSame(((CredentialsImpl) userCreds).getPasswordHash(), creds.getPassword());
+                    success = PasswordUtil.isSame(((CredentialsImpl) userCreds).getPasswordHash(), creds.getPassword());
                 }
                 checkSuccess(success, "UserId/Password mismatch.");
             } else if (credentials instanceof ImpersonationCredentials) {

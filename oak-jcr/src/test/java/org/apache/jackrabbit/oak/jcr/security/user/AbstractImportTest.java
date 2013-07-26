@@ -20,8 +20,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -61,6 +61,8 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
     protected Session adminSession;
     protected UserManager userMgr;
 
+    protected abstract List<String> getPathsToRemove();
+
     @Override
     @Before
     protected void setUp() throws Exception {
@@ -86,21 +88,10 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
         }
         userMgr = ((JackrabbitSession) adminSession).getUserManager();
 
-        // avoid collision with testing a-folders that may have been created
-        // with another test (but not removed as user/groups got removed)
-        String path = USERPATH + "/t";
-        if (adminSession.nodeExists(path)) {
-            adminSession.getNode(path).remove();
-        }
-        path = GROUPPATH + "/g";
-        if (adminSession.nodeExists(path)) {
-            adminSession.getNode(path).remove();
-        }
-
         // make sure the target node for group-import exists
         Authorizable administrators = userMgr.getAuthorizable(ADMINISTRATORS);
         if (administrators == null) {
-            userMgr.createGroup(new PrincipalImpl(ADMINISTRATORS));
+            administrators = userMgr.createGroup(new PrincipalImpl(ADMINISTRATORS));
             adminSession.save();
             removeAdministrators = true;
         } else if (!administrators.isGroup()) {
@@ -114,14 +105,10 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
     protected void tearDown() throws Exception {
         try {
             adminSession.refresh(false);
-
-            String path = USERPATH + "/t";
-            if (adminSession.nodeExists(path)) {
-                adminSession.getNode(path).remove();
-            }
-            path = GROUPPATH + "/g";
-            if (adminSession.nodeExists(path)) {
-                adminSession.getNode(path).remove();
+            for (String path : getPathsToRemove()) {
+                if (adminSession.nodeExists(path)) {
+                    adminSession.removeItem(path);
+                }
             }
             if (removeAdministrators) {
                 Authorizable a = userMgr.getAuthorizable(ADMINISTRATORS);

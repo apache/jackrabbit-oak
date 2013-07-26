@@ -37,9 +37,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Utility to generate and compare password hashes.
  */
-public final class PasswordUtility {
+public final class PasswordUtil {
 
-    private static final Logger log = LoggerFactory.getLogger(PasswordUtility.class);
+    private static final Logger log = LoggerFactory.getLogger(PasswordUtil.class);
 
     private static final char DELIMITER = '-';
     private static final int NO_ITERATIONS = 1;
@@ -57,7 +57,7 @@ public final class PasswordUtility {
     /**
      * Avoid instantiation
      */
-    private PasswordUtility() {}
+    private PasswordUtil() {}
 
     /**
      * Generates a hash of the specified password with the default values

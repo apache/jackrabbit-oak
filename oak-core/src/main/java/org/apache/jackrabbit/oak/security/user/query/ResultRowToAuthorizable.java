@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,10 +65,10 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
         Authorizable authorizable = null;
         try {
             Tree tree = root.getTree(resultPath);
-            AuthorizableType type = UserUtility.getType(tree);
+            AuthorizableType type = UserUtil.getType(tree);
             while (tree.exists() && !tree.isRoot() && type == null) {
                 tree = tree.getParent();
-                type = UserUtility.getType(tree);
+                type = UserUtil.getType(tree);
             }
             if (tree.exists() && (targetType == null || targetType == type)) {
                 authorizable = userManager.getAuthorizableByPath(tree.getPath());

@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -213,7 +213,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
         ConfigurationParameters userConfig = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
         String userId = authorizable.getID();
-        return UserUtility.getAdminId(userConfig).equals(userId) || UserUtility.getAnonymousId(userConfig).equals(userId);
+        return UserUtil.getAdminId(userConfig).equals(userId) || UserUtil.getAnonymousId(userConfig).equals(userId);
     }
 
     /**

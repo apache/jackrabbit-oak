@@ -29,8 +29,8 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -56,7 +56,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         this.parentAfter = parentAfter;
         this.provider = provider;
 
-        authorizableType = UserUtility.getType(parentAfter);
+        authorizableType = UserUtil.getType(parentAfter);
     }
 
     //----------------------------------------------------------< Validator >---
@@ -101,7 +101,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
             }
         }
 
-        if (isUser(parentBefore) && REP_PASSWORD.equals(name) && PasswordUtility.isPlainTextPassword(after.getValue(Type.STRING))) {
+        if (isUser(parentBefore) && REP_PASSWORD.equals(name) && PasswordUtil.isPlainTextPassword(after.getValue(Type.STRING))) {
             String msg = "Password may not be plain text.";
             throw constraintViolation(24, msg);
         }
@@ -129,8 +129,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         Tree tree = checkNotNull(parentAfter.getChild(name));
 
-        AuthorizableType type = UserUtility.getType(tree);
-        String authRoot = UserUtility.getAuthorizableRootPath(provider.getConfig(), type);
+        AuthorizableType type = UserUtil.getType(tree);
+        String authRoot = UserUtil.getAuthorizableRootPath(provider.getConfig(), type);
         if (authRoot != null) {
             assertHierarchy(tree, authRoot);
             // assert rep:principalName is present (that should actually by covered
@@ -162,7 +162,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
     private boolean isAdminUser(@Nonnull Tree userTree) {
         if (userTree.exists() && isUser(userTree)) {
             String id = UserProvider.getAuthorizableId(userTree);
-            return UserUtility.getAdminId(provider.getConfig()).equals(id);
+            return UserUtil.getAdminId(provider.getConfig()).equals(id);
         } else {
             return false;
         }

@@ -22,6 +22,7 @@ import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
@@ -30,6 +31,11 @@ import org.junit.Test;
  * Testing {@link ImportBehavior#ABORT} for user/group import
  */
 public class UserImportAbortTest extends AbstractImportTest {
+
+    @Override
+    protected List<String> getPathsToRemove() {
+        return ImmutableList.of(GROUPPATH + "/gFolder", USERPATH + "/t");
+    }
 
     @Override
     protected String getImportBehavior() {
@@ -66,7 +72,6 @@ public class UserImportAbortTest extends AbstractImportTest {
 
     @Test
     public void testImportSelfAsGroupAbort() throws Exception {
-
         String invalidId = "0120a4f9-196a-3f9e-b9f5-23f31f914da7"; // uuid of the group itself
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -82,8 +87,6 @@ public class UserImportAbortTest extends AbstractImportTest {
             fail("Importing self as group with ImportBehavior.ABORT must fail.");
         } catch (RepositoryException e) {
             // success.
-        }finally {
-            adminSession.refresh(false);
         }
     }
 
@@ -99,7 +102,8 @@ public class UserImportAbortTest extends AbstractImportTest {
                     "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
                     "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
                     "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
-                    "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property><sv:property sv:name=\"rep:impersonators\" sv:type=\"String\"><sv:value>" +principalName+ "</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                    "   <sv:property sv:name=\"rep:impersonators\" sv:type=\"String\"><sv:value>" +principalName+ "</sv:value></sv:property>" +
                     "</sv:node>";
             Subject subj = new Subject();
             subj.getPrincipals().add(new PrincipalImpl(principalName));

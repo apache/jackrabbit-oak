@@ -27,6 +27,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.security.auth.Subject;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -41,6 +42,11 @@ import org.junit.Test;
  * Testing {@link ImportBehavior#BESTEFFORT} for user/group import
  */
 public class UserImportBestEffortTest extends AbstractImportTest {
+
+    @Override
+    protected List<String> getPathsToRemove() {
+        return ImmutableList.of(GROUPPATH + "/gFolder", USERPATH + "/t", USERPATH + "/uFolder");
+    }
 
     @Override
     protected String getImportBehavior() {
@@ -99,7 +105,6 @@ public class UserImportBestEffortTest extends AbstractImportTest {
         if (userMgr.getAuthorizable("g") != null) {
             throw new NotExecutableException();
         }
-
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
                 "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:AuthorizableFolder</sv:value></sv:property>" +
@@ -109,14 +114,6 @@ public class UserImportBestEffortTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:members\" sv:type=\"WeakReference\"><sv:value>" +nonExistingId+ "</sv:value></sv:property>" +
                 "</sv:node>" +
                 "</sv:node>";
-
-        String xml2 = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "   <sv:node sv:name=\"g\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-                "       <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Group</sv:value></sv:property>" +
-                "       <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>" + nonExistingId + "</sv:value></sv:property>" +
-                "       <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g</sv:value></sv:property>" +
-                "       <sv:property sv:name=\"rep:members\" sv:type=\"WeakReference\"><sv:value>" + g1Id + "</sv:value></sv:property>" +
-                "   </sv:node>";
 
         // BESTEFFORT behavior -> must import non-existing members.
         doImport(GROUPPATH, xml);
@@ -250,8 +247,6 @@ public class UserImportBestEffortTest extends AbstractImportTest {
 
         } catch (ItemExistsException e) {
             // success.
-        } finally {
-            adminSession.refresh(false);
         }
     }
 
@@ -260,36 +255,31 @@ public class UserImportBestEffortTest extends AbstractImportTest {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"uFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
                 "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:AuthorizableFolder</sv:value></sv:property>" +
-                    "<sv:node sv:name=\"t\">" +
-                    "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
-                    "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
-                    "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
-                    "   <sv:property sv:name=\"rep:impersonators\" sv:type=\"String\"><sv:value>g</sv:value></sv:property>" +
-                    "</sv:node>" +
-                    "<sv:node sv:name=\"g\">" +
-                    "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
-                    "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>b2f5ff47-4366-31b6-a533-d8dc3614845d</sv:value></sv:property>" +
-                    "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g</sv:value></sv:property>" +
-                    "</sv:node>" +
+                "<sv:node sv:name=\"t\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:impersonators\" sv:type=\"String\"><sv:value>g</sv:value></sv:property>" +
+                "</sv:node>" +
+                "<sv:node sv:name=\"g\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>b2f5ff47-4366-31b6-a533-d8dc3614845d</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>g</sv:value></sv:property>" +
+                "</sv:node>" +
                 "</sv:node>";
-        try {
-            doImport(USERPATH, xml);
+        doImport(USERPATH, xml);
 
-            Authorizable newUser = userMgr.getAuthorizable("t");
-            assertNotNull(newUser);
+        Authorizable newUser = userMgr.getAuthorizable("t");
+        assertNotNull(newUser);
 
-            Authorizable u2 = userMgr.getAuthorizable("g");
-            assertNotNull(u2);
+        Authorizable u2 = userMgr.getAuthorizable("g");
+        assertNotNull(u2);
 
-            Subject subj = new Subject();
-            subj.getPrincipals().add(u2.getPrincipal());
+        Subject subj = new Subject();
+        subj.getPrincipals().add(u2.getPrincipal());
 
-            Impersonation imp = ((User) newUser).getImpersonation();
-            assertTrue(imp.allows(subj));
-
-        } finally {
-            superuser.refresh(false);
-        }
+        Impersonation imp = ((User) newUser).getImpersonation();
+        assertTrue(imp.allows(subj));
     }
 
     @Test
@@ -300,9 +290,9 @@ public class UserImportBestEffortTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
                 "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
                 "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
-                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property><sv:property sv:name=\"rep:impersonators\" sv:type=\"String\"><sv:value>" +principalName+ "</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>t</sv:value></sv:property>" +
+                "   <sv:property sv:name=\"rep:impersonators\" sv:type=\"String\"><sv:value>" +principalName+ "</sv:value></sv:property>" +
                 "</sv:node>";
-
         doImport(USERPATH, xml);
 
         Authorizable a = userMgr.getAuthorizable("t");
