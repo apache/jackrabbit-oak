@@ -164,6 +164,7 @@ public interface PrivilegeConstants {
      * Internal (oak) name of the rep:privilegeManagement privilege
      */
     String REP_PRIVILEGE_MANAGEMENT = "rep:privilegeManagement";
+
     /**
      * Internal (oak) name of the rep:userManagement privilege
      *
@@ -178,26 +179,36 @@ public interface PrivilegeConstants {
 
     /**
      * Internal (oak) name of the rep:readNodes privilege
+     *
+     * @since OAK 1.0
      */
     String REP_READ_NODES = "rep:readNodes";
 
     /**
      * Internal (oak) name of the rep:readProperties privilege
+     *
+     * @since OAK 1.0
      */
     String REP_READ_PROPERTIES = "rep:readProperties";
 
     /**
      * Internal (oak) name of the rep:addProperties privilege
+     *
+     * @since OAK 1.0
      */
     String REP_ADD_PROPERTIES = "rep:addProperties";
 
     /**
      * Internal (oak) name of the rep:alterProperties privilege
+     *
+     * @since OAK 1.0
      */
     String REP_ALTER_PROPERTIES = "rep:alterProperties";
 
     /**
      * Internal (oak) name of the rep:removeProperties privilege
+     *
+     * @since OAK 1.0
      */
     String REP_REMOVE_PROPERTIES = "rep:removeProperties";
 }
