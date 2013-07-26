@@ -25,7 +25,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -35,6 +35,11 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 /**
  * Testing import behavior if user mgt is configured to store group members
  * in a tree structure.
@@ -43,20 +48,20 @@ import org.junit.Test;
 public class MemberNodeImportTest extends AbstractImportTest {
 
     @Override
-    protected List<String> getPathsToRemove() {
-        return ImmutableList.of(GROUPPATH + "/s", GROUPPATH + "/gFolder");
-    }
-
-    @Override
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    public void before() throws Exception {
+        super.before();
         // FIXME: create JCR repository with user mgt setup that stores group members in a tree structure (blocked by OAK-482)
     }
 
     @Override
     protected String getImportBehavior() {
         return ImportBehavior.NAME_BESTEFFORT;
+    }
+
+    @Override
+    protected String getTargetPath() {
+        return GROUPPATH;
     }
 
     @Test
@@ -67,13 +72,13 @@ public class MemberNodeImportTest extends AbstractImportTest {
                 "\"WeakReference\"><sv:value>16d5d24f-5b09-3199-9bd4-e5f57bf11237</sv:value></sv:property><sv:property sv:name=\"susi\" sv:type=\"WeakReference\"><sv:value>536931d8-0dec-318c-b3db-9612bdd004d4</sv:value></sv:property></sv:node></sv:node></sv:node></sv:node></sv:node></sv:node>";
 
         List<String> createdUsers = new LinkedList<String>();
-        Node groupsNode = superuser.getNode(GROUPPATH);
+        Node groupsNode = getTargetNode();
         try {
             String[] users = {"angi", "adi", "hansi", "lisi", "luzi", "susi", "pipi", "hari", "gabi", "eddi",
                     "debbi", "cati", "admin", "anonymous"};
 
             doImport(groupsNode.getPath(), xml);
-            superuser.save();
+            adminSession.save();
 
             for (String user : users) {
                 if (userMgr.getAuthorizable(user) == null) {
@@ -81,7 +86,7 @@ public class MemberNodeImportTest extends AbstractImportTest {
                     createdUsers.add(user);
                 }
             }
-            superuser.save();
+            adminSession.save();
 
             Authorizable aShrimps = userMgr.getAuthorizable("shrimps");
             assertNotNull(aShrimps);
@@ -94,27 +99,27 @@ public class MemberNodeImportTest extends AbstractImportTest {
 
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
             for (String user : createdUsers) {
                 Authorizable a = userMgr.getAuthorizable(user);
                 if (a != null && !a.isGroup()) {
                     a.remove();
                 }
             }
-            superuser.save();
+            adminSession.save();
             for (NodeIterator it = groupsNode.getNodes(); it.hasNext(); ) {
                 it.nextNode().remove();
             }
             if (!userMgr.isAutoSave()) {
-                superuser.save();
+                adminSession.save();
             }
         }
     }
 
     @Test
     public void testImportNonExistingMemberBestEffort() throws Exception {
-        Node n = testRootNode.addNode(nodeName1, ntUnstructured);
-        n.addMixin(mixReferenceable);
+        Node n = adminSession.getRootNode().addNode("node", JcrConstants.NT_UNSTRUCTURED);
+        n.addMixin(JcrConstants.MIX_REFERENCEABLE);
 
         List<String> invalid = new ArrayList<String>();
         invalid.add(UUID.randomUUID().toString()); // random uuid
@@ -132,12 +137,12 @@ public class MemberNodeImportTest extends AbstractImportTest {
                     "</sv:node>";
             try {
                 // BESTEFFORT behavior -> must import non-existing members.
-                doImport(GROUPPATH, xml);
+                doImport(getTargetPath(), xml);
                 Authorizable a = userMgr.getAuthorizable("g1");
                 if (a.isGroup()) {
                     // the rep:members property must contain the invalid value
                     boolean found = false;
-                    Node grNode = superuser.getNode(a.getPath());
+                    Node grNode = adminSession.getNode(a.getPath());
                     for (Value memberValue : grNode.getProperty(UserConstants.REP_MEMBERS).getValues()) {
                         assertEquals(PropertyType.WEAKREFERENCE, memberValue.getType());
                         if (id.equals(memberValue.getString())) {
@@ -148,12 +153,12 @@ public class MemberNodeImportTest extends AbstractImportTest {
                     assertTrue("ImportBehavior.BESTEFFORT must import non-existing members.",found);
 
                     // declared members must not list the invalid entry.
-                    assertNotDeclaredMember((Group) a, id, superuser);
+                    assertNotDeclaredMember((Group) a, id, adminSession);
                 } else {
                     fail("'g1' was not imported as Group.");
                 }
             } finally {
-                superuser.refresh(false);
+                adminSession.refresh(false);
             }
         }
     }
@@ -187,12 +192,12 @@ public class MemberNodeImportTest extends AbstractImportTest {
 
         try {
             // BESTEFFORT behavior -> must import non-existing members.
-            doImport(GROUPPATH, xml);
+            doImport(getTargetPath(), xml);
             Authorizable g1 = userMgr.getAuthorizable("g1");
             if (g1.isGroup()) {
                 // the rep:members property must contain the invalid value
                 boolean found = false;
-                Node grNode = superuser.getNode(g1.getPath());
+                Node grNode = adminSession.getNode(g1.getPath());
                 for (Value memberValue : grNode.getProperty(UserConstants.REP_MEMBERS).getValues()) {
                     assertEquals(PropertyType.WEAKREFERENCE, memberValue.getType());
                     if (nonExistingId.equals(memberValue.getString())) {
@@ -214,18 +219,18 @@ public class MemberNodeImportTest extends AbstractImportTest {
             - g is member of g1
             - g1 isn't member of g
             */
-            doImport(GROUPPATH + "/gFolder", xml2);
+            doImport(getTargetPath() + "/gFolder", xml2);
 
             Authorizable g = userMgr.getAuthorizable("g");
             assertNotNull(g);
             if (g.isGroup()) {
-                assertNotDeclaredMember((Group) g, g1Id, superuser);
+                assertNotDeclaredMember((Group) g, g1Id, adminSession);
             } else {
                 fail("'g' was not imported as Group.");
             }
 
         } finally {
-            superuser.refresh(false);
+            adminSession.refresh(false);
         }
     }
 }

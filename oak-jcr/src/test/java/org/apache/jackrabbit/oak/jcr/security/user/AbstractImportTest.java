@@ -20,15 +20,17 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -39,49 +41,45 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.After;
 import org.junit.Before;
 
+import static org.junit.Assert.assertFalse;
+
 /**
  * Base class for user import related tests.
  */
-public abstract class AbstractImportTest extends AbstractJCRTest {
+public abstract class AbstractImportTest {
 
     private static final String ADMINISTRATORS = "administrators";
     protected static final String USERPATH = "/rep:security/rep:authorizables/rep:users";
     protected static final String GROUPPATH = "/rep:security/rep:authorizables/rep:groups";
 
-
-    private boolean removeAdministrators;
-
     private Repository repo;
     protected Session adminSession;
     protected UserManager userMgr;
 
-    protected abstract List<String> getPathsToRemove();
-
-    @Override
     @Before
-    protected void setUp() throws Exception {
-        super.setUp();
+    public void before() throws Exception {
 
         String importBehavior = getImportBehavior();
+        SecurityProvider securityProvider;
         if (importBehavior != null) {
             Map<String, String> userParams = new HashMap();
             userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
             ConfigurationParameters config = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
 
-            SecurityProvider securityProvider = new SecurityProviderImpl(config);
-            Jcr jcr = new Jcr();
-            jcr.with(securityProvider);
-            repo = jcr.createRepository();
-            adminSession = repo.login(getHelper().getSuperuserCredentials());
+            securityProvider = new SecurityProviderImpl(config);
         } else {
-            adminSession = superuser;
+            securityProvider = new SecurityProviderImpl();
         }
+        Jcr jcr = new Jcr();
+        jcr.with(securityProvider);
+        repo = jcr.createRepository();
+        adminSession = repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
 
         if (!(adminSession instanceof JackrabbitSession)) {
             throw new NotExecutableException();
@@ -93,27 +91,26 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
         if (administrators == null) {
             administrators = userMgr.createGroup(new PrincipalImpl(ADMINISTRATORS));
             adminSession.save();
-            removeAdministrators = true;
         } else if (!administrators.isGroup()) {
             throw new NotExecutableException("Expected " + administrators.getID() + " to be a group.");
         }
         adminSession.save();
     }
 
-    @Override
     @After
-    protected void tearDown() throws Exception {
+    public void after() throws Exception {
         try {
             adminSession.refresh(false);
-            for (String path : getPathsToRemove()) {
-                if (adminSession.nodeExists(path)) {
-                    adminSession.removeItem(path);
-                }
+            NodeIterator intermediateNodes = adminSession.getNode(GROUPPATH).getNodes();
+            while (intermediateNodes.hasNext()) {
+                intermediateNodes.nextNode().remove();
             }
-            if (removeAdministrators) {
-                Authorizable a = userMgr.getAuthorizable(ADMINISTRATORS);
-                if (a != null) {
-                    a.remove();
+            String builtinPath = USERPATH + "/a";
+            intermediateNodes = adminSession.getNode(USERPATH).getNodes();
+            while (intermediateNodes.hasNext()) {
+                Node n = intermediateNodes.nextNode();
+                if (!builtinPath.equals(n.getPath())) {
+                    n.remove();
                 }
             }
             adminSession.save();
@@ -122,15 +119,20 @@ public abstract class AbstractImportTest extends AbstractJCRTest {
                 adminSession.logout();
                 repo = null;
             }
-            super.tearDown();
         }
     }
 
     protected abstract String getImportBehavior();
 
+    protected abstract String getTargetPath();
+
+    protected Node getTargetNode() throws RepositoryException {
+        return adminSession.getNode(getTargetPath());
+    }
+
     protected String getExistingUUID() throws RepositoryException {
         Node n = adminSession.getRootNode();
-        n.addMixin(mixReferenceable);
+        n.addMixin(JcrConstants.MIX_REFERENCEABLE);
         return n.getUUID();
     }
 
