@@ -29,6 +29,7 @@ import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
@@ -63,6 +64,7 @@ class SysViewImportHandler extends TargetImportHandler {
      *
      * @param importer     the underlying importer
      * @param valueFactory the value factory
+     * @param helper the namespace helper
      */
     SysViewImportHandler(Importer importer, ValueFactory valueFactory, NamespaceHelper helper) {
         super(importer, valueFactory, helper);

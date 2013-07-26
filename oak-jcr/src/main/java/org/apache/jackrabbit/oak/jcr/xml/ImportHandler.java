@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -52,6 +53,7 @@ import org.xml.sax.helpers.DefaultHandler;
  * (i.e. default SAX2 Namespace processing).
  */
 public class ImportHandler extends DefaultHandler {
+
     private static final Logger log = LoggerFactory.getLogger(ImportHandler.class);
 
     private final Root root;

@@ -14,14 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.xml;
+package org.apache.jackrabbit.oak.spi.xml;
 
 
 import java.util.List;
 import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
-import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 
 /**
  * Content importer. The XML import handlers use this interface to submit

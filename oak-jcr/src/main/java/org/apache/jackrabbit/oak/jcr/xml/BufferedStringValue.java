@@ -93,6 +93,9 @@ class BufferedStringValue implements TextValue {
 
     /**
      * Constructs a new empty {@code BufferedStringValue}.
+     *
+     * @param valueFactory The value factory
+     * @param namePathMapper the name/path mapper
      */
     protected BufferedStringValue(ValueFactory valueFactory, NamePathMapper namePathMapper) {
         buffer = new StringWriter();
