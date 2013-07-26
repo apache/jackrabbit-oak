@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization.evaluation;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
@@ -28,6 +30,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class TreeTest extends AbstractOakCoreTest {
@@ -118,7 +121,16 @@ public class TreeTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetPropertyStatus() throws Exception {
-        // TODO
+        setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_NODES);
+
+        testRoot.refresh();
+        Tree a = testRoot.getTree("/a");
+        assertFalse(a.exists());
+
+        PropertyState p = a.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        assertNotNull(p);
+        assertEquals(Tree.Status.EXISTING, a.getPropertyStatus(JcrConstants.JCR_PRIMARYTYPE));
+
     }
 
     @Test
