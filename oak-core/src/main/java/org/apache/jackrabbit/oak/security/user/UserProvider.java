@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -231,7 +231,7 @@ class UserProvider extends AuthorizableBaseProvider {
     @CheckForNull
     static String getAuthorizableId(@Nonnull Tree authorizableTree) {
         checkNotNull(authorizableTree);
-        if (UserUtility.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
+        if (UserUtil.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {
                 return idProp.getValue(STRING);

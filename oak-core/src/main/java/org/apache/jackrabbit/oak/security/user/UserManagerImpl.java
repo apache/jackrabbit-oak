@@ -48,8 +48,8 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -326,9 +326,9 @@ public class UserManagerImpl implements UserManager {
         if (id == null || tree == null) {
             return null;
         }
-        if (UserUtility.isType(tree, AuthorizableType.USER)) {
+        if (UserUtil.isType(tree, AuthorizableType.USER)) {
             return new UserImpl(userProvider.getAuthorizableId(tree), tree, this);
-        } else if (UserUtility.isType(tree, AuthorizableType.GROUP)) {
+        } else if (UserUtil.isType(tree, AuthorizableType.GROUP)) {
             return new GroupImpl(userProvider.getAuthorizableId(tree), tree, this);
         } else {
             throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
@@ -362,9 +362,9 @@ public class UserManagerImpl implements UserManager {
 
     void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
         String pwHash;
-        if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
+        if (forceHash || PasswordUtil.isPlainTextPassword(password)) {
             try {
-                pwHash = PasswordUtility.buildPasswordHash(password, config);
+                pwHash = PasswordUtil.buildPasswordHash(password, config);
             } catch (NoSuchAlgorithmException e) {
                 throw new RepositoryException(e);
             } catch (UnsupportedEncodingException e) {

@@ -21,7 +21,9 @@ import java.util.Collection;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * User management related constants.
+ * User management related constants. Please note that all names and paths
+ * are OAK names/paths and therefore are not suited to be used in JCR context
+ * with remapped namespaces.
  */
 public interface UserConstants {
 

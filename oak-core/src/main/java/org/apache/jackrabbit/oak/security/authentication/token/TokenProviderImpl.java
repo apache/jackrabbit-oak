@@ -53,7 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
@@ -221,7 +221,7 @@ public class TokenProviderImpl implements TokenProvider {
                 String nodeId = getIdentifier(tokenNode.getTree());
                 String token = new StringBuilder(nodeId).append(DELIM).append(key).toString();
 
-                String keyHash = PasswordUtility.buildPasswordHash(key);
+                String keyHash = PasswordUtil.buildPasswordHash(key);
                 tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
                 final long expirationTime = creationTime + tokenExpiration;
                 tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
@@ -483,7 +483,7 @@ public class TokenProviderImpl implements TokenProvider {
             if (pos > -1) {
                 tk = tk.substring(pos + 1);
             }
-            if (key == null || !PasswordUtility.isSame(key, tk)) {
+            if (key == null || !PasswordUtil.isSame(key, tk)) {
                 return false;
             }
 

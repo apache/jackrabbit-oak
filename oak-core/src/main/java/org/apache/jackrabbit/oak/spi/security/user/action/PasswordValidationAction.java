@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +102,7 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
      * doesn't match the specified password pattern.
      */
     private void validatePassword(@Nullable String password, boolean forceMatch) throws RepositoryException {
-        if (password != null && (forceMatch || PasswordUtility.isPlainTextPassword(password))) {
+        if (password != null && (forceMatch || PasswordUtil.isPlainTextPassword(password))) {
             if (pattern != null && !pattern.matcher(password).matches()) {
                 throw new ConstraintViolationException("Password violates password constraint (" + pattern.pattern() + ").");
             }

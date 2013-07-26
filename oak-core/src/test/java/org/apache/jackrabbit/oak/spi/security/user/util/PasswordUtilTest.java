@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.junit.Test;
 
 import java.security.NoSuchAlgorithmException;
@@ -30,7 +29,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class PasswordUtilityTest {
+public class PasswordUtilTest {
 
     private static List<String> PLAIN_PWDS = new ArrayList<String>();
     static {
@@ -49,7 +48,7 @@ public class PasswordUtilityTest {
     static {
         for (String pw : PLAIN_PWDS) {
             try {
-                HASHED_PWDS.put(pw, PasswordUtility.buildPasswordHash(pw));
+                HASHED_PWDS.put(pw, PasswordUtil.buildPasswordHash(pw));
             } catch (Exception e) {
                 // should not get here
             }
@@ -59,7 +58,7 @@ public class PasswordUtilityTest {
     @Test
     public void testBuildPasswordHash() throws Exception {
         for (String pw : PLAIN_PWDS) {
-            String pwHash = PasswordUtility.buildPasswordHash(pw);
+            String pwHash = PasswordUtil.buildPasswordHash(pw);
             assertFalse(pw.equals(pwHash));
         }
 
@@ -74,7 +73,7 @@ public class PasswordUtilityTest {
                 int saltsize = params[0];
                 int iterations = params[1];
 
-                String pwHash = PasswordUtility.buildPasswordHash(pw, PasswordUtility.DEFAULT_ALGORITHM, saltsize, iterations);
+                String pwHash = PasswordUtil.buildPasswordHash(pw, PasswordUtil.DEFAULT_ALGORITHM, saltsize, iterations);
                 assertFalse(pw.equals(pwHash));
             }
         }
@@ -89,7 +88,7 @@ public class PasswordUtilityTest {
 
         for (String invalid : invalidAlgorithms) {
             try {
-                String pwHash = PasswordUtility.buildPasswordHash("pw", invalid, PasswordUtility.DEFAULT_SALT_SIZE, PasswordUtility.DEFAULT_ITERATIONS);
+                String pwHash = PasswordUtil.buildPasswordHash("pw", invalid, PasswordUtil.DEFAULT_SALT_SIZE, PasswordUtil.DEFAULT_ITERATIONS);
                 fail("Invalid algorithm " + invalid);
             } catch (NoSuchAlgorithmException e) {
                 // success
@@ -101,19 +100,19 @@ public class PasswordUtilityTest {
     @Test
     public void testIsPlainTextPassword() throws Exception {
         for (String pw : PLAIN_PWDS) {
-            assertTrue(pw + " should be plain text.", PasswordUtility.isPlainTextPassword(pw));
+            assertTrue(pw + " should be plain text.", PasswordUtil.isPlainTextPassword(pw));
         }
     }
 
     @Test
     public void testIsPlainTextForNull() throws Exception {
-        assertTrue(PasswordUtility.isPlainTextPassword(null));
+        assertTrue(PasswordUtil.isPlainTextPassword(null));
     }
 
     @Test
     public void testIsPlainTextForPwHash() throws Exception {
         for (String pwHash : HASHED_PWDS.values()) {
-            assertFalse(pwHash + " should not be plain text.", PasswordUtility.isPlainTextPassword(pwHash));
+            assertFalse(pwHash + " should not be plain text.", PasswordUtil.isPlainTextPassword(pwHash));
         }
     }
 
@@ -121,18 +120,18 @@ public class PasswordUtilityTest {
     public void testIsSame() throws Exception {
         for (String pw : HASHED_PWDS.keySet()) {
             String pwHash = HASHED_PWDS.get(pw);
-            assertTrue("Not the same " + pw + ", " + pwHash, PasswordUtility.isSame(pwHash, pw));
+            assertTrue("Not the same " + pw + ", " + pwHash, PasswordUtil.isSame(pwHash, pw));
         }
 
         String pw = "password";
-        String pwHash = PasswordUtility.buildPasswordHash(pw, "SHA-1", 4, 50);
-        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtility.isSame(pwHash, pw));
+        String pwHash = PasswordUtil.buildPasswordHash(pw, "SHA-1", 4, 50);
+        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw));
 
-        pwHash = PasswordUtility.buildPasswordHash(pw, "md5", 0, 5);
-        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtility.isSame(pwHash, pw));
+        pwHash = PasswordUtil.buildPasswordHash(pw, "md5", 0, 5);
+        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw));
 
-        pwHash = PasswordUtility.buildPasswordHash(pw, "md5", -1, -1);
-        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtility.isSame(pwHash, pw));
+        pwHash = PasswordUtil.buildPasswordHash(pw, "md5", -1, -1);
+        assertTrue("Not the same '" + pw + "', " + pwHash, PasswordUtil.isSame(pwHash, pw));
     }
 
     @Test
@@ -140,10 +139,10 @@ public class PasswordUtilityTest {
         String previous = null;
         for (String pw : HASHED_PWDS.keySet()) {
             String pwHash = HASHED_PWDS.get(pw);
-            assertFalse(pw, PasswordUtility.isSame(pw, pw));
-            assertFalse(pwHash, PasswordUtility.isSame(pwHash, pwHash));
+            assertFalse(pw, PasswordUtil.isSame(pw, pw));
+            assertFalse(pwHash, PasswordUtil.isSame(pwHash, pwHash));
             if (previous != null) {
-                assertFalse(previous, PasswordUtility.isSame(pwHash, previous));
+                assertFalse(previous, PasswordUtil.isSame(pwHash, previous));
             }
             previous = pw;
         }
@@ -153,9 +152,9 @@ public class PasswordUtilityTest {
     public void testPBKDF2WithHmacSHA1() throws Exception {
         String algo = "PBKDF2WithHmacSHA1";
         // test vector from http://tools.ietf.org/html/rfc6070
-        String hash = PasswordUtility.generateHash(
-                "pass\0word", algo, 
-                PasswordUtility.convertBytesToHex("sa\0lt".getBytes()), 4096);
+        String hash = PasswordUtil.generateHash(
+                "pass\0word", algo,
+                PasswordUtil.convertBytesToHex("sa\0lt".getBytes()), 4096);
         assertEquals("{PBKDF2WithHmacSHA1}7361006c74-4096-56fa6aa75548099dcc37d7f03425e0c3", hash);
     }
     

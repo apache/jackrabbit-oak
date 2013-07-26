@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -126,13 +126,13 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     @Test
     public void testPasswordValidationActionOnCreate() throws Exception {
-        String hashed = PasswordUtility.buildPasswordHash("DWkej32H");
+        String hashed = PasswordUtil.buildPasswordHash("DWkej32H");
         testUser = getUserManager(root).createUser("testuser", hashed);
         root.commit();
 
         String pwValue = root.getTree(testUser.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
-        assertFalse(PasswordUtility.isPlainTextPassword(pwValue));
-        assertTrue(PasswordUtility.isSame(pwValue, hashed));
+        assertFalse(PasswordUtil.isPlainTextPassword(pwValue));
+        assertTrue(PasswordUtil.isSame(pwValue, hashed));
     }
 
     @Test
@@ -142,7 +142,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         try {
             pwAction.setConstraint("abc");
 
-            String hashed = PasswordUtility.buildPasswordHash("abc");
+            String hashed = PasswordUtil.buildPasswordHash("abc");
             testUser.changePassword(hashed);
 
             fail("Password change must always enforce password validation.");

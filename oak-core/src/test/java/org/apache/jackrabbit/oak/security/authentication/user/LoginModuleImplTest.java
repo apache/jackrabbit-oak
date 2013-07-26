@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -70,7 +70,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         ContentSession cs = login(new GuestCredentials());
         try {
             AuthInfo authInfo = cs.getAuthInfo();
-            String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getParameters());
+            String anonymousID = UserUtil.getAnonymousId(getUserConfiguration().getParameters());
             assertEquals(anonymousID, authInfo.getUserID());
         } finally {
             cs.close();
@@ -79,7 +79,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Test
     public void testAnonymousLogin() throws Exception {
-        String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getParameters());
+        String anonymousID = UserUtil.getAnonymousId(getUserConfiguration().getParameters());
 
         UserManager userMgr = getUserManager(root);
 
@@ -177,7 +177,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             cs = null;
 
             ConfigurationParameters config = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
-            String adminId = UserUtility.getAdminId(config);
+            String adminId = UserUtil.getAdminId(config);
             sc = new SimpleCredentials(adminId, new char[0]);
             ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
 

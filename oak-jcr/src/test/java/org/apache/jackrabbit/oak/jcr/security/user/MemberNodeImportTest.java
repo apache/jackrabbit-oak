@@ -25,6 +25,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -40,6 +41,11 @@ import org.junit.Test;
  */
 @Ignore("OAK-414") // TODO: waiting for OAK-482
 public class MemberNodeImportTest extends AbstractImportTest {
+
+    @Override
+    protected List<String> getPathsToRemove() {
+        return ImmutableList.of(GROUPPATH + "/s", GROUPPATH + "/gFolder");
+    }
 
     @Override
     @Before

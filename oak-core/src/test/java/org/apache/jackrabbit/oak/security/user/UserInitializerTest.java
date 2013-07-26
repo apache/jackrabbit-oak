@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,13 +79,13 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
     @Test
     public void testBuildInUserExist() throws Exception {
-        assertNotNull(userMgr.getAuthorizable(UserUtility.getAdminId(config)));
-        assertNotNull(userMgr.getAuthorizable(UserUtility.getAnonymousId(config)));
+        assertNotNull(userMgr.getAuthorizable(UserUtil.getAdminId(config)));
+        assertNotNull(userMgr.getAuthorizable(UserUtil.getAnonymousId(config)));
     }
 
     @Test
     public void testAdminUser() throws Exception {
-        Authorizable a = userMgr.getAuthorizable(UserUtility.getAdminId(config));
+        Authorizable a = userMgr.getAuthorizable(UserUtil.getAdminId(config));
         assertFalse(a.isGroup());
 
         User admin = (User) a;
@@ -97,7 +97,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
     @Test
     public void testAnonymous() throws Exception {
-        Authorizable a = userMgr.getAuthorizable(UserUtility.getAnonymousId(config));
+        Authorizable a = userMgr.getAuthorizable(UserUtil.getAnonymousId(config));
         assertFalse(a.isGroup());
 
         User anonymous = (User) a;
@@ -109,10 +109,10 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
     @Test
     public void testUserContent() throws Exception {
-        Authorizable a = userMgr.getAuthorizable(UserUtility.getAdminId(config));
+        Authorizable a = userMgr.getAuthorizable(UserUtil.getAdminId(config));
         assertTrue(root.getTree(a.getPath()).exists());
 
-        a = userMgr.getAuthorizable(UserUtility.getAnonymousId(config));
+        a = userMgr.getAuthorizable(UserUtil.getAnonymousId(config));
         assertTrue(root.getTree(a.getPath()).exists());
     }
 

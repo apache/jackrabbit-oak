@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfigu
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.junit.After;
 import org.junit.Before;
 
@@ -126,7 +126,7 @@ public abstract class AbstractSecurityTest {
     }
 
     protected Credentials getAdminCredentials() {
-        String adminId = UserUtility.getAdminId(getUserConfiguration().getParameters());
+        String adminId = UserUtil.getAdminId(getUserConfiguration().getParameters());
         return new SimpleCredentials(adminId, adminId.toCharArray());
     }
 

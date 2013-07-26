@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -42,7 +42,7 @@ public class Jackrabbit2ConfigurationTest extends TokenDefaultLoginModuleTest {
         ContentSession cs = login(null);
         try {
             AuthInfo authInfo = cs.getAuthInfo();
-            String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getParameters());
+            String anonymousID = UserUtil.getAnonymousId(getUserConfiguration().getParameters());
             assertEquals(anonymousID, authInfo.getUserID());
         } finally {
             cs.close();

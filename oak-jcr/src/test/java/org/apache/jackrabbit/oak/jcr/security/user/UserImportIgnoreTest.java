@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 import javax.security.auth.Subject;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -40,6 +41,11 @@ public class UserImportIgnoreTest extends AbstractImportTest {
         return ImportBehavior.NAME_IGNORE;
     }
 
+    @Override
+    protected List<String> getPathsToRemove() {
+        return ImmutableList.of(GROUPPATH + "/gFolder", USERPATH + "/t");
+    }
+
     @Test
     public void testImportSelfAsGroupIgnore() throws Exception {
         String invalidId = "0120a4f9-196a-3f9e-b9f5-23f31f914da7"; // uuid of the group itself
@@ -52,17 +58,13 @@ public class UserImportIgnoreTest extends AbstractImportTest {
                 "   <sv:property sv:name=\"rep:members\" sv:type=\"WeakReference\"><sv:value>" +invalidId+ "</sv:value></sv:property>" +
                 "</sv:node>" +
                 "</sv:node>";
-        try {
-            doImport(GROUPPATH, xml);
-            // no exception during import -> member must have been ignored though.
-            Authorizable a = userMgr.getAuthorizable("g1");
-            if (a.isGroup()) {
-                assertNotDeclaredMember((Group) a, invalidId, adminSession);
-            } else {
-                fail("'g1' was not imported as Group.");
-            }
-        } finally {
-            adminSession.refresh(false);
+        doImport(GROUPPATH, xml);
+        // no exception during import -> member must have been ignored though.
+        Authorizable a = userMgr.getAuthorizable("g1");
+        if (a.isGroup()) {
+            assertNotDeclaredMember((Group) a, invalidId, adminSession);
+        } else {
+            fail("'g1' was not imported as Group.");
         }
     }
 
