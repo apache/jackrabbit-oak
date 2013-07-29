@@ -51,7 +51,7 @@ public class SystemRoot extends RootImpl {
 
         @Override
         public Root getLatestRoot() {
-            throw new UnsupportedOperationException();
+            return newRoot();
         }
 
         @Override
