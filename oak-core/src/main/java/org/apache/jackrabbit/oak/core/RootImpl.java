@@ -32,7 +32,6 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -43,7 +42,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
-import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -52,10 +50,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -153,18 +149,7 @@ public class RootImpl implements Root {
         secureBuilder = new SecureNodeBuilder(builder, getPermissionProvider(), getAcContext());
         rootTree = new MutableTree(this, secureBuilder, lastMove);
     }
-
-    // TODO: review if these constructors really make sense and cannot be replaced.
-    public RootImpl(NodeStore store) {
-        this(store, EmptyHook.INSTANCE);
-    }
-
-    public RootImpl(NodeStore store, CommitHook hook) {
-        // FIXME: define proper default or pass workspace name with the constructor
-        this(store, hook, PostCommitHook.EMPTY, Oak.DEFAULT_WORKSPACE_NAME, SystemSubject.INSTANCE,
-                new OpenSecurityProvider(), new CompositeQueryIndexProvider());
-    }
-
+ 
     /**
      * Called whenever a method on this instance or on any {@code Tree} instance
      * obtained from this {@code Root} is called. This default implementation
