@@ -38,7 +38,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class RootImplTest extends OakBaseTest {
+public class RootTest extends OakBaseTest {
 
     private ContentSession session;
 

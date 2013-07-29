@@ -18,24 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.Collections;
-import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.RootImpl.Move;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -49,12 +31,31 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
+import java.util.Collections;
+import java.util.Set;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+
 public class MutableTree extends AbstractTree {
 
     /**
      * Underlying {@code Root} of this {@code Tree} instance
      */
-    private final RootImpl root;
+    private final AbstractRoot root;
 
     /**
      * Parent of this tree. Null for the root.
@@ -64,13 +65,13 @@ public class MutableTree extends AbstractTree {
     /** Pointer into the list of pending moves */
     private Move pendingMoves;
 
-    MutableTree(RootImpl root, NodeBuilder builder, Move pendingMoves) {
+    MutableTree(AbstractRoot root, NodeBuilder builder, Move pendingMoves) {
         super("", builder);
         this.root = checkNotNull(root);
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
-    private MutableTree(RootImpl root, MutableTree parent, String name, Move pendingMoves) {
+    private MutableTree(AbstractRoot root, MutableTree parent, String name, Move pendingMoves) {
         super(name, parent.nodeBuilder.getChildNode(name));
         this.root = checkNotNull(root);
         this.parent = checkNotNull(parent);

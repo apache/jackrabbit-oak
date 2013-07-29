@@ -18,17 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
 import static org.junit.Assert.assertTrue;
 
-import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.common.SolrInputDocument;
 import org.junit.Test;
 
 /**
@@ -38,7 +31,7 @@ public class SolrCommitHookIT extends SolrBaseTest {
 
     @Test
     public void testAddSomeNodes() throws Exception {
-        Root r = createRootImpl();
+        Root r = createRoot();
         r.getTree("/").addChild("a").addChild("b").addChild("doc1").
                 setProperty("text", "hit that hot hat tattoo");
         r.getTree("/").getChild("a").addChild("c").addChild("doc2").
@@ -57,7 +50,7 @@ public class SolrCommitHookIT extends SolrBaseTest {
 
     @Test
     public void testRemoveNode() throws Exception {
-        Root r = createRootImpl();
+        Root r = createRoot();
 
         // Add a node
         r.getTree("/").addChild("testRemoveNode").setProperty("foo", "bar");

@@ -42,7 +42,7 @@ public class DefaultConflictHandlerOursTest {
     private static final String OUR_VALUE = "our value";
     private static final String THEIR_VALUE = "their value";
 
-    private RootImpl ourRoot;
+    private Root ourRoot;
     private Root theirRoot;
 
     @Before
@@ -63,7 +63,7 @@ public class DefaultConflictHandlerOursTest {
         tree.addChild("z");
         root.commit();
 
-        ourRoot = (RootImpl) session.getLatestRoot();
+        ourRoot = session.getLatestRoot();
         theirRoot = session.getLatestRoot();
     }
 
