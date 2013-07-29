@@ -16,7 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.io.IOException;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -37,10 +42,6 @@ import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 
 /**
  * TODO document
@@ -272,7 +273,7 @@ public class SessionDelegate {
     }
 
     public void refresh(boolean keepChanges) {
-        if (keepChanges) {
+        if (keepChanges && hasPendingChanges()) {
             root.rebase();
         } else {
             root.refresh();
