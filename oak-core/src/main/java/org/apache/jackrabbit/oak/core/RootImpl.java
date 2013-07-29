@@ -91,19 +91,19 @@ public class RootImpl implements Root {
     private final MutableTree rootTree;
 
     /**
-     * Current branch this root operates on
+     * Secured builder for the root tree
      */
-    private NodeStoreBranch branch;
+    private final SecureNodeBuilder secureBuilder;
 
     /**
      * Unsecured builder for the root tree
      */
-    private NodeBuilder builder;
+    private final NodeBuilder builder;
 
     /**
-     * Secured builder for the root tree
+     * Current branch this root operates on
      */
-    private SecureNodeBuilder secureBuilder;
+    private NodeStoreBranch branch;
 
     /**
      * Sentinel for the next move operation to take place on the this root
@@ -248,8 +248,7 @@ public class RootImpl implements Root {
             @Override
             public CommitFailedException run() {
                 try {
-                    NodeState base = branch.getBase();
-                    NodeState newHead = branch.merge(getCommitHook(), postHook);
+                    branch.merge(getCommitHook(), postHook);
                     return null;
                 } catch (CommitFailedException e) {
                     return e;
