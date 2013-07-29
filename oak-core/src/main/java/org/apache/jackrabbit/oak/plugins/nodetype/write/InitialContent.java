@@ -21,7 +21,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -81,7 +81,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
-        BuiltInNodeTypes.register(new RootImpl(store, new EditorHook(new RegistrationEditorProvider())));
+        BuiltInNodeTypes.register(new SystemRoot(store, new EditorHook(new RegistrationEditorProvider())));
         return store.getRoot();
     }
 
