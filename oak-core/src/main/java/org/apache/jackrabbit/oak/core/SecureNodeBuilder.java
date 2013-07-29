@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.LazyValue;
 
 class SecureNodeBuilder implements NodeBuilder {
 
@@ -61,7 +62,7 @@ class SecureNodeBuilder implements NodeBuilder {
     /**
      * Permissions provider for evaluating access rights to the underlying raw builder
      */
-    private final PermissionProvider permissionProvider;
+    private final LazyValue<PermissionProvider> permissionProvider;
 
     /**
      * Access control context for evaluating access rights to the underlying raw builder
@@ -89,8 +90,8 @@ class SecureNodeBuilder implements NodeBuilder {
      */
     private SecurityContext securityContext;
 
-    SecureNodeBuilder(@Nonnull NodeBuilder builder, @Nonnull PermissionProvider permissionProvider,
-            @Nonnull Context acContext) {
+    SecureNodeBuilder(@Nonnull NodeBuilder builder,
+            @Nonnull LazyValue<PermissionProvider> permissionProvider, @Nonnull Context acContext) {
         this.rootBuilder = this;
         this.parent = null;
         this.name = null;
@@ -312,9 +313,11 @@ class SecureNodeBuilder implements NodeBuilder {
     private SecurityContext getSecurityContext() {
         if (securityContext == null || rootBuilder.baseRevision != baseRevision) {
             if (parent == null) {
-                securityContext = new SecurityContext(builder.getNodeState(), permissionProvider, acContext);
+                securityContext = new SecurityContext(
+                        builder.getNodeState(), permissionProvider.get() , acContext);
             } else {
-                securityContext = parent.getSecurityContext().getChildContext(name, parent.builder.getChildNode(name).getBaseState());
+                securityContext = parent.getSecurityContext().getChildContext(
+                        name, parent.builder.getChildNode(name).getBaseState());
             }
             baseRevision = rootBuilder.baseRevision;
         }
