@@ -36,6 +36,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  *  when an usage of the system internal subject is needed.
  */
 public class SystemRoot extends RootImpl {
+    private final ContentSession contentSession = new ContentSession() {
+        private final AuthInfoImpl authInfo = new AuthInfoImpl(
+                null, null, SystemSubject.INSTANCE.getPrincipals());
+
+        @Override
+        public void close() {
+        }
+
+        @Override
+        public String getWorkspaceName() {
+            return SystemRoot.this.getWorkspaceName();
+        }
+
+        @Override
+        public Root getLatestRoot() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public AuthInfo getAuthInfo() {
+            return authInfo;
+        }
+    };
 
     public SystemRoot(NodeStore store, CommitHook hook, String workspaceName,
             SecurityProvider securityProvider, QueryIndexProvider indexProvider) {
@@ -56,27 +79,7 @@ public class SystemRoot extends RootImpl {
 
     @Override
     public ContentSession getContentSession() {
-        return new ContentSession() {
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public String getWorkspaceName() {
-                return SystemRoot.this.getWorkspaceName();
-            }
-
-            @Override
-            public Root getLatestRoot() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public AuthInfo getAuthInfo() {
-               return new AuthInfoImpl(null, null, SystemSubject.INSTANCE.getPrincipals());   
-            }
-        };
+        return contentSession;
     }
 
 }
