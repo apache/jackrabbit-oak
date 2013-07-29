@@ -16,24 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
-
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
@@ -44,14 +39,12 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -105,7 +98,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             throw new RuntimeException(e);
         }
 
-        Root root = new SystemRootImpl(store, commitHook, workspaceName, securityProvider, indexProvider);
+        Root root = new SystemRoot(store, commitHook, workspaceName, securityProvider, indexProvider);
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
@@ -148,72 +141,5 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             throw new RuntimeException(e);
         }
         return store.getRoot();
-    }
-
-    //--------------------------------------------------------< inner class >---
-
-    private class SystemRootImpl extends RootImpl {
-
-        private SystemRootImpl(NodeStore store, CommitHook hook,
-                               String workspaceName,
-                               SecurityProvider securityProvider,
-                               QueryIndexProvider indexProvider) {
-            super(store, hook, PostCommitHook.EMPTY, workspaceName, SystemSubject.INSTANCE,
-                    securityProvider, indexProvider);
-        }
-
-        @Override
-        public ContentSession getContentSession() {
-            return new ContentSession() {
-
-                private volatile boolean live = true;
-
-                private void checkLive() {
-                    checkState(live, "This session has been closed");
-                }
-
-                @Override
-                public void close() {
-                    live = false;
-                }
-
-                @Override
-                public String getWorkspaceName() {
-                    return SystemRootImpl.this.getWorkspaceName();
-                }
-
-                @Override
-                public Root getLatestRoot() {
-                    checkLive();
-                    return SystemRootImpl.this;
-                }
-
-                @Override
-                public AuthInfo getAuthInfo() {
-                    return new AuthInfo() {
-
-                        @Override
-                        public String getUserID() {
-                            return null;
-                        }
-
-                        @Override
-                        public Set<Principal> getPrincipals() {
-                            return SystemSubject.INSTANCE.getPrincipals();
-                        }
-
-                        @Override
-                        public String[] getAttributeNames() {
-                            return new String[]{};
-                        }
-
-                        @Override
-                        public Object getAttribute(String attributeName) {
-                            return null;
-                        }
-                    };
-                }
-            };
-        }
     }
 }

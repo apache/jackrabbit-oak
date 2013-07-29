@@ -22,7 +22,7 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -67,7 +67,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             }
 
             try {
-                new PrivilegeDefinitionWriter(new RootImpl(store)).writeBuiltInDefinitions();
+                new PrivilegeDefinitionWriter(new SystemRoot(store)).writeBuiltInDefinitions();
             } catch (RepositoryException e) {
                 log.error("Failed to register built-in privileges", e);
                 throw new RuntimeException(e);
