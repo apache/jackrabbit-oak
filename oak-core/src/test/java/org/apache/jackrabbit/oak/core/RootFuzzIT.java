@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.AddNode;
-import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.CopyNode;
-import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.MoveNode;
-import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.RemoveNode;
-import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.RemoveProperty;
-import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Save;
-import static org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.SetProperty;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.AddNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.CopyNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.MoveNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveProperty;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Iterator;
@@ -33,9 +33,10 @@ import java.util.Random;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Rebase;
+import org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Rebase;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,25 +45,25 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Fuzz test running random sequences of operations on {@link Tree}.
- * Run with -DRootImplFuzzIT-seed=42 to set a specific seed (i.e. 42);
+ * Run with -DRootFuzzIT-seed=42 to set a specific seed (i.e. 42);
  */
-public class RootImplFuzzIT {
+public class RootFuzzIT {
 
-    static final Logger log = LoggerFactory.getLogger(RootImplFuzzIT.class);
+    static final Logger log = LoggerFactory.getLogger(RootFuzzIT.class);
 
     private static final int OP_COUNT = 5000;
 
     private static final int SEED = Integer.getInteger(
-            RootImplFuzzIT.class.getSimpleName() + "-seed",
+            RootFuzzIT.class.getSimpleName() + "-seed",
             new Random().nextInt());
 
     private static final Random random = new Random(SEED);
 
     private KernelNodeStore store1;
-    private RootImpl root1;
+    private SystemRoot root1;
 
     private KernelNodeStore store2;
-    private RootImpl root2;
+    private SystemRoot root2;
 
     private int counter;
 
@@ -125,7 +126,7 @@ public class RootImplFuzzIT {
     }
 
     abstract static class Operation {
-        abstract void apply(RootImpl root);
+        abstract void apply(Root root);
 
         static class AddNode extends Operation {
             private final String parentPath;
@@ -137,7 +138,7 @@ public class RootImplFuzzIT {
             }
 
             @Override
-            void apply(RootImpl root) {
+            void apply(Root root) {
                 root.getTree(parentPath).addChild(name);
             }
 
@@ -155,7 +156,7 @@ public class RootImplFuzzIT {
             }
 
             @Override
-            void apply(RootImpl root) {
+            void apply(Root root) {
                 String parentPath = PathUtils.getParentPath(path);
                 String name = PathUtils.getName(path);
                 root.getTree(parentPath).getChild(name).remove();
@@ -177,7 +178,7 @@ public class RootImplFuzzIT {
             }
 
             @Override
-            void apply(RootImpl root) {
+            void apply(Root root) {
                 root.move(source, destination);
             }
 
@@ -197,7 +198,7 @@ public class RootImplFuzzIT {
             }
 
             @Override
-            void apply(RootImpl root) {
+            void apply(Root root) {
                 root.copy(source, destination);
             }
 
@@ -219,7 +220,7 @@ public class RootImplFuzzIT {
             }
 
             @Override
-            void apply(RootImpl root) {
+            void apply(Root root) {
                 root.getTree(parentPath).setProperty(propertyName, propertyValue);
             }
 
@@ -240,7 +241,7 @@ public class RootImplFuzzIT {
             }
 
             @Override
-            void apply(RootImpl root) {
+            void apply(Root root) {
                 root.getTree(parentPath).removeProperty(name);
             }
 
@@ -252,7 +253,7 @@ public class RootImplFuzzIT {
 
         static class Save extends Operation {
             @Override
-            void apply(RootImpl root) {
+            void apply(Root root) {
                 // empty
             }
 
@@ -264,7 +265,7 @@ public class RootImplFuzzIT {
 
         static class Rebase extends Operation {
             @Override
-            void apply(RootImpl root) {
+            void apply(Root root) {
                 root.rebase();
             }
 

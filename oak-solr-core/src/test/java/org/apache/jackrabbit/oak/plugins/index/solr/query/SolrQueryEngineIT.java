@@ -40,7 +40,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
 
     @Test
     public void testSolrQueryEngine() throws Exception {
-        Root root = createRootImpl();
+        Root root = createRoot();
         Tree tree = root.getTree("/");
         tree.addChild("somenode").setProperty("foo", "bar");
         root.commit();

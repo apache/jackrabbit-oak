@@ -35,7 +35,6 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -62,7 +61,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.LazyValue;
 
-public class RootImpl implements Root {
+public abstract class AbstractRoot implements Root {
 
     /**
      * Number of {@link #updated} calls for which changes are kept in memory.
@@ -120,7 +119,7 @@ public class RootImpl implements Root {
     private LazyValue<PermissionProvider> permissionProvider = new LazyValue<PermissionProvider>() {
         @Override
         protected PermissionProvider createValue() {
-            return getAcConfig().getPermissionProvider(RootImpl.this, subject.getPrincipals());
+            return getAcConfig().getPermissionProvider(AbstractRoot.this, subject.getPrincipals());
         }
     };
 
@@ -134,13 +133,13 @@ public class RootImpl implements Root {
      * @param securityProvider the security configuration.
      * @param indexProvider    the query index provider.
      */
-    public RootImpl(NodeStore store,
-                    CommitHook hook,
-                    PostCommitHook postHook,
-                    String workspaceName,
-                    Subject subject,
-                    SecurityProvider securityProvider,
-                    QueryIndexProvider indexProvider) {
+    protected AbstractRoot(NodeStore store,
+            CommitHook hook,
+            PostCommitHook postHook,
+            String workspaceName,
+            Subject subject,
+            SecurityProvider securityProvider,
+            QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
         this.hook = checkNotNull(hook);
         this.postHook = postHook;
@@ -167,26 +166,7 @@ public class RootImpl implements Root {
 
     }
 
-    protected String getWorkspaceName() {
-        return workspaceName;
-    }
-
-    /**
-     * Factory method for creating a new {@code Root} instance, which
-     * reflects the latest state of the repository.
-     * @return  new Root instance
-     */
-    protected Root newRoot() {
-        return new RootImpl(
-                store, hook, postHook, workspaceName, subject, securityProvider, indexProvider);
-    }
-
     //---------------------------------------------------------------< Root >---
-
-    @Override
-    public ContentSession getContentSession() {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public boolean move(String sourcePath, String destPath) {
@@ -330,7 +310,7 @@ public class RootImpl implements Root {
 
             @Override
             protected NodeState getRootState() {
-                return RootImpl.this.getRootState();
+                return AbstractRoot.this.getRootState();
             }
 
             @Override

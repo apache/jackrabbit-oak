@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
+import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.core.AbstractRoot;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
@@ -66,9 +68,15 @@ public abstract class SolrBaseTest {
         }
     }
 
-    protected RootImpl createRootImpl() {
-        return new RootImpl(store, hook, PostCommitHook.EMPTY, "solr-query-engine-it", new Subject(),
-                new OpenSecurityProvider(), new CompositeQueryIndexProvider());
+    protected AbstractRoot createRoot() {
+        return new AbstractRoot(store, hook, PostCommitHook.EMPTY, "solr-query-engine-it", new Subject(),
+                new OpenSecurityProvider(), new CompositeQueryIndexProvider()) {
+            @Nonnull
+            @Override
+            public ContentSession getContentSession() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     protected NodeState createInitialState(MicroKernel microKernel) {
