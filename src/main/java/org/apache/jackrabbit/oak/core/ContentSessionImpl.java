@@ -97,19 +97,18 @@ class ContentSessionImpl implements ContentSession, Observable {
     @Override
     public Root getLatestRoot() {
         checkLive();
-        RootImpl root = new RootImpl(store, hook, changeDispatcher.newHook(this), workspaceName,
+        return new AbstractRoot(store, hook, changeDispatcher.newHook(ContentSessionImpl.this), workspaceName,
                 loginContext.getSubject(), securityProvider, indexProvider) {
             @Override
             protected void checkLive() {
                 ContentSessionImpl.this.checkLive();
-            }            
- 
+            }
+
             @Override
             public ContentSession getContentSession() {
             	return ContentSessionImpl.this;
-            }            
+            }
         };
-        return root;
     }
 
     @Override

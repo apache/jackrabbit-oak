@@ -125,8 +125,8 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     public static ImmutableTree createFromRoot(@Nonnull Root root, @Nonnull TreeTypeProvider typeProvider) {
-        if (root instanceof RootImpl) {
-            return new ImmutableTree(((RootImpl) root).getBaseState(), typeProvider);
+        if (root instanceof AbstractRoot) {
+            return new ImmutableTree(((AbstractRoot) root).getBaseState(), typeProvider);
         } else if (root instanceof ImmutableRoot) {
             return ((ImmutableRoot) root).getTree("/");
         } else {

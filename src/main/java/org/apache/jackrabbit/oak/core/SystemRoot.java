@@ -32,38 +32,41 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- *  Internal extension of the {@link RootImpl} to be used
+ *  Internal extension of the {@link AbstractRoot} to be used
  *  when an usage of the system internal subject is needed.
  */
-public class SystemRoot extends RootImpl {
-    private final ContentSession contentSession = new ContentSession() {
-        private final AuthInfoImpl authInfo = new AuthInfoImpl(
-                null, null, SystemSubject.INSTANCE.getPrincipals());
+public class SystemRoot extends AbstractRoot {
+    private final ContentSession contentSession;
 
-        @Override
-        public void close() {
-        }
+    public SystemRoot(final NodeStore store, final CommitHook hook, final String workspaceName,
+            final SecurityProvider securityProvider, final QueryIndexProvider indexProvider) {
 
-        @Override
-        public String getWorkspaceName() {
-            return SystemRoot.this.getWorkspaceName();
-        }
-
-        @Override
-        public Root getLatestRoot() {
-            return newRoot();
-        }
-
-        @Override
-        public AuthInfo getAuthInfo() {
-            return authInfo;
-        }
-    };
-
-    public SystemRoot(NodeStore store, CommitHook hook, String workspaceName,
-            SecurityProvider securityProvider, QueryIndexProvider indexProvider) {
         super(store, hook, PostCommitHook.EMPTY, workspaceName,
                 SystemSubject.INSTANCE, securityProvider, indexProvider);
+
+        contentSession = new ContentSession() {
+            private final AuthInfoImpl authInfo = new AuthInfoImpl(
+                    null, null, SystemSubject.INSTANCE.getPrincipals());
+
+            @Override
+            public void close() {
+            }
+
+            @Override
+            public String getWorkspaceName() {
+                return workspaceName;
+            }
+
+            @Override
+            public Root getLatestRoot() {
+                return new SystemRoot(store, hook, workspaceName, securityProvider, indexProvider);
+            }
+
+            @Override
+            public AuthInfo getAuthInfo() {
+                return authInfo;
+            }
+        };
     }
 
     public SystemRoot(NodeStore store) {
@@ -71,10 +74,9 @@ public class SystemRoot extends RootImpl {
     }
 
     public SystemRoot(NodeStore store, CommitHook hook) {
-        // FIXME: define proper default or pass workspace name with the
-        // constructor
-        this(store, hook, Oak.DEFAULT_WORKSPACE_NAME,
-                new OpenSecurityProvider(), new CompositeQueryIndexProvider());
+        // FIXME: define proper default or pass workspace name with the constructor
+        this(store, hook, Oak.DEFAULT_WORKSPACE_NAME, new OpenSecurityProvider(),
+                new CompositeQueryIndexProvider());
     }
 
     @Override
