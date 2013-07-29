@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.security.Principal;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -27,15 +26,16 @@ import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,8 +50,18 @@ public class RepositoryImpl implements Repository {
      */
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
-    // TODO implement auto refresh configuration. See OAK-803, OAK-88
-    private static final long AUTO_REFRESH_INTERVAL = TimeUnit.SECONDS.toMillis(1);
+    /**
+     * Name of the session attribute value determining the session refresh
+     * behaviour.
+     *
+     * @see SessionDelegate#SessionDelegate(ContentSession, long)
+     */
+    public static final String REFRESH_INTERVAL = "refresh-interval";
+
+    /**
+     * Default value for {@link #REFRESH_INTERVAL}.
+     */
+    private static final long DEFAULT_REFRESH_INTERVAL = TimeUnit.SECONDS.toMillis(1);
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
@@ -123,33 +133,58 @@ public class RepositoryImpl implements Repository {
         return descriptors.isSingleValueDescriptor(key);
     }
 
-    /**
-     * @see javax.jcr.Repository#login(javax.jcr.Credentials, String)
-     */
-    @Override
-    public Session login(@Nullable Credentials credentials, @Nullable String workspaceName) throws RepositoryException {
+    private Session login(
+            @Nullable Credentials credentials, @Nullable String workspaceName,
+            long refreshInterval) throws RepositoryException {
         try {
-            ContentSession contentSession =
-                    contentRepository.login(credentials, workspaceName);
-
-            // For better backwards compatibility admin sessions should always
-            // be on the latest revision: set refresh interval to 0. See OAK-803.
-            SessionContext context = new SessionContext(
-                    this, whiteboard, new SessionDelegate(
-                            contentSession, /* isAdmin(contentSession) ? 0 : */ AUTO_REFRESH_INTERVAL));
+            ContentSession contentSession = contentRepository.login(credentials, workspaceName);
+            SessionContext context = new SessionContext(this, whiteboard,
+                    new SessionDelegate(contentSession, refreshInterval));
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
         }
     }
 
-    private static boolean isAdmin(ContentSession contentSession) {
-        for (Principal p : contentSession.getAuthInfo().getPrincipals()) {
-            if (p instanceof AdminPrincipal) {
-                return true;
+    private static long getRefreshInterval(Credentials credentials) {
+        if (credentials instanceof SimpleCredentials) {
+            Object refreshAttribute = ((SimpleCredentials) credentials)
+                    .getAttribute(REFRESH_INTERVAL);
+            if (refreshAttribute instanceof Long) {
+                return (Long) refreshAttribute;
+            } else if (refreshAttribute instanceof Integer) {
+                return (Integer) refreshAttribute;
+            } else if (refreshAttribute instanceof String) {
+                return toLong((String) refreshAttribute);
+            }
+        } else if (credentials instanceof TokenCredentials) {
+            String refreshAttribute = ((TokenCredentials) credentials)
+                    .getAttribute(REFRESH_INTERVAL);
+            if (refreshAttribute != null) {
+                return toLong(refreshAttribute);
             }
         }
-        return false;
+        return DEFAULT_REFRESH_INTERVAL;
+    }
+
+    private static long toLong(String longValue) {
+        try {
+            return Long.parseLong(longValue);
+        } catch (NumberFormatException e) {
+            log.warn("Invalid value '" + longValue + "' for " + REFRESH_INTERVAL +
+                    ". Expected long. Defaulting to '" + DEFAULT_REFRESH_INTERVAL +
+                    "' seconds .", e);
+            return DEFAULT_REFRESH_INTERVAL;
+        }
+    }
+
+    /**
+     * @see javax.jcr.Repository#login(javax.jcr.Credentials, String)
+     */
+    @Override
+    public Session login(@Nullable Credentials credentials, @Nullable String workspaceName)
+            throws RepositoryException {
+        return login(credentials, workspaceName, getRefreshInterval(credentials));
     }
 
     /**
