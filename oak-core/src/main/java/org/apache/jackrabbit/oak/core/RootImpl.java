@@ -171,6 +171,16 @@ public class RootImpl implements Root {
         return workspaceName;
     }
 
+    /**
+     * Factory method for creating a new {@code Root} instance, which
+     * reflects the latest state of the repository.
+     * @return  new Root instance
+     */
+    protected Root newRoot() {
+        return new RootImpl(
+                store, hook, postHook, workspaceName, subject, securityProvider, indexProvider);
+    }
+
     //---------------------------------------------------------------< Root >---
 
     @Override
