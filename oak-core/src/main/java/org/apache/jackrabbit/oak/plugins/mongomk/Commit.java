@@ -45,8 +45,8 @@ public class Commit {
      */
     // TODO check which value is the best one
     //private static final int MAX_DOCUMENT_SIZE = 16 * 1024;
-    // TODO disabled until document split is fully implemented
-    private static final int MAX_DOCUMENT_SIZE = Integer.MAX_VALUE;
+    // TODO set to 512 KB currently, should be changed later on
+    private static final int MAX_DOCUMENT_SIZE = 512 * 1024;
 
     /**
      * Whether to purge old revisions if a node gets too large. If false, old
@@ -54,6 +54,12 @@ public class Commit {
      * removed (purged).
      */
     private static final boolean PURGE_OLD_REVISIONS = true;
+    
+    /**
+     * Revisions that are newer than this (in minutes) are kept in the newest
+     * document.
+     */
+    private static final int SPLIT_MINUTES = 5;
     
     private final MongoMK mk;
     private final Revision baseRevision;
@@ -454,7 +460,13 @@ public class Commit {
                     if (propRev.equals(latestRev)) {
                         main.setMap(key, propRev.toString(), v);
                     } else {
-                        old.setMapEntry(key, propRev.toString(), v);
+                        long ageMillis = Revision.getCurrentTimestamp() - propRev.getTimestamp();
+                        long ageMinutes = ageMillis / 1000 / 60;
+                        if (ageMinutes > SPLIT_MINUTES) {
+                            old.setMapEntry(key, propRev.toString(), v);
+                        } else {
+                            main.setMap(key, propRev.toString(), v);
+                        }
                     }
                 }
             }

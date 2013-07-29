@@ -163,6 +163,11 @@ public class Revision {
         return string;
     }
     
+    /**
+     * Get the timestamp in milliseconds since 1970.
+     * 
+     * @return the timestamp
+     */
     public long getTimestamp() {
         return timestamp;
     }
