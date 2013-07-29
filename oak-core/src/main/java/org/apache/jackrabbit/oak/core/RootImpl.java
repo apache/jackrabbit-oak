@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.apache.jackrabbit.oak.util.LazyValue;
 
 public class RootImpl implements Root {
 
@@ -116,7 +117,12 @@ public class RootImpl implements Root {
      */
     private long modCount;
 
-    private PermissionProvider permissionProvider;
+    private LazyValue<PermissionProvider> permissionProvider = new LazyValue<PermissionProvider>() {
+        @Override
+        protected PermissionProvider createValue() {
+            return getAcConfig().getPermissionProvider(RootImpl.this, subject.getPrincipals());
+        }
+    };
 
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
@@ -146,7 +152,7 @@ public class RootImpl implements Root {
         branch = this.store.branch();
         NodeState root = branch.getHead();
         builder = root.builder();
-        secureBuilder = new SecureNodeBuilder(builder, getPermissionProvider(), getAcContext());
+        secureBuilder = new SecureNodeBuilder(builder, permissionProvider, getAcContext());
         rootTree = new MutableTree(this, secureBuilder, lastMove);
     }
  
@@ -222,7 +228,7 @@ public class RootImpl implements Root {
             branch.rebase();
             reset();
             if (permissionProvider != null) {
-                permissionProvider.refresh();
+                permissionProvider.get().refresh();
             }
         }
     }
@@ -234,7 +240,7 @@ public class RootImpl implements Root {
         reset();
         modCount = 0;
         if (permissionProvider != null) {
-            permissionProvider.refresh();
+            permissionProvider.get().refresh();
         }
     }
 
@@ -298,7 +304,7 @@ public class RootImpl implements Root {
      */
     private Subject getCommitSubject() {
         return new Subject(true, subject.getPrincipals(),
-                Collections.singleton(getPermissionProvider()), Collections.<Object>emptySet());
+                Collections.singleton(permissionProvider.get()), Collections.<Object>emptySet());
     }
 
     @Override
@@ -367,7 +373,7 @@ public class RootImpl implements Root {
      */
     NodeState getSecureBase() {
         NodeState root = branch.getBase();
-        return new SecureNodeState(root, getPermissionProvider(), getAcContext());
+        return new SecureNodeState(root, permissionProvider.get(), getAcContext());
     }
 
     // TODO better way to determine purge limit. See OAK-175
@@ -390,14 +396,6 @@ public class RootImpl implements Root {
         return builder.getNodeState();
     }
 
-    @Nonnull
-    private PermissionProvider getPermissionProvider() {
-        if (permissionProvider == null) {
-            permissionProvider = createPermissionProvider();
-        }
-        return permissionProvider;
-    }
-
     /**
      * Purge all pending changes to the underlying {@link NodeStoreBranch}.
      */
@@ -412,11 +410,6 @@ public class RootImpl implements Root {
     private void reset() {
         NodeState root = branch.getHead();
         secureBuilder.reset(root);
-    }
-
-    @Nonnull
-    private PermissionProvider createPermissionProvider() {
-        return getAcConfig().getPermissionProvider(this, subject.getPrincipals());
     }
 
     @Nonnull
