@@ -42,17 +42,17 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
         return new PrivilegeManagerImpl(root, namePathMapper);
     }
 
-    @Nonnull
-    @Override
-    public RepositoryInitializer getPrivilegeInitializer() {
-        return new PrivilegeInitializer();
-    }
-
     //----------------------------------------------< SecurityConfiguration >---
     @Nonnull
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Nonnull
+    @Override
+    public RepositoryInitializer getRepositoryInitializer() {
+        return new PrivilegeInitializer();
     }
 
     @Nonnull

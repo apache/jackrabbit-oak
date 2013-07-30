@@ -29,6 +29,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public interface RepositoryInitializer {
 
     /**
+     * Default implementation that returns the given {@code state} without
+     * making any changes.
+     */
+    RepositoryInitializer DEFAULT = new RepositoryInitializer() {
+        @Override
+        public NodeState initialize(NodeState state) {
+            return state;
+        }
+    };
+
+    /**
      * Initializes repository content. This method is called as soon as a
      * repository becomes available. Note that the repository may already
      * have been initialized, so the implementation of this method should
@@ -37,5 +48,4 @@ public interface RepositoryInitializer {
      * @param state the current state of the repository
      */
     NodeState initialize(NodeState state);
-
 }
