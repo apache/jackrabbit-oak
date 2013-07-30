@@ -21,7 +21,6 @@ import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -76,7 +75,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
         }
     }
 
-    private static boolean isPrivilegeDefinition(@Nullable Tree tree) {
-        return tree != null && NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(tree));
+    private static boolean isPrivilegeDefinition(@Nonnull Tree tree) {
+        return tree.exists() && NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 }

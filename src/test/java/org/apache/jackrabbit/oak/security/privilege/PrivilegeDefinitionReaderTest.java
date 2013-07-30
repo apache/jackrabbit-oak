@@ -16,17 +16,40 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
-public class PrivilegeDefinitionReaderTest {
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+public class PrivilegeDefinitionReaderTest extends AbstractSecurityTest implements PrivilegeConstants {
 
     @Test
-    public void testReadDefinition() {
-        // TODO
+    public void testReadNonExisting() throws Exception {
+        PrivilegeDefinitionReader reader = new PrivilegeDefinitionReader(root);
+        assertNull(reader.readDefinition("nonexisting"));
     }
 
     @Test
-    public void testReadDefinitions() {
-        // TODO
+    public void testReadDefinition() throws Exception {
+        PrivilegeDefinitionReader reader = new PrivilegeDefinitionReader(root);
+        assertNotNull(reader.readDefinition(JCR_READ));
+    }
+
+    @Test
+    public void testMissingPermissionRoot() throws Exception {
+        ContentRepository repo = new Oak().with(new OpenSecurityProvider()).createContentRepository();
+        Root tmpRoot = repo.login(null, null).getLatestRoot();
+        try {
+            PrivilegeDefinitionReader reader = new PrivilegeDefinitionReader(tmpRoot);
+            assertNull(reader.readDefinition(JCR_READ));
+        } finally {
+            tmpRoot.getContentSession().close();
+        }
     }
 }

@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * {@code PrivilegeBits} TODO
+ * Internal representation of JCR privileges.
  */
 public final class PrivilegeBits implements PrivilegeConstants {
 

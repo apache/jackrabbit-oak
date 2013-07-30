@@ -17,8 +17,12 @@
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -31,7 +35,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class PrivilegeBitsTest implements PrivilegeConstants {
+public class PrivilegeBitsTest extends AbstractSecurityTest implements PrivilegeConstants {
 
     private static final long NO_PRIVILEGE = 0;
     private static final PrivilegeBits READ_NODES_PRIVILEGE_BITS = PrivilegeBits.BUILT_IN.get(REP_READ_NODES);
@@ -537,11 +541,67 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
 
     @Test
     public void testGetInstanceFromTree() {
-        // TODO
+        Tree privRoot = root.getTree(PRIVILEGES_PATH);
+        try {
+            Tree tmp = privRoot.addChild("tmpPrivilege");
+            PrivilegeBits tmpBits = PrivilegeBits.getInstance(privRoot.getProperty(REP_NEXT));
+            tmpBits.writeTo(tmp);
+
+            Map<Tree, PrivilegeBits> treeToBits = new HashMap<Tree, PrivilegeBits>();
+            treeToBits.put(privRoot.getChild(JCR_READ), PrivilegeBits.BUILT_IN.get(JCR_READ));
+            treeToBits.put(tmp, tmpBits);
+            treeToBits.put(privRoot, tmpBits);
+
+            for (Tree tree : treeToBits.keySet()) {
+                assertEquals(treeToBits.get(tree), PrivilegeBits.getInstance(tree));
+            }
+        } finally {
+            root.refresh();
+        }
     }
 
     @Test
     public void testCalculatePermissions() {
-        // TODO
+        PrivilegeBitsProvider provider = new PrivilegeBitsProvider(root);
+
+        Map<PrivilegeBits, Long> simple = new HashMap<PrivilegeBits, Long>();
+        simple.put(PrivilegeBits.EMPTY, Permissions.NO_PERMISSION);
+        simple.put(provider.getBits(JCR_READ), Permissions.READ);
+        simple.put(provider.getBits(JCR_LOCK_MANAGEMENT), Permissions.LOCK_MANAGEMENT);
+        simple.put(provider.getBits(JCR_VERSION_MANAGEMENT), Permissions.VERSION_MANAGEMENT);
+        simple.put(provider.getBits(JCR_READ_ACCESS_CONTROL), Permissions.READ_ACCESS_CONTROL);
+        simple.put(provider.getBits(JCR_MODIFY_ACCESS_CONTROL), Permissions.MODIFY_ACCESS_CONTROL);
+        simple.put(provider.getBits(REP_READ_NODES), Permissions.READ_NODE);
+        simple.put(provider.getBits(REP_READ_PROPERTIES), Permissions.READ_PROPERTY);
+        simple.put(provider.getBits(REP_USER_MANAGEMENT), Permissions.USER_MANAGEMENT);
+        for (PrivilegeBits pb : simple.keySet()) {
+            long expected = simple.get(pb).longValue();
+            assertTrue(expected == PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true));
+        }
+
+        // jcr:add aggregate
+        PrivilegeBits all = provider.getBits(JCR_ALL);
+        assertFalse(Permissions.ALL == PrivilegeBits.calculatePermissions(all, PrivilegeBits.EMPTY, true));
+        assertTrue(Permissions.ALL == PrivilegeBits.calculatePermissions(all, all, true));
+
+        // parent aware permissions
+        // a) jcr:addChildNodes
+        PrivilegeBits addChild = provider.getBits(JCR_ADD_CHILD_NODES);
+        assertFalse(Permissions.ADD_NODE == PrivilegeBits.calculatePermissions(addChild, PrivilegeBits.EMPTY, true));
+        assertTrue(Permissions.ADD_NODE == PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, addChild, true));
+
+        // b) jcr:removeChildNodes and jcr:removeNode
+        PrivilegeBits removeChild = provider.getBits(JCR_REMOVE_CHILD_NODES);
+        assertFalse(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(removeChild, PrivilegeBits.EMPTY, true));
+        assertFalse(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeChild, true));
+
+        PrivilegeBits removeNode = provider.getBits(JCR_REMOVE_NODE);
+        assertFalse(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(removeNode, PrivilegeBits.EMPTY, true));
+        assertFalse(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeNode, true));
+
+        PrivilegeBits remove = provider.getBits(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE);
+        assertFalse(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(remove, PrivilegeBits.EMPTY, true));
+        assertFalse(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, remove, true));
+        assertTrue(Permissions.REMOVE_NODE == PrivilegeBits.calculatePermissions(remove, remove, true));
     }
 }
