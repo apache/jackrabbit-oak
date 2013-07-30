@@ -16,10 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.AccessControlException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -41,6 +47,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -65,8 +72,6 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 /**
  * TODO document
  */
@@ -75,10 +80,12 @@ public class SessionImpl implements JackrabbitSession {
 
     private final SessionContext sessionContext;
     private final SessionDelegate sd;
+    private final Map<String, Long> attributes;
 
-    SessionImpl(SessionContext sessionContext) {
+    SessionImpl(SessionContext sessionContext, Map<String, Long> attributes) {
         this.sessionContext = sessionContext;
         this.sd = sessionContext.getSessionDelegate();
+        this.attributes = attributes;
     }
 
     static void checkIndexOnName(SessionContext sessionContext, String path) throws RepositoryException {
@@ -221,12 +228,15 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public String[] getAttributeNames() {
-        return sd.getAuthInfo().getAttributeNames();
+        Set<String> names = Sets.newHashSet(attributes.keySet());
+        Collections.addAll(names, sd.getAuthInfo().getAttributeNames());
+        return names.toArray(new String[names.size()]);
     }
 
     @Override
     public Object getAttribute(String name) {
-        return sd.getAuthInfo().getAttribute(name);
+        Object attribute = sd.getAuthInfo().getAttribute(name);
+        return attribute == null ? attributes.get(name) : attribute;
     }
 
     @Override

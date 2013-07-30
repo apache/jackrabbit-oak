@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -65,8 +68,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Instances of this class are passed to all JCR implementation classes
  * (e.g. {@code SessionImpl}, {@code NodeImpl}, etc.) and provide access to
@@ -92,7 +93,7 @@ public class SessionContext implements NamePathMapper {
 
     SessionContext(
             RepositoryImpl repository, Whiteboard whiteboard,
-            final SessionDelegate delegate) {
+            Map<String, Long> attributes, final SessionDelegate delegate) {
         this.repository = checkNotNull(repository);
         this.whiteboard = checkNotNull(whiteboard);
         this.delegate = checkNotNull(delegate);
@@ -113,7 +114,7 @@ public class SessionContext implements NamePathMapper {
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot().getBlobFactory(), namePathMapper);
 
-        this.session = new SessionImpl(this);
+        this.session = new SessionImpl(this, attributes);
         this.workspace = new WorkspaceImpl(this);
     }
 
