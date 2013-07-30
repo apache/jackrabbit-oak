@@ -166,16 +166,16 @@ public interface PrivilegeConstants {
     String REP_PRIVILEGE_MANAGEMENT = "rep:privilegeManagement";
 
     /**
+     * Internal (oak) name of the rep:write privilege
+     */
+    String REP_WRITE = "rep:write";
+
+    /**
      * Internal (oak) name of the rep:userManagement privilege
      *
      * @since OAK 1.0
      */
     String REP_USER_MANAGEMENT = "rep:userManagement";
-
-    /**
-     * Internal (oak) name of the rep:write privilege
-     */
-    String REP_WRITE = "rep:write";
 
     /**
      * Internal (oak) name of the rep:readNodes privilege
