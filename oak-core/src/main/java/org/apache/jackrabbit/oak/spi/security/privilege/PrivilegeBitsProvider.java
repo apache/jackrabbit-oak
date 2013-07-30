@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.privilege;
+package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,7 +26,6 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -36,19 +35,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
-    private final Root root;
     private final Map<PrivilegeBits, Set<String>> bitsToNames = new HashMap<PrivilegeBits, Set<String>>();
 
-    private PrivilegeBits next;
+    private final Root root;
 
     public PrivilegeBitsProvider(Root root) {
         this.root = root;
-        Tree privilegesTree = getPrivilegesTree();
-        if (privilegesTree.exists() && privilegesTree.hasProperty(REP_NEXT)) {
-            next = PrivilegeBits.getInstance(privilegesTree);
-        } else {
-            next = PrivilegeBits.BUILT_IN.get(REP_USER_MANAGEMENT).nextBits();
-        }
     }
 
     /**
@@ -58,20 +50,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      * @return The privileges root.
      */
     @Nonnull
-    Tree getPrivilegesTree() {
-        return root.getTree(PRIVILEGES_PATH);
-    }
-
-    @Nonnull
-    PrivilegeBits getNext() {
-        return next;
-    }
-
-    @Nonnull
-    PrivilegeBits next() {
-        PrivilegeBits bits = next;
-        next = bits.nextBits();
-        return bits;
+    public Tree getPrivilegesTree() {
+        return PrivilegeUtil.getPrivilegesTree(root);
     }
 
     /**
@@ -160,7 +140,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                     if (privilegeBits.includes(bits)) {
                         privilegeNames.add(child.getName());
                         if (child.hasProperty(REP_AGGREGATES)) {
-                            aggregates.addAll(PrivilegeDefinitionReader.readDefinition(child).getDeclaredAggregateNames());
+                            aggregates.addAll(PrivilegeUtil.readDefinition(child).getDeclaredAggregateNames());
                         }
                     }
                 }

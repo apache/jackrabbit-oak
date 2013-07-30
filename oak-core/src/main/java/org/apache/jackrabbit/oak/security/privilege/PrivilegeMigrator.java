@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -207,7 +208,7 @@ public class PrivilegeMigrator {
                         }
                     }
                 }
-                return new PrivilegeDefinitionImpl(name, isAbstract, aggrNames);
+                return new ImmutablePrivilegeDefinition(name, isAbstract, aggrNames);
             }
 
             // could not parse into privilege definition
