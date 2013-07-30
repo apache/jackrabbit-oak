@@ -18,6 +18,14 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,8 +33,10 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
@@ -52,19 +62,12 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -101,6 +104,18 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void login() throws RepositoryException {
         assertNotNull(getAdminSession());
+    }
+
+    @Test
+    public void loginWithAttribute() throws RepositoryException {
+        Session session = ((JackrabbitRepository) getRepository()).login(
+                new GuestCredentials(), null,
+                Collections.<String, Object>singletonMap(RepositoryImpl.REFRESH_INTERVAL, 42));
+
+        String[] attributeNames = session.getAttributeNames();
+        assertEquals(1, attributeNames.length);
+        assertEquals(RepositoryImpl.REFRESH_INTERVAL, attributeNames[0]);
+        assertEquals(42L, session.getAttribute(RepositoryImpl.REFRESH_INTERVAL));
     }
 
     @Test(expected = NoSuchWorkspaceException.class)
