@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.privilege;
+package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -66,7 +65,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
     public static final PrivilegeBits EMPTY = new PrivilegeBits(UnmodifiableData.EMPTY);
 
-    static final Map<String, PrivilegeBits> BUILT_IN = new HashMap<String, PrivilegeBits>();
+    public static final Map<String, PrivilegeBits> BUILT_IN = new HashMap<String, PrivilegeBits>();
     static {
         BUILT_IN.put(REP_READ_NODES, getInstance(READ_NODES));
         BUILT_IN.put(REP_READ_PROPERTIES, getInstance(READ_PROPERTIES));
@@ -441,7 +440,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * @return an instance of {@code PrivilegeBits}
      */
     @Nonnull
-    PrivilegeBits nextBits() {
+    public PrivilegeBits nextBits() {
         if (this == EMPTY) {
             return EMPTY;
         } else {
@@ -454,7 +453,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
      *
      * @param tree The target tree.
      */
-    void writeTo(@Nonnull Tree tree) {
+    public void writeTo(@Nonnull Tree tree) {
         String name = (REP_PRIVILEGES.equals(tree.getName())) ? REP_NEXT : REP_BITS;
         tree.setProperty(asPropertyState(name));
     }

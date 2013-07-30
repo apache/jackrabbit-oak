@@ -20,12 +20,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -61,9 +65,17 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
     private final Root root;
     private final PrivilegeBitsProvider bitsMgr;
 
+    private PrivilegeBits next;
+
     PrivilegeDefinitionWriter(Root root) {
         this.root = root;
         this.bitsMgr = new PrivilegeBitsProvider(root);
+        Tree privilegesTree = bitsMgr.getPrivilegesTree();
+        if (privilegesTree.exists() && privilegesTree.hasProperty(REP_NEXT)) {
+            next = PrivilegeBits.getInstance(privilegesTree);
+        } else {
+            next = PrivilegeBits.BUILT_IN.get(REP_USER_MANAGEMENT).nextBits();
+        }
     }
 
     /**
@@ -86,6 +98,17 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
     }
 
     //--------------------------------------------------------------------------
+    @Nonnull
+    private PrivilegeBits getNext() {
+        return next;
+    }
+
+    @Nonnull
+    private PrivilegeBits next() {
+        PrivilegeBits bits = next;
+        next = bits.nextBits();
+        return bits;
+    }
 
     /**
      * @param definitions
@@ -110,7 +133,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             privileges root tree. this is a cheap way to detect collisions that
             may arise from concurrent registration of custom privileges.
             */
-            bitsMgr.getNext().writeTo(privilegesTree);
+            getNext().writeTo(privilegesTree);
 
             // delegate validation to the commit validation (see above)
             root.commit();
@@ -138,7 +161,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         } else if (isAggregate) {
             bits = bitsMgr.getBits(declAggrNames);
         } else {
-            bits = bitsMgr.next();
+            bits = next();
         }
         bits.writeTo(privNode.getTree());
     }
@@ -146,14 +169,14 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
     private static Collection<PrivilegeDefinition> getBuiltInDefinitions() {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
         for (String privilegeName : NON_AGGR_PRIVILEGES) {
-            PrivilegeDefinition def = new PrivilegeDefinitionImpl(privilegeName, false);
+            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false);
             definitions.put(privilegeName, def);
         }
         for (String privilegeName : AGGREGATE_PRIVILEGES.keySet()) {
-            PrivilegeDefinition def = new PrivilegeDefinitionImpl(privilegeName, false, AGGREGATE_PRIVILEGES.get(privilegeName));
+            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, AGGREGATE_PRIVILEGES.get(privilegeName));
             definitions.put(privilegeName, def);
         }
-        PrivilegeDefinition all = new PrivilegeDefinitionImpl(JCR_ALL, false, definitions.keySet());
+        PrivilegeDefinition all = new ImmutablePrivilegeDefinition(JCR_ALL, false, definitions.keySet());
         definitions.put(JCR_ALL, all);
         return definitions.values();
     }

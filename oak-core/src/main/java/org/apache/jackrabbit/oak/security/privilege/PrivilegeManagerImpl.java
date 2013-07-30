@@ -32,6 +32,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +81,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         if (privilegeName == null || privilegeName.isEmpty()) {
             throw new RepositoryException("Invalid privilege name " + privilegeName);
         }
-        PrivilegeDefinitionImpl definition = new PrivilegeDefinitionImpl(getOakName(privilegeName), isAbstract, getOakNames(declaredAggregateNames));
+        PrivilegeDefinition definition = new ImmutablePrivilegeDefinition(getOakName(privilegeName), isAbstract, getOakNames(declaredAggregateNames));
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(getWriteRoot());
         writer.writeDefinition(definition);
 

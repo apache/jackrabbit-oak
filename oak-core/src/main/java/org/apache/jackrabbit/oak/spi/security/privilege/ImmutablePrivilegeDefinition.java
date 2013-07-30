@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.privilege;
+package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Collections;
 import java.util.Set;
@@ -22,26 +22,25 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 
 /**
  * Default implementation of the {@code PrivilegeDefinition} interface.
  */
-class PrivilegeDefinitionImpl implements PrivilegeDefinition {
+public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
 
     private final String name;
     private final boolean isAbstract;
     private final Set<String> declaredAggregateNames;
 
-    PrivilegeDefinitionImpl(String name, boolean isAbstract,
-                            Set<String> declaredAggregateNames) {
+    public ImmutablePrivilegeDefinition(String name, boolean isAbstract,
+                                        Set<String> declaredAggregateNames) {
         this.name = name;
         this.isAbstract = isAbstract;
         this.declaredAggregateNames = ImmutableSet.copyOf(declaredAggregateNames);
     }
 
-    PrivilegeDefinitionImpl(String name, boolean isAbstract,
-                            String... declaredAggregateNames) {
+    public ImmutablePrivilegeDefinition(String name, boolean isAbstract,
+                                        String... declaredAggregateNames) {
         this.name = name;
         this.isAbstract = isAbstract;
         this.declaredAggregateNames = (declaredAggregateNames == null) ?
@@ -78,8 +77,8 @@ class PrivilegeDefinitionImpl implements PrivilegeDefinition {
         if (o == this) {
             return true;
         }
-        if (o instanceof PrivilegeDefinitionImpl) {
-            PrivilegeDefinitionImpl other = (PrivilegeDefinitionImpl) o;
+        if (o instanceof ImmutablePrivilegeDefinition) {
+            ImmutablePrivilegeDefinition other = (ImmutablePrivilegeDefinition) o;
             return name.equals(other.name) &&
                     isAbstract == other.isAbstract &&
                     declaredAggregateNames.equals(other.declaredAggregateNames);

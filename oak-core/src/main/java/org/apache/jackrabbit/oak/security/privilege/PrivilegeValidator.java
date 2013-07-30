@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -32,11 +29,16 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.util.Text;
+
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 /**
  * Validator implementation that is responsible for validating any modifications
@@ -159,7 +161,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         }
 
         Set<String> privNames = bitsProvider.getPrivilegeNames(newBits);
-        PrivilegeDefinition definition = PrivilegeDefinitionReader.readDefinition(definitionTree);
+        PrivilegeDefinition definition = PrivilegeUtil.readDefinition(definitionTree);
         Set<String> declaredNames = definition.getDeclaredAggregateNames();
 
         // non-aggregate privilege
