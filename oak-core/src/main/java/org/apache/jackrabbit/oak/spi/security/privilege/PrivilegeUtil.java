@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
- * PrivilegeUtil... TODO
+ * Privilege management related utility methods.
  */
 public final class PrivilegeUtil implements PrivilegeConstants {
 
@@ -41,8 +41,12 @@ public final class PrivilegeUtil implements PrivilegeConstants {
     }
 
     /**
-     * @param definitionTree
-     * @return
+     * Reads the privilege definition stored in the specified definition tree.
+     * Note, that this utility does not check the existence nor the node type
+     * of the specified tree.
+     *
+     * @param definitionTree An existing tree storing a privilege definition.
+     * @return A new instance of {@code PrivilegeDefinition}.
      */
     @Nonnull
     public static PrivilegeDefinition readDefinition(@Nonnull Tree definitionTree) {

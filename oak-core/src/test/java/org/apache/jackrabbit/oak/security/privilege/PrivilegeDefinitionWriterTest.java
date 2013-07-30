@@ -16,12 +16,74 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import java.util.Collections;
+import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.junit.After;
 import org.junit.Test;
 
-public class PrivilegeDefinitionWriterTest {
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implements PrivilegeConstants {
+
+    @After
+    @Override
+    public void after() throws Exception {
+        try {
+            root.refresh();
+        } finally {
+            super.after();
+        }
+    }
 
     @Test
-    public void testWriteDefinition() {
-        // TODO
+    public void testNameCollision() {
+        try {
+            PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
+            writer.writeDefinition(new ImmutablePrivilegeDefinition(JCR_READ, true, Collections.<String>emptySet()));
+            fail("name collision");
+        } catch (RepositoryException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testMissingPrivilegeRoot() throws Exception {
+        ContentRepository repo = new Oak().with(new OpenSecurityProvider()).createContentRepository();
+        Root tmpRoot = repo.login(null, null).getLatestRoot();
+        try {
+            PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(tmpRoot);
+            writer.writeDefinition(new ImmutablePrivilegeDefinition("newName", true, Collections.<String>emptySet()));
+            fail("missing privilege root");
+        } catch (RepositoryException e) {
+            // success
+        } finally {
+            tmpRoot.getContentSession().close();
+        }
+    }
+
+    @Test
+    public void testWriteDefinition() throws Exception {
+        PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
+        writer.writeDefinition(new ImmutablePrivilegeDefinition("tmp", true, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL));
+
+        Tree privRoot = root.getTree(PRIVILEGES_PATH);
+        assertTrue(privRoot.hasChild("tmp"));
+
+        Tree tmpTree = privRoot.getChild("tmp");
+        assertTrue(TreeUtil.getBoolean(tmpTree, REP_IS_ABSTRACT));
+        assertArrayEquals(new String[] {JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL},
+                TreeUtil.getStrings(tmpTree, REP_AGGREGATES));
     }
 }

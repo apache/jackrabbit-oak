@@ -194,7 +194,6 @@ class PrivilegeManagerImpl implements PrivilegeManager {
             for (Privilege decl : getDeclaredAggregatePrivileges()) {
                 aggr.add(decl);
                 if (decl.isAggregate()) {
-                    // TODO: defensive check to prevent circular aggregation that might occur with inconsistent repositories
                     aggr.addAll(Arrays.asList(decl.getAggregatePrivileges()));
                 }
             }
