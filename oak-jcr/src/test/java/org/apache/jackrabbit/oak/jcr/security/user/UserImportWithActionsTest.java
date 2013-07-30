@@ -33,6 +33,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.junit.Ignore;
@@ -43,8 +44,8 @@ import org.junit.Ignore;
 @Ignore("OAK-414") // TODO: OAK-414
 public class UserImportWithActionsTest extends AbstractUserTest {
 
-    private static final String USERPATH = "/rep:security/rep:authorizables/rep:users";
-    private static final String GROUPPATH = "/rep:security/rep:authorizables/rep:groups";
+    private static final String USERPATH = UserConstants.DEFAULT_USER_PATH;
+    private static final String GROUPPATH = UserConstants.DEFAULT_GROUP_PATH;
 
     private JackrabbitSession jrSession;
 
