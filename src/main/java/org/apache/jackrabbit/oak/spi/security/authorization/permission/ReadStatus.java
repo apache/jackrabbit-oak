@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 
 /**
  * ReadStatus... TODO

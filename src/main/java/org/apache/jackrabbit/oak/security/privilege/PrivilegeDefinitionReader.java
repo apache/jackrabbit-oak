@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
@@ -51,7 +52,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
         Map<String, PrivilegeDefinition> definitions = new HashMap<String, PrivilegeDefinition>();
         for (Tree child : privilegesTree.getChildren()) {
             if (isPrivilegeDefinition(child)) {
-                PrivilegeDefinition def = readDefinition(child);
+                PrivilegeDefinition def = PrivilegeUtil.readDefinition(child);
                 definitions.put(def.getName(), def);
             }
         }
@@ -71,21 +72,8 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
             return null;
         } else {
             Tree definitionTree = privilegesTree.getChild(privilegeName);
-            return (isPrivilegeDefinition(definitionTree)) ? readDefinition(definitionTree) : null;
+            return (isPrivilegeDefinition(definitionTree)) ? PrivilegeUtil.readDefinition(definitionTree) : null;
         }
-    }
-
-    /**
-     * @param definitionTree
-     * @return
-     */
-    @Nonnull
-    static PrivilegeDefinition readDefinition(@Nonnull Tree definitionTree) {
-        String name = definitionTree.getName();
-        boolean isAbstract = TreeUtil.getBoolean(definitionTree, REP_IS_ABSTRACT);
-        String[] declAggrNames = TreeUtil.getStrings(definitionTree, REP_AGGREGATES);
-
-        return new PrivilegeDefinitionImpl(name, isAbstract, declAggrNames);
     }
 
     private static boolean isPrivilegeDefinition(@Nullable Tree tree) {

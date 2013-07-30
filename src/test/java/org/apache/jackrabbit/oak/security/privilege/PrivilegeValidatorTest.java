@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,14 +37,14 @@ import static org.junit.Assert.fail;
 
 public class PrivilegeValidatorTest extends AbstractSecurityTest implements PrivilegeConstants {
 
-    PrivilegeBitsProvider store;
+    PrivilegeBitsProvider bitsProvider;
     Tree privilegesTree;
 
     @Before
     public void before() throws Exception {
         super.before();
-        store = new PrivilegeBitsProvider(root);
-        privilegesTree = checkNotNull(store.getPrivilegesTree());
+        bitsProvider = new PrivilegeBitsProvider(root);
+        privilegesTree = checkNotNull(bitsProvider.getPrivilegesTree());
     }
 
     private Tree createPrivilegeTree() {
@@ -73,7 +75,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     public void testBitsConflict() {
         try {
             Tree privTree = createPrivilegeTree();
-            store.getBits(JCR_READ).writeTo(privTree);
+            bitsProvider.getBits(JCR_READ).writeTo(privTree);
             root.commit();
             fail("Conflicting privilege bits property must be detected.");
         } catch (CommitFailedException e) {
@@ -123,7 +125,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     @Test
     public void testChangeNext() {
         try {
-            setPrivilegeBits(store.getPrivilegesTree(), REP_NEXT, 1);
+            setPrivilegeBits(bitsProvider.getPrivilegesTree(), REP_NEXT, 1);
             root.commit();
             fail("Outdated rep:next property must be detected.");
         } catch (CommitFailedException e) {
@@ -139,7 +141,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         try {
             Tree privTree = createPrivilegeTree();
             privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, Collections.singletonList(JCR_READ), Type.NAMES));
-            PrivilegeBits.getInstance(store.getBits(JCR_READ)).writeTo(privTree);
+            PrivilegeBits.getInstance(bitsProvider.getBits(JCR_READ)).writeTo(privTree);
 
             root.commit();
             fail("Aggregation of a single privilege is invalid.");
