@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -29,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -39,10 +32,19 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * TokenProviderImplTest...
@@ -140,29 +142,28 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         attributes.putAll(privateAttributes);
 
         TokenInfo info = tokenProvider.createToken(userId, attributes);
+        Tree tokenTree = getTokenTree(info);
+        PropertyState prop = tokenTree.getProperty("rep:token.key");
+        assertNotNull(prop);
+        assertEquals(Type.STRING, prop.getType());
 
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
-        Tree tokens = userTree.getChild(".tokens");
-        assertTrue(tokens.exists());
-        assertEquals(1, tokens.getChildrenCount());
-
-        Tree tokenNode = tokens.getChildren().iterator().next();
-        assertNotNull(tokenNode.getProperty("rep:token.key"));
-        assertNotNull(tokenNode.getProperty("rep:token.exp"));
+        prop = tokenTree.getProperty("rep:token.exp");
+        assertNotNull(prop);
+        assertEquals(Type.DATE, prop.getType());
 
         for (String key : reserved.keySet()) {
-            PropertyState p = tokenNode.getProperty(key);
+            PropertyState p = tokenTree.getProperty(key);
             if (p != null) {
                 assertFalse(reserved.get(key).equals(p.getValue(Type.STRING)));
             }
         }
 
         for (String key : privateAttributes.keySet()) {
-            assertEquals(privateAttributes.get(key), tokenNode.getProperty(key).getValue(Type.STRING));
+            assertEquals(privateAttributes.get(key), tokenTree.getProperty(key).getValue(Type.STRING));
         }
 
         for (String key : publicAttributes.keySet()) {
-            assertEquals(publicAttributes.get(key), tokenNode.getProperty(key).getValue(Type.STRING));
+            assertEquals(publicAttributes.get(key), tokenTree.getProperty(key).getValue(Type.STRING));
         }
     }
 
@@ -245,12 +246,47 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         assertTrue(tokenProvider.resetTokenExpiration(info, loginTime));
     }
 
+    @Test
+    public void testCreateTokenWithExpirationParam() throws Exception {
+        SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+        sc.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 100000);
+
+        TokenInfo info = tokenProvider.createToken(sc);
+        assertTokenInfo(info, userId);
+
+        Tree tokenTree = getTokenTree(info);
+        assertNotNull(tokenTree);
+        assertTrue(tokenTree.exists());
+        assertTrue(tokenTree.hasProperty(TokenProvider.PARAM_TOKEN_EXPIRATION));
+        assertEquals(100000, tokenTree.getProperty(TokenProvider.PARAM_TOKEN_EXPIRATION).getValue(Type.LONG).longValue());
+    }
+
+    @Test
+    public void testCreateTokenWithInvalidExpirationParam() throws Exception {
+        SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+        sc.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, "invalid");
+
+        try {
+            tokenProvider.createToken(sc);
+            fail();
+        } catch (NumberFormatException e) {
+            // success
+        }
+    }
+
     //--------------------------------------------------------------------------
     private static void assertTokenInfo(TokenInfo info, String userId) {
         assertNotNull(info);
         assertNotNull(info.getToken());
         assertEquals(userId, info.getUserId());
         assertFalse(info.isExpired(new Date().getTime()));
+    }
+
+    private Tree getTokenTree(TokenInfo info) {
+        String token = info.getToken();
+        int pos = token.indexOf('_');
+        String nodeId = (pos == -1) ? token : token.substring(0, pos);
+        return new IdentifierManager(root).getTree(nodeId);
     }
 
     private final class InvalidTokenInfo implements TokenInfo {
