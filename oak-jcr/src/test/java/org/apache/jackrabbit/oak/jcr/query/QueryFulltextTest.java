@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -26,6 +27,7 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -40,6 +42,53 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
 
     public QueryFulltextTest(NodeStoreFixture fixture) {
         super(fixture);
+    }
+    
+    @Test
+    public void excerpt() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node testRootNode = session.getRootNode().addNode("testroot");
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("text", "hello world");
+        n1.setProperty("desc", "description");
+        Node n2 = testRootNode.addNode("node2");
+        n2.setProperty("text", "Hello World");
+        n2.setProperty("desc", "Description");
+        session.save();
+
+        Query q;
+        RowIterator it;
+        Row row;
+        String s;
+        
+        String xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.)";
+        
+        q = qm.createQuery(xpath, "xpath");
+        it = q.execute().getRows();
+        row = it.nextRow();
+        s = row.getValue("rep:excerpt(.)").getString();
+        assertTrue(s, s.indexOf("<strong>hello</strong> world") >= 0);
+        assertTrue(s, s.indexOf("description") >= 0);
+        row = it.nextRow();
+        s = row.getValue("rep:excerpt(.)").getString();
+        // TODO is this expected?
+        assertTrue(s, s.indexOf("Hello World") >= 0);
+        assertTrue(s, s.indexOf("Description") >= 0);
+        
+        xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.)";
+
+        q = qm.createQuery(xpath, "xpath");
+        it = q.execute().getRows();
+        row = it.nextRow();
+        s = row.getValue("rep:excerpt(text)").getString();
+        assertTrue(s, s.indexOf("<strong>hello</strong> world") >= 0);
+        assertTrue(s, s.indexOf("description") < 0);
+        row = it.nextRow();
+        s = row.getValue("rep:excerpt(text)").getString();
+        // TODO is this expected?
+        assertTrue(s, s.indexOf("Hello World") >= 0);
+        assertTrue(s, s.indexOf("Description") < 0);
     }
     
     @Test
