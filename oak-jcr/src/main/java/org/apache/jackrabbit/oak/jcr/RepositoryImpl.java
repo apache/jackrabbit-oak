@@ -158,7 +158,7 @@ public class RepositoryImpl implements Repository {
 
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             SessionContext context = new SessionContext(this, whiteboard,
-                    singletonMap(REFRESH_INTERVAL, refreshInterval),
+                    Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
                     new SessionDelegate(contentSession, refreshInterval));
             return context.getSession();
         } catch (LoginException e) {

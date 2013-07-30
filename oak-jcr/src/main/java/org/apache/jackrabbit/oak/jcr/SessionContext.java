@@ -93,7 +93,7 @@ public class SessionContext implements NamePathMapper {
 
     SessionContext(
             RepositoryImpl repository, Whiteboard whiteboard,
-            Map<String, Long> attributes, final SessionDelegate delegate) {
+            Map<String, Object> attributes, final SessionDelegate delegate) {
         this.repository = checkNotNull(repository);
         this.whiteboard = checkNotNull(whiteboard);
         this.delegate = checkNotNull(delegate);
