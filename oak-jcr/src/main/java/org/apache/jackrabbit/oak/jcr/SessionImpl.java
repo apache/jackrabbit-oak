@@ -80,9 +80,9 @@ public class SessionImpl implements JackrabbitSession {
 
     private final SessionContext sessionContext;
     private final SessionDelegate sd;
-    private final Map<String, Long> attributes;
+    private final Map<String, Object> attributes;
 
-    SessionImpl(SessionContext sessionContext, Map<String, Long> attributes) {
+    SessionImpl(SessionContext sessionContext, Map<String, Object> attributes) {
         this.sessionContext = sessionContext;
         this.sd = sessionContext.getSessionDelegate();
         this.attributes = attributes;
