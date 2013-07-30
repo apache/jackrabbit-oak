@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Collections;
@@ -34,6 +33,7 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 /**
  * TODO document
  */
-public class RepositoryImpl implements Repository {
+public class RepositoryImpl implements JackrabbitRepository {
 
     /**
      * logger instance
@@ -137,35 +137,6 @@ public class RepositoryImpl implements Repository {
         return descriptors.isSingleValueDescriptor(key);
     }
 
-    // TODO make this method available through JackrabbitRepository. See OAK-803, JCR-3634
-    public Session login(@CheckForNull Credentials credentials, @CheckForNull String workspaceName,
-            @CheckForNull Map<String, Object> attributes) throws RepositoryException {
-        try {
-            if (attributes == null) {
-                attributes = Collections.emptyMap();
-            }
-            Long refreshInterval = getRefreshInterval(credentials);
-            if (refreshInterval == null) {
-                refreshInterval = getLong(attributes, REFRESH_INTERVAL);
-            }
-            if (refreshInterval == null) {
-                log.info("Setting " + REFRESH_INTERVAL + " to default value of '" +
-                        DEFAULT_REFRESH_INTERVAL + "' seconds.");
-                refreshInterval = DEFAULT_REFRESH_INTERVAL;
-            } else {
-                log.info("Setting " + REFRESH_INTERVAL + " to '" + refreshInterval + "' seconds.");
-            }
-
-            ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            SessionContext context = new SessionContext(this, whiteboard,
-                    Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
-                    new SessionDelegate(contentSession, refreshInterval));
-            return context.getSession();
-        } catch (LoginException e) {
-            throw new javax.jcr.LoginException(e.getMessage(), e);
-        }
-    }
-
     /**
      * @see javax.jcr.Repository#login(javax.jcr.Credentials, String)
      */
@@ -211,6 +182,38 @@ public class RepositoryImpl implements Repository {
     @Override
     public Session login(String workspace) throws RepositoryException {
         return login(null, workspace, null);
+    }
+
+    //------------------------------------------------------------< JackrabbitRepository >---
+
+    @Override
+    public Session login(@CheckForNull Credentials credentials, @CheckForNull String workspaceName,
+            @CheckForNull Map<String, Object> attributes) throws RepositoryException {
+        try {
+            if (attributes == null) {
+                attributes = Collections.emptyMap();
+            }
+            Long refreshInterval = getRefreshInterval(credentials);
+            if (refreshInterval == null) {
+                refreshInterval = getLong(attributes, REFRESH_INTERVAL);
+            }
+            if (refreshInterval == null) {
+                refreshInterval = DEFAULT_REFRESH_INTERVAL;
+            }
+
+            ContentSession contentSession = contentRepository.login(credentials, workspaceName);
+            SessionContext context = new SessionContext(this, whiteboard,
+                    Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
+                    new SessionDelegate(contentSession, refreshInterval));
+            return context.getSession();
+        } catch (LoginException e) {
+            throw new javax.jcr.LoginException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void shutdown() {
+        // empty
     }
 
     //------------------------------------------------------------< internal >---
