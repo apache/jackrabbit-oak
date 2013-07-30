@@ -317,7 +317,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         return sessionContext.getPrivilegeManager();
     }
 
-    //------------------------------------------------------------< internal >---
+    //-----------------------------------------------------------< internal >---
 
     ReadWriteNodeTypeManager getReadWriteNodeTypeManager() {
         return nodeTypeManager;
