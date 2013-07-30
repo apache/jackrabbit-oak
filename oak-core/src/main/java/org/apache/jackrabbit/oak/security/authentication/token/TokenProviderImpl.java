@@ -223,7 +223,14 @@ public class TokenProviderImpl implements TokenProvider {
 
                 String keyHash = PasswordUtil.buildPasswordHash(key);
                 tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
-                final long expirationTime = creationTime + tokenExpiration;
+
+                long exp;
+                if (attributes.containsKey(PARAM_TOKEN_EXPIRATION)) {
+                    exp = Long.parseLong(attributes.get(PARAM_TOKEN_EXPIRATION).toString());
+                } else {
+                    exp = tokenExpiration;
+                }
+                long expirationTime = createExpirationTime(creationTime, exp);
                 tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
 
                 for (String name : attributes.keySet()) {
@@ -302,8 +309,9 @@ public class TokenProviderImpl implements TokenProvider {
                 return false;
             }
 
-            if (expTime - loginTime <= tokenExpiration / 2) {
-                long expirationTime = loginTime + tokenExpiration;
+            long expiration = tokenNode.getLong(PARAM_TOKEN_EXPIRATION, tokenExpiration);
+            if (expTime - loginTime <= expiration / 2) {
+                long expirationTime = createExpirationTime(loginTime, expiration);
                 try {
                     tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
                     root.commit();
@@ -319,6 +327,9 @@ public class TokenProviderImpl implements TokenProvider {
 
 
     //--------------------------------------------------------------------------
+    private static long createExpirationTime(long creationTime, long tokenExpiration) {
+        return creationTime + tokenExpiration;
+    }
 
     private static long getExpirationTime(NodeUtil tokenNode, long defaultValue) {
         return tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, defaultValue);
