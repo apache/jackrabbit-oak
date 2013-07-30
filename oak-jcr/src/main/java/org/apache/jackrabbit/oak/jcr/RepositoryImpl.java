@@ -196,10 +196,8 @@ public class RepositoryImpl implements JackrabbitRepository {
             Long refreshInterval = getRefreshInterval(credentials);
             if (refreshInterval == null) {
                 refreshInterval = getLong(attributes, REFRESH_INTERVAL);
-            } else {
-                if (attributes.containsKey(REFRESH_INTERVAL)) {
-                    throw new RepositoryException("Duplicate attribute '" + REFRESH_INTERVAL + "'.");
-                }
+            } else if (attributes.containsKey(REFRESH_INTERVAL)) {
+                throw new RepositoryException("Duplicate attribute '" + REFRESH_INTERVAL + "'.");
             }
             if (refreshInterval == null) {
                 refreshInterval = DEFAULT_REFRESH_INTERVAL;
