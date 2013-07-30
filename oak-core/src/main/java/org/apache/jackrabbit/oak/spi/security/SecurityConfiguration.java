@@ -22,9 +22,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
@@ -32,14 +31,43 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
  */
 public interface SecurityConfiguration {
 
+    /**
+     * Returns the name of this security configuration.
+     *
+     * @return The name of this configuration.
+     */
     @Nonnull
     String getName();
 
+    /**
+     * Returns the configuration parameters associated with this security
+     * configuration instance. If no parameters are present
+     * {@link ConfigurationParameters#EMPTY} should be returned.
+     *
+     * @return The configuration parameters.
+     */
     @Nonnull
     ConfigurationParameters getParameters();
 
+    /**
+     * Returns a workspace initializer for this security configuration. If this
+     * configuration doesn't require any specific workspace initialization
+     * {@link WorkspaceInitializer#DEFAULT} should be returned.
+     *
+     * @return An instance of {@code WorkspaceInitializer}.
+     */
     @Nonnull
     WorkspaceInitializer getWorkspaceInitializer();
+
+    /**
+     * Returns a repository initializer for this security configuration. If this
+     * configuration doesn't require any specific repository initialization
+     * {@link RepositoryInitializer#DEFAULT} should be returned.
+     *
+     * @return An instance of {@code RepositoryInitializer}.
+     */
+    @Nonnull
+    RepositoryInitializer getRepositoryInitializer();
 
     @Nonnull
     List<? extends CommitHook> getCommitHooks(String workspaceName);
@@ -54,7 +82,8 @@ public interface SecurityConfiguration {
     Context getContext();
 
     /**
-     * Default implementation that provides empty validators/parameters.
+     * Default implementation that provides empty initializers, validators,
+     * commit hooks and parameters.
      */
     class Default implements SecurityConfiguration {
 
@@ -73,13 +102,13 @@ public interface SecurityConfiguration {
         @Nonnull
         @Override
         public WorkspaceInitializer getWorkspaceInitializer() {
-            return new WorkspaceInitializer() {
-                @Nonnull
-                @Override
-                public NodeState initialize(NodeState workspaceRoot, String workspaceName, QueryIndexProvider indexProvider, CommitHook commitHook) {
-                    return workspaceRoot;
-                }
-            };
+            return WorkspaceInitializer.DEFAULT;
+        }
+
+        @Nonnull
+        @Override
+        public RepositoryInitializer getRepositoryInitializer() {
+            return RepositoryInitializer.DEFAULT;
         }
 
         @Nonnull

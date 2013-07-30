@@ -31,6 +31,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public interface WorkspaceInitializer {
 
+    WorkspaceInitializer DEFAULT = new WorkspaceInitializer() {
+        @Nonnull
+        @Override
+        public NodeState initialize(NodeState workspaceRoot, String workspaceName, QueryIndexProvider indexProvider, CommitHook commitHook) {
+            return workspaceRoot;
+        }
+    };
+
     /**
      * Initialize the content of a new workspace. This method is called before
      * the workspace becomes available.
