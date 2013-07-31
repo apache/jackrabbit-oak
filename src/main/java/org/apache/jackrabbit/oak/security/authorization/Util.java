@@ -30,16 +30,17 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstan
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 
 /**
- * Access control specific utility methods
+ * Implementation specific access control utility methods
  */
-public final class AccessControlUtils extends org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils implements AccessControlConstants {
+final class Util implements AccessControlConstants {
 
     /**
      *  Private constructor to avoid instantiation
      */
-    private AccessControlUtils() {}
+    private Util() {}
 
-    public static void checkValidPrincipal(Principal principal, PrincipalManager principalManager) throws AccessControlException {
+    public static void checkValidPrincipal(@Nullable Principal principal,
+                                           @Nonnull PrincipalManager principalManager) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
         if (name == null || name.isEmpty()) {
             throw new AccessControlException("Invalid principal " + name);
@@ -49,12 +50,13 @@ public final class AccessControlUtils extends org.apache.jackrabbit.commons.jack
         }
     }
 
-    public static void checkValidPrincipals(@Nullable Set<Principal> principals, PrincipalManager principalManager) throws AccessControlException {
+    public static void checkValidPrincipals(@Nullable Set<Principal> principals,
+                                            @Nonnull PrincipalManager principalManager) throws AccessControlException {
         if (principals == null) {
             throw new AccessControlException("Valid principals expected. Found null.");
         }
         for (Principal principal : principals) {
-            AccessControlUtils.checkValidPrincipal(principal, principalManager);
+            checkValidPrincipal(principal, principalManager);
         }
     }
 
@@ -69,7 +71,8 @@ public final class AccessControlUtils extends org.apache.jackrabbit.commons.jack
         }
     }
 
-    public static boolean isAccessControlled(String oakPath, @Nonnull Tree tree, @Nonnull ReadOnlyNodeTypeManager ntMgr) {
+    public static boolean isAccessControlled(@Nullable String oakPath, @Nonnull Tree tree,
+                                             @Nonnull ReadOnlyNodeTypeManager ntMgr) {
         String mixinName = getMixinName(oakPath);
         return ntMgr.isNodeType(tree, mixinName);
     }
