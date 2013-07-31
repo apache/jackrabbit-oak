@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * The {@code PrincipalProvider} defines methods to provide access to sources
@@ -46,7 +47,7 @@ public interface PrincipalProvider {
      * @return return the requested principal or {@code null}
      */
     @CheckForNull
-    Principal getPrincipal(String principalName);
+    Principal getPrincipal(@Nonnull String principalName);
 
     /**
      * Returns an iterator over all group principals for which the given
@@ -63,7 +64,7 @@ public interface PrincipalProvider {
      * @see java.security.acl.Group#isMember(java.security.Principal)
      */
     @Nonnull
-    Set<Group> getGroupMembership(Principal principal);
+    Set<Group> getGroupMembership(@Nonnull Principal principal);
 
     /**
      * Tries to resolve the specified {@code userID} to a valid principal and
@@ -75,7 +76,7 @@ public interface PrincipalProvider {
      * or an empty set if it cannot be resolved.
      */
     @Nonnull
-    Set<? extends Principal> getPrincipals(String userID);
+    Set<? extends Principal> getPrincipals(@Nonnull String userID);
 
     /**
      * Find the principals that match the specified nameHint and search type.
@@ -89,7 +90,7 @@ public interface PrincipalProvider {
      * @return An iterator of principals.
      */
     @Nonnull
-    Iterator<? extends Principal> findPrincipals(String nameHint, int searchType);
+    Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType);
 
 
     /**
