@@ -22,6 +22,8 @@ import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -251,6 +253,12 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
         MembershipProvider mMgr = getMembershipProvider();
         Iterator<String> oakPaths = mMgr.getMembership(getTree(), includeInherited);
+
+        Authorizable everyoneGroup = userManager.getAuthorizable(EveryonePrincipal.getInstance());
+        if (everyoneGroup != null && everyoneGroup instanceof GroupImpl) {
+            String everyonePath = ((GroupImpl) everyoneGroup).getTree().getPath();
+            oakPaths = Iterators.concat(oakPaths, ImmutableSet.of(everyonePath).iterator());
+        }
         if (oakPaths.hasNext()) {
             AuthorizableIterator groups = AuthorizableIterator.create(oakPaths, userManager, AuthorizableType.GROUP);
             return new RangeIteratorAdapter(groups, groups.getSize());
