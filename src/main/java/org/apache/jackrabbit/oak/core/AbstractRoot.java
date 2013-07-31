@@ -237,7 +237,6 @@ public abstract class AbstractRoot implements Root {
     @Override
     public void commit() throws CommitFailedException {
         checkLive();
-        rebase();
         purgePendingChanges();
         CommitFailedException exception = Subject.doAs(
                 getCommitSubject(), new PrivilegedAction<CommitFailedException>() {
