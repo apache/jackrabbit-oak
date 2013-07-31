@@ -36,16 +36,18 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
-        <version>3.3</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.maven.doxia</groupId>
-            <artifactId>doxia-module-markdown</artifactId>
-            <version>1.4</version>
-          </dependency>
-        </dependencies>
+        <configuration>
+          <skipDeploy>false</skipDeploy>
+        </configuration>
       </plugin>
     </plugins>
   </build>
+
+  <distributionManagement>
+    <site>
+      <id>testi</id>
+      <url>${project.baseUri}/target/site-deploy</url>
+    </site>
+  </distributionManagement>
 
 </project>
