@@ -175,11 +175,14 @@ public class PrincipalManagerTest extends AbstractJCRTest {
     }
 
     @Test
-    public void testGroupMembers() {
+    public void testMembers() {
         PrincipalIterator it = principalMgr.getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
         while (it.hasNext()) {
             Principal p = it.nextPrincipal();
-            if (isGroup(p) && !p.equals(principalMgr.getEveryone())) {
+            if (p.equals(principalMgr.getEveryone())) {
+                continue;
+            }
+            if (isGroup(p)) {
                 Enumeration<? extends Principal> en = ((java.security.acl.Group) p).members();
                 while (en.hasMoreElements()) {
                     Principal memb = en.nextElement();
@@ -201,24 +204,28 @@ public class PrincipalManagerTest extends AbstractJCRTest {
         while (it.hasNext()) {
             Principal p = it.nextPrincipal();
             if (p.equals(everyone)) {
-                for (PrincipalIterator membership = principalMgr.getGroupMembership(p); membership.hasNext();) {
-                    Principal gr = membership.nextPrincipal();
-                    assertTrue(isGroup(gr));
-                    if (gr.equals(everyone)) {
-                        fail("Everyone must never be a member of the EveryOne group.");
-                    }
+                continue;
+            }
+            boolean atleastEveryone = false;
+            for (PrincipalIterator membership = principalMgr.getGroupMembership(p); membership.hasNext();) {
+                Principal gr = membership.nextPrincipal();
+                assertTrue(isGroup(gr));
+                if (gr.equals(everyone)) {
+                    atleastEveryone = true;
                 }
-            } else {
-                boolean atleastEveryone = false;
-                for (PrincipalIterator membership = principalMgr.getGroupMembership(p); membership.hasNext();) {
-                    Principal gr = membership.nextPrincipal();
-                    assertTrue(isGroup(gr));
-                    if (gr.equals(everyone)) {
-                        atleastEveryone = true;
-                    }
-                }
-                assertTrue("All principals (except everyone) must be member of the everyone group.", atleastEveryone);
+            }
+            assertTrue("All principals (except everyone) must be member of the everyone group.", atleastEveryone);
+        }
+    }
 
+    @Test
+    public void testEveryoneGroupMembership() {
+        Principal everyone = EveryonePrincipal.getInstance();
+        for (PrincipalIterator membership = principalMgr.getGroupMembership(everyone); membership.hasNext();) {
+            Principal gr = membership.nextPrincipal();
+            assertTrue(isGroup(gr));
+            if (gr.equals(everyone)) {
+                fail("Everyone must never be a member of the EveryOne group.");
             }
         }
     }
