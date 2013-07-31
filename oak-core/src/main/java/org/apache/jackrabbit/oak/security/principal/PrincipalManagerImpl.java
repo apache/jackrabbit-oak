@@ -17,56 +17,65 @@
 package org.apache.jackrabbit.oak.security.principal;
 
 import java.security.Principal;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 
 /**
- * PrincipalManagerImpl...
+ * Default implementation of the {@code PrincipalManager} interface.
  */
-public class PrincipalManagerImpl implements PrincipalManager {
+class PrincipalManagerImpl implements PrincipalManager {
 
     private final PrincipalProvider principalProvider;
 
-    public PrincipalManagerImpl(PrincipalProvider principalProvider) {
+    PrincipalManagerImpl(@Nonnull PrincipalProvider principalProvider) {
         this.principalProvider = principalProvider;
     }
 
     //---------------------------------------------------< PrincipalManager >---
     @Override
-    public boolean hasPrincipal(String principalName) {
+    public boolean hasPrincipal(@Nonnull String principalName) {
         return principalProvider.getPrincipal(principalName) != null;
     }
 
     @Override
-    public Principal getPrincipal(String principalName) {
+    @CheckForNull
+    public Principal getPrincipal(@Nonnull String principalName) {
         return principalProvider.getPrincipal(principalName);
     }
 
     @Override
-    public PrincipalIterator findPrincipals(String simpleFilter) {
+    @Nonnull
+    public PrincipalIterator findPrincipals(@Nullable String simpleFilter) {
         return findPrincipals(simpleFilter, PrincipalManager.SEARCH_TYPE_ALL);
     }
 
     @Override
-    public PrincipalIterator findPrincipals(String simpleFilter, int searchType) {
+    @Nonnull
+    public PrincipalIterator findPrincipals(@Nullable String simpleFilter, int searchType) {
         return new PrincipalIteratorAdapter(principalProvider.findPrincipals(simpleFilter, searchType));
     }
 
     @Override
+    @Nonnull
     public PrincipalIterator getPrincipals(int searchType) {
         return new PrincipalIteratorAdapter(principalProvider.findPrincipals(searchType));
     }
 
     @Override
-    public PrincipalIterator getGroupMembership(Principal principal) {
+    @Nonnull
+    public PrincipalIterator getGroupMembership(@Nonnull Principal principal) {
         return new PrincipalIteratorAdapter(principalProvider.getGroupMembership(principal));
     }
 
     @Override
+    @Nonnull
     public Principal getEveryone() {
         Principal everyone = getPrincipal(EveryonePrincipal.NAME);
         if (everyone == null) {

@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  * that operates on principal information read from user information exposed by
  * the configured {@link UserManager}.
  */
-public class PrincipalProviderImpl implements PrincipalProvider {
+class PrincipalProviderImpl implements PrincipalProvider {
 
     /**
      * logger instance
@@ -60,9 +60,9 @@ public class PrincipalProviderImpl implements PrincipalProvider {
 
     private final UserManager userManager;
 
-    public PrincipalProviderImpl(@Nonnull Root root,
-                                 @Nonnull UserConfiguration userConfiguration,
-                                 @Nonnull NamePathMapper namePathMapper) {
+    PrincipalProviderImpl(@Nonnull Root root,
+                          @Nonnull UserConfiguration userConfiguration,
+                          @Nonnull NamePathMapper namePathMapper) {
         this.userManager = userConfiguration.getUserManager(root, namePathMapper);
     }
 
