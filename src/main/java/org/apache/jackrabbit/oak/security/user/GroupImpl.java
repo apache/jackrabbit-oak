@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Enumeration;
 import java.util.Iterator;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -169,7 +171,25 @@ class GroupImpl extends AuthorizableImpl implements Group {
         UserManagerImpl userMgr = getUserManager();
         if (isEveryone()) {
             String propName = getUserManager().getNamePathMapper().getJcrName((REP_PRINCIPAL_NAME));
-            return userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+            return Iterators.filter(
+                    userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE),
+                    new Predicate<Authorizable>() {
+                        @Override
+                        public boolean apply(@Nullable Authorizable authorizable) {
+                            if (authorizable == null) {
+                                return false;
+                            }
+                            if (authorizable.isGroup()) {
+                                try {
+                                    return !((GroupImpl) authorizable).isEveryone();
+                                } catch (RepositoryException e) {
+                                    log.warn("Unable to evaluate if authorizable is the 'everyone' group.", e);
+                                }
+                            }
+                            return true;
+                        }
+                    }
+            );
         } else {
             Iterator oakPaths = getMembershipProvider().getMembers(getTree(), AuthorizableType.AUTHORIZABLE, includeInherited);
             if (oakPaths.hasNext()) {
@@ -196,10 +216,10 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return false;
         }
 
-        if (isEveryone()) {
-            return true;
-        } else if (getID().equals(authorizable.getID())) {
+        if (getID().equals(authorizable.getID())) {
             return false;
+        } else if (isEveryone()) {
+            return true;
         } else {
             Tree authorizableTree = ((AuthorizableImpl) authorizable).getTree();
             MembershipProvider mgr = getUserManager().getMembershipProvider();
