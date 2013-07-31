@@ -16,13 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
-import static org.junit.Assert.assertArrayEquals;
-
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -35,9 +32,11 @@ import javax.jcr.util.TraversingItemVisitor;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlUtils;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
+
+import static org.junit.Assert.assertArrayEquals;
 
 /**
  * Permission evaluation tests related to {@link javax.jcr.security.Privilege#JCR_READ} privilege.

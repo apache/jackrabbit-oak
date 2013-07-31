@@ -99,7 +99,7 @@ abstract class ACL extends AbstractAccessControlList {
             getPrivilegeManager().getPrivilege(p.getName());
         }
 
-        AccessControlUtils.checkValidPrincipal(principal, getPrincipalManager());
+        Util.checkValidPrincipal(principal, getPrincipalManager());
 
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             String jcrName = getNamePathMapper().getJcrName(def.getName());
