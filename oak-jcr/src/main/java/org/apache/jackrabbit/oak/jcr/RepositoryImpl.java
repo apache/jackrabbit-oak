@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Collections;
 import java.util.Map;
@@ -65,7 +64,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     /**
      * Default value for {@link #REFRESH_INTERVAL}.
      */
-    private static final long DEFAULT_REFRESH_INTERVAL = SECONDS.toMillis(1);
+    private static final long DEFAULT_REFRESH_INTERVAL = Long.getLong("default-refresh-interval", 1);
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
@@ -195,7 +194,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             }
             Long refreshInterval = getRefreshInterval(credentials);
             if (refreshInterval == null) {
-                refreshInterval = getLong(attributes, REFRESH_INTERVAL);
+                refreshInterval = getRefreshInterval(attributes);
             } else if (attributes.containsKey(REFRESH_INTERVAL)) {
                 throw new RepositoryException("Duplicate attribute '" + REFRESH_INTERVAL + "'.");
             }
@@ -243,8 +242,8 @@ public class RepositoryImpl implements JackrabbitRepository {
         return null;
     }
 
-    private static Long getLong(Map<String, Object> attributes, String name) {
-        return toLong(attributes.get(name));
+    private static Long getRefreshInterval(Map<String, Object> attributes) {
+        return toLong(attributes.get(REFRESH_INTERVAL));
     }
 
     private static String getString(Map<String, Object> attributes, String name) {

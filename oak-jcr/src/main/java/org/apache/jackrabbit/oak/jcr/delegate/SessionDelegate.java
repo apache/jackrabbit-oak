@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 
@@ -67,12 +68,16 @@ public class SessionDelegate {
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
      * session is governed by the value of the {@code refreshInterval} argument: if the session
      * has been idle longer than that value, an implicit refresh will take place.
+     * In addition a refresh can always be scheduled from the next access by an explicit call
+     * to {@link #refreshAtNextAccess()}. This is typically done from within the observation event
+     * dispatcher in order.
+     *
      * @param contentSession  the content session
-     * @param refreshInterval  refresh interval in seconds or {@code -1} for never.
+     * @param refreshInterval  refresh interval in seconds.
      */
     public SessionDelegate(@Nonnull ContentSession contentSession, long refreshInterval) {
         this.contentSession = checkNotNull(contentSession);
-        this.refreshInterval = refreshInterval;
+        this.refreshInterval = MILLISECONDS.convert(refreshInterval, SECONDS);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
         this.initStackTrace = new Exception("The session was created here:");
