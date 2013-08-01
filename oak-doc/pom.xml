@@ -39,7 +39,23 @@
         <configuration>
           <generateReports>true</generateReports>
           <skip>false</skip>
-          <skipDeploy>false</skipDeploy>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-scm-publish-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>scm-publish</id>
+            <phase>site-deploy</phase>
+            <goals>
+              <goal>publish-scm</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <content>target/site</content>
+          <checkinComment>OAK-936: Site checkin for project ${project.name}</checkinComment>
         </configuration>
       </plugin>
     </plugins>
@@ -48,7 +64,7 @@
   <distributionManagement>
     <site>
       <id>jackrabbit.oak.site-deploy</id>
-      <url>${project.baseUri}/target/site-deploy</url>
+      <url>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/site/live/oak/docs</url>
     </site>
   </distributionManagement>
 
