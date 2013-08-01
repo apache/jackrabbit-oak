@@ -226,6 +226,7 @@
           <version>3.3</version>
           <configuration>
             <generateReports>false</generateReports>
+            <skip>true</skip>
             <skipDeploy>true</skipDeploy>
           </configuration>
           <dependencies>
@@ -238,6 +239,24 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>aggregate</id>
+            <goals>
+              <goal>aggregate</goal>
+            </goals>
+            <phase>site</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <reportOutputDirectory>${basedir}/oak-doc/target/site</reportOutputDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
 
   <dependencyManagement>
