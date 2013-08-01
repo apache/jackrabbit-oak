@@ -44,7 +44,7 @@ under the License.
     <menu name="Developing Oak">
       <item href="dev_getting_started.html" name="Getting Started" />
       <item href="participating.html" name="Participating" />
-      <item href="api.html" name="API docs" />
+      <item href="apidocs/index.html" name="API docs" />
     </menu>
     <menu name="Links">
     </menu>
