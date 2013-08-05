@@ -56,6 +56,9 @@
         <configuration>
           <content>target/site</content>
           <checkinComment>OAK-936: Site checkin for project ${project.name}-${project.version}</checkinComment>
+          <ignorePathsToDelete>
+            <ignorePathToDelete>apidocs</ignorePathToDelete>
+          </ignorePathsToDelete>
         </configuration>
       </plugin>
     </plugins>
