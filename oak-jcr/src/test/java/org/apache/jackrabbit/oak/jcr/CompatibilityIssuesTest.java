@@ -27,6 +27,7 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -127,6 +128,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      * CommitFailedException but it passes in JR2
      */
     @Test
+    @Ignore("OAK-939") // FIXME
     public void removeNodeInDifferentSession() throws RepositoryException {
 
         final String testNode = "test_node";
