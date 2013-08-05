@@ -55,7 +55,7 @@
         </executions>
         <configuration>
           <content>target/site</content>
-          <checkinComment>OAK-936: Site checkin for project ${project.name}</checkinComment>
+          <checkinComment>OAK-936: Site checkin for project ${project.name}-${project.version}</checkinComment>
         </configuration>
       </plugin>
     </plugins>
@@ -64,7 +64,7 @@
   <distributionManagement>
     <site>
       <id>jackrabbit.oak.site-deploy</id>
-      <url>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/site/live/oak/docs</url>
+      <url>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/site/live/oak/docs/${project.version}</url>
     </site>
   </distributionManagement>
 
