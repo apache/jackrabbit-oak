@@ -429,6 +429,10 @@ class VersionableState {
                                  NodeBuilder dest,
                                  PropertyState prop)
                     throws RepositoryException {
+                if (BASIC_FROZEN_PROPERTIES.contains(prop.getName())) {
+                    // OAK-940: do not overwrite basic frozen properties
+                    return IGNORE;
+                }
                 return getOPV(src, prop);
             }
         }, true);
