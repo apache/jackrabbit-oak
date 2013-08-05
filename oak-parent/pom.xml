@@ -264,6 +264,17 @@
     </plugins>
   </build>
 
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <!--avoid child modules from inheriting anything from the apache parent pom -->
+        <inherited>false</inherited>
+      </plugin>
+    </plugins>
+  </reporting>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
