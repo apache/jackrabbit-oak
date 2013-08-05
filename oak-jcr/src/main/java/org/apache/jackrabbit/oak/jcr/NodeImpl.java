@@ -70,6 +70,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.lock.LockImpl;
 import org.apache.jackrabbit.oak.jcr.operation.NodeOperation;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
@@ -1169,51 +1170,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         getSession().refresh(true);
 
         if (isSessionScoped) {
-            return TODO.dummyImplementation().returnValue(new Lock() {
-                @Override
-                public String getLockOwner() {
-                    return userID;
-                }
-
-                @Override
-                public boolean isDeep() {
-                    return isDeep;
-                }
-
-                @Override
-                public Node getNode() {
-                    return NodeImpl.this;
-                }
-
-                @Override
-                public String getLockToken() {
-                    return null;
-                }
-
-                @Override
-                public long getSecondsRemaining() {
-                    return Long.MAX_VALUE;
-                }
-
-                @Override
-                public boolean isLive() {
-                    return true;
-                }
-
-                @Override
-                public boolean isSessionScoped() {
-                    return true;
-                }
-
-                @Override
-                public boolean isLockOwningSession() {
-                    return true;
-                }
-
-                @Override
-                public void refresh() {
-                }
-            });
+            return TODO.dummyImplementation().returnValue(
+                    new LockImpl(this, userID, isDeep));
         }
 
         return getLock();
