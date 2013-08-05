@@ -310,6 +310,7 @@
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShare                         <!-- OAK-118 workspace support needed -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testRemoveShare                      <!-- OAK-118 workspace support needed -->
       org.apache.jackrabbit.oak.jcr.nodetype.NodeDefinitionTest#testRootType                         <!-- OAK-901 -->
+      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testGetAuthorizableMultipleSessions  <!-- OAK-938 -->
     </known.issues>
   </properties>
 
