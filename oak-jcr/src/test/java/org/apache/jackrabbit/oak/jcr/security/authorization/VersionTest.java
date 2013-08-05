@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -40,7 +39,7 @@ import static org.junit.Assert.assertTrue;
 public class VersionTest {
 
     private Repository repository;
-    private List<Session> sessions = new ArrayList();
+    private List<Session> sessions = new ArrayList<Session>();
 
     @Before
     public void before() throws Exception {
@@ -49,7 +48,8 @@ public class VersionTest {
         Session admin = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         sessions.add(admin);
         Node testNode = admin.getRootNode().addNode("testNode");
-        AccessControlUtils.addAccessControlEntry(admin, "/testNode", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
+        AccessControlUtils.addAccessControlEntry(admin, testNode.getPath(),
+                EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
         admin.save();
     }
 
@@ -59,9 +59,9 @@ public class VersionTest {
             s.logout();
         }
         repository = null;
+        sessions = null;
     }
 
-    @Ignore("OAK-930") // FIXME
     @Test
     public void testNodeIsCheckedOut() throws RepositoryException {
         Session s = repository.login(new GuestCredentials());

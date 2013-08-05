@@ -64,7 +64,7 @@ public abstract class ReadOnlyVersionManager {
 
     /**
      * Returns {@code true} if the tree is checked out; otherwise
-     * {@code false}.
+     * {@code false}. The root node is always considered checked out.
      *
      * @param tree the tree to check.
      * @return whether the tree is checked out or not.
@@ -74,8 +74,6 @@ public abstract class ReadOnlyVersionManager {
             PropertyState p = tree.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
             if (p != null) {
                 return p.getValue(Type.BOOLEAN);
-            } else if (tree.isRoot()) {
-                return true;
             }
         } else {
             // FIXME: this actually means access to the tree is restricted
@@ -85,8 +83,12 @@ public abstract class ReadOnlyVersionManager {
             // but it may mean oak-jcr sees a node as checked out even though
             // it is in fact read-only because of a checked-in ancestor.
         }
-        // otherwise return checkedOut status of parent
-        return isCheckedOut(tree.getParent());
+        if (tree.isRoot()) {
+            return true;
+        } else {
+            // otherwise return checkedOut status of parent
+            return isCheckedOut(tree.getParent());
+        }
     }
 
     /**
