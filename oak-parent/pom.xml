@@ -259,6 +259,7 @@
         </executions>
         <configuration>
           <reportOutputDirectory>${basedir}/oak-doc/target/site</reportOutputDirectory>
+          <additionalparam>-notimestamp</additionalparam>
         </configuration>
       </plugin>
     </plugins>
