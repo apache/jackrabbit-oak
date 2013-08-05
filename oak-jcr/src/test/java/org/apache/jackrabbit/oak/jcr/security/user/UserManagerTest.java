@@ -22,11 +22,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.jcr.Credentials;
+import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -82,6 +84,34 @@ public class UserManagerTest extends AbstractUserTest {
             }
         }
     }
+    
+    @Test
+    public void testGetAuthorizableMultipleSessions() throws LoginException, RepositoryException {
+        Session adminSession = null;
+        SimpleCredentials credentials = new SimpleCredentials("admin", "admin".toCharArray());
+        credentials.setAttribute("refresh-interval", 0);
+
+        String uid = createUserId();
+        User user = null;
+        try {
+            adminSession = superuser.getRepository().login(credentials);
+            UserManager adminUserManager = ((JackrabbitSession) adminSession).getUserManager();
+
+            user = userMgr.createUser(uid, uid);
+            superuser.save();
+
+            assertNotNull(adminUserManager.getAuthorizable(uid));
+        } finally {
+            if (adminSession != null) {
+                adminSession.logout();
+            }
+            if (user != null) {
+                user.remove();
+            }
+        }
+    }
+    
+    
 
     @Test
     public void testGetAuthorizableByPath() throws RepositoryException, NotExecutableException {
