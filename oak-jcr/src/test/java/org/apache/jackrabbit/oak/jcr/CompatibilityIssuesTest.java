@@ -18,13 +18,19 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static org.junit.Assert.fail;
 
+import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * This class contains test cases which demonstrate changes in behaviour wrt. to Jackrabbit 2.
@@ -113,6 +119,45 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         Node f = session.getNode("/").addNode("f" + System.currentTimeMillis(), "nt:file");
         f.addNode("fail", "nt:unstructured"); // this is where JR2 throws ConstraintViolationException
         session.save(); // // this is where OAK throws ConstraintViolationException
+    }
+
+
+    /**
+     * OAK-939 - Change in behaviour from JR2. Following testcase leads to
+     * CommitFailedException but it passes in JR2
+     */
+    @Test
+    public void removeNodeInDifferentSession() throws RepositoryException {
+
+        final String testNode = "test_node";
+        final String testNodePath = "/" + testNode;
+
+        //Create the test node
+        Session session = getAdminSession();
+        session.getRootNode().addNode(testNode);
+        session.save();
+
+        //TestCase would pass if the sessionRefreshInterval is set to zero
+        boolean refreshIntervalZero = false;
+        Session s3 = createSessionWithRefreshInterval(refreshIntervalZero);
+        Session s2 = createSessionWithRefreshInterval(refreshIntervalZero);
+
+        s2.getNode(testNodePath).setProperty("foo","bar");
+        s2.save();
+
+        s3.getNode(testNodePath).remove();
+        s3.save();
+    }
+
+    private Session createSessionWithRefreshInterval(boolean refreshIntervalZero) throws RepositoryException {
+        Credentials creds = new SimpleCredentials("admin", "admin".toCharArray());
+        if(refreshIntervalZero){
+            Map<String,Object> attrs = new HashMap<String, Object>();
+            attrs.put(RepositoryImpl.REFRESH_INTERVAL,0);
+            return ((JackrabbitRepository)getRepository()).login(creds,null,attrs);
+        }else{
+            return getRepository().login(creds);
+        }
     }
 
 }
