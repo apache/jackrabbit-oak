@@ -61,6 +61,18 @@
     </plugins>
   </build>
 
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <reportSets>
+          <reportSet/>
+        </reportSets>
+      </plugin>
+    </plugins>
+  </reporting>
+
   <distributionManagement>
     <site>
       <id>jackrabbit.oak.site-deploy</id>
