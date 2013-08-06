@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.jcr.RepositoryImpl.REFRESH_INTERVAL;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.Collections;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
@@ -27,11 +31,8 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.junit.Ignore;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * This class contains test cases which demonstrate changes in behaviour wrt. to Jackrabbit 2.
@@ -124,40 +125,41 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
 
     /**
-     * OAK-939 - Change in behaviour from JR2. Following testcase leads to
+     * OAK-939 - Change in behaviour from JR2. Following test case leads to
      * CommitFailedException but it passes in JR2
      */
     @Test
-    @Ignore("OAK-939") // FIXME
-    public void removeNodeInDifferentSession() throws RepositoryException {
-
+    public void removeNodeInDifferentSession() throws Throwable {
         final String testNode = "test_node";
-        final String testNodePath = "/" + testNode;
+        final String testNodePath = '/' + testNode;
 
-        //Create the test node
+        // Create the test node
         Session session = getAdminSession();
         session.getRootNode().addNode(testNode);
         session.save();
 
-        //TestCase would pass if the sessionRefreshInterval is set to zero
+        // Test case would pass if the sessionRefreshInterval is set to zero
         boolean refreshIntervalZero = false;
-        Session s3 = createSessionWithRefreshInterval(refreshIntervalZero);
-        Session s2 = createSessionWithRefreshInterval(refreshIntervalZero);
+        Session s3 = newSession(refreshIntervalZero);
+        Session s2 = newSession(refreshIntervalZero);
 
-        s2.getNode(testNodePath).setProperty("foo","bar");
+        s2.getNode(testNodePath).setProperty("foo", "bar");
         s2.save();
 
         s3.getNode(testNodePath).remove();
-        s3.save();
+        try {
+            s3.save();
+        } catch (InvalidItemStateException e) {
+            assertTrue(e.getCause() instanceof CommitFailedException);
+        }
     }
 
-    private Session createSessionWithRefreshInterval(boolean refreshIntervalZero) throws RepositoryException {
+    private Session newSession(boolean refreshIntervalZero) throws RepositoryException {
         Credentials creds = new SimpleCredentials("admin", "admin".toCharArray());
-        if(refreshIntervalZero){
-            Map<String,Object> attrs = new HashMap<String, Object>();
-            attrs.put(RepositoryImpl.REFRESH_INTERVAL,0);
-            return ((JackrabbitRepository)getRepository()).login(creds,null,attrs);
-        }else{
+        if (refreshIntervalZero){
+            return ((JackrabbitRepository) getRepository())
+                    .login(creds, null, Collections.<String, Object>singletonMap(REFRESH_INTERVAL, 0));
+        } else{
             return getRepository().login(creds);
         }
     }
