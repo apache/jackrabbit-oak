@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -36,7 +33,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.util.ChildOrderDiff;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * Validator implementation that checks for sufficient permission for all
@@ -81,7 +82,7 @@ class PermissionValidator extends DefaultValidator {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         if (AbstractTree.OAK_CHILD_ORDER.equals(after.getName())) {
-            String childName = new ChildOrderDiff(before, after).firstReordered();
+            String childName = ChildOrderDiff.firstReordered(before, after);
             if (childName != null) {
                 Tree child = parentAfter.getChild(childName);
                 checkPermissions(child, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
