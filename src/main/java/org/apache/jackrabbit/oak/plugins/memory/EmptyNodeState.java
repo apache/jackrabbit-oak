@@ -96,7 +96,7 @@ public final class EmptyNodeState implements NodeState {
     }
 
     @Override
-    public long getChildNodeCount() {
+    public long getChildNodeCount(long max) {
         return 0;
     }
 
@@ -182,7 +182,7 @@ public final class EmptyNodeState implements NodeState {
         } else if (object instanceof NodeState) {
             NodeState that = (NodeState) object;
             return that.getPropertyCount() == 0
-                    && that.getChildNodeCount() == 0;
+                    && that.getChildNodeCount(1) == 0;
         } else {
             return false;
         }

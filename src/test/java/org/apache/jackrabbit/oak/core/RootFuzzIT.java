@@ -396,7 +396,7 @@ public class RootFuzzIT {
     private String chooseNode(String parentPath) {
         Tree state = root1.getTree(parentPath);
 
-        int k = random.nextInt((int) (state.getChildrenCount() + 1));
+        int k = random.nextInt((int) (state.getChildrenCount(Long.MAX_VALUE) + 1));
         int c = 0;
         for (Tree child : state.getChildren()) {
             if (c++ == k) {
@@ -428,7 +428,7 @@ public class RootFuzzIT {
                 tree1.getPath() + "!=" + tree2.getPath()
                 + " (seed " + SEED + ')';
         assertEquals(message, tree1.getPath(), tree2.getPath());
-        assertEquals(message, tree1.getChildrenCount(), tree2.getChildrenCount());
+        assertEquals(message, tree1.getChildrenCount(Long.MAX_VALUE), tree2.getChildrenCount(Long.MAX_VALUE));
         assertEquals(message, tree1.getPropertyCount(), tree2.getPropertyCount());
 
         for (PropertyState property1 : tree1.getProperties()) {

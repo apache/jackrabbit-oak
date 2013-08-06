@@ -124,8 +124,17 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     @Override
-    public long getChildNodeCount() {
-        return count(getChildNodeEntries());
+    public long getChildNodeCount(long max) {
+        long n = 0;
+        Iterator<?> iterator = getChildNodeEntries().iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
+            n++;
+            if (n >= max) {
+                return Long.MAX_VALUE;
+            }
+        }
+        return n;
     }
 
     @Override
@@ -231,9 +240,24 @@ public abstract class AbstractNodeState implements NodeState {
             return false;
         }
 
-        if (getPropertyCount() != other.getPropertyCount()
-                || getChildNodeCount() != other.getChildNodeCount()) {
+        if (getPropertyCount() != other.getPropertyCount()) {
             return false;
+        }
+        // if one of the objects has few entries,
+        // then compare the number of entries with the other one
+        long max = 20;
+        long c1 = getChildNodeCount(max);
+        long c2 = other.getChildNodeCount(max);
+        if (c1 <= max || c2 <= max) {
+            // one has less than max entries
+            if (c1 != c2) {
+                return false;
+            }
+        } else if (c1 != Long.MAX_VALUE && c2 != Long.MAX_VALUE) {
+            // we know the exact number for both
+            if (c1 != c2) {
+                return false;
+            }
         }
 
         for (PropertyState property : getProperties()) {

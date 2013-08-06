@@ -101,7 +101,7 @@ class MemoryNodeState extends AbstractNodeState {
     }
 
     @Override
-    public long getChildNodeCount() {
+    public long getChildNodeCount(long max) {
         return nodes.size();
     }
 

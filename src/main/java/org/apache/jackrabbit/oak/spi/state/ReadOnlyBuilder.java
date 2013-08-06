@@ -73,8 +73,8 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
-    public long getChildNodeCount() {
-        return state.getChildNodeCount();
+    public long getChildNodeCount(long max) {
+        return state.getChildNodeCount(max);
     }
 
     @Override

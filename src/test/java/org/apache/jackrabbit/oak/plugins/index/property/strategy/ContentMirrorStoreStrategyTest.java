@@ -97,7 +97,7 @@ public class ContentMirrorStoreStrategyTest {
 
         // remove the root key when the index is empty
         store.update(index, "", KEY, EMPTY);
-        Assert.assertEquals(0, index.getChildNodeCount());
+        Assert.assertEquals(0, index.getChildNodeCount(1));
     }
 
     private static void checkPath(NodeBuilder node, String key, String path,

@@ -125,13 +125,18 @@ class SecureNodeState extends AbstractNodeState {
     }
 
     @Override
-    public synchronized long getChildNodeCount() {
+    public synchronized long getChildNodeCount(long max) {
         if (childNodeCount == -1) {
+            long count;
             if (context.canReadAll()) {
-                childNodeCount = state.getChildNodeCount();
+                count = state.getChildNodeCount(max);
             } else {
-                childNodeCount = super.getChildNodeCount();
+                count = super.getChildNodeCount(max);
             }
+            if (count == Long.MAX_VALUE) {
+                return count;
+            }
+            childNodeCount = count;
         }
         return childNodeCount;
     }
@@ -214,7 +219,7 @@ class SecureNodeState extends AbstractNodeState {
             NodeState child = input.getNodeState();
             SecurityContext childContext = context.getChildContext(name, child);
             SecureNodeState secureChild = new SecureNodeState(child, childContext);
-            if (child.getChildNodeCount() == 0
+            if (child.getChildNodeCount(1) == 0
                     && secureChild.context.canReadThisNode()
                     && secureChild.context.canReadAllProperties()) {
                 // Since this is an accessible leaf node whose all properties

@@ -111,7 +111,7 @@ public class Template {
                 templates.toArray(new PropertyTemplate[templates.size()]);
         Arrays.sort(properties);
 
-        long count = state.getChildNodeCount();
+        long count = state.getChildNodeCount(2);
         if (count == 0) {
             childName = ZERO_CHILD_NODES;
         } else if (count == 1) {

@@ -120,7 +120,7 @@ public class MemoryNodeBuilderTest {
             }
 
             root.child(name);
-            assertEquals(0, child.getChildNodeCount()); // reconnect!
+            assertEquals(0, child.getChildNodeCount(1)); // reconnect!
         }
     }
 

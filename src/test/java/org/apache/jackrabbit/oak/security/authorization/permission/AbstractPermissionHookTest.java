@@ -128,7 +128,7 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
     }
 
     protected long cntEntries(Tree parent) {
-        long cnt = parent.getChildrenCount();
+        long cnt = parent.getChildrenCount(Long.MAX_VALUE);
         for (Tree child : parent.getChildren()) {
             cnt += cntEntries(child);
         }

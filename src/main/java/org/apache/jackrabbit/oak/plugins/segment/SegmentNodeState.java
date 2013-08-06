@@ -97,7 +97,7 @@ public class SegmentNodeState extends AbstractNodeState {
     }
 
     @Override
-    public long getChildNodeCount() {
+    public long getChildNodeCount(long max) {
         return getTemplate().getChildNodeCount(store, recordId);
     }
 

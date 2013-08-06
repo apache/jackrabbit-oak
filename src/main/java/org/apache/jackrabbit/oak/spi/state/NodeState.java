@@ -89,7 +89,7 @@ import com.google.common.base.Predicate;
  * <p>
  * The <em>iterability</em> of a node is a related concept to the
  * above-mentioned existence. A node state is <em>iterable</em> if it
- * is included in the return values of the {@link #getChildNodeCount()},
+ * is included in the return values of the {@link #getChildNodeCount(long)},
  * {@link #getChildNodeNames()} and {@link #getChildNodeEntries()} methods.
  * An iterable node is guaranteed to exist, though not all existing nodes
  * are necessarily iterable.
@@ -289,10 +289,16 @@ public interface NodeState {
 
     /**
      * Returns the number of <em>iterable</em> child nodes of this node.
-     *
+     * <p>
+     * If an implementation knows the exact value, it returns it (even if
+     * the value is higher than max). If the implementation does not know the
+     * exact value, and the child node count is higher than max, it may return
+     * Long.MAX_VALUE. The cost of the operation is at most O(max).
+     * 
+     * @param max the maximum number of entries to traverse
      * @return number of iterable child nodes
      */
-    long getChildNodeCount();
+    long getChildNodeCount(long max);
 
     /**
      * Returns the names of all <em>iterable</em> child nodes.

@@ -93,19 +93,19 @@ public class TreeTest extends AbstractOakCoreTest {
 
     @Test
 	public void testGetChildrenCount() throws Exception {
-        long cntRoot = root.getTree("/").getChildrenCount();
-        long cntA = root.getTree("/a").getChildrenCount();
+        long cntRoot = root.getTree("/").getChildrenCount(Long.MAX_VALUE);
+        long cntA = root.getTree("/a").getChildrenCount(Long.MAX_VALUE);
 
         // 'testUser' may only see 'regular' child nodes -> count must be adjusted.
-        assertEquals(cntRoot-1, testRoot.getTree("/").getChildrenCount());
-        assertEquals(cntA - 1, testRoot.getTree("/a").getChildrenCount());
+        assertEquals(cntRoot-1, testRoot.getTree("/").getChildrenCount(Long.MAX_VALUE));
+        assertEquals(cntA - 1, testRoot.getTree("/a").getChildrenCount(Long.MAX_VALUE));
 
         // for the following nodes the cnt must not differ
         List<String> paths = ImmutableList.of("/a/b", "/a/b/c");
         for (String path : paths) {
             assertEquals(
-                    root.getTree(path).getChildrenCount(),
-                    testRoot.getTree(path).getChildrenCount());
+                    root.getTree(path).getChildrenCount(Long.MAX_VALUE),
+                    testRoot.getTree(path).getChildrenCount(Long.MAX_VALUE));
         }
     }
 

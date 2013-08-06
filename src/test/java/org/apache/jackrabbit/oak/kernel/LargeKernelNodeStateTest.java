@@ -63,7 +63,7 @@ public class LargeKernelNodeStateTest {
 
     @Test
     public void testGetChildNodeCount() {
-        assertEquals(N + 1, state.getChildNodeCount());
+        assertEquals(N + 1, state.getChildNodeCount(N + 2));
     }
 
     @Test
