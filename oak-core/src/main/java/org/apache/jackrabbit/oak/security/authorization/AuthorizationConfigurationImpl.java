@@ -27,6 +27,10 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
+import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
+import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlInitializer;
+import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
+import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
@@ -38,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -46,9 +50,9 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 /**
  * Default implementation of the {@code AccessControlConfiguration}.
  */
-public class AccessControlConfigurationImpl extends ConfigurationBase implements AccessControlConfiguration {
+public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
 
-    public AccessControlConfigurationImpl(SecurityProvider securityProvider) {
+    public AuthorizationConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider);
     }
 
@@ -61,7 +65,7 @@ public class AccessControlConfigurationImpl extends ConfigurationBase implements
 
     @Override
     public Context getContext() {
-        return AccessControlContext.getInstance();
+        return AuthorizationContext.getInstance();
     }
 
     @Nonnull

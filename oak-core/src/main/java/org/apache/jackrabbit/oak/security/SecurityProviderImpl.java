@@ -21,7 +21,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -69,7 +69,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     public <T> T getConfiguration(Class<T> configClass) {
         if (AuthenticationConfiguration.class == configClass) {
             return (T) getAuthenticationConfiguration();
-        } else if (AccessControlConfiguration.class == configClass) {
+        } else if (AuthorizationConfiguration.class == configClass) {
             return (T) getAccessControlConfiguration();
         } else if (UserConfiguration.class == configClass) {
             return (T) getUserConfiguration();
@@ -88,8 +88,8 @@ public class SecurityProviderImpl implements SecurityProvider {
     }
 
     @Nonnull
-    private AccessControlConfiguration getAccessControlConfiguration() {
-        return new AccessControlConfigurationImpl(this);
+    private AuthorizationConfiguration getAccessControlConfiguration() {
+        return new AuthorizationConfigurationImpl(this);
     }
 
     @Nonnull

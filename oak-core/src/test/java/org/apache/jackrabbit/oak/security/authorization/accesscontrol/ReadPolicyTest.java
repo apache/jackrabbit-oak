@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import java.util.Set;
 import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,7 +39,7 @@ public class ReadPolicyTest extends AbstractAccessControlTest {
     public void before() throws Exception {
         super.before();
 
-        ConfigurationParameters options = getConfig(AccessControlConfiguration.class).getParameters();
+        ConfigurationParameters options = getConfig(AuthorizationConfiguration.class).getParameters();
         readPaths = options.getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS);
     }
 
@@ -51,7 +50,7 @@ public class ReadPolicyTest extends AbstractAccessControlTest {
             assertTrue(policies.length > 0);
             boolean found = false;
             for (AccessControlPolicy policy : policies) {
-                if ("org.apache.jackrabbit.oak.security.authorization.AccessControlManagerImpl$ReadPolicy".equals(policy.getClass().getName())) {
+                if ("org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl$ReadPolicy".equals(policy.getClass().getName())) {
                     found = true;
                     break;
                 }
@@ -67,7 +66,7 @@ public class ReadPolicyTest extends AbstractAccessControlTest {
             assertTrue(policies.length > 0);
             boolean found = false;
             for (AccessControlPolicy policy : policies) {
-                if ("org.apache.jackrabbit.oak.security.authorization.AccessControlManagerImpl$ReadPolicy".equals(policy.getClass().getName())) {
+                if ("org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl$ReadPolicy".equals(policy.getClass().getName())) {
                     found = true;
                     break;
                 }

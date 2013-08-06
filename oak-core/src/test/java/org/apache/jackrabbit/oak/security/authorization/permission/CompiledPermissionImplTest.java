@@ -39,9 +39,9 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -136,8 +136,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
             public Iterable<? extends SecurityConfiguration> getConfigurations() {
                 List<SecurityConfiguration> configs = new ArrayList<SecurityConfiguration>();
                 for (SecurityConfiguration sc : super.getConfigurations()) {
-                    if (sc instanceof AccessControlConfiguration) {
-                        configs.add(new OpenAccessControlConfiguration());
+                    if (sc instanceof AuthorizationConfiguration) {
+                        configs.add(new OpenAuthorizationConfiguration());
                     } else {
                         configs.add(sc);
                     }
@@ -148,8 +148,8 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
             @Nonnull
             @Override
             public <T> T getConfiguration(Class<T> configClass) {
-                if (AccessControlConfiguration.class == configClass) {
-                    return (T) new OpenAccessControlConfiguration();
+                if (AuthorizationConfiguration.class == configClass) {
+                    return (T) new OpenAuthorizationConfiguration();
                 } else {
                     return super.getConfiguration(configClass);
                 }

@@ -24,24 +24,32 @@ import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.OpenPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
- * Configuration for access control management and permission evaluation.
+ * This class implements an {@link AuthorizationConfiguration} which grants
+ * full access to any {@link javax.security.auth.Subject}.
  */
-public interface AccessControlConfiguration extends SecurityConfiguration {
+public class OpenAuthorizationConfiguration extends SecurityConfiguration.Default
+        implements AuthorizationConfiguration {
 
-    String NAME = "org.apache.jackrabbit.oak.accesscontrol";
-
-    @Nonnull
-    AccessControlManager getAccessControlManager(@Nonnull Root root,
-                                                 @Nonnull NamePathMapper namePathMapper);
-
-    @Nonnull
-    RestrictionProvider getRestrictionProvider();
+    @Override
+    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
+        throw new UnsupportedOperationException();
+    }
 
     @Nonnull
-    PermissionProvider getPermissionProvider(@Nonnull Root root,
-                                             @Nonnull Set<Principal> principals);
+    @Override
+    public RestrictionProvider getRestrictionProvider() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
+    public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
+        return OpenPermissionProvider.getInstance();
+    }
+
 }

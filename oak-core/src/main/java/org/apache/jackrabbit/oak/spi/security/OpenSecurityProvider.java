@@ -22,8 +22,8 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -42,7 +42,7 @@ public class OpenSecurityProvider implements SecurityProvider {
     @Nonnull
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
-        return ImmutableList.of(new OpenAuthenticationConfiguration(), new OpenAccessControlConfiguration());
+        return ImmutableList.of(new OpenAuthenticationConfiguration(), new OpenAuthorizationConfiguration());
     }
 
     @Nonnull
@@ -50,8 +50,8 @@ public class OpenSecurityProvider implements SecurityProvider {
     public <T> T getConfiguration(Class<T> configClass) {
         if (AuthenticationConfiguration.class == configClass) {
             return (T) new OpenAuthenticationConfiguration();
-        } else if (AccessControlConfiguration.class == configClass) {
-            return (T) new OpenAccessControlConfiguration();
+        } else if (AuthorizationConfiguration.class == configClass) {
+            return (T) new OpenAuthorizationConfiguration();
         } else if (UserConfiguration.class == configClass) {
             throw new UnsupportedOperationException();
         } else if (PrincipalConfiguration.class == configClass) {
