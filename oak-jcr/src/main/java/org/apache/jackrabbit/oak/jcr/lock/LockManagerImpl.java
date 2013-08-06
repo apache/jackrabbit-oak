@@ -22,6 +22,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.lock.Lock;
@@ -29,6 +30,9 @@ import javax.jcr.lock.LockException;
 import javax.jcr.lock.LockManager;
 
 import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 
 /**
  * Simple lock manager implementation that just keeps track of a set of lock
@@ -38,10 +42,14 @@ import org.apache.jackrabbit.oak.jcr.SessionContext;
 public class LockManagerImpl implements LockManager {
 
     private final SessionContext sessionContext;
+
+    private final SessionDelegate delegate;
+
     private final Set<String> tokens = new HashSet<String>();
 
     public LockManagerImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
+        this.delegate = sessionContext.getSessionDelegate();
     }
 
     @Override
@@ -66,7 +74,18 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public boolean isLocked(String absPath) throws RepositoryException {
-        return getSession().getNode(absPath).isLocked();
+        final String path = sessionContext.getOakPathOrThrowNotFound(absPath);
+        return delegate.perform(new SessionOperation<Boolean>() {
+            @Override public Boolean perform() throws RepositoryException {
+                NodeDelegate node = delegate.getNode(path);
+                if (node != null) {
+                    return node.isLocked();
+                } else {
+                    throw new PathNotFoundException(
+                            "Node " + path + " does not exist");
+                }
+            }
+        });
     }
 
     @Override

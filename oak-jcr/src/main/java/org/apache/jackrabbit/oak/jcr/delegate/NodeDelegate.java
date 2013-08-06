@@ -26,6 +26,8 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
+import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
@@ -35,6 +37,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
@@ -662,6 +665,34 @@ public class NodeDelegate extends ItemDelegate {
             throws InvalidItemStateException {
         getTree().setOrderableChildren(enable);
     }
+
+    /**
+     * Checks whether this node is locked, either directly or through
+     * a deep lock on an ancestor.
+     *
+     * @return whether this node is locked
+     */
+    // FIXME: access to locking status should not depend on access rights
+    public boolean isLocked() {
+        if (tree.hasProperty(JCR_LOCKOWNER)) {
+            return true;
+        }
+
+        Tree ancestor = tree;
+        while (!ancestor.isRoot()) {
+            ancestor = ancestor.getParent();
+            if (ancestor.hasProperty(JCR_LOCKOWNER)) {
+                PropertyState isDeep = ancestor.getProperty(JCR_LOCKISDEEP);
+                if (isDeep != null && !isDeep.isArray()
+                        && isDeep.getValue(BOOLEAN)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
 
     @Override
     public String toString() {
