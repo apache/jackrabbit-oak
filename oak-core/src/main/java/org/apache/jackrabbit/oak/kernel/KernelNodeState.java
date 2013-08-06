@@ -120,6 +120,8 @@ public final class KernelNodeState extends AbstractNodeState {
 
     private long childNodeCount = -1;
 
+    private long childNodeCountMin;
+
     private String hash;
 
     private String id;
@@ -255,10 +257,35 @@ public final class KernelNodeState extends AbstractNodeState {
         init();
         return properties.values();
     }
-
+    
     @Override
-    public long getChildNodeCount() {
+    public long getChildNodeCount(long max) {
         init();
+        if (childNodeCount == Long.MAX_VALUE) {
+            if (childNodeCountMin > max) {
+                // getChildNodeCount(max) was already called,
+                // and we know the value is higher than max
+                return childNodeCountMin;
+            }
+            // count the entries
+            Iterator<?> iterator = getChildNodeEntries().iterator();
+            long n = 0;
+            while (n <= max) {
+                if (!iterator.hasNext()) {
+                    // we know the exact number now
+                    childNodeCount = n;
+                    return n;
+                }
+                iterator.next();
+                n++;
+            }
+            // remember we have at least this number of entries
+            childNodeCountMin = n;
+            if (n == max) {
+                // we didn't count all entries
+                return max;
+            }
+        }
         return childNodeCount;
     }
 

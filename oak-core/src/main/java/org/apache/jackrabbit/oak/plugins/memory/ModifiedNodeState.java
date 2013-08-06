@@ -173,19 +173,33 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     static long getChildNodeCount(
-            NodeState base, Map<String, ? extends NodeState> nodes) {
-        long count = 0;
-        if (base.exists()) {
-            count = base.getChildNodeCount();
-            for (Entry<String, ? extends NodeState> entry
-                    : nodes.entrySet()) {
-                if (base.hasChildNode(entry.getKey())) {
-                    count--;
-                }
-                if (entry.getValue().exists()) {
-                    count++;
-                }
+            NodeState base, Map<String, ? extends NodeState> nodes, long max) {
+        if (!base.exists()) {
+            return 0;
+        }
+        long deleted = 0, added = 0;
+        for (Entry<String, ? extends NodeState> entry
+                : nodes.entrySet()) {
+            if (!base.hasChildNode(entry.getKey())) {
+                added++;
             }
+            if (!entry.getValue().exists()) {
+                deleted++;
+            }
+        }
+        // if we deleted 100 entries, then we need to 
+        // be sure there are 100 more entries than max
+        if (max + deleted < 0) {
+            // avoid overflow
+            max = Long.MAX_VALUE;
+        } else {
+            max += deleted;
+        }
+        long count = base.getChildNodeCount(max);
+        if (count + added - deleted < 0) {
+            count = Long.MAX_VALUE;
+        } else {
+            count = count + added - deleted;
         }
         return count;
     }
@@ -292,8 +306,8 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     @Override
-    public long getChildNodeCount() {
-        return getChildNodeCount(base, nodes);
+    public long getChildNodeCount(long max) {
+        return getChildNodeCount(base, nodes, max);
     }
 
     @Override

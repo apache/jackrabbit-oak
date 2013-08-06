@@ -98,7 +98,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
             // Prune all index nodes that are no longer needed
             for (NodeBuilder node : builders) {
-                if (node.getBoolean("match") || node.getChildNodeCount() > 0) {
+                if (node.getBoolean("match") || node.getChildNodeCount(1) > 0) {
                     return;
                 } else if (node.exists()) {
                     node.remove();

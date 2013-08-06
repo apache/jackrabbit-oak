@@ -33,7 +33,7 @@ public abstract class AbstractChildNodeEntry implements ChildNodeEntry {
     public String toString() {
         String name = getName();
         NodeState state = getNodeState();
-        if (state.getChildNodeCount() == 0) {
+        if (state.getChildNodeCount(1) == 0) {
             return name + " : " + state;
         } else {
             return name + " = { ... }";

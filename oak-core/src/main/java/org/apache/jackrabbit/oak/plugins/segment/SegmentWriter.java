@@ -661,8 +661,8 @@ public class SegmentWriter {
             MapRecord base;
             final Map<String, RecordId> childNodes = Maps.newHashMap();
             if (before != null
-                    && before.getChildNodeCount() > 1
-                    && after.getChildNodeCount() > 1) {
+                    && before.getChildNodeCount(2) > 1
+                    && after.getChildNodeCount(2) > 1) {
                 base = before.getChildNodeMap();
                 after.compareAgainstBaseState(before, new DefaultNodeStateDiff() {
                     @Override

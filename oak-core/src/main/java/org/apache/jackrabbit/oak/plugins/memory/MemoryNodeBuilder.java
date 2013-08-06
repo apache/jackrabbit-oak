@@ -231,8 +231,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public long getChildNodeCount() {
-        return head().getCurrentNodeState().getChildNodeCount();
+    public long getChildNodeCount(long max) {
+        return head().getCurrentNodeState().getChildNodeCount(max);
     }
 
     @Override

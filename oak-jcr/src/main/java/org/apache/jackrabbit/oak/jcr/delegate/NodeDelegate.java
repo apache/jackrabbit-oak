@@ -305,12 +305,18 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Get the number of child nodes
-     *
+     * <p>
+     * If an implementation does know the exact value, it returns it (even if
+     * the value is higher than max). If the implementation does not know the
+     * exact value, and the child node count is higher than max, it may return
+     * Long.MAX_VALUE. The cost of the operation is at most O(max).
+     * 
+     * @param max the maximum value
      * @return number of child nodes of the node
      */
-    public long getChildCount() throws InvalidItemStateException {
+    public long getChildCount(long max) throws InvalidItemStateException {
         // TODO: Exclude "invisible" internal child nodes (OAK-182)
-        return getTree().getChildrenCount();
+        return getTree().getChildrenCount(max);
     }
 
     /**

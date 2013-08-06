@@ -225,8 +225,15 @@ public abstract class AbstractTree implements Tree {
     }
 
     @Override
-    public long getChildrenCount() {
-        long count = nodeBuilder.getChildNodeCount();
+    public long getChildrenCount(long max) {
+        if (max + INTERNAL_NODE_NAMES.length < 0) {
+            // avoid overflow (if max is near Long.MAX_VALUE)
+            max = Long.MAX_VALUE;
+        } else {
+            // fetch a few more
+            max += INTERNAL_NODE_NAMES.length;
+        }
+        long count = nodeBuilder.getChildNodeCount(max);
         for (String name : INTERNAL_NODE_NAMES) {
             if (nodeBuilder.hasChildNode(name)) {
                 count--;

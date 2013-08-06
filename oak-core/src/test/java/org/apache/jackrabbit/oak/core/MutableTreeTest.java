@@ -111,7 +111,7 @@ public class MutableTreeTest extends OakBaseTest {
         }
         assertTrue(expectedPaths.isEmpty());
 
-        assertEquals(3, tree.getChildrenCount());
+        assertEquals(3, tree.getChildrenCount(4));
     }
 
     @Test
@@ -226,16 +226,16 @@ public class MutableTreeTest extends OakBaseTest {
     public void getChildrenCount() {
         Tree tree = root.getTree("/");
 
-        assertEquals(3, tree.getChildrenCount());
+        assertEquals(3, tree.getChildrenCount(4));
 
         tree.getChild("x").remove();
-        assertEquals(2, tree.getChildrenCount());
+        assertEquals(2, tree.getChildrenCount(3));
 
         tree.addChild("a");
-        assertEquals(3, tree.getChildrenCount());
+        assertEquals(3, tree.getChildrenCount(3));
 
         tree.addChild("x");
-        assertEquals(4, tree.getChildrenCount());
+        assertEquals(4, tree.getChildrenCount(5));
     }
 
     @Test
