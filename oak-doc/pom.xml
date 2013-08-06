@@ -61,7 +61,34 @@
           </ignorePathsToDelete>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>pre-site</phase>
+            <goals>
+              <goal>resources</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <outputDirectory>${project.build.directory}/site</outputDirectory>
+        </configuration>
+      </plugin>
     </plugins>
+
+    <resources>
+      <resource>
+        <directory>src/site/markdown</directory>
+        <includes>
+          <include>*.png</include>
+          <include>*.jpg</include>
+          <include>*.jpeg</include>
+          <include>*.gif</include>
+        </includes>
+      </resource>
+    </resources>
   </build>
 
   <reporting>
