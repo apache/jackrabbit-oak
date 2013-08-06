@@ -1220,7 +1220,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertTrue(tree.hasChild(REP_POLICY));
         Tree policyTree = tree.getChild(REP_POLICY);
         assertEquals(NT_REP_ACL, TreeUtil.getPrimaryTypeName(policyTree));
-        assertEquals(2, policyTree.getChildrenCount());
+        assertEquals(2, policyTree.getChildrenCount(3));
 
         Iterator<Tree> children = policyTree.getChildren().iterator();
         Tree ace = children.next();

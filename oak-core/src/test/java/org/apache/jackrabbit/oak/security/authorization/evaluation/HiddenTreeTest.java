@@ -95,6 +95,6 @@ public class HiddenTreeTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetHiddenChildrenCount() {
-        assertEquals(0, parent.getChildrenCount());
+        assertEquals(0, parent.getChildrenCount(1));
     }
 }

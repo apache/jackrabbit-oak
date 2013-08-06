@@ -102,7 +102,7 @@ public class KernelNodeStateTest {
 
     @Test
     public void testGetChildNodeCount() {
-        assertEquals(3, state.getChildNodeCount());
+        assertEquals(3, state.getChildNodeCount(4));
     }
 
     @Test

@@ -179,9 +179,9 @@ public class MutableTree extends AbstractTree {
     }
 
     @Override
-    public long getChildrenCount() {
+    public long getChildrenCount(long max) {
         enter();
-        return super.getChildrenCount();
+        return super.getChildrenCount(max);
     }
 
     @Override

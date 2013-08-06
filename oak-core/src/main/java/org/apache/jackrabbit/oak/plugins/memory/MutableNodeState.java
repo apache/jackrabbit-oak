@@ -234,9 +234,9 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     @Override
-    public long getChildNodeCount() {
+    public long getChildNodeCount(long max) {
         assert base != null;
-        return ModifiedNodeState.getChildNodeCount(base, nodes);
+        return ModifiedNodeState.getChildNodeCount(base, nodes, max);
     }
 
     @Override

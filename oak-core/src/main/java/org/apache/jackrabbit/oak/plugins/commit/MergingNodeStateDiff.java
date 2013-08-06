@@ -121,7 +121,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
 
         NodeBuilder conflictMarker = getConflictMarker(conflictName);
         if (conflictMarker != null) {
-            assert conflictMarker.getChildNodeCount() == 0;
+            assert conflictMarker.getChildNodeCount(1) == 0;
         }
     }
 

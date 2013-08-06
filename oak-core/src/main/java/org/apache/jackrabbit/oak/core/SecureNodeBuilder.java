@@ -293,9 +293,9 @@ class SecureNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public synchronized long getChildNodeCount() {
+    public synchronized long getChildNodeCount(long max) {
         if (getSecurityContext().canReadAll()) {
-            return builder.getChildNodeCount();
+            return builder.getChildNodeCount(max);
         } else {
             return size(getChildNodeNames());
         }

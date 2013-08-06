@@ -440,7 +440,7 @@ public class RootTest extends OakBaseTest {
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {
-        assertEquals(tree1.getChildrenCount(), tree2.getChildrenCount());
+        assertEquals(tree1.getChildrenCount(Long.MAX_VALUE), tree2.getChildrenCount(Long.MAX_VALUE));
         assertEquals(tree1.getPropertyCount(), tree2.getPropertyCount());
 
         for (PropertyState property1 : tree1.getProperties()) {

@@ -98,6 +98,12 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Node, JackrabbitNode {
 
     /**
+     * The maximum returned value for {@link NodeIterator#getSize()}. If there
+     * are more nodes, the method returns -1.
+     */
+    private static final long NODE_ITERATOR_MAX_SIZE = Long.MAX_VALUE;
+
+    /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
@@ -498,12 +504,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = node.getChildren();
                 return new NodeIteratorAdapter(nodeIterator(children)) {
-                    private long size = -1;
+                    private long size = -2;
                     @Override
                     public long getSize() {
-                        if (size == -1) {
+                        if (size == -2) {
                             try {
-                                size = node.getChildCount(); // TODO: perform()
+                                size = node.getChildCount(NODE_ITERATOR_MAX_SIZE); // TODO: perform()
+                                if (size == Long.MAX_VALUE) {
+                                    size = -1;
+                                }
                             } catch (InvalidItemStateException e) {
                                 throw new IllegalStateException(
                                         "This iterator is no longer valid", e);
