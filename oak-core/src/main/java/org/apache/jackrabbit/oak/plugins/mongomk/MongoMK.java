@@ -141,6 +141,14 @@ public class MongoMK implements MicroKernel {
      * The unique cluster id, similar to the unique machine id in MongoDB.
      */
     private final int clusterId;
+    
+    /**
+     * The splitting point in milliseconds. If a document is split, revisions
+     * older than this number of milliseconds are moved to a different document.
+     * The default is 0, meaning documents are never split. Revisions that are
+     * newer than this are kept in the newest document.
+     */
+    private final long splitDocumentAgeMillis;
 
     /**
      * The node cache.
@@ -223,6 +231,7 @@ public class MongoMK implements MicroKernel {
         this.store = s;
         this.blobStore = builder.getBlobStore();
         int cid = builder.getClusterId();
+        splitDocumentAgeMillis = builder.getSplitDocumentAgeMillis();
         cid = Integer.getInteger("oak.mongoMK.clusterId", cid);
         if (cid == 0) {
             clusterNodeInfo = ClusterNodeInfo.getInstance(store);
@@ -563,6 +572,10 @@ public class MongoMK implements MicroKernel {
         }
         return false;
     }
+    
+    public long getSplitDocumentAgeMillis() {
+        return this.splitDocumentAgeMillis;
+    }
 
     /**
      * Returns <code>true</code> if the given revision
@@ -578,6 +591,12 @@ public class MongoMK implements MicroKernel {
     private boolean isCommitted(@Nonnull Revision revision,
                                 @Nonnull Revision readRevision,
                                 @Nullable Map<String, String> revisions) {
+        if (Commit.PURGE_OLD_REVISIONS) {
+            long diff = Revision.getTimestampDifference(Revision.getCurrentTimestamp(), revision.getTimestamp());
+            if (diff >= splitDocumentAgeMillis) {
+                return true;
+            }
+        }
         if (revision.equals(readRevision)) {
             return true;
         }
@@ -1671,6 +1690,7 @@ public class MongoMK implements MicroKernel {
         private long diffCacheSize;
         private long documentCacheSize;
         private boolean useSimpleRevision;
+        private long splitDocumentAgeMillis = 5 * 60 * 1000;
 
         public Builder() {
             memoryCacheSize(DEFAULT_MEMORY_CACHE_SIZE);
@@ -1813,6 +1833,15 @@ public class MongoMK implements MicroKernel {
 
         public boolean isUseSimpleRevision() {
             return useSimpleRevision;
+        }
+        
+        public Builder setSplitDocumentAgeMillis(long splitDocumentAgeMillis) {
+            this.splitDocumentAgeMillis = splitDocumentAgeMillis;
+            return this;
+        }
+        
+        public long getSplitDocumentAgeMillis() {
+            return splitDocumentAgeMillis;
         }
 
         /**
