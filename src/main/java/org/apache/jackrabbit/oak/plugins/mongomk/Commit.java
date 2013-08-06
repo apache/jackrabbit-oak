@@ -38,6 +38,13 @@ import org.slf4j.LoggerFactory;
  */
 public class Commit {
 
+    /**
+     * Whether to purge old revisions if a node gets too large. If false, old
+     * revisions are stored in a separate document. If true, old revisions are
+     * removed (purged).
+     */
+    static final boolean PURGE_OLD_REVISIONS = true;
+    
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
     /**
@@ -47,20 +54,7 @@ public class Commit {
     //private static final int MAX_DOCUMENT_SIZE = 16 * 1024;
     // TODO set to 512 KB currently, should be changed later on
     private static final int MAX_DOCUMENT_SIZE = 512 * 1024;
-
-    /**
-     * Whether to purge old revisions if a node gets too large. If false, old
-     * revisions are stored in a separate document. If true, old revisions are
-     * removed (purged).
-     */
-    private static final boolean PURGE_OLD_REVISIONS = true;
-    
-    /**
-     * Revisions that are newer than this (in minutes) are kept in the newest
-     * document.
-     */
-    private static final int SPLIT_MINUTES = 5;
-    
+   
     private final MongoMK mk;
     private final Revision baseRevision;
     private final Revision revision;
@@ -461,8 +455,7 @@ public class Commit {
                         main.setMap(key, propRev.toString(), v);
                     } else {
                         long ageMillis = Revision.getCurrentTimestamp() - propRev.getTimestamp();
-                        long ageMinutes = ageMillis / 1000 / 60;
-                        if (ageMinutes > SPLIT_MINUTES) {
+                        if (ageMillis > mk.getSplitDocumentAgeMillis()) {
                             old.setMapEntry(key, propRev.toString(), v);
                         } else {
                             main.setMap(key, propRev.toString(), v);
