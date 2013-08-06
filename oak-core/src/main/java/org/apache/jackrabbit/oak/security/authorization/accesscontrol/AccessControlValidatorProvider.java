@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.util.Map;
 import javax.annotation.Nonnull;
@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
@@ -46,13 +46,13 @@ import org.slf4j.LoggerFactory;
  * and removing access control policies) are valid according to the
  * constraints defined by this access control implementation.
  */
-class AccessControlValidatorProvider extends ValidatorProvider {
+public class AccessControlValidatorProvider extends ValidatorProvider {
 
     private static final Logger log = LoggerFactory.getLogger(AccessControlValidatorProvider.class);
 
     private final SecurityProvider securityProvider;
 
-    AccessControlValidatorProvider(@Nonnull SecurityProvider securityProvider) {
+    public AccessControlValidatorProvider(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
@@ -63,7 +63,7 @@ class AccessControlValidatorProvider extends ValidatorProvider {
         Tree rootBefore = new ImmutableTree(before);
         Tree rootAfter = new ImmutableTree(after);
 
-        RestrictionProvider restrictionProvider = getConfig(AccessControlConfiguration.class).getRestrictionProvider();
+        RestrictionProvider restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
 
         Root root = new ImmutableRoot(before);
         Map<String, Privilege> privileges = getPrivileges(root);

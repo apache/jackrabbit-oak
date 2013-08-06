@@ -28,7 +28,7 @@ import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
 
 import org.apache.jackrabbit.core.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.util.Text;
 
 /**

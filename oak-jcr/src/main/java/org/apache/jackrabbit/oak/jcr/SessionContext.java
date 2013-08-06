@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -60,13 +57,15 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -182,7 +181,7 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
-            accessControlManager = getConfig(AccessControlConfiguration.class).getAccessControlManager(delegate.getRoot(), namePathMapper);
+            accessControlManager = getConfig(AuthorizationConfiguration.class).getAccessControlManager(delegate.getRoot(), namePathMapper);
         }
         return accessControlManager;
     }
@@ -344,7 +343,7 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     private PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
-            permissionProvider = getConfig(AccessControlConfiguration.class).getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
+            permissionProvider = getConfig(AuthorizationConfiguration.class).getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
         }
         return permissionProvider;
     }

@@ -113,8 +113,7 @@ Access Control Management and Permissions
 Refer to [OAK-792](https://issues.apache.org/jira/browse/OAK-792) for a general overview of changes
 with respect to Jackrabbit 2.
 
-The following modification are most likely to have an effect on existing applications. Please let us
-know if you suspect to run into these.
+The following modification are most likely to have an effect on existing applications:
 
 * `AccessControlManager#hasPrivilege()` and `AccessControlManager#getPrivileges()` will throw a
   `PathNotFoundException` if the node for the specified path is not accessible. The Jackrabbit 2
@@ -122,11 +121,25 @@ know if you suspect to run into these.
   (https://issues.apache.org/jira/browse/OAK-886)). If the new behaviour turns out to be a problem
   with existing applications we might consider adding backward compatible behaviour.
 
+Permissions
+-----------
+
+Refer to [OAK-942](https://issues.apache.org/jira/browse/OAK-942) for a general overview of changes
+with respect to Jackrabbit 2.
+
 * As of Oak `Node#remove()` only requires sufficient permissions to remove the target node. In
   contrast to jackrabbit the validation will not traverse the tree and verify remove permission on
   all child nodes/properties. There exists a configuration flag that aims to produce best effort
   backwards compatibility but this flag is currently not enabled by default. Please let us know if
   you suspect this causes wrong behavior in your application.
+
+* By default user management operations require the specific user mgt related
+  permission that has been introduced with OAK-1.0. This behavior can be
+  turned off by setting the corresponding configuraon flag.
+
+* As of OAK accessibility of items in the version store does not follow the
+  regular permission evaluation but depends on access rights present on the
+  corresponding versionable node [OAK-444](https://issues.apache.org/jira/browse/OAK-444).
 
 Privilege Management
 --------------------

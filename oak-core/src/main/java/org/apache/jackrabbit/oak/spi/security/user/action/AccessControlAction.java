@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.util.Text;
@@ -173,7 +173,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
 
         String path = authorizable.getPath();
-        AccessControlConfiguration acConfig = securityProvider.getConfiguration(AccessControlConfiguration.class);
+        AuthorizationConfiguration acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
         AccessControlManager acMgr = acConfig.getAccessControlManager(root, namePathMapper);
         JackrabbitAccessControlList acl = null;
         for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext();) {

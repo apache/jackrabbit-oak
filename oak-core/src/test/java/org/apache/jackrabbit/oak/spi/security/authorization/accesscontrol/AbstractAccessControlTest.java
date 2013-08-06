@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import java.security.Principal;
 import javax.jcr.NamespaceRegistry;
@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
@@ -46,7 +47,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
     protected RestrictionProvider getRestrictionProvider() {
         if (restrictionProvider == null) {
-            restrictionProvider = getConfig(AccessControlConfiguration.class).getRestrictionProvider();
+            restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
         }
         return restrictionProvider;
     }
