@@ -14,45 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.permission;
-
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newLinkedHashSet;
+package org.apache.jackrabbit.oak.util;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+
+import static com.google.common.collect.Sets.newLinkedHashSet;
 
 /**
  * Helper class to handle modifications to the hidden
  * {@link org.apache.jackrabbit.oak.core.AbstractTree#OAK_CHILD_ORDER} property.
  */
-class ChildOrderDiff {
+public final class ChildOrderDiff {
 
-    private final PropertyState before;
-    private final PropertyState after;
-
-    ChildOrderDiff(PropertyState before, PropertyState after) {
-        this.before = before;
-        this.after = after;
-    }
+    private ChildOrderDiff() {}
 
     /**
      * Tests if there was any user-supplied reordering involved with the
      * modification of the {@link org.apache.jackrabbit.oak.core.AbstractTree#OAK_CHILD_ORDER}
      * property.
      *
+     * @param before
+     * @param after
      * @return the name of the first reordered child if any user-supplied node
      * reorder happened; {@code null} otherwise.
      */
     @CheckForNull
-    String firstReordered() {
+    public static String firstReordered(PropertyState before, PropertyState after) {
         Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
         Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));
 
@@ -82,33 +74,4 @@ class ChildOrderDiff {
 
         return null;
     }
-
-    /**
-     * Returns the names of all reordered nodes present in the 'after' property.
-     *
-     * @return
-     */
-    @Nonnull
-    List<String> getReordered() {
-        List<String> reordered = newArrayList();
-
-        Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
-        Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));
-
-        afterNames.retainAll(beforeNames);
-        beforeNames.retainAll(afterNames);
-
-        Iterator<String> a = afterNames.iterator();
-        Iterator<String> b = beforeNames.iterator();
-        while (a.hasNext() && b.hasNext()) {
-            String aName = a.next();
-            String bName = b.next();
-            if (!aName.equals(bName)) {
-                reordered.add(aName);
-            }
-        }
-
-        return reordered;
-    }
-
 }
