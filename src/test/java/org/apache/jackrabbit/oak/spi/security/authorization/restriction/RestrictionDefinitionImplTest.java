@@ -21,7 +21,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.junit.Before;
 import org.junit.Test;
 

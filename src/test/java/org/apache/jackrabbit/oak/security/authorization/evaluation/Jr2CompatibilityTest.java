@@ -36,8 +36,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
@@ -85,7 +85,7 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
         Map<String, String> map = Collections.singletonMap(AccessControlConstants.PARAM_PERMISSIONS_JR2, AccessControlConstants.VALUE_PERMISSIONS_JR2);
         ConfigurationParameters acConfig = new ConfigurationParameters(map);
 
-        return new ConfigurationParameters(ImmutableMap.of(AccessControlConfiguration.NAME, acConfig));
+        return new ConfigurationParameters(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
     }
 
     @Test

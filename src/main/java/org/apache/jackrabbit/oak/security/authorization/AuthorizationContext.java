@@ -18,18 +18,18 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.util.TreeLocation;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
-final class AccessControlContext implements Context, AccessControlConstants, PermissionConstants {
+final class AuthorizationContext implements Context, AccessControlConstants, PermissionConstants {
 
-    private static final Context INSTANCE = new AccessControlContext();
+    private static final Context INSTANCE = new AuthorizationContext();
 
-    private AccessControlContext() {
+    private AuthorizationContext() {
     }
 
     static Context getInstance() {

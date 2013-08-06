@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.security.Principal;
 import java.security.acl.Group;
@@ -42,10 +42,10 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
-import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
-import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlListTest;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlListTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.AbstractRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;

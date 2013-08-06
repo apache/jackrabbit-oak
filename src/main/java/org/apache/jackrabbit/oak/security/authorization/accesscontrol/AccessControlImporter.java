@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -40,8 +40,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
@@ -58,7 +58,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * {@link ProtectedNodeImporter} implementation that handles access control lists,
  * entries and restrictions.
  */
-class AccessControlImporter implements ProtectedNodeImporter, AccessControlConstants {
+public class AccessControlImporter implements ProtectedNodeImporter, AccessControlConstants {
 
     private static final Logger log = LoggerFactory.getLogger(AccessControlImporter.class);
 
@@ -78,7 +78,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     private JackrabbitAccessControlList acl;
     private MutableEntry entry;
 
-    AccessControlImporter(SecurityProvider securityProvider) {
+    public AccessControlImporter(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
@@ -93,7 +93,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
         }
         try {
             if (isWorkspaceImport) {
-                AccessControlConfiguration config = securityProvider.getConfiguration(AccessControlConfiguration.class);
+                AuthorizationConfiguration config = securityProvider.getConfiguration(AuthorizationConfiguration.class);
                 acMgr = config.getAccessControlManager(root, namePathMapper);
                 PrincipalConfiguration pConfig = securityProvider.getConfiguration(PrincipalConfiguration.class);
                 principalManager = pConfig.getPrincipalManager(root, namePathMapper);

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.security.Principal;
 import java.text.ParseException;
@@ -67,10 +67,10 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.restriction.PrincipalRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.ImmutableACL;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -95,13 +95,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * This implementation covers both editing access control content by path and
  * by {@code Principal} resulting both in the same content structure.
  */
-class AccessControlManagerImpl implements JackrabbitAccessControlManager, AccessControlConstants {
+public class AccessControlManagerImpl implements JackrabbitAccessControlManager, AccessControlConstants {
 
     private static final Logger log = LoggerFactory.getLogger(AccessControlManagerImpl.class);
 
     private final Root root;
     private final NamePathMapper namePathMapper;
-    private final AccessControlConfiguration acConfig;
+    private final AuthorizationConfiguration acConfig;
 
     private final PrivilegeManager privilegeManager;
     private final PrincipalManager principalManager;
@@ -112,7 +112,7 @@ class AccessControlManagerImpl implements JackrabbitAccessControlManager, Access
 
     private PermissionProvider permissionProvider;
 
-    AccessControlManagerImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+    public AccessControlManagerImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
                              @Nonnull SecurityProvider securityProvider) {
         this.root = root;
         this.namePathMapper = namePathMapper;
@@ -120,7 +120,7 @@ class AccessControlManagerImpl implements JackrabbitAccessControlManager, Access
         privilegeManager = getConfig(securityProvider, PrivilegeConfiguration.class).getPrivilegeManager(root, namePathMapper);
         principalManager = getConfig(securityProvider, PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
 
-        acConfig = getConfig(securityProvider, AccessControlConfiguration.class);
+        acConfig = getConfig(securityProvider, AuthorizationConfiguration.class);
         restrictionProvider = acConfig.getRestrictionProvider();
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
 
