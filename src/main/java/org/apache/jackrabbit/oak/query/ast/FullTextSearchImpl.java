@@ -176,17 +176,12 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
-        if (OAK_890_ADVANCED_FT_SEARCH) {
-            // the LuceneIndex implementation doesn't currently support
-            // queries that search for words *within* fields; the
-            // field value must match exactly
-        } else {
-            // disable evaluation if a fulltext index is used, as
-            // we don't know what exact options are used in the fulltext index
-            // (stop word, special characters,...)
-            if (selector.index instanceof FulltextQueryIndex) {
-                return true;
-            }
+        // disable evaluation if a fulltext index is used,
+        // to avoid running out of memory if the node is large,
+        // and because we might not implement all features
+        // such as index aggregation
+        if (selector.index instanceof FulltextQueryIndex) {
+            return true;
         }
         
         StringBuilder buff = new StringBuilder();
