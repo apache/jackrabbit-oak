@@ -152,6 +152,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
         Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
+            LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
             // there are multiple "parents", as in
             // "contains(a/x, 'hello') and contains(b/x, 'world')"
             return new MultiLuceneIndex(filter, root, relPaths).getCost();
@@ -173,8 +174,9 @@ public class LuceneIndex implements FulltextQueryIndex {
     /**
      * Get the set of relative paths of a full-text condition. For example, for
      * the condition "contains(a/b, 'hello') and contains(c/d, 'world'), the set
-     * { "a", "c" } is returned. If there are no relative properties, then one entry
-     * is returned. If there is no expression, then an empty set is returned.
+     * { "a", "c" } is returned. If there are no relative properties, then one
+     * entry is returned (the empty string). If there is no expression, then an
+     * empty set is returned.
      * 
      * @param ft the full-text expression
      * @return the set of relative paths (possibly empty)
@@ -348,8 +350,11 @@ public class LuceneIndex implements FulltextQueryIndex {
                     Collection<String> paths = new ArrayList<String>();
                     HashSet<String> seenPaths = new HashSet<String>();
                     Query query = getQuery(filter, reader, nonFullTextConstraints);
+                    int parentDepth = PathUtils.getDepth(parent);
                     if (query != null) {
+                        // OAK-925
                         // TODO how to best avoid loading all entries in memory?
+                        // (memory problem and performance problem)
                         TopDocs docs = searcher
                                 .search(query, Integer.MAX_VALUE);
                         for (ScoreDoc doc : docs.scoreDocs) {
@@ -366,10 +371,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                                         continue;
                                     }
                                     // get the base path
-                                    for (int i = 0, size = PathUtils
-                                            .getDepth(parent); i < size; i++) {
-                                        path = PathUtils.getParentPath(path);
-                                    }
+                                    path = PathUtils.getAncestorPath(path, parentDepth);
                                     // avoid duplicate entries
                                     if (seenPaths.contains(path)) {
                                         continue;
@@ -437,6 +439,16 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
     }
     
+    /**
+     * Get the Lucene query for the given filter.
+     * 
+     * @param filter the filter, including full-text constraint
+     * @param reader the Lucene reader
+     * @param nonFullTextConstraints whether non-full-text constraints (such a
+     *            path, node type, and so on) should be added to the Lucene
+     *            query
+     * @return the Lucene query
+     */
     private static Query getQuery(Filter filter, IndexReader reader, boolean nonFullTextConstraints) {
         List<Query> qs = new ArrayList<Query>();
         FullTextExpression ft = filter.getFullTextConstraint();
@@ -661,6 +673,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                 if (p != null && p.indexOf('/') >= 0) {
                     p = PathUtils.getName(p);
                 }
+                // TODO use tokenToQuery(String) if possible
                 String text = term.getText();
                 if (text.indexOf(' ') >= 0) {
                     PhraseQuery pq = new PhraseQuery();
@@ -674,6 +687,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                         text = text + "*";
                     }
                     text = text.toLowerCase();
+                    // TODO if one condition, use wildcard - if multiple, use list of terms
                     q = new WildcardQuery(newFulltextTerm(text));
                 }
                 String boost = term.getBoost();
