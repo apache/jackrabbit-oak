@@ -52,6 +52,7 @@ public interface Filter {
     /**
      * Get the fulltext search conditions, if any.
      *
+     * @deprecated
      * @return the conditions (an empty collection if not used)
      */
     Collection<String> getFulltextConditions();
