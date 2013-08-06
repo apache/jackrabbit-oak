@@ -86,7 +86,6 @@ import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
@@ -1089,39 +1088,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return getVersionManager().getBaseVersion(getPath());
     }
 
-    /**
-     * Checks whether this node is locked by looking for the
-     * {@code jcr:lockOwner} property either on this node or
-     * on any ancestor that also has the {@code jcr:lockIsDeep}
-     * property set to {@code true}.
-     */
     @Override
     public boolean isLocked() throws RepositoryException {
-        final String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
-        final String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         return perform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
-                if (node.getPropertyOrNull(lockOwner) != null) {
-                    return true;
-                }
-
-                NodeDelegate parent = node.getParent();
-                while (parent != null) {
-                    if (parent.getPropertyOrNull(lockOwner) != null) {
-                        PropertyDelegate isDeep =
-                                parent.getPropertyOrNull(lockIsDeep);
-                        if (isDeep != null) {
-                            PropertyState state = isDeep.getPropertyState();
-                            if (!state.isArray() && state.getValue(BOOLEAN)) {
-                                return true;
-                            }
-                        }
-                    }
-                    parent = parent.getParent();
-                }
-
-                return false;
+                return node.isLocked();
             }
         });
     }
