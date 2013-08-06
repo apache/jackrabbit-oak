@@ -86,6 +86,7 @@ public class UserManagerTest extends AbstractUserTest {
     }
     
     @Test
+    // FIXME clarify expectations, move to auto refresh related tests. See OAK-938.
     public void testGetAuthorizableMultipleSessions() throws LoginException, RepositoryException {
         Session adminSession = null;
         SimpleCredentials credentials = new SimpleCredentials("admin", "admin".toCharArray());
