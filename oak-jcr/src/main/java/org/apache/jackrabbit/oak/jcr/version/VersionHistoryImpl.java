@@ -33,16 +33,19 @@ import javax.jcr.version.VersionIterator;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
+import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**
  * {@code VersionHistoryImpl}...
+ * TODO: wrap all calls with sessionDelegate.perform()
  */
 public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
         implements VersionHistory {
@@ -106,18 +109,34 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     }
 
     @Override
-    public void addVersionLabel(String versionName,
-                                String label,
-                                boolean moveLabel)
+    public void addVersionLabel(final String versionName,
+                                final String label,
+                                final boolean moveLabel)
             throws LabelExistsVersionException, VersionException,
             RepositoryException {
-        TODO.unimplemented().doNothing();
+        sessionDelegate.perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                String oakLabel = sessionContext.getOakName(label);
+                // will throw VersionException if version does not exist
+                VersionDelegate version = dlg.getVersion(versionName);
+                dlg.addVersionLabel(version, oakLabel, moveLabel);
+                return null;
+            }
+        });
     }
 
     @Override
-    public void removeVersionLabel(String label)
+    public void removeVersionLabel(final String label)
             throws VersionException, RepositoryException {
-        TODO.unimplemented().doNothing();
+        sessionDelegate.perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                String oakLabel = sessionContext.getOakName(label);
+                dlg.removeVersionLabel(oakLabel);
+                return null;
+            }
+        });
     }
 
     @Override

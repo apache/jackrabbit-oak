@@ -30,21 +30,23 @@ import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.version.LabelExistsVersionException;
+import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
+import org.apache.jackrabbit.oak.jcr.version.VersionStorage;
 
 /**
  * {@code VersionManagerDelegate}...
  */
 public class VersionManagerDelegate {
 
-    /**
-     * TODO: this assumes the version store is in the same workspace.
-     */
     private static final String VERSION_STORAGE_PATH
             = '/' + JcrConstants.JCR_SYSTEM + '/' + JcrConstants.JCR_VERSIONSTORAGE;
 
@@ -53,12 +55,13 @@ public class VersionManagerDelegate {
     private final ReadWriteVersionManager versionManager;
 
     public static VersionManagerDelegate create(SessionDelegate sessionDelegate) {
-        Tree versionStorage = sessionDelegate.getRoot().getTree(VERSION_STORAGE_PATH);
-        return new VersionManagerDelegate(sessionDelegate, versionStorage);
+        Tree vsTree = getVersionStorageTree(sessionDelegate.getRoot());
+        return new VersionManagerDelegate(sessionDelegate,
+                new VersionStorage(sessionDelegate.getRoot(), vsTree));
     }
 
     private VersionManagerDelegate(SessionDelegate sessionDelegate,
-                                   Tree versionStorage) {
+                                   VersionStorage versionStorage) {
         this.sessionDelegate = sessionDelegate;
         this.versionManager = new ReadWriteVersionManager(
                 versionStorage,
@@ -163,6 +166,61 @@ public class VersionManagerDelegate {
         }
     }
 
+    /**
+     * Add a version label to the given version history.
+     *
+     * @param versionHistory the version history.
+     * @param version the version.
+     * @param oakVersionLabel the version label.
+     * @param moveLabel whether to move the label if it already exists.
+     * @throws InvalidItemStateException if any of the nodes is stale.
+     * @throws LabelExistsVersionException if moveLabel is false, and an attempt
+     * is made to add a label that already exists in this version history.
+     * @throws VersionException if the specified version does not exist in this
+     * version history or if the specified version is the root version (jcr:rootVersion).
+     * @throws RepositoryException if another error occurs.
+     */
+    public void addVersionLabel(@Nonnull VersionHistoryDelegate versionHistory,
+                                @Nonnull VersionDelegate version,
+                                @Nonnull String oakVersionLabel,
+                                boolean moveLabel)
+            throws InvalidItemStateException, LabelExistsVersionException,
+            VersionException, RepositoryException {
+        // perform operation on fresh storage to not interfere
+        // with pending changes in the workspace.
+        Root fresh = sessionDelegate.getContentSession().getLatestRoot();
+        VersionStorage storage = new VersionStorage(
+                fresh, getVersionStorageTree(fresh));
+        String vhRelPath = PathUtils.relativize(VERSION_STORAGE_PATH,
+                checkNotNull(versionHistory).getPath());
+        versionManager.addVersionLabel(storage, vhRelPath,
+                checkNotNull(version).getName(), checkNotNull(oakVersionLabel),
+                moveLabel);
+    }
+
+    /**
+     * Removes a version label from the given history.
+     *
+     * @param versionHistory the version history.
+     * @param oakVersionLabel the version label.
+     * @throws InvalidItemStateException if any of the nodes is stale.
+     * @throws VersionException if the name label does not exist in this version history.
+     * @throws RepositoryException if another error occurs.
+     */
+    public void removeVersionLabel(@Nonnull VersionHistoryDelegate versionHistory,
+                                   @Nonnull String oakVersionLabel)
+            throws InvalidItemStateException, VersionException, RepositoryException {
+        // perform operation on fresh storage to not interfere
+        // with pending changes in the workspace.
+        Root fresh = sessionDelegate.getContentSession().getLatestRoot();
+        VersionStorage storage = new VersionStorage(
+                fresh, getVersionStorageTree(fresh));
+        String vhRelPath = PathUtils.relativize(VERSION_STORAGE_PATH,
+                checkNotNull(versionHistory).getPath());
+        versionManager.removeVersionLabel(storage, vhRelPath,
+                checkNotNull(oakVersionLabel));
+    }
+
     //----------------------------< internal >----------------------------------
 
     /**
@@ -176,5 +234,15 @@ public class VersionManagerDelegate {
     private static Tree getTree(@Nonnull NodeDelegate nodeDelegate)
             throws InvalidItemStateException {
         return checkNotNull(nodeDelegate).getTree();
+    }
+
+    /**
+     * Returns the version storage tree for the given workspace.
+     * @param workspaceRoot the root of the workspace.
+     * @return the version storage tree.
+     */
+    private static Tree getVersionStorageTree(@Nonnull Root workspaceRoot) {
+        // TODO: this assumes the version store is in the same workspace.
+        return checkNotNull(workspaceRoot).getTree(VERSION_STORAGE_PATH);
     }
 }

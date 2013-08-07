@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
+import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
 import com.google.common.base.Function;
@@ -63,6 +64,14 @@ public class VersionHistoryDelegate extends NodeDelegate {
         return VersionDelegate.create(sessionDelegate, rootVersion);
     }
 
+    /**
+     * Gets the version with the given name.
+     *
+     * @param versionName a version name.
+     * @return the version delegate.
+     * @throws VersionException if there is no version with the given name.
+     * @throws RepositoryException if another error occurs.
+     */
     @Nonnull
     public VersionDelegate getVersion(@Nonnull String versionName)
             throws VersionException, RepositoryException {
@@ -140,6 +149,20 @@ public class VersionHistoryDelegate extends NodeDelegate {
                 return VersionDelegate.create(sessionDelegate, thisTree.getChild(name));
             }
         });
+    }
+
+    public void addVersionLabel(@Nonnull VersionDelegate version,
+                                @Nonnull String oakVersionLabel,
+                                boolean moveLabel)
+            throws LabelExistsVersionException, VersionException, RepositoryException {
+        VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);
+        vMgr.addVersionLabel(this, version, oakVersionLabel, moveLabel);
+    }
+
+    public void removeVersionLabel(@Nonnull String oakVersionLabel)
+            throws VersionException, RepositoryException {
+        VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);
+        vMgr.removeVersionLabel(this, oakVersionLabel);
     }
 
     //-----------------------------< internal >---------------------------------
