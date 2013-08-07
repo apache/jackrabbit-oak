@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 import java.util.UUID;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
@@ -60,8 +63,6 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 public class ImporterImpl implements Importer {
     private static final Logger log = LoggerFactory.getLogger(ImporterImpl.class);
@@ -150,7 +151,8 @@ public class ImporterImpl implements Importer {
 
         pItemImporters.clear();
         for (ProtectedItemImporter importer : sessionContext.getProtectedItemImporters()) {
-            if (importer.init(sessionContext.getSession(), root, sessionContext, isWorkspaceImport, uuidBehavior, refTracker)) {
+            // FIXME this passes the session scoped name path mapper also for workspace imports
+            if (importer.init(sessionContext.getSession(), root, sessionContext, isWorkspaceImport, uuidBehavior, refTracker, sessionContext.getSecurityProvider())) {
                 pItemImporters.add(importer);
             }
         }
