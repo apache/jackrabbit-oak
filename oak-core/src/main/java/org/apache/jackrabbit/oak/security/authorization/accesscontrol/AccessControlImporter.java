@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -52,8 +55,6 @@ import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * {@link ProtectedNodeImporter} implementation that handles access control lists,
  * entries and restrictions.
@@ -66,8 +67,6 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     private static final int CHILD_STATUS_ACE = 1;
     private static final int CHILD_STATUS_RESTRICTION = 2;
 
-    private final SecurityProvider securityProvider;
-
     private AccessControlManager acMgr;
     private PrincipalManager principalManager;
     private ReadOnlyNodeTypeManager ntMgr;
@@ -78,16 +77,12 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     private JackrabbitAccessControlList acl;
     private MutableEntry entry;
 
-    public AccessControlImporter(SecurityProvider securityProvider) {
-        this.securityProvider = securityProvider;
-    }
-
     //----------------------------------------------< ProtectedItemImporter >---
 
     @Override
     public boolean init(Session session, Root root, NamePathMapper namePathMapper,
-                        boolean isWorkspaceImport, int uuidBehavior,
-                        ReferenceChangeTracker referenceTracker) {
+            boolean isWorkspaceImport, int uuidBehavior,
+            ReferenceChangeTracker referenceTracker, SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }

@@ -93,7 +93,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Nonnull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.<ProtectedItemImporter>singletonList(new AccessControlImporter(getSecurityProvider()));
+        return Collections.<ProtectedItemImporter>singletonList(new AccessControlImporter());
     }
 
     //-----------------------------------------< AccessControlConfiguration >---
