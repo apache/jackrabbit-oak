@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.util.TODO;
 
 /**
  * {@code VersionHistoryImpl}...
- * TODO: wrap all calls with sessionDelegate.perform()
  */
 public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
         implements VersionHistory {
@@ -61,12 +60,22 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public String getVersionableIdentifier() throws RepositoryException {
-        return dlg.getVersionableIdentifier();
+        return perform(new SessionOperation<String>() {
+            @Override
+            public String perform() throws RepositoryException {
+                return dlg.getVersionableIdentifier();
+            }
+        });
     }
 
     @Override
     public Version getRootVersion() throws RepositoryException {
-        return new VersionImpl(dlg.getRootVersion(), sessionContext);
+        return perform(new SessionOperation<Version>() {
+            @Override
+            public Version perform() throws RepositoryException {
+                return new VersionImpl(dlg.getRootVersion(), sessionContext);
+            }
+        });
     }
 
     @Override
@@ -76,13 +85,18 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public VersionIterator getAllVersions() throws RepositoryException {
-        return new VersionIteratorAdapter(Iterators.transform(
-                dlg.getAllVersions(), new Function<VersionDelegate, Version>() {
+        return perform(new SessionOperation<VersionIterator>() {
             @Override
-            public Version apply(VersionDelegate input) {
-                return new VersionImpl(input, sessionContext);
+            public VersionIterator perform() throws RepositoryException {
+                return new VersionIteratorAdapter(Iterators.transform(
+                        dlg.getAllVersions(), new Function<VersionDelegate, Version>() {
+                    @Override
+                    public Version apply(VersionDelegate input) {
+                        return new VersionImpl(input, sessionContext);
+                    }
+                }));
             }
-        }));
+        });
     }
 
     @Override
@@ -96,16 +110,26 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     }
 
     @Override
-    public Version getVersion(String versionName)
+    public Version getVersion(final String versionName)
             throws VersionException, RepositoryException {
-        return new VersionImpl(dlg.getVersion(versionName), sessionContext);
+        return perform(new SessionOperation<Version>() {
+            @Override
+            public Version perform() throws RepositoryException {
+                return new VersionImpl(dlg.getVersion(versionName), sessionContext);
+            }
+        });
     }
 
     @Override
-    public Version getVersionByLabel(String label)
+    public Version getVersionByLabel(final String label)
             throws VersionException, RepositoryException {
-        String oakLabel = sessionContext.getOakName(label);
-        return new VersionImpl(dlg.getVersionByLabel(oakLabel), sessionContext);
+        return perform(new SessionOperation<Version>() {
+            @Override
+            public Version perform() throws RepositoryException {
+                String oakLabel = sessionContext.getOakName(label);
+                return new VersionImpl(dlg.getVersionByLabel(oakLabel), sessionContext);
+            }
+        });
     }
 
     @Override
@@ -114,7 +138,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
                                 final boolean moveLabel)
             throws LabelExistsVersionException, VersionException,
             RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -129,7 +153,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public void removeVersionLabel(final String label)
             throws VersionException, RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -152,25 +176,35 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public String[] getVersionLabels() throws RepositoryException {
-        List<String> labels = new ArrayList<String>();
-        for (String label : dlg.getVersionLabels()) {
-            labels.add(sessionContext.getJcrName(label));
-        }
-        return labels.toArray(new String[labels.size()]);
+        return perform(new SessionOperation<String[]>() {
+            @Override
+            public String[] perform() throws RepositoryException {
+                List<String> labels = new ArrayList<String>();
+                for (String label : dlg.getVersionLabels()) {
+                    labels.add(sessionContext.getJcrName(label));
+                }
+                return labels.toArray(new String[labels.size()]);
+            }
+        });
     }
 
     @Override
-    public String[] getVersionLabels(Version version)
+    public String[] getVersionLabels(final Version version)
             throws VersionException, RepositoryException {
         if (!version.getContainingHistory().getPath().equals(getPath())) {
             throw new VersionException("Version is not contained in this " +
                     "VersionHistory");
         }
-        List<String> labels = new ArrayList<String>();
-        for (String label : dlg.getVersionLabels(version.getIdentifier())) {
-            labels.add(sessionContext.getJcrName(label));
-        }
-        return labels.toArray(new String[labels.size()]);
+        return perform(new SessionOperation<String[]>() {
+            @Override
+            public String[] perform() throws RepositoryException {
+                List<String> labels = new ArrayList<String>();
+                for (String label : dlg.getVersionLabels(version.getIdentifier())) {
+                    labels.add(sessionContext.getJcrName(label));
+                }
+                return labels.toArray(new String[labels.size()]);
+            }
+        });
     }
 
     @Override
