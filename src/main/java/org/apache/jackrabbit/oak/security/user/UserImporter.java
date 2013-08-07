@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
@@ -41,7 +45,6 @@ import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -49,6 +52,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
@@ -61,9 +65,6 @@ import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * {@code UserImporter} implements both {@code ode>ProtectedPropertyImporter}
@@ -157,8 +158,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
     public boolean init(Session session, Root root, NamePathMapper namePathMapper,
-                        boolean isWorkspaceImport, int uuidBehavior,
-                        ReferenceChangeTracker referenceTracker) {
+            boolean isWorkspaceImport, int uuidBehavior,
+            ReferenceChangeTracker referenceTracker, SecurityProvider securityProvider) {
 
         if (!(session instanceof JackrabbitSession)) {
             log.debug("Importing protected user content requires a JackrabbitSession");
@@ -178,41 +179,10 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return false;
         }
 
-        if (!initUserManager(isWorkspaceImport)) {
-            return false;
-        }
+        userManager = new UserManagerImpl(root, namePathMapper, securityProvider);
 
         initialized = true;
         return initialized;
-    }
-
-    private boolean initUserManager(boolean isWorkspaceImport) {
-        try {
-            UserManager uMgr = session.getUserManager();
-            if (uMgr instanceof UserManagerImpl) {
-                UserManagerImpl impl = (UserManagerImpl) uMgr;
-                if (isWorkspaceImport) {
-                    // use a separate user manager that is not associated with
-                    // transient session modifications.
-                    userManager = new UserManagerImpl(root, namePathMapper, impl.getSecurityProvider());
-                    return true;
-                } else {
-                    if (impl.isAutoSave()) {
-                        log.warn("Session import cannot handle user content: UserManager is in autosave mode.");
-                    } else {
-                        userManager = impl;
-                        return true;
-                    }
-                }
-            } else {
-                log.debug("Failed to initialize UserImporter: Instanceof UserManagerImpl expected.");
-            }
-        } catch (RepositoryException e) {
-            // failed to access user manager or to set the autosave behavior
-            // -> return false (not initialized) as importer can't operate.
-            log.error("Failed to initialize UserImporter: ", e);
-        }
-        return false;
     }
 
     // -----------------------------------------< ProtectedPropertyImporter >---

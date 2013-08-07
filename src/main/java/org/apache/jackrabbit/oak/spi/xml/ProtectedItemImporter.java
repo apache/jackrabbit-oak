@@ -22,6 +22,7 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
 /**
  * Base interface for {@link ProtectedNodeImporter} and {@link ProtectedPropertyImporter}.
@@ -48,13 +49,14 @@ public interface ProtectedItemImporter {
      * version operations are required to never leave transient changes behind.
      * @param uuidBehavior The uuid behavior specified with the import call.
      * @param referenceTracker The uuid/reference helper.
+     * @param securityProvider The security provider.
      * @return {@code true} if this importer was successfully initialized and
      * is able to handle an import with the given setup; {@code false} otherwise.
      */
     boolean init(@Nonnull Session session, @Nonnull Root root,
-                 @Nonnull NamePathMapper namePathMapper,
-                 boolean isWorkspaceImport, int uuidBehavior,
-                 @Nonnull ReferenceChangeTracker referenceTracker);
+            @Nonnull NamePathMapper namePathMapper,
+            boolean isWorkspaceImport, int uuidBehavior,
+            @Nonnull ReferenceChangeTracker referenceTracker, SecurityProvider securityProvider);
 
     /**
      * Post processing protected reference properties underneath a protected
