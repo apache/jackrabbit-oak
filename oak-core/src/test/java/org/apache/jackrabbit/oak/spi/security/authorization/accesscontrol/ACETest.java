@@ -19,26 +19,36 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -51,6 +61,10 @@ public class ACETest extends AbstractAccessControlTest {
     private Principal testPrincipal;
     private AccessControlManager acMgr;
 
+    private Value globValue;
+    private Value[] nameValues;
+    private Value nameValue;
+
     @Override
     @Before
     public void before() throws Exception {
@@ -61,6 +75,13 @@ public class ACETest extends AbstractAccessControlTest {
             public String getName() {
                 return "TestPrincipal";
             }
+        };
+        ValueFactory valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
+        globValue = valueFactory.createValue("*");
+        nameValue = valueFactory.createValue("nt:file", PropertyType.NAME);
+        nameValues = new Value[] {
+                valueFactory.createValue("nt:folder", PropertyType.NAME),
+                valueFactory.createValue("nt:file", PropertyType.NAME)
         };
     }
 
@@ -80,6 +101,20 @@ public class ACETest extends AbstractAccessControlTest {
         return new ACE(principal, privileges, isAllow, null, namePathMapper);
     }
 
+    private ACE createEntry(Set<Restriction> restrictions) throws Exception {
+        return new ACE(testPrincipal,
+                privilegesFromNames(PrivilegeConstants.JCR_READ), true,
+                restrictions, namePathMapper);
+    }
+
+    private Restriction createRestriction(String name, Value value) throws Exception {
+        return getRestrictionProvider().createRestriction("/a/b/c", name, value);
+    }
+
+    private Restriction createRestriction(String name, Value[] values) throws Exception {
+        return getRestrictionProvider().createRestriction("/a/b/c", name, values);
+    }
+
     @Test
     public void testIsAllow() throws RepositoryException {
         ACE ace = createEntry(new String[]{PrivilegeConstants.JCR_READ}, true);
@@ -95,6 +130,19 @@ public class ACETest extends AbstractAccessControlTest {
         assertNotNull(tmpl.getPrincipal());
         assertEquals(testPrincipal.getName(), tmpl.getPrincipal().getName());
         assertSame(testPrincipal, tmpl.getPrincipal());
+    }
+
+    @Test
+    public void testNullPrincipal() throws Exception {
+        try {
+            Privilege[] privs = new Privilege[]{
+                    acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)
+            };
+            createEntry(null, privs, true);
+            fail("Principal must not be null");
+        } catch (AccessControlException e) {
+            // success
+        }
     }
 
     @Test
@@ -122,6 +170,196 @@ public class ACETest extends AbstractAccessControlTest {
                 PrivilegeConstants.JCR_ADD_CHILD_NODES,
                 PrivilegeConstants.JCR_REMOVE_CHILD_NODES);
         assertEquals(Arrays.asList(expected), Arrays.asList(privs));
+    }
+
+    @Test
+    public void testNullPrivileges() throws Exception {
+        try {
+            createEntry(testPrincipal, null, true);
+            fail("Principal must not be null");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testEmptyPrivileges() throws Exception {
+        try {
+            createEntry(testPrincipal, new Privilege[0], true);
+            fail("Privilege array must not be null.");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testRedundantPrivileges() throws Exception {
+        ACE ace = createEntry(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ);
+        Privilege[] privs = ace.getPrivileges();
+        assertEquals(1, privs.length);
+        assertEquals(PrivilegeConstants.JCR_READ, privs[0].getName());
+    }
+
+    /**
+     * @since oak 1.0 ACE doesn't validate privileges.
+     */
+    @Test
+    public void testUnknownPrivilege() throws Exception {
+        Privilege invalidPriv = new Privilege() {
+            public String getName() {
+                return "";
+            }
+
+            public boolean isAbstract() {
+                return false;
+            }
+
+            public boolean isAggregate() {
+                return false;
+            }
+
+            public Privilege[] getDeclaredAggregatePrivileges() {
+                return new Privilege[0];
+            }
+
+            public Privilege[] getAggregatePrivileges() {
+                return new Privilege[0];
+            }
+        };
+        Privilege[] privs = new Privilege[]{invalidPriv, acMgr.privilegeFromName(PrivilegeConstants.JCR_READ)};
+        createEntry(testPrincipal, privs, true);
+    }
+
+    @Test
+    public void testGetRestrictionNames() throws Exception {
+        // empty restrictions
+        String[] restrictionNames = createEntry(Collections.<Restriction>emptySet()).getRestrictionNames();
+        assertNotNull(restrictionNames);
+        assertEquals(0, restrictionNames.length);
+
+        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
+        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
+
+        // single restriction
+        restrictionNames = createEntry(ImmutableSet.of(globRestr)).getRestrictionNames();
+        assertEquals(1, restrictionNames.length);
+
+        // 2 restrictions
+        restrictionNames = createEntry(ImmutableSet.of(globRestr, nameRestr)).getRestrictionNames();
+        assertEquals(2, restrictionNames.length);
+    }
+
+    @Test
+    public void testGetRestrictionForEmpty() throws Exception {
+        // empty restrictions
+        Value val = createEntry(Collections.<Restriction>emptySet()).getRestriction(AccessControlConstants.REP_GLOB);
+        assertNull(val);
+    }
+
+    @Test
+    public void testGetNonExistingRestriction() throws Exception {
+        // single valued restriction
+        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
+        ACE ace = createEntry(ImmutableSet.of(globRestr));
+        assertNull(ace.getRestriction(AccessControlConstants.REP_NT_NAMES));
+    }
+
+    @Test
+    public void testGetRestrictionForSingleValued() throws Exception {
+        // single valued restriction
+        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
+        ACE ace = createEntry(ImmutableSet.of(globRestr));
+        Value val = ace.getRestriction(AccessControlConstants.REP_GLOB);
+        assertNotNull(val);
+        assertEquals(globValue, val);
+    }
+
+    /**
+     * @since OAK 1.0: support for multi-value restrictions
+     */
+    @Test
+    public void testGetRestrictionForMultiValued() throws Exception {
+        // multivalued restriction
+        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
+        ACE ace = createEntry(ImmutableSet.of(nameRestr));
+        try {
+            ace.getRestriction(AccessControlConstants.REP_NT_NAMES);
+            fail("Multiple restriction values");
+        } catch (ValueFormatException e) {
+            // success
+        }
+    }
+
+    /**
+     * @since OAK 1.0: support for multi-value restrictions
+     */
+    @Test
+    public void testGetRestrictionForMultiValued2() throws Exception {
+        // single value restriction stored in multi-value property
+        Restriction singleNameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, new Value[] {nameValue});
+
+        ACE ace = createEntry(ImmutableSet.of(singleNameRestr));
+        Value val = ace.getRestriction(AccessControlConstants.REP_NT_NAMES);
+        assertEquals(nameValue, val);
+    }
+
+    /**
+     * @since OAK 1.0: support for multi-value restrictions
+     */
+    @Test
+    public void testGetEmptyRestrictions() throws Exception {
+        // empty restrictions
+        Value[] vs = createEntry(Collections.<Restriction>emptySet()).getRestrictions(AccessControlConstants.REP_GLOB);
+        assertNull(vs);
+    }
+
+    /**
+     * @since OAK 1.0: support for multi-value restrictions
+     */
+    @Test
+    public void testGetNonExistingRestrictions() throws Exception {
+        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
+        ACE ace = createEntry(ImmutableSet.of(nameRestr));
+        assertNull(ace.getRestrictions(AccessControlConstants.REP_GLOB));
+    }
+
+    /**
+     * @since OAK 1.0: support for multi-value restrictions
+     */
+    @Test
+    public void testGetRestrictionsForSingleValue() throws Exception {
+        // single valued restriction
+        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
+        ACE ace = createEntry(ImmutableSet.of(globRestr));
+        Value[] vs = ace.getRestrictions(AccessControlConstants.REP_GLOB);
+        assertNotNull(vs);
+        assertArrayEquals(new Value[] {globValue}, vs);
+    }
+
+    /**
+     * @since OAK 1.0: support for multi-value restrictions
+     */
+    @Test
+    public void testGetRestrictionsForMultiValued() throws Exception {
+        // multivalued restriction
+        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
+        ACE ace = createEntry(ImmutableSet.of(nameRestr));
+        Value[] vs = ace.getRestrictions(AccessControlConstants.REP_NT_NAMES);
+        assertEquals(2, vs.length);
+        assertArrayEquals(nameValues, vs);
+    }
+
+    /**
+     * @since OAK 1.0: support for multi-value restrictions
+     */
+    @Test
+    public void testGetRestrictionsForMultiValued2() throws Exception {
+        // single value restriction stored in multi-value property
+        Restriction singleNameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, new Value[] {nameValue});
+        ACE ace = createEntry(ImmutableSet.of(singleNameRestr));
+        Value[] vs = ace.getRestrictions(AccessControlConstants.REP_NT_NAMES);
+        assertEquals(1, vs.length);
+        assertEquals(nameValue, vs[0]);
     }
 
     @Test
@@ -218,6 +456,10 @@ public class ACETest extends AbstractAccessControlTest {
                 return null;
             }
 
+            public Value[] getRestrictions(String restrictionName) {
+                return null;
+            }
+
             public Principal getPrincipal() {
                 return testPrincipal;
             }
@@ -303,6 +545,10 @@ public class ACETest extends AbstractAccessControlTest {
                 return null;
             }
 
+            public Value[] getRestrictions(String restrictionName) {
+                return null;
+            }
+
             public Principal getPrincipal() {
                 return testPrincipal;
             }
@@ -317,76 +563,5 @@ public class ACETest extends AbstractAccessControlTest {
             assertFalse(ace.hashCode() == otherAce.hashCode());
         }
 
-    }
-
-    @Test
-    public void testNullPrincipal() throws Exception {
-        try {
-            Privilege[] privs = new Privilege[]{
-                    acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)
-            };
-            createEntry(null, privs, true);
-            fail("Principal must not be null");
-        } catch (AccessControlException e) {
-            // success
-        }
-    }
-
-    @Test
-    public void testNullPrivileges() throws Exception {
-        try {
-            createEntry(testPrincipal, null, true);
-            fail("Principal must not be null");
-        } catch (AccessControlException e) {
-            // success
-        }
-    }
-
-    @Test
-    public void testEmptyPrivileges() throws Exception {
-        try {
-            createEntry(testPrincipal, new Privilege[0], true);
-            fail("Privilege array must not be null.");
-        } catch (AccessControlException e) {
-            // success
-        }
-    }
-
-    @Test
-    public void testRedundantPrivileges() throws Exception {
-        ACE ace = createEntry(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ);
-        Privilege[] privs = ace.getPrivileges();
-        assertEquals(1, privs.length);
-        assertEquals(PrivilegeConstants.JCR_READ, privs[0].getName());
-    }
-
-    /**
-     * @since oak 1.0 ACE doesn't validate privileges.
-     */
-    @Test
-    public void testUnknownPrivilege() throws Exception {
-        Privilege invalidPriv = new Privilege() {
-            public String getName() {
-                return "";
-            }
-
-            public boolean isAbstract() {
-                return false;
-            }
-
-            public boolean isAggregate() {
-                return false;
-            }
-
-            public Privilege[] getDeclaredAggregatePrivileges() {
-                return new Privilege[0];
-            }
-
-            public Privilege[] getAggregatePrivileges() {
-                return new Privilege[0];
-            }
-        };
-        Privilege[] privs = new Privilege[]{invalidPriv, acMgr.privilegeFromName(PrivilegeConstants.JCR_READ)};
-        createEntry(testPrincipal, privs, true);
     }
 }
