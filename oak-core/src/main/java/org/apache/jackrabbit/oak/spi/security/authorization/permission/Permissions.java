@@ -311,7 +311,7 @@ public final class Permissions {
         } else if (PrivilegeConstants.PRIVILEGES_PATH.equals(path)) {
             permission = Permissions.PRIVILEGE_MANAGEMENT;
         } else {
-            // TODO: workspace-mgt
+            // FIXME: workspace-mgt (blocked by OAK-916)
             permission = defaultPermission;
         }
         return permission;
