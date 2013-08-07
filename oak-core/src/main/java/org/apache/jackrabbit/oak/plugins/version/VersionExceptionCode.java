@@ -28,7 +28,9 @@ public enum VersionExceptionCode {
     NODE_CHECKED_IN("Node is checked in"),
     NO_SUCH_VERSION("No such Version"),
     OPV_ABORT_ITEM_PRESENT("Item with OPV ABORT action present"),
-    NO_VERSION_TO_RESTORE("No suitable version to restore");
+    NO_VERSION_TO_RESTORE("No suitable version to restore"),
+    LABEL_EXISTS("Version label already exists"),
+    NO_SUCH_VERSION_LABEL("No such version label");
 
     private final String desc;
 

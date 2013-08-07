@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_V
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
@@ -41,8 +42,10 @@ public class VersionEditorProvider implements EditorProvider {
         if (!system.hasChildNode(JCR_VERSIONSTORAGE)) {
             return null;
         }
-        NodeBuilder version = system.child(JCR_VERSIONSTORAGE);
-        return new VisibleEditor(new VersionEditor(version, builder));
+        NodeBuilder versionStorage = system.child(JCR_VERSIONSTORAGE);
+        return new VisibleEditor(new CompositeEditor(
+                new VersionEditor(versionStorage, builder),
+                new VersionStorageEditor(versionStorage, builder)));
     }
 
 }

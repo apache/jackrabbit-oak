@@ -16,23 +16,32 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import java.util.Collections;
+
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.version.LabelExistsVersionException;
+import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_ADD_VERSION_LABELS;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REMOVE_VERSION_LABELS;
 
 /**
  * {@code ReadWriteVersionManager}...
@@ -40,10 +49,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     private static final Logger log = LoggerFactory.getLogger(ReadWriteVersionManager.class);
-    private final Tree versionStorage;
+    private final VersionStorage versionStorage;
     private final Root workspaceRoot;
 
-    public ReadWriteVersionManager(@Nonnull Tree versionStorage,
+    public ReadWriteVersionManager(@Nonnull VersionStorage versionStorage,
                                    @Nonnull Root workspaceRoot) {
         this.versionStorage = checkNotNull(versionStorage);
         this.workspaceRoot = checkNotNull(workspaceRoot);
@@ -64,7 +73,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     @Override
     @Nonnull
     protected Tree getVersionStorage() {
-        return versionStorage;
+        return versionStorage.getTree();
     }
 
     @Override
@@ -107,14 +116,14 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                     versionable.getPath() + " is not versionable");
         }
         if (isCheckedOut(versionable)) {
-            versionable.setProperty(VersionConstants.JCR_ISCHECKEDOUT,
+            versionable.setProperty(JCR_ISCHECKEDOUT,
                     Boolean.FALSE, Type.BOOLEAN);
             try {
                 getWorkspaceRoot().commit();
                 refresh();
             } catch (CommitFailedException e) {
                 getWorkspaceRoot().refresh();
-                throw newRepositoryException(e);
+                throw e.asRepositoryException();
             }
         }
         return getBaseVersion(getWorkspaceRoot().getTree(versionable.getPath()));
@@ -144,29 +153,73 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 log.warn("Session has pending changes. Checkout operation will " +
                         "save those changes as well.");
             }
-            versionable.setProperty(VersionConstants.JCR_ISCHECKEDOUT,
+            versionable.setProperty(JCR_ISCHECKEDOUT,
                     Boolean.TRUE, Type.BOOLEAN);
             try {
                 getWorkspaceRoot().commit();
                 refresh();
             } catch (CommitFailedException e) {
                 getWorkspaceRoot().refresh();
-                throw newRepositoryException(e);
+                throw e.asRepositoryException();
             }
         }
     }
 
-    // TODO: more methods that modify versions
-
-    /**
-     * Wraps the given {@link CommitFailedException} instance using the
-     * appropriate {@link RepositoryException} subclass based on the
-     * {@link CommitFailedException#getType() type} of the given exception.
-     *
-     * @param exception typed commit failure exception
-     * @return matching repository exception
-     */
-    private static RepositoryException newRepositoryException(@Nonnull CommitFailedException exception) {
-        return exception.asRepositoryException();
+    public void addVersionLabel(@Nonnull VersionStorage versionStorage,
+                                @Nonnull String versionHistoryOakRelPath,
+                                @Nonnull String versionOakName,
+                                @Nonnull String oakVersionLabel,
+                                boolean moveLabel) throws RepositoryException {
+        Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
+                checkNotNull(versionHistoryOakRelPath));
+        Tree labels = checkNotNull(versionHistory).getChild(JCR_VERSIONLABELS);
+        if (labels.hasProperty(checkNotNull(oakVersionLabel))) {
+            if (moveLabel) {
+                String labelPath = PathUtils.concat(versionHistoryOakRelPath,
+                        JCR_VERSIONLABELS, oakVersionLabel, "dummy");
+                versionStorage.getTree().setProperty(REP_REMOVE_VERSION_LABELS,
+                        Collections.singleton(labelPath), Type.PATHS);
+            } else {
+                throw new LabelExistsVersionException("Version label '"
+                        + oakVersionLabel + "' already exists on this version history");
+            }
+        }
+        String labelPath = PathUtils.concat(versionHistoryOakRelPath,
+                JCR_VERSIONLABELS, oakVersionLabel, checkNotNull(versionOakName));
+        versionStorage.getTree().setProperty(REP_ADD_VERSION_LABELS,
+                Collections.singleton(labelPath), Type.PATHS);
+        try {
+            checkNotNull(versionStorage).commit();
+            refresh();
+        } catch (CommitFailedException e) {
+            versionStorage.refresh();
+            throw e.asRepositoryException();
+        }
     }
+
+    public void removeVersionLabel(@Nonnull VersionStorage versionStorage,
+                                   @Nonnull String versionHistoryOakRelPath,
+                                   @Nonnull String oakVersionLabel)
+            throws RepositoryException {
+        Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
+                checkNotNull(versionHistoryOakRelPath));
+        Tree labels = checkNotNull(versionHistory).getChild(JCR_VERSIONLABELS);
+        if (!labels.hasProperty(oakVersionLabel)) {
+            throw new VersionException("Version label " + oakVersionLabel +
+                    " does not exist on this version history");
+        }
+        String labelPath = PathUtils.concat(versionHistoryOakRelPath,
+                JCR_VERSIONLABELS, oakVersionLabel, "dummy");
+        versionStorage.getTree().setProperty(REP_REMOVE_VERSION_LABELS,
+                Collections.singleton(labelPath), Type.PATHS);
+        try {
+            checkNotNull(versionStorage).commit();
+            refresh();
+        } catch (CommitFailedException e) {
+            versionStorage.refresh();
+            throw e.asRepositoryException();
+        }
+    }
+
+    // TODO: more methods that modify versions
 }
