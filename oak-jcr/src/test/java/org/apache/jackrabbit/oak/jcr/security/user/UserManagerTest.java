@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.jcr.Credentials;
-import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
@@ -87,17 +86,17 @@ public class UserManagerTest extends AbstractUserTest {
     
     @Test
     // FIXME clarify expectations, move to auto refresh related tests. See OAK-938.
-    public void testGetAuthorizableMultipleSessions() throws LoginException, RepositoryException {
+    public void testAutoRefreshSession() throws RepositoryException {
         Session adminSession = null;
         SimpleCredentials credentials = new SimpleCredentials("admin", "admin".toCharArray());
         credentials.setAttribute("refresh-interval", 0);
 
-        String uid = createUserId();
         User user = null;
         try {
             adminSession = superuser.getRepository().login(credentials);
             UserManager adminUserManager = ((JackrabbitSession) adminSession).getUserManager();
 
+            String uid = createUserId();
             user = userMgr.createUser(uid, uid);
             superuser.save();
 
