@@ -219,6 +219,61 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         restore(versionable, uuidFromNode(version), selector);
     }
 
+    /**
+     * Adds a version label to the jcr:versionLabels node of the referenced
+     * version history.
+     *
+     * @param historyRelPath relative path from the jcr:versionStorage node to
+     *                       the version history node.
+     * @param label          the version label.
+     * @param versionName    the name of the version.
+     * @throws CommitFailedException if there is no such version history or if
+     * there is already a label with the given name or if the given version name
+     * is invalid.
+     */
+    public void addVersionLabel(@Nonnull String historyRelPath,
+                                @Nonnull String label,
+                                @Nonnull String versionName)
+           throws CommitFailedException {
+        NodeBuilder labels = getVersionLabelsFor(checkNotNull(historyRelPath));
+        if (labels.hasProperty(checkNotNull(label))) {
+            throw new CommitFailedException(CommitFailedException.LABEL_EXISTS,
+                    VersionExceptionCode.LABEL_EXISTS.ordinal(),
+                    "Version label " + label + " already exists on this version history");
+        }
+        NodeBuilder history = resolve(versionStorageNode, historyRelPath);
+        if (checkNotNull(versionName).equals(JCR_ROOTVERSION)
+                || !history.hasChildNode(checkNotNull(versionName))) {
+            throw new CommitFailedException(CommitFailedException.VERSION,
+                    VersionExceptionCode.NO_SUCH_VERSION.ordinal(),
+                    "Not a valid version on this history: " + versionName);
+        }
+        String uuid = uuidFromNode(history.getChildNode(versionName));
+        labels.setProperty(label, uuid, Type.REFERENCE);
+    }
+
+    /**
+     * Removes a version label from the jcr:versionLabels node of the referenced
+     * version history.
+     *
+     * @param historyRelPath relative path from the jcr:versionStorage node to
+     *                       the version history node.
+     * @param label          the version label.
+     * @throws CommitFailedException if there is no such version history or if
+     * there is no label with the given name.
+     */
+    public void removeVersionLabel(@Nonnull String historyRelPath,
+                                   @Nonnull String label)
+            throws CommitFailedException {
+        NodeBuilder labels = getVersionLabelsFor(checkNotNull(historyRelPath));
+        if (!labels.hasProperty(checkNotNull(label))) {
+            throw new CommitFailedException(CommitFailedException.VERSION,
+                    VersionExceptionCode.NO_SUCH_VERSION_LABEL.ordinal(),
+                    "Version label " + label + " does not exist on this version history");
+        }
+        labels.removeProperty(label);
+    }
+
     // TODO: more methods that modify versions
 
     //------------------------------< internal >--------------------------------
@@ -407,5 +462,27 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
             NodeBuilder v = history.getChildNode(JCR_ROOTVERSION);
             return String.valueOf(v.getProperty(JCR_SUCCESSORS).count() + 1) + ".0";
         }
+    }
+
+    /**
+     * Returns the jcr:versionLabels node of the version history referenced
+     * by the given path.
+     *
+     * @param historyRelPath relative path from the jcr:versionStorage node
+     *                       to the history node.
+     * @return the jcr:versionLabels node.
+     * @throws CommitFailedException if there is no version history at the
+     * given path.
+     */
+    private NodeBuilder getVersionLabelsFor(String historyRelPath)
+            throws CommitFailedException {
+        NodeBuilder history = resolve(versionStorageNode, historyRelPath);
+        if (!history.exists()) {
+            throw new CommitFailedException(CommitFailedException.VERSION,
+                    VersionExceptionCode.UNEXPECTED_REPOSITORY_EXCEPTION.ordinal(),
+                    "Version history does not exist: " + PathUtils.concat(
+                            VERSION_STORE_PATH, historyRelPath));
+        }
+        return history.child(JCR_VERSIONLABELS);
     }
 }

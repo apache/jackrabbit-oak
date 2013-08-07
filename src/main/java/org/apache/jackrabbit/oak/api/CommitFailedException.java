@@ -26,6 +26,7 @@ import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
+import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
 import static java.lang.String.format;
@@ -90,6 +91,11 @@ public class CommitFailedException extends Exception {
      * Type name for version violation errors.
      */
     public static final String VERSION = "Version";
+
+    /**
+     * Type name for label exists version errors.
+     */
+    public static final String LABEL_EXISTS = "LabelExists";
 
     /**
      * Serial version UID
@@ -220,6 +226,8 @@ public class CommitFailedException extends Exception {
             return new InvalidItemStateException(message, this);
         } else if (isOfType(VERSION)) {
             return new VersionException(message, this);
+        } else if (isOfType(LABEL_EXISTS)) {
+            return new LabelExistsVersionException(message, this);
         } else if (isOfType(LOCK)) {
             return new LockException(message, this);
         } else {

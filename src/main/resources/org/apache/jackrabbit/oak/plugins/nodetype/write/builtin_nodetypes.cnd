@@ -569,6 +569,8 @@
 [rep:versionStorage]
   + * (nt:versionHistory) = nt:versionHistory protected ABORT
   + * (rep:versionStorage) = rep:versionStorage protected ABORT
+  - * (UNDEFINED) protected ABORT
+  - * (UNDEFINED) protected multiple ABORT
 
 /**
  * Activities storage
