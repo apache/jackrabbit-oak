@@ -211,6 +211,10 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
                     return null;
                 }
 
+                public Value[] getRestrictions(String restrictionName) {
+                    return null;
+                }
+
                 public Principal getPrincipal() {
                     return testPrincipal;
                 }
