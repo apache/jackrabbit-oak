@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -259,13 +260,43 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     }
 
     @Test
-    public void testReadRestrictions() {
-        // TODO
+    public void testReadRestrictionsForUnsupportedPath() throws Exception {
+        Set<Restriction> restrictions = restrictionProvider.readRestrictions(unsupportedPath, getAceTree());
+        assertTrue(restrictions.isEmpty());
     }
 
     @Test
-    public void testWriteRestrictions() {
-        // TODO
+    public void testReadRestrictions() throws Exception {
+        Restriction r = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
+        Tree aceTree = getAceTree(r);
+
+        Set<Restriction> restrictions = restrictionProvider.readRestrictions(testPath, aceTree);
+        assertEquals(1, restrictions.size());
+        assertTrue(restrictions.contains(r));
+    }
+
+    @Test
+    public void testWriteRestrictions() throws Exception {
+        Restriction r = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
+        Tree aceTree = getAceTree();
+
+        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.<Restriction>of(r));
+
+        assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
+        Tree restr = aceTree.getChild(REP_RESTRICTIONS);
+        assertEquals(r.getProperty(), restr.getProperty(REP_GLOB));
+    }
+
+    @Test
+    public void testWriteInvalidRestrictions() throws Exception {
+        PropertyState ps = PropertyStates.createProperty(REP_GLOB, valueFactory.createValue(false));
+        Tree aceTree = getAceTree();
+
+        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.<Restriction>of(new RestrictionImpl(ps, false)));
+
+        assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
+        Tree restr = aceTree.getChild(REP_RESTRICTIONS);
+        assertEquals(ps, restr.getProperty(REP_GLOB));
     }
 
     @Test
