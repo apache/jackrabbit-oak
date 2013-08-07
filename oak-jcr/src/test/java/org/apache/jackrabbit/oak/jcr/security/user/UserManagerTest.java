@@ -33,6 +33,7 @@ import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -89,7 +90,7 @@ public class UserManagerTest extends AbstractUserTest {
     public void testAutoRefreshSession() throws RepositoryException {
         Session adminSession = null;
         SimpleCredentials credentials = new SimpleCredentials("admin", "admin".toCharArray());
-        credentials.setAttribute("refresh-interval", 0);
+        credentials.setAttribute(RepositoryImpl.REFRESH_INTERVAL, 0);
 
         User user = null;
         try {
