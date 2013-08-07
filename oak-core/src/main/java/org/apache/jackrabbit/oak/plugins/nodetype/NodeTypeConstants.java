@@ -52,11 +52,6 @@ public interface NodeTypeConstants extends JcrConstants {
      */
     String MIX_REP_MERGE_CONFLICT = "rep:MergeConflict";
     String REP_OURS = "rep:ours";
-    String ADD_EXISTING = "addExisting";
-    String CHANGE_DELETED = "changeDeleted";
-    String CHANGE_CHANGED = "changeChanged";
-    String DELETE_CHANGED = "deleteChanged";
-    String DELETE_DELETED = "deleteDeleted";
 
     String RESIDUAL_NAME = "*";
 

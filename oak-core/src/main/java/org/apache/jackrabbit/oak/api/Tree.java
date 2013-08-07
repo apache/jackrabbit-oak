@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import com.google.common.base.Function;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -329,5 +331,20 @@ public interface Tree {
      * @param name The name of the property
      */
     void removeProperty(@Nonnull String name);
+
+    /**
+     * Mapping from a Tree instance to its name.
+     */
+    Function<Tree, String> GET_NAME =
+            new Function<Tree, String>() {
+                @Override @Nullable
+                public String apply(@Nullable Tree input) {
+                    if (input != null) {
+                        return input.getName();
+                    } else {
+                        return null;
+                    }
+                }
+            };
 
 }

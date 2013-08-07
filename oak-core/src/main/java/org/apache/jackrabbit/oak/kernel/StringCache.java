@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.spi.state.ConflictType;
 
 /**
  * TODO document
@@ -114,11 +115,15 @@ public final class StringCache {
             NodeTypeConstants.MIX_LASTMODIFIED,
             NodeTypeConstants.MIX_REP_MERGE_CONFLICT,
             NodeTypeConstants.REP_OURS,
-            NodeTypeConstants.ADD_EXISTING,
-            NodeTypeConstants.CHANGE_DELETED,
-            NodeTypeConstants.CHANGE_CHANGED,
-            NodeTypeConstants.DELETE_CHANGED,
-            NodeTypeConstants.DELETE_DELETED,
+            ConflictType.DELETE_CHANGED_PROPERTY.getName(),
+            ConflictType.DELETE_CHANGED_NODE.getName(),
+            ConflictType.ADD_EXISTING_PROPERTY.getName(),
+            ConflictType.CHANGE_DELETED_PROPERTY.getName(),
+            ConflictType.CHANGE_CHANGED_PROPERTY.getName(),
+            ConflictType.DELETE_DELETED_PROPERTY.getName(),
+            ConflictType.ADD_EXISTING_NODE.getName(),
+            ConflictType.CHANGE_DELETED_NODE.getName(),
+            ConflictType.DELETE_DELETED_NODE.getName(),
             VersionConstants.JCR_ACTIVITY,
             VersionConstants.JCR_ACTIVITIES,
             VersionConstants.JCR_ACTIVITY_TITLE,

@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.api;
 import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
@@ -40,7 +40,7 @@ public class RootTest {
         repository = new Oak()
             .with(new OpenSecurityProvider())
             .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
-            .with(new ConflictValidator())
+            .with(new ConflictValidatorProvider())
             .createContentRepository();
     }
 
