@@ -179,12 +179,32 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return false;
         }
 
+        if (!initUserManager(isWorkspaceImport, securityProvider)) {
+            return false;
+        }
+
         userManager = new UserManagerImpl(root, namePathMapper, securityProvider);
 
         initialized = true;
         return initialized;
     }
 
+    private boolean initUserManager(boolean isWorkspaceImport, SecurityProvider securityProvider) {
+        try {
+            if (!isWorkspaceImport && session.getUserManager().isAutoSave()) {
+                log.warn("Session import cannot handle user content: UserManager is in autosave mode.");
+                return false;
+            }
+        } catch (RepositoryException e) {
+            // failed to access user manager or to set the autosave behavior
+            // -> return false (not initialized) as importer can't operate.
+            log.error("Failed to initialize UserImporter: ", e);
+            return false;
+        }
+
+        userManager = new UserManagerImpl(root, namePathMapper, securityProvider);
+        return true;
+    }
     // -----------------------------------------< ProtectedPropertyImporter >---
     @Override
     public boolean handlePropInfo(Tree parent, PropInfo propInfo, PropertyDefinition def) throws RepositoryException {
