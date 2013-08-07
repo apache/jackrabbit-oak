@@ -16,23 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.ADD_EXISTING;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.CHANGE_CHANGED;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.CHANGE_DELETED;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.DELETE_CHANGED;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.DELETE_DELETED;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_OURS;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.state.ConflictType;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.util.List;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_OURS;
 
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
@@ -56,63 +61,63 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     @Override
     public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(ADD_EXISTING).setProperty(ours);
+        createChild(marker, ADD_EXISTING_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(CHANGE_DELETED).setProperty(ours);
+        createChild(marker, CHANGE_DELETED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(CHANGE_CHANGED).setProperty(ours);
+        createChild(marker, CHANGE_CHANGED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(DELETE_CHANGED).setProperty(theirs);
+        createChild(marker, DELETE_CHANGED_PROPERTY).setProperty(theirs);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(DELETE_DELETED).setProperty(ours);
+        createChild(marker, DELETE_DELETED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(ADD_EXISTING).setChildNode(name, ours);
+        createChild(marker, ADD_EXISTING_NODE).setChildNode(name, ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(CHANGE_DELETED).setChildNode(name, ours);
+        createChild(marker, CHANGE_DELETED_NODE).setChildNode(name, ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
-        markChild(marker.child(DELETE_CHANGED), name);
+        markChild(createChild(marker, DELETE_CHANGED_NODE), name);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution deleteDeletedNode(NodeBuilder parent, String name) {
         NodeBuilder marker = addConflictMarker(parent);
-        markChild(marker.child(DELETE_DELETED), name);
+        markChild(createChild(marker, DELETE_DELETED_NODE), name);
         return Resolution.THEIRS;
     }
 
@@ -122,6 +127,10 @@ public class AnnotatingConflictHandler implements ConflictHandler {
             parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
         }
         return parent.child(REP_OURS);
+    }
+
+    private static NodeBuilder createChild(NodeBuilder parent, ConflictType ct) {
+        return parent.child(ct.getName());
     }
 
     private static void markChild(NodeBuilder parent, String name) {

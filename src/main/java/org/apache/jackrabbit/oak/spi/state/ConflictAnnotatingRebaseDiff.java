@@ -19,6 +19,16 @@ package org.apache.jackrabbit.oak.spi.state;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NODE;
+
 /**
  * This implementation of {@code AbstractRebaseDiff} implements a {@link NodeStateDiff},
  * which performs the conflict handling as defined in {@link MicroKernel#rebase(String, String)}
@@ -27,15 +37,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  */
 public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
     public static final String CONFLICT = ":conflict";
-    public static final String DELETE_CHANGED_PROPERTY = "deleteChangedProperty";
-    public static final String DELETE_CHANGED_NODE = "deleteChangedNode";
-    public static final String ADD_EXISTING_PROPERTY = "addExistingProperty";
-    public static final String CHANGE_DELETED_PROPERTY = "changeDeletedProperty";
-    public static final String CHANGE_CHANGED_PROPERTY = "changeChangedProperty";
-    public static final String DELETE_DELETED_PROPERTY = "deleteDeletedProperty";
-    public static final String ADD_EXISTING_NODE = "addExistingNode";
-    public static final String CHANGE_DELETED_NODE = "changeDeletedNode";
-    public static final String DELETE_DELETED_NODE = "deleteDeletedNode";
 
     public ConflictAnnotatingRebaseDiff(NodeBuilder builder) {
         super(builder);
@@ -91,8 +92,8 @@ public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
         conflictMarker(builder, DELETE_CHANGED_NODE).setChildNode(name, before);
     }
 
-    private static NodeBuilder conflictMarker(NodeBuilder builder, String name) {
-        return builder.child(CONFLICT).child(name);
+    private static NodeBuilder conflictMarker(NodeBuilder builder, ConflictType ct) {
+        return builder.child(CONFLICT).child(ct.getName());
     }
 
 }
