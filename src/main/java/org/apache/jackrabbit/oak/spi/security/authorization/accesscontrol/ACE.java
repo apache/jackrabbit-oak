@@ -138,7 +138,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         return null;
     }
 
-    // TODO add to API
+    // TODO add to API (-> JCR-3637)
     @CheckForNull
     public Value[] getRestrictions(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
