@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
@@ -46,6 +47,7 @@ import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
 /**
  * Validation for access control information changed by regular JCR (and Jackrabbit)
@@ -240,6 +242,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             restrictionProvider.validateRestrictions(path, aceTree);
         } catch (AccessControlException e) {
             throw new CommitFailedException(ACCESS_CONTROL, 1, "Access control violation", e);
+        } catch (RepositoryException e) {
+            throw new CommitFailedException(OAK, 13, "Internal error", e);
         }
     }
 

@@ -24,7 +24,6 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -88,7 +87,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     }
 
     @Override
-    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
+    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
         Iterator<Restriction> it = Sets.newHashSet(restrictions).iterator();
         while (it.hasNext()) {
             Restriction r = it.next();
@@ -100,7 +99,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     }
 
     @Override
-    public void validateRestrictions(String oakPath, @Nonnull Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(String oakPath, @Nonnull Tree aceTree) throws RepositoryException {
         base.validateRestrictions(oakPath, aceTree);
     }
 
