@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -120,7 +119,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @Override
-    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessDeniedException {
+    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
         // validation of the restrictions is delegated to the commit hook
         // see #validateRestrictions below
         if (!restrictions.isEmpty()) {
