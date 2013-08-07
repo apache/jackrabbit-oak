@@ -101,8 +101,8 @@ public class SessionContext implements NamePathMapper {
     private ObservationManagerImpl observationManager;
 
     SessionContext(
-            RepositoryImpl repository, Whiteboard whiteboard,
-            Map<String, Object> attributes, final SessionDelegate delegate) {
+            @Nonnull RepositoryImpl repository, @Nonnull Whiteboard whiteboard,
+            Map<String, Object> attributes, @Nonnull final SessionDelegate delegate) {
         this.repository = checkNotNull(repository);
         this.whiteboard = checkNotNull(whiteboard);
         this.delegate = checkNotNull(delegate);
@@ -155,10 +155,12 @@ public class SessionContext implements NamePathMapper {
         return workspace.getReadWriteNodeTypeManager();
     }
 
+    @Nonnull
     public Repository getRepository() {
         return repository;
     }
 
+    @Nonnull
     public SessionDelegate getSessionDelegate() {
         return delegate;
     }
