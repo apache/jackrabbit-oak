@@ -119,7 +119,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        // TODO validate acl / ace / restriction removal
+        // nothing to do
         return null;
     }
 
