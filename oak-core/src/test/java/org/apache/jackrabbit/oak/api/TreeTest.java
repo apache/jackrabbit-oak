@@ -29,7 +29,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ChildOrderConflictHandler;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -61,7 +61,7 @@ public class TreeTest {
                     return Resolution.OURS;
                 }
             })
-            .with(new ConflictValidator())
+            .with(new ConflictValidatorProvider())
             .createContentRepository();
     }
 
