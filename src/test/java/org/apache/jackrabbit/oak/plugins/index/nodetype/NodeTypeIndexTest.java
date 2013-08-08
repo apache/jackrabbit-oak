@@ -106,7 +106,7 @@ public class NodeTypeIndexTest {
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
         NodeState type = types.getChildNode(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]");
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", null);
     }
 
     private static void checkCursor(Cursor cursor, String... matches) {

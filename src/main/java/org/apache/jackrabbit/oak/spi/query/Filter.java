@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 
 /**
@@ -63,6 +64,13 @@ public interface Filter {
      * @return the condition (null if none)
      */
     FullTextExpression getFullTextConstraint();
+    
+    /**
+     * Get the root tree to read data.
+     * 
+     * @return the tree
+     */
+    Tree getRootTree();
 
     /**
      * Get the property restriction for the given property, if any.
