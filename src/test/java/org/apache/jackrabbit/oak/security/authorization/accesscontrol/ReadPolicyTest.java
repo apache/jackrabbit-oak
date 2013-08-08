@@ -29,6 +29,8 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for the special {@code ReadPolicy} exposed at specified paths.
+ *
+ * @since OAK 1.0
  */
 public class ReadPolicyTest extends AbstractAccessControlTest {
 
