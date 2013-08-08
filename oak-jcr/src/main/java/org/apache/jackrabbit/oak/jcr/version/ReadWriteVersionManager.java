@@ -37,7 +37,9 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_ADD_VERSION_LABELS;
@@ -132,34 +134,36 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     /**
      * Performs a checkout on a versionable tree.
      *
-     * @param versionable the versionable node to check out.
+     * @param workspaceRoot a fresh workspace root without pending changes.
+     * @param versionablePath the absolute path to the versionable node to check out.
      * @throws UnsupportedRepositoryOperationException
      *                             if the versionable tree isn't actually
      *                             versionable.
      * @throws RepositoryException if an error occurs while checking the
      *                             node type of the tree.
+     * @throws IllegalStateException if the workspaceRoot has pending changes.
+     * @throws IllegalArgumentException if the <code>versionablePath</code> is
+     *                             not absolute.
      */
-    public void checkout(@Nonnull Tree versionable)
+    public void checkout(@Nonnull Root workspaceRoot,
+                         @Nonnull String versionablePath)
             throws UnsupportedRepositoryOperationException,
             InvalidItemStateException, RepositoryException {
+        checkState(!workspaceRoot.hasPendingChanges());
+        checkArgument(PathUtils.isAbsolute(versionablePath));
+        Tree versionable = workspaceRoot.getTree(versionablePath);
         if (!isVersionable(versionable)) {
             throw new UnsupportedRepositoryOperationException(
                     versionable.getPath() + " is not versionable");
         }
         if (!isCheckedOut(versionable)) {
-            if (workspaceRoot.hasPendingChanges()) {
-                // TODO: perform checkout on separate root and refresh session
-                //       while keeping pending changes.
-                log.warn("Session has pending changes. Checkout operation will " +
-                        "save those changes as well.");
-            }
             versionable.setProperty(JCR_ISCHECKEDOUT,
                     Boolean.TRUE, Type.BOOLEAN);
             try {
-                getWorkspaceRoot().commit();
+                workspaceRoot.commit();
                 refresh();
             } catch (CommitFailedException e) {
-                getWorkspaceRoot().refresh();
+                workspaceRoot.refresh();
                 throw e.asRepositoryException();
             }
         }

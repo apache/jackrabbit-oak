@@ -82,7 +82,10 @@ public class VersionManagerDelegate {
 
     public void checkout(@Nonnull NodeDelegate nodeDelegate)
             throws RepositoryException {
-        versionManager.checkout(getTree(nodeDelegate));
+        // perform the operation on a fresh root because
+        // it must not save pending changes in the workspace
+        Root fresh = sessionDelegate.getContentSession().getLatestRoot();
+        versionManager.checkout(fresh, nodeDelegate.getPath());
     }
 
     public boolean isCheckedOut(@Nonnull NodeDelegate nodeDelegate)

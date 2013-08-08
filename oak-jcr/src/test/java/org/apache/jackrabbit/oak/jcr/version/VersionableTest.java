@@ -26,6 +26,7 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.apache.jackrabbit.test.NotExecutableException;
 
 /**
  * <code>VersionableTest</code> contains tests for method relevant to
@@ -100,4 +101,20 @@ public class VersionableTest extends AbstractJCRTest {
         Property secondBodeVersionFrozenUuid = secondNodeVersion.getFrozenNode().getProperty(JcrConstants.JCR_FROZENUUID);
         assertFalse(JcrConstants.JCR_FROZENUUID + " should not be the same for two different versions of different nodes! ",
                 secondBodeVersionFrozenUuid.getValue().equals(firstNodeVersionFrozenUuid.getValue()));
-    }}
+    }
+
+    public void testCheckoutWithPendingChanges() throws Exception {
+        if (true) {
+            throw new NotExecutableException("OAK-947");
+        }
+        Node node = testRootNode.addNode(nodeName1, testNodeType);
+        node.addMixin(mixVersionable);
+        superuser.save();
+        node.checkin();
+        Node newNode = testRootNode.addNode(nodeName2, testNodeType);
+        assertTrue(newNode.isNew());
+        node.checkout();
+        assertTrue(node.isCheckedOut());
+        assertTrue(newNode.isNew());
+    }
+}
