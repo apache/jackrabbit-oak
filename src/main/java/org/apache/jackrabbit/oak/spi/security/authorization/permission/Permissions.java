@@ -45,12 +45,24 @@ public final class Permissions {
 
     public static final long NO_PERMISSION = 0;
 
+    /**
+     * @since OAK 1.0
+     */
     public static final long READ_NODE = 1;
 
+    /**
+     * @since OAK 1.0
+     */
     public static final long READ_PROPERTY = READ_NODE << 1;
 
+    /**
+     * @since OAK 1.0
+     */
     public static final long ADD_PROPERTY = READ_PROPERTY << 1;
 
+    /**
+     * @since OAK 1.0
+     */
     public static final long MODIFY_PROPERTY = ADD_PROPERTY << 1;
 
     public static final long REMOVE_PROPERTY = MODIFY_PROPERTY << 1;
