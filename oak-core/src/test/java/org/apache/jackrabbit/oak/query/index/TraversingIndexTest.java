@@ -69,7 +69,7 @@ public class TraversingIndexTest {
         String head = mk.getHeadRevision();
         head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");
         head = mk.commit("/", "+ \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}", head, "");
-        FilterImpl f = new FilterImpl(null, null);
+        FilterImpl f = new FilterImpl();
 
         f.setPath("/");
         List<String> paths = new ArrayList<String>();

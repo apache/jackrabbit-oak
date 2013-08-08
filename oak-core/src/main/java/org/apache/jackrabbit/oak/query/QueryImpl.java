@@ -576,6 +576,10 @@ public class QueryImpl implements Query {
         this.rootTree = rootTree;
     }
     
+    public Tree getRootTree() {
+        return rootTree;
+    }
+    
     @Override
     public void setRootState(NodeState rootState) {
         this.rootState = rootState;
