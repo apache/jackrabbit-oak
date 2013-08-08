@@ -1856,7 +1856,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     /**
-     * @since OAK 1.0 : only accessible policies are returned by call succeeds
+     * @since OAK 1.0 : only accessible policies are returned but not exception
+     * is raised.
      */
     @Test
     public void testTestSessionGetEffectivePoliciesByPrincipals2() throws Exception {
