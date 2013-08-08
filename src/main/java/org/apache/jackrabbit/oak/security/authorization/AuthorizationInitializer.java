@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
+package org.apache.jackrabbit.oak.security.authorization;
 
 import javax.annotation.Nonnull;
 
@@ -34,11 +34,16 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 
 /**
- * Implementation of the {@code WorkspaceInitializer} interface that creates
- * a property index definitions for {@link #REP_PRINCIPAL_NAME rep:principalName}
- * properties defined with ACE nodes.
+ * Implementation of the {@code WorkspaceInitializer} interface that
+ * <ul>
+ *     <li>creates a property index definitions for
+ *     {@link #REP_PRINCIPAL_NAME rep:principalName} properties defined with ACE
+ *     nodes</li>
+ *     <li>asserts that the permission store is setup and has dedicated entry for
+ *     this workspace.</li>
+ * </ul>.
  */
-public class AccessControlInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {
+class AuthorizationInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {
 
     @Nonnull
     @Override
