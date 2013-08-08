@@ -102,6 +102,9 @@ public final class Permissions {
 
     public static final long READ = READ_NODE | READ_PROPERTY;
 
+    /**
+     * @since OAK 1.0
+     */
     public static final long REMOVE = REMOVE_NODE | REMOVE_PROPERTY;
 
     public static final long SET_PROPERTY = ADD_PROPERTY | MODIFY_PROPERTY | REMOVE_PROPERTY;
@@ -151,6 +154,13 @@ public final class Permissions {
         PERMISSION_NAMES.put(USER_MANAGEMENT, "USER_MANAGEMENT");
     }
 
+    /**
+     * Returns names of the specified permissions.
+     *
+     * @param permissions The permissions for which the string representation
+     * should be collected.
+     * @return The names of the given permissions.
+     */
     public static Set<String> getNames(long permissions) {
         if (PERMISSION_NAMES.containsKey(permissions)) {
             return ImmutableSet.of(PERMISSION_NAMES.get(permissions));
@@ -166,6 +176,15 @@ public final class Permissions {
         }
     }
 
+    /**
+     * Returns the names of the specified permissions separated by ','.
+     *
+     * @param permissions The permissions for which the string representation
+     * should be collected.
+     * @return The names of the given permissions separated by ',' such
+     * that i can be passed to {@link Session#hasPermission(String, String)}
+     * and {@link Session#checkPermission(String, String)}.
+     */
     public static String getString(long permissions) {
         if (PERMISSION_NAMES.containsKey(permissions)) {
             return PERMISSION_NAMES.get(permissions);
