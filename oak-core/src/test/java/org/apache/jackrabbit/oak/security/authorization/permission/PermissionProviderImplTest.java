@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -84,8 +85,8 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(PARAM_READ_PATHS, READ_PATHS);
-        map.put(PARAM_ADMINISTRATOR_PRINCIPALS, new String[] {ADMINISTRATOR_GROUP});
+        map.put(PermissionConstants.PARAM_READ_PATHS, READ_PATHS);
+        map.put(PermissionConstants.PARAM_ADMINISTRATOR_PRINCIPALS, new String[] {ADMINISTRATOR_GROUP});
         ConfigurationParameters acConfig = new ConfigurationParameters(map);
 
         return new ConfigurationParameters(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));

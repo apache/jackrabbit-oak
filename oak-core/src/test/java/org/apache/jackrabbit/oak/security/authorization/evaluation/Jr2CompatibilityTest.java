@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
@@ -45,7 +45,7 @@ import org.junit.Test;
 
 /**
  * Test compatibility with Jackrabbit 2.x using the
- * {@link AccessControlConstants#PARAM_PERMISSIONS_JR2} configuration parameter.
+ * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants#PARAM_PERMISSIONS_JR2} configuration parameter.
  */
 public class Jr2CompatibilityTest extends AbstractOakCoreTest {
 
@@ -82,7 +82,7 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        Map<String, String> map = Collections.singletonMap(AccessControlConstants.PARAM_PERMISSIONS_JR2, AccessControlConstants.VALUE_PERMISSIONS_JR2);
+        Map<String, String> map = Collections.singletonMap(PermissionConstants.PARAM_PERMISSIONS_JR2, PermissionConstants.VALUE_PERMISSIONS_JR2);
         ConfigurationParameters acConfig = new ConfigurationParameters(map);
 
         return new ConfigurationParameters(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));

@@ -24,12 +24,12 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -54,7 +54,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         this.acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
 
         ConfigurationParameters params = acConfig.getParameters();
-        String compatValue = params.getNullableConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, null);
+        String compatValue = params.getNullableConfigValue(PermissionConstants.PARAM_PERMISSIONS_JR2, null);
         jr2Permissions = Permissions.getPermissions(compatValue);
     }
 
