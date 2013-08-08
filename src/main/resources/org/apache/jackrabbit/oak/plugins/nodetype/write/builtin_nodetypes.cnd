@@ -425,6 +425,9 @@
   + jcr:propertyDefinition (nt:propertyDefinition) = nt:propertyDefinition protected sns
   + jcr:childNodeDefinition (nt:childNodeDefinition) = nt:childNodeDefinition protected sns
 
+/**
+ * @since oak 1.0
+ */
 [oak:nodeType] > nt:nodeType
   - oak:supertypes (NAME) protected multiple autocreated
   - oak:primarySubtypes (NAME) protected multiple autocreated
@@ -441,15 +444,24 @@
   + oak:namedChildNodeDefinitions (oak:namedChildNodeDefinitions) = oak:namedChildNodeDefinitions protected mandatory
   + oak:residualChildNodeDefinitions (oak:childNodeDefinitions) = oak:childNodeDefinitions protected mandatory
 
+/**
+ * @since oak 1.0
+ */
 [oak:namedPropertyDefinitions]
   + * (oak:propertyDefinitions) = oak:propertyDefinitions protected
 
+/**
+ * @since oak 1.0
+ */
 [oak:propertyDefinitions]
   + * (nt:propertyDefinition) = nt:propertyDefinition protected
 
 [oak:namedChildNodeDefinitions]
   + * (oak:childNodeDefinitions) = oak:childNodeDefinitions protected
 
+/**
+ * @since oak 1.0
+ */
 [oak:childNodeDefinitions]
   + * (nt:childNodeDefinition) = nt:childNodeDefinition protected
 
@@ -639,6 +651,20 @@
   - * (UNDEFINED) protected
   - * (UNDEFINED) protected multiple
 
+// -----------------------------------------------------------------------------
+// Principal based AC
+// -----------------------------------------------------------------------------
+
+[rep:AccessControl]
+  + * (rep:AccessControl) protected IGNORE
+  + * (rep:PrincipalAccessControl) protected IGNORE
+
+[rep:PrincipalAccessControl] > rep:AccessControl
+  + rep:policy (rep:Policy) protected IGNORE
+
+// -----------------------------------------------------------------------------
+// Permissions
+// -----------------------------------------------------------------------------
 /**
  * @since oak 1.0
  */
@@ -654,17 +680,6 @@
   - * (UNDEFINED) protected
   - * (UNDEFINED) protected multiple
   + * (rep:Permissions) = rep:Permissions protected IGNORE
-
-// -----------------------------------------------------------------------------
-// Principal based AC
-// -----------------------------------------------------------------------------
-
-[rep:AccessControl]
-  + * (rep:AccessControl) protected IGNORE
-  + * (rep:PrincipalAccessControl) protected IGNORE
-
-[rep:PrincipalAccessControl] > rep:AccessControl
-  + rep:policy (rep:Policy) protected IGNORE
 
 // -----------------------------------------------------------------------------
 // User Management 
