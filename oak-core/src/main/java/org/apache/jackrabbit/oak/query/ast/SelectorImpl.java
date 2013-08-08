@@ -195,7 +195,7 @@ public class SelectorImpl extends SourceImpl {
      * @return the filter
      */
     private Filter createFilter(boolean preparing) {
-        FilterImpl f = new FilterImpl(this, query.getStatement());
+        FilterImpl f = new FilterImpl(this, query.getStatement(), query.getRootTree());
         f.setPreparing(preparing);
         if (joinCondition != null) {
             joinCondition.restrict(f);
