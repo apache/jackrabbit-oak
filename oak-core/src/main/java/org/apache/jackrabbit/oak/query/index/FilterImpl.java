@@ -90,6 +90,10 @@ public class FilterImpl implements Filter {
         this(null, null, null);
     }
 
+    public FilterImpl(SelectorImpl selector, String queryStatement) {
+        this(selector, queryStatement, null);
+    }
+
     public FilterImpl(SelectorImpl selector, String queryStatement, Tree rootTree) {
         this.selector = selector;
         this.queryStatement = queryStatement;
