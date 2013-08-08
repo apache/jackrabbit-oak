@@ -71,6 +71,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -124,7 +125,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         restrictionProvider = acConfig.getRestrictionProvider();
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
 
-        readPaths = ImmutableSet.copyOf(acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS));
+        readPaths = ImmutableSet.copyOf(acConfig.getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS));
     }
 
     private static <T> T getConfig(SecurityProvider sp, Class<T> clss) {
