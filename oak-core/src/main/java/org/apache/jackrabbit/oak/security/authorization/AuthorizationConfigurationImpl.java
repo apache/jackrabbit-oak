@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
-import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlInitializer;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
@@ -71,7 +70,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Nonnull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
-        return new AccessControlInitializer();
+        return new AuthorizationInitializer();
     }
 
     @Nonnull
