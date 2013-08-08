@@ -16,11 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static org.apache.jackrabbit.oak.jcr.RepositoryImpl.REFRESH_INTERVAL;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
@@ -29,6 +35,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.EventIterator;
+import javax.jcr.observation.EventListener;
+import javax.jcr.observation.ObservationManager;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -161,6 +171,55 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
                     .login(creds, null, Collections.<String, Object>singletonMap(REFRESH_INTERVAL, 0));
         } else{
             return getRepository().login(creds);
+        }
+    }
+
+    /**
+     * OAK-948 - JR2 generates propertyChange event for touched properties while Oak does not
+     */
+    @Test
+    public void noEventsForTouchedProperties() throws RepositoryException, InterruptedException {
+        final String testNodeName = "test_touched_node";
+        final String testNodePath = '/' + testNodeName;
+
+        // Create the test node
+        Session session = getAdminSession();
+        Node testNode = session.getRootNode().addNode(testNodeName);
+        testNode.setProperty("foo", "bar");
+        testNode.setProperty("foo2", "bar0");
+        session.save();
+
+        Session observingSession = createAdminSession();
+        ObservationManager observationManager = observingSession.getWorkspace().getObservationManager();
+
+        try{
+            final List<Event> events = new ArrayList<Event>();
+            final CountDownLatch latch = new CountDownLatch(1);
+            EventListener listener = new EventListener() {
+                @Override
+                public void onEvent(EventIterator eventIt) {
+                    while(eventIt.hasNext()){
+                        events.add(eventIt.nextEvent());
+                    }
+                    if(!events.isEmpty()){
+                        latch.countDown();
+                    }
+                }
+            };
+
+            observationManager.addEventListener(listener, PROPERTY_CHANGED, testNodePath, true, null, null, false);
+
+            //Now touch foo and modify foo2
+            session.getNode(testNodePath).setProperty("foo","bar");
+            session.getNode(testNodePath).setProperty("foo2","bar2");
+            session.save();
+
+            latch.await(10,TimeUnit.SECONDS);
+
+            //Only one event is recorded for foo2 modification
+            assertEquals(1,events.size());
+        }finally{
+            observingSession.logout();
         }
     }
 
