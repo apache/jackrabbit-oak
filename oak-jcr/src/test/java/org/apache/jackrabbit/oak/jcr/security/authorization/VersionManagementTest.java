@@ -92,7 +92,6 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         n.checkout();
     }
 
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testCheckInCheckout() throws Exception {
         modify(path, REP_WRITE, true);
@@ -295,7 +294,6 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak
      */
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAddVersionLabel() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
