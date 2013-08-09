@@ -336,6 +336,18 @@ public class RootTest extends OakBaseTest {
     }
 
     @Test
+    @Ignore("OAK-947")  // FIXME OAK-947
+    public void purgePreservesStatus() throws CommitFailedException {
+        Tree x = session.getLatestRoot().getTree("/x");
+        Tree added = x.addChild("added");
+
+        for (int k = 0; k < 10000; k++) {
+            assertEquals("k=" + k, NEW, x.getChild("added").getStatus());
+            x.addChild("k" + k);
+        }
+    }
+
+    @Test
     public void rebaseWithAddNode() throws CommitFailedException {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
