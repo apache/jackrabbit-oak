@@ -422,9 +422,8 @@ public class WriteTest extends AbstractEvaluationTest {
         assertTrue(testSession.hasPermission(childNPath, Session.ACTION_ADD_NODE));
     }
 
-    // FIXME OAK-869: This currently throws an IllegalStateException. Set correct test expectations
     @Test
-    @Ignore
+    @Ignore("OAK-869") // FIXME: OAK-869
     public void testWriteOnParentWithNoReadePriv() throws Exception {
         Node a = superuser.getNode(path).addNode("a");
         allow(path, testUser.getPrincipal(), readWritePrivileges);
