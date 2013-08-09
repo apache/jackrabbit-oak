@@ -107,8 +107,8 @@ Authentication
 Please refer to [OAK-793](https://issues.apache.org/jira/browse/OAK-793) for a general overview of
 changes with respect to Jackrabbit 2.
 
-Access Control Management and Permissions
------------------------------------------
+Access Control Management
+-------------------------
 
 Refer to [OAK-792](https://issues.apache.org/jira/browse/OAK-792) for a general overview of changes
 with respect to Jackrabbit 2.
@@ -135,7 +135,7 @@ with respect to Jackrabbit 2.
 
 * By default user management operations require the specific user mgt related
   permission that has been introduced with OAK-1.0. This behavior can be
-  turned off by setting the corresponding configuraon flag.
+  turned off by setting the corresponding configuration flag.
 
 * As of OAK accessibility of items in the version store does not follow the
   regular permission evaluation but depends on access rights present on the
