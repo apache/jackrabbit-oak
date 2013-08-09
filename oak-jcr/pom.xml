@@ -64,7 +64,7 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied                       <!-- OAK-118 -->
 
-      <!-- locking not implemented -->
+      <!-- Locking : not implemented -->
       org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspaceWithHandler           <!-- OAK-127: no session scoped locking -->
       org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionSessionWithHandler             <!-- OAK-127: no session scoped locking -->
       org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspace                      <!-- OAK-127: no session scoped locking -->
@@ -184,16 +184,20 @@
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testGetLockOnChild
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testGetLockOnNewChild
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testRemoveMixLockableFromLockedNode  <!-- ... OAK-150 -->
+      org.apache.jackrabbit.test.api.lock.LockTest#testCheckedIn
+      org.apache.jackrabbit.test.api.lock.LockTest#testCheckedInUnlock
+
+      <!-- Lifecycle Mgt : not implemented -->
       org.apache.jackrabbit.test.api.LifecycleTest
-      org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
-      org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException                          <!-- OAK-203 -->
-      org.apache.jackrabbit.test.api.query.SaveTest#testLockException
+
+      <!-- Observation -->
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved
       org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
+
       <!-- Versioning -->
       org.apache.jackrabbit.test.api.version.VersionTest#testRestore
       org.apache.jackrabbit.test.api.version.VersionTest#testUnlock
@@ -242,11 +246,8 @@
       org.apache.jackrabbit.test.api.version.MergeShallowTest
       org.apache.jackrabbit.test.api.version.MergeNonVersionableSubNodeTest
       org.apache.jackrabbit.test.api.version.MergeSubNodeTest
-      <!-- Versioning related (OAK-168) -->
-      org.apache.jackrabbit.test.api.lock.LockTest#testCheckedIn
-      org.apache.jackrabbit.test.api.lock.LockTest#testCheckedInUnlock
-      org.apache.jackrabbit.test.api.observation.GetUserDataTest#testVersioning
 
+      <!-- Permission Evaluation -->
       org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testWriteOnParentWithNoReadePriv<!-- OAK-869 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion   <!-- OAK-168 -->
@@ -257,8 +258,21 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleProperty        <!-- OAK-920 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleAcContent       <!-- OAK-920 -->
 
+      <!-- User Management -->
       org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                               <!-- OAK-414, OAK-482 -->
 
+      <!-- Query -->
+      org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
+      org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException                          <!-- OAK-203 -->
+      org.apache.jackrabbit.test.api.query.SaveTest#testLockException
+      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoin                                      <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinNtBase                                <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinFilterPrimaryType                     <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinSNS                                   <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testInnerJoin         <!-- OAK-852 -->
+      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testLeftOuterJoin     <!-- OAK-852 -->
+
+      <!-- Jackrabbit query tests -->
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStart                           <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStartAndEnd                     <!-- OAK-318 -->
@@ -266,13 +280,6 @@
       org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
 
-      <!-- Jackrabbit query tests (OAK-237) -->
-      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoin                                      <!-- OAK-474 -->
-      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinNtBase                                <!-- OAK-474 -->
-      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinFilterPrimaryType                     <!-- OAK-474 -->
-      org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinSNS                                   <!-- OAK-474 -->
-      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testInnerJoin         <!-- OAK-852 -->
-      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testLeftOuterJoin     <!-- OAK-852 -->
       org.apache.jackrabbit.core.query.QueryResultTest#testSkip                                      <!-- OAK-484 -->
       org.apache.jackrabbit.core.query.SimilarQueryTest#testSimilar                                  <!-- OAK-319 -->
       org.apache.jackrabbit.core.query.DerefTest#testDeref                                           <!-- OAK-321 -->
@@ -304,7 +311,10 @@
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShare                         <!-- OAK-118 workspace support needed -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testRemoveShare                      <!-- OAK-118 workspace support needed -->
+
+      <!-- Node Types -->
       org.apache.jackrabbit.oak.jcr.nodetype.NodeDefinitionTest#testRootType                         <!-- OAK-901 -->
+
     </known.issues>
   </properties>
 
