@@ -137,7 +137,7 @@ with respect to Jackrabbit 2.
   permission that has been introduced with OAK-1.0. This behavior can be
   turned off by setting the corresponding configuration flag.
 
-* As of OAK accessibility of items in the version store does not follow the
+* As of OAK reading and writing items in the version store does not follow the
   regular permission evaluation but depends on access rights present on the
   corresponding versionable node [OAK-444](https://issues.apache.org/jira/browse/OAK-444).
 
