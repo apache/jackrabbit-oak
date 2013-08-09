@@ -77,7 +77,7 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
         // reset the offset before setting bound value/maxCount
         offset = 0;
         this.bound = bound;
-        this.maxCount = maxCount;
+        setMaxCount(maxCount);
     }
 
     @Override
@@ -85,7 +85,7 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
         // reset the bound value before setting offset/maxCount
         bound = null;
         this.offset = offset;
-        this.maxCount = maxCount;
+        setMaxCount(maxCount);
     }
 
     @Override
@@ -202,5 +202,13 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
 
     long getMaxCount() {
         return maxCount;
+    }
+
+    private void setMaxCount(long maxCount) {
+        if (maxCount == -1) {
+            this.maxCount = Long.MAX_VALUE;
+        } else {
+            this.maxCount = maxCount;
+        }
     }
 }
