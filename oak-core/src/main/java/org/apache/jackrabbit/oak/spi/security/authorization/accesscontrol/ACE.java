@@ -138,8 +138,8 @@ public class ACE implements JackrabbitAccessControlEntry {
         return null;
     }
 
-    // TODO add to API (-> JCR-3637)
     @CheckForNull
+    @Override
     public Value[] getRestrictions(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
             String jcrName = namePathMapper.getJcrName(restriction.getName());
