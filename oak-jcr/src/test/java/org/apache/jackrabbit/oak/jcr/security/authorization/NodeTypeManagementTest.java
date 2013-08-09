@@ -26,7 +26,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -298,7 +297,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         testSession.save();
     }
 
-    @Ignore("OAK-773 : Workspace Import XML")
     @Test
     public void testWorkspaceImportXML() throws Exception {
         Workspace wsp = testSession.getWorkspace();
