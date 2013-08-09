@@ -184,7 +184,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     //--------------------------------------------------------------------------
 
     private boolean isAdmin(Set<Principal> principals) {
-        Set<String> adminNames = ImmutableSet.copyOf(acConfig.getParameters().getConfigValue(PARAM_ADMINISTRATOR_PRINCIPALS, new String[0]));
+        Set<String> adminNames = ImmutableSet.copyOf(acConfig.getParameters().getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, new String[0]));
         for (Principal principal : principals) {
             if (principal instanceof AdminPrincipal || adminNames.contains(principal.getName())) {
                 return true;

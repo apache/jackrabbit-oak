@@ -92,7 +92,7 @@ public interface PermissionConstants {
      *
      * @since OAK 1.0
      */
-    String PARAM_ADMINISTRATOR_PRINCIPALS = "administratorPrincipals";
+    String PARAM_ADMINISTRATIVE_PRINCIPALS = "administrativePrincipals";
 
     /**
      * Configuration parameter to enable full read access to regular nodes and
