@@ -753,6 +753,54 @@ public class UserQueryTest extends AbstractUserTest {
         assertFalse(result.hasNext());
     }
 
+    @Test
+    public void testMaxCount() throws Exception {
+        final long count = Long.MAX_VALUE;
+        final long countjr2 = -1; // in jackrabbit -1 could be used to set no limit
+
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
+                builder.setLimit(0, countjr2);
+            }
+        });
+
+        Iterator<Authorizable> expected = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
+                builder.setLimit(0, count);
+            }
+        });
+
+        assertSame(expected, result, count);
+        assertFalse(result.hasNext());
+    }
+
+    @Test
+    public void testMaxCountWithScope() throws Exception {
+        final long count = Long.MAX_VALUE;
+        final long countjr2 = -1; // in jackrabbit -1 could be used to set no limit
+
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
+                builder.setScope("vertebrates", false);
+                builder.setLimit(0, countjr2);
+            }
+        });
+
+        Iterator<Authorizable> expected = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
+                builder.setScope("vertebrates", false);
+                builder.setLimit(0, count);
+            }
+        });
+
+        assertSame(expected, result, count);
+        assertFalse(result.hasNext());
+    }
+
     //------------------------------------------------------------< private >---
 
     private static void addMembers(Group group, Authorizable... authorizables) throws RepositoryException {
