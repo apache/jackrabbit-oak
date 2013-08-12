@@ -91,7 +91,7 @@ Regarding observation listeners:
   recommendations on alternative solutions where applicable.
 
 * Touched properties: Jackrabbit 2 used to generate a `PROPERTY_CHANGED` event when touching a
-  property (i.e setting a property to its current value). Oak keeps closer to the specification and
+  property (i.e. setting a property to its current value). Oak keeps closer to the specification and
   [omits such events](https://issues.apache.org/jira/browse/OAK-948).
 
 Same name siblings
