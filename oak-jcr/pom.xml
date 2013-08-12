@@ -230,10 +230,6 @@
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
-      org.apache.jackrabbit.test.api.version.OnParentVersionComputeTest
-      org.apache.jackrabbit.test.api.version.OnParentVersionCopyTest
-      org.apache.jackrabbit.test.api.version.OnParentVersionIgnoreTest
-      org.apache.jackrabbit.test.api.version.OnParentVersionInitializeTest
       org.apache.jackrabbit.test.api.version.GetPredecessorsTest
       org.apache.jackrabbit.test.api.version.GetReferencesNodeTest#testGetReferencesNeverFromVersions <!-- Node.getReferences must not return references from version storage -->
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest

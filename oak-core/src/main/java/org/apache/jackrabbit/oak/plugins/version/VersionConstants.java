@@ -66,6 +66,11 @@ public interface VersionConstants extends JcrConstants {
     String REP_REMOVE_VERSION_LABELS = "rep:removeVersionLabels";
 
     /**
+     * Prefix of the jcr:baseVersion value for a restore.
+     */
+    String RESTORE_PREFIX = "restore-";
+
+    /**
      * Quote from JSR 283 Section "15.12.3 Activity Storage"<p/>
      * <p/>
      * Activities are persisted as nodes of type nt:activity under system-generated

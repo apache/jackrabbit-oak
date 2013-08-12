@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.RESTORE_PREFIX;
 
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.jcr.version.VersionStorage;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 /**
  * {@code VersionManagerDelegate}...
@@ -163,9 +165,7 @@ public class VersionManagerDelegate {
             t.setProperty(JCR_VERSIONHISTORY, vd.getParent().getIdentifier(), Type.REFERENCE);
         } else {
             Tree t = parent.getChild(oakName).getTree();
-            t.setProperty(JCR_BASEVERSION, vd.getIdentifier(), Type.REFERENCE);
-            // TODO: what if node was checked-out and restore is for current
-            //       base version? -> will not trigger VersionEditor
+            t.setProperty(JCR_BASEVERSION, RESTORE_PREFIX + vd.getIdentifier(), Type.REFERENCE);
         }
     }
 
