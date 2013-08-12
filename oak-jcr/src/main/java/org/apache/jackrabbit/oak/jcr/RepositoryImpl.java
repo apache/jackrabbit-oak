@@ -68,7 +68,7 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
-    private final Whiteboard whiteboard;
+    protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
 
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
@@ -203,7 +203,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             }
 
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            SessionContext context = new SessionContext(this, whiteboard,
+            SessionContext context = createSessionContext(
                     Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
                     new SessionDelegate(contentSession, refreshInterval));
             return context.getSession();
@@ -218,6 +218,18 @@ public class RepositoryImpl implements JackrabbitRepository {
     }
 
     //------------------------------------------------------------< internal >---
+
+    /**
+     * Factory method for creating a {@link SessionContext} instance for
+     * a new session. Called by {@link #login()}. Can be overridden by
+     * subclasses to customize the session implementation.
+     *
+     * @return session context
+     */
+    protected SessionContext createSessionContext(
+            Map<String, Object> attributes, SessionDelegate delegate) {
+        return new SessionContext(this, whiteboard, attributes, delegate);
+    }
 
     SecurityProvider getSecurityProvider() {
         return securityProvider;
