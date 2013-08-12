@@ -236,8 +236,6 @@
       org.apache.jackrabbit.test.api.version.OnParentVersionInitializeTest
       org.apache.jackrabbit.test.api.version.GetPredecessorsTest
       org.apache.jackrabbit.test.api.version.GetReferencesNodeTest#testGetReferencesNeverFromVersions <!-- Node.getReferences must not return references from version storage -->
-      org.apache.jackrabbit.test.api.version.SessionMoveVersionExceptionTest
-      org.apache.jackrabbit.test.api.version.WorkspaceMoveVersionExceptionTest
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest
       org.apache.jackrabbit.test.api.version.MergeCheckedoutSubNodeTest
       org.apache.jackrabbit.test.api.version.MergeDoneMergeTest
