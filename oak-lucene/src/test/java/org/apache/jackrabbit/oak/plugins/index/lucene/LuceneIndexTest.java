@@ -41,14 +41,17 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.analysis.Analyzer;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
 public class LuceneIndexTest {
 
+    private static final Analyzer analyzer = LuceneIndexConstants.ANALYZER;
+
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new LuceneIndexEditorProvider()));
+            new IndexUpdateProvider(new LuceneIndexEditorProvider().with(analyzer)));
 
     private NodeState root = new InitialContent().initialize(EMPTY_NODE);
 
@@ -65,7 +68,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after);
 
-        QueryIndex queryIndex = new LuceneIndex();
+        QueryIndex queryIndex = new LuceneIndex(analyzer);
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -91,7 +94,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after);
 
-        QueryIndex queryIndex = new LuceneIndex();
+        QueryIndex queryIndex = new LuceneIndex(analyzer);
         FilterImpl filter = createFilter(NT_BASE);
         // filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -122,7 +125,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after);
 
-        QueryIndex queryIndex = new LuceneIndex();
+        QueryIndex queryIndex = new LuceneIndex(analyzer);
         FilterImpl filter = createFilter(NT_BASE);
         // filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,

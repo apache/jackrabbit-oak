@@ -147,4 +147,18 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     }
 
+    @Test
+    public void containsPath() throws Exception {
+        String h = "/p1/p2/p3";
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("name", h);
+        root.commit();
+
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("//*[jcr:contains(., '/p1/p2')]");
+        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+
+    }
+
 }

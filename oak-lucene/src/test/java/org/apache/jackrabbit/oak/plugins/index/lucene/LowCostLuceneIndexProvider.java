@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.analysis.Analyzer;
 
 /**
  * A LuceneIndexProvider that return a LuceneIndex with a really low cost, so
@@ -28,13 +29,20 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
 
     @Override
     protected LuceneIndex newLuceneIndex() {
-        return new LowCostLuceneIndex();
+        return new LowCostLuceneIndex(analyzer);
+    }
+
+    // ----- helper builder method
+
+    public LowCostLuceneIndexProvider with(Analyzer analyzer) {
+        this.setAnalyzer(analyzer);
+        return this;
     }
 
     private static class LowCostLuceneIndex extends LuceneIndex {
 
-        public LowCostLuceneIndex() {
-            super();
+        public LowCostLuceneIndex(Analyzer analyzer) {
+            super(analyzer);
         }
 
         @Override

@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.AggregatedStat
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.PrefixQuery;
@@ -71,11 +72,11 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private boolean propertiesChanged = false;
 
-    LuceneIndexEditor(NodeBuilder definition) throws CommitFailedException {
+    LuceneIndexEditor(NodeBuilder definition, Analyzer analyzer) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.context = new LuceneIndexEditorContext(definition);
+        this.context = new LuceneIndexEditorContext(definition, analyzer);
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name) {
