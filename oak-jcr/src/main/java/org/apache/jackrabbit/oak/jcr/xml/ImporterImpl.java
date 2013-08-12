@@ -130,18 +130,18 @@ public class ImporterImpl implements Importer {
         }
 
         // TODO: review usage of write-root and object obtained from session-context (OAK-931)
-        VersionManager vMgr = sessionContext.getVersionManager();
+        VersionManager vMgr = sessionContext.getWorkspace().getVersionManager();
         if (!vMgr.isCheckedOut(absPath)) {
             throw new VersionException("Target node is checked in.");
         }
-        if (sessionContext.getLockManager().isLocked(absPath)) {
+        if (sessionContext.getWorkspace().getLockManager().isLocked(absPath)) {
             throw new LockException("Target node is locked.");
         }
         ntTypesRoot = root.getTree(NODE_TYPES_PATH);
         accessManager = sessionContext.getAccessManager();
         idManager = new IdentifierManager(root);
-        effectiveNodeTypeProvider = sessionContext.getEffectiveNodeTypeProvider();
-        definitionProvider = sessionContext.getDefinitionProvider();
+        effectiveNodeTypeProvider = sessionContext.getWorkspace().getNodeTypeManager();
+        definitionProvider = sessionContext.getWorkspace().getNodeTypeManager();
         // TODO: end
 
         refTracker = new ReferenceChangeTracker();
