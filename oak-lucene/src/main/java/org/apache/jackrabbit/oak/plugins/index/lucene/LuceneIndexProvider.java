@@ -25,6 +25,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.analysis.Analyzer;
 
 import com.google.common.collect.ImmutableList;
 
@@ -39,15 +40,33 @@ import com.google.common.collect.ImmutableList;
 public class LuceneIndexProvider implements QueryIndexProvider,
         LuceneIndexConstants {
 
-    @Override @Nonnull
+    /**
+     * TODO how to inject this in an OSGi friendly way?
+     */
+    protected Analyzer analyzer = ANALYZER;
+
+    @Override
+    @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex>of(newLuceneIndex());
+        return ImmutableList.<QueryIndex> of(newLuceneIndex());
+    }
+
+    protected LuceneIndex newLuceneIndex() {
+        return new LuceneIndex(analyzer);
     }
 
     /**
-     * testing purposes
+     * sets the default analyzer that will be used at query time
      */
-    protected LuceneIndex newLuceneIndex() {
-        return new LuceneIndex();
+    public void setAnalyzer(Analyzer analyzer) {
+        this.analyzer = analyzer;
     }
+
+    // ----- helper builder method
+
+    public LuceneIndexProvider with(Analyzer analyzer) {
+        this.setAnalyzer(analyzer);
+        return this;
+    }
+
 }

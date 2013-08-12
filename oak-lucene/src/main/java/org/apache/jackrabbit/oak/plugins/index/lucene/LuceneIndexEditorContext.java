@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
@@ -33,6 +32,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
@@ -48,13 +48,13 @@ public class LuceneIndexEditorContext {
     private static final Logger log = LoggerFactory
             .getLogger(LuceneIndexEditorContext.class);
 
-    private static IndexWriterConfig getIndexWriterConfig() {
+    private static IndexWriterConfig getIndexWriterConfig(Analyzer analyzer) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
         ClassLoader loader = thread.getContextClassLoader();
         thread.setContextClassLoader(IndexWriterConfig.class.getClassLoader());
         try {
-            IndexWriterConfig config = new IndexWriterConfig(VERSION, ANALYZER);
+            IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
             config.setMergeScheduler(new SerialMergeScheduler());
             return config;
         } finally {
@@ -88,7 +88,7 @@ public class LuceneIndexEditorContext {
 
     private static final NodeAggregator aggregator = new NodeAggregator();
 
-    private static final IndexWriterConfig config = getIndexWriterConfig();
+    private final IndexWriterConfig config;
 
     private static final Parser parser = new AutoDetectParser();
 
@@ -100,8 +100,9 @@ public class LuceneIndexEditorContext {
 
     private long indexedNodes;
 
-    LuceneIndexEditorContext(NodeBuilder definition) {
+    LuceneIndexEditorContext(NodeBuilder definition, Analyzer analyzer) {
         this.definition = definition;
+        this.config = getIndexWriterConfig(analyzer);
 
         PropertyState ps = definition.getProperty(INCLUDE_PROPERTY_TYPES);
         if (ps != null) {
