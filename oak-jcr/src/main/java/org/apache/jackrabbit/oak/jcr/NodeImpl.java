@@ -55,6 +55,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
@@ -70,8 +72,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockImpl;
 import org.apache.jackrabbit.oak.jcr.operation.NodeOperation;
+import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
+import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -107,6 +112,34 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
+    public static NodeImpl<? extends NodeDelegate> createNodeOrNull(
+            NodeDelegate delegate, SessionContext context)
+            throws RepositoryException {
+        if (delegate != null) {
+            return createNode(delegate, context);
+        } else {
+            return null;
+        }
+    }
+
+    public static NodeImpl<? extends NodeDelegate> createNode(
+                NodeDelegate delegate, SessionContext context)
+                throws RepositoryException {
+        PropertyDelegate pd = delegate.getPropertyOrNull(JCR_PRIMARYTYPE);
+        String type = pd != null ? pd.getString() : null;
+        if (JcrConstants.NT_VERSION.equals(type)) {
+            VersionManagerDelegate vmd =
+                    VersionManagerDelegate.create(context.getSessionDelegate());
+            return new VersionImpl(vmd.createVersion(delegate), context);
+        } else if (JcrConstants.NT_VERSIONHISTORY.equals(type)) {
+            VersionManagerDelegate vmd =
+                    VersionManagerDelegate.create(context.getSessionDelegate());
+            return new VersionHistoryImpl(vmd.createVersionHistory(delegate), context);
+        } else {
+            return new NodeImpl<NodeDelegate>(delegate, context);
+        }
+    }
+
     public NodeImpl(T dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
     }
@@ -137,7 +170,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     if (parent == null) {
                         throw new AccessDeniedException();
                     }
-                    return sessionContext.createNodeOrNull(parent);
+                    return NodeImpl.createNode(parent, sessionContext);
                 }
             }
         });
@@ -252,7 +285,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (added == null) {
                     throw new ItemExistsException();
                 }
-                return sessionContext.createNodeOrNull(added);
+                return NodeImpl.createNode(added, sessionContext);
             }
         });
     }
@@ -489,7 +522,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (nd == null) {
                     throw new PathNotFoundException(oakPath);
                 } else {
-                    return sessionContext.createNodeOrNull(nd);
+                    return NodeImpl.createNode(nd, sessionContext);
                 }
             }
         });

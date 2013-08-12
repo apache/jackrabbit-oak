@@ -189,7 +189,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         if (ancestor == dlg) {
             return this;
         } else if (ancestor instanceof NodeDelegate) {
-            return sessionContext.createNodeOrNull((NodeDelegate) ancestor);
+            return NodeImpl.createNode((NodeDelegate) ancestor, sessionContext);
         } else {
             throw new AccessDeniedException(
                     getPath() + ": Access denied to ancestor at depth " + depth);

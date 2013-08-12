@@ -124,8 +124,9 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
         return perform(new SessionOperation<Node>() {
             @Override
             public Node perform() throws RepositoryException {
-                return sessionContext.createNodeOrNull(
-                        dlg.getChild(VersionConstants.JCR_FROZENNODE));
+                return NodeImpl.createNodeOrNull(
+                        dlg.getChild(VersionConstants.JCR_FROZENNODE),
+                        sessionContext);
             }
         });
     }

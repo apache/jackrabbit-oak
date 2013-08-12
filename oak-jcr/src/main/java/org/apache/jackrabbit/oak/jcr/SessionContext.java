@@ -39,7 +39,6 @@ import javax.jcr.observation.ObservationManager;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -49,15 +48,10 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
-import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
-import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
@@ -84,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
  * {@code ValueFactory}, etc.).
  */
 public class SessionContext implements NamePathMapper {
+
     private final RepositoryImpl repository;
     private final Whiteboard whiteboard;
     private final SessionDelegate delegate;
@@ -167,23 +162,6 @@ public class SessionContext implements NamePathMapper {
 
     SessionNamespaces getNamespaces() {
         return namespaces;
-    }
-
-    public NodeImpl createNodeOrNull(NodeDelegate nd) throws RepositoryException {
-        if (nd == null) {
-            return null;
-        }
-        PropertyDelegate pd = nd.getPropertyOrNull(JcrConstants.JCR_PRIMARYTYPE);
-        String type = pd != null ? pd.getString() : null;
-        if (JcrConstants.NT_VERSION.equals(type)) {
-            VersionManagerDelegate delegate = VersionManagerDelegate.create(getSessionDelegate());
-            return new VersionImpl(delegate.createVersion(nd), this);
-        } else if (JcrConstants.NT_VERSIONHISTORY.equals(type)) {
-            VersionManagerDelegate delegate = VersionManagerDelegate.create(getSessionDelegate());
-            return new VersionHistoryImpl(delegate.createVersionHistory(nd), this);
-        } else {
-            return new NodeImpl<NodeDelegate>(nd, this);
-        }
     }
 
     public ValueFactory getValueFactory() {
