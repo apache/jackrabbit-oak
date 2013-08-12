@@ -165,23 +165,23 @@ public class SessionContext implements NamePathMapper {
     }
 
     public LockManager getLockManager() {
-        return workspace.getLockManager();
+        return getWorkspace().getLockManager();
     }
 
     public NodeTypeManager getNodeTypeManager() {
-        return workspace.getNodeTypeManager();
+        return getWorkspace().getNodeTypeManager();
     }
 
     public VersionManager getVersionManager() throws RepositoryException {
-        return workspace.getVersionManager();
+        return getWorkspace().getVersionManager();
     }
 
     public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-        return workspace.getReadWriteNodeTypeManager();
+        return getWorkspace().getReadWriteNodeTypeManager();
     }
 
     public DefinitionProvider getDefinitionProvider() {
-        return workspace.getReadWriteNodeTypeManager();
+        return getWorkspace().getReadWriteNodeTypeManager();
     }
 
     @Nonnull
