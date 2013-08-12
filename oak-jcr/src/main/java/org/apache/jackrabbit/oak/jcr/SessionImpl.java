@@ -79,7 +79,7 @@ public class SessionImpl implements JackrabbitSession {
     private final SessionContext sessionContext;
     private final SessionDelegate sd;
 
-    SessionImpl(SessionContext sessionContext) {
+    public SessionImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.sd = sessionContext.getSessionDelegate();
     }
