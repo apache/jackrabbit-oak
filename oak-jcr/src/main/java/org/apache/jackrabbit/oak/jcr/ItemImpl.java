@@ -41,7 +41,6 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -53,8 +52,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,9 +147,8 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         }));
     }
 
-    @Override
-    @Nonnull
-    public Session getSession() throws RepositoryException {
+    @Override @Nonnull
+    public Session getSession() {
         return sessionContext.getSession();
     }
 
@@ -301,23 +298,13 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     @Nonnull
-    NodeTypeManager getNodeTypeManager() {
-        return sessionContext.getNodeTypeManager();
-    }
-
-    @Nonnull
-    DefinitionProvider getDefinitionProvider() {
-        return sessionContext.getDefinitionProvider();
-    }
-
-    @Nonnull
-    EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-        return sessionContext.getEffectiveNodeTypeProvider();
+    ReadWriteNodeTypeManager getNodeTypeManager() {
+        return sessionContext.getWorkspace().getNodeTypeManager();
     }
 
     @Nonnull
     VersionManager getVersionManager() throws RepositoryException {
-        return sessionContext.getVersionManager();
+        return sessionContext.getWorkspace().getVersionManager();
     }
 
     protected PropertyState createSingleState(

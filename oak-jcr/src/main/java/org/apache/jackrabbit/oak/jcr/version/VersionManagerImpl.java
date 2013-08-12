@@ -31,7 +31,6 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.lock.LockException;
-import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.util.TraversingItemVisitor;
 import javax.jcr.version.Version;
@@ -324,11 +323,6 @@ public class VersionManagerImpl implements VersionManager {
         return v;
     }
 
-    @Nonnull
-    private LockManager getLockManager() {
-        return sessionContext.getLockManager();
-    }
-
     @Override
     public void checkout(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
@@ -381,7 +375,8 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     private void checkNotLocked(String absPath) throws RepositoryException {
-        if (getLockManager().isLocked(absPath)) {
+        // TODO: avoid nested calls
+        if (sessionContext.getWorkspace().getLockManager().isLocked(absPath)) {
             throw new LockException("Node at " + absPath + " is locked");
         }
     }

@@ -40,7 +40,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
-import javax.jcr.Workspace;
 import javax.jcr.lock.Lock;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -86,6 +85,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
@@ -874,8 +874,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
-                return getEffectiveNodeTypeProvider().isNodeType(
-                        node.getTree(), oakName);
+                return getNodeTypeManager().isNodeType(node.getTree(), oakName);
             }
         });
     }
@@ -949,7 +948,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 return sessionContext.getAccessManager().hasPermissions(
                     node.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT)
                         && !node.isProtected()
-                        && sessionContext.getVersionManager().isCheckedOut(toJcrPath(dlg.getPath())) // TODO: avoid nested calls
+                        && getVersionManager().isCheckedOut(toJcrPath(dlg.getPath())) // TODO: avoid nested calls
                         && node.canAddMixin(oakTypeName);
             }
         });
@@ -963,9 +962,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             public NodeDefinition perform() throws RepositoryException {
                 NodeDelegate parent = node.getParent();
                 if (parent == null) {
-                    return getDefinitionProvider().getRootDefinition();
+                    return getNodeTypeManager().getRootDefinition();
                 } else {
-                    return getDefinitionProvider().getDefinition(
+                    return getNodeTypeManager().getDefinition(
                             parent.getTree(), node.getTree());
                 }
             }
@@ -1261,7 +1260,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     //------------------------------------------------------------< internal >---
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
-        return getEffectiveNodeTypeProvider().getEffectiveNodeType(dlg.getTree());
+        return getNodeTypeManager().getEffectiveNodeType(dlg.getTree());
     }
 
     private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
@@ -1286,14 +1285,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 });
     }
 
-    private void checkValidWorkspace(String workspaceName) throws RepositoryException {
-        Workspace workspace = sessionContext.getWorkspace();
-        for (String wn : workspace.getAccessibleWorkspaceNames()) {
-            if (wn.equals(workspaceName)) {
-                return;
-            }
+    private void checkValidWorkspace(String workspaceName)
+            throws RepositoryException {
+        String[] workspaceNames =
+                getSession().getWorkspace().getAccessibleWorkspaceNames();
+        if (!asList(workspaceNames).contains(workspaceName)) {
+            throw new NoSuchWorkspaceException(
+                    "Workspace " + workspaceName + " does not exist");
         }
-        throw new NoSuchWorkspaceException(workspaceName + " does not exist.");
     }
 
     private void internalSetPrimaryType(final String nodeTypeName) throws RepositoryException {

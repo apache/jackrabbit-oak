@@ -27,7 +27,6 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.QueryManager;
 import javax.jcr.version.Version;
@@ -214,7 +213,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public NodeTypeManager getNodeTypeManager() {
+    public ReadWriteNodeTypeManager getNodeTypeManager() {
         return nodeTypeManager;
     }
 
@@ -315,12 +314,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @Override
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
         return sessionContext.getPrivilegeManager();
-    }
-
-    //-----------------------------------------------------------< internal >---
-
-    ReadWriteNodeTypeManager getReadWriteNodeTypeManager() {
-        return nodeTypeManager;
     }
 
     //------------------------------------------------------------< private >---

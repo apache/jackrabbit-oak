@@ -33,11 +33,8 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -56,8 +53,6 @@ import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
-import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
@@ -162,26 +157,6 @@ public class SessionContext implements NamePathMapper {
      */
     protected WorkspaceImpl createWorkspace() {
         return new WorkspaceImpl(this);
-    }
-
-    public LockManager getLockManager() {
-        return getWorkspace().getLockManager();
-    }
-
-    public NodeTypeManager getNodeTypeManager() {
-        return getWorkspace().getNodeTypeManager();
-    }
-
-    public VersionManager getVersionManager() throws RepositoryException {
-        return getWorkspace().getVersionManager();
-    }
-
-    public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-        return getWorkspace().getReadWriteNodeTypeManager();
-    }
-
-    public DefinitionProvider getDefinitionProvider() {
-        return getWorkspace().getReadWriteNodeTypeManager();
     }
 
     @Nonnull
