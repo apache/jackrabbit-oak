@@ -74,7 +74,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 if (parent == null) {
                     throw new AccessDeniedException();
                 } else {
-                    return sessionContext.createNodeOrNull(parent);
+                    return NodeImpl.createNode(parent, sessionContext);
                 }
             }
         });

@@ -140,7 +140,7 @@ public class SessionImpl implements JackrabbitSession {
             throws RepositoryException {
         ItemDelegate item = sd.getItem(oakPath);
         if (item instanceof NodeDelegate) {
-            return sessionContext.createNodeOrNull((NodeDelegate) item);
+            return NodeImpl.createNodeOrNull((NodeDelegate) item, sessionContext);
         } else if (item instanceof PropertyDelegate) {
             return new PropertyImpl((PropertyDelegate) item, sessionContext);
         } else {
@@ -161,7 +161,7 @@ public class SessionImpl implements JackrabbitSession {
         return perform(new ReadOperation<Node>() {
             @Override
             public Node perform() throws RepositoryException {
-                return sessionContext.createNodeOrNull(sd.getNode(getOakPathOrThrow(absPath)));
+                return NodeImpl.createNodeOrNull(sd.getNode(getOakPathOrThrow(absPath)), sessionContext);
             }
         });
     }
@@ -271,7 +271,7 @@ public class SessionImpl implements JackrabbitSession {
                 if (nd == null) {
                     throw new AccessDeniedException("Root node is not accessible.");
                 }
-                return sessionContext.createNodeOrNull(nd);
+                return NodeImpl.createNodeOrNull(nd, sessionContext);
             }
         });
     }
@@ -299,7 +299,7 @@ public class SessionImpl implements JackrabbitSession {
                 if (nd == null) {
                     throw new ItemNotFoundException("Node with id " + id + " does not exist.");
                 }
-                return sessionContext.createNodeOrNull(nd);
+                return NodeImpl.createNodeOrNull(nd, sessionContext);
             }
         });
     }

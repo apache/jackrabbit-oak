@@ -34,6 +34,7 @@ import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 
@@ -139,7 +140,7 @@ public class QueryImpl implements Query {
         if (parentDelegate == null) {
             throw new PathNotFoundException("The specified path does not exist: " + parent);
         }
-        Node parentNode = sessionContext.createNodeOrNull(parentDelegate);
+        Node parentNode = NodeImpl.createNodeOrNull(parentDelegate, sessionContext);
         if (!parentNode.isCheckedOut()) {
             throw new VersionException("Cannot store query. Node at " +
                     absPath + " is checked in.");
