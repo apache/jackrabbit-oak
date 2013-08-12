@@ -81,12 +81,15 @@ public class SessionContext implements NamePathMapper {
 
     private final RepositoryImpl repository;
     private final Whiteboard whiteboard;
+    private final Map<String, Object> attributes;
     private final SessionDelegate delegate;
+
     private final SessionNamespaces namespaces;
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
-    private final SessionImpl session;
-    private final WorkspaceImpl workspace;
+
+    private SessionImpl session = null;
+    private WorkspaceImpl workspace = null;
 
     private AccessControlManager accessControlManager;
     private PermissionProvider permissionProvider;
@@ -100,7 +103,9 @@ public class SessionContext implements NamePathMapper {
             Map<String, Object> attributes, @Nonnull final SessionDelegate delegate) {
         this.repository = checkNotNull(repository);
         this.whiteboard = checkNotNull(whiteboard);
+        this.attributes = attributes;
         this.delegate = checkNotNull(delegate);
+
         this.namespaces = new SessionNamespaces(this);
         LocalNameMapper nameMapper = new LocalNameMapper() {
             @Override
@@ -117,17 +122,46 @@ public class SessionContext implements NamePathMapper {
                 nameMapper, delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot().getBlobFactory(), namePathMapper);
-
-        this.session = new SessionImpl(this, attributes);
-        this.workspace = new WorkspaceImpl(this);
     }
 
-    public Session getSession() {
+    public final Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    public final synchronized SessionImpl getSession() {
+        if (session == null) {
+            session = createSession();
+        }
         return session;
     }
 
-    public Workspace getWorkspace() {
+    public final synchronized WorkspaceImpl getWorkspace() {
+        if (workspace == null) {
+            workspace = createWorkspace();
+        }
         return workspace;
+    }
+
+    /**
+     * Factory method for creating the {@link Session} instance for this
+     * context. Called by {@link #getSession()} when first accessed. Can be
+     * overridden by subclasses to customize the session implementation.
+     *
+     * @return session instance
+     */
+    protected SessionImpl createSession() {
+        return new SessionImpl(this);
+    }
+
+    /**
+     * Factory method for creating the {@link Workspace} instance for this
+     * context. Called by {@link #getWorkspace()} when first accessed. Can be
+     * overridden by subclasses to customize the workspace implementation.
+     *
+     * @return session instance
+     */
+    protected WorkspaceImpl createWorkspace() {
+        return new WorkspaceImpl(this);
     }
 
     public LockManager getLockManager() {
