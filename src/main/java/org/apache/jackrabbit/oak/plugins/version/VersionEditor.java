@@ -32,7 +32,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.RESTORE_PREFIX;
 
 /**
  * TODO document
@@ -86,7 +88,7 @@ class VersionEditor implements Editor {
     @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
-        if (after.getName().equals(JcrConstants.JCR_BASEVERSION)
+        if (after.getName().equals(JCR_BASEVERSION)
                 && this.after.hasProperty(JcrConstants.JCR_VERSIONHISTORY)
                 && !this.after.hasProperty(JcrConstants.JCR_ISCHECKEDOUT)
                 && !this.before.exists()) {
@@ -123,8 +125,13 @@ class VersionEditor implements Editor {
             } else {
                 vMgr.checkin(node);
             }
-        } else if (propName.equals(VersionConstants.JCR_BASEVERSION)) {
-            vMgr.restore(node, after.getValue(Type.REFERENCE), null);
+        } else if (propName.equals(JCR_BASEVERSION)) {
+            String baseVersion = after.getValue(Type.REFERENCE);
+            if (baseVersion.startsWith(RESTORE_PREFIX)) {
+                baseVersion = baseVersion.substring(RESTORE_PREFIX.length());
+                node.setProperty(JCR_BASEVERSION, baseVersion, Type.REFERENCE);
+            }
+            vMgr.restore(node, baseVersion, null);
         } else if (isVersionProperty(after)) {
             throwProtected(after.getName());
         } else if (wasReadOnly) {
