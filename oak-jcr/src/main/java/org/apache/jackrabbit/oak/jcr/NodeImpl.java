@@ -1136,26 +1136,31 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     /**
      * Checks whether this node holds a lock by looking for the
-     * {@code jcr:lockOwner} property.
+     * {@code jcr:lockIsDeep} property.
      */
     @Override
     public boolean holdsLock() throws RepositoryException {
-        final String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
         return perform(new NodeOperation<Boolean>(dlg) {
             @Override
             public Boolean perform() throws RepositoryException {
-                return node.getPropertyOrNull(lockOwner) != null;
+                return node.getTree().hasProperty(JCR_LOCKISDEEP);
             }
         });
     }
 
-    /**
-     * @see javax.jcr.Node#getLock()
-     */
-    @Override
-    @Nonnull
+    @Override @Nonnull
     public Lock getLock() throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
+        NodeDelegate lock = perform(new NodeOperation<NodeDelegate>(dlg) {
+            @Override
+            public NodeDelegate perform() {
+                return node.getLock();
+            }
+        });
+        if (lock != null) {
+            return new LockImpl(sessionContext, lock);
+        } else {
+            throw new LockException("Node " + getPath() + " is not locked");
+        }
     }
 
     /**

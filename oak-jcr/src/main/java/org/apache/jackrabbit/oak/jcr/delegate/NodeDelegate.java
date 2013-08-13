@@ -674,23 +674,35 @@ public class NodeDelegate extends ItemDelegate {
      */
     // FIXME: access to locking status should not depend on access rights
     public boolean isLocked() {
-        if (tree.hasProperty(JCR_LOCKOWNER)) {
-            return true;
-        }
+        return getLock() != null;
+    }
 
-        Tree ancestor = tree;
-        while (!ancestor.isRoot()) {
-            ancestor = ancestor.getParent();
-            if (ancestor.hasProperty(JCR_LOCKOWNER)) {
-                PropertyState isDeep = ancestor.getProperty(JCR_LOCKISDEEP);
-                if (isDeep != null && !isDeep.isArray()
-                        && isDeep.getValue(BOOLEAN)) {
-                    return true;
-                }
-            }
-        }
+    public NodeDelegate getLock() {
+        return getLock(false);
+    }
 
-        return false;
+    private NodeDelegate getLock(boolean deep) {
+        if (holdsLock(deep)) {
+            return this;
+        } else if (tree.isRoot()) {
+            return null;
+        } else {
+            return getParent().getLock(true);
+        }
+    }
+
+    /**
+     * Checks whether this node holds a lock.
+     *
+     * @param deep if {@code true}, only check for deep locks
+     * @return whether this node holds a lock
+     */
+    // FIXME: access to locking status should not depend on access rights
+    public boolean holdsLock(boolean deep) {
+        PropertyState property = tree.getProperty(JCR_LOCKISDEEP);
+        return property != null
+                && property.getType() == Type.BOOLEAN
+                && (!deep || property.getValue(BOOLEAN));
     }
 
     public String getLockOwner() {
