@@ -425,7 +425,10 @@ public class VersionManagerImpl implements VersionManager {
                 if (node.isNodeType(NodeType.NT_FROZEN_NODE)) {
                     uuids.add(node.getProperty(Property.JCR_FROZEN_UUID).getString());
                 } else if (node.isNodeType(NodeType.NT_VERSIONED_CHILD)) {
-                    // TODO: handle?
+                    Node history = node.getProperty(
+                            Property.JCR_CHILD_VERSION_HISTORY).getNode();
+                    uuids.add(history.getProperty(Property.JCR_VERSIONABLE_UUID).getString());
+                    // TODO: further traverse versioned children with some selector (date?)
                 }
             }
         });

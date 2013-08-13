@@ -210,7 +210,6 @@
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLockJcr2
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testMerge
       org.apache.jackrabbit.test.api.version.CopyTest
-      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreWithUUIDConflict
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
