@@ -34,10 +34,13 @@ import javax.jcr.Workspace;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.security.AccessControlManager;
 
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
+import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.PrincipalManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.PrivilegeManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -173,7 +176,14 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
-            accessControlManager = getConfig(AuthorizationConfiguration.class).getAccessControlManager(delegate.getRoot(), namePathMapper);
+            AccessControlManager acm = getConfig(AuthorizationConfiguration.class)
+                    .getAccessControlManager(delegate.getRoot(), namePathMapper);
+            if (acm instanceof JackrabbitAccessControlManager) {
+                accessControlManager = new JackrabbitAccessControlManagerDelegator(
+                        delegate, (JackrabbitAccessControlManager) acm);
+            } else {
+                accessControlManager = new AccessControlManagerDelegator(delegate, acm);
+            }
         }
         return accessControlManager;
     }
