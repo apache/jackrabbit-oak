@@ -155,6 +155,16 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     @Override
+    protected boolean isNew() {
+        return false;
+    }
+
+    @Override
+    protected boolean isModified() {
+        return false;
+    }
+
+    @Override
     public ImmutableTree getParent() {
         return parentProvider.getParent();
     }

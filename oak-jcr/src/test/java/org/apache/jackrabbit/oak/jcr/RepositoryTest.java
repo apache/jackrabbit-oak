@@ -1434,13 +1434,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Session session2 = createAdminSession();
         try {
             Node foo = session1.getNode("/foo");
-            foo.addNode("added");
+            Node added = foo.addNode("added");
+            assertTrue(added.isNew());
 
             session2.getNode("/foo").addNode("bar");
             session2.save();
 
             session1.refresh(true);
             assertTrue(foo.hasNode("added"));
+            assertTrue(foo.getNode("added").isNew());
             assertTrue(foo.hasNode("bar"));
         } finally {
             session1.logout();
