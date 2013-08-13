@@ -436,7 +436,7 @@ public final class KernelNodeState extends AbstractNodeState {
      * {@link MemoryNodeBuilder} is returned.
      * <p>
      * TODO: this is a workaround to avoid creating branches from a branch
-     * until this is supported by the MicroKernel. See {@link KernelNodeState#builder()}.
+     * until this is supported by the MicroKernel.
      */
     @Override
     public NodeBuilder builder() {
