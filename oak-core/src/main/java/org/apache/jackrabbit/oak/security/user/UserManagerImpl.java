@@ -89,7 +89,6 @@ public class UserManagerImpl implements UserManager {
     //--------------------------------------------------------< UserManager >---
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
-        checkIsLive();
         Authorizable authorizable = null;
         Tree tree = userProvider.getAuthorizable(id);
         if (tree != null) {
@@ -100,13 +99,11 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
-        checkIsLive();
         return getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
     }
 
     @Override
     public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
-        checkIsLive();
         String oakPath = namePathMapper.getOakPathKeepIndex(path);
         if (oakPath == null) {
             throw new RepositoryException("Invalid path " + path);
@@ -121,13 +118,11 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
-        checkIsLive();
         return getQueryManager().findAuthorizables(relPath, value, AuthorizableType.getType(searchType));
     }
 
     @Override
     public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
-        checkIsLive();
         return getQueryManager().findAuthorizables(query);
     }
 
@@ -140,7 +135,6 @@ public class UserManagerImpl implements UserManager {
     @Override
     public User createUser(String userID, String password, Principal principal,
                            @Nullable String intermediatePath) throws RepositoryException {
-        checkIsLive();
         checkValidID(userID);
         checkValidPrincipal(principal, false);
 
@@ -178,7 +172,6 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Group createGroup(String groupID, Principal principal, @Nullable String intermediatePath) throws RepositoryException {
-        checkIsLive();
         checkValidID(groupID);
         checkValidPrincipal(principal, true);
 
@@ -374,16 +367,6 @@ public class UserManagerImpl implements UserManager {
             pwHash = password;
         }
         userTree.setProperty(UserConstants.REP_PASSWORD, pwHash);
-    }
-
-    private void checkIsLive() throws RepositoryException {
-        try {
-            // Note: Root#checkIsLive is not part of the public root interface.
-            // therefore execute the check using another method.
-            root.getBlobFactory();
-        } catch (IllegalStateException e) {
-            throw new RepositoryException("User manager is no longer alive.");
-        }
     }
 
     private UserQueryManager getQueryManager() {

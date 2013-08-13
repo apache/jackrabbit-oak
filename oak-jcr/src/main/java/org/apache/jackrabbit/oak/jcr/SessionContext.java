@@ -194,6 +194,13 @@ public class SessionContext implements NamePathMapper {
         return principalManager;
     }
 
+    private abstract class UserManagerOperation<T> extends SessionOperation<T> {
+        @Override
+        public void checkPreconditions() throws RepositoryException {
+            delegate.checkAlive();
+        }
+    }
+
     @Nonnull
     public UserManager getUserManager() {
         // TODO Move to top level class (OAK-938), make UserManager from core the delegate and pass root through argument of perform
@@ -202,7 +209,7 @@ public class SessionContext implements NamePathMapper {
             userManager = new UserManager() {
                 @Override
                 public Authorizable getAuthorizable(final String id) throws RepositoryException {
-                    return delegate.perform(new SessionOperation<Authorizable>() {
+                    return delegate.perform(new UserManagerOperation<Authorizable>() {
                         @Override
                         public Authorizable perform() throws RepositoryException {
                             return uMgr.getAuthorizable(id);
@@ -212,7 +219,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Authorizable getAuthorizable(final Principal principal) throws RepositoryException {
-                    return delegate.perform(new SessionOperation<Authorizable>() {
+                    return delegate.perform(new UserManagerOperation<Authorizable>() {
                         @Override
                         public Authorizable perform() throws RepositoryException {
                             return uMgr.getAuthorizable(principal);
@@ -222,7 +229,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Authorizable getAuthorizableByPath(final String path) throws UnsupportedRepositoryOperationException, RepositoryException {
-                    return delegate.perform(new SessionOperation<Authorizable>() {
+                    return delegate.perform(new UserManagerOperation<Authorizable>() {
                         @Override
                         public Authorizable perform() throws RepositoryException {
                             return uMgr.getAuthorizableByPath(path);
@@ -232,7 +239,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Iterator<Authorizable> findAuthorizables(final String relPath, final String value) throws RepositoryException {
-                    return delegate.perform(new SessionOperation<Iterator<Authorizable>>() {
+                    return delegate.perform(new UserManagerOperation<Iterator<Authorizable>>() {
                         @Override
                         public Iterator<Authorizable> perform() throws RepositoryException {
                             return uMgr.findAuthorizables(relPath, value);
@@ -242,7 +249,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Iterator<Authorizable> findAuthorizables(final String relPath, final String value, final int searchType) throws RepositoryException {
-                    return delegate.perform(new SessionOperation<Iterator<Authorizable>>() {
+                    return delegate.perform(new UserManagerOperation<Iterator<Authorizable>>() {
                         @Override
                         public Iterator<Authorizable> perform() throws RepositoryException {
                             return uMgr.findAuthorizables(relPath, value, searchType);
@@ -252,7 +259,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Iterator<Authorizable> findAuthorizables(final Query query) throws RepositoryException {
-                    return delegate.perform(new SessionOperation<Iterator<Authorizable>>() {
+                    return delegate.perform(new UserManagerOperation<Iterator<Authorizable>>() {
                         @Override
                         public Iterator<Authorizable> perform() throws RepositoryException {
                             return uMgr.findAuthorizables(query);
@@ -262,7 +269,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public User createUser(final String userID, final String password) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new SessionOperation<User>() {
+                    return delegate.perform(new UserManagerOperation<User>() {
                         @Override
                         public User perform() throws RepositoryException {
                             return uMgr.createUser(userID, password);
@@ -272,7 +279,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public User createUser(final String userID, final String password, final Principal principal, final String intermediatePath) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new SessionOperation<User>() {
+                    return delegate.perform(new UserManagerOperation<User>() {
                         @Override
                         public User perform() throws RepositoryException {
                             return uMgr.createUser(userID, password, principal, intermediatePath);
@@ -282,7 +289,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Group createGroup(final String groupID) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new SessionOperation<Group>() {
+                    return delegate.perform(new UserManagerOperation<Group>() {
                         @Override
                         public Group perform() throws RepositoryException {
                             return uMgr.createGroup(groupID);
@@ -292,7 +299,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Group createGroup(final Principal principal) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new SessionOperation<Group>() {
+                    return delegate.perform(new UserManagerOperation<Group>() {
                         @Override
                         public Group perform() throws RepositoryException {
                             return uMgr.createGroup(principal);
@@ -302,7 +309,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Group createGroup(final Principal principal, final String intermediatePath) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new SessionOperation<Group>() {
+                    return delegate.perform(new UserManagerOperation<Group>() {
                         @Override
                         public Group perform() throws RepositoryException {
                             return uMgr.createGroup(principal, intermediatePath);
@@ -312,7 +319,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public Group createGroup(final String groupID, final Principal principal, final String intermediatePath) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new SessionOperation<Group>() {
+                    return delegate.perform(new UserManagerOperation<Group>() {
                         @Override
                         public Group perform() throws RepositoryException {
                             return uMgr.createGroup(groupID, principal, intermediatePath);
@@ -323,7 +330,7 @@ public class SessionContext implements NamePathMapper {
                 @Override
                 public boolean isAutoSave() {
                     try {
-                        return delegate.perform(new SessionOperation<Boolean>() {
+                        return delegate.perform(new UserManagerOperation<Boolean>() {
                             @Override
                             public Boolean perform() throws RepositoryException {
                                 return uMgr.isAutoSave();
@@ -337,7 +344,7 @@ public class SessionContext implements NamePathMapper {
 
                 @Override
                 public void autoSave(final boolean enable) throws UnsupportedRepositoryOperationException, RepositoryException {
-                    delegate.perform(new SessionOperation<Void>() {
+                    delegate.perform(new UserManagerOperation<Void>() {
                         @Override
                         public Void perform() throws RepositoryException {
                             uMgr.autoSave(enable);
