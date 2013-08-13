@@ -27,6 +27,7 @@ import org.apache.jackrabbit.core.query.MixinTest;
 import org.apache.jackrabbit.core.query.OrderByTest;
 import org.apache.jackrabbit.core.query.ParentNodeTest;
 import org.apache.jackrabbit.core.query.PathQueryNodeTest;
+import org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest;
 import org.apache.jackrabbit.core.query.SQL2OffsetLimitTest;
 import org.apache.jackrabbit.core.query.SQL2OuterJoinTest;
 import org.apache.jackrabbit.core.query.SQLTest;
@@ -44,9 +45,7 @@ public class QueryJcrTest extends TestCase {
         suite.addTestSuite(SkipDeletedNodesTest.class);
         suite.addTestSuite(PathQueryNodeTest.class);
         suite.addTestSuite(FulltextSQL2QueryTest.class);
-
-        // FIXME See OAK-957: SQL2NodeLocalNameTest test failures
-        // suite.addTestSuite(SQL2NodeLocalNameTest.class);
+        suite.addTestSuite(SQL2NodeLocalNameTest.class);
         suite.addTestSuite(MixinTest.class);
         suite.addTestSuite(SQL2OuterJoinTest.class);
         suite.addTestSuite(SQL2OffsetLimitTest.class);
