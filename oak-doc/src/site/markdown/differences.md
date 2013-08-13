@@ -99,8 +99,7 @@ Same name siblings
 
 Same name siblings (SNS) are deprecated in Oak. We figured that the actual benefit supporting same
 name siblings as mandated by JCR is dwarfed by the additional implementation complexity. Instead
-there are ideas to implement a feature for automatic [disambiguation of node names]
-(https://issues.apache.org/jira/browse/OAK-129).
+there are ideas to implement a feature for automatic [disambiguation of node names](https://issues.apache.org/jira/browse/OAK-129).
 
 In the meanwhile we have [basic support](https://issues.apache.org/jira/browse/OAK-203) for same
 name siblings but that might not cover all cases.
@@ -121,9 +120,9 @@ The following modification are most likely to have an effect on existing applica
 
 * `AccessControlManager#hasPrivilege()` and `AccessControlManager#getPrivileges()` will throw a
   `PathNotFoundException` if the node for the specified path is not accessible. The Jackrabbit 2
-  implementation is wrong and we fixed that in OAK ([OAK-886]
-  (https://issues.apache.org/jira/browse/OAK-886)). If the new behaviour turns out to be a problem
-  with existing applications we might consider adding backward compatible behaviour.
+  implementation is wrong and we fixed that in OAK ([OAK-886](https://issues.apache.org/jira/browse/OAK-886)).
+  If the new behaviour turns out to be a problem with existing applications we might consider
+  adding backward compatible behaviour.
 
 Permissions
 -----------
@@ -167,57 +166,61 @@ Known issues
 ============
 All known issues are listed in the Apache [JIRA](https://issues.apache.org/jira/browse/OAK).
 Changes with respect to Jackrabbit-core are collected in [OAK-14]
-((https://issues.apache.org/jira/browse/OAK-14)) and its sub-tasks.
+(https://issues.apache.org/jira/browse/OAK-14) and its sub-tasks.
 
 * Locking:
-  * Locking and unlocking of nodes is not implemented yet. You will not see an exception as long as
-    the [TODO](https://issues.apache.org/jira/browse/OAK-193)-flag prevents the implementation from
-    throwing UnsupportedOperationException, but the node *will not* be locked.
-    See [OAK-150](https://issues.apache.org/jira/browse/OAK-150)
+    * Locking and unlocking of nodes is not implemented yet. You will not see an exception as long as
+      the [TODO](https://issues.apache.org/jira/browse/OAK-193)-flag prevents the implementation from
+      throwing UnsupportedOperationException, but the node *will not* be locked.
+      See [OAK-150](https://issues.apache.org/jira/browse/OAK-150)
+
 
 * Nodetype Management:
-  * Removing mixins is not implemented yet
-    See [OAK-767](https://issues.apache.org/jira/browse/OAK-767)
+    * Removing mixins is not implemented yet
+      See [OAK-767](https://issues.apache.org/jira/browse/OAK-767)
 
-* Versioning:
-  * JCR version labels are not implemented yet
-  * `VersionHistory#removeVersion()` is not implemented yet
-  * `VersionHistory#getAllLinearVersions()` is not implemented yet
-  * `VersionManager#merge()` is not implemented yet
-  * `VersionManager#restore()` with version-array is not implemented yet
-  * Activities are not implemented yet
-  * Configurations are not implemented yet
-  * See [OAK-168](https://issues.apache.org/jira/browse/OAK-168)
+
+* Versioning [OAK-168](https://issues.apache.org/jira/browse/OAK-168):
+    * `VersionHistory#removeVersion()` is not implemented yet
+    * `VersionManager#merge()` is not implemented yet
+    * `VersionManager#restore()` with version-array is not implemented yet
+    * Activities are not implemented
+    * Configurations are not implemented
+
 
 * Query:
-  * Known issue with OR statements in full text queries
-   See [OAK-902](https://issues.apache.org/jira/browse/OAK-902)
+    * Known issue with OR statements in full text queries
+      See [OAK-902](https://issues.apache.org/jira/browse/OAK-902)
+
 
 * Workspace Operations:
-  * Cross workspace operations are not implemented yet
-    See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
-  * `Workspace#importXml()` not implemented yet
-    See [OAK-773](https://issues.apache.org/jira/browse/OAK-773)
-  * Workspace Management (creating/deleting workspaces) is not implemented yet
-    See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
-  * `Workspace#copy()` is not properly implemented
-    See [OAK-917](https://issues.apache.org/jira/browse/OAK-917) and sub tasks
-    * copy of referenceable nodes does not work
-      See [OAK-915](https://issues.apache.org/jira/browse/OAK-915)
-    * copy of versionable nodes does not create new version history
-      See [OAK-918](https://issues.apache.org/jira/browse/OAK-918)
-    * copy of locked nodes does not remove the lock
-      See [OAK-919](https://issues.apache.org/jira/browse/OAK-919)
-    * copy of trees with limited read access
-      See [OAK-920](https://issues.apache.org/jira/browse/OAK-920)
+    * Cross workspace operations are not implemented yet
+      See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
+    * `Workspace#importXml()` not implemented yet
+      See [OAK-773](https://issues.apache.org/jira/browse/OAK-773)
+    * Workspace Management (creating/deleting workspaces) is not implemented yet
+      See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
+    * `Workspace#copy()` is not properly implemented
+      See [OAK-917](https://issues.apache.org/jira/browse/OAK-917) and sub tasks
+        * copy of referenceable nodes does not work
+          See [OAK-915](https://issues.apache.org/jira/browse/OAK-915)
+        * copy of versionable nodes does not create new version history
+          See [OAK-918](https://issues.apache.org/jira/browse/OAK-918)
+        * copy of locked nodes does not remove the lock
+          See [OAK-919](https://issues.apache.org/jira/browse/OAK-919)
+        * copy of trees with limited read access
+          See [OAK-920](https://issues.apache.org/jira/browse/OAK-920)
+
 
 * Access Control Management and Permissions:
-  * Move operations are not properly handled wrt. permissions
-    See [OAK-710](https://issues.apache.org/jira/browse/OAK-710)
+    * Move operations are not properly handled wrt. permissions
+      See [OAK-710](https://issues.apache.org/jira/browse/OAK-710)
+
 
 * User Management:
-  * Group membership stored in tree structure is not yet implemented
-    See [OAK-482](https://issues.apache.org/jira/browse/OAK-482)
+    * Group membership stored in tree structure is not yet implemented
+      See [OAK-482](https://issues.apache.org/jira/browse/OAK-482)
+
 
 In some cases Oak throws Runtime exceptions instead of a properly typed exception. We are working
 on correcting this. Please do not work around this by adapting catch clauses in your application.
