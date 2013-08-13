@@ -104,9 +104,6 @@ public class VersionableTest extends AbstractJCRTest {
     }
 
     public void testCheckoutWithPendingChanges() throws Exception {
-        if (true) {
-            throw new NotExecutableException("OAK-947");
-        }
         Node node = testRootNode.addNode(nodeName1, testNodeType);
         node.addMixin(mixVersionable);
         superuser.save();
