@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.lock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -25,12 +24,10 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.Lock;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 
 public final class LockImpl implements Lock {
@@ -56,36 +53,30 @@ public final class LockImpl implements Lock {
 
     @Override
     public String getLockOwner() {
-        return safePerform(new SessionOperation<String>() {
+        return safePerform(new NodeOperation<String>(delegate) {
             @Override
             public String perform() throws RepositoryException {
-                return delegate.getLockOwner();
+                return node.getLockOwner();
             }
         });
     }
 
     @Override
     public boolean isDeep() {
-        return safePerform(new SessionOperation<Boolean>() {
+        return safePerform(new NodeOperation<Boolean>(delegate) {
             @Override
             public Boolean perform() throws RepositoryException {
-                Tree tree = delegate.getTree();
-                PropertyState property = tree.getProperty(JCR_LOCKISDEEP);
-                if (property != null && property.getType() == Type.BOOLEAN) {
-                    return property.getValue(Type.BOOLEAN);
-                } else {
-                    return false;
-                }
+                return node.holdsLock(true);
             }
         });
     }
 
     @Override
     public boolean isLive() {
-        return safePerform(new SessionOperation<Boolean>() {
+        return safePerform(new NodeOperation<Boolean>(delegate) {
             @Override
             public Boolean perform() throws RepositoryException {
-                return delegate.getTree().hasProperty(JCR_LOCKISDEEP);
+                return node.holdsLock(false);
             }
         });
     }

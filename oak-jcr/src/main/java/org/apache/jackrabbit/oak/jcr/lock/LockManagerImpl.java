@@ -95,9 +95,26 @@ public class LockManagerImpl implements LockManager {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public Lock getLock(String absPath) throws RepositoryException {
-        return getSession().getNode(absPath).getLock();
+        final String oakPath =
+                sessionContext.getOakPathOrThrowNotFound(absPath);
+        NodeDelegate lock = perform(new SessionOperation<NodeDelegate>() {
+            @Override
+            public NodeDelegate perform() throws RepositoryException {
+                NodeDelegate node = delegate.getNode(oakPath);
+                if (node != null) {
+                    return node.getLock();
+                } else {
+                    throw new PathNotFoundException(
+                            "Node " + oakPath + " not found");
+                }
+            }
+        });
+        if (lock != null) {
+            return new LockImpl(sessionContext, lock);
+        } else {
+            throw new LockException("Node " + absPath + " is not locked");
+        }
     }
 
     @Override
@@ -118,4 +135,10 @@ public class LockManagerImpl implements LockManager {
     private Session getSession() {
         return sessionContext.getSession();
     }
+
+    private <T> T perform(SessionOperation<T> operation)
+            throws RepositoryException {
+        return delegate.perform(operation);
+    }
+
 }
