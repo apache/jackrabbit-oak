@@ -40,6 +40,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +58,7 @@ public class SessionDelegate {
     private final Root root;
     private final IdentifierManager idManager;
     private final Exception initStackTrace;
+    private final PermissionProvider permissionProvider;
 
     private boolean isAlive = true;
     private int sessionOpCount;
@@ -73,14 +77,18 @@ public class SessionDelegate {
      * dispatcher in order.
      *
      * @param contentSession  the content session
+     * @param securityProvider the security provider
      * @param refreshInterval  refresh interval in seconds.
      */
-    public SessionDelegate(@Nonnull ContentSession contentSession, long refreshInterval) {
+    public SessionDelegate(@Nonnull ContentSession contentSession, SecurityProvider securityProvider, long refreshInterval) {
         this.contentSession = checkNotNull(contentSession);
         this.refreshInterval = MILLISECONDS.convert(refreshInterval, SECONDS);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
         this.initStackTrace = new Exception("The session was created here:");
+        this.permissionProvider = securityProvider.getConfiguration(AuthorizationConfiguration.class)
+                .getPermissionProvider(root, contentSession.getAuthInfo().getPrincipals());
+
     }
 
     public synchronized void refreshAtNextAccess() {
@@ -296,6 +304,7 @@ public class SessionDelegate {
         } catch (CommitFailedException e) {
             throw newRepositoryException(e);
         }
+        permissionProvider.refresh();
     }
 
     public void refresh(boolean keepChanges) {
@@ -304,6 +313,7 @@ public class SessionDelegate {
         } else {
             root.refresh();
         }
+        permissionProvider.refresh();
     }
 
     //----------------------------------------------------------< Workspace >---
@@ -402,6 +412,11 @@ public class SessionDelegate {
     @Nonnull
     public QueryEngine getQueryEngine() {
         return root.getQueryEngine();
+    }
+
+    @Nonnull
+    public PermissionProvider getPermissionProvider() {
+        return permissionProvider;
     }
 
     /**

@@ -57,7 +57,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      * Name of the session attribute value determining the session refresh
      * behaviour.
      *
-     * @see SessionDelegate#SessionDelegate(ContentSession, long)
+     * @see SessionDelegate#SessionDelegate(ContentSession, SecurityProvider, long)
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
 
@@ -205,7 +205,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             SessionContext context = createSessionContext(
                     Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
-                    new SessionDelegate(contentSession, refreshInterval));
+                    new SessionDelegate(contentSession, securityProvider, refreshInterval));
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);

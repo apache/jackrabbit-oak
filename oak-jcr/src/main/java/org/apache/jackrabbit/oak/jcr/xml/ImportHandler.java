@@ -115,8 +115,10 @@ public class ImportHandler extends DefaultHandler {
         if (isWorkspaceImport) {
             try {
                 root.commit();
-                sessionContext.refresh(true);
+                sessionContext.getSession().refresh(false);
             } catch (CommitFailedException e) {
+                throw new SAXException(e);
+            } catch (RepositoryException e) {
                 throw new SAXException(e);
             }
         }
