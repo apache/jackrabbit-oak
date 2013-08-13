@@ -24,9 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -100,15 +97,9 @@ public final class KernelNodeState extends AbstractNodeState {
      * path and revision. This object is only used internally and never leaves
      * this {@link KernelNodeState}.
      */
-    private static final KernelNodeState NULL = new KernelNodeState(
-            (MicroKernel) Proxy.newProxyInstance(MicroKernel.class.getClassLoader(),
-                    new Class[]{MicroKernel.class}, new InvocationHandler() {
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args)
-                throws Throwable {
-            throw new UnsupportedOperationException();
-        }
-    }), "null", "null", DUMMY_CACHE);
+    private static final KernelNodeState NULL = new KernelNodeState();
+
+    private final KernelNodeStore store;
 
     private final MicroKernel kernel;
 
@@ -128,6 +119,15 @@ public final class KernelNodeState extends AbstractNodeState {
 
     private Set<String> childNames;
 
+    /**
+     * {@code true} is this is a node state from a branch. {@code false}
+     * otherwise.
+     * <p>
+     * TODO: this is a workaround to avoid creating branches from a branch
+     * until this is supported by the MicroKernel. See {@link KernelNodeState#builder()}.
+     */
+    private boolean isBranch;
+
     private final LoadingCache<String, KernelNodeState> cache;
 
     /**
@@ -135,18 +135,27 @@ public final class KernelNodeState extends AbstractNodeState {
      * given {@code path} and {@code revision}. It is an error if the
      * underlying Microkernel does not contain such a node.
      *
-     * @param kernel the underlying MicroKernel
+     * @param store the underlying KernelNodeStore
      * @param path the path of this KernelNodeState
      * @param revision the revision of the node to read from the kernel.
      * @param cache the KernelNodeState cache
      */
     public KernelNodeState(
-            MicroKernel kernel, String path, String revision,
+            KernelNodeStore store, String path, String revision,
             LoadingCache<String, KernelNodeState> cache) {
-        this.kernel = checkNotNull(kernel);
+        this.store = store;
+        this.kernel = store.getKernel();
         this.path = checkNotNull(path);
         this.revision = checkNotNull(revision);
         this.cache = checkNotNull(cache);
+    }
+
+    private KernelNodeState() {
+        this.store = null;
+        this.kernel = null;
+        this.path = "null";
+        this.revision = "null";
+        this.cache = DUMMY_CACHE;
     }
 
     private void init() {
@@ -421,9 +430,23 @@ public final class KernelNodeState extends AbstractNodeState {
         };
     }
 
+    /**
+     * This implementation returns a {@link KernelNodeBuilder} unless this is not
+     * a root node or {@link #isBranch} is {@code true} in which case a
+     * {@link MemoryNodeBuilder} is returned.
+     * <p>
+     * TODO: this is a workaround to avoid creating branches from a branch
+     * until this is supported by the MicroKernel. See {@link KernelNodeState#builder()}.
+     */
     @Override
     public NodeBuilder builder() {
-        return new MemoryNodeBuilder(this);
+        if (isBranch) {
+            return new MemoryNodeBuilder(this);
+        } else if ("/".equals(path)) {
+            return new KernelRootBuilder(this, store);
+        } else {
+            return new MemoryNodeBuilder(this);
+        }
     }
 
     /**
@@ -517,6 +540,18 @@ public final class KernelNodeState extends AbstractNodeState {
     @Nonnull
     String getRevision() {
         return revision;
+    }
+
+    /**
+     * Mark this instance as from being on branch.
+     * <p>
+     * TODO this is a workaround to avoid creating branches from a branch
+     * until this is supported by the MicroKernel. See {@link KernelNodeState#builder()}.
+     * @return {@code this}
+     */
+    NodeState setBranch() {
+        isBranch = true;
+        return this;
     }
 
     /**
