@@ -124,7 +124,7 @@ public class VersionManagerImpl implements VersionManager {
                     sessionDelegate.getRoot().commit();
                     success = true;
                 } catch (CommitFailedException e) {
-                    throw new RepositoryException(e);
+                    throw e.asRepositoryException();
                 } finally {
                     if (!success) {
                         // refresh if one of the modifying operations fail

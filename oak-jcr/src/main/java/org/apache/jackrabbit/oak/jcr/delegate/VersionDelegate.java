@@ -16,13 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.util.List;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
+
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+
+import com.google.common.collect.Lists;
 
 /**
  * {@code VersionDelegate}...
@@ -46,5 +53,31 @@ public class VersionDelegate extends NodeDelegate {
                     "Version at " + getPath() + " does not have a jcr:frozenNode");
         }
         return frozenNode;
+    }
+
+    @Nonnull
+    public Iterable<VersionDelegate> getPredecessors()
+            throws RepositoryException {
+        PropertyDelegate p = getPropertyOrNull(JCR_PREDECESSORS);
+        if (p == null) {
+            throw new RepositoryException("Inconsistent version storage. " +
+                    "Version does not have a " + JCR_PREDECESSORS + " property.");
+        }
+        List<VersionDelegate> predecessors = Lists.newArrayList();
+        VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);
+        for (String id : p.getMultiState().getValue(Type.REFERENCES)) {
+            predecessors.add(vMgr.getVersionByIdentifier(id));
+        }
+        return predecessors;
+    }
+
+    @CheckForNull
+    public VersionDelegate getLinearPredecessor() throws RepositoryException {
+        Iterable<VersionDelegate> predecessors = getPredecessors();
+        if (predecessors.iterator().hasNext()) {
+            // return first predecessor (same behavior as Jackrabbit)
+            return predecessors.iterator().next();
+        }
+        return null;
     }
 }

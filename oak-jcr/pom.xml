@@ -199,38 +199,21 @@
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
 
       <!-- Versioning -->
-      org.apache.jackrabbit.test.api.version.VersionTest#testRestore
-      org.apache.jackrabbit.test.api.version.VersionTest#testUnlock
-      org.apache.jackrabbit.test.api.version.VersionTest#testUnlockJcr2
       org.apache.jackrabbit.test.api.version.VersionTest#testUpdate
       org.apache.jackrabbit.test.api.version.VersionTest#testGetCorrespondingNodePath
       org.apache.jackrabbit.test.api.version.VersionTest#testGetLock
       org.apache.jackrabbit.test.api.version.VersionTest#testGetLockJcr2
-      org.apache.jackrabbit.test.api.version.VersionTest#testLock
-      org.apache.jackrabbit.test.api.version.VersionTest#testLockJcr2
       org.apache.jackrabbit.test.api.version.VersionTest#testMerge
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testRestore
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUnlock
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUnlockJcr2
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testUpdate
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetCorrespondingNodePath
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLock
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLockJcr2
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testLock
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testLockJcr2
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testMerge
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitialNumberOfLinearVersions
-      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitiallyGetAllLinearVersionsContainsTheRootAndTheBaseVersion
       org.apache.jackrabbit.test.api.version.CopyTest
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreWithUUIDConflict
-      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrderJcr2
-      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrderJcr2_2
-      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrderJcr2_3
-      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreOrderJcr2_4
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
-      org.apache.jackrabbit.test.api.version.GetPredecessorsTest
       org.apache.jackrabbit.test.api.version.GetReferencesNodeTest#testGetReferencesNeverFromVersions <!-- Node.getReferences must not return references from version storage -->
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest
       org.apache.jackrabbit.test.api.version.MergeCheckedoutSubNodeTest

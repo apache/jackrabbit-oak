@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -36,11 +37,11 @@ import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.util.TODO;
 
 public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
@@ -73,12 +74,40 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @Override
     public Version getLinearPredecessor() throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return perform(new SessionOperation<Version>() {
+            @Override
+            public Version perform() throws RepositoryException {
+                VersionDelegate predecessor = dlg.getLinearPredecessor();
+                if (predecessor == null) {
+                    return null;
+                } else {
+                    return new VersionImpl(predecessor, sessionContext);
+                }
+            }
+        });
     }
 
     @Override
     public Version getLinearSuccessor() throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return perform(new SessionOperation<Version>() {
+            @Override
+            public Version perform() throws RepositoryException {
+                VersionHistoryDelegate vHistory = getVersionManagerDelegate()
+                        .createVersionHistory(dlg.getParent());
+                Iterator<VersionDelegate> it = vHistory.getAllLinearVersions();
+                // search for this version ...
+                while (it.hasNext()) {
+                    VersionDelegate vDlg = it.next();
+                    if (vDlg.getIdentifier().equals(dlg.getIdentifier())
+                            && it.hasNext()) {
+                        // ... and return next
+                        return new VersionImpl(it.next(), sessionContext);
+                    }
+                }
+                // none found
+                return null;
+            }
+        });
     }
 
     private List<Value> getValues(PropertyDelegate p) throws InvalidItemStateException, ValueFormatException {
@@ -90,12 +119,9 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
         return perform(new SessionOperation<Version[]>() {
             @Override
             public Version[] perform() throws RepositoryException {
-                PropertyDelegate p = getPropertyOrThrow(VersionConstants.JCR_PREDECESSORS);
                 List<Version> predecessors = new ArrayList<Version>();
-                VersionManagerDelegate vMgr = getVersionManagerDelegate();
-                for (Value v : getValues(p)) {
-                    String id = v.getString();
-                    predecessors.add(new VersionImpl(vMgr.getVersionByIdentifier(id), sessionContext));
+                for (VersionDelegate vDelegate : dlg.getPredecessors()) {
+                    predecessors.add(new VersionImpl(vDelegate, sessionContext));
                 }
                 return predecessors.toArray(new Version[predecessors.size()]);
             }

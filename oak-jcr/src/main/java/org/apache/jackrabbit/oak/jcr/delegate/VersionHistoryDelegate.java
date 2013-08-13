@@ -17,9 +17,13 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedMap;
@@ -33,6 +37,8 @@ import javax.jcr.version.VersionException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -149,6 +155,26 @@ public class VersionHistoryDelegate extends NodeDelegate {
                 return VersionDelegate.create(sessionDelegate, thisTree.getChild(name));
             }
         });
+    }
+
+    @Nonnull
+    public Iterator<VersionDelegate> getAllLinearVersions()
+            throws RepositoryException {
+        String id = getVersionableIdentifier();
+        NodeDelegate versionable = sessionDelegate.getNodeByIdentifier(id);
+        if (versionable == null
+                || versionable.getPropertyOrNull(JCR_BASEVERSION) == null) {
+            return Iterators.emptyIterator();
+        }
+        Deque<VersionDelegate> linearVersions = new ArrayDeque<VersionDelegate>();
+        VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);
+        VersionDelegate version = vMgr.getVersionByIdentifier(
+                versionable.getProperty(JCR_BASEVERSION).getString());
+        while (version != null) {
+            linearVersions.add(version);
+            version = version.getLinearPredecessor();
+        }
+        return linearVersions.descendingIterator();
     }
 
     public void addVersionLabel(@Nonnull VersionDelegate version,
