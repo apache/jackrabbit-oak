@@ -309,7 +309,7 @@ public class SessionContext implements NamePathMapper {
 
     @Nonnull
     public AccessManager getAccessManager() throws RepositoryException {
-        return new AccessManager(delegate.getPermissionProvider());
+        return new AccessManager(delegate);
     }
 
     @Nonnull
