@@ -242,7 +242,6 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     }
 
     private void persistTransientHead() {
-        KernelNodeState oldBase = base;
         NodeState oldHead = head;
         String oldHeadRevision = headRevision;
         boolean success = false;
@@ -279,7 +278,6 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
         } finally {
             // revert to old state if unsuccessful
             if (!success) {
-                base = oldBase;
                 head = oldHead;
                 headRevision = oldHeadRevision;
             }
