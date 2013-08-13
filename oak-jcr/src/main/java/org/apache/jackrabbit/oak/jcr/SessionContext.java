@@ -18,9 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -38,17 +36,12 @@ import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.Query;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
+import org.apache.jackrabbit.oak.jcr.delegate.UserManagerDelegator;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
@@ -194,166 +187,11 @@ public class SessionContext implements NamePathMapper {
         return principalManager;
     }
 
-    private abstract class UserManagerOperation<T> extends SessionOperation<T> {
-        @Override
-        public void checkPreconditions() throws RepositoryException {
-            delegate.checkAlive();
-        }
-    }
-
     @Nonnull
     public UserManager getUserManager() {
-        // TODO Move to top level class (OAK-938), make UserManager from core the delegate and pass root through argument of perform
         if (userManager == null) {
-            final UserManager uMgr = getConfig(UserConfiguration.class).getUserManager(delegate.getRoot(), namePathMapper);
-            userManager = new UserManager() {
-                @Override
-                public Authorizable getAuthorizable(final String id) throws RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Authorizable>() {
-                        @Override
-                        public Authorizable perform() throws RepositoryException {
-                            return uMgr.getAuthorizable(id);
-                        }
-                    });
-                }
-
-                @Override
-                public Authorizable getAuthorizable(final Principal principal) throws RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Authorizable>() {
-                        @Override
-                        public Authorizable perform() throws RepositoryException {
-                            return uMgr.getAuthorizable(principal);
-                        }
-                    });
-                }
-
-                @Override
-                public Authorizable getAuthorizableByPath(final String path) throws UnsupportedRepositoryOperationException, RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Authorizable>() {
-                        @Override
-                        public Authorizable perform() throws RepositoryException {
-                            return uMgr.getAuthorizableByPath(path);
-                        }
-                    });
-                }
-
-                @Override
-                public Iterator<Authorizable> findAuthorizables(final String relPath, final String value) throws RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Iterator<Authorizable>>() {
-                        @Override
-                        public Iterator<Authorizable> perform() throws RepositoryException {
-                            return uMgr.findAuthorizables(relPath, value);
-                        }
-                    });
-                }
-
-                @Override
-                public Iterator<Authorizable> findAuthorizables(final String relPath, final String value, final int searchType) throws RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Iterator<Authorizable>>() {
-                        @Override
-                        public Iterator<Authorizable> perform() throws RepositoryException {
-                            return uMgr.findAuthorizables(relPath, value, searchType);
-                        }
-                    });
-                }
-
-                @Override
-                public Iterator<Authorizable> findAuthorizables(final Query query) throws RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Iterator<Authorizable>>() {
-                        @Override
-                        public Iterator<Authorizable> perform() throws RepositoryException {
-                            return uMgr.findAuthorizables(query);
-                        }
-                    });
-                }
-
-                @Override
-                public User createUser(final String userID, final String password) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new UserManagerOperation<User>() {
-                        @Override
-                        public User perform() throws RepositoryException {
-                            return uMgr.createUser(userID, password);
-                        }
-                    });
-                }
-
-                @Override
-                public User createUser(final String userID, final String password, final Principal principal, final String intermediatePath) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new UserManagerOperation<User>() {
-                        @Override
-                        public User perform() throws RepositoryException {
-                            return uMgr.createUser(userID, password, principal, intermediatePath);
-                        }
-                    });
-                }
-
-                @Override
-                public Group createGroup(final String groupID) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Group>() {
-                        @Override
-                        public Group perform() throws RepositoryException {
-                            return uMgr.createGroup(groupID);
-                        }
-                    });
-                }
-
-                @Override
-                public Group createGroup(final Principal principal) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Group>() {
-                        @Override
-                        public Group perform() throws RepositoryException {
-                            return uMgr.createGroup(principal);
-                        }
-                    });
-                }
-
-                @Override
-                public Group createGroup(final Principal principal, final String intermediatePath) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Group>() {
-                        @Override
-                        public Group perform() throws RepositoryException {
-                            return uMgr.createGroup(principal, intermediatePath);
-                        }
-                    });
-                }
-
-                @Override
-                public Group createGroup(final String groupID, final Principal principal, final String intermediatePath) throws AuthorizableExistsException, RepositoryException {
-                    return delegate.perform(new UserManagerOperation<Group>() {
-                        @Override
-                        public Group perform() throws RepositoryException {
-                            return uMgr.createGroup(groupID, principal, intermediatePath);
-                        }
-                    });
-                }
-
-                @Override
-                public boolean isAutoSave() {
-                    try {
-                        return delegate.perform(new UserManagerOperation<Boolean>() {
-                            @Override
-                            public Boolean perform() throws RepositoryException {
-                                return uMgr.isAutoSave();
-                            }
-                        });
-                    } catch (RepositoryException e) {
-                        assert false : "Unexpected exception: " + e;
-                        return false;
-                    }
-                }
-
-                @Override
-                public void autoSave(final boolean enable) throws UnsupportedRepositoryOperationException, RepositoryException {
-                    delegate.perform(new UserManagerOperation<Void>() {
-                        @Override
-                        public Void perform() throws RepositoryException {
-                            uMgr.autoSave(enable);
-                            return null;
-                        }
-                    });
-                }
-            };
-
+            userManager = new UserManagerDelegator(delegate, getConfig(UserConfiguration.class)
+                    .getUserManager(delegate.getRoot(), namePathMapper));
         }
         return userManager;
     }
@@ -512,4 +350,5 @@ public class SessionContext implements NamePathMapper {
     private <T> T getConfig(Class<T> clss) {
         return repository.getSecurityProvider().getConfiguration(clss);
     }
+
 }
