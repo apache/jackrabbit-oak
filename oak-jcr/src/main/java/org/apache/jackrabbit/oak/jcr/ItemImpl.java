@@ -107,12 +107,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      */
     @CheckForNull
     protected final <U> U safePerform(@Nonnull SessionOperation<U> op) {
-        try {
-            return sessionDelegate.perform(op);
-        } catch (RepositoryException e) {
-            throw new RuntimeException(
-                    "Unexpected exception thrown by operation " + op, e);
-        }
+        return sessionDelegate.safePerform(op);
     }
 
     //---------------------------------------------------------------< Item >---

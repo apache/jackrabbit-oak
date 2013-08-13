@@ -97,6 +97,7 @@ public class SessionDelegate {
      * @param <T>  return type of {@code sessionOperation}
      * @return  the result of {@code sessionOperation.perform()}
      * @throws RepositoryException
+     * @see #getRoot()
      */
     public synchronized <T> T perform(SessionOperation<T> sessionOperation)
             throws RepositoryException {
@@ -133,6 +134,26 @@ public class SessionDelegate {
             if (sessionOperation.isUpdate()) {
                 updateCount++;
             }
+        }
+    }
+
+    /**
+     * Same as {@link #perform(SessionOperation)} unless this method expects
+     * {@link SessionOperation#perform} <em>not</em> to throw a {@code RepositoryException}.
+     * Such exceptions will be wrapped into a {@code RuntimeException} and rethrown as they
+     * are considered an internal error.
+     *
+     * @param sessionOperation  the {@code SessionOperation} to perform
+     * @param <T>  return type of {@code sessionOperation}
+     * @return  the result of {@code sessionOperation.perform()}
+     * @see #getRoot()
+     */
+    public <T> T safePerform(SessionOperation<T> sessionOperation) {
+        try {
+            return perform(sessionOperation);
+        } catch (RepositoryException e) {
+            throw new RuntimeException("Unexpected exception thrown by operation " +
+                    sessionOperation, e);
         }
     }
 
@@ -383,12 +404,20 @@ public class SessionDelegate {
         return root.getQueryEngine();
     }
 
-    //-----------------------------------------------------------< internal >---
-
-    @Nonnull  // FIXME this should be package private. OAK-672
+    /**
+     * The current {@code Root} instance this session delegate instance operates on.
+     * To ensure the returned root reflects the correct repository revision access
+     * should only be done from within a {@link SessionOperation} closure through
+     * {@link #perform(SessionOperation)}.
+     *
+     * @return  current root
+     */
+    @Nonnull
     public Root getRoot() {
         return root;
     }
+
+    //-----------------------------------------------------------< internal >---
 
     /**
      * Wraps the given {@link CommitFailedException} instance using the
@@ -401,5 +430,4 @@ public class SessionDelegate {
     private static RepositoryException newRepositoryException(CommitFailedException exception) {
         return exception.asRepositoryException();
     }
-
 }
