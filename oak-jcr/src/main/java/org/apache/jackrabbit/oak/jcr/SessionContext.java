@@ -38,6 +38,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.jcr.delegate.PrincipalManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.PrivilegeManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.UserManagerDelegator;
@@ -180,8 +181,9 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     public PrincipalManager getPrincipalManager() {
         if (principalManager == null) {
-            principalManager = getConfig(PrincipalConfiguration.class)
-                    .getPrincipalManager(delegate.getRoot(), namePathMapper);
+            principalManager = new PrincipalManagerDelegator(delegate,
+                    getConfig(PrincipalConfiguration.class)
+                            .getPrincipalManager(delegate.getRoot(), namePathMapper));
         }
         return principalManager;
     }
