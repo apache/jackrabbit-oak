@@ -392,7 +392,6 @@ public class SessionImpl implements JackrabbitSession {
             @Override
             public Void perform() throws RepositoryException {
                 sd.save();
-                sessionContext.refresh(false);
                 return null;
             }
         });
@@ -404,7 +403,6 @@ public class SessionImpl implements JackrabbitSession {
             @Override
             public Void perform() throws RepositoryException {
                 sd.refresh(keepChanges);
-                sessionContext.refresh(false);
                 return null;
             }
 

@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -80,7 +79,6 @@ public class SessionContext implements NamePathMapper {
     private WorkspaceImpl workspace = null;
 
     private AccessControlManager accessControlManager;
-    private PermissionProvider permissionProvider;
     private PrincipalManager principalManager;
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
@@ -309,18 +307,9 @@ public class SessionContext implements NamePathMapper {
         }
     }
 
-    public void refresh(boolean includeRoot) {
-        if (includeRoot) {
-            getSessionDelegate().getRoot().refresh();
-        }
-        if (permissionProvider != null) {
-            permissionProvider.refresh();
-        }
-    }
-
     @Nonnull
     public AccessManager getAccessManager() throws RepositoryException {
-        return new AccessManager(getPermissionProvider());
+        return new AccessManager(delegate.getPermissionProvider());
     }
 
     @Nonnull
@@ -335,15 +324,6 @@ public class SessionContext implements NamePathMapper {
             observationManager.dispose();
         }
         namespaces.clear();
-    }
-
-    //------------------------------------------------------------< private >---
-    @Nonnull
-    private PermissionProvider getPermissionProvider() {
-        if (permissionProvider == null) {
-            permissionProvider = getConfig(AuthorizationConfiguration.class).getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
-        }
-        return permissionProvider;
     }
 
     @Nonnull
