@@ -97,6 +97,16 @@ public abstract class AbstractTree implements Tree {
     protected abstract AbstractTree createChild(@Nonnull String name);
 
     /**
+     * @return  {@code true} iff {@code getStatus() == Status.NEW}
+     */
+    protected abstract boolean isNew();
+
+    /**
+     * @return  {@code true} iff {@code getStatus() == Status.MODIFIED}
+     */
+    protected abstract boolean isModified();
+
+    /**
      * @return {@code true} if this tree has orderable children;
      *         {@code false} otherwise.
      */
@@ -174,9 +184,9 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public Status getStatus() {
-        if (nodeBuilder.isNew()) {
+        if (isNew()) {
             return NEW;
-        } else if (nodeBuilder.isModified()) {
+        } else if (isModified()) {
             return MODIFIED;
         } else {
             return EXISTING;
