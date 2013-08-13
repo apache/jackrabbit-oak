@@ -150,6 +150,17 @@ class SecureNodeBuilder implements NodeBuilder {
         return exists() && builder.remove();
     }
 
+
+    @Override
+    public boolean moveTo(NodeBuilder newParent, String newName) {
+        return exists() && builder.moveTo(newParent, newName);
+    }
+
+    @Override
+    public boolean copyTo(NodeBuilder newParent, String newName) {
+        return exists() && builder.copyTo(newParent, newName);
+    }
+
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
