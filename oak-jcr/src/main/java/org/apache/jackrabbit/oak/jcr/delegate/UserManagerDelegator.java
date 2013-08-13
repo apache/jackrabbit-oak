@@ -170,17 +170,12 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public boolean isAutoSave() {
-        try {
-            return sessionDelegate.perform(new UserManagerOperation<Boolean>(sessionDelegate) {
-                @Override
-                public Boolean perform() {
-                    return userManagerDelegate.isAutoSave();
-                }
-            });
-        } catch (RepositoryException e) {
-            assert false : "Unexpected exception: " + e;
-            return false;
-        }
+        return sessionDelegate.safePerform(new UserManagerOperation<Boolean>(sessionDelegate) {
+            @Override
+            public Boolean perform() {
+                return userManagerDelegate.isAutoSave();
+            }
+        });
     }
 
     @Override

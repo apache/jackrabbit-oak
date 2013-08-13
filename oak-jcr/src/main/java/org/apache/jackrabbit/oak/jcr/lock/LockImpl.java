@@ -119,12 +119,7 @@ public final class LockImpl implements Lock {
      */
     @CheckForNull
     private final <U> U safePerform(@Nonnull SessionOperation<U> op) {
-        try {
-            return context.getSessionDelegate().perform(op);
-        } catch (RepositoryException e) {
-            throw new RuntimeException(
-                    "Unexpected exception thrown by operation " + op, e);
-        }
+        return context.getSessionDelegate().safePerform(op);
     }
 
 }

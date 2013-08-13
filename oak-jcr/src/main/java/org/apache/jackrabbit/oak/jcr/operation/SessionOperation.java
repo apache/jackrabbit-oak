@@ -22,6 +22,7 @@ import javax.jcr.RepositoryException;
 
 /**
  * A {@code SessionOperation} provides an execution context for executing session scoped operations.
+ * @see org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate#perform(SessionOperation)
  */
 public abstract class SessionOperation<T> {
 
