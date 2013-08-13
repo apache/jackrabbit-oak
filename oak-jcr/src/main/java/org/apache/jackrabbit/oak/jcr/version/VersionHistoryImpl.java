@@ -80,7 +80,18 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public VersionIterator getAllLinearVersions() throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return perform(new SessionOperation<VersionIterator>() {
+            @Override
+            public VersionIterator perform() throws RepositoryException {
+                return new VersionIteratorAdapter(Iterators.transform(
+                        dlg.getAllLinearVersions(), new Function<VersionDelegate, Version>() {
+                    @Override
+                    public Version apply(VersionDelegate input) {
+                        return new VersionImpl(input, sessionContext);
+                    }
+                }));
+            }
+        });
     }
 
     @Override

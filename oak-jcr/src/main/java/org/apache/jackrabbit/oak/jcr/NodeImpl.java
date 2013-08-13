@@ -41,6 +41,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.lock.Lock;
+import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -91,6 +92,7 @@ import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.MIX_LOCKABLE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
@@ -1161,6 +1163,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Nonnull
     public Lock lock(final boolean isDeep, boolean isSessionScoped)
             throws RepositoryException {
+        checkLockable();
         // TODO: use perform()
         ContentSession session = sessionDelegate.getContentSession();
         final String userID = session.getAuthInfo().getUserID();
@@ -1195,6 +1198,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void unlock() throws RepositoryException {
+        checkLockable();
         // TODO: use perform
         String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
         String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
@@ -1258,6 +1262,24 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     //------------------------------------------------------------< internal >---
+
+    /**
+     * Checks if this node is lockable; otherwise throws a LockException.
+     * @throws LockException if the node is not lockable.
+     */
+    private void checkLockable() throws RepositoryException {
+        perform(new NodeOperation<Void>(dlg) {
+            @Override
+            public Void perform() throws RepositoryException {
+                if (!getNodeTypeManager().isNodeType(node.getTree(), MIX_LOCKABLE)) {
+                    String msg = "Unable to perform a locking operation on a non-lockable node: " + getPath();
+                    log.debug(msg);
+                    throw new LockException(msg);
+                }
+                return null;
+            }
+        });
+    }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
         return getNodeTypeManager().getEffectiveNodeType(dlg.getTree());
