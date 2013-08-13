@@ -103,6 +103,58 @@ public class MutableTree extends AbstractTree {
         return super.getStatus();
     }
 
+    private NodeState getBase() {
+        if (parent == null) {
+            return root.getBaseState();
+        } else {
+            return parent.getBase().getChildNode(name);
+        }
+    }
+
+    @Override
+    protected boolean isNew() {
+        return !getBase().exists();
+    }
+
+    @Override
+    protected boolean isModified() {
+        NodeState base = getBase();
+
+        // child node removed?
+        for (String name : base.getChildNodeNames()) {
+            if (!nodeBuilder.hasChildNode(name)) {
+                return true;
+            }
+        }
+
+        // child node added?
+        for (String name : nodeBuilder.getChildNodeNames()) {
+            if (!base.hasChildNode(name)) {
+                return true;
+            }
+        }
+
+        // property removed?
+        for (PropertyState p : base.getProperties()) {
+            if (!nodeBuilder.hasProperty(p.getName())) {
+                return true;
+            }
+        }
+
+        // property added or modified?
+        for (PropertyState p : nodeBuilder.getProperties()) {
+            PropertyState q = base.getProperty(p.getName());
+            if (q == null) {
+                return true;
+            }
+            if (!p.equals(q)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @Override
     public boolean exists() {
         return enter();

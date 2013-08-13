@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class RootTest extends OakBaseTest {
@@ -131,7 +130,7 @@ public class RootTest extends OakBaseTest {
         assertFalse(z.exists());
 
         x.addChild("z");
-        assertEquals(Status.EXISTING, z.getStatus());
+        assertEquals(Status.NEW, z.getStatus());
 
         x.getChild("z").setProperty("p", "2");
         PropertyState p = z.getProperty("p");
@@ -163,8 +162,8 @@ public class RootTest extends OakBaseTest {
 
         root.move("/parent", "/moved");
 
-        assertEquals(Status.EXISTING, parent.getStatus());
-        assertEquals(Status.EXISTING, n.getStatus());
+        assertEquals(Status.NEW, parent.getStatus());
+        assertEquals(Status.NEW, n.getStatus());
 
         assertEquals("/moved", parent.getPath());
         assertEquals("/moved/new", n.getPath());
@@ -316,7 +315,6 @@ public class RootTest extends OakBaseTest {
     }
 
     @Test
-    @Ignore("OAK-947")  // FIXME OAK-947
     public void rebasePreservesStatus() throws CommitFailedException {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
@@ -336,7 +334,6 @@ public class RootTest extends OakBaseTest {
     }
 
     @Test
-    @Ignore("OAK-947")  // FIXME OAK-947
     public void purgePreservesStatus() throws CommitFailedException {
         Tree x = session.getLatestRoot().getTree("/x");
         Tree added = x.addChild("added");
