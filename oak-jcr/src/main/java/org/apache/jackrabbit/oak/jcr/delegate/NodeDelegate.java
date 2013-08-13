@@ -693,6 +693,16 @@ public class NodeDelegate extends ItemDelegate {
         return false;
     }
 
+    public String getLockOwner() {
+        PropertyState property = tree.getProperty(JCR_LOCKOWNER);
+        if (property != null && property.getType() == Type.STRING) {
+            return property.getValue(Type.STRING);
+        } else {
+            return null;
+        }
+    }
+
+
 
     @Override
     public String toString() {
