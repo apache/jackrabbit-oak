@@ -21,3 +21,24 @@ TODO Document patterns and anti patterns:
 * Session live time, explicit refresh
 * Use admin session
 * ...
+
+## Session refresh behavior
+
+Oak is based on the MVCC model where each session starts with a snapshot
+view of the repository. Concurrent changes from other sessions *are not
+visible* to a session until it gets refreshed. A session can be refreshed
+either explicitly by calling the ``refresh()`` method or implicitly by
+direct-to-workspace methods or by the auto-refresh mode. Also observation
+event delivery causes a session to be refreshed.
+
+By default the auto-refresh mode automatically refreshes all sessions that
+have been idle for more than one second, and it's also possible to
+explicitly set the auto-refresh parameters. A typical approach would be
+for long-lived admin sessions to set the auto-refresh mode to keep the
+session always up to date with latest changes from the repository.
+
+### Pattern: One session for one request/operation
+
+One of the key patterns targeted by Oak is a web application that serves
+HTTP requests. The recommended way to handle such cases is to use a
+separate session for each HTTP request, and never to refresh that session.
