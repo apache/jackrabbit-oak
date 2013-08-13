@@ -75,12 +75,12 @@ import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockImpl;
 import org.apache.jackrabbit.oak.jcr.operation.NodeOperation;
+import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +90,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
+import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
+import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.MIX_LOCKABLE;
@@ -1159,38 +1161,34 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     /**
      * @see javax.jcr.Node#lock(boolean, boolean)
      */
-    @Override
-    @Nonnull
+    @Override @Nonnull
     public Lock lock(final boolean isDeep, boolean isSessionScoped)
             throws RepositoryException {
-        checkLockable();
-        // TODO: use perform()
-        ContentSession session = sessionDelegate.getContentSession();
-        final String userID = session.getAuthInfo().getUserID();
+        checkLockable(); // TODO: use perform()
+        perform(new SessionOperation<Void>(true) {
+            @Override
+            public Void perform() throws RepositoryException {
+                ContentSession session = sessionDelegate.getContentSession();
+                String path = dlg.getPath();
+                String userID = session.getAuthInfo().getUserID();
 
-        String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
-        String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
-        try {
-            Root root = session.getLatestRoot();
-            Tree tree = root.getTree(dlg.getPath());
-            if (!tree.exists()) {
-                throw new ItemNotFoundException();
+                try {
+                    Root root = session.getLatestRoot();
+                    Tree tree = root.getTree(path);
+                    if (!tree.exists()) {
+                        throw new ItemNotFoundException();
+                    }
+                    tree.setProperty(JCR_LOCKOWNER, userID);
+                    tree.setProperty(JCR_LOCKISDEEP, isDeep);
+                    root.commit(); // TODO: fail instead?
+                } catch (CommitFailedException e) {
+                    throw new RepositoryException("Unable to lock " + path, e);
+                }
+                return null;
             }
-            tree.setProperty(lockOwner, userID);
-            tree.setProperty(lockIsDeep, isDeep);
-            root.commit(); // TODO: fail instead?
-        } catch (CommitFailedException e) {
-            throw new RepositoryException("Unable to lock " + this, e);
-        }
-
+        });
         getSession().refresh(true);
-
-        if (isSessionScoped) {
-            return TODO.dummyImplementation().returnValue(
-                    new LockImpl(this, userID, isDeep));
-        }
-
-        return getLock();
+        return new LockImpl(sessionContext, dlg);
     }
 
     /**
