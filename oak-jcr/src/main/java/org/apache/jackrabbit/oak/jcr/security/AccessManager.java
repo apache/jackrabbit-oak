@@ -23,25 +23,38 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 
 /**
  * AccessManager
  */
 public class AccessManager {
-
+    private final SessionDelegate delegate;
     private final PermissionProvider permissionProvider;
 
-    public AccessManager(@Nonnull PermissionProvider permissionProvider) {
-        this.permissionProvider = permissionProvider;
+    public AccessManager(SessionDelegate delegate) {
+        this.delegate = delegate;
+        this.permissionProvider = delegate.getPermissionProvider();
     }
 
-    public boolean hasPermissions(@Nonnull String oakPath, @Nonnull String actions) {
-        return permissionProvider.isGranted(oakPath, actions);
+    public boolean hasPermissions(@Nonnull final String oakPath, @Nonnull final String actions) {
+        return delegate.safePerform(new SessionOperation<Boolean>() {
+            @Override
+            public Boolean perform() {
+                return permissionProvider.isGranted(oakPath, actions);
+            }
+        });
     }
 
-    public boolean hasPermissions(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) throws RepositoryException {
-        return permissionProvider.isGranted(tree, property, permissions);
+    public boolean hasPermissions(@Nonnull final Tree tree, @Nullable final PropertyState property, final long permissions) throws RepositoryException {
+        return delegate.safePerform(new SessionOperation<Boolean>() {
+            @Override
+            public Boolean perform() {
+                return permissionProvider.isGranted(tree, property, permissions);
+            }
+        });
     }
 
     public void checkPermissions(@Nonnull String oakPath, @Nonnull String actions) throws RepositoryException {

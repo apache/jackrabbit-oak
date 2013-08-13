@@ -401,7 +401,7 @@ public class SessionImpl implements JackrabbitSession {
     public void refresh(final boolean keepChanges) throws RepositoryException {
         perform(new WriteOperation<Void>() {
             @Override
-            public Void perform() throws RepositoryException {
+            public Void perform() {
                 sd.refresh(keepChanges);
                 return null;
             }
