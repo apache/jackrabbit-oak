@@ -119,7 +119,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @param parent parent builder
      * @param name name of this node
      */
-    private MemoryNodeBuilder(MemoryNodeBuilder parent, String name) {
+    protected MemoryNodeBuilder(MemoryNodeBuilder parent, String name) {
         this.parent = parent;
         this.name = name;
         this.rootBuilder = parent.rootBuilder;
@@ -285,6 +285,27 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean moveTo(NodeBuilder newParent, String newName) {
+        if (isRoot()) {
+            return false;
+        } else {
+            checkNotNull(newParent).setChildNode(checkNotNull(newName), getNodeState());
+            remove();
+            return true;
+        }
+    }
+
+    @Override
+    public boolean copyTo(NodeBuilder newParent, String newName) {
+        if (isRoot()) {
+            return false;
+        } else {
+            checkNotNull(newParent).setChildNode(checkNotNull(newName), getNodeState());
+            return true;
+        }
+    }
+
+    @Override
     public long getPropertyCount() {
         return head().getCurrentNodeState().getPropertyCount();
     }
@@ -371,9 +392,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * @return path of this builder. For debugging purposes only
+     * @return path of this builder.
      */
-    private String getPath() {
+    protected final String getPath() {
         return parent == null ? "/" : getPath(new StringBuilder()).toString();
     }
 
