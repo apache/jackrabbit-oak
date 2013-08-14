@@ -39,57 +39,64 @@ public class MemoryDocumentStore implements DocumentStore {
     /**
      * The 'nodes' collection.
      */
-    private ConcurrentSkipListMap<String, Map<String, Object>> nodes =
-            new ConcurrentSkipListMap<String, Map<String, Object>>();
+    private ConcurrentSkipListMap<String, Document> nodes =
+            new ConcurrentSkipListMap<String, Document>();
     
     /**
      * The 'clusterNodes' collection.
      */
-    private ConcurrentSkipListMap<String, Map<String, Object>> clusterNodes =
-            new ConcurrentSkipListMap<String, Map<String, Object>>();
+    private ConcurrentSkipListMap<String, Document> clusterNodes =
+            new ConcurrentSkipListMap<String, Document>();
 
     @Override
-    public Map<String, Object> find(Collection collection, String key, int maxCacheAge) {
+    public Document find(Collection collection, String key, int maxCacheAge) {
         return find(collection, key);
     }
     
     @Override
-    public Map<String, Object> find(Collection collection, String key) {
-        ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
-        Map<String, Object> n = map.get(key);
-        if (n == null) {
+    public Document find(Collection collection, String key) {
+        ConcurrentSkipListMap<String, Document> map = getMap(collection);
+        Document doc = map.get(key);
+        if (doc == null) {
             return null;
         }
-        Map<String, Object> copy = Utils.newMap();
-        synchronized (n) {
-            Utils.deepCopyMap(n, copy);
+        Document copy = Utils.newDocument();
+        synchronized (doc) {
+            Utils.deepCopyMap(doc, copy);
         }
         return copy;
     }
     
     @Override
     @Nonnull
-    public List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit) {
+    public List<Document> query(Collection collection,
+                                String fromKey,
+                                String toKey,
+                                int limit) {
         return query(collection, fromKey, toKey, null, 0, limit);
     }
     
     @Override
     @Nonnull
-    public List<Map<String, Object>> query(Collection collection, String fromKey,
-            String toKey, String indexedProperty, long startValue, int limit) {
-        ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
-        ConcurrentNavigableMap<String, Map<String, Object>> sub = map.subMap(fromKey, toKey);
-        ArrayList<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-        for (Map<String, Object> n : sub.values()) {
+    public List<Document> query(Collection collection,
+                                String fromKey,
+                                String toKey,
+                                String indexedProperty,
+                                long startValue,
+                                int limit) {
+        ConcurrentSkipListMap<String, Document> map = getMap(collection);
+        ConcurrentNavigableMap<String, Document> sub = map.subMap(fromKey, toKey);
+        ArrayList<Document> list = new ArrayList<Document>();
+        for (Document doc : sub.values()) {
             if (indexedProperty != null) {
-                Long value = (Long) n.get(indexedProperty);
+                Long value = (Long) doc.get(indexedProperty);
                 if (value < startValue) {
                     continue;
                 }
             }
-            Map<String, Object> copy = Utils.newMap();
-            synchronized (n) {
-                Utils.deepCopyMap(n, copy);
+            Document copy = Utils.newDocument();
+            synchronized (doc) {
+                Utils.deepCopyMap(doc, copy);
             }
             list.add(copy);
             if (list.size() >= limit) {
@@ -110,7 +117,7 @@ public class MemoryDocumentStore implements DocumentStore {
      * @param collection the collection
      * @return the map
      */
-    private ConcurrentSkipListMap<String, Map<String, Object>> getMap(Collection collection) {
+    private ConcurrentSkipListMap<String, Document> getMap(Collection collection) {
         switch (collection) {
         case NODES:
             return nodes;
@@ -122,58 +129,56 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @CheckForNull
-    private Map<String, Object> internalCreateOrUpdate(Collection collection,
+    private Document internalCreateOrUpdate(Collection collection,
                                                        UpdateOp update,
                                                        boolean checkConditions) {
-        ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
-        Map<String, Object> n;
-        Map<String, Object> oldNode;
+        ConcurrentSkipListMap<String, Document> map = getMap(collection);
+        Document doc;
+        Document oldDoc;
 
         // get the node if it's there
-        oldNode = n = map.get(update.key);
+        oldDoc = doc = map.get(update.key);
 
-        if (n == null) {
+        if (doc == null) {
             if (!update.isNew) {
                 throw new MicroKernelException("Document does not exist: " + update.key);
             }
             // for a new node, add it (without synchronization)
-            n = Utils.newMap();
-            oldNode = map.putIfAbsent(update.key, n);
-            if (oldNode != null) {
+            doc = Utils.newDocument();
+            oldDoc = map.putIfAbsent(update.key, doc);
+            if (oldDoc != null) {
                 // somebody else added it at the same time
-                n = oldNode;
+                doc = oldDoc;
             }
         }
-        synchronized (n) {
-            if (checkConditions && !checkConditions(n, update)) {
+        synchronized (doc) {
+            if (checkConditions && !checkConditions(doc, update)) {
                 return null;
             }
-            if (oldNode != null) {
+            if (oldDoc != null) {
                 // clone the old node
                 // (document level operations are synchronized)
-                Map<String, Object> oldNode2 = Utils.newMap();
-                Utils.deepCopyMap(oldNode, oldNode2);
-                oldNode = oldNode2;
+                Document oldDoc2 = Utils.newDocument();
+                Utils.deepCopyMap(oldDoc, oldDoc2);
+                oldDoc = oldDoc2;
             }
             // to return the new document:
             // update the document
             // (document level operations are synchronized)
-            applyChanges(n, update);
+            applyChanges(doc, update);
         }
-        return oldNode;
+        return oldDoc;
     }
 
     @Nonnull
     @Override
-    public Map<String, Object> createOrUpdate(Collection collection,
-                                              UpdateOp update)
+    public Document createOrUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException {
         return internalCreateOrUpdate(collection, update, false);
     }
 
     @Override
-    public Map<String, Object> findAndUpdate(Collection collection,
-                                             UpdateOp update)
+    public Document findAndUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException {
         return internalCreateOrUpdate(collection, update, true);
     }
@@ -287,7 +292,7 @@ public class MemoryDocumentStore implements DocumentStore {
 
     @Override
     public boolean create(Collection collection, List<UpdateOp> updateOps) {
-        ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
+        ConcurrentSkipListMap<String, Document> map = getMap(collection);
         for (UpdateOp op : updateOps) {
             if (map.containsKey(op.key)) {
                 return false;

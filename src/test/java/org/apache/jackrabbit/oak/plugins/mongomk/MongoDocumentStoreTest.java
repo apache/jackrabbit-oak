@@ -188,7 +188,7 @@ public class MongoDocumentStoreTest {
             inserts.add(n.asOperation(true));
         }
         docStore.create(Collection.NODES, inserts);
-        List<Map<String, Object>> docs = docStore.query(Collection.NODES,
+        List<Document> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit("/"),  Utils.getKeyUpperLimit("/"),
                 MongoMK.MANY_CHILDREN_THRESHOLD);
         assertEquals(MongoMK.MANY_CHILDREN_THRESHOLD, docs.size());

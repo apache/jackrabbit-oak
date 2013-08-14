@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.mongomk.util;
 
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.oak.plugins.mongomk.Document;
 import org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp;
 import org.slf4j.Logger;
@@ -44,7 +44,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public Map<String, Object> find(Collection collection, String key) {
+    public Document find(Collection collection, String key) {
         try {
             logMethod("find", collection, key);
             return logResult(store.find(collection, key));
@@ -55,9 +55,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public Map<String, Object> find(Collection collection,
-                                    String key,
-                                    int maxCacheAge) {
+    public Document find(Collection collection, String key, int maxCacheAge) {
         try {
             logMethod("find", collection, key, maxCacheAge);
             return logResult(store.find(collection, key, maxCacheAge));
@@ -69,10 +67,10 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Nonnull
     @Override
-    public List<Map<String, Object>> query(Collection collection,
-                                           String fromKey,
-                                           String toKey,
-                                           int limit) {
+    public List<Document> query(Collection collection,
+                                String fromKey,
+                                String toKey,
+                                int limit) {
         try {
             logMethod("query", collection, fromKey, toKey, limit);
             return logResult(store.query(collection, fromKey, toKey, limit));
@@ -84,8 +82,12 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     
     @Override
     @Nonnull
-    public List<Map<String, Object>> query(Collection collection, String fromKey,
-            String toKey, String indexedProperty, long startValue, int limit) {
+    public List<Document> query(Collection collection,
+                                String fromKey,
+                                String toKey,
+                                String indexedProperty,
+                                long startValue,
+                                int limit) {
         try {
             logMethod("query", collection, fromKey, toKey, indexedProperty, startValue, limit);
             return logResult(store.query(collection, fromKey, toKey, indexedProperty, startValue, limit));
@@ -119,8 +121,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Nonnull
     @Override
-    public Map<String, Object> createOrUpdate(Collection collection,
-                                              UpdateOp update)
+    public Document createOrUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException {
         try {
             logMethod("createOrUpdate", collection, update);
@@ -132,8 +133,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public Map<String, Object> findAndUpdate(Collection collection,
-                                             UpdateOp update)
+    public Document findAndUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException {
         try {
             logMethod("findAndUpdate", collection, update);
