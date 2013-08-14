@@ -277,7 +277,7 @@ public final class KernelNodeState extends AbstractNodeState {
                 return childNodeCountMin;
             }
             // count the entries
-            Iterator<?> iterator = getChildNodeEntries().iterator();
+            Iterator<? extends ChildNodeEntry> iterator = getChildNodeEntries().iterator();
             long n = 0;
             while (n <= max) {
                 if (!iterator.hasNext()) {
@@ -303,7 +303,7 @@ public final class KernelNodeState extends AbstractNodeState {
         checkNotNull(name);
         init();
         return childNames.contains(name)
-                || (childNodeCount > MAX_CHILD_NODE_NAMES
+                || (getChildNodeCount(MAX_CHILD_NODE_NAMES) > MAX_CHILD_NODE_NAMES
                         && getChildNode(name).exists());
     }
 
@@ -315,16 +315,12 @@ public final class KernelNodeState extends AbstractNodeState {
         if (childNames.contains(name)) {
             childPath = getChildPath(name);
         }
-        if (childPath == null && childNodeCount > MAX_CHILD_NODE_NAMES) {
+        if (childPath == null && getChildNodeCount(MAX_CHILD_NODE_NAMES) > MAX_CHILD_NODE_NAMES) {
             String path = getChildPath(name);
             // OAK-506: Avoid the nodeExists() call when already cached
             NodeState state = cache.getIfPresent(revision + path);
             if (state != null) {
-                if (state != NULL) {
-                    return state;
-                } else {
-                    return MISSING_NODE;
-                }
+                return state == NULL ? MISSING_NODE : state;                
             }
             // not able to tell from cache if node exists
             // need to ask MicroKernel
@@ -347,7 +343,7 @@ public final class KernelNodeState extends AbstractNodeState {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         init();
-        if (childNodeCount <= childNames.size()) {
+        if (childNodeCount <= MAX_CHILD_NODE_NAMES && childNodeCount <= childNames.size()) {
             return iterable(childNames);
         }
         List<Iterable<ChildNodeEntry>> iterables = Lists.newArrayList();
@@ -476,7 +472,7 @@ public final class KernelNodeState extends AbstractNodeState {
                     } else if (id != null && id.equals(kbase.id)) {
                         return true; // no differences
                     } else if (path.equals(kbase.path)
-                            && childNodeCount > LOCAL_DIFF_THRESHOLD) {
+                            && getChildNodeCount(LOCAL_DIFF_THRESHOLD) > LOCAL_DIFF_THRESHOLD) {
                         // use MK.diff() when there are 'many' child nodes
                         String jsonDiff = kernel.diff(kbase.getRevision(), revision, path, 0);
                         return processJsonDiff(jsonDiff, kbase, diff);
