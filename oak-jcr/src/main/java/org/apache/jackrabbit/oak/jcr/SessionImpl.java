@@ -688,4 +688,8 @@ public class SessionImpl implements JackrabbitSession {
         return sessionContext.getUserManager();
     }
 
+    @Override
+    public String toString() {
+        return sd.getContentSession().toString();
+    }
 }
