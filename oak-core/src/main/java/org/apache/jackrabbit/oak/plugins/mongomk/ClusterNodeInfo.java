@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -181,11 +180,11 @@ public class ClusterNodeInfo {
     private static ClusterNodeInfo createInstance(DocumentStore store, String machineId, String instanceId) {
         long now = System.currentTimeMillis();
         // keys between "0" and "a" includes all possible numbers
-        List<Map<String, Object>> list = store.query(DocumentStore.Collection.CLUSTER_NODES,
+        List<Document> list = store.query(DocumentStore.Collection.CLUSTER_NODES,
                 "0", "a", Integer.MAX_VALUE);
         int clusterNodeId = 0;
         int maxId = 0;
-        for (Map<String, Object> doc : list) {
+        for (Document doc : list) {
             String key = "" + doc.get(ID_KEY);
             int id;
             try {
