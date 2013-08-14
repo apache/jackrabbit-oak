@@ -44,6 +44,14 @@ class KernelRootBuilder extends MemoryNodeBuilder {
     private final NodeStore store;
 
     /**
+     * The base state of this builder, possibly non-existent if this builder
+     * represents a new node that didn't yet exist in the base content tree.
+     * This differs from the base state of super since the latter one reflects
+     * the base created by the last purge.
+     */
+    private NodeState base;
+
+    /**
      * Private branch used to hold pending changes exceeding {@link #UPDATE_LIMIT}
      */
     private NodeStoreBranch branch;
@@ -53,13 +61,26 @@ class KernelRootBuilder extends MemoryNodeBuilder {
      */
     private int updates = 0;
 
-    public KernelRootBuilder(KernelNodeState base, KernelNodeStore store) {
+    KernelRootBuilder(KernelNodeState base, KernelNodeStore store) {
         super(checkNotNull(base));
+        this.base = base;
         this.store = store;
         this.branch = store.branch(base);
     }
 
     //--------------------------------------------------< MemoryNodeBuilder >---
+
+
+    @Override
+    public NodeState getBaseState() {
+        return base;
+    }
+
+    @Override
+    public void reset(NodeState newBase) {
+        base = newBase;
+        super.reset(newBase);
+    }
 
     @Override
     protected MemoryNodeBuilder createChildBuilder(String name) {
@@ -116,7 +137,7 @@ class KernelRootBuilder extends MemoryNodeBuilder {
     boolean move(String source, String target) {
         purge();
         boolean success = branch.move(source, target);
-        reset(branch.getHead());
+        super.reset(branch.getHead());
         return success;
     }
 
@@ -129,13 +150,13 @@ class KernelRootBuilder extends MemoryNodeBuilder {
     boolean copy(String source, String target) {
         purge();
         boolean success = branch.copy(source, target);
-        reset(branch.getHead());
+        super.reset(branch.getHead());
         return success;
     }
 
     private void purge() {
         branch.setRoot(getNodeState());
-        reset(branch.getHead());
+        super.reset(branch.getHead());
         updates = 0;
     }
 }
