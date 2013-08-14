@@ -432,7 +432,12 @@ public class SessionDelegate {
         return root;
     }
 
-    //-----------------------------------------------------------< internal >---
+    @Override
+    public String toString() {
+        return contentSession.toString();
+    }
+
+//-----------------------------------------------------------< internal >---
 
     /**
      * Wraps the given {@link CommitFailedException} instance using the

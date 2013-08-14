@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
@@ -45,6 +46,11 @@ class ContentSessionImpl implements ContentSession, Observable {
 
     private static final Logger log = LoggerFactory.getLogger(ContentSessionImpl.class);
 
+    /**
+     * Session counter. Used to generate unique internal session names.
+     */
+    private static final AtomicLong SESSION_COUNTER = new AtomicLong();
+
     private final LoginContext loginContext;
     private final SecurityProvider securityProvider;
     private final String workspaceName;
@@ -52,6 +58,7 @@ class ContentSessionImpl implements ContentSession, Observable {
     private final CommitHook hook;
     private final ChangeDispatcher changeDispatcher;
     private final QueryIndexProvider indexProvider;
+    private final String sessionName;
 
     private volatile boolean live = true;
 
@@ -69,6 +76,7 @@ class ContentSessionImpl implements ContentSession, Observable {
         this.hook = hook;
         this.changeDispatcher = changeDispatcher;
         this.indexProvider = indexProvider;
+        this.sessionName = "session-" + SESSION_COUNTER.incrementAndGet();
     }
 
     private void checkLive() {
@@ -127,4 +135,8 @@ class ContentSessionImpl implements ContentSession, Observable {
         }
     }
 
+    @Override
+    public String toString() {
+        return sessionName;
+    }
 }
