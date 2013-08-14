@@ -43,11 +43,6 @@ public class KernelNodeBuilder extends MemoryNodeBuilder {
         return new KernelNodeBuilder(this, name, root);
     }
 
-    @Override
-    protected void updated() {
-        root.updated();
-    }
-
     /**
      * If {@code newParent} is a {@link KernelNodeBuilder} this implementation
      * purges all pending changes before applying the move operation. This allows the

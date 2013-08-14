@@ -189,11 +189,14 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * Called whenever <em>this</em> node is modified, i.e. a property is
      * added, changed or removed, or a child node is added or removed. Changes
      * inside child nodes or the subtrees below are not reported. The default
-     * implementation does nothing, but subclasses may override this method
-     * to better track changes.
+     * implementation triggers an {@link #updated()} call on the root builder
+     * (unless this is already the root builder), which subclasses can use
+     * to capture aggregate update information across the whole tree.
      */
     protected void updated() {
-        // do nothing
+        if (this != rootBuilder) {
+            rootBuilder.updated();
+        }
     }
 
     //--------------------------------------------------------< NodeBuilder >---
