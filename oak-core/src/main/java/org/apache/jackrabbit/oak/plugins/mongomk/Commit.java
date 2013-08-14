@@ -42,18 +42,19 @@ public class Commit {
      * Whether to purge old revisions if a node gets too large. If false, old
      * revisions are stored in a separate document. If true, old revisions are
      * removed (purged).
+     * TODO: enable once document split and garbage collection implementation is complete.
      */
-    static final boolean PURGE_OLD_REVISIONS = true;
+    static final boolean PURGE_OLD_REVISIONS = false;
     
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
     /**
      * The maximum size of a document. If it is larger, it is split.
+     * TODO: check which value is the best one
+     *       Document splitting is currently disabled until the implementation
+     *       is complete.
      */
-    // TODO check which value is the best one
-    //private static final int MAX_DOCUMENT_SIZE = 16 * 1024;
-    // TODO set to 512 KB currently, should be changed later on
-    private static final int MAX_DOCUMENT_SIZE = 512 * 1024;
+    private static final int MAX_DOCUMENT_SIZE = Integer.MAX_VALUE;
    
     private final MongoMK mk;
     private final Revision baseRevision;
