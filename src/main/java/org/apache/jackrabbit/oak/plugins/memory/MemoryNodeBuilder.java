@@ -199,6 +199,20 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
+    /**
+     * Accessor for parent builder
+     */
+    protected final MemoryNodeBuilder getParent() {
+        return parent;
+    }
+
+    /**
+     * Accoessor for name
+     */
+    protected final String getName() {
+        return name;
+    }
+
     //--------------------------------------------------------< NodeBuilder >---
 
     @Override
