@@ -25,7 +25,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -125,7 +124,7 @@ public class SegmentNodeState extends AbstractNodeState {
 
     @Override @Nonnull
     public NodeBuilder builder() {
-        return new MemoryNodeBuilder(this);
+        return new SegmentRootBuilder(this);
     }
 
     @Override
