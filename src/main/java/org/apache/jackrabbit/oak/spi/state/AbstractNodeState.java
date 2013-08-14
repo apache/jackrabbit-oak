@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * <p>
  * This class also implements trivial (and potentially very slow) versions of
  * the {@link #getProperty(String)} and {@link #getPropertyCount()} methods
- * based on {@link #getProperties()}. The {@link #getChildNodeCount()} method
+ * based on {@link #getProperties()}. The {@link #getChildNodeCount(long)} method
  * is similarly implemented based on {@link #getChildNodeEntries()}.
  * Subclasses should normally override these method with a more efficient
  * alternatives.
