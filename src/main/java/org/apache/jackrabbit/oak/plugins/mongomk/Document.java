@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.TreeMap;
 
+import javax.annotation.CheckForNull;
+
 /**
  * A document corresponds to a node stored in the MongoMK. A document contains
  * all the revisions of a node stored in the {@link DocumentStore}.
@@ -26,4 +28,17 @@ public class Document extends TreeMap<String, Object> {
 
     private static final long serialVersionUID = -2428664083360273697L;
 
+    /**
+     * The node id, which contains the depth of the path
+     * (0 for root, 1 for children of the root), and then the path.
+     */
+    static final String ID = "_id";
+
+    /**
+     * @return the id of this document or <code>null</code> if none is set.
+     */
+    @CheckForNull
+    public String getId() {
+        return (String) get(ID);
+    }
 }

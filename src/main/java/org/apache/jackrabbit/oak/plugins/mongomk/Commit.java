@@ -283,10 +283,10 @@ public class Commit {
      * @param op the operation
      */
     public void createOrUpdateNode(DocumentStore store, UpdateOp op) {
-        Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
+        Document doc = store.createOrUpdate(Collection.NODES, op);
         if (baseRevision != null) {
             final AtomicReference<List<Revision>> collisions = new AtomicReference<List<Revision>>();
-            Revision newestRev = mk.getNewestRevision(map, revision,
+            Revision newestRev = mk.getNewestRevision(doc, revision,
                     new CollisionHandler() {
                 @Override
                 void concurrentModification(Revision other) {
@@ -308,7 +308,7 @@ public class Commit {
                             op.path + " was already added in revision\n" + 
                             newestRev;
                 } else if (mk.isRevisionNewer(newestRev, baseRevision)
-                        && (op.isDelete || isConflicting(map, op))) {
+                        && (op.isDelete || isConflicting(doc, op))) {
                     conflictMessage = "The node " + 
                             op.path + " was changed in revision\n" + newestRev +
                             ", which was applied after the base revision\n" + 
@@ -317,24 +317,24 @@ public class Commit {
             }
             if (conflictMessage != null) {
                 conflictMessage += ", before\n" + revision + 
-                        "; document:\n" + Utils.formatDocument(map) + 
+                        "; document:\n" + Utils.formatDocument(doc) +
                         ",\nrevision order:\n" + mk.getRevisionComparator();
                 throw new MicroKernelException(conflictMessage);
             }
             // if we get here the modification was successful
             // -> check for collisions and conflict (concurrent updates
             // on a node are possible if property updates do not overlap)
-            if (collisions.get() != null && isConflicting(map, op)) {
+            if (collisions.get() != null && isConflicting(doc, op)) {
                 for (Revision r : collisions.get()) {
                     // mark collisions on commit root
-                    new Collision(map, r, op, revision).mark(store);
+                    new Collision(doc, r, op, revision).mark(store);
                 }
             }
         }
 
-        int size = Utils.estimateMemoryUsage(map);
+        int size = Utils.estimateMemoryUsage(doc);
         if (size > MAX_DOCUMENT_SIZE) {
-            UpdateOp[] split = splitDocument(map);
+            UpdateOp[] split = splitDocument(doc);
             
             // TODO check if the new main document is actually smaller;
             // otherwise, splitting doesn't make sense
@@ -411,10 +411,10 @@ public class Commit {
         return false;
     }
 
-    private UpdateOp[] splitDocument(Map<String, Object> map) {
-        String id = (String) map.get(UpdateOp.ID);
+    private UpdateOp[] splitDocument(Document doc) {
+        String id = doc.getId();
         String path = Utils.getPathFromId(id);
-        Long previous = (Long) map.get(UpdateOp.PREVIOUS);
+        Long previous = (Long) doc.get(UpdateOp.PREVIOUS);
         if (previous == null) {
             previous = 0L;
         } else {
@@ -425,9 +425,9 @@ public class Commit {
         UpdateOp main = new UpdateOp(path, id, false);
         setModified(main, revision);
         main.set(UpdateOp.PREVIOUS, previous);
-        for (Entry<String, Object> e : map.entrySet()) {
+        for (Entry<String, Object> e : doc.entrySet()) {
             String key = e.getKey();
-            if (key.equals(UpdateOp.ID)) {
+            if (key.equals(Document.ID)) {
                 // ok
             } else if (key.equals(UpdateOp.MODIFIED)) {
                 // ok
