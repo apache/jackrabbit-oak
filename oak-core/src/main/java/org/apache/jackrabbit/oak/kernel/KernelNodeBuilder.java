@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This class refines move and copy operations by delegating
@@ -31,7 +32,7 @@ public class KernelNodeBuilder extends MemoryNodeBuilder {
 
     private final KernelRootBuilder root;
 
-    public KernelNodeBuilder(MemoryNodeBuilder parent, String name, KernelRootBuilder root) {
+    KernelNodeBuilder(MemoryNodeBuilder parent, String name, KernelRootBuilder root) {
         super(parent, name);
         this.root = checkNotNull(root);
     }
@@ -41,6 +42,17 @@ public class KernelNodeBuilder extends MemoryNodeBuilder {
     @Override
     protected MemoryNodeBuilder createChildBuilder(String name) {
         return new KernelNodeBuilder(this, name, root);
+    }
+
+    // TODO optimise this by caching similar to what we do in MemoryNodeBuilder
+    @Override
+    public NodeState getBaseState() {
+        return getParent().getBaseState().getChildNode(getName());
+    }
+
+    @Override
+    public void reset(NodeState newBase) {
+        throw new IllegalStateException("Cannot reset a non-root builder");
     }
 
     /**
