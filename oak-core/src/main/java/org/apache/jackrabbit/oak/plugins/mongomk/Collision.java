@@ -46,12 +46,12 @@ class Collision {
 
     private static final Logger LOG = LoggerFactory.getLogger(Collision.class);
 
-    private final Map<String, Object> document;
+    private final Document document;
     private final String theirRev;
     private final UpdateOp ourOp;
     private final String ourRev;
 
-    Collision(@Nonnull Map<String, Object> document,
+    Collision(@Nonnull Document document,
               @Nonnull Revision theirRev,
               @Nonnull UpdateOp ourOp,
               @Nonnull Revision ourRev) {
@@ -75,7 +75,7 @@ class Collision {
             return;
         }
         // their commit wins, we have to mark ourRev
-        Map<String, Object> newDoc = Utils.newMap();
+        Document newDoc = Utils.newDocument();
         Utils.deepCopyMap(document, newDoc);
         MemoryDocumentStore.applyChanges(newDoc, ourOp);
         if (!markCommitRoot(newDoc, ourRev, store)) {
@@ -96,10 +96,10 @@ class Collision {
      * @return <code>true</code> if the commit for the given revision was marked
      *         successfully; <code>false</code> otherwise.
      */
-    private static boolean markCommitRoot(@Nonnull Map<String, Object> document,
+    private static boolean markCommitRoot(@Nonnull Document document,
                                           @Nonnull String revision,
                                           @Nonnull DocumentStore store) {
-        String p = Utils.getPathFromId((String) document.get(UpdateOp.ID));
+        String p = Utils.getPathFromId(document.getId());
         String commitRootPath = null;
         // first check if we can mark the commit with the given revision
         @SuppressWarnings("unchecked")

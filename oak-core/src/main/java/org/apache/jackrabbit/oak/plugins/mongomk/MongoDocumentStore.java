@@ -194,7 +194,7 @@ public class MongoDocumentStore implements DocumentStore {
                                 int limit) {
         log("query", fromKey, toKey, limit);
         DBCollection dbCollection = getDBCollection(collection);
-        QueryBuilder queryBuilder = QueryBuilder.start(UpdateOp.ID);
+        QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
         queryBuilder.greaterThanEquals(fromKey);
         queryBuilder.lessThan(toKey);
         if (indexedProperty != null) {
@@ -210,8 +210,7 @@ public class MongoDocumentStore implements DocumentStore {
                 DBObject o = cursor.next();
                 Document doc = convertFromDBObject(o);
                 if (collection == Collection.NODES) {
-                    String key = (String) doc.get(UpdateOp.ID);
-                    nodesCache.put(key, new CachedDocument(doc));
+                    nodesCache.put(doc.getId(), new CachedDocument(doc));
                 }
                 list.add(doc);
             }
@@ -253,7 +252,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         for (Entry<String, Operation> entry : updateOp.changes.entrySet()) {
             String k = entry.getKey();
-            if (k.equals(UpdateOp.ID)) {
+            if (k.equals(Document.ID)) {
                 // avoid exception "Mod on _id not allowed"
                 continue;
             }
@@ -400,8 +399,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 if (collection == Collection.NODES) {
                     for (Document doc : docs) {
-                        String id = (String) doc.get(UpdateOp.ID);
-                        nodesCache.put(id, new CachedDocument(doc));
+                        nodesCache.put(doc.getId(), new CachedDocument(doc));
                     }
                 }
                 return true;
@@ -442,7 +440,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private static QueryBuilder getByKeyQuery(String key) {
-        return QueryBuilder.start(UpdateOp.ID).is(key);
+        return QueryBuilder.start(Document.ID).is(key);
     }
     
     @Override

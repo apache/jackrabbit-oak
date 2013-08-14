@@ -24,13 +24,7 @@ import java.util.TreeMap;
  * A MongoDB "update" operation for one node.
  */
 public class UpdateOp {
-    
-    /**
-     * The node id, which contains the depth of the path
-     * (0 for root, 1 for children of the root), and then the path.
-     */
-    static final String ID = "_id";
-    
+
     /**
      * The last revision. Key: machine id, value: revision.
      */
