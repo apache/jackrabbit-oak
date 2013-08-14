@@ -26,6 +26,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.plugins.mongomk.Document;
 import org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp;
 
@@ -74,10 +75,10 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     
     @Override
     @CheckForNull
-    public Map<String, Object> find(Collection collection, String key) {
+    public Document find(Collection collection, String key) {
         try {
             long start = now();
-            Map<String, Object> result = base.find(collection, key);
+            Document result = base.find(collection, key);
             updateAndLogTimes("find", start, 0, size(result));
             return result;
         } catch (Exception e) {
@@ -87,10 +88,10 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @CheckForNull
-    public Map<String, Object> find(Collection collection, String key, int maxCacheAge) {
+    public Document find(Collection collection, String key, int maxCacheAge) {
         try {
             long start = now();
-            Map<String, Object> result = base.find(collection, key, maxCacheAge);
+            Document result = base.find(collection, key, maxCacheAge);
             updateAndLogTimes("find2", start, 0, size(result));
             return result;
         } catch (Exception e) {
@@ -100,11 +101,13 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @Nonnull
-    public List<Map<String, Object>> query(Collection collection, String fromKey,
-            String toKey, int limit) {
+    public List<Document> query(Collection collection,
+                                String fromKey,
+                                String toKey,
+                                int limit) {
         try {
             long start = now();
-            List<Map<String, Object>> result = base.query(collection, fromKey, toKey, limit);
+            List<Document> result = base.query(collection, fromKey, toKey, limit);
             updateAndLogTimes("query", start, 0, size(result));
             return result;
         } catch (Exception e) {
@@ -114,11 +117,15 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @Nonnull
-    public List<Map<String, Object>> query(Collection collection, String fromKey,
-            String toKey, String indexedProperty, long startValue, int limit) {
+    public List<Document> query(Collection collection,
+                                String fromKey,
+                                String toKey,
+                                String indexedProperty,
+                                long startValue,
+                                int limit) {
         try {
             long start = now();
-            List<Map<String, Object>> result = base.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+            List<Document> result = base.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
             updateAndLogTimes("query2", start, 0, size(result));
             return result;
         } catch (Exception e) {
@@ -151,11 +158,11 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @Nonnull
-    public Map<String, Object> createOrUpdate(Collection collection, UpdateOp update)
+    public Document createOrUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException {
         try {
             long start = now();
-            Map<String, Object> result = base.createOrUpdate(collection, update);
+            Document result = base.createOrUpdate(collection, update);
             updateAndLogTimes("createOrUpdate", start, 0, size(result));
             return result;
         } catch (Exception e) {
@@ -165,11 +172,11 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @CheckForNull
-    public Map<String, Object> findAndUpdate(Collection collection, UpdateOp update)
+    public Document findAndUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException {
         try {
             long start = now();
-            Map<String, Object> result = base.findAndUpdate(collection, update);
+            Document result = base.findAndUpdate(collection, update);
             updateAndLogTimes("findAndUpdate", start, 0, size(result));
             return result;
         } catch (Exception e) {
@@ -235,14 +242,14 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         }
     }
     
-    private static int size(Map<String, Object> m) {
-        return Utils.estimateMemoryUsage(m);
+    private static int size(Document doc) {
+        return Utils.estimateMemoryUsage(doc);
     }
 
-    private static int size(List<Map<String, Object>> list) {
+    private static int size(List<Document> list) {
         int result = 0;
-        for (Map<String, Object> m : list) {
-            result += size(m);
+        for (Document doc : list) {
+            result += size(doc);
         }
         return result;
     }

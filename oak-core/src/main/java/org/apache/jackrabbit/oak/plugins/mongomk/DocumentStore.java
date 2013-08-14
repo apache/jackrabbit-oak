@@ -69,30 +69,30 @@ public interface DocumentStore {
     /**
      * Get a document.
      * <p>
-     * The returned map is a clone (the caller can modify it without affecting
+     * The returned document is a clone (the caller can modify it without affecting
      * the stored version).
      * 
      * @param collection the collection
      * @param key the key
-     * @return the map, or null if not found
+     * @return the document, or null if not found
      */
     @CheckForNull
-    Map<String, Object> find(Collection collection, String key);
+    Document find(Collection collection, String key);
     
     /**
      * Get a document, ignoring the cache if the cached entry is older than the
      * specified time.
      * <p>
-     * The returned map is a clone (the caller can modify it without affecting
+     * The returned document is a clone (the caller can modify it without affecting
      * the stored version).
      * 
      * @param collection the collection
      * @param key the key
      * @param maxCacheAge the maximum age of the cached document
-     * @return the map, or null if not found
+     * @return the document, or null if not found
      */
     @CheckForNull
-    Map<String, Object> find(Collection collection, String key, int maxCacheAge);
+    Document find(Collection collection, String key, int maxCacheAge);
 
     /**
      * Get a list of documents where the key is greater than a start value and
@@ -105,8 +105,10 @@ public interface DocumentStore {
      * @return the list (possibly empty)
      */
     @Nonnull
-    List<Map<String, Object>> query(Collection collection, String fromKey, 
-            String toKey, int limit);
+    List<Document> query(Collection collection,
+                         String fromKey,
+                         String toKey,
+                         int limit);
     
     /**
      * Get a list of documents where the key is greater than a start value and
@@ -121,8 +123,12 @@ public interface DocumentStore {
      * @return the list (possibly empty)
      */
     @Nonnull
-    List<Map<String, Object>> query(Collection collection, String fromKey,
-            String toKey, String indexedProperty, long startValue, int limit);
+    List<Document> query(Collection collection,
+                         String fromKey,
+                         String toKey,
+                         String indexedProperty,
+                         long startValue,
+                         int limit);
 
     /**
      * Remove a document.
@@ -151,7 +157,7 @@ public interface DocumentStore {
      * @throws MicroKernelException if the operation failed.
      */    
     @Nonnull
-    Map<String, Object> createOrUpdate(Collection collection, UpdateOp update)
+    Document createOrUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException;
 
     /**
@@ -159,13 +165,14 @@ public interface DocumentStore {
      * {@link UpdateOp.Operation.Type#CONTAINS_MAP_ENTRY} and only updates the
      * document if the condition is <code>true</code>.
      *
+     *
      * @param collection the collection
      * @param update the update operation with the condition
      * @return the old document or <code>null</code> if the condition is not met.
      * @throws MicroKernelException if the operation failed.
      */
     @CheckForNull
-    Map<String, Object> findAndUpdate(Collection collection, UpdateOp update)
+    Document findAndUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException;
 
     /**

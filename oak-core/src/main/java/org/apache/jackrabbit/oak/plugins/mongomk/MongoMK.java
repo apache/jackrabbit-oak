@@ -660,20 +660,20 @@ public class MongoMK implements MicroKernel {
         // as the starting point
         String from = Utils.getKeyLowerLimit(path);
         String to = Utils.getKeyUpperLimit(path);
-        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, 
+        List<Document> list = store.query(DocumentStore.Collection.NODES,
                 from, to, limit);
         Children c = new Children();
         Set<Revision> validRevisions = new HashSet<Revision>();
         if (list.size() >= limit) {
             c.hasMore = true;
         }
-        for (Map<String, Object> e : list) {
+        for (Document doc : list) {
             // filter out deleted children
-            if (getLiveRevision(e, rev, validRevisions) == null) {
+            if (getLiveRevision(doc, rev, validRevisions) == null) {
                 continue;
             }
             // TODO put the whole node in the cache
-            String id = e.get(UpdateOp.ID).toString();
+            String id = doc.get(UpdateOp.ID).toString();
             String p = Utils.getPathFromId(id);
             c.children.add(p);
         }
@@ -917,10 +917,10 @@ public class MongoMK implements MicroKernel {
         long minValue = Commit.getModified(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
-        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, fromKey, toKey, 
+        List<Document> list = store.query(DocumentStore.Collection.NODES, fromKey, toKey,
                 UpdateOp.MODIFIED, minValue, Integer.MAX_VALUE);
-        for (Map<String, Object> e : list) {
-            String id = e.get(UpdateOp.ID).toString();
+        for (Document doc : list) {
+            String id = doc.get(UpdateOp.ID).toString();
             String p = Utils.getPathFromId(id);
             Node fromNode = getNode(p, fromRev);
             Node toNode = getNode(p, toRev);
