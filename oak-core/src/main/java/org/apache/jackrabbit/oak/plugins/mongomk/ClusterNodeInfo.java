@@ -29,6 +29,8 @@ import org.apache.jackrabbit.mk.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.mongomk.Document.ID;
+
 /**
  * Information about a cluster node.
  */
@@ -40,11 +42,6 @@ public class ClusterNodeInfo {
      * The prefix for random (non-reusable) keys.
      */
     private static final String RANDOM_PREFIX = "random:";
-    
-    /**
-     * The cluster node id.
-     */
-    private static final String ID_KEY = "_id";
     
     /**
      * The machine id.
@@ -164,7 +161,7 @@ public class ClusterNodeInfo {
         for (int i = 0; i < 10; i++) {
             ClusterNodeInfo clusterNode = createInstance(store, machineId, instanceId);
             UpdateOp update = new UpdateOp(null, "" + clusterNode.id, true);
-            update.set(ID_KEY, "" + clusterNode.id);
+            update.set(ID, String.valueOf(clusterNode.id));
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
             update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
             update.set(LEASE_END_KEY, System.currentTimeMillis() + clusterNode.leaseTime);
@@ -185,7 +182,7 @@ public class ClusterNodeInfo {
         int clusterNodeId = 0;
         int maxId = 0;
         for (Document doc : list) {
-            String key = "" + doc.get(ID_KEY);
+            String key = doc.getId();
             int id;
             try {
                 id = Integer.parseInt(key);
