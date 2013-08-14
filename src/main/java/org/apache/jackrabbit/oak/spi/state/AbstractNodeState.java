@@ -267,6 +267,17 @@ public abstract class AbstractNodeState implements NodeState {
         }
 
         // TODO inefficient unless there are very few child nodes
+
+        // compare the exact child node count
+        // (before, we only compared up to 20 entries)
+        c1 = getChildNodeCount(Long.MAX_VALUE);
+        c2 = other.getChildNodeCount(Long.MAX_VALUE);
+        if (c1 != c2) {
+            return false;
+        }
+        
+        // compare all child nodes recursively (this is potentially very slow,
+        // as it recursively calls equals)
         for (ChildNodeEntry entry : getChildNodeEntries()) {
             if (!entry.getNodeState().equals(
                     other.getChildNode(entry.getName()))) {
