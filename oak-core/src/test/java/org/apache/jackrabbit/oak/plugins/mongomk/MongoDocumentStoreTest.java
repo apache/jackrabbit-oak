@@ -108,7 +108,7 @@ public class MongoDocumentStoreTest {
         for (int i = 0; i < nUpdates; i++) {
             String path = "/node" + i;
             UpdateOp updateOp = new UpdateOp(path, path, true);
-            updateOp.set(UpdateOp.ID, "/node" + i);
+            updateOp.set(Document.ID, "/node" + i);
             updateOp.setMapEntry("property1", "key1", "value1");
             updateOp.increment("property2", 1);
             updateOp.set("property3", "value3");
