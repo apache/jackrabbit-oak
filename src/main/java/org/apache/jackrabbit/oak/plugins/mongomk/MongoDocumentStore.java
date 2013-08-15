@@ -74,7 +74,7 @@ public class MongoDocumentStore implements DocumentStore {
         // the _id field is the primary key, so we don't need to define it
         DBObject index = new BasicDBObject();
         // modification time (descending)
-        index.put(UpdateOp.MODIFIED, -1L);
+        index.put(NodeDocument.MODIFIED, -1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         nodes.ensureIndex(index, options);
@@ -140,7 +140,11 @@ public class MongoDocumentStore implements DocumentStore {
                 doc = nodesCache.get(key, new Callable<NodeDocument>() {
                     @Override
                     public NodeDocument call() throws Exception {
-                        return (NodeDocument) findUncached(collection, key);
+                        NodeDocument doc = (NodeDocument) findUncached(collection, key);
+                        if (doc == null) {
+                            doc = NodeDocument.NULL;
+                        }
+                        return doc;
                     }
                 });
                 if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
@@ -152,8 +156,12 @@ public class MongoDocumentStore implements DocumentStore {
                 // too old: invalidate, try again
                 nodesCache.invalidate(key);
             }
-            //noinspection unchecked
-            return (T) doc;
+            if (doc == NodeDocument.NULL) {
+                return null;
+            } else {
+                //noinspection unchecked
+                return (T) doc;
+            }
         } catch (ExecutionException e) {
             throw new IllegalStateException("Failed to load document with " + key, e);
         }
@@ -331,7 +339,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
 
-    @Nonnull
+    @CheckForNull
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws MicroKernelException {

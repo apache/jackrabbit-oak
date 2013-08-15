@@ -70,7 +70,7 @@ class UnmergedBranches {
         }
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         @SuppressWarnings("unchecked")
-        Map<String, String> valueMap = (Map<String, String>) doc.get(UpdateOp.REVISIONS);
+        Map<String, String> valueMap = (Map<String, String>) doc.get(NodeDocument.REVISIONS);
         if (valueMap != null) {
             SortedMap<Revision, Revision> tmp =
                     new TreeMap<Revision, Revision>(comparator);
