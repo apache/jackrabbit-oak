@@ -25,49 +25,6 @@ import java.util.TreeMap;
  */
 public class UpdateOp {
 
-    /**
-     * The last revision. Key: machine id, value: revision.
-     */
-    static final String LAST_REV = "_lastRev";
-    
-    /**
-     * The list of recent revisions for this node, where this node is the
-     * root of the commit. Key: revision, value: true or the base revision of an
-     * un-merged branch commit.
-     */
-    static final String REVISIONS = "_revisions";
-
-    /**
-     * The list of revision to root commit depth mappings to find out if a
-     * revision is actually committed.
-     */
-    static final String COMMIT_ROOT = "_commitRoot";
-
-    /**
-     * The number of previous documents (documents that contain old revisions of
-     * this node). This property is only set if multiple documents per node
-     * exist. This is the case when a node is updated very often in a short
-     * time, such that the document gets very big.
-     */
-    static final String PREVIOUS = "_prev";
-    
-    /**
-     * Whether this node is deleted. Key: revision, value: true/false.
-     */
-    static final String DELETED = "_deleted";
-
-    /**
-     * Revision collision markers set by commits with modifications, which
-     * overlap with un-merged branch commits.
-     * Key: revision, value:
-     */
-    static final String COLLISIONS = "_collisions";
-
-    /**
-     * The modified time (5 second resolution).
-     */
-    static final String MODIFIED = "_modified";
-    
     final String path;
     
     final String key;

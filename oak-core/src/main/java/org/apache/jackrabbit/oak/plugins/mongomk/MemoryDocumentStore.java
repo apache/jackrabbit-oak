@@ -171,7 +171,7 @@ public class MemoryDocumentStore implements DocumentStore {
         return oldDoc;
     }
 
-    @Nonnull
+    @CheckForNull
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws MicroKernelException {

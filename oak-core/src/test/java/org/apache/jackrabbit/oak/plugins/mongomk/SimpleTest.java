@@ -76,7 +76,7 @@ public class SimpleTest {
         n.setProperty("name", "Hello");
         UpdateOp op = n.asOperation(true);
         // mark as commit root
-        op.setMapEntry(UpdateOp.REVISIONS, rev.toString(), "true");
+        op.setMapEntry(NodeDocument.REVISIONS, rev.toString(), "true");
         DocumentStore s = mk.getDocumentStore();
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
         Node n2 = mk.getNode("/test", rev);
@@ -384,32 +384,32 @@ public class SimpleTest {
             head = mk.commit("", "+\"/test\":{\"foo\":{}}", head, null);
 
             // root node must not have the revision
-            Map<String, Object> rootNode = store.find(Collection.NODES, "0:/");
-            assertFalse(((Map<?, ?>) rootNode.get(UpdateOp.REVISIONS)).containsKey(head));
+            NodeDocument rootDoc = store.find(Collection.NODES, "0:/");
+            assertFalse(rootDoc.containsRevision(head));
 
             // test node must have head in revisions
-            Map<String, Object> node = store.find(Collection.NODES, "1:/test");
-            assertTrue(((Map<?, ?>) node.get(UpdateOp.REVISIONS)).containsKey(head));
+            NodeDocument node = store.find(Collection.NODES, "1:/test");
+            assertTrue(node.containsRevision(head));
 
             // foo must not have head in revisions and must refer to test
             // as commit root (depth = 1)
-            Map<String, Object> foo = store.find(Collection.NODES, "2:/test/foo");
-            assertTrue(foo.get(UpdateOp.REVISIONS) == null);
-            assertEquals(1, ((Map<?, ?>) foo.get(UpdateOp.COMMIT_ROOT)).get(head));
+            NodeDocument foo = store.find(Collection.NODES, "2:/test/foo");
+            assertTrue(foo.get(NodeDocument.REVISIONS) == null);
+            assertEquals(1, ((Map<?, ?>) foo.get(NodeDocument.COMMIT_ROOT)).get(head));
 
             head = mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head, null);
 
             // root node is root of commit
-            rootNode = store.find(Collection.NODES, "0:/");
-            assertTrue(((Map<?, ?>) rootNode.get(UpdateOp.REVISIONS)).containsKey(head));
+            rootDoc = store.find(Collection.NODES, "0:/");
+            assertTrue(((Map<?, ?>) rootDoc.get(NodeDocument.REVISIONS)).containsKey(head));
 
             // /bar refers to root nodes a commit root
-            Map<String, Object> bar = store.find(Collection.NODES, "1:/bar");
-            assertEquals(0, ((Map<?, ?>) bar.get(UpdateOp.COMMIT_ROOT)).get(head));
+            NodeDocument bar = store.find(Collection.NODES, "1:/bar");
+            assertEquals(0, ((Map<?, ?>) bar.get(NodeDocument.COMMIT_ROOT)).get(head));
 
             // /test/foo/bar refers to root nodes a commit root
             bar = store.find(Collection.NODES, "3:/test/foo/bar");
-            assertEquals(0, ((Map<?, ?>) bar.get(UpdateOp.COMMIT_ROOT)).get(head));
+            assertEquals(0, ((Map<?, ?>) bar.get(NodeDocument.COMMIT_ROOT)).get(head));
 
         } finally {
             mk.dispose();
