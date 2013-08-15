@@ -90,7 +90,9 @@ public class SegmentNodeStore extends AbstractNodeStore {
 
     @Override
     public NodeState reset(@Nonnull NodeBuilder builder) {
-        return super.reset(builder);    // TODO implement reset
+        NodeState state = getRoot();
+        checkNotNull(builder).reset(state);
+        return state;
     }
 
     @Override @Nonnull
