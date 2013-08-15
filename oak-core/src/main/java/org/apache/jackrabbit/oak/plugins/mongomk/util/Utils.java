@@ -28,7 +28,6 @@ import javax.annotation.Nullable;
 import com.mongodb.BasicDBObject;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.mongomk.Document;
 import org.apache.jackrabbit.oak.plugins.mongomk.Revision;
 import org.bson.types.ObjectId;
 
@@ -58,10 +57,6 @@ public class Utils {
 
     public static <E> Set<E> newSet() {
         return new HashSet<E>();
-    }
-
-    public static Document newDocument() {
-        return new Document();
     }
 
     @SuppressWarnings("unchecked")

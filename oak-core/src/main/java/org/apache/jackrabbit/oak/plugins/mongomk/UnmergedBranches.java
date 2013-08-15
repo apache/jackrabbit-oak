@@ -68,10 +68,9 @@ class UnmergedBranches {
         if (!initialized.compareAndSet(false, true)) {
             throw new IllegalStateException("already initialized");
         }
-        Map<String, Object> nodeMap = store.find(
-                DocumentStore.Collection.NODES, Utils.getIdFromPath("/"));
+        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         @SuppressWarnings("unchecked")
-        Map<String, String> valueMap = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
+        Map<String, String> valueMap = (Map<String, String>) doc.get(UpdateOp.REVISIONS);
         if (valueMap != null) {
             SortedMap<Revision, Revision> tmp =
                     new TreeMap<Revision, Revision>(comparator);

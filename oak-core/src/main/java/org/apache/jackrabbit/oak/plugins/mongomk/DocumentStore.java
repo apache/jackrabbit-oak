@@ -30,43 +30,6 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 public interface DocumentStore {
 
     /**
-     * The list of collections.
-     */
-    enum Collection { 
-        
-        /**
-         * The 'nodes' collection. It contains all the node data, with one document
-         * per node, and the path as the primary key. Each document possibly
-         * contains multiple revisions.
-         * <p>
-         * Key: the path, value: the node data (possibly multiple revisions)
-         * <p>
-         * Old revisions are removed after some time, either by the process that
-         * removed or updated the node, lazily when reading, or in a background
-         * process.
-         */
-        NODES("nodes"), 
-        
-        /**
-         * The 'clusterNodes' collection contains the list of currently running
-         * cluster nodes. The key is the clusterNodeId (0, 1, 2,...).
-         */
-        CLUSTER_NODES("clusterNodes");
-            
-        final String name;
-        
-        Collection(String name) {
-            this.name = name;
-        }
-        
-        @Override
-        public String toString() {
-            return name;
-        }
-        
-    }
-
-    /**
      * Get a document.
      * <p>
      * The returned document is a clone (the caller can modify it without affecting
@@ -77,7 +40,7 @@ public interface DocumentStore {
      * @return the document, or null if not found
      */
     @CheckForNull
-    Document find(Collection collection, String key);
+    <T extends Document> T find(Collection<T> collection, String key);
     
     /**
      * Get a document, ignoring the cache if the cached entry is older than the
@@ -92,7 +55,7 @@ public interface DocumentStore {
      * @return the document, or null if not found
      */
     @CheckForNull
-    Document find(Collection collection, String key, int maxCacheAge);
+    <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge);
 
     /**
      * Get a list of documents where the key is greater than a start value and
@@ -105,10 +68,10 @@ public interface DocumentStore {
      * @return the list (possibly empty)
      */
     @Nonnull
-    List<Document> query(Collection collection,
-                         String fromKey,
-                         String toKey,
-                         int limit);
+    <T extends Document> List<T> query(Collection<T> collection,
+                                       String fromKey,
+                                       String toKey,
+                                       int limit);
     
     /**
      * Get a list of documents where the key is greater than a start value and
@@ -123,12 +86,12 @@ public interface DocumentStore {
      * @return the list (possibly empty)
      */
     @Nonnull
-    List<Document> query(Collection collection,
-                         String fromKey,
-                         String toKey,
-                         String indexedProperty,
-                         long startValue,
-                         int limit);
+    <T extends Document> List<T> query(Collection<T> collection,
+                                       String fromKey,
+                                       String toKey,
+                                       String indexedProperty,
+                                       long startValue,
+                                       int limit);
 
     /**
      * Remove a document.
@@ -136,7 +99,7 @@ public interface DocumentStore {
      * @param collection the collection
      * @param key the key
      */
-    void remove(Collection collection, String key);
+    <T extends Document> void remove(Collection<T> collection, String key);
 
     /**
      * Try to create a list of documents.
@@ -145,7 +108,7 @@ public interface DocumentStore {
      * @param updateOps the list of documents to add
      * @return true if this worked (if none of the documents already existed)
      */
-    boolean create(Collection collection, List<UpdateOp> updateOps);
+    <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps);
     
     /**
      * Create or update a document. For MongoDb, this is using "findAndModify" with
@@ -157,7 +120,7 @@ public interface DocumentStore {
      * @throws MicroKernelException if the operation failed.
      */    
     @Nonnull
-    Document createOrUpdate(Collection collection, UpdateOp update)
+    <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws MicroKernelException;
 
     /**
@@ -172,7 +135,7 @@ public interface DocumentStore {
      * @throws MicroKernelException if the operation failed.
      */
     @CheckForNull
-    Document findAndUpdate(Collection collection, UpdateOp update)
+    <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update)
             throws MicroKernelException;
 
     /**
@@ -186,7 +149,7 @@ public interface DocumentStore {
      * @param collection the collection
      * @param key the key
      */
-    void invalidateCache(Collection collection, String key);
+    <T extends Document> void invalidateCache(Collection<T> collection, String key);
 
     /**
      * Dispose this instance.
@@ -200,6 +163,6 @@ public interface DocumentStore {
      * @param key the key
      * @return true if yes
      */
-    boolean isCached(Collection collection, String key);
+    <T extends Document> boolean isCached(Collection<T> collection, String key);
 
 }
