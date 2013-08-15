@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import static org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore.Collection;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -188,7 +187,7 @@ public class MongoDocumentStoreTest {
             inserts.add(n.asOperation(true));
         }
         docStore.create(Collection.NODES, inserts);
-        List<Document> docs = docStore.query(Collection.NODES,
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit("/"),  Utils.getKeyUpperLimit("/"),
                 MongoMK.MANY_CHILDREN_THRESHOLD);
         assertEquals(MongoMK.MANY_CHILDREN_THRESHOLD, docs.size());
