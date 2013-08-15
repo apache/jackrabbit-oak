@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 class SegmentRootBuilder extends SegmentNodeBuilder {
 
     /**
@@ -27,38 +25,19 @@ class SegmentRootBuilder extends SegmentNodeBuilder {
     private static final int UPDATE_LIMIT =
             Integer.getInteger("update.limit", 1000);
 
-    private final SegmentWriter writer;
-
     private long updateCount = 0;
 
-    SegmentRootBuilder(SegmentNodeState base, SegmentWriter writer) {
+    SegmentRootBuilder(SegmentNodeState base) {
         super(base);
-        this.writer = writer;
     }
 
     @Override
     protected void updated() {
         updateCount++;
         if (updateCount > UPDATE_LIMIT) {
-            getNodeState(); // flush changes
+            // TODO: flush
             updateCount = 0;
         }
-    }
-
-    // TODO: Allow flushing of also non-root builders
-    @Override
-    public SegmentNodeState getNodeState() {
-        SegmentNodeState state = writer.writeNode(super.getNodeState());
-        writer.flush();
-        super.reset(state);
-        return state;
-    }
-
-    @Override
-    public void reset(NodeState newBase) {
-        base = newBase;
-        baseRevision++;
-        super.reset(newBase);
     }
 
 }
