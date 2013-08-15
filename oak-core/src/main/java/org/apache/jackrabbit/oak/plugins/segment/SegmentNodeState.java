@@ -33,6 +33,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 public class SegmentNodeState extends AbstractNodeState {
 
+    static boolean fastEquals(NodeState a, NodeState b) {
+        return a instanceof SegmentNodeState
+                && b instanceof SegmentNodeState
+                && ((SegmentNodeState) a).recordId.equals(
+                        ((SegmentNodeState) b).recordId);
+    }
+
     private final SegmentStore store;
 
     private final RecordId recordId;
