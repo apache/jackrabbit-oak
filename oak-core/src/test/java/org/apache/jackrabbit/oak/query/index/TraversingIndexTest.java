@@ -20,28 +20,26 @@ package org.apache.jackrabbit.oak.query.index;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.kernel.KernelNodeState;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.junit.Test;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.kernel.KernelNodeState;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.junit.Test;
 
 /**
  * Tests the TraversingCursor.
  */
 public class TraversingIndexTest {
+
     private final MicroKernel mk = new MicroKernelImpl();
-    private final KernelNodeStore store = new KernelNodeStore(mk);
 
     private final LoadingCache<String, KernelNodeState> cache =
             CacheBuilder.newBuilder().build(new CacheLoader<String, KernelNodeState>() {
@@ -52,10 +50,14 @@ public class TraversingIndexTest {
                     String path = key.substring(slash);
                     // this method is strictly called _after_ the cache is initialized,
                     // when the fields are set
-                    return new KernelNodeState(store, path, revision, getCache());
+                    return new KernelNodeState(getMicroKernel(), path, revision, getCache());
                 }
             });
-
+    
+    MicroKernel getMicroKernel() {
+        return mk;
+    }
+    
     LoadingCache<String, KernelNodeState> getCache() {
         return cache;
     }
@@ -71,7 +73,7 @@ public class TraversingIndexTest {
 
         f.setPath("/");
         List<String> paths = new ArrayList<String>();
-        Cursor c = t.query(f, new KernelNodeState(store, "/", head, cache));
+        Cursor c = t.query(f, new KernelNodeState(mk, "/", head, cache));
         while (c.hasNext()) {
             paths.add(c.next().getPath());
         }
@@ -86,7 +88,7 @@ public class TraversingIndexTest {
         assertFalse(c.hasNext());
 
         f.setPath("/nowhere");
-        c = t.query(f, new KernelNodeState(store, "/", head, cache));
+        c = t.query(f, new KernelNodeState(mk, "/", head, cache));
         assertFalse(c.hasNext());
         // endure it stays false
         assertFalse(c.hasNext());

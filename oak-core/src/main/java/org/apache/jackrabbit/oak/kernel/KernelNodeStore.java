@@ -37,13 +37,9 @@ import com.google.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -98,7 +94,7 @@ public class KernelNodeStore extends AbstractNodeStore {
                         int slash = key.indexOf('/');
                         String revision = key.substring(0, slash);
                         String path = key.substring(slash);
-                        return new KernelNodeState(KernelNodeStore.this, path, revision, cache);
+                        return new KernelNodeState(kernel, path, revision, cache);
                     }
 
                     @Override
@@ -146,53 +142,6 @@ public class KernelNodeStore extends AbstractNodeStore {
             observer.contentChanged(before, root);
         }
         return root;
-    }
-
-    /**
-     * This implementation delegates to {@link KernelRootBuilder#merge(CommitHook, PostCommitHook)}
-     * if {@code builder} is a {@link KernelNodeBuilder} instance. Otherwise it falls
-     * back to the default implementation of its super class.
-     */
-    @Override
-    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            PostCommitHook committed) throws CommitFailedException {
-        if (builder instanceof KernelRootBuilder) {
-            return ((KernelRootBuilder) builder).merge(commitHook, committed);
-        } else {
-            return super.merge(builder, commitHook, committed);
-        }
-    }
-
-    /**
-     * This implementation delegates to {@link KernelRootBuilder#rebase()} if {@code builder}
-     * is a {@link KernelNodeBuilder} instance. Otherwise it falls back to the default
-     * implementation of its super class.
-     * @param builder  the builder to rebase
-     * @return
-     */
-    @Override
-    public NodeState rebase(@Nonnull NodeBuilder builder) {
-        if (builder instanceof KernelRootBuilder) {
-            return ((KernelRootBuilder) builder).rebase();
-        } else {
-            return super.rebase(builder);
-        }
-    }
-
-    /**
-     * This implementation delegates to {@link KernelRootBuilder#reset()} if {@code builder}
-     * is a {@link KernelNodeBuilder} instance. Otherwise it falls back to the default
-     * implementation of its super class.
-     * @param builder  the builder to rebase
-     * @return
-     */
-    @Override
-    public NodeState reset(@Nonnull NodeBuilder builder) {
-        if (builder instanceof KernelRootBuilder) {
-            return ((KernelRootBuilder) builder).reset();
-        } else {
-            return super.reset(builder);
-        }
     }
 
     @Override
@@ -250,10 +199,6 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     NodeState commit(String jsop, String baseRevision) {
         return getRootState(kernel.commit("", jsop, baseRevision, null));
-    }
-
-    NodeStoreBranch branch(KernelNodeState base) {
-        return new KernelNodeStoreBranch(this, base, mergeLock);
     }
 
     NodeState merge(String headRevision) {
