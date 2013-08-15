@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -122,6 +123,21 @@ public class RootFuzzIT {
     public void teardown() {
         fixture.dispose(store1);
         fixture.dispose(store2);
+    }
+
+    // TODO move to a better location
+    @Test
+    @Ignore("OAK-962")  // FIXME OAK-962
+    public void oak962() throws CommitFailedException {
+        Tree r = root1.getTree("/root");
+        r.addChild("N3");
+        r.addChild("N6");
+        r.getChild("N6").addChild("N7");
+        root1.commit();
+        root1.move("/root/N6/N7", "/root/N3/N12");
+        r.getChild("N3").getChild("N12").remove();
+        r.getChild("N6").remove();
+        root1.commit();
     }
 
     @Test
