@@ -371,37 +371,14 @@ public class MutableTree extends AbstractTree {
     //-----------------------------------------------------------< internal >---
 
     /**
-     * Set the parent and name of this tree.
-     * @param parent  parent of this tree
-     * @param name  name of this tree
-     */
-    void setParentAndName(MutableTree parent, String name) {
-        this.name = name;
-        this.parent = parent;
-    }
-
-    /**
      * Move this tree to the parent at {@code destParent} with the new name
-     * {@code newName}.
-     * @param newParent new parent for this tree
-     * @param newName   new name for this tree
+     * {@code destName}.
+     * @param destParent new parent for this tree
+     * @param destName   new name for this tree
      */
-    boolean moveTo(MutableTree newParent, String newName) {
-        name = newName;
-        parent = newParent;
-        // FIXME this falls back to MemoryNodeBuilder#moveTo if newParent is a SecureNodeState
-        return nodeBuilder.moveTo(newParent.nodeBuilder, newName);
-    }
-
-    /**
-     * Copy this tree to the parent at {@code destParent} with the new name
-     * {@code newName}.
-     * @param newParent new parent for this tree
-     * @param newName   new name for this tree
-     */
-    boolean copyTo(MutableTree newParent, String newName) {
-        // FIXME this falls back to MemoryNodeBuilder#copyTo if newParent is a SecureNodeState
-        return nodeBuilder.copyTo(newParent.nodeBuilder, newName);
+    void moveTo(MutableTree destParent, String destName) {
+        name = destName;
+        parent = destParent;
     }
 
     /**

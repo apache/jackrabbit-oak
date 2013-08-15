@@ -238,7 +238,7 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
         persistTransientHead();
 
         headRevision = kernel.commit("", jsop, headRevision, null);
-        head = store.getRootState(headRevision).setBranch();
+        head = store.getRootState(headRevision);
     }
 
     private void persistTransientHead() {
@@ -261,7 +261,7 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
                 }
             } else {
                 // compare against head of branch
-                NodeState branchHead = store.getRootState(headRevision).setBranch();
+                NodeState branchHead = store.getRootState(headRevision);
                 if (head.equals(branchHead)) {
                     // nothing to persist
                     success = true;
@@ -273,7 +273,7 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
             // if we get here we have something to persist
             // and a branch exists
             headRevision = kernel.commit("", diff.toString(), headRevision, null);
-            head = store.getRootState(headRevision).setBranch();
+            head = store.getRootState(headRevision);
             success = true;
         } finally {
             // revert to old state if unsuccessful
