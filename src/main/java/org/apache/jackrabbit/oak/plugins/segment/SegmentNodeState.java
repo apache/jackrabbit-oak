@@ -131,7 +131,7 @@ public class SegmentNodeState extends AbstractNodeState {
 
     @Override @Nonnull
     public NodeBuilder builder() {
-        return new SegmentRootBuilder(this);
+        return new SegmentRootBuilder(this, new SegmentWriter(store));
     }
 
     @Override
