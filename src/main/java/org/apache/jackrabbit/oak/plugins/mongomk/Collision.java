@@ -46,12 +46,12 @@ class Collision {
 
     private static final Logger LOG = LoggerFactory.getLogger(Collision.class);
 
-    private final Document document;
+    private final NodeDocument document;
     private final String theirRev;
     private final UpdateOp ourOp;
     private final String ourRev;
 
-    Collision(@Nonnull Document document,
+    Collision(@Nonnull NodeDocument document,
               @Nonnull Revision theirRev,
               @Nonnull UpdateOp ourOp,
               @Nonnull Revision ourRev) {
@@ -75,7 +75,7 @@ class Collision {
             return;
         }
         // their commit wins, we have to mark ourRev
-        Document newDoc = Utils.newDocument();
+        NodeDocument newDoc = Collection.NODES.newDocument();
         Utils.deepCopyMap(document, newDoc);
         MemoryDocumentStore.applyChanges(newDoc, ourOp);
         if (!markCommitRoot(newDoc, ourRev, store)) {
@@ -96,7 +96,7 @@ class Collision {
      * @return <code>true</code> if the commit for the given revision was marked
      *         successfully; <code>false</code> otherwise.
      */
-    private static boolean markCommitRoot(@Nonnull Document document,
+    private static boolean markCommitRoot(@Nonnull NodeDocument document,
                                           @Nonnull String revision,
                                           @Nonnull DocumentStore store) {
         String p = Utils.getPathFromId(document.getId());
@@ -131,13 +131,13 @@ class Collision {
         // at this point we have a commitRootPath
         UpdateOp op = new UpdateOp(commitRootPath,
                 Utils.getIdFromPath(commitRootPath), false);
-        document = store.find(DocumentStore.Collection.NODES, op.getKey());
+        document = store.find(Collection.NODES, op.getKey());
         // check commit status of revision
         if (isCommitted(revision, document)) {
             return false;
         }
         op.setMapEntry(UpdateOp.COLLISIONS, revision, true);
-        document = store.createOrUpdate(DocumentStore.Collection.NODES, op);
+        document = store.createOrUpdate(Collection.NODES, op);
         // check again on old document right before our update was applied
         if (isCommitted(revision, document)) {
             return false;

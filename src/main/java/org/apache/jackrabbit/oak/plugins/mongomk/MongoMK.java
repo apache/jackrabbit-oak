@@ -53,7 +53,6 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore.Collection;
 import org.apache.jackrabbit.oak.plugins.mongomk.Node.Children;
 import org.apache.jackrabbit.oak.plugins.mongomk.Revision.RevisionComparator;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
@@ -338,7 +337,7 @@ public class MongoMK implements MicroKernel {
     
     void backgroundRead() {
         String id = Utils.getIdFromPath("/");
-        Map<String, Object> map = store.find(DocumentStore.Collection.NODES, id, asyncDelay);
+        Map<String, Object> map = store.find(Collection.NODES, id, asyncDelay);
         @SuppressWarnings("unchecked")
         Map<String, String> lastRevMap = (Map<String, String>) map.get(UpdateOp.LAST_REV);
         
@@ -409,7 +408,7 @@ public class MongoMK implements MicroKernel {
             }
             Commit commit = new Commit(this, null, r);
             commit.touchNode(p);
-            store.createOrUpdate(DocumentStore.Collection.NODES, commit.getUpdateOperationForNode(p));
+            store.createOrUpdate(Collection.NODES, commit.getUpdateOperationForNode(p));
             unsavedLastRevisions.remove(p);
         }
     }
@@ -559,7 +558,7 @@ public class MongoMK implements MicroKernel {
             return false;
         }
         // get root of commit
-        doc = store.find(DocumentStore.Collection.NODES,
+        doc = store.find(Collection.NODES,
                 Utils.getIdFromPath(commitRootPath));
         if (doc == null) {
             return false;
@@ -660,14 +659,14 @@ public class MongoMK implements MicroKernel {
         // as the starting point
         String from = Utils.getKeyLowerLimit(path);
         String to = Utils.getKeyUpperLimit(path);
-        List<Document> list = store.query(DocumentStore.Collection.NODES,
+        List<NodeDocument> list = store.query(Collection.NODES,
                 from, to, limit);
         Children c = new Children();
         Set<Revision> validRevisions = new HashSet<Revision>();
         if (list.size() >= limit) {
             c.hasMore = true;
         }
-        for (Document doc : list) {
+        for (NodeDocument doc : list) {
             // filter out deleted children
             if (getLiveRevision(doc, rev, validRevisions) == null) {
                 continue;
@@ -681,7 +680,7 @@ public class MongoMK implements MicroKernel {
 
     private Node readNode(String path, Revision readRevision) {
         String id = Utils.getIdFromPath(path);
-        Document doc = store.find(DocumentStore.Collection.NODES, id);
+        Document doc = store.find(Collection.NODES, id);
         if (doc == null) {
             return null;
         }
@@ -916,9 +915,9 @@ public class MongoMK implements MicroKernel {
         long minValue = Commit.getModified(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
-        List<Document> list = store.query(DocumentStore.Collection.NODES, fromKey, toKey,
+        List<NodeDocument> list = store.query(Collection.NODES, fromKey, toKey,
                 UpdateOp.MODIFIED, minValue, Integer.MAX_VALUE);
-        for (Document doc : list) {
+        for (NodeDocument doc : list) {
             String id = doc.getId();
             String p = Utils.getPathFromId(id);
             Node fromNode = getNode(p, fromRev);
@@ -1454,7 +1453,7 @@ public class MongoMK implements MicroKernel {
                 op.setMapEntry(UpdateOp.REVISIONS, rev.toString(), "c-" + mergeCommit.toString());
                 op.containsMapEntry(UpdateOp.COLLISIONS, rev.toString(), false);
             }
-            if (store.findAndUpdate(DocumentStore.Collection.NODES, op) != null) {
+            if (store.findAndUpdate(Collection.NODES, op) != null) {
                 // remove from branchCommits map after successful update
                 b.applyTo(unsavedLastRevisions, mergeCommit);
                 branches.remove(b);

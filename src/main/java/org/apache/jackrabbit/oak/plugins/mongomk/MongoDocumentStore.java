@@ -30,7 +30,6 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +61,7 @@ public class MongoDocumentStore implements DocumentStore {
      */
     private long timeSum;
     
-    private final Cache<String, CachedDocument> nodesCache;
+    private final Cache<String, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
 
     public MongoDocumentStore(DB db, MongoMK.Builder builder) {
@@ -121,47 +120,47 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public Document find(Collection collection, String key) {
+    public <T extends Document> T find(Collection<T> collection, String key) {
         return find(collection, key, Integer.MAX_VALUE);
     }
     
     @Override
-    public Document find(final Collection collection,
-                         final String key,
-                         int maxCacheAge) {
+    public <T extends Document> T find(final Collection<T> collection,
+                                       final String key,
+                                       int maxCacheAge) {
         if (collection != Collection.NODES) {
             return findUncached(collection, key);
         }
         try {
-            CachedDocument doc;
+            NodeDocument doc;
             if (maxCacheAge == 0) {
                 nodesCache.invalidate(key);
             }
             while (true) {
-                doc = nodesCache.get(key, new Callable<CachedDocument>() {
+                doc = nodesCache.get(key, new Callable<NodeDocument>() {
                     @Override
-                    public CachedDocument call() throws Exception {
-                        Document doc = findUncached(collection, key);
-                        return new CachedDocument(doc);
+                    public NodeDocument call() throws Exception {
+                        return (NodeDocument) findUncached(collection, key);
                     }
                 });
                 if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
                     break;
                 }
-                if (System.currentTimeMillis() - doc.time < maxCacheAge) {
+                if (System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
                     break;
                 }
                 // too old: invalidate, try again
                 nodesCache.invalidate(key);
             }
-            return doc.value;
+            //noinspection unchecked
+            return (T) doc;
         } catch (ExecutionException e) {
             throw new IllegalStateException("Failed to load document with " + key, e);
         }
     }
     
     @CheckForNull
-    Document findUncached(Collection collection, String key) {
+    <T extends Document> T findUncached(Collection<T> collection, String key) {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
@@ -169,7 +168,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (doc == null) {
                 return null;
             }
-            return convertFromDBObject(doc);
+            return convertFromDBObject(collection, doc);
         } finally {
             end("findUncached", start);
         }
@@ -177,7 +176,7 @@ public class MongoDocumentStore implements DocumentStore {
     
     @Nonnull
     @Override
-    public List<Document> query(Collection collection,
+    public <T extends Document> List<T> query(Collection<T> collection,
                                 String fromKey,
                                 String toKey,
                                 int limit) {
@@ -186,12 +185,12 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Nonnull
     @Override
-    public List<Document> query(Collection collection,
-                                String fromKey,
-                                String toKey,
-                                String indexedProperty,
-                                long startValue,
-                                int limit) {
+    public <T extends Document> List<T> query(Collection<T> collection,
+                                              String fromKey,
+                                              String toKey,
+                                              String indexedProperty,
+                                              long startValue,
+                                              int limit) {
         log("query", fromKey, toKey, limit);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
@@ -205,12 +204,12 @@ public class MongoDocumentStore implements DocumentStore {
         long start = start();
         try {
             DBCursor cursor = dbCollection.find(query);
-            List<Document> list = new ArrayList<Document>();
+            List<T> list = new ArrayList<T>();
             for (int i = 0; i < limit && cursor.hasNext(); i++) {
                 DBObject o = cursor.next();
-                Document doc = convertFromDBObject(o);
+                T doc = convertFromDBObject(collection, o);
                 if (collection == Collection.NODES) {
-                    nodesCache.put(doc.getId(), new CachedDocument(doc));
+                    nodesCache.put(doc.getId(), (NodeDocument) doc);
                 }
                 list.add(doc);
             }
@@ -239,10 +238,10 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @CheckForNull
-    private Document findAndModify(Collection collection,
-                                   UpdateOp updateOp,
-                                   boolean upsert,
-                                   boolean checkConditions) {
+    private <T extends Document> T findAndModify(Collection<T> collection,
+                                                 UpdateOp updateOp,
+                                                 boolean upsert,
+                                                 boolean checkConditions) {
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder query = getByKeyQuery(updateOp.key);
 
@@ -313,15 +312,15 @@ public class MongoDocumentStore implements DocumentStore {
             if (checkConditions && oldNode == null) {
                 return null;
             }
-            Document doc = convertFromDBObject(oldNode);
+            T doc = convertFromDBObject(collection, oldNode);
             
             // cache the new document
             if (collection == Collection.NODES) {
-                Document newDoc = Utils.newDocument();
+                T newDoc = collection.newDocument();
                 Utils.deepCopyMap(doc, newDoc);
                 String key = updateOp.getKey();
                 MemoryDocumentStore.applyChanges(newDoc, updateOp);
-                nodesCache.put(key, new CachedDocument(newDoc));
+                nodesCache.put(key, (NodeDocument) newDoc);
             }
             
             return doc;
@@ -334,33 +333,33 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Nonnull
     @Override
-    public Document createOrUpdate(Collection collection, UpdateOp update)
+    public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws MicroKernelException {
         log("createOrUpdate", update);
-        Document doc = findAndModify(collection, update, true, false);
+        T doc = findAndModify(collection, update, true, false);
         log("createOrUpdate returns ", doc);
         return doc;
     }
 
     @Override
-    public Document findAndUpdate(Collection collection, UpdateOp update)
+    public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update)
             throws MicroKernelException {
         log("findAndUpdate", update);
-        Document doc = findAndModify(collection, update, false, true);
+        T doc = findAndModify(collection, update, false, true);
         log("findAndUpdate returns ", doc);
         return doc;
     }
 
     @Override
-    public boolean create(Collection collection, List<UpdateOp> updateOps) {
+    public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
         log("create", updateOps);       
-        List<Document> docs = new ArrayList<Document>();
+        List<T> docs = new ArrayList<T>();
         DBObject[] inserts = new DBObject[updateOps.size()];
 
         for (int i = 0; i < updateOps.size(); i++) {
             inserts[i] = new BasicDBObject();
             UpdateOp update = updateOps.get(i);
-            Document target = Utils.newDocument();
+            T target = collection.newDocument();
             MemoryDocumentStore.applyChanges(target, update);
             docs.add(target);
             for (Entry<String, Operation> entry : update.changes.entrySet()) {
@@ -398,8 +397,8 @@ public class MongoDocumentStore implements DocumentStore {
                     return false;
                 }
                 if (collection == Collection.NODES) {
-                    for (Document doc : docs) {
-                        nodesCache.put(doc.getId(), new CachedDocument(doc));
+                    for (T doc : docs) {
+                        nodesCache.put(doc.getId(), (NodeDocument) doc);
                     }
                 }
                 return true;
@@ -411,8 +410,9 @@ public class MongoDocumentStore implements DocumentStore {
         }        
     }
 
-    private static Document convertFromDBObject(DBObject n) {
-        Document copy = Utils.newDocument();
+    private static <T extends Document> T convertFromDBObject(Collection<T> collection,
+                                                              DBObject n) {
+        T copy = collection.newDocument();
         if (n != null) {
             for (String key : n.keySet()) {
                 Object o = n.get(key);
@@ -429,13 +429,13 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private DBCollection getDBCollection(Collection collection) {
-        switch (collection) {
-            case NODES:
-                return nodes;
-            case CLUSTER_NODES:
-                return clusterNodes;
-            default:
-                throw new IllegalArgumentException(collection.name());
+        if (collection == Collection.NODES) {
+            return nodes;
+        } else if (collection == Collection.CLUSTER_NODES) {
+            return clusterNodes;
+        } else {
+            throw new IllegalArgumentException(
+                    "Unknown collection: " + collection.toString());
         }
     }
 
@@ -465,25 +465,6 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
     
-    /**
-     * A cache entry.
-     */
-    static class CachedDocument implements CacheValue {
-        
-        final long time = System.currentTimeMillis();
-        final Document value;
-        
-        CachedDocument(Document value) {
-            this.value = value;
-        }
-        
-        @Override
-        public int getMemory() {
-            return Utils.estimateMemoryUsage(value);
-        }
-        
-    }
-
     @Override
     public boolean isCached(Collection collection, String key) {
         if (collection != Collection.NODES) {
