@@ -79,18 +79,18 @@ public class MemoryNodeBuilder implements NodeBuilder {
     /**
      * Parent builder, or {@code null} for a root builder.
      */
-    private final MemoryNodeBuilder parent;
+    protected final MemoryNodeBuilder parent;
 
     /**
      * Name of this child node within the parent builder,
      * or {@code null} for a root builder.
      */
-    private final String name;
+    protected final String name;
 
     /**
      * Root builder, or {@code this} for the root builder itself.
      */
-    private final MemoryNodeBuilder rootBuilder;
+    protected final MemoryNodeBuilder rootBuilder;
 
     /**
      * Internal revision counter for the base state of this builder. The counter

@@ -17,20 +17,40 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class SegmentNodeBuilder extends MemoryNodeBuilder {
 
+    protected NodeState base;
+
+    protected long baseRevision;
+
     protected SegmentNodeBuilder(SegmentNodeState base) {
         super(base);
+        this.base = base;
+        this.baseRevision = 0;
     }
 
     private SegmentNodeBuilder(SegmentNodeBuilder parent, String name) {
         super(parent, name);
+        this.base = parent.base.getChildNode(name);
+        this.baseRevision = parent.baseRevision;
     }
 
     @Override
     protected SegmentNodeBuilder createChildBuilder(String name) {
         return new SegmentNodeBuilder(this, name);
+    }
+
+    @Override
+    public NodeState getBaseState() {
+        // TODO: Use the head mechanism in MemoryNodeBuilder instead of
+        // overriding base state tracking
+        if (baseRevision != ((SegmentNodeBuilder) rootBuilder).baseRevision) {
+            base = parent.getBaseState().getChildNode(name);
+            baseRevision = ((SegmentNodeBuilder) rootBuilder).baseRevision;
+        }
+        return base;
     }
 
 }
