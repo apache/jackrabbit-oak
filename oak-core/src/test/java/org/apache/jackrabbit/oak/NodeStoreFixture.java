@@ -35,6 +35,11 @@ public abstract class NodeStoreFixture {
 
     public static final NodeStoreFixture SEGMENT_MK = new NodeStoreFixture() {
         @Override
+        public String toString() {
+            return "SegmentMK Fixture";
+        }
+
+        @Override
         public NodeStore createNodeStore() {
             return new SegmentNodeStore(new MemoryStore());
         }
@@ -45,6 +50,11 @@ public abstract class NodeStoreFixture {
     };
 
     public static final NodeStoreFixture MONGO_MK = new NodeStoreFixture() {
+        @Override
+        public String toString() {
+            return "MongoMK Fixture";
+        }
+
         @Override
         public NodeStore createNodeStore() {
             return new CloseableNodeStore(new MongoMK.Builder().open());
@@ -63,6 +73,11 @@ public abstract class NodeStoreFixture {
     };
 
     public static final NodeStoreFixture MK_IMPL = new NodeStoreFixture() {
+        @Override
+        public String toString() {
+            return "MKImpl Fixture";
+        }
+
         @Override
         public NodeStore createNodeStore() {
             return new KernelNodeStore(new MicroKernelImpl());
