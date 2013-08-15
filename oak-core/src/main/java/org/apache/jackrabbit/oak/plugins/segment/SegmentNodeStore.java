@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -83,12 +84,20 @@ public class SegmentNodeStore extends AbstractNodeStore {
         return super.merge(builder, commitHook, committed);    // TODO implement merge
     }
 
-    @Override
+    @Override @Nonnull
     public NodeState rebase(@Nonnull NodeBuilder builder) {
-        return super.rebase(builder);    // TODO implement rebase
+        NodeState oldBase = builder.getBaseState();
+        NodeState newBase = getRoot();
+        if (!SegmentNodeState.fastEquals(oldBase, newBase)) {
+            NodeBuilder newBuilder = newBase.builder();
+            builder.getNodeState().compareAgainstBaseState(
+                    oldBase, new ConflictAnnotatingRebaseDiff(newBuilder));
+            builder.reset(newBuilder.getNodeState());
+        }
+        return builder.getNodeState();
     }
 
-    @Override
+    @Override @Nonnull
     public NodeState reset(@Nonnull NodeBuilder builder) {
         NodeState state = getRoot();
         checkNotNull(builder).reset(state);
