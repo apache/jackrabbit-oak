@@ -25,6 +25,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -32,13 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 public class SegmentNodeState extends AbstractNodeState {
-
-    static boolean fastEquals(NodeState a, NodeState b) {
-        return a instanceof SegmentNodeState
-                && b instanceof SegmentNodeState
-                && ((SegmentNodeState) a).recordId.equals(
-                        ((SegmentNodeState) b).recordId);
-    }
 
     private final SegmentStore store;
 
@@ -131,7 +125,7 @@ public class SegmentNodeState extends AbstractNodeState {
 
     @Override @Nonnull
     public NodeBuilder builder() {
-        return new SegmentRootBuilder(this);
+        return new MemoryNodeBuilder(this);
     }
 
     @Override
