@@ -26,20 +26,30 @@ import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveProperty
 import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
 import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.NodeStoreFixture;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Rebase;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.kernel.JsopDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,9 +57,19 @@ import org.slf4j.LoggerFactory;
  * Fuzz test running random sequences of operations on {@link Tree}.
  * Run with -DRootFuzzIT-seed=42 to set a specific seed (i.e. 42);
  */
+@RunWith(value = Parameterized.class)
 public class RootFuzzIT {
-
     static final Logger log = LoggerFactory.getLogger(RootFuzzIT.class);
+
+    @Parameters
+    public static Collection<Object[]> fixtures() {
+        Object[][] fixtures = new Object[][] {
+                {NodeStoreFixture.MK_IMPL},
+                {NodeStoreFixture.MONGO_MK},
+                {NodeStoreFixture.SEGMENT_MK},
+        };
+        return Arrays.asList(fixtures);
+    }
 
     private static final int OP_COUNT = 5000;
 
@@ -59,31 +79,49 @@ public class RootFuzzIT {
 
     private static final Random random = new Random(SEED);
 
-    private KernelNodeStore store1;
+    private final NodeStoreFixture fixture;
+
+    private NodeStore store1;
     private SystemRoot root1;
 
-    private KernelNodeStore store2;
+    private NodeStore store2;
     private SystemRoot root2;
 
     private int counter;
 
+    public RootFuzzIT(NodeStoreFixture fixture) {
+        this.fixture = fixture;
+    }
+
     @Before
-    public void setup() {
+    public void setup() throws CommitFailedException {
+        log.info("Running " + getClass().getSimpleName() + " with " +
+                fixture + " and seed " + SEED);
+
         counter = 0;
 
-        MicroKernel mk1 = new MicroKernelImpl("./target/mk1/" + random.nextInt());
-        store1 = new KernelNodeStore(mk1);
-        mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
+        store1 = fixture.createNodeStore();
         root1 = new SystemRoot(store1);
+        root1.getTree("/").addChild("root");
+        root1.commit();
 
-        MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
-        store2 = new KernelNodeStore(mk2);
-        mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
+        store2 = fixture.createNodeStore();
         root2 = new SystemRoot(store2);
+        root2.getTree("/").addChild("root");
+        root2.commit();
+    }
+
+    @After
+    public void teardown() {
+        fixture.dispose(store1);
+        fixture.dispose(store2);
     }
 
     @Test
     public void fuzzTest() throws Exception {
+        assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
+        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);
+
         for (Operation op : operations(OP_COUNT)) {
             log.info("{}", op);
             op.apply(root1);
@@ -94,7 +132,11 @@ public class RootFuzzIT {
             checkEqual(root1.getTree("/"), root2.getTree("/"));
             if (op instanceof Save) {
                 root2.commit();
-                assertEquals("seed " + SEED, store1.getRoot(), store2.getRoot());
+                NodeState tree1 = store1.getRoot();
+                NodeState tree2 = store2.getRoot();
+                if (!tree1.equals(tree2)) {
+                    fail("seed: " + SEED + ", " + JsopDiff.diffToJsop(tree1, tree2));
+                }
             }
         }
     }
