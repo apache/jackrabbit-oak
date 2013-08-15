@@ -83,7 +83,7 @@ public class RootFuzzIT {
     private static boolean EXECUTE_SEGMENT_MK = Boolean.getBoolean(
             RootFuzzIT.class.getSimpleName() + "-with-segment-mk");
 
-    private static final Random random = new Random(SEED);
+    private static final Random random = new Random();
 
     private final NodeStoreFixture fixture;
 
@@ -104,6 +104,7 @@ public class RootFuzzIT {
         log.info("Running " + getClass().getSimpleName() + " with " +
                 fixture + " and seed " + SEED);
 
+        random.setSeed(SEED);
         counter = 0;
 
         store1 = fixture.createNodeStore();
