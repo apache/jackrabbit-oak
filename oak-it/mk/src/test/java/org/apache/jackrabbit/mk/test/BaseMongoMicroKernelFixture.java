@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mk.test;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.oak.plugins.mongomk.Collection;
 import org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
@@ -95,6 +96,6 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
 
     private static void dropCollections(DB db) {
         db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
-        db.getCollection(DocumentStore.Collection.NODES.name()).drop();
+        db.getCollection(Collection.NODES.toString()).drop();
     }
 }
