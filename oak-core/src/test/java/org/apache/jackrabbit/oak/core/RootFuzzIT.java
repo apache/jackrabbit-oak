@@ -140,6 +140,8 @@ public class RootFuzzIT {
         root1.commit();
     }
 
+    // FIXME currently fails on MongoMK due. See OAK-962
+    // FIXME currently fails on SegmentMK. Needs further analysis
     @Test
     public void fuzzTest() throws Exception {
         assumeTrue(fixture != NodeStoreFixture.MONGO_MK || EXECUTE_MONGO_MK);
