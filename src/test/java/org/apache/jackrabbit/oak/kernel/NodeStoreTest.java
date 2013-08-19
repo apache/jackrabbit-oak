@@ -323,11 +323,8 @@ public class NodeStoreTest {
 
     @Test
     public void moveToSelf() throws CommitFailedException {
-        // FIXME fails on SegmentMK. See OAK-963
-        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);
-
         NodeStoreBranch branch = store.branch();
-        assertFalse(branch.move("/x", "/x"));
+        assertTrue(branch.move("/x", "/x"));
     }
 
     @Test
