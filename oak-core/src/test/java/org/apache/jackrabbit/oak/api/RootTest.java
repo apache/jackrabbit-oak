@@ -20,10 +20,8 @@ package org.apache.jackrabbit.oak.api;
 
 import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.NodeStoreFixture;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,17 +29,17 @@ import org.junit.Test;
 /**
  * Contains tests related to {@link Root}
  */
-public class RootTest {
+public class RootTest extends OakBaseTest {
 
     private ContentRepository repository;
 
+    public RootTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Before
     public void setUp() {
-        repository = new Oak()
-            .with(new OpenSecurityProvider())
-            .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
-            .with(new ConflictValidatorProvider())
-            .createContentRepository();
+        repository = createContentRepository();
     }
 
     @After
