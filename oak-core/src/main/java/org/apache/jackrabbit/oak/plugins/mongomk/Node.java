@@ -77,7 +77,7 @@ public class Node implements CacheValue {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(path, id, isNew);
         op.set(Document.ID, id);
-        Commit.setModified(op, rev);
+        NodeDocument.setModified(op, rev);
         op.setMapEntry(NodeDocument.DELETED, rev.toString(), "false");
         for (String p : properties.keySet()) {
             String key = Utils.escapePropertyName(p);

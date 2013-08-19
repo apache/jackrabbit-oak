@@ -21,8 +21,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopStream;
@@ -81,16 +83,12 @@ public class Commit {
         if (op == null) {
             String id = Utils.getIdFromPath(path);
             op = new UpdateOp(path, id, false);
-            setModified(op, revision);
+            NodeDocument.setModified(op, revision);
             operations.put(path, op);
         }
         return op;
     }
-    
-    static void setModified(UpdateOp op, Revision revision) {
-        op.set(NodeDocument.MODIFIED, getModified(revision.getTimestamp()));
-    }
-    
+
     public static long getModified(long timestamp) {
         // 5 second resolution
         return timestamp / 1000 / 5;
@@ -337,8 +335,8 @@ public class Commit {
         }
 
         int size = Utils.estimateMemoryUsage(doc);
-        if (size > MAX_DOCUMENT_SIZE) {
-            UpdateOp[] split = splitDocument(doc);
+        if (doc != null && size > MAX_DOCUMENT_SIZE) {
+            UpdateOp[] split = doc.splitDocument(mk, revision, mk.getSplitDocumentAgeMillis());
             
             // TODO check if the new main document is actually smaller;
             // otherwise, splitting doesn't make sense
@@ -359,25 +357,26 @@ public class Commit {
 
     /**
      * Checks whether the given <code>UpdateOp</code> conflicts with the
-     * existing content in <code>nodeMap</code>. The check is done based on the
+     * existing content in <code>doc</code>. The check is done based on the
      * {@link #baseRevision} of this commit. An <code>UpdateOp</code> conflicts
      * when there were changes after {@link #baseRevision} on properties also
      * contained in <code>UpdateOp</code>.
      *
-     * @param nodeMap the contents of the nodes before the update.
+     * @param doc the contents of the nodes before the update.
      * @param op the update to perform.
      * @return <code>true</code> if the update conflicts; <code>false</code>
      *         otherwise.
      */
-    private boolean isConflicting(Map<String, Object> nodeMap,
-                                  UpdateOp op) {
-        if (baseRevision == null) {
+    private boolean isConflicting(@Nullable NodeDocument doc,
+                                  @Nonnull UpdateOp op) {
+        if (baseRevision == null || doc == null) {
             // no conflict is possible when there is no baseRevision
+            // or document did not exist before
             return false;
         }
         // did existence of node change after baseRevision?
         @SuppressWarnings("unchecked")
-        Map<String, String> deleted = (Map<String, String>) nodeMap.get(NodeDocument.DELETED);
+        Map<String, String> deleted = (Map<String, String>) doc.get(NodeDocument.DELETED);
         if (deleted != null) {
             for (Map.Entry<String, String> entry : deleted.entrySet()) {
                 if (mk.isRevisionNewer(Revision.fromString(entry.getKey()), baseRevision)) {
@@ -402,7 +401,7 @@ public class Commit {
             }
             // was this property touched after baseRevision?
             @SuppressWarnings("unchecked")
-            Map<String, Object> changes = (Map<String, Object>) nodeMap.get(name);
+            Map<String, Object> changes = (Map<String, Object>) doc.get(name);
             if (changes == null) {
                 continue;
             }
@@ -413,67 +412,6 @@ public class Commit {
             }
         }
         return false;
-    }
-
-    private UpdateOp[] splitDocument(Document doc) {
-        String id = doc.getId();
-        String path = Utils.getPathFromId(id);
-        Long previous = (Long) doc.get(NodeDocument.PREVIOUS);
-        if (previous == null) {
-            previous = 0L;
-        } else {
-            previous++;
-        }
-        UpdateOp old = new UpdateOp(path, id + "/" + previous, true);
-        setModified(old, revision);
-        UpdateOp main = new UpdateOp(path, id, false);
-        setModified(main, revision);
-        main.set(NodeDocument.PREVIOUS, previous);
-        for (Entry<String, Object> e : doc.entrySet()) {
-            String key = e.getKey();
-            if (key.equals(Document.ID)) {
-                // ok
-            } else if (key.equals(NodeDocument.MODIFIED)) {
-                // ok
-            } else if (key.equals(NodeDocument.PREVIOUS)) {
-                // ok
-            } else if (key.equals(NodeDocument.LAST_REV)) {
-                // only maintain the lastRev in the main document
-                main.setMap(NodeDocument.LAST_REV,
-                        String.valueOf(revision.getClusterId()), revision.toString());
-            } else {
-                // UpdateOp.DELETED,
-                // UpdateOp.REVISIONS,
-                // and regular properties
-                @SuppressWarnings("unchecked")
-                Map<String, Object> valueMap = (Map<String, Object>) e.getValue();
-                Revision latestRev = null;
-                for (String r : valueMap.keySet()) {
-                    Revision propRev = Revision.fromString(r);
-                    if (latestRev == null || mk.isRevisionNewer(propRev, latestRev)) {
-                        latestRev = propRev;
-                    }
-                }
-                for (String r : valueMap.keySet()) {
-                    Revision propRev = Revision.fromString(r);
-                    Object v = valueMap.get(r);
-                    if (propRev.equals(latestRev)) {
-                        main.setMap(key, propRev.toString(), v);
-                    } else {
-                        long ageMillis = Revision.getCurrentTimestamp() - propRev.getTimestamp();
-                        if (ageMillis > mk.getSplitDocumentAgeMillis()) {
-                            old.setMapEntry(key, propRev.toString(), v);
-                        } else {
-                            main.setMap(key, propRev.toString(), v);
-                        }
-                    }
-                }
-            }
-        }
-        if (PURGE_OLD_REVISIONS) {
-            old = null;
-        }
-        return new UpdateOp[]{old, main};
     }
 
     /**
