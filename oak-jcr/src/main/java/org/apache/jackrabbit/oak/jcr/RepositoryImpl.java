@@ -205,12 +205,14 @@ public class RepositoryImpl implements JackrabbitRepository {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             SessionContext context = createSessionContext(
                     Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
-                    new SessionDelegate(contentSession, securityProvider, refreshInterval));
+                    createSessionDelegate(contentSession, securityProvider, refreshInterval));
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
         }
     }
+
+
 
     @Override
     public void shutdown() {
@@ -229,6 +231,18 @@ public class RepositoryImpl implements JackrabbitRepository {
     protected SessionContext createSessionContext(
             Map<String, Object> attributes, SessionDelegate delegate) {
         return new SessionContext(this, whiteboard, attributes, delegate);
+    }
+
+    /**
+     * Factory method for creating a {@link SessionDelegate} instance for
+     * a new session. Called by {@link #login()}. Can be overridden by
+     * subclasses to customize the SessionDelegate implementation.
+     *
+     * @return session context
+     */
+    protected SessionDelegate createSessionDelegate(ContentSession contentSession, SecurityProvider securityProvider,
+                                                  Long refreshInterval) {
+        return new SessionDelegate(contentSession,securityProvider,refreshInterval);
     }
 
     SecurityProvider getSecurityProvider() {
