@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.core;
 
+import static org.junit.Assume.assumeTrue;
+
+import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -37,8 +40,14 @@ public class LargeMoveTestIT extends OakBaseTest {
     private String treeAPath;
     private String treeBPath;
 
+    public LargeMoveTestIT(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
+    // FIXME slow on MongoMK
     @Before
     public void setUp() throws CommitFailedException {
+        assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
         session = createContentSession();
 
         // Add test content
