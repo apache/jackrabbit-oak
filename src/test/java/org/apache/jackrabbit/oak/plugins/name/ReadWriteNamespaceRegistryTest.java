@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import javax.jcr.NamespaceRegistry;
 
+import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -27,6 +28,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
 
 public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
+
+    public ReadWriteNamespaceRegistryTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Test
     public void testMappings() throws Exception {
