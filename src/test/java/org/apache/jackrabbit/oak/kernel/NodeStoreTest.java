@@ -331,6 +331,32 @@ public class NodeStoreTest {
     }
 
     @Test
+    public void oak965() throws CommitFailedException {
+        // FIXME this fails on SegmentMK. See OAK-965
+        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);
+
+        NodeStore store1 = init(fixture.createNodeStore());
+        NodeStore store2 = init(fixture.createNodeStore());
+        try {
+            NodeState tree1 = store1.getRoot();
+            NodeState tree2 = store2.getRoot();
+            tree1.equals(tree2);
+        } finally {
+            fixture.dispose(store1);
+            fixture.dispose(store2);
+        }
+    }
+
+    private static NodeStore init(NodeStore store) throws CommitFailedException {
+        NodeStoreBranch branch = store.branch();
+        NodeBuilder builder = branch.getHead().builder();
+        builder.setChildNode("root");
+        branch.setRoot(builder.getNodeState());
+        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        return store;
+    }
+
+    @Test
     public void compareAgainstBaseState0() throws CommitFailedException {
         compareAgainstBaseState(0);
     }
