@@ -478,6 +478,23 @@ public class RootTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), (root2.getTree("/")));
     }
 
+    @Test
+    public void oak962() throws CommitFailedException {
+        // FIXME Fails on MongoMK. See OAK-962
+        assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
+
+        Root root = session.getLatestRoot();
+        Tree r = root.getTree("/").addChild("root");
+        r.addChild("N3");
+        r.addChild("N6");
+        r.getChild("N6").addChild("N7");
+        root.commit();
+        root.move("/root/N6/N7", "/root/N3/N12");
+        r.getChild("N3").getChild("N12").remove();
+        r.getChild("N6").remove();
+        root.commit();
+    }
+    
     private static void checkEqual(Tree tree1, Tree tree2) {
         assertEquals(tree1.getChildrenCount(Long.MAX_VALUE), tree2.getChildrenCount(Long.MAX_VALUE));
         assertEquals(tree1.getPropertyCount(), tree2.getPropertyCount());
