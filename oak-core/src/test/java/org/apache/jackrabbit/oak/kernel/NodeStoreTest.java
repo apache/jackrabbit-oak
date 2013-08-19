@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import static org.junit.runners.Parameterized.Parameters;
 
 import java.util.ArrayList;
@@ -44,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -157,7 +157,7 @@ public class NodeStoreTest {
     @Test
     public void afterCommitHook() throws CommitFailedException {
         // this test only works with a KernelNodeStore
-        Assume.assumeTrue(store instanceof KernelNodeStore);
+        assumeTrue(store instanceof KernelNodeStore);
         final NodeState[] states = new NodeState[2]; // { before, after }
         ((KernelNodeStore) store).setObserver(new Observer() {
             @Override
@@ -319,6 +319,15 @@ public class NodeStoreTest {
         assertEquals(1, diff.removed.size());
         assertEquals(0, diff.added.size());
         assertEquals("child-moved", diff.removed.get(0));
+    }
+
+    @Test
+    public void moveToSelf() throws CommitFailedException {
+        // FIXME fails on SegmentMK. See OAK-963
+        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);
+
+        NodeStoreBranch branch = store.branch();
+        assertFalse(branch.move("/x", "/x"));
     }
 
     @Test
