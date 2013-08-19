@@ -59,6 +59,7 @@ public class SessionDelegate {
     private final IdentifierManager idManager;
     private final Exception initStackTrace;
     private final PermissionProvider permissionProvider;
+    private final SessionOperationInterceptor interceptor;
 
     private boolean isAlive = true;
     private int sessionOpCount;
@@ -67,6 +68,12 @@ public class SessionDelegate {
     private long lastAccessed = System.currentTimeMillis();
     private boolean warnIfIdle = true;
     private boolean refreshAtNextAccess = false;
+
+
+    public SessionDelegate(@Nonnull ContentSession contentSession, SecurityProvider securityProvider,
+                           long refreshInterval) {
+        this(contentSession, securityProvider, SessionOperationInterceptor.NOOP,refreshInterval);
+    }
 
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
@@ -80,8 +87,10 @@ public class SessionDelegate {
      * @param securityProvider the security provider
      * @param refreshInterval  refresh interval in seconds.
      */
-    public SessionDelegate(@Nonnull ContentSession contentSession, SecurityProvider securityProvider, long refreshInterval) {
+    public SessionDelegate(@Nonnull ContentSession contentSession, SecurityProvider securityProvider,
+                           SessionOperationInterceptor interceptor,long refreshInterval) {
         this.contentSession = checkNotNull(contentSession);
+        this.interceptor = checkNotNull(interceptor);
         this.refreshInterval = MILLISECONDS.convert(refreshInterval, SECONDS);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
@@ -109,6 +118,8 @@ public class SessionDelegate {
      */
     public synchronized <T> T perform(SessionOperation<T> sessionOperation)
             throws RepositoryException {
+
+        interceptor.before(this,sessionOperation);
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
         if (sessionOpCount == 0) {
             // Refresh and checks only for non re-entrant session operations
@@ -142,6 +153,7 @@ public class SessionDelegate {
             if (sessionOperation.isUpdate()) {
                 updateCount++;
             }
+            interceptor.after(this,sessionOperation);
         }
     }
 
