@@ -21,6 +21,10 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 
+/**
+ * Interceptor for operations being performed in a session.
+ *
+ */
 public interface SessionOperationInterceptor {
     SessionOperationInterceptor NOOP = new SessionOperationInterceptor() {
         @Override
@@ -33,8 +37,16 @@ public interface SessionOperationInterceptor {
     };
 
     /**
-     * Invoked before the sessionOperation is performed. SessionOperation MUST only be
-     * used for reading purpose and implementation must not invoke the {@link SessionOperation#perform}
+     * Invoked before the sessionOperation is performed.
+     *
+     * <p>
+     * An implementation of this method should not perform content access or any other
+     * repository operation. The {@link SessionDelegate} and {@link SessionOperation} must only be used
+     * to extract information e.g. session Id, type of operation etc.
+     *
+     * Further {@link SessionOperation#perform} is invoked
+     * by the caller and implementers MUST not invoke it
+     * </p>
      *
      * @param delegate sessionDelegate performing the operation
      * @param operation operation to perform
@@ -42,8 +54,16 @@ public interface SessionOperationInterceptor {
     void before(SessionDelegate delegate, SessionOperation operation);
 
     /**
-     * Invoked after the sessionOperation is performed. SessionOperation MUST only be
-     * used for reading purpose and implementation must not invoke the {@link SessionOperation#perform}
+     * Invoked after the sessionOperation is performed.
+     *
+     * <p>
+     * An implementation of this method should not perform content access or any other
+     * repository operation. The {@link SessionDelegate} and {@link SessionOperation} must only be used
+     * to extract information e.g. session Id, type of operation etc.
+     *
+     * Further {@link SessionOperation#perform} is invoked
+     * by the caller and implementers MUST not invoke it
+     * </p>
      *
      * @param delegate sessionDelegate performing the operation
      * @param operation operation to perform
