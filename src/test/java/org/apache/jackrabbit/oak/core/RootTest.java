@@ -175,10 +175,11 @@ public class RootTest extends OakBaseTest {
         assertEquals("/moved/new", n.getPath());
     }
 
-    // FIXME fails on SegmentMK
     @Test
     public void moveToSelf() throws CommitFailedException {
+        // FIXME fails on SegmentMK. See OAK-963
         assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);
+
         Root root = session.getLatestRoot();
         root.getTree("/").addChild("s");
         root.commit();
