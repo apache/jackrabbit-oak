@@ -28,6 +28,7 @@ import java.util.concurrent.locks.Lock;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
@@ -104,6 +105,12 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     @Override
     public boolean move(String source, String target) {
         checkNotMerged();
+        if (PathUtils.isAncestor(source, target)) {
+            return false;
+        } else if (source.equals(target)) {
+            return true;
+        }
+
         if (!getNode(source).exists()) {
             // source does not exist
             return false;
