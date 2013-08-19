@@ -16,20 +16,56 @@
  */
 package org.apache.jackrabbit.oak;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * OakBaseTest... TODO
  */
+@RunWith(Parameterized.class)
 public abstract class OakBaseTest {
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> fixtures() {
+        Object[][] fixtures = new Object[][] {
+                {NodeStoreFixture.MK_IMPL},
+                {NodeStoreFixture.MONGO_MK},
+                {NodeStoreFixture.SEGMENT_MK},
+        };
+        return Arrays.asList(fixtures);
+    }
+
+    protected NodeStoreFixture fixture;
+    protected NodeStore store;
+
+    @Before
+    public void setup() {
+        store = fixture.createNodeStore();
+    }
+
+    @After
+    public void teardown() {
+        fixture.dispose(store);
+    }
+
+    protected OakBaseTest(NodeStoreFixture fixture) {
+        this.fixture = fixture;
+    }
+
     protected ContentRepository createContentRepository() {
-        return new Oak().with(new OpenSecurityProvider()).createContentRepository();
+        return new Oak(store).with(new OpenSecurityProvider()).createContentRepository();
     }
 
     protected ContentSession createContentSession() {
-        return new Oak().with(new OpenSecurityProvider()).createContentSession();
+        return new Oak(store).with(new OpenSecurityProvider()).createContentSession();
     }
 }

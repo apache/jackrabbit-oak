@@ -22,12 +22,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.util.TreeLocation;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,6 +37,10 @@ public class TreeLocationTest extends OakBaseTest {
 
     private Root root;
     private TreeLocation nullLocation;
+
+    public TreeLocationTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Before
     public void setUp() throws CommitFailedException {

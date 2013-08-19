@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.core;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
+import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -30,6 +31,10 @@ import org.junit.Test;
 public class ImmutableRootTest extends OakBaseTest {
 
     private ImmutableRoot root;
+
+    public ImmutableRootTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Before
     public void setUp() throws CommitFailedException {
