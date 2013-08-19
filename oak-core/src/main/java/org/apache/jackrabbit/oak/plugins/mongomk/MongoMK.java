@@ -1071,7 +1071,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         Revision revision = Revision.fromString(revisionId);
         Branch b = branches.getBranch(revision);
         Revision mergeCommit = newRevision();
-        Commit.setModified(op, mergeCommit);
+        NodeDocument.setModified(op, mergeCommit);
         if (b != null) {
             for (Revision rev : b.getCommits()) {
                 op.setMapEntry(NodeDocument.REVISIONS, rev.toString(), "c-" + mergeCommit.toString());

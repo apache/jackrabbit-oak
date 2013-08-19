@@ -65,7 +65,7 @@ public class NodeDocument extends Document implements CacheValue {
      * exist. This is the case when a node is updated very often in a short
      * time, such that the document gets very big.
      */
-    static final String PREVIOUS = "_prev";
+    private static final String PREVIOUS = "_prev";
 
     /**
      * Whether this node is deleted. Key: revision, value: true/false.
@@ -429,6 +429,82 @@ public class NodeDocument extends Document implements CacheValue {
             }
         }
         return liveRev;
+    }
+
+    /**
+     * Split this document in two.
+     *
+     * @param context
+     * @param commitRevision
+     * @param splitDocumentAgeMillis
+     * @return
+     */
+    public UpdateOp[] splitDocument(@Nonnull RevisionContext context,
+                                    @Nonnull Revision commitRevision,
+                                    long splitDocumentAgeMillis) {
+        String id = getId();
+        String path = Utils.getPathFromId(id);
+        Long previous = (Long) get(NodeDocument.PREVIOUS);
+        if (previous == null) {
+            previous = 0L;
+        } else {
+            previous++;
+        }
+        UpdateOp old = new UpdateOp(path, id + "/" + previous, true);
+        setModified(old, commitRevision);
+        UpdateOp main = new UpdateOp(path, id, false);
+        setModified(main, commitRevision);
+        main.set(NodeDocument.PREVIOUS, previous);
+        for (Map.Entry<String, Object> e : entrySet()) {
+            String key = e.getKey();
+            if (key.equals(Document.ID)) {
+                // ok
+            } else if (key.equals(NodeDocument.MODIFIED)) {
+                // ok
+            } else if (key.equals(NodeDocument.PREVIOUS)) {
+                // ok
+            } else if (key.equals(NodeDocument.LAST_REV)) {
+                // only maintain the lastRev in the main document
+                main.setMap(NodeDocument.LAST_REV,
+                        String.valueOf(commitRevision.getClusterId()),
+                        commitRevision.toString());
+            } else {
+                // UpdateOp.DELETED,
+                // UpdateOp.REVISIONS,
+                // and regular properties
+                @SuppressWarnings("unchecked")
+                Map<String, Object> valueMap = (Map<String, Object>) e.getValue();
+                Revision latestRev = null;
+                for (String r : valueMap.keySet()) {
+                    Revision propRev = Revision.fromString(r);
+                    if (latestRev == null || isRevisionNewer(context, propRev, latestRev)) {
+                        latestRev = propRev;
+                    }
+                }
+                for (String r : valueMap.keySet()) {
+                    Revision propRev = Revision.fromString(r);
+                    Object v = valueMap.get(r);
+                    if (propRev.equals(latestRev)) {
+                        main.setMap(key, propRev.toString(), v);
+                    } else {
+                        long ageMillis = Revision.getCurrentTimestamp() - propRev.getTimestamp();
+                        if (ageMillis > splitDocumentAgeMillis) {
+                            old.setMapEntry(key, propRev.toString(), v);
+                        } else {
+                            main.setMap(key, propRev.toString(), v);
+                        }
+                    }
+                }
+            }
+        }
+        if (Commit.PURGE_OLD_REVISIONS) {
+            old = null;
+        }
+        return new UpdateOp[]{old, main};
+    }
+
+    public static void setModified(UpdateOp op, Revision revision) {
+        op.set(MODIFIED, Commit.getModified(revision.getTimestamp()));
     }
 
     //-----------------------------< CacheValue >-------------------------------
