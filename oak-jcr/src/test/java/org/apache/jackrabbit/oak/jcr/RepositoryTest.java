@@ -1595,7 +1595,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-962")  // FIXME OAK-962
     public void oak962() throws RepositoryException {
         Session session = getAdminSession();
         Node root = session.getRootNode().addNode("root");
