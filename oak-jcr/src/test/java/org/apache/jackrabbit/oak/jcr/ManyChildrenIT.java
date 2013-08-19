@@ -23,6 +23,7 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Session;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -57,4 +58,24 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
         session2.logout();
     }
 
+    @Ignore("OAK-962")
+    @Test
+    public void addRemoveNodes() throws Exception {
+        int numNodes = 101;
+        Session writer = getAdminSession();
+        Node test = writer.getRootNode().addNode("test", "nt:unstructured");
+        for (int i = 0; i < numNodes; i++) {
+            test.addNode("node-" + i, "nt:unstructured");
+        }
+        writer.save();
+        for (int i = 0; i < numNodes; i++) {
+            if (i % 2 == 0) {
+                test.getNode("node-" + i).remove();
+            }
+        }
+        writer.save();
+        test.addNode("node-x");
+        writer.save();
+        assertTrue(test.hasNode("node-x"));
+    }
 }
