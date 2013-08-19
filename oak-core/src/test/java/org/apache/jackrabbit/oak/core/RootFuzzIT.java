@@ -129,7 +129,7 @@ public class RootFuzzIT {
         // FIXME fails on MongoMK due. See OAK-962
         assumeTrue(fixture != NodeStoreFixture.MONGO_MK || EXECUTE_MONGO_MK);
 
-        // FIXME fails on SegmentMK. Needs further analysis
+        // FIXME fails on SegmentMK. See OAK-965
         assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK || EXECUTE_SEGMENT_MK);
 
         for (Operation op : operations(OP_COUNT)) {
