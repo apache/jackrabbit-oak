@@ -24,7 +24,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 
 import com.google.common.collect.Lists;
 
-public class OakAssert {
+public final class OakAssert {
+
+    private OakAssert() {
+    }
 
     public static void assertSequence(Iterable<Tree> trees, String... names) {
         List<String> expected = Lists.newArrayList(names);
