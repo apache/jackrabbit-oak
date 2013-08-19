@@ -63,6 +63,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Weigher;
 import com.mongodb.DB;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * A MicroKernel implementation that stores the data in a MongoDB.
  */
@@ -440,8 +443,8 @@ public class MongoMK implements MicroKernel, RevisionContext {
      * @param rev
      * @return the node
      */
-    Node getNode(String path, Revision rev) {
-        checkRevisionAge(rev, path);
+    Node getNode(@Nonnull String path, @Nonnull Revision rev) {
+        checkRevisionAge(checkNotNull(rev), checkNotNull(path));
         String key = path + "@" + rev;
         Node node = nodeCache.getIfPresent(key);
         if (node == null) {
@@ -848,7 +851,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
                     throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
                 }
                 commit.moveNode(sourcePath, targetPath);
-                moveNode(sourcePath, targetPath, baseRev, commit);
+                moveNode(sourcePath, targetPath, commit);
                 break;
             }
             case '*': {
@@ -865,7 +868,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
                     throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
                 }
                 commit.copyNode(sourcePath, targetPath);
-                copyNode(sourcePath, targetPath, baseRev, commit);
+                copyNode(sourcePath, targetPath, commit);
                 break;
             }
             default:
@@ -953,18 +956,17 @@ public class MongoMK implements MicroKernel, RevisionContext {
         return clusterId;
     }
 
-    private void copyNode(String sourcePath, String targetPath, Revision baseRev, Commit commit) {
-        moveOrCopyNode(false, sourcePath, targetPath, baseRev, commit);
+    private void copyNode(String sourcePath, String targetPath, Commit commit) {
+        moveOrCopyNode(false, sourcePath, targetPath, commit);
     }
     
-    private void moveNode(String sourcePath, String targetPath, Revision baseRev, Commit commit) {
-        moveOrCopyNode(true, sourcePath, targetPath, baseRev, commit);
+    private void moveNode(String sourcePath, String targetPath, Commit commit) {
+        moveOrCopyNode(true, sourcePath, targetPath, commit);
     }
     
     private void moveOrCopyNode(boolean move,
                                 String sourcePath,
                                 String targetPath,
-                                Revision baseRev,
                                 Commit commit) {
         // TODO Optimize - Move logic would not work well with very move of very large subtrees
         // At minimum we can optimize by traversing breadth wise and collect node id
@@ -974,7 +976,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         // of this commit i.e. transient nodes. If its required it would need to be looked
         // into
 
-        Node n = getNode(sourcePath, baseRev);
+        Node n = getNode(sourcePath, commit.getBaseRevision());
 
         // Node might be deleted already
         if (n == null) {
@@ -988,16 +990,17 @@ public class MongoMK implements MicroKernel, RevisionContext {
         if (move) {
             markAsDeleted(sourcePath, commit, false);
         }
-        Node.Children c = getChildren(sourcePath, baseRev, Integer.MAX_VALUE);
+        Node.Children c = getChildren(sourcePath, commit.getBaseRevision(), Integer.MAX_VALUE);
         for (String srcChildPath : c.children) {
             String childName = PathUtils.getName(srcChildPath);
             String destChildPath = PathUtils.concat(targetPath, childName);
-            moveOrCopyNode(move, srcChildPath, destChildPath, baseRev, commit);
+            moveOrCopyNode(move, srcChildPath, destChildPath, commit);
         }
     }
 
     private void markAsDeleted(String path, Commit commit, boolean subTreeAlso) {
-        Revision rev = commit.getRevision();
+        Revision rev = commit.getBaseRevision();
+        checkState(rev != null, "Base revision of commit must not be null");
         commit.removeNode(path);
 
         if (subTreeAlso) {

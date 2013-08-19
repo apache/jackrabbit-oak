@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -94,8 +95,28 @@ public class Commit {
         return timestamp / 1000 / 5;
     }
 
-    public Revision getRevision() {
+    /**
+     * The revision for this new commit. That is, the changes within this commit
+     * will be visible with this revision.
+     *
+     * @return the revision for this new commit.
+     */
+    @Nonnull
+    Revision getRevision() {
         return revision;
+    }
+
+    /**
+     * Returns the base revision for this commit. That is, the revision passed
+     * to {@link MongoMK#commit(String, String, String, String)}. The base
+     * revision may be <code>null</code>, e.g. for the initial commit of the
+     * root node, when there is no base revision.
+     *
+     * @return the base revision of this commit or <code>null</code>.
+     */
+    @CheckForNull
+    Revision getBaseRevision() {
+        return baseRevision;
     }
     
     void addNodeDiff(Node n) {
