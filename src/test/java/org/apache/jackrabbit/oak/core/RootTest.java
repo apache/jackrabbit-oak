@@ -478,9 +478,6 @@ public class RootTest extends OakBaseTest {
 
     @Test
     public void oak962() throws CommitFailedException {
-        // FIXME Fails on MongoMK. See OAK-962
-        assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
-
         Root root = session.getLatestRoot();
         Tree r = root.getTree("/").addChild("root");
         r.addChild("N3");
