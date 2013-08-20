@@ -515,21 +515,34 @@ public class MongoMK implements MicroKernel, RevisionContext {
         // as the starting point
         String from = Utils.getKeyLowerLimit(path);
         String to = Utils.getKeyUpperLimit(path);
-        List<NodeDocument> list = store.query(Collection.NODES,
-                from, to, limit);
+        List<NodeDocument> list;
         Children c = new Children();
-        Set<Revision> validRevisions = new HashSet<Revision>();
-        if (list.size() >= limit) {
+        int rawLimit = limit;
+        do {
+            c.children.clear();
             c.hasMore = true;
-        }
-        for (NodeDocument doc : list) {
-            // filter out deleted children
-            if (doc.getLiveRevision(this, store, rev, validRevisions) == null) {
-                continue;
+            list = store.query(Collection.NODES,
+                    from, to, rawLimit);
+            Set<Revision> validRevisions = new HashSet<Revision>();
+            for (NodeDocument doc : list) {
+                // filter out deleted children
+                if (doc.getLiveRevision(this, store, rev, validRevisions) == null) {
+                    continue;
+                }
+                String p = Utils.getPathFromId(doc.getId());
+                if (c.children.size() < limit) {
+                    // add to children until limit is reached
+                    c.children.add(p);
+                }
             }
-            String p = Utils.getPathFromId(doc.getId());
-            c.children.add(p);
-        }
+            if (list.size() < rawLimit) {
+                // fewer documents returned than requested
+                // -> no more documents
+                c.hasMore = false;
+            }
+            // double rawLimit for next round
+            rawLimit = (int) Math.min(((long) rawLimit) * 2, Integer.MAX_VALUE);
+        } while (c.children.size() < limit && c.hasMore);
         return c;
     }
 

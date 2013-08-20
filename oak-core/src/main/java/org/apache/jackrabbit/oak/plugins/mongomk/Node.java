@@ -122,8 +122,7 @@ public class Node implements CacheValue {
     static class Children implements CacheValue {
 
         final ArrayList<String> children = new ArrayList<String>();
-        boolean hasMore;
-        long offset;
+        boolean hasMore = false;
 
         @Override
         public int getMemory() {

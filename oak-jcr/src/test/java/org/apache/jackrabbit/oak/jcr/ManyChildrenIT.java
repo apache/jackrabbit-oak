@@ -58,7 +58,6 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
         session2.logout();
     }
 
-    @Ignore("OAK-962")
     @Test
     public void addRemoveNodes() throws Exception {
         int numNodes = 101;
