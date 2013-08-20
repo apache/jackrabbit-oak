@@ -527,7 +527,6 @@ public class MongoMK implements MicroKernel, RevisionContext {
             if (doc.getLiveRevision(this, store, rev, validRevisions) == null) {
                 continue;
             }
-            // TODO put the whole node in the cache
             String p = Utils.getPathFromId(doc.getId());
             c.children.add(p);
         }
