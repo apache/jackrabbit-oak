@@ -77,9 +77,6 @@ public class RootFuzzIT {
             RootFuzzIT.class.getSimpleName() + "-seed",
             new Random().nextInt());
 
-    private static boolean EXECUTE_MONGO_MK = Boolean.getBoolean(
-            RootFuzzIT.class.getSimpleName() + "-with-mongo-mk");
-
     private static boolean EXECUTE_SEGMENT_MK = Boolean.getBoolean(
             RootFuzzIT.class.getSimpleName() + "-with-segment-mk");
 
