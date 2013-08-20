@@ -21,5 +21,4 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
  */
 public class ClusterNodeInfoDocument extends Document {
 
-    private static final long serialVersionUID = 4392051250296984718L;
 }

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -32,8 +31,7 @@ public interface DocumentStore {
     /**
      * Get a document.
      * <p>
-     * The returned document is a clone (the caller can modify it without affecting
-     * the stored version).
+     * The returned document is immutable.
      * 
      * @param collection the collection
      * @param key the key
@@ -46,8 +44,7 @@ public interface DocumentStore {
      * Get a document, ignoring the cache if the cached entry is older than the
      * specified time.
      * <p>
-     * The returned document is a clone (the caller can modify it without affecting
-     * the stored version).
+     * The returned document is immutable.
      * 
      * @param collection the collection
      * @param key the key
@@ -59,7 +56,7 @@ public interface DocumentStore {
 
     /**
      * Get a list of documents where the key is greater than a start value and
-     * less than an end value.
+     * less than an end value. The returned documents are immutable.
      * 
      * @param collection the collection
      * @param fromKey the start value (excluding)
@@ -75,7 +72,7 @@ public interface DocumentStore {
     
     /**
      * Get a list of documents where the key is greater than a start value and
-     * less than an end value.
+     * less than an end value. The returned documents are immutable.
      * 
      * @param collection the collection
      * @param fromKey the start value (excluding)
@@ -112,7 +109,7 @@ public interface DocumentStore {
     
     /**
      * Create or update a document. For MongoDb, this is using "findAndModify" with
-     * the "upsert" flag (insert or update).
+     * the "upsert" flag (insert or update). The returned document is immutable.
      *
      * @param collection the collection
      * @param update the update operation
@@ -126,8 +123,8 @@ public interface DocumentStore {
     /**
      * Performs a conditional update (e.g. using
      * {@link UpdateOp.Operation.Type#CONTAINS_MAP_ENTRY} and only updates the
-     * document if the condition is <code>true</code>.
-     *
+     * document if the condition is <code>true</code>. The returned document is
+     * immutable.
      *
      * @param collection the collection
      * @param update the update operation with the condition

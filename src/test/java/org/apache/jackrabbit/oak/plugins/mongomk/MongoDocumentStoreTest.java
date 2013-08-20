@@ -82,21 +82,21 @@ public class MongoDocumentStoreTest {
         updateOp.increment("property2", 1);
         updateOp.set("property3", "value3");
         docStore.createOrUpdate(Collection.NODES, updateOp);
-        Map<String, Object> obj = docStore.find(Collection.NODES, "/");
+        NodeDocument doc = docStore.find(Collection.NODES, "/");
 
-        Map<?, ?> property1 = (Map<?, ?>) obj.get("property1");
+        Map<?, ?> property1 = (Map<?, ?>) doc.get("property1");
         String value1 = (String) property1.get("key1");
         assertEquals("value1", value1);
 
-        Long value2 = (Long) obj.get("property2");
+        Long value2 = (Long) doc.get("property2");
         assertEquals(Long.valueOf(1), value2);
 
-        String value3 = (String) obj.get("property3");
+        String value3 = (String) doc.get("property3");
         assertEquals("value3", value3);
 
         docStore.remove(Collection.NODES, "/");
-        obj = docStore.find(Collection.NODES, "/");
-        assertTrue(obj == null);
+        doc = docStore.find(Collection.NODES, "/");
+        assertTrue(doc == null);
     }
 
     @Test
@@ -158,11 +158,11 @@ public class MongoDocumentStoreTest {
         op.set("prop", "value");
         op.containsMapEntry("map", "key", true);
         // update if key exists -> must succeed
-        Map<String, Object> doc = docStore.findAndUpdate(Collection.NODES, op);
+        NodeDocument doc = docStore.findAndUpdate(Collection.NODES, op);
         assertNotNull(doc);
 
         doc = docStore.find(Collection.NODES, "/node");
-        assertTrue(doc.containsKey("prop"));
+        assertNotNull(doc.get("prop"));
         assertEquals("value", doc.get("prop"));
 
         op = new UpdateOp("/node", "/node", false);
@@ -173,7 +173,7 @@ public class MongoDocumentStoreTest {
 
         // value must still be the same
         doc = docStore.find(Collection.NODES, "/node");
-        assertTrue(doc.containsKey("prop"));
+        assertNotNull(doc.get("prop"));
         assertEquals("value", doc.get("prop"));
     }
 

@@ -42,11 +42,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * A document storing data about a node.
  */
-public class NodeDocument extends Document implements CacheValue {
+public class NodeDocument extends Document {
 
     private static final Logger log = LoggerFactory.getLogger(NodeDocument.class);
-
-    private static final long serialVersionUID = 6713219541688419314L;
 
     /**
      * Marker document, which indicates the document does not exist.
@@ -169,10 +167,10 @@ public class NodeDocument extends Document implements CacheValue {
                                       Revision changeRev,
                                       CollisionHandler handler) {
         SortedSet<String> revisions = new TreeSet<String>(Collections.reverseOrder());
-        if (containsKey(REVISIONS)) {
+        if (data.containsKey(REVISIONS)) {
             revisions.addAll(((Map<String, String>) get(REVISIONS)).keySet());
         }
-        if (containsKey(COMMIT_ROOT)) {
+        if (data.containsKey(COMMIT_ROOT)) {
             revisions.addAll(((Map<String, Integer>) get(COMMIT_ROOT)).keySet());
         }
         Map<String, String> deletedMap = (Map<String, String>)get(DELETED);
@@ -455,7 +453,7 @@ public class NodeDocument extends Document implements CacheValue {
         UpdateOp main = new UpdateOp(path, id, false);
         setModified(main, commitRevision);
         main.set(NodeDocument.PREVIOUS, previous);
-        for (Map.Entry<String, Object> e : entrySet()) {
+        for (Map.Entry<String, Object> e : data.entrySet()) {
             String key = e.getKey();
             if (key.equals(Document.ID)) {
                 // ok
@@ -505,13 +503,6 @@ public class NodeDocument extends Document implements CacheValue {
 
     public static void setModified(UpdateOp op, Revision revision) {
         op.set(MODIFIED, Commit.getModified(revision.getTimestamp()));
-    }
-
-    //-----------------------------< CacheValue >-------------------------------
-
-    @Override
-    public int getMemory() {
-        return Utils.estimateMemoryUsage(this);
     }
 
     //----------------------------< internal >----------------------------------

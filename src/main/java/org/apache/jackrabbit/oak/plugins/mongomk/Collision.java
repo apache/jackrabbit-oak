@@ -76,12 +76,12 @@ class Collision {
         }
         // their commit wins, we have to mark ourRev
         NodeDocument newDoc = Collection.NODES.newDocument();
-        Utils.deepCopyMap(document, newDoc);
+        document.deepCopy(newDoc);
         MemoryDocumentStore.applyChanges(newDoc, ourOp);
         if (!markCommitRoot(newDoc, ourRev, store)) {
             throw new MicroKernelException("Unable to annotate our revision "
                     + "with collision marker. Our revision: " + ourRev
-                    + ", document:\n" + Utils.formatDocument(newDoc));
+                    + ", document:\n" + newDoc.format());
         }
     }
 
@@ -146,9 +146,9 @@ class Collision {
     }
     
     private static void throwNoCommitRootException(@Nonnull String revision,
-                                                   @Nonnull Map<String, Object> document)
+                                                   @Nonnull Document document)
                                                            throws MicroKernelException {
         throw new MicroKernelException("No commit root for revision: "
-                + revision + ", document: " + Utils.formatDocument(document));
+                + revision + ", document: " + document.format());
     }
 }
