@@ -26,13 +26,13 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -40,9 +40,6 @@ import org.apache.jackrabbit.oak.plugins.segment.MapRecord.MapDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-
-import com.google.common.base.Objects;
-import com.google.common.collect.Lists;
 
 public class Template {
 
@@ -348,14 +345,14 @@ public class Template {
     }
 
     public boolean compare(
-            SegmentStore store, RecordId thisId, RecordId thatId) {
+            SegmentStore thisStore, RecordId thisId, SegmentStore thatStore, RecordId thatId) {
         checkNotNull(thisId);
         checkNotNull(thatId);
 
         // Compare properties
         for (int i = 0; i < properties.length; i++) {
-            PropertyState thisProperty = getProperty(store, thisId, i);
-            PropertyState thatProperty = getProperty(store, thatId, i);
+            PropertyState thisProperty = getProperty(thisStore, thisId, i);
+            PropertyState thatProperty = getProperty(thatStore, thatId, i);
             if (!thisProperty.equals(thatProperty)) {
                 return false;
             }
@@ -365,13 +362,13 @@ public class Template {
         if (hasNoChildNodes()) {
             return true;
         } else if (hasOneChildNode()) {
-            NodeState thisChild = getChildNode(childName, store, thisId);
-            NodeState thatChild = getChildNode(childName, store, thatId);
+            NodeState thisChild = getChildNode(childName, thisStore, thisId);
+            NodeState thatChild = getChildNode(childName, thatStore, thatId);
             return thisChild.equals(thatChild);
         } else {
             // TODO: Leverage the HAMT data structure for the comparison
-            MapRecord thisMap = getChildNodeMap(store, thisId);
-            MapRecord thatMap = getChildNodeMap(store, thatId);
+            MapRecord thisMap = getChildNodeMap(thisStore, thisId);
+            MapRecord thatMap = getChildNodeMap(thatStore, thatId);
             if (thisMap.getRecordId().equals(thatMap.getRecordId())) {
                 return true; // shortcut
             } else if (thisMap.size() != thatMap.size()) {
@@ -385,8 +382,8 @@ public class Template {
                     if (thatChild == null) {
                         return false;
                     } else if (!thisChild.equals(thatChild)
-                            && !new SegmentNodeState(store, thisChild).equals(
-                                    new SegmentNodeState(store, thatChild))) {
+                            && !new SegmentNodeState(thisStore, thisChild).equals(
+                                    new SegmentNodeState(thatStore, thatChild))) {
                         return false;
                     }
                 }
