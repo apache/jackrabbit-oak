@@ -126,7 +126,7 @@ public class RootFuzzIT {
 
     @Test
     public void fuzzTest() throws Exception {
-        // FIXME fails on MongoMK due. See OAK-962
+        // FIXME takes too long on MongoMK. See OAK-926
         assumeTrue(fixture != NodeStoreFixture.MONGO_MK || EXECUTE_MONGO_MK);
 
         // FIXME fails on SegmentMK. See OAK-965
