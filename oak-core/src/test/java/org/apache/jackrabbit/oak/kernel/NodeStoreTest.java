@@ -329,9 +329,6 @@ public class NodeStoreTest {
 
     @Test
     public void oak965() throws CommitFailedException {
-        // FIXME this fails on SegmentMK. See OAK-965
-        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);
-
         NodeStore store1 = init(fixture.createNodeStore());
         NodeStore store2 = init(fixture.createNodeStore());
         try {

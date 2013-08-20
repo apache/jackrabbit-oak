@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
 import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -77,9 +76,6 @@ public class RootFuzzIT {
             RootFuzzIT.class.getSimpleName() + "-seed",
             new Random().nextInt());
 
-    private static boolean EXECUTE_SEGMENT_MK = Boolean.getBoolean(
-            RootFuzzIT.class.getSimpleName() + "-with-segment-mk");
-
     private static final Random random = new Random();
 
     private final NodeStoreFixture fixture;
@@ -123,9 +119,6 @@ public class RootFuzzIT {
 
     @Test
     public void fuzzTest() throws Exception {
-        // FIXME fails on SegmentMK. See OAK-965
-        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK || EXECUTE_SEGMENT_MK);
-
         for (Operation op : operations(OP_COUNT)) {
             log.info("{}", op);
             op.apply(root1);
