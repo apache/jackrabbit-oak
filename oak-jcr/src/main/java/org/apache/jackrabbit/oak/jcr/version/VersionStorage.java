@@ -18,22 +18,25 @@ package org.apache.jackrabbit.oak.jcr.version;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Simple abstraction of the version storage.
  */
 public class VersionStorage {
 
-    private final Root root;
-    private final Tree versionStorage;
+    public static final String VERSION_STORAGE_PATH
+            = '/' + JcrConstants.JCR_SYSTEM + '/' + JcrConstants.JCR_VERSIONSTORAGE;
 
-    public VersionStorage(@Nonnull Root versionStorageRoot,
-                   @Nonnull Tree versionStorageTree) {
+    private final Root root;
+
+    public VersionStorage(@Nonnull Root versionStorageRoot) {
         this.root = versionStorageRoot;
-        this.versionStorage = versionStorageTree;
     }
 
     /**
@@ -45,7 +48,7 @@ public class VersionStorage {
      * @return the version storage tree.
      */
     Tree getTree() {
-        return versionStorage;
+        return getVersionStorageTree(root);
     }
 
     /**
@@ -62,5 +65,15 @@ public class VersionStorage {
      */
     void refresh() {
         root.refresh();
+    }
+
+    /**
+     * Returns the version storage tree for the given workspace.
+     * @param workspaceRoot the root of the workspace.
+     * @return the version storage tree.
+     */
+    private static Tree getVersionStorageTree(@Nonnull Root workspaceRoot) {
+        // TODO: this assumes the version store is in the same workspace.
+        return checkNotNull(workspaceRoot).getTree(VERSION_STORAGE_PATH);
     }
 }

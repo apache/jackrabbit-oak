@@ -34,7 +34,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -42,31 +41,24 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.jcr.version.VersionStorage;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 /**
  * {@code VersionManagerDelegate}...
  */
 public class VersionManagerDelegate {
 
-    private static final String VERSION_STORAGE_PATH
-            = '/' + JcrConstants.JCR_SYSTEM + '/' + JcrConstants.JCR_VERSIONSTORAGE;
-
     private final SessionDelegate sessionDelegate;
 
     private final ReadWriteVersionManager versionManager;
 
     public static VersionManagerDelegate create(SessionDelegate sessionDelegate) {
-        Tree vsTree = getVersionStorageTree(sessionDelegate.getRoot());
-        return new VersionManagerDelegate(sessionDelegate,
-                new VersionStorage(sessionDelegate.getRoot(), vsTree));
+        return new VersionManagerDelegate(sessionDelegate);
     }
 
-    private VersionManagerDelegate(SessionDelegate sessionDelegate,
-                                   VersionStorage versionStorage) {
+    private VersionManagerDelegate(SessionDelegate sessionDelegate) {
         this.sessionDelegate = sessionDelegate;
         this.versionManager = new ReadWriteVersionManager(
-                versionStorage,
+                new VersionStorage(sessionDelegate.getRoot()),
                 sessionDelegate.getRoot()) {
             @Override
             protected void refresh() {
@@ -192,9 +184,8 @@ public class VersionManagerDelegate {
         // perform operation on fresh storage to not interfere
         // with pending changes in the workspace.
         Root fresh = sessionDelegate.getContentSession().getLatestRoot();
-        VersionStorage storage = new VersionStorage(
-                fresh, getVersionStorageTree(fresh));
-        String vhRelPath = PathUtils.relativize(VERSION_STORAGE_PATH,
+        VersionStorage storage = new VersionStorage(fresh);
+        String vhRelPath = PathUtils.relativize(VersionStorage.VERSION_STORAGE_PATH,
                 checkNotNull(versionHistory).getPath());
         versionManager.addVersionLabel(storage, vhRelPath,
                 checkNotNull(version).getName(), checkNotNull(oakVersionLabel),
@@ -216,9 +207,8 @@ public class VersionManagerDelegate {
         // perform operation on fresh storage to not interfere
         // with pending changes in the workspace.
         Root fresh = sessionDelegate.getContentSession().getLatestRoot();
-        VersionStorage storage = new VersionStorage(
-                fresh, getVersionStorageTree(fresh));
-        String vhRelPath = PathUtils.relativize(VERSION_STORAGE_PATH,
+        VersionStorage storage = new VersionStorage(fresh);
+        String vhRelPath = PathUtils.relativize(VersionStorage.VERSION_STORAGE_PATH,
                 checkNotNull(versionHistory).getPath());
         versionManager.removeVersionLabel(storage, vhRelPath,
                 checkNotNull(oakVersionLabel));
@@ -239,13 +229,4 @@ public class VersionManagerDelegate {
         return checkNotNull(nodeDelegate).getTree();
     }
 
-    /**
-     * Returns the version storage tree for the given workspace.
-     * @param workspaceRoot the root of the workspace.
-     * @return the version storage tree.
-     */
-    private static Tree getVersionStorageTree(@Nonnull Root workspaceRoot) {
-        // TODO: this assumes the version store is in the same workspace.
-        return checkNotNull(workspaceRoot).getTree(VERSION_STORAGE_PATH);
-    }
 }
