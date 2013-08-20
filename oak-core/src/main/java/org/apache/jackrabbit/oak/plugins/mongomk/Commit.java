@@ -340,7 +340,7 @@ public class Commit {
             }
             if (conflictMessage != null) {
                 conflictMessage += ", before\n" + revision + 
-                        "; document:\n" + Utils.formatDocument(doc) +
+                        "; document:\n" + doc.format() +
                         ",\nrevision order:\n" + mk.getRevisionComparator();
                 throw new MicroKernelException(conflictMessage);
             }
@@ -355,8 +355,7 @@ public class Commit {
             }
         }
 
-        int size = Utils.estimateMemoryUsage(doc);
-        if (doc != null && size > MAX_DOCUMENT_SIZE) {
+        if (doc != null && doc.getMemory() > MAX_DOCUMENT_SIZE) {
             UpdateOp[] split = doc.splitDocument(mk, revision, mk.getSplitDocumentAgeMillis());
             
             // TODO check if the new main document is actually smaller;
