@@ -17,24 +17,31 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
-
 import org.apache.jackrabbit.core.observation.MixinTest;
 import org.apache.jackrabbit.core.observation.MoveInPlaceTest;
 import org.apache.jackrabbit.core.observation.ReorderTest;
 import org.apache.jackrabbit.core.observation.ShareableNodesTest;
+import org.apache.jackrabbit.oak.jcr.tck.TCKBase;
 import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class ObservationJcrTest extends TestCase {
+public class ObservationJcrTest extends TCKBase {
+
+    public ObservationJcrTest() {
+        super("Jackrabbit Observation tests");
+    }
 
     public static Test suite() {
-        TestSuite suite = new ConcurrentTestSuite(
-                "Jackrabbit Observation tests");
-        suite.addTestSuite(ReorderTest.class);
-        suite.addTestSuite(MoveInPlaceTest.class);
-        suite.addTestSuite(MixinTest.class);
-        suite.addTestSuite(ShareableNodesTest.class);
-        return suite;
+        return new ObservationJcrTest();
+    }
+
+    @Override
+    protected void addTests() {
+        TestSuite tests = new ConcurrentTestSuite("Jackrabbit Observation tests");
+        tests.addTestSuite(ReorderTest.class);
+        tests.addTestSuite(MoveInPlaceTest.class);
+        tests.addTestSuite(MixinTest.class);
+        tests.addTestSuite(ShareableNodesTest.class);
+        addTest(tests);
     }
 }
