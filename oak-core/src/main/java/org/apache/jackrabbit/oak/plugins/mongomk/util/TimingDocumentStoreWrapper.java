@@ -80,7 +80,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         try {
             long start = now();
             T result = base.find(collection, key);
-            updateAndLogTimes("find", start, 0, size(result));
+            updateAndLogTimes("find", start, 0, result.getMemory());
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -93,7 +93,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         try {
             long start = now();
             T result = base.find(collection, key, maxCacheAge);
-            updateAndLogTimes("find2", start, 0, size(result));
+            updateAndLogTimes("find2", start, 0, result.getMemory());
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -164,7 +164,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         try {
             long start = now();
             T result = base.createOrUpdate(collection, update);
-            updateAndLogTimes("createOrUpdate", start, 0, size(result));
+            updateAndLogTimes("createOrUpdate", start, 0, result.getMemory());
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -178,7 +178,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         try {
             long start = now();
             T result = base.findAndUpdate(collection, update);
-            updateAndLogTimes("findAndUpdate", start, 0, size(result));
+            updateAndLogTimes("findAndUpdate", start, 0, result.getMemory());
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -243,14 +243,10 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         }
     }
     
-    private static <T extends Document> int size(T doc) {
-        return Utils.estimateMemoryUsage(doc);
-    }
-
     private static <T extends Document> int size(List<T> list) {
         int result = 0;
         for (T doc : list) {
-            result += size(doc);
+            result += doc.getMemory();
         }
         return result;
     }

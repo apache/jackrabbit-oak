@@ -28,7 +28,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
-import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,11 +171,13 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            DBObject doc = dbCollection.findOne(getByKeyQuery(key).get());
-            if (doc == null) {
+            DBObject obj = dbCollection.findOne(getByKeyQuery(key).get());
+            if (obj == null) {
                 return null;
             }
-            return convertFromDBObject(collection, doc);
+            T doc = convertFromDBObject(collection, obj);
+            doc.seal();
+            return doc;
         } finally {
             end("findUncached", start);
         }
@@ -216,6 +217,7 @@ public class MongoDocumentStore implements DocumentStore {
             for (int i = 0; i < limit && cursor.hasNext(); i++) {
                 DBObject o = cursor.next();
                 T doc = convertFromDBObject(collection, o);
+                doc.seal();
                 if (collection == Collection.NODES) {
                     nodesCache.put(doc.getId(), (NodeDocument) doc);
                 }
@@ -325,12 +327,13 @@ public class MongoDocumentStore implements DocumentStore {
             // cache the new document
             if (collection == Collection.NODES) {
                 T newDoc = collection.newDocument();
-                Utils.deepCopyMap(doc, newDoc);
+                doc.deepCopy(newDoc);
                 String key = updateOp.getKey();
                 MemoryDocumentStore.applyChanges(newDoc, updateOp);
+                newDoc.seal();
                 nodesCache.put(key, (NodeDocument) newDoc);
             }
-            
+            doc.seal();
             return doc;
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -406,6 +409,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
+                        doc.seal();
                         nodesCache.put(doc.getId(), (NodeDocument) doc);
                     }
                 }

@@ -202,16 +202,6 @@ public class Utils {
     }
     
     /**
-     * Formats a MongoDB document for use in a log message.
-     * 
-     * @param document the MongoDB document.
-     * @return the formatted string
-     */
-    public static String formatDocument(Map<String, Object> document) {
-        return document.toString().replaceAll(", _", ",\n_").replaceAll("}, ", "},\n");
-    }
-
-    /**
      * Returns the lower key limit to retrieve the children of the given
      * <code>path</code>.
      *
