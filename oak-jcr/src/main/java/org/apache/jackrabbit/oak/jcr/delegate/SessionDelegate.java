@@ -118,10 +118,9 @@ public class SessionDelegate {
      */
     public synchronized <T> T perform(SessionOperation<T> sessionOperation)
             throws RepositoryException {
-
-        interceptor.before(this,sessionOperation);
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
         if (sessionOpCount == 0) {
+            interceptor.before(this,sessionOperation);
             // Refresh and checks only for non re-entrant session operations
             long now = System.currentTimeMillis();
             long timeElapsed = now - lastAccessed;
