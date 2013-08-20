@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.query;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
-
 import org.apache.jackrabbit.core.query.ChildAxisQueryTest;
 import org.apache.jackrabbit.core.query.DerefTest;
 import org.apache.jackrabbit.core.query.ExcerptTest;
@@ -48,40 +46,50 @@ import org.apache.jackrabbit.core.query.SkipDeletedNodesTest;
 import org.apache.jackrabbit.core.query.UpperLowerCaseQueryTest;
 import org.apache.jackrabbit.core.query.VersionStoreQueryTest;
 import org.apache.jackrabbit.core.query.XPathAxisTest;
+import org.apache.jackrabbit.oak.jcr.tck.TCKBase;
 import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class QueryJcrTest extends TestCase {
+public class QueryJcrTest extends TCKBase {
+
+    public QueryJcrTest() {
+        super("Jackrabbit query tests");
+    }
 
     public static Test suite() {
-        TestSuite suite = new ConcurrentTestSuite("Jackrabbit query tests");
-        suite.addTestSuite(FulltextQueryTest.class);
-        suite.addTestSuite(SQLTest.class);
-        suite.addTestSuite(JoinTest.class);
-        suite.addTestSuite(SkipDeletedNodesTest.class);
-        suite.addTestSuite(PathQueryNodeTest.class);
-        suite.addTestSuite(FulltextSQL2QueryTest.class);
-        suite.addTestSuite(SQL2NodeLocalNameTest.class);
-        suite.addTestSuite(SQL2OrderByTest.class);
-        suite.addTestSuite(MixinTest.class);
-        suite.addTestSuite(SQL2OuterJoinTest.class);
-        suite.addTestSuite(SQL2OffsetLimitTest.class);
-        suite.addTestSuite(LimitAndOffsetTest.class);
-        suite.addTestSuite(OrderByTest.class);
-        suite.addTestSuite(ExcerptTest.class);
-        suite.addTestSuite(QueryResultTest.class);
-        suite.addTestSuite(ParentNodeTest.class);
-        suite.addTestSuite(SimilarQueryTest.class);
-        suite.addTestSuite(DerefTest.class);
-        suite.addTestSuite(XPathAxisTest.class);
-        suite.addTestSuite(SQL2QueryResultTest.class);
-        suite.addTestSuite(SimpleQueryTest.class);
-        suite.addTestSuite(FnNameQueryTest.class);
-        suite.addTestSuite(UpperLowerCaseQueryTest.class);
-        suite.addTestSuite(SQL2PathEscapingTest.class);
-        suite.addTestSuite(ChildAxisQueryTest.class);
-        suite.addTestSuite(SelectClauseTest.class);
-        suite.addTestSuite(ShareableNodeTest.class);
-        suite.addTestSuite(VersionStoreQueryTest.class);
-        return suite;
+        return new QueryJcrTest();
+    }
+
+    @Override
+    protected void addTests() {
+        TestSuite tests = new ConcurrentTestSuite("Jackrabbit query tests");
+        tests.addTestSuite(FulltextQueryTest.class);
+        tests.addTestSuite(SQLTest.class);
+        tests.addTestSuite(JoinTest.class);
+        tests.addTestSuite(SkipDeletedNodesTest.class);
+        tests.addTestSuite(PathQueryNodeTest.class);
+        tests.addTestSuite(FulltextSQL2QueryTest.class);
+        tests.addTestSuite(SQL2NodeLocalNameTest.class);
+        tests.addTestSuite(SQL2OrderByTest.class);
+        tests.addTestSuite(MixinTest.class);
+        tests.addTestSuite(SQL2OuterJoinTest.class);
+        tests.addTestSuite(SQL2OffsetLimitTest.class);
+        tests.addTestSuite(LimitAndOffsetTest.class);
+        tests.addTestSuite(OrderByTest.class);
+        tests.addTestSuite(ExcerptTest.class);
+        tests.addTestSuite(QueryResultTest.class);
+        tests.addTestSuite(ParentNodeTest.class);
+        tests.addTestSuite(SimilarQueryTest.class);
+        tests.addTestSuite(DerefTest.class);
+        tests.addTestSuite(XPathAxisTest.class);
+        tests.addTestSuite(SQL2QueryResultTest.class);
+        tests.addTestSuite(SimpleQueryTest.class);
+        tests.addTestSuite(FnNameQueryTest.class);
+        tests.addTestSuite(UpperLowerCaseQueryTest.class);
+        tests.addTestSuite(SQL2PathEscapingTest.class);
+        tests.addTestSuite(ChildAxisQueryTest.class);
+        tests.addTestSuite(SelectClauseTest.class);
+        tests.addTestSuite(ShareableNodeTest.class);
+        tests.addTestSuite(VersionStoreQueryTest.class);
+        addTest(tests);
     }
 }
