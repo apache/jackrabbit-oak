@@ -1082,7 +1082,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
 
         String revisionId = stripBranchRevMarker(branchRevisionId);
         // make branch commits visible
-        UpdateOp op = new UpdateOp("/", Utils.getIdFromPath("/"), false);
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
         Revision revision = Revision.fromString(revisionId);
         Branch b = branches.getBranch(revision);
         Revision mergeCommit = newRevision();
