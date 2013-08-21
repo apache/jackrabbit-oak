@@ -83,7 +83,7 @@ public class Commit {
         UpdateOp op = operations.get(path);
         if (op == null) {
             String id = Utils.getIdFromPath(path);
-            op = new UpdateOp(path, id, false);
+            op = new UpdateOp(id, false);
             NodeDocument.setModified(op, revision);
             operations.put(path, op);
         }
@@ -321,17 +321,17 @@ public class Commit {
             if (newestRev == null) {
                 if (op.isDelete || !op.isNew) {
                     conflictMessage = "The node " + 
-                            op.path + " does not exist or is already deleted";
+                            op.getKey() + " does not exist or is already deleted";
                 }
             } else {
                 if (op.isNew) {
                     conflictMessage = "The node " + 
-                            op.path + " was already added in revision\n" + 
+                            op.getKey() + " was already added in revision\n" +
                             newestRev;
                 } else if (mk.isRevisionNewer(newestRev, baseRevision)
                         && (op.isDelete || isConflicting(doc, op))) {
                     conflictMessage = "The node " + 
-                            op.path + " was changed in revision\n" + newestRev +
+                            op.getKey() + " was changed in revision\n" + newestRev +
                             ", which was applied after the base revision\n" + 
                             baseRevision;
                 }

@@ -75,7 +75,7 @@ public class Node implements CacheValue {
      */
     UpdateOp asOperation(boolean isNew) {
         String id = Utils.getIdFromPath(path);
-        UpdateOp op = new UpdateOp(path, id, isNew);
+        UpdateOp op = new UpdateOp(id, isNew);
         op.set(Document.ID, id);
         NodeDocument.setModified(op, rev);
         op.setMapEntry(NodeDocument.DELETED, rev.toString(), "false");

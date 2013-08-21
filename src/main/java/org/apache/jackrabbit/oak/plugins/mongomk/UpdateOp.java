@@ -21,12 +21,10 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 /**
- * A MongoDB "update" operation for one node.
+ * A MongoDB "update" operation for one document.
  */
 public class UpdateOp {
 
-    final String path;
-    
     final String key;
     
     final boolean isNew;
@@ -37,19 +35,13 @@ public class UpdateOp {
     /**
      * Create an update operation for the given document. The commit root is assumed
      * to be the path, unless this is changed later on.
-     * 
-     * @param path the node path (for nodes)
+     *
      * @param key the primary key
      * @param isNew whether this is a new document
      */
-    UpdateOp(String path, String key, boolean isNew) {
-        this.path = path;
+    UpdateOp(String key, boolean isNew) {
         this.key = key;
         this.isNew = isNew;
-    }
-    
-    String getPath() {
-        return path;
     }
     
     String getKey() {
@@ -182,7 +174,7 @@ public class UpdateOp {
     }
     
     public UpdateOp getReverseOperation() {
-        UpdateOp reverse = new UpdateOp(path, key, isNew);
+        UpdateOp reverse = new UpdateOp(key, isNew);
         for (Entry<String, Operation> e : changes.entrySet()) {
             Operation r = e.getValue().getReverse();
             if (r != null) {
