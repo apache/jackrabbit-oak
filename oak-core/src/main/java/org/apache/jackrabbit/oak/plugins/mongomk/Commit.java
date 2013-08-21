@@ -129,8 +129,7 @@ public class Commit {
     
     public void touchNode(String path) {
         UpdateOp op = getUpdateOperationForNode(path);
-        op.setMapEntry(NodeDocument.LAST_REV,
-                String.valueOf(revision.getClusterId()), revision.toString());
+        NodeDocument.setLastRev(op, revision);
     }
     
     void updateProperty(String path, String propertyName, String value) {
@@ -219,8 +218,7 @@ public class Commit {
             if (baseBranchRevision == null) {
                 // only apply _lastRev for trunk commits, _lastRev for
                 // branch commits only become visible on merge
-                op.setMapEntry(NodeDocument.LAST_REV,
-                        String.valueOf(revision.getClusterId()), revision.toString());
+                NodeDocument.setLastRev(op, revision);
             }
             if (op.isNew) {
                 op.setMapEntry(NodeDocument.DELETED, revision.toString(), "false");
@@ -228,7 +226,7 @@ public class Commit {
             if (op == commitRoot) {
                 // apply at the end
             } else {
-                op.setMapEntry(NodeDocument.COMMIT_ROOT, revision.toString(), commitRootDepth);
+                NodeDocument.setCommitRoot(op, revision, commitRootDepth);
                 if (op.isNew()) {
                     newNodes.add(op);
                 } else {
@@ -240,7 +238,7 @@ public class Commit {
             // no updates and root of commit is also new. that is,
             // it is the root of a subtree added in a commit.
             // so we try to add the root like all other nodes
-            commitRoot.setMapEntry(NodeDocument.REVISIONS, revision.toString(), commitValue);
+            NodeDocument.setRevision(commitRoot, revision, commitValue);
             newNodes.add(commitRoot);
         }
         try {
@@ -253,7 +251,7 @@ public class Commit {
                         if (op == commitRoot) {
                             // don't write the commit root just yet
                             // (because there might be a conflict)
-                            commitRoot.unsetMapEntry(NodeDocument.REVISIONS, revision.toString());
+                            NodeDocument.unsetRevision(commitRoot, revision);
                         }
                         changedNodes.add(op);
                     }
@@ -262,7 +260,7 @@ public class Commit {
             }
             for (UpdateOp op : changedNodes) {
                 // set commit root on changed nodes
-                op.setMapEntry(NodeDocument.COMMIT_ROOT, revision.toString(), commitRootDepth);
+                NodeDocument.setCommitRoot(op, revision, commitRootDepth);
                 opLog.add(op);
                 createOrUpdateNode(store, op);
             }
@@ -271,7 +269,7 @@ public class Commit {
             // first to check if there was a conflict, and only then to commit
             // the revision, with the revision property set)
             if (changedNodes.size() > 0 || !commitRoot.isNew) {
-                commitRoot.setMapEntry(NodeDocument.REVISIONS, revision.toString(), commitValue);
+                NodeDocument.setRevision(commitRoot, revision, commitValue);
                 opLog.add(commitRoot);
                 createOrUpdateNode(store, commitRoot);
                 operations.put(commitRootPath, commitRoot);

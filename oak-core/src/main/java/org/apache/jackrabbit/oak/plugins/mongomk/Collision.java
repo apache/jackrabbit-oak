@@ -16,13 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import java.util.Map;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,16 +109,8 @@ class Collision {
             commitRootPath = p;
         } else {
             // next look at commit root
-            @SuppressWarnings("unchecked")
-            Map<String, Integer> commitRoots = (Map<String, Integer>) document.get(NodeDocument.COMMIT_ROOT);
-            if (commitRoots != null) {
-                Integer depth = commitRoots.get(revision);
-                if (depth != null) {
-                    commitRootPath = PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - depth);
-                } else {
-                    throwNoCommitRootException(revision, document);
-                }
-            } else {
+            commitRootPath = document.getCommitRootPath(revision);
+            if (commitRootPath == null) {
                 throwNoCommitRootException(revision, document);
             }
         }

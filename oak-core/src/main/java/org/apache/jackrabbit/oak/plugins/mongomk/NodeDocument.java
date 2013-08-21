@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -29,7 +30,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.slf4j.Logger;
@@ -55,7 +55,7 @@ public class NodeDocument extends Document {
      * The list of revision to root commit depth mappings to find out if a
      * revision is actually committed.
      */
-    static final String COMMIT_ROOT = "_commitRoot";
+    private static final String COMMIT_ROOT = "_commitRoot";
 
     /**
      * The number of previous documents (documents that contain old revisions of
@@ -87,12 +87,12 @@ public class NodeDocument extends Document {
      * root of the commit. Key: revision, value: true or the base revision of an
      * un-merged branch commit.
      */
-    static final String REVISIONS = "_revisions";
+    private static final String REVISIONS = "_revisions";
 
     /**
      * The last revision. Key: machine id, value: revision.
      */
-    static final String LAST_REV = "_lastRev";
+    private static final String LAST_REV = "_lastRev";
 
     private final long time = System.currentTimeMillis();
 
@@ -150,6 +150,58 @@ public class NodeDocument extends Document {
         @SuppressWarnings("unchecked")
         Map<String, String> revisions = (Map<String, String>) get(REVISIONS);
         return revisions != null && revisions.containsKey(revision);
+    }
+
+    /**
+     * Gets a sorted map of uncommitted revisions of this document with the
+     * local cluster node id as returned by the {@link RevisionContext}. These
+     * are the {@link #REVISIONS} entries where {@link Utils#isCommitted(String)}
+     * returns false.
+     *
+     * @param context the revision context.
+     * @return the uncommitted revisions of this document.
+     */
+    public SortedMap<Revision, Revision> getUncommittedRevisions(RevisionContext context) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> valueMap = (Map<String, String>) get(NodeDocument.REVISIONS);
+        SortedMap<Revision, Revision> revisions =
+                new TreeMap<Revision, Revision>(context.getRevisionComparator());
+        if (valueMap != null) {
+            for (Map.Entry<String, String> commit : valueMap.entrySet()) {
+                if (!Utils.isCommitted(commit.getValue())) {
+                    Revision r = Revision.fromString(commit.getKey());
+                    if (r.getClusterId() == context.getClusterId()) {
+                        Revision b = Revision.fromString(commit.getValue());
+                        revisions.put(r, b);
+                    }
+                }
+            }
+        }
+        return revisions;
+    }
+
+    /**
+     * Returns the commit root path for the given <code>revision</code> or
+     * <code>null</code> if this document does not have a commit root entry for
+     * the given <code>revision</code>.
+     *
+     * @param revision a revision.
+     * @return the commit root path or <code>null</code>.
+     */
+    @CheckForNull
+    public String getCommitRootPath(String revision) {
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> valueMap = (Map<String, Integer>) get(COMMIT_ROOT);
+        if (valueMap == null) {
+            return null;
+        }
+        Integer depth = valueMap.get(revision);
+        if (depth != null) {
+            String p = Utils.getPathFromId(getId());
+            return PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - depth);
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -238,7 +290,7 @@ public class NodeDocument extends Document {
             return true;
         }
         @SuppressWarnings("unchecked")
-        Map<String, String> revisions = (Map<String, String>) get(NodeDocument.REVISIONS);
+        Map<String, String> revisions = (Map<String, String>) get(REVISIONS);
         if (isCommitted(context, rev, readRevision, revisions)) {
             validRevisions.add(rev);
             return true;
@@ -249,7 +301,7 @@ public class NodeDocument extends Document {
         }
         // check commit root
         @SuppressWarnings("unchecked")
-        Map<String, Integer> commitRoot = (Map<String, Integer>) get(NodeDocument.COMMIT_ROOT);
+        Map<String, Integer> commitRoot = (Map<String, Integer>) get(COMMIT_ROOT);
         String commitRootPath = null;
         if (commitRoot != null) {
             Integer depth = commitRoot.get(rev.toString());
@@ -272,7 +324,7 @@ public class NodeDocument extends Document {
             return false;
         }
         @SuppressWarnings("unchecked")
-        Map<String, String> rootRevisions = (Map<String, String>) doc.get(NodeDocument.REVISIONS);
+        Map<String, String> rootRevisions = (Map<String, String>) doc.get(REVISIONS);
         if (isCommitted(context, rev, readRevision, rootRevisions)) {
             validRevisions.add(rev);
             return true;
@@ -501,8 +553,38 @@ public class NodeDocument extends Document {
         return new UpdateOp[]{old, main};
     }
 
-    public static void setModified(UpdateOp op, Revision revision) {
-        op.set(MODIFIED, Commit.getModified(revision.getTimestamp()));
+    //-------------------------< UpdateOp modifiers >---------------------------
+
+    public static void setModified(@Nonnull UpdateOp op,
+                                   @Nonnull Revision revision) {
+        checkNotNull(op).set(MODIFIED, Commit.getModified(checkNotNull(revision).getTimestamp()));
+    }
+
+    public static void setRevision(@Nonnull UpdateOp op,
+                                   @Nonnull Revision revision,
+                                   @Nonnull String commitValue) {
+        checkNotNull(op).setMapEntry(REVISIONS,
+                checkNotNull(revision).toString(), checkNotNull(commitValue));
+    }
+
+    public static void unsetRevision(@Nonnull UpdateOp op,
+                                     @Nonnull Revision revision) {
+        checkNotNull(op).unsetMapEntry(REVISIONS,
+                checkNotNull(revision).toString());
+    }
+
+    public static void setLastRev(@Nonnull UpdateOp op,
+                                  @Nonnull Revision revision) {
+        checkNotNull(op).setMapEntry(LAST_REV,
+                String.valueOf(checkNotNull(revision).getClusterId()),
+                revision.toString());
+    }
+
+    public static void setCommitRoot(@Nonnull UpdateOp op,
+                                     @Nonnull Revision revision,
+                                     int commitRootDepth) {
+        checkNotNull(op).setMapEntry(COMMIT_ROOT,
+                checkNotNull(revision).toString(), commitRootDepth);
     }
 
     //----------------------------< internal >----------------------------------
