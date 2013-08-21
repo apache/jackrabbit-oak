@@ -176,7 +176,10 @@ public abstract class AbstractNode implements Node, CacheObject {
             memory += 2 * e.getKey().length();
             memory += 2 * e.getValue().length();
         }
-        
+        if (childEntries.inlined()) {
+            memory += childEntries.getMemory();
+        }
+
         return memory;
     }
 
