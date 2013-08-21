@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.jcr.tck;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.jackrabbit.oak.jcr.OakMongoMKRepositoryStub;
@@ -62,9 +64,11 @@ public abstract class TCKBase extends TestSuite {
      */
     public static class Setup extends TestCase {
 
+        private static Map<String, RepositoryHelper> HELPERS = new HashMap<String, RepositoryHelper>();
+
         private final String stubClass;
 
-        private List<RepositoryHelper> helpers = new ArrayList<RepositoryHelper>();
+        private List<RepositoryHelper> previous = new ArrayList<RepositoryHelper>();
 
         public static void wrap(TCKBase test, String stubClass) {
             Setup setup = new Setup(stubClass);
@@ -82,16 +86,25 @@ public abstract class TCKBase extends TestSuite {
             // replace the existing helper with our parametrized version
             RepositoryHelperPool helperPool = RepositoryHelperPoolImpl.getInstance();
             // drain helpers
-            helpers.addAll(Arrays.asList(helperPool.borrowHelpers()));
+            previous.addAll(Arrays.asList(helperPool.borrowHelpers()));
             // replace with our own stub
-            Properties props = new Properties();
-            props.load(getClass().getClassLoader().getResourceAsStream(RepositoryStub.STUB_IMPL_PROPS));
-            props.put(RepositoryStub.PROP_STUB_IMPL_CLASS, stubClass);
-            helperPool.returnHelper(new RepositoryHelper(props));
+            helperPool.returnHelper(getRepositoryHelper());
+        }
+
+        private RepositoryHelper getRepositoryHelper() throws Exception {
+            RepositoryHelper helper = HELPERS.get(stubClass);
+            if (helper == null) {
+                Properties props = new Properties();
+                props.load(getClass().getClassLoader().getResourceAsStream(RepositoryStub.STUB_IMPL_PROPS));
+                props.put(RepositoryStub.PROP_STUB_IMPL_CLASS, stubClass);
+                helper = new RepositoryHelper(props);
+                HELPERS.put(stubClass, helper);
+            }
+            return helper;
         }
 
         TestCase getTearDown() {
-            return new TearDown(helpers);
+            return new TearDown(previous);
         }
     }
 

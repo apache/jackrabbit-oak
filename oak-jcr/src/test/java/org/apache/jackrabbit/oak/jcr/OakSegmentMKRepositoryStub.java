@@ -67,7 +67,7 @@ public class OakSegmentMKRepositoryStub extends RepositoryStub {
         try {
             this.connection = new Mongo(HOST, PORT);
             Jcr jcr = new Jcr(new Oak(new SegmentNodeStore(
-                    new MongoStore(connection.getDB(DB), 100 * 1024 * 1024))));
+                    new MongoStore(connection.getDB(DB), 4 * 1024 * 1024))));
             this.repository = jcr.createRepository();
 
             session = getRepository().login(superuser);
