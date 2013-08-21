@@ -500,9 +500,9 @@ public class NodeDocument extends Document {
         } else {
             previous++;
         }
-        UpdateOp old = new UpdateOp(path, id + "/" + previous, true);
+        UpdateOp old = new UpdateOp(id + "/" + previous, true);
         setModified(old, commitRevision);
-        UpdateOp main = new UpdateOp(path, id, false);
+        UpdateOp main = new UpdateOp(id, false);
         setModified(main, commitRevision);
         main.set(NodeDocument.PREVIOUS, previous);
         for (Map.Entry<String, Object> e : data.entrySet()) {

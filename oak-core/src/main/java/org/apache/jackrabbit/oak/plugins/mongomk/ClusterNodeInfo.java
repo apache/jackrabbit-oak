@@ -160,7 +160,7 @@ public class ClusterNodeInfo {
         }
         for (int i = 0; i < 10; i++) {
             ClusterNodeInfo clusterNode = createInstance(store, machineId, instanceId);
-            UpdateOp update = new UpdateOp(null, "" + clusterNode.id, true);
+            UpdateOp update = new UpdateOp("" + clusterNode.id, true);
             update.set(ID, String.valueOf(clusterNode.id));
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
             update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
@@ -231,7 +231,7 @@ public class ClusterNodeInfo {
         if (now + nextCheckMillis + nextCheckMillis < leaseEndTime) {
             return;
         }
-        UpdateOp update = new UpdateOp(null, "" + id, true);
+        UpdateOp update = new UpdateOp("" + id, true);
         leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
@@ -246,7 +246,7 @@ public class ClusterNodeInfo {
     }
     
     public void dispose() {
-        UpdateOp update = new UpdateOp(null, "" + id, true);
+        UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
     }
