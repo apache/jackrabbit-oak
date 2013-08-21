@@ -37,7 +37,7 @@ import org.junit.runners.Parameterized;
  * Users of this class must call clear to close the session associated with
  * this instance and clean up the repository when done.
  */
-@RunWith(Parameterized.class)
+@RunWith(Parallelized.class)
 @Ignore("This abstract base class does not have any tests")
 public abstract class AbstractRepositoryTest {
 
