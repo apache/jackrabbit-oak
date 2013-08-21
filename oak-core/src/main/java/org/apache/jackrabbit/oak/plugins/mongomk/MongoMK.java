@@ -281,7 +281,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
             commit.applyToDocumentStore();
         } else {
             // initialize branchCommits
-            branches.init(store, clusterId);
+            branches.init(store, this);
         }
         backgroundThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
@@ -1089,7 +1089,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         NodeDocument.setModified(op, mergeCommit);
         if (b != null) {
             for (Revision rev : b.getCommits()) {
-                op.setMapEntry(NodeDocument.REVISIONS, rev.toString(), "c-" + mergeCommit.toString());
+                NodeDocument.setRevision(op, rev, "c-" + mergeCommit.toString());
                 op.containsMapEntry(NodeDocument.COLLISIONS, rev.toString(), false);
             }
             if (store.findAndUpdate(Collection.NODES, op) != null) {

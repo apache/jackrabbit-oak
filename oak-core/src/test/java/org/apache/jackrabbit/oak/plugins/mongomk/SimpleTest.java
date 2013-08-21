@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Map;
 import java.util.Random;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -76,7 +75,7 @@ public class SimpleTest {
         n.setProperty("name", "Hello");
         UpdateOp op = n.asOperation(true);
         // mark as commit root
-        op.setMapEntry(NodeDocument.REVISIONS, rev.toString(), "true");
+        NodeDocument.setRevision(op, rev, "c");
         DocumentStore s = mk.getDocumentStore();
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
         Node n2 = mk.getNode("/test", rev);
@@ -394,22 +393,22 @@ public class SimpleTest {
             // foo must not have head in revisions and must refer to test
             // as commit root (depth = 1)
             NodeDocument foo = store.find(Collection.NODES, "2:/test/foo");
-            assertTrue(foo.get(NodeDocument.REVISIONS) == null);
-            assertEquals(1, ((Map<?, ?>) foo.get(NodeDocument.COMMIT_ROOT)).get(head));
+            assertFalse(foo.containsRevision(head));
+            assertEquals("/test", foo.getCommitRootPath(head));
 
             head = mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head, null);
 
             // root node is root of commit
             rootDoc = store.find(Collection.NODES, "0:/");
-            assertTrue(((Map<?, ?>) rootDoc.get(NodeDocument.REVISIONS)).containsKey(head));
+            assertTrue(rootDoc.containsRevision(head));
 
             // /bar refers to root nodes a commit root
             NodeDocument bar = store.find(Collection.NODES, "1:/bar");
-            assertEquals(0, ((Map<?, ?>) bar.get(NodeDocument.COMMIT_ROOT)).get(head));
+            assertEquals("/", bar.getCommitRootPath(head));
 
             // /test/foo/bar refers to root nodes a commit root
             bar = store.find(Collection.NODES, "3:/test/foo/bar");
-            assertEquals(0, ((Map<?, ?>) bar.get(NodeDocument.COMMIT_ROOT)).get(head));
+            assertEquals("/", bar.getCommitRootPath(head));
 
         } finally {
             mk.dispose();
