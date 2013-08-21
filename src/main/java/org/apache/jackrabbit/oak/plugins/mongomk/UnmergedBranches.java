@@ -18,10 +18,8 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -62,38 +60,24 @@ class UnmergedBranches {
      * <code>clusterId</code>.
      *
      * @param store the document store.
-     * @param clusterId the cluster node id of the local MongoMK.
+     * @param context the revision context.
      */
-    void init(DocumentStore store, int clusterId) {
+    void init(DocumentStore store, RevisionContext context) {
         if (!initialized.compareAndSet(false, true)) {
             throw new IllegalStateException("already initialized");
         }
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
-        @SuppressWarnings("unchecked")
-        Map<String, String> valueMap = (Map<String, String>) doc.get(NodeDocument.REVISIONS);
-        if (valueMap != null) {
-            SortedMap<Revision, Revision> tmp =
-                    new TreeMap<Revision, Revision>(comparator);
-            for (Map.Entry<String, String> commit : valueMap.entrySet()) {
-                if (!Utils.isCommitted(commit.getValue())) {
-                    Revision r = Revision.fromString(commit.getKey());
-                    if (r.getClusterId() == clusterId) {
-                        Revision b = Revision.fromString(commit.getValue());
-                        tmp.put(r, b);
-                    }
-                }
+        SortedMap<Revision, Revision> revisions = doc.getUncommittedRevisions(context);
+        while (!revisions.isEmpty()) {
+            SortedSet<Revision> commits = new TreeSet<Revision>(comparator);
+            Revision head = revisions.lastKey();
+            commits.add(head);
+            Revision base = revisions.remove(head);
+            while (revisions.containsKey(base)) {
+                commits.add(base);
+                base = revisions.remove(base);
             }
-            while (!tmp.isEmpty()) {
-                SortedSet<Revision> commits = new TreeSet<Revision>(comparator);
-                Revision head = tmp.lastKey();
-                commits.add(head);
-                Revision base = tmp.remove(head);
-                while (tmp.containsKey(base)) {
-                    commits.add(base);
-                    base = tmp.remove(base);
-                }
-                branches.add(new Branch(commits, base, comparator));
-            }
+            branches.add(new Branch(commits, base, comparator));
         }
     }
 
