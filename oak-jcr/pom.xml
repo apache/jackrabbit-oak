@@ -63,6 +63,8 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest                                     <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied                       <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.DocumentViewImportTest#testWorkspaceImportXml                     <!-- OAK-970 -->
+      org.apache.jackrabbit.test.api.DocumentViewImportTest#testSessionGetImportContentHandler         <!-- OAK-970 -->
 
       <!-- Locking : not implemented -->
       org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspaceWithHandler           <!-- OAK-127: no session scoped locking -->
