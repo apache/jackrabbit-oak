@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
@@ -130,8 +131,11 @@ public class LuceneIndex implements FulltextQueryIndex {
 
     private final Analyzer analyzer;
 
-    public LuceneIndex(Analyzer analyzer) {
+    private final NodeAggregator aggregator;
+
+    public LuceneIndex(Analyzer analyzer, NodeAggregator aggregator) {
         this.analyzer = analyzer;
+        this.aggregator = aggregator;
     }
 
     @Override
@@ -331,10 +335,8 @@ public class LuceneIndex implements FulltextQueryIndex {
                 try {
                     IndexSearcher searcher = new IndexSearcher(reader);
                     Collection<String> paths = new ArrayList<String>();
-                    HashSet<String> seenPaths = new HashSet<String>();
                     Query query = getQuery(filter, reader,
                             nonFullTextConstraints, analyzer);
-                    int parentDepth = PathUtils.getDepth(parent);
                     if (query != null) {
                         // OAK-925
                         // TODO how to best avoid loading all entries in memory?
@@ -348,20 +350,20 @@ public class LuceneIndex implements FulltextQueryIndex {
                                 if ("".equals(path)) {
                                     path = "/";
                                 }
-                                if (!parent.isEmpty()) {
-                                    // ensure the path ends with the given
-                                    // relative path
-                                    if (!path.endsWith("/" + parent)) {
-                                        continue;
-                                    }
-                                    // get the base path
-                                    path = PathUtils.getAncestorPath(path, parentDepth);
-                                    // avoid duplicate entries
-                                    if (seenPaths.contains(path)) {
-                                        continue;
-                                    }
-                                    seenPaths.add(path);
-                                }
+//                                if (!parent.isEmpty()) {
+//                                    // ensure the path ends with the given
+//                                    // relative path
+//                                    if (!path.endsWith("/" + parent)) {
+//                                        continue;
+//                                    }
+//                                    // get the base path
+//                                    path = PathUtils.getAncestorPath(path, parentDepth);
+//                                    // avoid duplicate entries
+//                                    if (seenPaths.contains(path)) {
+//                                        continue;
+//                                    }
+//                                    seenPaths.add(path);
+//                                }
                                 paths.add(path);
                             }
                         }
@@ -565,7 +567,6 @@ public class LuceneIndex implements FulltextQueryIndex {
             @Override
             public boolean visit(FullTextOr or) {
                 BooleanQuery q = new BooleanQuery();
-                q.setMinimumNumberShouldMatch(1);
                 for (FullTextExpression e : or.list) {
                     Query x = getFullTextQuery(e, analyzer);
                     q.add(x, SHOULD);
@@ -597,7 +598,8 @@ public class LuceneIndex implements FulltextQueryIndex {
             public boolean visit(FullTextTerm term) {
                 String p = term.getPropertyName();
                 if (p != null && p.indexOf('/') >= 0) {
-                    p = PathUtils.getName(p);
+                    //do not add constraints on child nodes properties
+                    p = "*";
                 }
                 Query q = tokenToQuery(term.getText(), analyzer);
                 if (q == null) {
@@ -787,6 +789,11 @@ public class LuceneIndex implements FulltextQueryIndex {
             out.add(token.toString());
         }
         return out;
+    }
+
+    @Override
+    public NodeAggregator getNodeAggregator() {
+        return aggregator;
     }
 
 }

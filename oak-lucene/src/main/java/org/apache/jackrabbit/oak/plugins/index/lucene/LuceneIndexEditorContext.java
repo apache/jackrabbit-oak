@@ -30,7 +30,6 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.lucene.aggregation.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexWriter;
@@ -86,8 +85,6 @@ public class LuceneIndexEditorContext {
         }
     }
 
-    private static final NodeAggregator aggregator = new NodeAggregator();
-
     private final IndexWriterConfig config;
 
     private static final Parser parser = new AutoDetectParser();
@@ -123,10 +120,6 @@ public class LuceneIndexEditorContext {
 
     int getPropertyTypes() {
         return propertyTypes;
-    }
-
-    NodeAggregator getAggregator() {
-        return aggregator;
     }
 
     Parser getParser() {

@@ -68,7 +68,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after);
 
-        QueryIndex queryIndex = new LuceneIndex(analyzer);
+        QueryIndex queryIndex = new LuceneIndex(analyzer, null);
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -94,7 +94,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after);
 
-        QueryIndex queryIndex = new LuceneIndex(analyzer);
+        QueryIndex queryIndex = new LuceneIndex(analyzer, null);
         FilterImpl filter = createFilter(NT_BASE);
         // filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -125,7 +125,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, after);
 
-        QueryIndex queryIndex = new LuceneIndex(analyzer);
+        QueryIndex queryIndex = new LuceneIndex(analyzer, null);
         FilterImpl filter = createFilter(NT_BASE);
         // filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,

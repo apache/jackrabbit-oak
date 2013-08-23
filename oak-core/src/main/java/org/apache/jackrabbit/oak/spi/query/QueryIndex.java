@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import javax.annotation.CheckForNull;
+
+import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -111,6 +114,14 @@ public interface QueryIndex {
      */
     public interface FulltextQueryIndex extends QueryIndex {
         // marker interface
+
+        /**
+         * Returns the NodeAggregator responsible for providing the aggregation
+         * settings or null if aggregation is not available/desired
+         * 
+         */
+        @CheckForNull
+        NodeAggregator getNodeAggregator();
     }
 
 //    /**
