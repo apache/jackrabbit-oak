@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Objects.toStringHelper;
 
+import java.util.Arrays;
+
 import javax.annotation.CheckForNull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -114,8 +116,8 @@ class EventFilter {
                 .add("types", eventTypes)
                 .add("path", path)
                 .add("deep", deep)
-                .add("uuids", uuids)
-                .add("node types", nodeTypeOakName)
+                .add("uuids", Arrays.toString(uuids))
+                .add("node types", Arrays.toString(nodeTypeOakName))
                 .add("noLocal", noLocal)
             .toString();
     }
