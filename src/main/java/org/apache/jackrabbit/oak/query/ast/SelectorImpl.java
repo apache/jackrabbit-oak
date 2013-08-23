@@ -331,6 +331,9 @@ public class SelectorImpl extends SourceImpl {
             // We store the search token (the full-text condition text) 
             // in this column (which is also weird), as this is needed for highlighting
             String searchToken = SimpleExcerptProvider.extractFulltext(query.getConstraint());
+            if (searchToken == null) {
+                return PropertyValues.newString(path);
+            }
             return PropertyValues.newString(searchToken);
         }
         return PropertyValues.create(t.getProperty(propertyName));

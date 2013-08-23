@@ -56,6 +56,12 @@ public class FilterImpl implements Filter {
     private boolean alwaysFalse;
 
     /**
+     * inherited from the selector, duplicated here so it can be over-written by
+     * other filters
+     */
+    private boolean matchesAllTypes;
+
+    /**
      *  The path, or "/" (the root node, meaning no filter) if not set.
      */
     private String path = "/";
@@ -98,8 +104,26 @@ public class FilterImpl implements Filter {
         this.selector = selector;
         this.queryStatement = queryStatement;
         this.rootTree = rootTree;
+        this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
+                : false;
     }
-    
+
+    public FilterImpl(Filter filter) {
+        FilterImpl impl = (FilterImpl) filter;
+        this.alwaysFalse = impl.alwaysFalse;
+        this.distinct = impl.distinct;
+        this.fullTextConstraint = impl.fullTextConstraint;
+        this.matchesAllTypes = impl.matchesAllTypes;
+        this.path = impl.path;
+        this.pathRestriction = impl.pathRestriction;
+        this.propertyRestrictions.putAll(impl.propertyRestrictions);
+        this.queryStatement = impl.queryStatement;
+        this.rootTree = impl.rootTree;
+        this.selector = impl.selector;
+        this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
+                : false;
+    }
+
     public void setPreparing(boolean preparing) {
         this.preparing = preparing;
     }
@@ -158,7 +182,7 @@ public class FilterImpl implements Filter {
 
     @Override
     public boolean matchesAllTypes() {
-        return selector.matchesAllTypes();
+        return matchesAllTypes;
     }
 
     @Override @Nonnull
@@ -479,6 +503,10 @@ public class FilterImpl implements Filter {
     @Nullable
     public String getQueryStatement() {
         return queryStatement;
+    }
+
+    public void setMatchesAllTypes(boolean matchesAllTypes) {
+        this.matchesAllTypes = matchesAllTypes;
     }
 
 }
