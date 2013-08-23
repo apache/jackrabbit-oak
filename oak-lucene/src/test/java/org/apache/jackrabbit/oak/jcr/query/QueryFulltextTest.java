@@ -59,7 +59,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
 //                    "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
 //                    getResult(q.execute(), "plan"));
             assertEquals("[nt:base] as [nt:base] /* " + 
-                    "+((:fulltext:hallo* :fulltext:hello*)~1) +text:{* TO *} " + 
+                    "aggregate +(:fulltext:hallo* :fulltext:hello*) +text:{* TO *} " + 
                     "ft:(text:\"hallo\" OR text:\"hello\") " +
                     "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
                     getResult(q.execute(), "plan"));
@@ -114,7 +114,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
 //                  "and (contains([nt:base].[text], cast('hallo' as string))) */", 
 //                  getResult(q.execute(), "plan"));
             assertEquals("[nt:base] as [nt:base] /* " + 
-                    "+:fulltext:hallo* +:path:/testroot/* +text:{* TO *} " + 
+                    "aggregate +:fulltext:hallo* +:path:/testroot/* +text:{* TO *} " + 
                     "ft:(text:\"hallo\") " + 
                     "where (ischildnode([nt:base], [/testroot])) " + 
                     "and (contains([nt:base].[text], cast('hallo' as string))) */", 
@@ -144,7 +144,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
 //                    "where contains([nt:base].[node2/text], cast('hello OR hallo' as string)) */", 
 //                    getResult(q.execute(), "plan"));
             assertEquals("[nt:base] as [nt:base] /* " + 
-                    "(:fulltext:hallo* :fulltext:hello*)~1 " + 
+                    ":fulltext:hallo* :fulltext:hello* " + 
                     "ft:(node2/text:\"hallo\" OR node2/text:\"hello\") " + 
                     "parent:node2 " + 
                     "where contains([nt:base].[node2/text], cast('hello OR hallo' as string)) */", 

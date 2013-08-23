@@ -16,10 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+
 import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LowCostLuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
@@ -34,7 +41,14 @@ public class LuceneOakRepositoryStub extends OakRepositoryStubBase {
     @Override
     protected void preCreateRepository(Jcr jcr) {
         jcr.with(new LuceneInitializerHelper("luceneGlobal", null))
-                .with(new LowCostLuceneIndexProvider())
+                .with(AggregateIndexProvider
+                        .wrap(new LowCostLuceneIndexProvider()
+                                .with(getNodeAggregator())))
                 .with(new LuceneIndexEditorProvider());
+    }
+
+    private static NodeAggregator getNodeAggregator() {
+        return new SimpleNodeAggregator()
+            .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
     }
 }

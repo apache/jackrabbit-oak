@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -45,6 +46,8 @@ public class LuceneIndexProvider implements QueryIndexProvider,
      */
     protected Analyzer analyzer = ANALYZER;
 
+    protected NodeAggregator aggregator = null;
+
     @Override
     @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
@@ -52,7 +55,7 @@ public class LuceneIndexProvider implements QueryIndexProvider,
     }
 
     protected LuceneIndex newLuceneIndex() {
-        return new LuceneIndex(analyzer);
+        return new LuceneIndex(analyzer, aggregator);
     }
 
     /**
@@ -62,10 +65,22 @@ public class LuceneIndexProvider implements QueryIndexProvider,
         this.analyzer = analyzer;
     }
 
+    /**
+     * sets the default node aggregator that will be used at query time
+     */
+    public void setAggregator(NodeAggregator aggregator) {
+        this.aggregator = aggregator;
+    }
+
     // ----- helper builder method
 
     public LuceneIndexProvider with(Analyzer analyzer) {
         this.setAnalyzer(analyzer);
+        return this;
+    }
+
+    public LuceneIndexProvider with(NodeAggregator analyzer) {
+        this.setAggregator(analyzer);
         return this;
     }
 
