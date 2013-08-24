@@ -251,7 +251,8 @@ public class DiffBuilder {
                             super.childNodeChanged(name, before, after);
                         } else {
                             buff.tag('^');
-                            buff.value(p);
+                            buff.key(p);
+                            buff.object().endObject();
                             buff.newline();
                         }
                         ++levels;
