@@ -292,7 +292,7 @@ public class SessionImpl implements JackrabbitSession {
     private Node getNodeById(final String id) throws RepositoryException {
         return perform(new ReadOperation<Node>() {
             @Override
-            public Node perform() throws ItemNotFoundException, RepositoryException {
+            public Node perform() throws RepositoryException {
                 NodeDelegate nd = sd.getNodeByIdentifier(id);
                 if (nd == null) {
                     throw new ItemNotFoundException("Node with id " + id + " does not exist.");
@@ -393,6 +393,11 @@ public class SessionImpl implements JackrabbitSession {
             public Void perform() throws RepositoryException {
                 sd.save();
                 return null;
+            }
+
+            @Override
+            public boolean isSave() {
+                return true;
             }
         });
     }

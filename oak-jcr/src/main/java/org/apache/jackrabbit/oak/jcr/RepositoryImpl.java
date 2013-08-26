@@ -205,7 +205,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             SessionContext context = createSessionContext(
                     Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
-                    createSessionDelegate(contentSession, securityProvider, refreshInterval));
+                    new SessionDelegate(contentSession,securityProvider,refreshInterval));
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -233,18 +233,6 @@ public class RepositoryImpl implements JackrabbitRepository {
         return new SessionContext(this, whiteboard, attributes, delegate);
     }
 
-    /**
-     * Factory method for creating a {@link SessionDelegate} instance for
-     * a new session. Called by {@link #login()}. Can be overridden by
-     * subclasses to customize the SessionDelegate implementation.
-     *
-     * @return session context
-     */
-    protected SessionDelegate createSessionDelegate(ContentSession contentSession, SecurityProvider securityProvider,
-                                                  Long refreshInterval) {
-        return new SessionDelegate(contentSession,securityProvider,refreshInterval);
-    }
-
     SecurityProvider getSecurityProvider() {
         return securityProvider;
     }
@@ -270,15 +258,6 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     private static Long getRefreshInterval(Map<String, Object> attributes) {
         return toLong(attributes.get(REFRESH_INTERVAL));
-    }
-
-    private static String getString(Map<String, Object> attributes, String name) {
-        Object value = attributes.get(name);
-        if (value instanceof String) {
-            return (String) value;
-        } else {
-            return null;
-        }
     }
 
     private static Long toLong(Object value) {
