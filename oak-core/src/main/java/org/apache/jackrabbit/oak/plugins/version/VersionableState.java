@@ -256,7 +256,7 @@ class VersionableState {
         } else {
             // replace
             destParent.getChildNode(name).remove();
-            restoreNode(src, destParent.child(name), selector);
+            restoreCopiedNode(src, destParent.child(name), selector);
         }
     }
 
@@ -268,7 +268,7 @@ class VersionableState {
                                @Nonnull VersionSelector selector)
             throws RepositoryException, CommitFailedException {
         // 15.7.2 Restoring Type and Identifier
-        restoreFrozen(frozen, dest);
+        restoreFrozenTypeAndUUID(frozen, dest);
         // 15.7.3 Restoring Properties
         for (PropertyState p : frozen.getProperties()) {
             if (BASIC_FROZEN_PROPERTIES.contains(p.getName())) {
@@ -307,8 +307,8 @@ class VersionableState {
      * Restores the basic frozen properties (jcr:primaryType, jcr:mixinTypes
      * and jcr:uuid).
      */
-    private void restoreFrozen(@Nonnull NodeBuilder frozen,
-                               @Nonnull NodeBuilder dest) {
+    private void restoreFrozenTypeAndUUID(@Nonnull NodeBuilder frozen,
+                                          @Nonnull NodeBuilder dest) {
         dest.setProperty(JCR_PRIMARYTYPE,
                 frozen.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
         dest.setProperty(JCR_UUID,
@@ -323,13 +323,26 @@ class VersionableState {
     /**
      * Restore a copied node.
      */
-    private void restoreNode(NodeBuilder src,
-                             NodeBuilder dest,
-                             VersionSelector selector)
+    private void restoreCopiedNode(NodeBuilder src,
+                                   NodeBuilder dest,
+                                   VersionSelector selector)
             throws RepositoryException, CommitFailedException {
         if (primaryTypeOf(src).equals(NT_FROZENNODE)) {
-            restoreFrozen(src, dest);
-            copyProperties(src, dest, OPVForceCopy.INSTANCE, true);
+            restoreFrozenTypeAndUUID(src, dest);
+            copyProperties(src, dest, new OPVProvider() {
+                @Override
+                public int getAction(NodeBuilder src,
+                                     NodeBuilder dest,
+                                     PropertyState prop)
+                        throws RepositoryException {
+                    // copy back, except for basic frozen props
+                    if (BASIC_FROZEN_PROPERTIES.contains(prop.getName())) {
+                        return IGNORE;
+                    } else {
+                        return COPY;
+                    }
+                }
+            }, true);
         } else {
             copyProperties(src, dest, OPVForceCopy.INSTANCE, false);
         }
@@ -366,7 +379,7 @@ class VersionableState {
             if (action == COPY) {
                 // replace on destination
                 dest.getChildNode(name).remove();
-                restoreNode(srcChild, dest.child(name), selector);
+                restoreCopiedNode(srcChild, dest.child(name), selector);
             } else if (action == VERSION) {
                 restoreState(srcChild, dest, name, selector);
             }
