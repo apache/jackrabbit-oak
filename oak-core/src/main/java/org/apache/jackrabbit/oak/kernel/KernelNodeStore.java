@@ -146,7 +146,7 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     @Override
     public NodeStoreBranch branch() {
-        return new KernelNodeStoreBranch(this, getRoot(), mergeLock);
+        return new KernelNodeStoreBranch(this, mergeLock, getRoot());
     }
 
     /**
@@ -184,12 +184,7 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     //-----------------------------------------------------------< internal >---
 
-    @Nonnull
-    MicroKernel getKernel() {
-        return kernel;
-    }
-
-    KernelNodeState getRootState(String revision) {
+    private KernelNodeState getRootState(String revision) {
         try {
             return cache.get(revision + "/");
         } catch (ExecutionException e) {
@@ -197,12 +192,20 @@ public class KernelNodeStore extends AbstractNodeStore {
         }
     }
 
-    NodeState commit(String jsop, String baseRevision) {
-        return getRootState(kernel.commit("", jsop, baseRevision, null));
+    KernelNodeState commit(String jsop, KernelNodeState base) {
+        return getRootState(kernel.commit("", jsop, base.getRevision(), null));
     }
 
-    NodeState merge(String headRevision) {
-        return getRootState(kernel.merge(headRevision, null));
+    KernelNodeState branch(KernelNodeState base) {
+        return getRootState(kernel.branch(base.getRevision()));
+    }
+
+    KernelNodeState rebase(KernelNodeState branchHead, KernelNodeState base) {
+        return getRootState(kernel.rebase(branchHead.getRevision(), base.getRevision()));
+    }
+
+    NodeState merge(KernelNodeState branchHead) {
+        return getRootState(kernel.merge(branchHead.getRevision(), null));
     }
 
 }
