@@ -53,13 +53,29 @@ import org.slf4j.LoggerFactory;
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
+    /**
+     * Threadlocal instance to keep track of the save operations performed in the thread so far
+     * This is is then used to determine if the current session needs to be refreshed to see the
+     * changes done by another session in current thread.
+     *
+     * <p><b>Note</b> - This thread local is never cleared. However we are only storing java.lang.Integer
+     * in it thus it would not cause leaks typically associated with usage of thread locals which are not
+     * cleared
+     * </p>
+     */
+    private static final ThreadLocal<Integer> SAVE_COUNT = new ThreadLocal<Integer>() {
+        @Override
+        protected Integer initialValue() {
+            return 0;
+        }
+    };
+
     private final ContentSession contentSession;
     private final long refreshInterval;
     private final Root root;
     private final IdentifierManager idManager;
     private final Exception initStackTrace;
     private final PermissionProvider permissionProvider;
-    private final SessionOperationInterceptor interceptor;
 
     private boolean isAlive = true;
     private int sessionOpCount;
@@ -69,11 +85,7 @@ public class SessionDelegate {
     private boolean warnIfIdle = true;
     private boolean refreshAtNextAccess = false;
 
-
-    public SessionDelegate(@Nonnull ContentSession contentSession, SecurityProvider securityProvider,
-                           long refreshInterval) {
-        this(contentSession, securityProvider, SessionOperationInterceptor.NOOP,refreshInterval);
-    }
+    private int saveCount = SAVE_COUNT.get();
 
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
@@ -87,10 +99,8 @@ public class SessionDelegate {
      * @param securityProvider the security provider
      * @param refreshInterval  refresh interval in seconds.
      */
-    public SessionDelegate(@Nonnull ContentSession contentSession, SecurityProvider securityProvider,
-                           SessionOperationInterceptor interceptor,long refreshInterval) {
+    public SessionDelegate(@Nonnull ContentSession contentSession, SecurityProvider securityProvider,long refreshInterval) {
         this.contentSession = checkNotNull(contentSession);
-        this.interceptor = checkNotNull(interceptor);
         this.refreshInterval = MILLISECONDS.convert(refreshInterval, SECONDS);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
@@ -120,7 +130,6 @@ public class SessionDelegate {
             throws RepositoryException {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
         if (sessionOpCount == 0) {
-            interceptor.before(this,sessionOperation);
             // Refresh and checks only for non re-entrant session operations
             long now = System.currentTimeMillis();
             long timeElapsed = now - lastAccessed;
@@ -134,9 +143,10 @@ public class SessionDelegate {
                             " refresh the session.", initStackTrace);
                     warnIfIdle = false;
                 }
-                if (refreshAtNextAccess || timeElapsed >= refreshInterval) {
+                if (refreshAtNextAccess || commitDoneByOtherSessionInCurrentThread() || timeElapsed >= refreshInterval) {
                     // Refresh if forced or if the session has been idle too long
                     refreshAtNextAccess = false;
+                    saveCount = SAVE_COUNT.get();
                     refresh(true);
                     updateCount++;
                 }
@@ -152,7 +162,9 @@ public class SessionDelegate {
             if (sessionOperation.isUpdate()) {
                 updateCount++;
             }
-            interceptor.after(this,sessionOperation);
+            if (sessionOperation.isSave()) {
+                SAVE_COUNT.set(saveCount = (SAVE_COUNT.get() + 1));
+            }
         }
     }
 
@@ -449,6 +461,14 @@ public class SessionDelegate {
     }
 
 //-----------------------------------------------------------< internal >---
+
+    private boolean commitDoneByOtherSessionInCurrentThread() {
+        //if the threadLocal counter differs from our seen saveCount so far then
+        //some other session would have done a commit. If that is the case a refresh would
+        //be required
+        return SAVE_COUNT.get() != saveCount;
+    }
+
 
     /**
      * Wraps the given {@link CommitFailedException} instance using the
