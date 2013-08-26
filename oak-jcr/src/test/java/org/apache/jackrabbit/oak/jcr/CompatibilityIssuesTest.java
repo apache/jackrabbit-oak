@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -43,12 +44,15 @@ import javax.jcr.observation.ObservationManager;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * This class contains test cases which demonstrate changes in behaviour wrt. to Jackrabbit 2.
  * 
  * @see <a href="https://issues.apache.org/jira/browse/OAK-14">OAK-14: Identify and document changes in behaviour wrt. Jackrabbit 2</a>
  */
+@RunWith(Parameterized.class)
 public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
     public CompatibilityIssuesTest(NodeStoreFixture fixture) {
@@ -220,6 +224,30 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
             assertEquals(1,events.size());
         }finally{
             observingSession.logout();
+        }
+    }
+    
+    @Test
+    public void noSNSSupport() throws RepositoryException{
+        Session session = getAdminSession();
+        Node testNode = session.getRootNode().addNode("test", "nt:unstructured");
+        session.save();
+
+        testNode.addNode("foo");
+        try {
+            testNode.addNode("foo");
+            // This would fail on JR2 since there SNSs are supported
+            fail("Expected ItemExistsException");
+        } catch (ItemExistsException e){
+            //ItemExistsException is expected to be thrown
+        }
+        session.save();
+        try {
+            testNode.addNode("foo");
+            // This would fail on JR2 since there SNSs are supported
+            fail("Expected ItemExistsException");
+        } catch (ItemExistsException e){
+            //ItemExistsException is expected to be thrown
         }
     }
 
