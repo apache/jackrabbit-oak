@@ -162,44 +162,7 @@ public class NamePathMapperImpl implements NamePathMapper {
             return this.idManager.getPath(jcrPath.substring(1, length - 1));
         }
 
-        boolean hasClarkBrackets = false;
-        boolean hasIndexBrackets = false;
-        boolean hasColon = false;
-        boolean hasNameStartingWithDot = false;
-        boolean hasTrailingSlash = false;
-
-        char prev = 0;
-        for (int i = 0; i < length; i++) {
-            char c = jcrPath.charAt(i);
-
-            if (c == '{' || c == '}') {
-                hasClarkBrackets = true;
-            } else if (c == '[' || c == ']') {
-                hasIndexBrackets = true;
-            } else if (c == ':') {
-                hasColon = true;
-            } else if (c == '.' && (prev == 0 || prev == '/')) {
-                hasNameStartingWithDot = true;
-            } else if(c == '/' && i == (length - 1)){
-                hasTrailingSlash = true;
-            }
-
-            prev = c;
-        }
-
-        // try a shortcut
-        if (!hasNameStartingWithDot && !hasClarkBrackets && !hasIndexBrackets) {
-            if (!hasColon || !hasSessionLocalMappings()) {
-                if (hasTrailingSlash){
-                    return jcrPath.substring(0, length - 1);
-                } else {
-                    return jcrPath;
-                }
-            }
-        }
-
         final StringBuilder parseErrors = new StringBuilder();
-
         PathListener listener = new PathListener() {
             @Override
             public void error(String message) {
