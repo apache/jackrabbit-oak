@@ -133,15 +133,20 @@ public class FullTextSearchImpl extends ConstraintImpl {
         builder.append(')');
         return builder.toString();
     }
-    
+
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         if (propertyName == null) {
             return Collections.emptySet();
         }
+        // makes no sense in applying a property existence constrain when that
+        // property is on a different node
+        if (relativePath != null) {
+            return Collections.emptySet();
+        }
         return Collections.singleton(new PropertyExistenceImpl(selector, selectorName, propertyName));
     }
-    
+
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
         if (s != selector) {

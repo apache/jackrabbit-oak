@@ -41,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
@@ -74,9 +76,9 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
      * 
      */
     private static NodeAggregator getNodeAggregator() {
-        return new SimpleNodeAggregator()
-            .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-            .newRuleWithName(NT_FOLDER, newArrayList("myFile"));
+        return new SimpleNodeAggregator().newRuleWithName(NT_FILE,
+                newArrayList(JCR_CONTENT, JCR_CONTENT + "/*")).newRuleWithName(
+                NT_FOLDER, newArrayList("myFile"));
     }
 
     /**
@@ -221,6 +223,9 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
         String matchNone = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
         assertQuery(matchNone, "xpath", new ArrayList<String>());
+
+        String matchOnlyTitleOr = " //element(*, nt:folder)[(jcr:contains(myFile/@jcr:title, 'title') or jcr:contains(myFile/@jcr:title, 'unknown') )]";
+        assertQuery(matchOnlyTitleOr, "xpath", ImmutableList.of("/myFolder"));
     }
 
 }
