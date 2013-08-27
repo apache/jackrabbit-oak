@@ -274,6 +274,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         root.getNode("/foo");
     }
 
+    @Test(expected = RepositoryException.class)
+    public void testExceptionThrownForInvalidPath() throws RepositoryException {
+        Session session = getAdminSession();
+        session.itemExists("//jcr:content");
+    }
+
     @Test
     public void getNodeByIdentifier() throws RepositoryException {
         Node node = getNode("/foo");

@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +30,6 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
 public class NamePathMapperImplTest {
 
@@ -148,10 +148,10 @@ public class NamePathMapperImplTest {
         };
         NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
-        checkIdentical(npMapper, "/");
-        checkIdentical(npMapper, "/foo:bar");
-        checkIdentical(npMapper, "/foo:bar/quu:qux");
-        checkIdentical(npMapper, "foo:bar");
+        assertEquals("/", npMapper.getOakPathKeepIndex("/"));
+        assertEquals("/foo:bar", npMapper.getOakPathKeepIndex("/foo:bar"));
+        assertEquals("/foo:bar/quu:qux", npMapper.getOakPathKeepIndex("/foo:bar/quu:qux"));
+        assertEquals("foo:bar", npMapper.getOakPathKeepIndex("foo:bar"));
     }
 
     @Test
@@ -212,18 +212,6 @@ public class NamePathMapperImplTest {
         assertFalse(JcrPathParser.validate("/..//"));
         assertFalse(JcrPathParser.validate("/.."));
         assertFalse(JcrPathParser.validate("/foo/../.."));
-    }
-
-    private void checkIdentical(NamePathMapper npMapper, String jcrPath) {
-        String oakPath = npMapper.getOakPathKeepIndex(jcrPath);
-        checkIdentical(jcrPath, oakPath);
-    }
-
-    private static void checkIdentical(String expected, String actual) {
-        assertEquals(expected, actual);
-        if (expected != actual) {
-            fail("Expected the strings to be the same");
-        }
     }
 
 }
