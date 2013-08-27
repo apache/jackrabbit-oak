@@ -17,9 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 
@@ -53,39 +50,16 @@ import org.slf4j.LoggerFactory;
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
-    /**
-     * Threadlocal instance to keep track of the save operations performed in the thread so far
-     * This is is then used to determine if the current session needs to be refreshed to see the
-     * changes done by another session in current thread.
-     *
-     * <p><b>Note</b> - This thread local is never cleared. However we are only storing java.lang.Integer
-     * in it thus it would not cause leaks typically associated with usage of thread locals which are not
-     * cleared
-     * </p>
-     */
-    private static final ThreadLocal<Integer> SAVE_COUNT = new ThreadLocal<Integer>() {
-        @Override
-        protected Integer initialValue() {
-            return 0;
-        }
-    };
-
     private final ContentSession contentSession;
-    private final long refreshInterval;
+    private final RefreshManager refreshManager;
+
     private final Root root;
     private final IdentifierManager idManager;
-    private final Exception initStackTrace;
     private final PermissionProvider permissionProvider;
 
     private boolean isAlive = true;
     private int sessionOpCount;
     private long updateCount = 0;
-
-    private long lastAccessed = System.currentTimeMillis();
-    private boolean warnIfIdle = true;
-    private boolean refreshAtNextAccess = false;
-
-    private int saveCount = SAVE_COUNT.get();
 
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
@@ -96,22 +70,22 @@ public class SessionDelegate {
      * dispatcher in order.
      *
      * @param contentSession  the content session
+     * @param refreshManager  the refresh manager used to handle auto refreshing this session
      * @param securityProvider the security provider
-     * @param refreshInterval  refresh interval in seconds.
      */
-    public SessionDelegate(@Nonnull ContentSession contentSession, SecurityProvider securityProvider,long refreshInterval) {
+    public SessionDelegate(@Nonnull ContentSession contentSession, RefreshManager refreshManager,
+            SecurityProvider securityProvider) {
         this.contentSession = checkNotNull(contentSession);
-        this.refreshInterval = MILLISECONDS.convert(refreshInterval, SECONDS);
+        this.refreshManager = checkNotNull(refreshManager);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
-        this.initStackTrace = new Exception("The session was created here:");
-        this.permissionProvider = securityProvider.getConfiguration(AuthorizationConfiguration.class)
+        this.permissionProvider = checkNotNull(securityProvider)
+                .getConfiguration(AuthorizationConfiguration.class)
                 .getPermissionProvider(root, contentSession.getAuthInfo().getPrincipals());
-
     }
 
     public synchronized void refreshAtNextAccess() {
-        refreshAtNextAccess = true;
+        refreshManager.refreshAtNextAccess();
     }
 
     /**
@@ -130,28 +104,10 @@ public class SessionDelegate {
             throws RepositoryException {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
         if (sessionOpCount == 0) {
-            // Refresh and checks only for non re-entrant session operations
-            long now = System.currentTimeMillis();
-            long timeElapsed = now - lastAccessed;
-            // Don't refresh if this operation is a refresh operation itself
-            if (!sessionOperation.isRefresh()) {
-                if (warnIfIdle && !refreshAtNextAccess
-                        && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
-                    // Warn once if this session has been idle too long
-                    log.warn("This session has been idle for " + MINUTES.convert(timeElapsed, MILLISECONDS) +
-                            " minutes and might be out of date. Consider using a fresh session or explicitly" +
-                            " refresh the session.", initStackTrace);
-                    warnIfIdle = false;
-                }
-                if (refreshAtNextAccess || commitDoneByOtherSessionInCurrentThread() || timeElapsed >= refreshInterval) {
-                    // Refresh if forced or if the session has been idle too long
-                    refreshAtNextAccess = false;
-                    saveCount = SAVE_COUNT.get();
-                    refresh(true);
-                    updateCount++;
-                }
+            // Refresh and precondition checks only for non re-entrant session operations
+            if (refreshManager.refreshIfNecessary(this, sessionOperation)) {
+                updateCount++;
             }
-            lastAccessed = now;
             sessionOperation.checkPreconditions();
         }
         try {
@@ -161,9 +117,6 @@ public class SessionDelegate {
             sessionOpCount--;
             if (sessionOperation.isUpdate()) {
                 updateCount++;
-            }
-            if (sessionOperation.isSave()) {
-                SAVE_COUNT.set(saveCount = (SAVE_COUNT.get() + 1));
             }
         }
     }
@@ -460,15 +413,7 @@ public class SessionDelegate {
         return contentSession.toString();
     }
 
-//-----------------------------------------------------------< internal >---
-
-    private boolean commitDoneByOtherSessionInCurrentThread() {
-        //if the threadLocal counter differs from our seen saveCount so far then
-        //some other session would have done a commit. If that is the case a refresh would
-        //be required
-        return SAVE_COUNT.get() != saveCount;
-    }
-
+    //------------------------------------------------------------< internal >---
 
     /**
      * Wraps the given {@link CommitFailedException} instance using the
