@@ -94,7 +94,7 @@ public class OrImpl extends ConstraintImpl {
     @Override
     public Set<SelectorImpl> getSelectors() {
         Set<SelectorImpl> s1 = constraint1.getSelectors();
-        Set<SelectorImpl> s2 = constraint1.getSelectors();
+        Set<SelectorImpl> s2 = constraint2.getSelectors();
         if (s1.isEmpty()) {
             return s2;
         } else if (s2.isEmpty()) {
