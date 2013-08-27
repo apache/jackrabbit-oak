@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Collections;
 import java.util.Map;
@@ -37,6 +39,7 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.jcr.delegate.RefreshManager;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -57,7 +60,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      * Name of the session attribute value determining the session refresh
      * behaviour.
      *
-     * @see SessionDelegate#SessionDelegate(ContentSession, SecurityProvider, long)
+     * @see SessionDelegate#SessionDelegate(ContentSession, RefreshManager, SecurityProvider)
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
 
@@ -70,6 +73,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final ContentRepository contentRepository;
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
+    private final ThreadLocal<Integer> threadSafeCount;
 
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
                           @Nonnull Whiteboard whiteboard,
@@ -77,6 +81,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.contentRepository = checkNotNull(contentRepository);
         this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
+        this.threadSafeCount = new ThreadLocal<Integer>();
     }
 
     //---------------------------------------------------------< Repository >---
@@ -203,16 +208,18 @@ public class RepositoryImpl implements JackrabbitRepository {
             }
 
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
+            RefreshManager refreshManager = new RefreshManager(
+                    MILLISECONDS.convert(refreshInterval, SECONDS), threadSafeCount);
+            SessionDelegate sessionDelegate = new SessionDelegate(
+                    contentSession, refreshManager, securityProvider);
             SessionContext context = createSessionContext(
                     Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
-                    new SessionDelegate(contentSession,securityProvider,refreshInterval));
+                    sessionDelegate);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
         }
     }
-
-
 
     @Override
     public void shutdown() {
