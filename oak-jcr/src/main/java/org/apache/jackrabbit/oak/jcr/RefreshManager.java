@@ -17,12 +17,14 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.jcr.delegate;
+package org.apache.jackrabbit.oak.jcr;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class contains the auto refresh logic for sessions, which is done to enhance backwards
@@ -41,6 +43,8 @@ import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
  * See OAK-960
  */
 public class RefreshManager {
+    private static final Logger log = LoggerFactory.getLogger(RefreshManager.class);
+
     private final Exception initStackTrace = new Exception("The session was created here:");
     private final long refreshInterval;
 
@@ -75,7 +79,7 @@ public class RefreshManager {
      * @param sessionOperation  the operation to be executed
      * @return  {@code true} if a refreshed, {@code false} otherwise.
      */
-    boolean needsRefresh(SessionOperation<?> sessionOperation) {
+    public boolean needsRefresh(SessionOperation<?> sessionOperation) {
         long now = System.currentTimeMillis();
         long timeElapsed = now - lastAccessed;
         lastAccessed = now;
@@ -87,7 +91,7 @@ public class RefreshManager {
                     && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
                 // TODO replace logging with JMX monitoring. See OAK-941
                 // Warn once if this session has been idle too long
-                SessionDelegate.log.warn("This session has been idle for " + MINUTES.convert(timeElapsed, MILLISECONDS) +
+                log.warn("This session has been idle for " + MINUTES.convert(timeElapsed, MILLISECONDS) +
                         " minutes and might be out of date. Consider using a fresh session or explicitly" +
                         " refresh the session.", initStackTrace);
                 warnIfIdle = false;
@@ -107,7 +111,7 @@ public class RefreshManager {
         return false;
     }
 
-    void refreshAtNextAccess() {
+    public void refreshAtNextAccess() {
         refreshAtNextAccess = true;
     }
 
