@@ -25,8 +25,19 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 
 /**
-* michid document
-*/
+ * This class contains the auto refresh logic for sessions, which is done to enhance backwards
+ * compatibility with Jackrabbit 2.
+ * <p>
+ * A sessions is automatically refreshed when
+ * <ul>
+ *     <li>it has not been accessed for the number of seconds specified by the
+ *         {@code refreshInterval} parameter,</li>
+ *     <li>an observation event has been delivered to a listener registered from within this
+ *         session,</li>
+ *     <li>an updated occurred through a different session from <em>within the same
+ *         thread.</em></li>
+ * </ul>
+ */
 public class RefreshManager {
     private final Exception initStackTrace = new Exception("The session was created here:");
     private final long refreshInterval;
@@ -54,6 +65,14 @@ public class RefreshManager {
         sessionSaveCount = getOr0(threadSaveCount);
     }
 
+    /**
+     * Called before the passed {@code sessionOperation} is performed. This method
+     * refreshes the session according to the rules given in the class comment.
+     *
+     * @param delegate  session on which the {@code sessionOperation} is executed
+     * @param sessionOperation  the operation to be executed
+     * @return  {@code true} if a refreshed, {@code false} otherwise.
+     */
     boolean refreshIfNecessary(SessionDelegate delegate, SessionOperation<?> sessionOperation) {
         long now = System.currentTimeMillis();
         long timeElapsed = now - lastAccessed;
