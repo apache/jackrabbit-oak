@@ -58,7 +58,9 @@ relying on one session seeing the other session's changes. Oak requires explicit
 >
 > Automatic session synchronisation is a transient feature and will most probably be removed in
 > future versions of Oak. See [OAK-803](https://issues.apache.org/jira/browse/OAK-803) for further
-> details.
+> details regarding session backwards compatibility and
+> [OAK-960](https://issues.apache.org/jira/browse/OAK-960) regarding in thread session
+> synchronisation.
 
 On Oak `Item.refresh()` is deprecated and will always cause an `Session.refresh()`. The former call
 will result in a warning written to the log in order to facilitate locating trouble spots.
