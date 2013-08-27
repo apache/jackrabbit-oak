@@ -37,6 +37,8 @@ import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
  *     <li>an updated occurred through a different session from <em>within the same
  *         thread.</em></li>
  * </ul>
+ * TODO: refactor this using the strategy pattern composing the different refresh behaviours.
+ * See OAK-960
  */
 public class RefreshManager {
     private final Exception initStackTrace = new Exception("The session was created here:");
@@ -81,8 +83,9 @@ public class RefreshManager {
         // Don't refresh if this operation is a refresh operation itself or
         // a save operation, which does an implicit refresh
         if (!sessionOperation.isRefresh() && !sessionOperation.isSave()) {
-            if (warnIfIdle && !refreshAtNextAccess
+            if (warnIfIdle && !refreshAtNextAccess && !hasInThreadCommit()
                     && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
+                // TODO replace logging with JMX monitoring. See OAK-941
                 // Warn once if this session has been idle too long
                 SessionDelegate.log.warn("This session has been idle for " + MINUTES.convert(timeElapsed, MILLISECONDS) +
                         " minutes and might be out of date. Consider using a fresh session or explicitly" +
