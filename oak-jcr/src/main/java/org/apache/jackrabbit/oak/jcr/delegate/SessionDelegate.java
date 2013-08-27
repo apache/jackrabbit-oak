@@ -105,7 +105,8 @@ public class SessionDelegate {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
         if (sessionOpCount == 0) {
             // Refresh and precondition checks only for non re-entrant session operations
-            if (refreshManager.refreshIfNecessary(this, sessionOperation)) {
+            if (refreshManager.needsRefresh(sessionOperation)) {
+                refresh(true);
                 updateCount++;
             }
             sessionOperation.checkPreconditions();

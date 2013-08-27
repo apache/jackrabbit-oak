@@ -67,13 +67,13 @@ public class RefreshManager {
 
     /**
      * Called before the passed {@code sessionOperation} is performed. This method
-     * refreshes the session according to the rules given in the class comment.
+     * determines whether a session needs to be refreshed according to the rules
+     * given in the class comment.
      *
-     * @param delegate  session on which the {@code sessionOperation} is executed
      * @param sessionOperation  the operation to be executed
      * @return  {@code true} if a refreshed, {@code false} otherwise.
      */
-    boolean refreshIfNecessary(SessionDelegate delegate, SessionOperation<?> sessionOperation) {
+    boolean needsRefresh(SessionOperation<?> sessionOperation) {
         long now = System.currentTimeMillis();
         long timeElapsed = now - lastAccessed;
         lastAccessed = now;
@@ -93,7 +93,6 @@ public class RefreshManager {
                 // Refresh if forced or if the session has been idle too long
                 refreshAtNextAccess = false;
                 sessionSaveCount = getOr0(threadSaveCount);
-                delegate.refresh(true);
                 return true;
             }
         }
