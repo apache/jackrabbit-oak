@@ -17,10 +17,13 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newTreeSet;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -88,6 +91,12 @@ public class SessionContext implements NamePathMapper {
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
     private ObservationManagerImpl observationManager;
+
+    /** Paths (tokens) of all open scoped locks held by this session. */
+    private final Set<String> openScopedLocks = newTreeSet();
+
+    /** Paths of all session scoped locks held by this session. */
+    private final Set<String> sessionScopedLocks = newHashSet();
 
     public SessionContext(
             @Nonnull RepositoryImpl repository, @Nonnull Whiteboard whiteboard,
@@ -244,6 +253,14 @@ public class SessionContext implements NamePathMapper {
         return observationManager;
     }
 
+    public Set<String> getOpenScopedLocks() {
+        return openScopedLocks;
+    }
+
+    public Set<String> getSessionScopedLocks() {
+        return sessionScopedLocks;
+    }
+
     //-----------------------------------------------------< NamePathMapper >---
 
     @Override
@@ -335,6 +352,7 @@ public class SessionContext implements NamePathMapper {
     //-----------------------------------------------------------< internal >---
 
     void dispose() {
+        getWorkspace().getLockManager().unlockAllSessionScopedLocks();
         if (observationManager != null) {
             observationManager.dispose();
         }

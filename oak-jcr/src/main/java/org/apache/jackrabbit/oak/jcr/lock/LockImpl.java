@@ -89,7 +89,12 @@ public final class LockImpl implements Lock {
         return safePerform(new NodeOperation<String>(delegate) {
             @Override
             public String perform() throws RepositoryException {
-                return node.getPath();
+                String token = node.getPath();
+                if (context.getOpenScopedLocks().contains(token)) {
+                    return token;
+                } else {
+                    return null;
+                }
             }
         });
     }
@@ -105,12 +110,25 @@ public final class LockImpl implements Lock {
 
     @Override
     public boolean isSessionScoped() {
-        return false;
+        return safePerform(new NodeOperation<Boolean>(delegate) {
+            @Override
+            public Boolean perform() throws RepositoryException {
+                String path = node.getPath();
+                return context.getSessionScopedLocks().contains(path);
+            }
+        });
     }
 
     @Override
     public boolean isLockOwningSession() {
-        return true;
+        return safePerform(new NodeOperation<Boolean>(delegate) {
+            @Override
+            public Boolean perform() throws RepositoryException {
+                String path = node.getPath();
+                return context.getSessionScopedLocks().contains(path)
+                        || context.getOpenScopedLocks().contains(path);
+            }
+        });
     }
 
     @Override
