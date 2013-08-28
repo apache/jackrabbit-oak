@@ -22,7 +22,6 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.lock.Lock;
@@ -73,7 +72,7 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public boolean isLocked(String absPath) throws RepositoryException {
-        return perform(new LockOperation<Boolean>(absPath) {
+        return perform(new LockOperation<Boolean>(sessionContext, absPath) {
             @Override
             protected Boolean perform(NodeDelegate node) {
                 return node.isLocked();
@@ -83,7 +82,7 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public boolean holdsLock(String absPath) throws RepositoryException {
-        return perform(new LockOperation<Boolean>(absPath) {
+        return perform(new LockOperation<Boolean>(sessionContext, absPath) {
             @Override
             protected Boolean perform(NodeDelegate node) {
                 return node.holdsLock(false);
@@ -93,12 +92,13 @@ public class LockManagerImpl implements LockManager {
 
     @Override @Nonnull
     public Lock getLock(String absPath) throws RepositoryException {
-        NodeDelegate lock = perform(new LockOperation<NodeDelegate>(absPath) {
-            @Override
-            protected NodeDelegate perform(NodeDelegate node) {
-                return node.getLock();
-            }
-        });
+        NodeDelegate lock = perform(
+                new LockOperation<NodeDelegate>(sessionContext, absPath) {
+                    @Override
+                    protected NodeDelegate perform(NodeDelegate node) {
+                        return node.getLock();
+                    }
+                });
         if (lock != null) {
             return new LockImpl(sessionContext, lock);
         } else {
@@ -110,20 +110,22 @@ public class LockManagerImpl implements LockManager {
     public Lock lock(
             String absPath, final boolean isDeep, boolean isSessionScoped,
             long timeoutHint, String ownerInfo) throws RepositoryException {
-        NodeDelegate lock = perform(new LockOperation<NodeDelegate>(absPath) {
-            @Override
-            protected NodeDelegate perform(NodeDelegate node)
-                    throws RepositoryException {
-                node.lock(isDeep);
-                return node;
-            }
-        });
+        NodeDelegate lock = perform(
+                new LockOperation<NodeDelegate>(sessionContext, absPath) {
+                    @Override
+                    protected NodeDelegate perform(NodeDelegate node)
+                            throws RepositoryException {
+                        node.lock(isDeep);
+                        return node;
+                    }
+                });
+        sessionContext.getSession().refresh(true); // TODO: better refresh
         return new LockImpl(sessionContext, lock);
     }
 
     @Override
     public void unlock(String absPath) throws RepositoryException {
-        perform(new LockOperation<Void>(absPath) {
+        perform(new LockOperation<Void>(sessionContext, absPath) {
             @Override
             protected Void perform(NodeDelegate node)
                     throws RepositoryException {
@@ -131,35 +133,12 @@ public class LockManagerImpl implements LockManager {
                 return null;
             }
         });
+        sessionContext.getSession().refresh(true); // TODO: better refresh
     }
 
     private <T> T perform(SessionOperation<T> operation)
             throws RepositoryException {
         return delegate.perform(operation);
-    }
-
-    private abstract class LockOperation<T> extends SessionOperation<T> {
-
-        private final String path;
-
-        public LockOperation(String absPath) throws PathNotFoundException {
-            this.path = sessionContext.getOakPathOrThrowNotFound(absPath);
-        }
-
-        @Override
-        public T perform() throws RepositoryException {
-            NodeDelegate node = delegate.getNode(path);
-            if (node != null) {
-                return perform(node);
-            } else {
-                throw new PathNotFoundException(
-                        "Node " + path + " not found");
-            }
-        }
-
-        protected abstract T perform(NodeDelegate node)
-                throws RepositoryException;
-
     }
 
 }
