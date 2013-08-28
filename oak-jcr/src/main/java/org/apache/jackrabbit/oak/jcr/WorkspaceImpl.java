@@ -61,7 +61,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     private final SessionContext sessionContext;
     private final SessionDelegate sessionDelegate;
     private final QueryManagerImpl queryManager;
-    private final LockManager lockManager;
+    private final LockManagerImpl lockManager;
     private final VersionManagerImpl versionManager;
     private final ReadWriteNodeTypeManager nodeTypeManager;
 
@@ -182,7 +182,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public LockManager getLockManager() {
+    public LockManagerImpl getLockManager() {
         return lockManager;
     }
 

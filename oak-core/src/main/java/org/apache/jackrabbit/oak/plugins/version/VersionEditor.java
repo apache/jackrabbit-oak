@@ -144,7 +144,7 @@ class VersionEditor implements Editor {
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
         if (wasReadOnly) {
-            if (!isVersionProperty(before)) {
+            if (!isVersionProperty(before) && !isLockProperty(before)) {
                 throwCheckedIn("Cannot delete property on checked in node");
             }
         }
@@ -186,6 +186,10 @@ class VersionEditor implements Editor {
     private boolean isVersionProperty(PropertyState state) {
         return VersionConstants.VERSION_PROPERTY_NAMES
                 .contains(state.getName());
+    }
+
+    private boolean isLockProperty(PropertyState state) {
+        return VersionConstants.LOCK_PROPERTY_NAMES.contains(state.getName());
     }
 
     /**

@@ -352,7 +352,6 @@ public class VersionManagerImpl implements VersionManager {
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                checkNotLocked(absPath);
                 return new VersionImpl(versionManagerDelegate.checkin(nodeDelegate), sessionContext);
             }
         });

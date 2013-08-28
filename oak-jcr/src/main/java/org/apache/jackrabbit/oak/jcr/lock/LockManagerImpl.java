@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.lock;
 
-import static com.google.common.collect.Sets.newTreeSet;
-
+import java.util.Iterator;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -33,6 +32,8 @@ import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Simple lock manager implementation that just keeps track of a set of lock
@@ -41,11 +42,13 @@ import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
  */
 public class LockManagerImpl implements LockManager {
 
+    /** Logger instance */
+    private static final Logger log =
+            LoggerFactory.getLogger(LockManagerImpl.class);
+
     private final SessionContext sessionContext;
 
     private final SessionDelegate delegate;
-
-    private final Set<String> tokens = newTreeSet();
 
     public LockManagerImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
@@ -53,19 +56,49 @@ public class LockManagerImpl implements LockManager {
     }
 
     @Override @Nonnull
-    public synchronized String[] getLockTokens() {
-        return tokens.toArray(new String[tokens.size()]);
+    public String[] getLockTokens() throws RepositoryException {
+        return perform(new SessionOperation<String[]>() {
+            @Override @Nonnull
+            public String[] perform() {
+                Set<String> tokens = sessionContext.getOpenScopedLocks();
+                return tokens.toArray(new String[tokens.size()]);
+            }
+        });
     }
 
     @Override
-    public synchronized void addLockToken(String lockToken) {
-        tokens.add(lockToken);
+    public void addLockToken(final String lockToken)
+            throws RepositoryException {
+        try {
+            perform(new LockOperation<String>(sessionContext, lockToken) {
+                @Override
+                protected String perform(NodeDelegate node)
+                        throws LockException {
+                    if (node.holdsLock(false)) {
+                        String token = node.getPath();
+                        sessionContext.getOpenScopedLocks().add(token);
+                        return null;
+                    } else {
+                        throw new LockException(
+                                "Invalid lock token: " + lockToken);
+                    }
+                }
+            });
+        } catch (IllegalArgumentException e) { // TODO: better exception
+            throw new LockException("Invalid lock token: " + lockToken);
+        }
     }
 
     @Override
-    public synchronized void removeLockToken(String lockToken)
-            throws LockException {
-        if (!tokens.remove(lockToken)) {
+    public void removeLockToken(final String lockToken)
+            throws RepositoryException {
+        if (!perform(new SessionOperation<Boolean>() {
+            @Override @Nonnull
+            public Boolean perform() {
+                // TODO: name mapping?
+                return sessionContext.getOpenScopedLocks().remove(lockToken);
+            }
+        })) {
             throw new LockException(
                     "Lock token " + lockToken + " is not held by this session");
         }
@@ -109,9 +142,9 @@ public class LockManagerImpl implements LockManager {
 
     @Override @Nonnull
     public Lock lock(
-            String absPath, final boolean isDeep, boolean isSessionScoped,
+            String absPath, final boolean isDeep, final boolean isSessionScoped,
             long timeoutHint, String ownerInfo) throws RepositoryException {
-        NodeDelegate lock = perform(
+        return new LockImpl(sessionContext, perform(
                 new LockOperation<NodeDelegate>(sessionContext, absPath) {
                     @Override
                     protected NodeDelegate perform(NodeDelegate node)
@@ -121,14 +154,16 @@ public class LockManagerImpl implements LockManager {
                                     "Unable to lock a node with pending changes");
                         }
                         node.lock(isDeep);
+                        String path = node.getPath();
+                        if (isSessionScoped) {
+                            sessionContext.getSessionScopedLocks().add(path);
+                        } else {
+                            sessionContext.getOpenScopedLocks().add(path);
+                        }
                         session.refresh(true);
                         return node;
                     }
-                });
-        if (!isSessionScoped) {
-            addLockToken(absPath);
-        }
-        return new LockImpl(sessionContext, lock);
+                }));
     }
 
     @Override
@@ -137,11 +172,46 @@ public class LockManagerImpl implements LockManager {
             @Override
             protected Void perform(NodeDelegate node)
                     throws RepositoryException {
-                node.unlock();
-                session.refresh(true);
-                return null;
+                String path = node.getPath();
+                if (sessionContext.getSessionScopedLocks().contains(path)
+                        || sessionContext.getOpenScopedLocks().contains(path)) {
+                    node.unlock();
+                    sessionContext.getSessionScopedLocks().remove(path);
+                    sessionContext.getOpenScopedLocks().remove(path);
+                    session.refresh(true);
+                    return null;
+                } else {
+                    throw new LockException("Not an owner of the lock " + path);
+                }
             }
         });
+    }
+
+    public void unlockAllSessionScopedLocks() {
+        try {
+            perform(new SessionOperation<Void>() {
+                @Override
+                public Void perform() throws RepositoryException {
+                    SessionDelegate delegate = sessionContext.getSessionDelegate();
+                    Iterator<String> iterator =
+                            sessionContext.getSessionScopedLocks().iterator();
+                    while (iterator.hasNext()) {
+                        NodeDelegate node = delegate.getNode(iterator.next());
+                        if (node != null) {
+                            try {
+                                node.unlock();
+                            } catch (RepositoryException e) {
+                                log.warn("Failed to clean up a session scoped lock", e);
+                            }
+                        }
+                        iterator.remove();
+                    }
+                    return null;
+                }
+            });
+        } catch (RepositoryException e) {
+            log.warn("Unexpected repository exception", e);
+        }
     }
 
     private <T> T perform(SessionOperation<T> operation)
