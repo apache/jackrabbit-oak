@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.lock;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -143,7 +144,7 @@ public class LockManagerImpl implements LockManager {
                     protected NodeDelegate perform(NodeDelegate node)
                             throws RepositoryException {
                         if (node.getStatus() != Status.EXISTING) {
-                            throw new LockException(
+                            throw new InvalidItemStateException(
                                     "Unable to lock a node with pending changes");
                         }
                         node.lock(isDeep);

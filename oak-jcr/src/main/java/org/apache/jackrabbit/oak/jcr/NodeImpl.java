@@ -1151,11 +1151,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    /**
-     * @see javax.jcr.Node#lock(boolean, boolean)
-     */
     @Override @Nonnull
-    public Lock lock(final boolean isDeep, boolean isSessionScoped)
+    public Lock lock(final boolean isDeep, final boolean isSessionScoped)
             throws RepositoryException {
         perform(new LockOperation<Void>(sessionDelegate, dlg) {
             @Override
@@ -1165,28 +1162,37 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                             "Unable to lock a node with pending changes");
                 }
                 node.lock(isDeep);
+                String path = node.getPath();
+                if (isSessionScoped) {
+                    sessionContext.getSessionScopedLocks().add(path);
+                } else {
+                    sessionContext.getOpenScopedLocks().add(path);
+                }
                 session.refresh(true);
                 return null;
             }
         });
-        getSession().refresh(true); // TODO: better refresh
         return new LockImpl(sessionContext, dlg);
     }
 
-    /**
-     * @see javax.jcr.Node#unlock()
-     */
     @Override
     public void unlock() throws RepositoryException {
         perform(new LockOperation<Void>(sessionDelegate, dlg) {
             @Override
             public Void perform(NodeDelegate node) throws RepositoryException {
-                node.unlock();
-                session.refresh(true);
-                return null;
+                String path = node.getPath();
+                if (sessionContext.getSessionScopedLocks().contains(path)
+                        || sessionContext.getOpenScopedLocks().contains(path)) {
+                    node.unlock();
+                    sessionContext.getSessionScopedLocks().remove(path);
+                    sessionContext.getOpenScopedLocks().remove(path);
+                    session.refresh(true);
+                    return null;
+                } else {
+                    throw new LockException("Not an owner of the lock " + path);
+                }
             }
         });
-        getSession().refresh(true); // TODO: better refresh
     }
 
     @Override @Nonnull
