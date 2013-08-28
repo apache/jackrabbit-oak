@@ -57,16 +57,17 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     /**
      * Name of the session attribute value determining the session refresh
-     * behaviour.
+     * interval in seconds.
      *
-     * @see SessionDelegate#SessionDelegate(ContentSession, RefreshManager, SecurityProvider)
+     * @see RefreshManager
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
 
     /**
      * Default value for {@link #REFRESH_INTERVAL}.
      */
-    private static final long DEFAULT_REFRESH_INTERVAL = Long.getLong("default-refresh-interval", 1);
+    private static final long DEFAULT_REFRESH_INTERVAL = Long.getLong(
+            "default-refresh-interval", Long.MAX_VALUE);
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
