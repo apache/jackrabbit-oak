@@ -392,6 +392,8 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public void removeMixin(String typeName) throws RepositoryException {
+        boolean wasLockable = isNodeType(MIX_LOCKABLE);
+
         Tree tree = getTree();
         Set<String> mixins = newLinkedHashSet(getNames(tree, JCR_MIXINTYPES));
         if (!mixins.remove(typeName)) {
@@ -399,6 +401,13 @@ public class NodeDelegate extends ItemDelegate {
                     "Mixin " + typeName +" not contained in " + getPath());
         }
         tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
+
+        boolean isLockable = isNodeType(MIX_LOCKABLE);
+        if (wasLockable && !isLockable && holdsLock(false)) {
+            // TODO: This should probably be done in a commit hook
+            unlock();
+            sessionDelegate.refresh(true);
+        }
 
         // We need to remove all protected properties and child nodes
         // associated with the removed mixin type, as there's no way for

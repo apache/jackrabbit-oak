@@ -84,7 +84,6 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -1118,36 +1117,33 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean isLocked() throws RepositoryException {
-        return perform(new NodeOperation<Boolean>(dlg) {
+        return perform(new LockOperation<Boolean>(sessionDelegate, dlg) {
             @Override
-            public Boolean perform() throws RepositoryException {
+            public Boolean perform(NodeDelegate node) {
                 return node.isLocked();
             }
         });
     }
 
-    /**
-     * Checks whether this node holds a lock by looking for the
-     * {@code jcr:lockIsDeep} property.
-     */
     @Override
     public boolean holdsLock() throws RepositoryException {
-        return perform(new NodeOperation<Boolean>(dlg) {
+        return perform(new LockOperation<Boolean>(sessionDelegate, dlg) {
             @Override
-            public Boolean perform() throws RepositoryException {
-                return node.getTree().hasProperty(JCR_LOCKISDEEP);
+            public Boolean perform(NodeDelegate node) {
+                return node.holdsLock(false);
             }
         });
     }
 
     @Override @Nonnull
     public Lock getLock() throws RepositoryException {
-        NodeDelegate lock = perform(new NodeOperation<NodeDelegate>(dlg) {
-            @Override
-            public NodeDelegate perform() {
-                return node.getLock();
-            }
-        });
+        NodeDelegate lock = perform(
+                new LockOperation<NodeDelegate>(sessionDelegate, dlg) {
+                    @Override
+                    public NodeDelegate perform(NodeDelegate node) {
+                        return node.getLock();
+                    }
+                });
         if (lock != null) {
             return new LockImpl(sessionContext, lock);
         } else {
@@ -1164,7 +1160,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         perform(new LockOperation<Void>(sessionDelegate, dlg) {
             @Override
             public Void perform(NodeDelegate node) throws RepositoryException {
+                if (node.getStatus() != Status.EXISTING) {
+                    throw new LockException(
+                            "Unable to lock a node with pending changes");
+                }
                 node.lock(isDeep);
+                session.refresh(true);
                 return null;
             }
         });
@@ -1181,6 +1182,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public Void perform(NodeDelegate node) throws RepositoryException {
                 node.unlock();
+                session.refresh(true);
                 return null;
             }
         });

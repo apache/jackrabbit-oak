@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.Lock;
+import javax.jcr.lock.LockException;
 
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
@@ -73,23 +74,33 @@ public final class LockImpl implements Lock {
 
     @Override
     public boolean isLive() {
-        return safePerform(new NodeOperation<Boolean>(delegate) {
-            @Override
-            public Boolean perform() throws RepositoryException {
-                return node.holdsLock(false);
-            }
-        });
+        return context.getSession().isLive() && safePerform(
+                new NodeOperation<Boolean>(delegate) {
+                    @Override
+                    public Boolean perform() throws RepositoryException {
+                        return node.holdsLock(false);
+                    }
+                });
     }
 
 
     @Override
     public String getLockToken() {
-        return null;
+        return safePerform(new NodeOperation<String>(delegate) {
+            @Override
+            public String perform() throws RepositoryException {
+                return node.getPath();
+            }
+        });
     }
 
     @Override
     public long getSecondsRemaining() {
-        return Long.MAX_VALUE;
+        if (isLive()) {
+            return Long.MAX_VALUE;
+        } else {
+            return -1;
+        }
     }
 
     @Override
@@ -103,7 +114,10 @@ public final class LockImpl implements Lock {
     }
 
     @Override
-    public void refresh() {
+    public void refresh() throws LockException {
+        if (!isLive()) {
+            throw new LockException("This lock is not alive");
+        }
     }
 
     //-----------------------------------------------------------< private >--

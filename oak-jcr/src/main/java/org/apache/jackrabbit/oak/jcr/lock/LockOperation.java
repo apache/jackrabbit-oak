@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
  */
 public abstract class LockOperation<T> extends SessionOperation<T> {
 
-    private final SessionDelegate session;
+    protected final SessionDelegate session;
 
     private final NodeDelegate node;
 
@@ -52,7 +52,13 @@ public abstract class LockOperation<T> extends SessionOperation<T> {
     }
 
     @Override
+    public boolean isRefresh() {
+        return true;
+    }
+
+    @Override
     public T perform() throws RepositoryException {
+        session.refresh(true);
         if (node != null) {
             return perform(node);
         } else {

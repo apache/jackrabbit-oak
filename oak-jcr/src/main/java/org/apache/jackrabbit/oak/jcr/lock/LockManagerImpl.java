@@ -28,6 +28,7 @@ import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
 import javax.jcr.lock.LockManager;
 
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -115,11 +116,18 @@ public class LockManagerImpl implements LockManager {
                     @Override
                     protected NodeDelegate perform(NodeDelegate node)
                             throws RepositoryException {
+                        if (node.getStatus() != Status.EXISTING) {
+                            throw new LockException(
+                                    "Unable to lock a node with pending changes");
+                        }
                         node.lock(isDeep);
+                        session.refresh(true);
                         return node;
                     }
                 });
-        sessionContext.getSession().refresh(true); // TODO: better refresh
+        if (!isSessionScoped) {
+            addLockToken(absPath);
+        }
         return new LockImpl(sessionContext, lock);
     }
 
@@ -130,10 +138,10 @@ public class LockManagerImpl implements LockManager {
             protected Void perform(NodeDelegate node)
                     throws RepositoryException {
                 node.unlock();
+                session.refresh(true);
                 return null;
             }
         });
-        sessionContext.getSession().refresh(true); // TODO: better refresh
     }
 
     private <T> T perform(SessionOperation<T> operation)
