@@ -52,7 +52,7 @@ public class LockManagerImpl implements LockManager {
         this.delegate = sessionContext.getSessionDelegate();
     }
 
-    @Override
+    @Override @Nonnull
     public synchronized String[] getLockTokens() {
         return tokens.toArray(new String[tokens.size()]);
     }
@@ -91,7 +91,7 @@ public class LockManagerImpl implements LockManager {
         });
     }
 
-    @Override
+    @Override @Nonnull
     public Lock getLock(String absPath) throws RepositoryException {
         NodeDelegate lock = perform(new LockOperation<NodeDelegate>(absPath) {
             @Override
@@ -106,23 +106,31 @@ public class LockManagerImpl implements LockManager {
         }
     }
 
-    @Override
-    @SuppressWarnings("deprecation")
+    @Override @Nonnull
     public Lock lock(
-            String absPath, boolean isDeep, boolean isSessionScoped,
+            String absPath, final boolean isDeep, boolean isSessionScoped,
             long timeoutHint, String ownerInfo) throws RepositoryException {
-        return getSession().getNode(absPath).lock(isDeep, isSessionScoped);
+        NodeDelegate lock = perform(new LockOperation<NodeDelegate>(absPath) {
+            @Override
+            protected NodeDelegate perform(NodeDelegate node)
+                    throws RepositoryException {
+                node.lock(isDeep);
+                return node;
+            }
+        });
+        return new LockImpl(sessionContext, lock);
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void unlock(String absPath) throws RepositoryException {
-        getSession().getNode(absPath).unlock();
-    }
-
-    @Nonnull
-    private Session getSession() {
-        return sessionContext.getSession();
+        perform(new LockOperation<Void>(absPath) {
+            @Override
+            protected Void perform(NodeDelegate node)
+                    throws RepositoryException {
+                node.unlock();
+                return null;
+            }
+        });
     }
 
     private <T> T perform(SessionOperation<T> operation)
@@ -149,7 +157,8 @@ public class LockManagerImpl implements LockManager {
             }
         }
 
-        protected abstract T perform(NodeDelegate node);
+        protected abstract T perform(NodeDelegate node)
+                throws RepositoryException;
 
     }
 

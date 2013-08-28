@@ -66,9 +66,12 @@ import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFormatException;
+import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.security.AccessControlException;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -714,7 +717,61 @@ public class NodeDelegate extends ItemDelegate {
         }
     }
 
+    public void lock(boolean isDeep) throws RepositoryException {
+        String path = getPath();
 
+        Root root = sessionDelegate.getContentSession().getLatestRoot();
+        Tree tree = root.getTree(path);
+        if (tree.hasProperty(JCR_LOCKISDEEP)) {
+            throw new LockException("Node " + path + " is already locked");
+        }
+
+        try {
+            String owner = sessionDelegate.getAuthInfo().getUserID();
+            if (owner == null) {
+                owner = "";
+            }
+            tree.setProperty(JCR_LOCKISDEEP, isDeep);
+            tree.setProperty(JCR_LOCKOWNER, owner);
+            root.commit();
+        } catch (CommitFailedException e) {
+            if (e.isConstraintViolation()) {
+                // TODO: Make lock properties reserved / see nt:unstructured
+                throw new LockException(
+                        "Node " + path + " is not lockable", e);
+            } else if (e.isAccessViolation()) {
+                throw new AccessControlException(
+                        "Unable to lock node " + path, e);
+            } else {
+                throw new RepositoryException(
+                        "Unable to lock node " + path, e);
+            }
+        }
+    }
+
+    public void unlock() throws RepositoryException {
+        String path = getPath();
+
+        Root root = sessionDelegate.getContentSession().getLatestRoot();
+        Tree tree = root.getTree(path);
+        if (!tree.hasProperty(JCR_LOCKISDEEP)) {
+            throw new LockException("Node " + path + " is not locked");
+        }
+
+        try {
+            tree.removeProperty(JCR_LOCKISDEEP);
+            tree.removeProperty(JCR_LOCKOWNER);
+            root.commit();
+        } catch (CommitFailedException e) {
+            if (e.isAccessViolation()) {
+                throw new AccessControlException(
+                        "Unable to unlock node " + path, e);
+            } else {
+                throw new RepositoryException(
+                        "Unable to unlock node " + path, e);
+            }
+        }
+    }
 
     @Override
     public String toString() {
@@ -750,4 +807,5 @@ public class NodeDelegate extends ItemDelegate {
     private String getUserID() {
         return sessionDelegate.getAuthInfo().getUserID();
     }
+
 }
