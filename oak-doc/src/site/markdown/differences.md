@@ -50,11 +50,10 @@ This change can cause subtle differences in behavior when two sessions perform m
 relying on one session seeing the other session's changes. Oak requires explicit calls to
 `Session.refresh()`in this case.
 
-> *Note*: To ease migration to Oak, sessions will currently automatically refresh after being
-> idle for more than one second. Sessions being idle for more than one minute will log a warning to
-> the log file. Furthermore sessions are automatically synchronised to reflect the same state across
-> accesses within a single thread. That is, an older session will see the changes done through a
-> newer session given both sessions are accessed from within the same thread.
+> *Note*: To ease migration to Oak, sessions being idle for more than one minute will log a warning
+> to the log file. Furthermore sessions are automatically synchronised to reflect the same state
+> across accesses within a single thread. That is, an older session will see the changes done
+> through a newer session given both sessions are accessed from within the same thread.
 >
 > Automatic session synchronisation is a transient feature and will most probably be removed in
 > future versions of Oak. See [OAK-803](https://issues.apache.org/jira/browse/OAK-803) for further
