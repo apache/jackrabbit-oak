@@ -22,14 +22,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -79,6 +82,15 @@ public class AsyncIndexUpdate implements Runnable {
     @Override
     public synchronized void run() {
         log.debug("Running background index task {}", name);
+        String checkpoint = store.checkpoint(lifetime);
+        NodeState after = store.retrieve(checkpoint);
+        if (after == null) {
+            log.debug("Unable to retrieve checkpoint {}", checkpoint);
+            return;
+        }
+
+        preAsyncRun(store);
+
         NodeStoreBranch branch = store.branch();
         NodeBuilder builder = branch.getHead().builder();
         NodeBuilder async = builder.child(ASYNC);
@@ -92,15 +104,13 @@ public class AsyncIndexUpdate implements Runnable {
             before = MISSING_NODE;
         }
 
-        String checkpoint = store.checkpoint(lifetime);
-        NodeState after = store.retrieve(checkpoint);
-        if (after != null) {
             CommitFailedException exception = EditorDiff.process(
                     new IndexUpdate(provider, name, after, builder),
                     before, after);
             if (exception == null) {
                 try {
                     async.setProperty(name, checkpoint);
+                    postAsyncRunStatus(builder);
                     branch.setRoot(builder.getNodeState());
                     branch.merge(new CommitHook() {
                         @Override @Nonnull
@@ -126,16 +136,42 @@ public class AsyncIndexUpdate implements Runnable {
 
             if (exception != null) {
                 if (!failing) {
-                    log.warn("Index update " + name + " failed", exception);
+                    log.warn("Index update {} failed", name, exception);
                 }
                 failing = true;
             } else {
                 if (failing) {
-                    log.info("Index update " + name + " no longer fails");
+                    log.info("Index update {} no longer fails", name);
                 }
                 failing = false;
             }
+    }
+
+    private void preAsyncRun(NodeStore store) {
+        NodeStoreBranch branch = store.branch();
+        NodeBuilder builder = branch.getHead().builder();
+        preAsyncRunStatus(builder);
+        branch.setRoot(builder.getNodeState());
+        try {
+            branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        } catch (CommitFailedException e) {
+            log.warn("Index status update {} failed", name, e);
         }
     }
 
+    private static void preAsyncRunStatus(NodeBuilder builder) {
+        builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
+                .setProperty("async-status", "running")
+                .setProperty("async-start",
+                        Calendar.getInstance().getTimeInMillis(), Type.DATE)
+                .removeProperty("async-done");
+    }
+
+    private static void postAsyncRunStatus(NodeBuilder builder) {
+        builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
+                .setProperty("async-status", "done")
+                .setProperty("async-done",
+                        Calendar.getInstance().getTimeInMillis(), Type.DATE)
+                .removeProperty("async-start");
+    }
 }
