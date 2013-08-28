@@ -94,7 +94,7 @@ public final class LockImpl implements Lock {
 
     @Override
     public boolean isSessionScoped() {
-        return true;
+        return false;
     }
 
     @Override
