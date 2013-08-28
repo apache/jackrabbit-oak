@@ -87,20 +87,18 @@ public class RefreshManager {
         // Don't refresh if this operation is a refresh operation itself or
         // a save operation, which does an implicit refresh
         if (!sessionOperation.isRefresh() && !sessionOperation.isSave()) {
-            if (warnIfIdle && !refreshAtNextAccess && !hasInThreadCommit()
-                    && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
+            if (refreshAtNextAccess || hasInThreadCommit() || timeElapsed >= refreshInterval) {
+                // Refresh if forced or if the session has been idle too long
+                refreshAtNextAccess = false;
+                sessionSaveCount = getThreadSaveCount();
+                return true;
+            } else if (warnIfIdle && timeElapsed > MILLISECONDS.convert(1, MINUTES)) {
                 // TODO replace logging with JMX monitoring. See OAK-941
                 // Warn once if this session has been idle too long
                 log.warn("This session has been idle for " + MINUTES.convert(timeElapsed, MILLISECONDS) +
                         " minutes and might be out of date. Consider using a fresh session or explicitly" +
                         " refresh the session.", initStackTrace);
                 warnIfIdle = false;
-            }
-            if (refreshAtNextAccess || hasInThreadCommit() || timeElapsed >= refreshInterval) {
-                // Refresh if forced or if the session has been idle too long
-                refreshAtNextAccess = false;
-                sessionSaveCount = getThreadSaveCount();
-                return true;
             }
         }
 
