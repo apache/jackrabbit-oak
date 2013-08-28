@@ -36,6 +36,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.MIX_LOCKABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -523,6 +524,37 @@ public class NodeDelegate extends ItemDelegate {
         return types;
     }
 
+    private boolean isNodeType(String typeName) {
+        return isNodeType(
+                tree, typeName,
+                sessionDelegate.getRoot().getTree(NODE_TYPES_PATH));
+    }
+
+    private boolean isNodeType(Tree tree, String typeName, Tree typeRoot) {
+        String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
+        if (typeName.equals(primaryName)) {
+            return true;
+        } else if (primaryName != null) {
+            Tree type = typeRoot.getChild(primaryName);
+            if (contains(getNames(type, OAK_SUPERTYPES), typeName)) {
+                return true;
+            }
+        }
+
+        for (String mixinName : getNames(tree, JCR_MIXINTYPES)) {
+            if (typeName.equals(mixinName)) {
+                return true;
+            } else {
+                Tree type = typeRoot.getChild(mixinName);
+                if (contains(getNames(type, OAK_SUPERTYPES), typeName)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private Tree findMatchingPropertyDefinition(
             List<Tree> types, String propertyName, Type<?> propertyType,
             boolean exactTypeMatch) {
@@ -705,7 +737,8 @@ public class NodeDelegate extends ItemDelegate {
         PropertyState property = tree.getProperty(JCR_LOCKISDEEP);
         return property != null
                 && property.getType() == Type.BOOLEAN
-                && (!deep || property.getValue(BOOLEAN));
+                && (!deep || property.getValue(BOOLEAN))
+                && isNodeType(MIX_LOCKABLE);
     }
 
     public String getLockOwner() {
@@ -721,8 +754,11 @@ public class NodeDelegate extends ItemDelegate {
         String path = getPath();
 
         Root root = sessionDelegate.getContentSession().getLatestRoot();
+        Tree typeRoot = root.getTree(NODE_TYPES_PATH);
         Tree tree = root.getTree(path);
-        if (tree.hasProperty(JCR_LOCKISDEEP)) {
+        if (!isNodeType(tree, MIX_LOCKABLE, typeRoot)) {
+            throw new LockException("Node " + path + " is not lockable");
+        } else if (tree.hasProperty(JCR_LOCKISDEEP)) {
             throw new LockException("Node " + path + " is already locked");
         }
 
@@ -735,13 +771,9 @@ public class NodeDelegate extends ItemDelegate {
             tree.setProperty(JCR_LOCKOWNER, owner);
             root.commit();
         } catch (CommitFailedException e) {
-            if (e.isConstraintViolation()) {
-                // TODO: Make lock properties reserved / see nt:unstructured
-                throw new LockException(
-                        "Node " + path + " is not lockable", e);
-            } else if (e.isAccessViolation()) {
+            if (e.isAccessViolation()) {
                 throw new AccessControlException(
-                        "Unable to lock node " + path, e);
+                        "Access denied to lock node " + path, e);
             } else {
                 throw new RepositoryException(
                         "Unable to lock node " + path, e);
@@ -753,8 +785,11 @@ public class NodeDelegate extends ItemDelegate {
         String path = getPath();
 
         Root root = sessionDelegate.getContentSession().getLatestRoot();
+        Tree typeRoot = root.getTree(NODE_TYPES_PATH);
         Tree tree = root.getTree(path);
-        if (!tree.hasProperty(JCR_LOCKISDEEP)) {
+        if (!isNodeType(tree, MIX_LOCKABLE, typeRoot)) {
+            throw new LockException("Node " + path + " is not lockable");
+        } else if (!tree.hasProperty(JCR_LOCKISDEEP)) {
             throw new LockException("Node " + path + " is not locked");
         }
 
@@ -765,7 +800,7 @@ public class NodeDelegate extends ItemDelegate {
         } catch (CommitFailedException e) {
             if (e.isAccessViolation()) {
                 throw new AccessControlException(
-                        "Unable to unlock node " + path, e);
+                        "Access denied to unlock node " + path, e);
             } else {
                 throw new RepositoryException(
                         "Unable to unlock node " + path, e);
