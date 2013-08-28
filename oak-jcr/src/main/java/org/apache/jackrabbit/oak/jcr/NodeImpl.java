@@ -61,11 +61,7 @@ import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -74,8 +70,8 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockImpl;
+import org.apache.jackrabbit.oak.jcr.lock.LockOperation;
 import org.apache.jackrabbit.oak.jcr.operation.NodeOperation;
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -88,13 +84,9 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
-import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
-import static javax.jcr.Property.JCR_LOCK_OWNER;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
-import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.MIX_LOCKABLE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
@@ -1169,30 +1161,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override @Nonnull
     public Lock lock(final boolean isDeep, boolean isSessionScoped)
             throws RepositoryException {
-        checkLockable(); // TODO: use perform()
-        perform(new SessionOperation<Void>(true) {
+        perform(new LockOperation<Void>(sessionDelegate, dlg) {
             @Override
-            public Void perform() throws RepositoryException {
-                ContentSession session = sessionDelegate.getContentSession();
-                String path = dlg.getPath();
-                String userID = session.getAuthInfo().getUserID();
-
-                try {
-                    Root root = session.getLatestRoot();
-                    Tree tree = root.getTree(path);
-                    if (!tree.exists()) {
-                        throw new ItemNotFoundException();
-                    }
-                    tree.setProperty(JCR_LOCKOWNER, userID);
-                    tree.setProperty(JCR_LOCKISDEEP, isDeep);
-                    root.commit(); // TODO: fail instead?
-                } catch (CommitFailedException e) {
-                    throw new RepositoryException("Unable to lock " + path, e);
-                }
+            public Void perform(NodeDelegate node) throws RepositoryException {
+                node.lock(isDeep);
                 return null;
             }
         });
-        getSession().refresh(true);
+        getSession().refresh(true); // TODO: better refresh
         return new LockImpl(sessionContext, dlg);
     }
 
@@ -1201,24 +1177,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void unlock() throws RepositoryException {
-        checkLockable();
-        // TODO: use perform
-        String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
-        String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
-        try {
-            Root root = sessionDelegate.getContentSession().getLatestRoot();
-            Tree tree = root.getTree(dlg.getPath());
-            if (!tree.exists()) {
-                throw new ItemNotFoundException();
+        perform(new LockOperation<Void>(sessionDelegate, dlg) {
+            @Override
+            public Void perform(NodeDelegate node) throws RepositoryException {
+                node.unlock();
+                return null;
             }
-            tree.removeProperty(lockOwner);
-            tree.removeProperty(lockIsDeep);
-            root.commit();
-        } catch (CommitFailedException e) {
-            throw new RepositoryException("Unable to unlock " + this, e);
-        }
-
-        getSession().refresh(true);
+        });
+        getSession().refresh(true); // TODO: better refresh
     }
 
     @Override @Nonnull
@@ -1265,24 +1231,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     //------------------------------------------------------------< internal >---
-
-    /**
-     * Checks if this node is lockable; otherwise throws a LockException.
-     * @throws LockException if the node is not lockable.
-     */
-    private void checkLockable() throws RepositoryException {
-        perform(new NodeOperation<Void>(dlg) {
-            @Override
-            public Void perform() throws RepositoryException {
-                if (!getNodeTypeManager().isNodeType(node.getTree(), MIX_LOCKABLE)) {
-                    String msg = "Unable to perform a locking operation on a non-lockable node: " + getPath();
-                    log.debug(msg);
-                    throw new LockException(msg);
-                }
-                return null;
-            }
-        });
-    }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
         return getNodeTypeManager().getEffectiveNodeType(dlg.getTree());

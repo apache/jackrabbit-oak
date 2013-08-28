@@ -525,12 +525,12 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     private boolean isNodeType(String typeName) {
-        return isNodeType(
-                tree, typeName,
-                sessionDelegate.getRoot().getTree(NODE_TYPES_PATH));
+        return isNodeType(tree, typeName, sessionDelegate.getRoot());
     }
 
-    private boolean isNodeType(Tree tree, String typeName, Tree typeRoot) {
+    private boolean isNodeType(Tree tree, String typeName, Root root) {
+        Tree typeRoot = root.getTree(NODE_TYPES_PATH);
+
         String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
         if (typeName.equals(primaryName)) {
             return true;
@@ -754,9 +754,10 @@ public class NodeDelegate extends ItemDelegate {
         String path = getPath();
 
         Root root = sessionDelegate.getContentSession().getLatestRoot();
-        Tree typeRoot = root.getTree(NODE_TYPES_PATH);
         Tree tree = root.getTree(path);
-        if (!isNodeType(tree, MIX_LOCKABLE, typeRoot)) {
+        if (!tree.exists()) {
+            throw new ItemNotFoundException("Node " + path + " does not exist");
+        } else if (!isNodeType(tree, MIX_LOCKABLE, root)) {
             throw new LockException("Node " + path + " is not lockable");
         } else if (tree.hasProperty(JCR_LOCKISDEEP)) {
             throw new LockException("Node " + path + " is already locked");
@@ -785,9 +786,10 @@ public class NodeDelegate extends ItemDelegate {
         String path = getPath();
 
         Root root = sessionDelegate.getContentSession().getLatestRoot();
-        Tree typeRoot = root.getTree(NODE_TYPES_PATH);
         Tree tree = root.getTree(path);
-        if (!isNodeType(tree, MIX_LOCKABLE, typeRoot)) {
+        if (!tree.exists()) {
+            throw new ItemNotFoundException("Node " + path + " does not exist");
+        } else if (!isNodeType(tree, MIX_LOCKABLE, root)) {
             throw new LockException("Node " + path + " is not lockable");
         } else if (!tree.hasProperty(JCR_LOCKISDEEP)) {
             throw new LockException("Node " + path + " is not locked");
