@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.lock;
 
-import java.util.Iterator;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -32,8 +31,6 @@ import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Simple lock manager implementation that just keeps track of a set of lock
@@ -41,10 +38,6 @@ import org.slf4j.LoggerFactory;
  * and {@link Node} implementations.
  */
 public class LockManagerImpl implements LockManager {
-
-    /** Logger instance */
-    private static final Logger log =
-            LoggerFactory.getLogger(LockManagerImpl.class);
 
     private final SessionContext sessionContext;
 
@@ -185,33 +178,6 @@ public class LockManagerImpl implements LockManager {
                 }
             }
         });
-    }
-
-    public void unlockAllSessionScopedLocks() {
-        try {
-            perform(new SessionOperation<Void>() {
-                @Override
-                public Void perform() throws RepositoryException {
-                    SessionDelegate delegate = sessionContext.getSessionDelegate();
-                    Iterator<String> iterator =
-                            sessionContext.getSessionScopedLocks().iterator();
-                    while (iterator.hasNext()) {
-                        NodeDelegate node = delegate.getNode(iterator.next());
-                        if (node != null) {
-                            try {
-                                node.unlock();
-                            } catch (RepositoryException e) {
-                                log.warn("Failed to clean up a session scoped lock", e);
-                            }
-                        }
-                        iterator.remove();
-                    }
-                    return null;
-                }
-            });
-        } catch (RepositoryException e) {
-            log.warn("Unexpected repository exception", e);
-        }
     }
 
     private <T> T perform(SessionOperation<T> operation)

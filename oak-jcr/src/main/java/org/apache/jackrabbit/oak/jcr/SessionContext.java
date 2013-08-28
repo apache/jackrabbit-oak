@@ -21,6 +21,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newTreeSet;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,11 +45,13 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PrincipalManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.PrivilegeManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.UserManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
+import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -65,6 +68,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -73,6 +78,10 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
  * {@code ValueFactory}, etc.).
  */
 public class SessionContext implements NamePathMapper {
+
+    /** Logger instance */
+    private static final Logger log =
+            LoggerFactory.getLogger(SessionContext.class);
 
     private final RepositoryImpl repository;
     private final Whiteboard whiteboard;
@@ -352,11 +361,43 @@ public class SessionContext implements NamePathMapper {
     //-----------------------------------------------------------< internal >---
 
     void dispose() {
-        getWorkspace().getLockManager().unlockAllSessionScopedLocks();
+        try {
+            unlockAllSessionScopedLocks();
+        } catch (RepositoryException e) {
+            throw new RuntimeException("Unexpected repository error", e);
+        }
         if (observationManager != null) {
             observationManager.dispose();
         }
         namespaces.clear();
+    }
+
+    /**
+     * Unlocks all existing session-scoped locks (if any). Used for cleanup
+     * when a session is being closed.
+     *
+     * @throws RepositoryException if an unexpected problem occurs
+     */
+    // TODO: should this be in SessionImpl?
+    private void unlockAllSessionScopedLocks() throws RepositoryException {
+        delegate.perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                Iterator<String> iterator = sessionScopedLocks.iterator();
+                while (iterator.hasNext()) {
+                    NodeDelegate node = delegate.getNode(iterator.next());
+                    if (node != null) {
+                        try {
+                            node.unlock(); // TODO: use a single commit
+                        } catch (RepositoryException e) {
+                            log.warn("Failed to unlock a session scoped lock", e);
+                        }
+                    }
+                    iterator.remove();
+                }
+                return null;
+            }
+        });
     }
 
     @Nonnull
