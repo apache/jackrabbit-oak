@@ -68,7 +68,7 @@ public class RefreshManager {
         this.refreshInterval = refreshInterval;
         this.threadSaveCount = threadSaveCount;
 
-        sessionSaveCount = getOr0(threadSaveCount);
+        sessionSaveCount = getThreadSaveCount();
     }
 
     /**
@@ -99,13 +99,19 @@ public class RefreshManager {
             if (refreshAtNextAccess || hasInThreadCommit() || timeElapsed >= refreshInterval) {
                 // Refresh if forced or if the session has been idle too long
                 refreshAtNextAccess = false;
-                sessionSaveCount = getOr0(threadSaveCount);
+                sessionSaveCount = getThreadSaveCount();
                 return true;
             }
         }
 
         if (sessionOperation.isSave()) {
-            threadSaveCount.set(sessionSaveCount = (getOr0(threadSaveCount) + 1));
+            // Force refreshing on access through other sessions on the same thread
+            threadSaveCount.set(sessionSaveCount = (getThreadSaveCount() + 1));
+        }
+
+        if (sessionOperation.isRefresh()) {
+            // Avoid further refreshing if this is already a refresh operation
+            sessionSaveCount = getThreadSaveCount();
         }
 
         return false;
@@ -119,11 +125,11 @@ public class RefreshManager {
         // If the threadLocal counter differs from our seen sessionSaveCount so far then
         // some other session would have done a commit. If that is the case a refresh would
         // be required
-        return getOr0(threadSaveCount) != sessionSaveCount;
+        return getThreadSaveCount() != sessionSaveCount;
     }
 
-    private static int getOr0(ThreadLocal<Integer> threadLocal) {
-        Integer c = threadLocal.get();
+    private int getThreadSaveCount() {
+        Integer c = threadSaveCount.get();
         return c == null ? 0 : c;
     }
 }
