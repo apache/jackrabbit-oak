@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.mk;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class MicroKernelImplTest {
     
@@ -48,6 +49,17 @@ public class MicroKernelImplTest {
         if (mk != null) {
             mk.dispose();
         }
+    }
+
+    @Test
+    @Ignore("OAK-979")  // FIXME OAK-979
+    public void diffWithMove() {
+        String base = mk.commit("", "+\"/a\":{\"b\":{}}", mk.getHeadRevision(), null);
+        String head = mk.commit("", "+\"/a/c\":{}+\"/a/d\":{}-\"/a/b\"", base, null);
+        String diff = mk.diff(base, head, "/a", 0);
+        System.out.println(diff);
+        assertTrue(diff.contains("c"));
+        assertTrue(diff.contains("d"));
     }
     
     /**
