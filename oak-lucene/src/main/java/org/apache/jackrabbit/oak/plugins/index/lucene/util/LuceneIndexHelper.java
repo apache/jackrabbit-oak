@@ -18,15 +18,18 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 import java.util.Set;
 
@@ -34,8 +37,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.collect.ImmutableSet;
@@ -51,12 +52,13 @@ public class LuceneIndexHelper {
     public static NodeBuilder newLuceneIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
             @Nullable Set<String> propertyTypes) {
-        return newLuceneIndexDefinition(index, name, propertyTypes, null);
+        return newLuceneIndexDefinition(index, name, propertyTypes, null, null);
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
-            @Nullable Set<String> propertyTypes, String async) {
+            @Nullable Set<String> propertyTypes,
+            @Nullable Set<String> excludes, @Nullable String async) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
@@ -68,8 +70,12 @@ public class LuceneIndexHelper {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
-            index.setProperty(PropertyStates.createProperty(
-                    INCLUDE_PROPERTY_TYPES, propertyTypes, Type.STRINGS));
+            index.setProperty(createProperty(INCLUDE_PROPERTY_TYPES,
+                    propertyTypes, STRINGS));
+        }
+        if (excludes != null && !excludes.isEmpty()) {
+            index.setProperty(createProperty(EXCLUDE_PROPERTY_NAMES, excludes,
+                    STRINGS));
         }
         return index;
     }
@@ -77,14 +83,15 @@ public class LuceneIndexHelper {
     public static NodeBuilder newLuceneFileIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
             @Nullable Set<String> propertyTypes, @Nonnull String path) {
-        return newLuceneFileIndexDefinition(
-                index, name, propertyTypes, path, null);
+        return newLuceneFileIndexDefinition(index, name, propertyTypes, null,
+                path, null);
     }
 
     public static NodeBuilder newLuceneFileIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
-            @Nullable Set<String> propertyTypes, @Nonnull String path,
-            String async) {
+            @Nullable Set<String> propertyTypes,
+            @Nullable Set<String> excludes, @Nonnull String path,
+            @Nullable String async) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
@@ -98,8 +105,12 @@ public class LuceneIndexHelper {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
-            index.setProperty(PropertyStates.createProperty(
-                    INCLUDE_PROPERTY_TYPES, propertyTypes, Type.STRINGS));
+            index.setProperty(createProperty(INCLUDE_PROPERTY_TYPES,
+                    propertyTypes, STRINGS));
+        }
+        if (excludes != null && !excludes.isEmpty()) {
+            index.setProperty(createProperty(EXCLUDE_PROPERTY_NAMES, excludes,
+                    STRINGS));
         }
         return index;
     }

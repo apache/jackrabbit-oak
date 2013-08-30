@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
@@ -25,6 +26,7 @@ import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
 import javax.jcr.PropertyType;
 
@@ -41,6 +43,8 @@ import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
 
 public class LuceneIndexEditorContext {
 
@@ -95,16 +99,18 @@ public class LuceneIndexEditorContext {
 
     private final int propertyTypes;
 
+    private final Set<String> excludes;
+
     private long indexedNodes;
 
     LuceneIndexEditorContext(NodeBuilder definition, Analyzer analyzer) {
         this.definition = definition;
         this.config = getIndexWriterConfig(analyzer);
 
-        PropertyState ps = definition.getProperty(INCLUDE_PROPERTY_TYPES);
-        if (ps != null) {
+        PropertyState pst = definition.getProperty(INCLUDE_PROPERTY_TYPES);
+        if (pst != null) {
             int types = 0;
-            for (String inc : ps.getValue(Type.STRINGS)) {
+            for (String inc : pst.getValue(Type.STRINGS)) {
                 try {
                     types |= 1 << PropertyType.valueFromName(inc);
                 } catch (IllegalArgumentException e) {
@@ -115,11 +121,21 @@ public class LuceneIndexEditorContext {
         } else {
             this.propertyTypes = -1;
         }
+        PropertyState pse = definition.getProperty(EXCLUDE_PROPERTY_NAMES);
+        if (pse != null) {
+            excludes = ImmutableSet.copyOf(pse.getValue(Type.STRINGS));
+        } else {
+            excludes = ImmutableSet.of();
+        }
         this.indexedNodes = 0;
     }
 
     int getPropertyTypes() {
         return propertyTypes;
+    }
+
+    boolean includeProperty(String name) {
+        return !excludes.contains(name);
     }
 
     Parser getParser() {
