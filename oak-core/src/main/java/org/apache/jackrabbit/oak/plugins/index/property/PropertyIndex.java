@@ -122,6 +122,11 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
+        if (filter.getFullTextConstraint() != null) {
+            // not an appropriate index for full-text search
+            return Double.POSITIVE_INFINITY;
+        }
+
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);
@@ -147,7 +152,7 @@ class PropertyIndex implements QueryIndex {
         // not an appropriate index
         return Double.POSITIVE_INFINITY;
     }
-    
+
     @Override
     public Cursor query(Filter filter, NodeState root) {
         Iterable<String> paths = null;
