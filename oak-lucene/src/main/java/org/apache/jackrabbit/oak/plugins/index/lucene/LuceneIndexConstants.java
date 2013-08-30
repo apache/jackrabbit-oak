@@ -36,6 +36,11 @@ public interface LuceneIndexConstants {
      */
     String INCLUDE_PROPERTY_TYPES = "includePropertyTypes";
 
+    /**
+     * exclude certain properties by name
+     */
+    String EXCLUDE_PROPERTY_NAMES = "excludePropertyNames";
+
     String PERSISTENCE_NAME = "persistence";
 
     String PERSISTENCE_OAK = "repository";

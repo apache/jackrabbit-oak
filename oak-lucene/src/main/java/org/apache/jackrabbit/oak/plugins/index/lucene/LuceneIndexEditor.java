@@ -180,7 +180,8 @@ public class LuceneIndexEditor implements IndexEditor {
         for (PropertyState property : state.getProperties()) {
             String pname = property.getName();
             if (isVisible(pname)
-                    && (context.getPropertyTypes() & (1 << property.getType().tag())) != 0) {
+                    && (context.getPropertyTypes() & (1 << property.getType()
+                            .tag())) != 0 && context.includeProperty(pname)) {
                 if (Type.BINARY.tag() == property.getType().tag()) {
                     addBinaryValue(document, property, state);
                 } else {

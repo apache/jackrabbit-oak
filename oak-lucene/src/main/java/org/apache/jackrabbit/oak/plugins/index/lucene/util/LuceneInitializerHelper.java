@@ -32,22 +32,35 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
     private final Set<String> propertyTypes;
 
+    private final Set<String> excludes;
+
     private final String filePath;
 
     private String async = null;
 
     public LuceneInitializerHelper(String name) {
-        this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES);
+        this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES, null, null);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes) {
-        this(name, propertyTypes, null);
+        this(name, propertyTypes, null, null);
+    }
+
+    public LuceneInitializerHelper(String name, Set<String> propertyTypes,
+            Set<String> excludes) {
+        this(name, propertyTypes, excludes, null);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes,
             String filePath) {
+        this(name, propertyTypes, null, filePath);
+    }
+
+    public LuceneInitializerHelper(String name, Set<String> propertyTypes,
+            Set<String> excludes, String filePath) {
         this.name = name;
         this.propertyTypes = propertyTypes;
+        this.excludes = excludes;
         this.filePath = filePath;
     }
 
@@ -67,10 +80,10 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
         if (filePath == null) {
             newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                    name, propertyTypes, async);
+                    name, propertyTypes, excludes, async);
         } else {
             newLuceneFileIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                    name, propertyTypes, filePath, async);
+                    name, propertyTypes, excludes, filePath, async);
         }
         return builder.getNodeState();
     }
