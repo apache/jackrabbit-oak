@@ -24,8 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.observation.ObservationConstants
 
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -54,7 +52,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 public class ChangeDispatcher {
     private final NodeStore store;
     private final Set<Listener> listeners = Sets.newHashSet();
-    private final Lock changeLock = new ReentrantLock();
 
     private NodeState previousRoot;
 
@@ -94,15 +91,10 @@ public class ChangeDispatcher {
         return listener;
     }
 
-    private void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after,
+    private synchronized void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after,
             ContentSession contentSession) {
-        changeLock.lock();
-        try {
-            externalChange(checkNotNull(before));
-            internalChange(checkNotNull(after), contentSession);
-        } finally {
-            changeLock.unlock();
-        }
+        externalChange(checkNotNull(before));
+        internalChange(checkNotNull(after), contentSession);
     }
 
     private void externalChange(NodeState root) {
@@ -118,12 +110,9 @@ public class ChangeDispatcher {
     }
 
     private void externalChange() {
-        if (changeLock.tryLock()) {
-            try {
-                externalChange(store.getRoot());
-            } finally {
-                changeLock.unlock();
-            }
+        NodeState root = store.getRoot();
+        synchronized (this) {
+            externalChange(root);
         }
     }
 
