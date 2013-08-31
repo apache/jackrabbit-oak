@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
@@ -468,6 +469,10 @@ public class LuceneIndex implements FulltextQueryIndex {
                 continue;
             }
             if ("rep:excerpt".equals(name)) {
+                continue;
+            }
+            // TODO OAK-985
+            if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
                 continue;
             }
 
