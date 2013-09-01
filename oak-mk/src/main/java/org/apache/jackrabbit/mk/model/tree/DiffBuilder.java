@@ -48,7 +48,7 @@ public class DiffBuilder {
     public String build() throws Exception {
         final JsopBuilder buff = new JsopBuilder();
 
-        // maps (key: the target node, value: the path to the target)
+        // maps (key: the target node, value: list of paths to the target)
         // for tracking added/removed nodes; this allows us
         // to detect 'move' operations
 
