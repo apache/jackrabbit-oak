@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mk.model.tree;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.util.ArrayList;
@@ -34,10 +33,10 @@ public class DiffBuilder {
     private final String path;
     private final int depth;
     private final String pathFilter;
-    private final RevisionProvider store;
+    private final NodeStore store;
 
     public DiffBuilder(NodeState before, NodeState after, String path, int depth,
-                       RevisionProvider store, String pathFilter) {
+                       NodeStore store, String pathFilter) {
         this.before = before;
         this.after = after;
         this.path = path;
