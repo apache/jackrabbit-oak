@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.util.ISO9075;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -505,7 +506,7 @@ public class SQL2Parser {
     }
 
     private String readPath() throws ParseException {
-        return readName();
+        return ISO9075.decode(readName());
     }
 
     private DynamicOperandImpl parseDynamicOperand() throws ParseException {
