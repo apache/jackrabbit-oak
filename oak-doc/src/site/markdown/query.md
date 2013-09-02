@@ -15,13 +15,24 @@
    limitations under the License.
   -->
 
-## Query
+## The query engine
 
 Oak does not index content by default as does Jackrabbit 2. You need to create custom indexes when
 necessary, much like in traditional RDBMSs. If there is no index for a specific query then the
 repository will be traversed. That is, the query will still work but probably be very slow.
 
 Query Indices are defined under the `oak:index` node.
+
+### Xpath to SQL2 transformation
+
+In an effort to support the `XPath` language, there is a mechanism that handles the automatic conversion to `SQL2`. 
+
+Every conversion is logged as `debug` under the `org.apache.jackrabbit.oak.query.QueryEngineImpl` logger:
+
+    org.apache.jackrabbit.oak.query.QueryEngineImpl Parsing xpath statement: //element(*)[@sling:resourceType = 'slingevent:Lock')]
+    org.apache.jackrabbit.oak.query.QueryEngineImpl XPath > SQL2: select [jcr:path], [jcr:score], * from [nt:base] as a where [sling:resourceType] = 'slingevent:Lock' /* xpath: //element(*)[@sling:resourceType = 'slingevent:Lock' and @lock.created < xs:dateTime('2013-09-02T15:44:05.920+02:00')] */
+
+_Note that each transformed `SQL2` query contains the original `XPath` query as a comment._
 
 ### Cost calculation
 
@@ -32,7 +43,14 @@ The returned value is supposed to be an estimate and doesn't have to be very acc
 
 If an index implementation can not query the data, it has to return `Double.POSITIVE_INFINITY`.
 
-### Property index
+TODO Traversal warnings
+
+### The property index
+
+Is useful whenever there is a query with a property constraint that is not full-text:
+
+    SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id
+
 
 To define a property index on a subtree you have to add an index definition node that:
 
@@ -69,17 +87,24 @@ or to simplify you can use one of the existing `IndexUtils#createIndexDefinition
     }
 
 
-### Node type index
+### The node type index
 
 The `NodeTypeIndex` implements a `QueryIndex` using `PropertyIndexLookup`s on `jcr:primaryType` `jcr:mixinTypes` to evaluate a node type restriction on the filter.
 The cost for this index is the sum of the costs of the `PropertyIndexLookup` for queries on `jcr:primaryType` and `jcr:mixinTypes`.
 
 
-### Lucene full-text index
+### The Lucene full-text index
+
+The full-text index handles only the 'contains' type of queries.
+
+    //*[jcr:contains(., 'text')]
+
+Not having a full-text index means that the full-text queries will not be able to work properly. Currently the query engine has a basic verification in place for full-text conditions, but that is brittle and can miss hits.
 
 The full-text index update is asynchronous via a background thread, see `Oak#withAsyncIndexing`.
+This means that some full-text searches will not work for a small window of time: the background thread runs every 5 seconds, plus the time is takes to run the diff and to run the text-extraction process. 
 
-This means that some full-text searches will not work for a small window of time: the background thread runs every 5 seconds, plus the time is takes to run the diff and to run the text-extraction process. The async update status is now reflected on the `oak:index` node with the help of a few properties, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
+The async update status is now reflected on the `oak:index` node with the help of a few properties, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
 
 TODO Node aggregation [OAK-828](https://issues.apache.org/jira/browse/OAK-828)
 
@@ -111,6 +136,6 @@ Example:
     }
 
 
-### Solr full-text index
+### The Solr full-text index
 
 `TODO`
