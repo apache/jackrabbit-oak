@@ -71,7 +71,7 @@ Oak does not index content by default as does Jackrabbit 2. You need to create c
 necessary, much like in traditional RDBMSs. If there is no index for a specific query then the
 repository will be traversed. That is, the query will still work but probably be very slow.
 
-See TODO for how to create a custom index.
+See the [query overview page](/query/) for how to create a custom index.
 
 Observation
 -----------
