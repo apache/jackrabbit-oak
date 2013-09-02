@@ -39,6 +39,7 @@
         <configuration>
           <generateReports>true</generateReports>
           <skip>false</skip>
+          <relativizeDecorationLinks>false</relativizeDecorationLinks>
         </configuration>
       </plugin>
       <plugin>
