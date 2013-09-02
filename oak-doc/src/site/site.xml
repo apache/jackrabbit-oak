@@ -48,6 +48,8 @@ under the License.
       <item href="apidocs/index.html" name="API docs" />
     </menu>
     <menu name="Links">
+      <item href="http://jackrabbit.apache.org/oak" name="Apache Jackrabbit Oak" />
+      <item href="http://jackrabbit.apache.org/" name="Apache Jackrabbit" />
     </menu>
   </body>
 
