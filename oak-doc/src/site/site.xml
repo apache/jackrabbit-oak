@@ -33,6 +33,7 @@ under the License.
     <menu name="Concepts and architecture">
       <item href="overview.html" name="Overview" />
       <item href="nodestate.html" name="Understanding the node state model" />
+      <item href="query.html" name="Query" />
       <item href="microkernel.html" name="Microkernel" />
     </menu>
     <menu name="Using Oak">
