@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.Collections;
 import java.util.Map;
@@ -39,6 +37,10 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.jcr.RefreshStrategy.LogOnce;
+import org.apache.jackrabbit.oak.jcr.RefreshStrategy.Once;
+import org.apache.jackrabbit.oak.jcr.RefreshStrategy.ThreadSynchronising;
+import org.apache.jackrabbit.oak.jcr.RefreshStrategy.Timed;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -59,21 +61,15 @@ public class RepositoryImpl implements JackrabbitRepository {
      * Name of the session attribute value determining the session refresh
      * interval in seconds.
      *
-     * @see RefreshManager
+     * @see RefreshStrategy
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
-
-    /**
-     * Default value for {@link #REFRESH_INTERVAL}.
-     */
-    private static final long DEFAULT_REFRESH_INTERVAL = Long.getLong(
-            "default-refresh-interval", Long.MAX_VALUE);
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
-    private final ThreadLocal<Integer> threadSafeCount;
+    private final ThreadLocal<Long> threadSaveCount;
 
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
                           @Nonnull Whiteboard whiteboard,
@@ -81,7 +77,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.contentRepository = checkNotNull(contentRepository);
         this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
-        this.threadSafeCount = new ThreadLocal<Integer>();
+        this.threadSaveCount = new ThreadLocal<Long>();
     }
 
     //---------------------------------------------------------< Repository >---
@@ -203,18 +199,13 @@ public class RepositoryImpl implements JackrabbitRepository {
             } else if (attributes.containsKey(REFRESH_INTERVAL)) {
                 throw new RepositoryException("Duplicate attribute '" + REFRESH_INTERVAL + "'.");
             }
-            if (refreshInterval == null) {
-                refreshInterval = DEFAULT_REFRESH_INTERVAL;
-            }
 
+            RefreshStrategy refreshStrategy = createRefreshStrategy(refreshInterval);
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            RefreshManager refreshManager = new RefreshManager(
-                    MILLISECONDS.convert(refreshInterval, SECONDS), threadSafeCount);
             SessionDelegate sessionDelegate = new SessionDelegate(
-                    contentSession, refreshManager, securityProvider);
+                    contentSession, refreshStrategy, securityProvider);
             SessionContext context = createSessionContext(
-                    Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval),
-                    sessionDelegate);
+                    createAttributes(refreshInterval), sessionDelegate);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -287,6 +278,41 @@ public class RepositoryImpl implements JackrabbitRepository {
                     ". Expected long. ", e);
             return null;
         }
+    }
+
+    private static Map<String, Object> createAttributes(Long refreshInterval) {
+        return refreshInterval == null
+                ? Collections.<String, Object>emptyMap()
+                : Collections.<String, Object>singletonMap(REFRESH_INTERVAL, refreshInterval);
+    }
+
+    /**
+     * Auto refresh logic for sessions, which is done to enhance backwards compatibility with
+     * Jackrabbit 2.
+     * <p>
+     * A sessions is automatically refreshed when
+     * <ul>
+     *     <li>it has not been accessed for the number of seconds specified by the
+     *         {@code refreshInterval} parameter,</li>
+     *     <li>an observation event has been delivered to a listener registered from within this
+     *         session,</li>
+     *     <li>an updated occurred through a different session from <em>within the same
+     *         thread.</em></li>
+     * </ul>
+     * In addition a warning is logged once per session if the session is accessed after one
+     * minute of inactivity.
+     */
+    private RefreshStrategy createRefreshStrategy(Long refreshInterval) {
+        return new RefreshStrategy(refreshInterval == null
+                ? new RefreshStrategy[] {
+                new Once(false),
+                new LogOnce(60),
+                new ThreadSynchronising(threadSaveCount)}
+                : new RefreshStrategy[] {
+                new Once(false),
+                new Timed(refreshInterval),
+                new LogOnce(60),
+                new ThreadSynchronising(threadSaveCount)});
     }
 
 }
