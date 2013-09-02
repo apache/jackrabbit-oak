@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.jcr.RefreshManager;
+import org.apache.jackrabbit.oak.jcr.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -52,7 +52,7 @@ public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
     private final ContentSession contentSession;
-    private final RefreshManager refreshManager;
+    private final RefreshStrategy refreshStrategy;
 
     private final Root root;
     private final IdentifierManager idManager;
@@ -71,13 +71,13 @@ public class SessionDelegate {
      * dispatcher in order.
      *
      * @param contentSession  the content session
-     * @param refreshManager  the refresh manager used to handle auto refreshing this session
+     * @param refreshStrategy  the refresh strategy used for auto refreshing this session
      * @param securityProvider the security provider
      */
-    public SessionDelegate(@Nonnull ContentSession contentSession, RefreshManager refreshManager,
+    public SessionDelegate(@Nonnull ContentSession contentSession, RefreshStrategy refreshStrategy,
             SecurityProvider securityProvider) {
         this.contentSession = checkNotNull(contentSession);
-        this.refreshManager = checkNotNull(refreshManager);
+        this.refreshStrategy = checkNotNull(refreshStrategy);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
         this.permissionProvider = checkNotNull(securityProvider)
@@ -86,7 +86,7 @@ public class SessionDelegate {
     }
 
     public synchronized void refreshAtNextAccess() {
-        refreshManager.refreshAtNextAccess();
+        refreshStrategy.accept(RefreshStrategy.Once.RESETTING_VISITOR);
     }
 
     /**
@@ -106,8 +106,9 @@ public class SessionDelegate {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
         if (sessionOpCount == 0) {
             // Refresh and precondition checks only for non re-entrant session operations
-            if (refreshManager.needsRefresh(sessionOperation)) {
+            if (refreshStrategy.needsRefresh(sessionOperation)) {
                 refresh(true);
+                refreshStrategy.refreshed();
                 updateCount++;
             }
             sessionOperation.checkPreconditions();
@@ -119,6 +120,11 @@ public class SessionDelegate {
             sessionOpCount--;
             if (sessionOperation.isUpdate()) {
                 updateCount++;
+            }
+            if (sessionOperation.isSave()) {
+                refreshStrategy.saved();
+            } else if (sessionOperation.isRefresh()) {
+                refreshStrategy.refreshed();
             }
         }
     }
