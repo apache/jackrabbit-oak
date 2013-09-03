@@ -48,12 +48,16 @@ public class ConcurrentReadWriteTest extends ConcurrentReadTest {
             try {
                 session = getRepository().login(
                         new SimpleCredentials("admin", "admin".toCharArray()));
-                int i = random.nextInt(NODE_COUNT);
-                int j = random.nextInt(NODE_COUNT);
-                Node node = session.getRootNode().getNode(
-                        "testroot/node" + i + "/node" + j);
-                node.setProperty("count", count++);
-                session.save();
+                try {
+                    int i = random.nextInt(NODE_COUNT);
+                    int j = random.nextInt(NODE_COUNT);
+                    Node node = session.getRootNode().getNode(
+                            "testroot/node" + i + "/node" + j);
+                    node.setProperty("count", count++);
+                    session.save();
+                } finally {
+                    session.logout();
+                }
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
