@@ -55,6 +55,13 @@ public class DescendantSearchTest extends AbstractTest {
             session.save();
         }
 
+        try {
+            // Jackrabbit 2 doesn't have the oak namespace
+            String o = session.getNamespaceURI("oak");
+        } catch (RepositoryException e) {
+            session.setNamespacePrefix("oak", "http://jackrabbit.apache.org/oak/ns/1.0");
+        }
+
         IndexManager.createPropertyIndex(session, "testcount");
 
     }
