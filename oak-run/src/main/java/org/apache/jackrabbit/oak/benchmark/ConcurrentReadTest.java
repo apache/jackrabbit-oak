@@ -33,25 +33,25 @@ public class ConcurrentReadTest extends AbstractTest {
 
     private static final int READER_COUNT = getScale(20);
 
-    private Session session;
-
-    protected Node root;
-
     @Override
     public void beforeSuite() throws Exception {
-        session = getRepository().login(
+        Session session = getRepository().login(
                 new SimpleCredentials("admin", "admin".toCharArray()));
-        root = session.getRootNode().addNode("testroot", "nt:unstructured");
-        for (int i = 0; i < NODE_COUNT; i++) {
-            Node node = root.addNode("node" + i, "nt:unstructured");
-            for (int j = 0; j < NODE_COUNT; j++) {
-                node.addNode("node" + j, "nt:unstructured");
+        try {
+            Node root = session.getRootNode().addNode("testroot", "nt:unstructured");
+            for (int i = 0; i < NODE_COUNT; i++) {
+                Node node = root.addNode("node" + i, "nt:unstructured");
+                for (int j = 0; j < NODE_COUNT; j++) {
+                    node.addNode("node" + j, "nt:unstructured");
+                }
+                session.save();
             }
-            session.save();
-        }
 
-        for (int i = 0; i < READER_COUNT; i++) {
-            addBackgroundJob(new Reader());
+            for (int i = 0; i < READER_COUNT; i++) {
+                addBackgroundJob(new Reader());
+            }
+        } finally {
+            session.logout();
         }
     }
 
@@ -88,13 +88,20 @@ public class ConcurrentReadTest extends AbstractTest {
 
     @Override
     public void afterSuite() throws Exception {
-        for (int i = 0; i < NODE_COUNT; i++) {
-            root.getNode("node" + i).remove();
-            session.save();
-        }
+        Session session = getRepository().login(
+                new SimpleCredentials("admin", "admin".toCharArray()));
+        try {
+            Node root = session.getRootNode().getNode("testroot");
+            for (int i = 0; i < NODE_COUNT; i++) {
+                root.getNode("node" + i).remove();
+                session.save();
+            }
 
-        root.remove();
-        session.save();
+            root.remove();
+            session.save();
+        } finally {
+            session.logout();
+        }
     }
 
 }
