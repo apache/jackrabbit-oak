@@ -139,12 +139,13 @@ public class FullTextSearchImpl extends ConstraintImpl {
         if (propertyName == null) {
             return Collections.emptySet();
         }
-        // makes no sense in applying a property existence constrain when that
-        // property is on a different node
+        String fullName;
         if (relativePath != null) {
-            return Collections.emptySet();
+            fullName = PathUtils.concat(relativePath, propertyName);
+        } else {
+            fullName = propertyName;
         }
-        return Collections.singleton(new PropertyExistenceImpl(selector, selectorName, propertyName));
+        return Collections.singleton(new PropertyExistenceImpl(selector, selectorName, fullName));
     }
 
     @Override
