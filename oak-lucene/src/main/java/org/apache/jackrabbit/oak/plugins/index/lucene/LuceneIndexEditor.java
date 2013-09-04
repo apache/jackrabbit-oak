@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
@@ -32,7 +33,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -157,7 +157,7 @@ public class LuceneIndexEditor implements IndexEditor {
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        String path = PathUtils.concat(getPath(), name);
+        String path = concat(getPath(), name);
 
         try {
             IndexWriter writer = context.getWriter();
@@ -176,6 +176,10 @@ public class LuceneIndexEditor implements IndexEditor {
     private Document makeDocument(String path, NodeState state) {
         Document document = new Document();
         document.add(newPathField(path));
+        String name = getName(path);
+        if (name != null) {
+            document.add(newFulltextField(name));
+        }
 
         for (PropertyState property : state.getProperties()) {
             String pname = property.getName();
