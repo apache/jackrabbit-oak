@@ -38,6 +38,8 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
  *
  * @see org.apache.jackrabbit.api.security.user.User#changePassword(String)
  * @see org.apache.jackrabbit.api.security.user.User#changePassword(String, String)
+ *
+ * @since OAK 1.0
  */
 public class PasswordChangeAction extends AbstractAuthorizableAction {
 
