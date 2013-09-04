@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.json.JsonObject;
-import org.apache.jackrabbit.mk.model.tree.NodeDelta;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.store.RevisionStore.PutToken;
@@ -385,8 +384,8 @@ public class StagedNodeTree {
         assert to != null;
         assert base != null;
 
-        NodeDelta theirDelta = new NodeDelta(store, store.getNodeState(from), store.getNodeState(base));
-        NodeDelta ourDelta = new NodeDelta(store, store.getNodeState(from), store.getNodeState(to));
+        NodeDelta theirDelta = new NodeDelta(from, base);
+        NodeDelta ourDelta = new NodeDelta(from, to);
 
         // apply the changes
         StagedNode stagedNode = getStagedNode(path, true);
@@ -520,10 +519,8 @@ public class StagedNodeTree {
      * {@code theirRoot}, using the tree at {@code baseRoot} as reference.
      */
     private void mergeNode(StoredNode baseNode, StoredNode ourNode, StoredNode theirNode, String path) throws Exception {
-        NodeDelta theirChanges = new NodeDelta(
-                store, store.getNodeState(baseNode), store.getNodeState(theirNode));
-        NodeDelta ourChanges = new NodeDelta(
-                store, store.getNodeState(baseNode), store.getNodeState(ourNode));
+        NodeDelta theirChanges = new NodeDelta(baseNode, theirNode);
+        NodeDelta ourChanges = new NodeDelta(baseNode, ourNode);
 
         StagedNode stagedNode = getStagedNode(path, true);
 

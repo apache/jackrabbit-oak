@@ -72,7 +72,7 @@ public class Id implements Comparable<Id> {
     /**
      * Creates an {@code Id} instance from a long.
      *
-     * @param l a long
+     * @param value a long
      * @return an {@code Id} instance
      */
     public static Id fromLong(long value) {

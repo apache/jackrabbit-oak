@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model.tree;
+package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -28,36 +30,32 @@ import java.util.Map;
  */
 public class DiffBuilder {
 
-    private final NodeState before;
-    private final NodeState after;
+    private final Node before;
+    private final Node after;
     private final String path;
     private final int depth;
     private final String pathFilter;
-    private final NodeStore store;
+    private final RevisionProvider rp;
 
-    public DiffBuilder(NodeState before, NodeState after, String path, int depth,
-                       NodeStore store, String pathFilter) {
+    public DiffBuilder(Node before, Node after, String path, int depth,
+                       RevisionProvider rp, String pathFilter) {
         this.before = before;
         this.after = after;
         this.path = path;
         this.depth = depth;
-        this.store = store;
+        this.rp = rp;
         this.pathFilter = (pathFilter == null || "".equals(pathFilter)) ? "/" : pathFilter;
     }
 
     public String build() throws Exception {
         final JsopBuilder buff = new JsopBuilder();
 
-        // maps (key: the target node, value: list of paths to the target)
+        // maps (key: id of target node, value: list of paths to the target)
         // for tracking added/removed nodes; this allows us
         // to detect 'move' operations
 
-        // TODO performance problem: this class uses NodeState as a hash key,
-        // which is not recommended because the hashCode and equals methods
-        // of those classes are slow
-
-        final HashMap<NodeState, ArrayList<String>> addedNodes = new HashMap<NodeState, ArrayList<String>>();
-        final HashMap<NodeState, ArrayList<String>> removedNodes = new HashMap<NodeState, ArrayList<String>>();
+        final HashMap<Id, ArrayList<String>> addedNodes = new HashMap<Id, ArrayList<String>>();
+        final HashMap<Id, ArrayList<String>> removedNodes = new HashMap<Id, ArrayList<String>>();
 
         if (!PathUtils.isAncestor(path, pathFilter)
                 && !path.startsWith(pathFilter)) {
@@ -79,33 +77,33 @@ public class DiffBuilder {
             return buff.newline().toString();
         }
 
-        TraversingNodeDiffHandler diffHandler = new TraversingNodeDiffHandler(store) {
+        TraversingNodeDiffHandler diffHandler = new TraversingNodeDiffHandler(rp) {
             int levels = depth < 0 ? Integer.MAX_VALUE : depth;
             @Override
-            public void propertyAdded(PropertyState after) {
-                String p = PathUtils.concat(getCurrentPath(), after.getName());
+            public void propAdded(String propName, String value) {
+                String p = PathUtils.concat(getCurrentPath(), propName);
                 if (p.startsWith(pathFilter)) {
                     buff.tag('^').
                             key(p).
-                            encodedValue(after.getEncodedValue()).
+                            encodedValue(value).
                             newline();
                 }
             }
 
             @Override
-            public void propertyChanged(PropertyState before, PropertyState after) {
-                String p = PathUtils.concat(getCurrentPath(), after.getName());
+            public void propChanged(String propName, String oldValue, String newValue) {
+                String p = PathUtils.concat(getCurrentPath(), propName);
                 if (p.startsWith(pathFilter)) {
                     buff.tag('^').
                             key(p).
-                            encodedValue(after.getEncodedValue()).
+                            encodedValue(newValue).
                             newline();
                 }
             }
 
             @Override
-            public void propertyDeleted(PropertyState before) {
-                String p = PathUtils.concat(getCurrentPath(), before.getName());
+            public void propDeleted(String propName, String value) {
+                String p = PathUtils.concat(getCurrentPath(), propName);
                 if (p.startsWith(pathFilter)) {
                     // since property and node deletions can't be distinguished
                     // using the "- <path>" notation we're representing
@@ -118,15 +116,15 @@ public class DiffBuilder {
             }
 
             @Override
-            public void childNodeAdded(String name, NodeState after) {
-                String p = PathUtils.concat(getCurrentPath(), name);
+            public void childNodeAdded(ChildNodeEntry added) {
+                String p = PathUtils.concat(getCurrentPath(), added.getName());
                 if (p.startsWith(pathFilter)) {
-                    ArrayList<String> removedPaths = removedNodes.get(after);
+                    ArrayList<String> removedPaths = removedNodes.get(added.getId());
                     if (removedPaths != null) {
                         // move detected
                         String removedPath = removedPaths.remove(0);
                         if (removedPaths.isEmpty()) {
-                            removedNodes.remove(after);
+                            removedNodes.remove(added.getId());
                         }
                         buff.tag('>').
                                 // path/to/deleted/node
@@ -135,27 +133,26 @@ public class DiffBuilder {
                                 value(p).
                                 newline();
                     } else {
-                        ArrayList<String> addedPaths = addedNodes.get(after);
+                        ArrayList<String> addedPaths = addedNodes.get(added.getId());
                         if (addedPaths == null) {
                             addedPaths = new ArrayList<String>();
-                            addedNodes.put(after, addedPaths);
+                            addedNodes.put(added.getId(), addedPaths);
                         }
                         addedPaths.add(p);
                     }
                 }
-
             }
 
             @Override
-            public void childNodeDeleted(String name, NodeState before) {
-                String p = PathUtils.concat(getCurrentPath(), name);
+            public void childNodeDeleted(ChildNodeEntry deleted) {
+                String p = PathUtils.concat(getCurrentPath(), deleted.getName());
                 if (p.startsWith(pathFilter)) {
-                    ArrayList<String> addedPaths = addedNodes.get(before);
+                    ArrayList<String> addedPaths = addedNodes.get(deleted.getId());
                     if (addedPaths != null) {
                         // move detected
                         String addedPath = addedPaths.remove(0);
                         if (addedPaths.isEmpty()) {
-                            addedNodes.remove(before);
+                            addedNodes.remove(deleted.getId());
                         }
                         buff.tag('>').
                                 // path/to/deleted/node
@@ -164,10 +161,10 @@ public class DiffBuilder {
                                 value(addedPath).
                                 newline();
                     } else {
-                        ArrayList<String> removedPaths = removedNodes.get(before);
+                        ArrayList<String> removedPaths = removedNodes.get(deleted.getId());
                         if (removedPaths == null) {
                             removedPaths = new ArrayList<String>();
-                            removedNodes.put(before, removedPaths);
+                            removedNodes.put(deleted.getId(), removedPaths);
                         }
                         removedPaths.add(p);
                     }
@@ -175,14 +172,14 @@ public class DiffBuilder {
             }
 
             @Override
-            public void childNodeChanged(String name, NodeState before, NodeState after) {
-                String p = PathUtils.concat(getCurrentPath(), name);
+            public void childNodeChanged(ChildNodeEntry changed, Id newId) {
+                String p = PathUtils.concat(getCurrentPath(), changed.getName());
                 if (PathUtils.isAncestor(p, pathFilter)
                         || p.startsWith(pathFilter)) {
                     --levels;
                     if (levels >= 0) {
                         // recurse
-                        super.childNodeChanged(name, before, after);
+                        super.childNodeChanged(changed, newId);
                     } else {
                         buff.tag('^');
                         buff.key(p);
@@ -196,16 +193,16 @@ public class DiffBuilder {
         diffHandler.start(before, after, path);
 
         // finally process remaining added nodes ...
-        for (Map.Entry<NodeState, ArrayList<String>> entry : addedNodes.entrySet()) {
+        for (Map.Entry<Id, ArrayList<String>> entry : addedNodes.entrySet()) {
             for (String p : entry.getValue()) {
                 buff.tag('+').
                         key(p).object();
-                toJson(buff, entry.getKey(), depth);
+                toJson(buff, rp.getNode(entry.getKey()), depth);
                 buff.endObject().newline();
             }
         }
         //  ... and removed nodes
-        for (Map.Entry<NodeState, ArrayList<String>> entry : removedNodes.entrySet()) {
+        for (Map.Entry<Id, ArrayList<String>> entry : removedNodes.entrySet()) {
             for (String p : entry.getValue()) {
                 buff.tag('-');
                 buff.value(p);
@@ -215,14 +212,15 @@ public class DiffBuilder {
         return buff.toString();
     }
 
-    private void toJson(JsopBuilder builder, NodeState node, int depth) {
-        for (PropertyState property : node.getProperties()) {
-            builder.key(property.getName()).encodedValue(property.getEncodedValue());
+    private void toJson(JsopBuilder builder, Node node, int depth) throws Exception {
+        for (Map.Entry<String, String> entry : node.getProperties().entrySet()) {
+            builder.key(entry.getKey()).encodedValue(entry.getValue());
         }
         if (depth != 0) {
-            for (ChildNode entry : node.getChildNodeEntries(0, -1)) {
+            for (Iterator<ChildNodeEntry> it = node.getChildNodeEntries(0, -1); it.hasNext(); ) {
+                ChildNodeEntry entry = it.next();
                 builder.key(entry.getName()).object();
-                toJson(builder, entry.getNode(), depth < 0 ? depth : depth - 1);
+                toJson(builder, rp.getNode(entry.getId()), depth < 0 ? depth : depth - 1);
                 builder.endObject();
             }
         }

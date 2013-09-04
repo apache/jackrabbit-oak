@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model.tree;
+package org.apache.jackrabbit.mk.model;
 
+import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import java.util.Stack;
@@ -23,20 +24,20 @@ import java.util.Stack;
 /**
  *
  */
-public abstract class TraversingNodeDiffHandler implements NodeStateDiff {
-
-    private final NodeStore store;
+public abstract class TraversingNodeDiffHandler implements NodeDiffHandler {
 
     protected Stack<String> paths = new Stack<String>();
 
-    public TraversingNodeDiffHandler(NodeStore store) {
-        this.store = store;
+    protected final RevisionProvider rp;
+
+    public TraversingNodeDiffHandler(RevisionProvider rp) {
+        this.rp = rp;
     }
 
-    public void start(NodeState before, NodeState after, String path) {
+    public void start(Node before, Node after, String path) {
         paths.clear();
         paths.push(path);
-        store.compare(before, after, this);
+        before.diff(after, this);
     }
 
     protected String getCurrentPath() {
@@ -44,11 +45,13 @@ public abstract class TraversingNodeDiffHandler implements NodeStateDiff {
     }
 
     @Override
-    public void childNodeChanged(
-            String name, NodeState before, NodeState after) {
-        paths.push(PathUtils.concat(getCurrentPath(), name));
-        store.compare(before, after, this);
+    public void childNodeChanged(ChildNodeEntry changed, Id newId) {
+        paths.push(PathUtils.concat(getCurrentPath(), changed.getName()));
+        try {
+            rp.getNode(changed.getId()).diff(rp.getNode(newId), this);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         paths.pop();
     }
-
 }

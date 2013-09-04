@@ -20,31 +20,11 @@ import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.mk.model.tree.NodeState;
-import org.apache.jackrabbit.mk.model.tree.NodeStore;
 
 /**
  * Read operations.
  */
-public interface RevisionProvider extends NodeStore {
-
-    /**
-     * Adapts the given {@link StoredNode} to a corresponding
-     * {@link NodeState} instance.
-     *
-     * @param node stored node instance
-     * @return node state adapter
-     */
-    NodeState getNodeState(StoredNode node);
-
-    /**
-     * Adapts the given {@link NodeState} to the corresponding identifier.
-     *
-     * @param node node state
-     * @return node identifier
-     */
-    Id getId(NodeState node);
-
+public interface RevisionProvider {
     StoredNode getNode(Id id) throws NotFoundException, Exception;
     StoredCommit getCommit(Id id) throws NotFoundException, Exception;
     ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException, Exception;

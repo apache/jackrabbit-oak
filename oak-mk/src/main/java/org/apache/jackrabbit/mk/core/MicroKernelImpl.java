@@ -18,9 +18,9 @@ package org.apache.jackrabbit.mk.core;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-
-import javax.annotation.Nonnull;
+import java.util.Map;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -28,28 +28,24 @@ import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
+import org.apache.jackrabbit.mk.model.DiffBuilder;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.model.tree.ChildNode;
-import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
-import org.apache.jackrabbit.mk.model.tree.NodeState;
-import org.apache.jackrabbit.mk.model.tree.PropertyState;
+import org.apache.jackrabbit.mk.model.StoredNode;
+import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.NameFilter;
 import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class MicroKernelImpl implements MicroKernel {
-
-    private static final Logger LOG = LoggerFactory.getLogger(MicroKernelImpl.class);
 
     protected Repository rep;
     private final CommitGate gate = new CommitGate();
@@ -113,7 +109,6 @@ public class MicroKernelImpl implements MicroKernel {
         return getHeadRevisionId().toString();
     }
 
-    @Override @Nonnull
     public String checkpoint(long lifetime) throws MicroKernelException {
         // FIXME: need to signal to the garbage collector that this revision
         // should not be collected until the requested lifetime is over
@@ -159,9 +154,10 @@ public class MicroKernelImpl implements MicroKernel {
                     && commit.getCommitTS() >= since) {
                 if (filtered) {
                     try {
+                        RevisionStore rs = rep.getRevisionStore();
                         String diff = new DiffBuilder(
-                                rep.getNodeState(commit.getParentId(), "/"),
-                                rep.getNodeState(commit.getId(), "/"),
+                                rs.getRootNode(commit.getParentId()),
+                                rs.getNode(commit.getRootNodeId()),
                                 "/", -1, rep.getRevisionStore(), path).build();
                         if (!diff.isEmpty()) {
                             history.add(commit);
@@ -270,9 +266,10 @@ public class MicroKernelImpl implements MicroKernel {
             String diff = commit.getChanges();
             if (filtered) {
                 try {
+                    RevisionStore rs = rep.getRevisionStore();
                     diff = new DiffBuilder(
-                            rep.getNodeState(commit.getParentId(), "/"),
-                            rep.getNodeState(commit.getId(), "/"),
+                            rs.getRootNode(commit.getParentId()),
+                            rs.getNode(commit.getRootNodeId()),
                             "/", -1, rep.getRevisionStore(), path).build();
                     if (diff.isEmpty()) {
                         continue;
@@ -323,10 +320,17 @@ public class MicroKernelImpl implements MicroKernel {
                     return toCommit.getChanges();
                 }
             }
-            NodeState before = rep.getNodeState(fromRevisionId, path);
-            NodeState after = rep.getNodeState(toRevisionId, path);
 
-            return new DiffBuilder(before, after, path, depth, rep.getRevisionStore(), path).build();
+            StoredNode from = null, to = null;
+            try {
+                from = rep.getNode(fromRevisionId, path);
+            } catch (NotFoundException ignore) {
+            }
+            try {
+                to = rep.getNode(toRevisionId, path);
+            } catch (NotFoundException ignore) {
+            }
+            return new DiffBuilder(from, to, path, depth, rep.getRevisionStore(), path).build();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
@@ -352,16 +356,12 @@ public class MicroKernelImpl implements MicroKernel {
 
         Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
 
-        NodeState nodeState;
         try {
-            nodeState = rep.getNodeState(revId, path);
+            return rep.getNode(revId, path).getChildNodeCount();
+        } catch (NotFoundException e) {
+            throw new MicroKernelException("Path " + path + " not found in revision " + revisionId);
         } catch (Exception e) {
             throw new MicroKernelException(e);
-        }
-        if (nodeState != null) {
-            return nodeState.getChildNodeCount();
-        } else {
-            throw new MicroKernelException("Path " + path + " not found in revision " + revisionId);
         }
     }
 
@@ -384,19 +384,19 @@ public class MicroKernelImpl implements MicroKernel {
         }
 
         try {
-            NodeState nodeState;
-            if (id != null) {
-                RevisionStore rs = rep.getRevisionStore();
-                nodeState = rs.getNodeState(rs.getNode(id));
-            } else {
-                nodeState = rep.getNodeState(revId, path);
-            }
-            if (nodeState == null) {
+            StoredNode node;
+            try {
+                if (id != null) {
+                    node = rep.getRevisionStore().getNode(id);
+                } else {
+                    node = rep.getNode(revId, path);
+                }
+            } catch (NotFoundException e) {
                 return null;
             }
 
             JsopBuilder buf = new JsopBuilder().object();
-            toJson(buf, nodeState, depth, (int) offset, maxChildNodes, true, nodeFilter);
+            toJson(buf, node, depth, (int) offset, maxChildNodes, true, nodeFilter);
             return buf.endObject().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -558,7 +558,6 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    @Override
     public String rebase(String branchRevisionId, String newBaseRevisionId) {
         Id branchId = Id.fromString(branchRevisionId);
         Id baseId = getBaseRevisionId(branchId);
@@ -615,12 +614,12 @@ public class MicroKernelImpl implements MicroKernel {
 
     //-------------------------------------------------------< implementation >
 
-    void toJson(JsopBuilder builder, NodeState node,
+    void toJson(JsopBuilder builder, StoredNode node,
                 int depth, int offset, int maxChildNodes,
-                boolean inclVirtualProps, NodeFilter filter) {
-        for (PropertyState property : node.getProperties()) {
-            if (filter == null || filter.includeProperty(property.getName())) {
-                builder.key(property.getName()).encodedValue(property.getEncodedValue());
+                boolean inclVirtualProps, NodeFilter filter) throws Exception {
+        for (Map.Entry<String, String> prop : node.getProperties().entrySet()) {
+            if (filter == null || filter.includeProperty(prop.getKey())) {
+                builder.key(prop.getKey()).encodedValue(prop.getValue());
             }
         }
         long childCount = node.getChildNodeCount();
@@ -636,12 +635,12 @@ public class MicroKernelImpl implements MicroKernel {
                     // check whether :id has been explicitly included
                     if (nf.getInclusionPatterns().contains(":hash")
                             && !nf.getExclusionPatterns().contains(":hash")) {
-                        builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
+                        builder.key(":hash").value(node.getId().toString());
                     }
                     // check whether :id has been explicitly included
                     if (nf.getInclusionPatterns().contains(":id")
                             && !nf.getExclusionPatterns().contains(":id")) {
-                        builder.key(":id").value(rep.getRevisionStore().getId(node).toString());
+                        builder.key(":id").value(node.getId().toString());
                     }
                 }
             }
@@ -655,8 +654,8 @@ public class MicroKernelImpl implements MicroKernel {
                     // does not include wildcards
                     int count = maxChildNodes == -1 ? Integer.MAX_VALUE : maxChildNodes;
                     for (String name : childFilter.getInclusionPatterns()) {
-                        NodeState child = node.getChildNode(name);
-                        if (child != null) {
+                        ChildNodeEntry cne = node.getChildNodeEntry(name);
+                        if (cne != null) {
                             boolean incl = true;
                             for (String exclName : childFilter.getExclusionPatterns()) {
                                 if (name.equals(exclName)) {
@@ -670,7 +669,7 @@ public class MicroKernelImpl implements MicroKernel {
                                 }
                                 builder.key(name).object();
                                 if (depth > 0) {
-                                    toJson(builder, child, depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
+                                    toJson(builder, rep.getRevisionStore().getNode(cne.getId()), depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
                                 }
                                 builder.endObject();
                             }
@@ -688,14 +687,16 @@ public class MicroKernelImpl implements MicroKernel {
                 count = -1;
             }
             int numSiblings = 0;
-            for (ChildNode entry : node.getChildNodeEntries(offset, count)) {
-                if (filter == null || filter.includeNode(entry.getName())) {
+
+            for (Iterator<ChildNodeEntry> it = node.getChildNodeEntries(offset, count); it.hasNext(); ) {
+                ChildNodeEntry cne = it.next();
+                if (filter == null || filter.includeNode(cne.getName())) {
                     if (maxChildNodes != -1 && ++numSiblings > maxChildNodes) {
                         break;
                     }
-                    builder.key(entry.getName()).object();
+                    builder.key(cne.getName()).object();
                     if (depth > 0) {
-                        toJson(builder, entry.getNode(), depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
+                        toJson(builder, rep.getRevisionStore().getNode(cne.getId()), depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
                     }
                     builder.endObject();
                 }
