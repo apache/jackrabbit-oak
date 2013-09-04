@@ -90,8 +90,9 @@ public class AggregateIndex implements FulltextQueryIndex {
         return baseIndex.getNodeAggregator();
     }
 
-    // ----- aggregation aware cursor
-
+    /**
+     * An aggregation aware cursor.
+     */
     private static class AggregationCursor extends AbstractCursor {
 
         private final Cursor cursor;
@@ -100,9 +101,9 @@ public class AggregateIndex implements FulltextQueryIndex {
 
         private boolean init;
         private boolean closed;
-        private Iterator<String> aggregates = null;
+        private Iterator<String> aggregates;
 
-        private String item = null;
+        private String item;
 
         public AggregationCursor(Cursor cursor, NodeAggregator aggregator,
                 NodeState rootState) {
@@ -140,7 +141,7 @@ public class AggregateIndex implements FulltextQueryIndex {
 
         @Override
         public IndexRow next() {
-            if (hasNext() == false) {
+            if (!hasNext()) {
                 throw new NoSuchElementException();
             }
             init = false;
