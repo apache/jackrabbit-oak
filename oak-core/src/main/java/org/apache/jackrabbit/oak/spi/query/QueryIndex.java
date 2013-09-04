@@ -113,15 +113,16 @@ public interface QueryIndex {
      * selector.
      */
     public interface FulltextQueryIndex extends QueryIndex {
-        // marker interface
 
         /**
          * Returns the NodeAggregator responsible for providing the aggregation
-         * settings or null if aggregation is not available/desired
+         * settings or null if aggregation is not available/desired.
          * 
+         * @return the node aggregator or null
          */
         @CheckForNull
         NodeAggregator getNodeAggregator();
+
     }
 
 //    /**
