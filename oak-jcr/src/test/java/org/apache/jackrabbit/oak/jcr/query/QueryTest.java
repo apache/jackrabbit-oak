@@ -45,6 +45,7 @@ import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -290,6 +291,24 @@ public class QueryTest extends AbstractRepositoryTest {
                 Query.JCR_SQL2 + "-noLiterals");
         q.bindValue("p", vf.createValue("x"));
         q.execute();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    @Ignore
+    public void fnNameEncoding() throws Exception {
+        Session session = getAdminSession();
+        session.getRootNode().addNode("123456_test_name");
+        session.save();
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Query q;
+
+        q = qm.createQuery("//*[jcr:like(fn:name(), '%123456%')]", Query.XPATH);
+        assertEquals("/123456_test_name", getPaths(q));
+
+        q = qm.createQuery("//*[fn:name() = '123456_test_name']", Query.XPATH);
+        assertEquals("/123456_test_name", getPaths(q));
     }
 
 }
