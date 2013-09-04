@@ -97,6 +97,9 @@ select [jcr:path], [jcr:score], * from [nt:base] as a where issamenode(a, '/') /
 xpath2sql //*
 select [jcr:path], [jcr:score], * from [nt:base] as a /* xpath: //* */
 
+xpath2sql //element(hello, nt:base)
+select [jcr:path], [jcr:score], * from [nt:base] as a where name(a) = 'hello' /* xpath: //element(hello, nt:base) */
+
 xpath2sql test/*
 select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/test') /* xpath: test/* */
 
