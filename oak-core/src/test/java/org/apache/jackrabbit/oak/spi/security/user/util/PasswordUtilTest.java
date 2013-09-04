@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
-import org.junit.Test;
-
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.ImmutableList;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -31,33 +33,32 @@ import static org.junit.Assert.fail;
 
 public class PasswordUtilTest {
 
-    private static List<String> PLAIN_PWDS = new ArrayList<String>();
-    static {
-        PLAIN_PWDS.add("pw");
-        PLAIN_PWDS.add("PassWord123");
-        PLAIN_PWDS.add("_");
-        PLAIN_PWDS.add("{invalidAlgo}");
-        PLAIN_PWDS.add("{invalidAlgo}Password");
-        PLAIN_PWDS.add("{SHA-256}");
-        PLAIN_PWDS.add("pw{SHA-256}");
-        PLAIN_PWDS.add("p{SHA-256}w");
-        PLAIN_PWDS.add("");
-    }
+    private List<String> plainPasswords;
 
-    private static Map<String, String> HASHED_PWDS = new HashMap<String, String>();
-    static {
-        for (String pw : PLAIN_PWDS) {
-            try {
-                HASHED_PWDS.put(pw, PasswordUtil.buildPasswordHash(pw));
-            } catch (Exception e) {
-                // should not get here
-            }
+    private static Map<String, String> hashedPasswords;
+
+    @Before
+    public void before() throws Exception {
+        plainPasswords = ImmutableList.of(
+                "pw",
+                "PassWord123",
+                "_",
+                "{invalidAlgo}",
+                "{invalidAlgo}Password",
+                "{SHA-256}",
+                "pw{SHA-256}",
+                "p{SHA-256}w",
+                "");
+
+        hashedPasswords = new HashMap<String, String>();
+        for (String pw : plainPasswords) {
+            hashedPasswords.put(pw, PasswordUtil.buildPasswordHash(pw));
         }
     }
 
     @Test
     public void testBuildPasswordHash() throws Exception {
-        for (String pw : PLAIN_PWDS) {
+        for (String pw : plainPasswords) {
             String pwHash = PasswordUtil.buildPasswordHash(pw);
             assertFalse(pw.equals(pwHash));
         }
@@ -69,7 +70,7 @@ public class PasswordUtilTest {
         l.add(new Integer[] {10, 5});
         l.add(new Integer[] {-1, -1});
         for (Integer[] params : l) {
-            for (String pw : PLAIN_PWDS) {
+            for (String pw : plainPasswords) {
                 int saltsize = params[0];
                 int iterations = params[1];
 
@@ -88,7 +89,7 @@ public class PasswordUtilTest {
 
         for (String invalid : invalidAlgorithms) {
             try {
-                String pwHash = PasswordUtil.buildPasswordHash("pw", invalid, PasswordUtil.DEFAULT_SALT_SIZE, PasswordUtil.DEFAULT_ITERATIONS);
+                PasswordUtil.buildPasswordHash("pw", invalid, PasswordUtil.DEFAULT_SALT_SIZE, PasswordUtil.DEFAULT_ITERATIONS);
                 fail("Invalid algorithm " + invalid);
             } catch (NoSuchAlgorithmException e) {
                 // success
@@ -99,7 +100,7 @@ public class PasswordUtilTest {
 
     @Test
     public void testIsPlainTextPassword() throws Exception {
-        for (String pw : PLAIN_PWDS) {
+        for (String pw : plainPasswords) {
             assertTrue(pw + " should be plain text.", PasswordUtil.isPlainTextPassword(pw));
         }
     }
@@ -111,15 +112,15 @@ public class PasswordUtilTest {
 
     @Test
     public void testIsPlainTextForPwHash() throws Exception {
-        for (String pwHash : HASHED_PWDS.values()) {
+        for (String pwHash : hashedPasswords.values()) {
             assertFalse(pwHash + " should not be plain text.", PasswordUtil.isPlainTextPassword(pwHash));
         }
     }
 
     @Test
     public void testIsSame() throws Exception {
-        for (String pw : HASHED_PWDS.keySet()) {
-            String pwHash = HASHED_PWDS.get(pw);
+        for (String pw : hashedPasswords.keySet()) {
+            String pwHash = hashedPasswords.get(pw);
             assertTrue("Not the same " + pw + ", " + pwHash, PasswordUtil.isSame(pwHash, pw));
         }
 
@@ -137,8 +138,8 @@ public class PasswordUtilTest {
     @Test
     public void testIsNotSame() throws Exception {
         String previous = null;
-        for (String pw : HASHED_PWDS.keySet()) {
-            String pwHash = HASHED_PWDS.get(pw);
+        for (String pw : hashedPasswords.keySet()) {
+            String pwHash = hashedPasswords.get(pw);
             assertFalse(pw, PasswordUtil.isSame(pw, pw));
             assertFalse(pwHash, PasswordUtil.isSame(pwHash, pwHash));
             if (previous != null) {
@@ -152,10 +153,13 @@ public class PasswordUtilTest {
     public void testPBKDF2WithHmacSHA1() throws Exception {
         String algo = "PBKDF2WithHmacSHA1";
         // test vector from http://tools.ietf.org/html/rfc6070
-        String hash = PasswordUtil.generateHash(
-                "pass\0word", algo,
-                PasswordUtil.convertBytesToHex("sa\0lt".getBytes()), 4096);
-        assertEquals("{PBKDF2WithHmacSHA1}7361006c74-4096-56fa6aa75548099dcc37d7f03425e0c3", hash);
+        String pw = "pass\0word";
+        int iterations = 4096;
+
+        String hash = PasswordUtil.buildPasswordHash(pw, algo, 5, iterations);
+        assertTrue(hash.startsWith("{PBKDF2WithHmacSHA1}"));
+        int cntOctets = hash.substring(hash.lastIndexOf('-')+1).length() / 2;
+        assertEquals(16, cntOctets);
     }
     
 }

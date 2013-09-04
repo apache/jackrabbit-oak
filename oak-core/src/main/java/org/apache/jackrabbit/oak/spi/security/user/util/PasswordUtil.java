@@ -23,7 +23,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
-
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -33,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Utility to generate and compare password hashes.
@@ -68,7 +71,7 @@ public final class PasswordUtil {
      * @throws NoSuchAlgorithmException If {@link #DEFAULT_ALGORITHM} is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
-    public static String buildPasswordHash(String password) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    public static String buildPasswordHash(@Nonnull String password) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         return buildPasswordHash(password, DEFAULT_ALGORITHM, DEFAULT_SALT_SIZE, DEFAULT_ITERATIONS);
     }
 
@@ -77,7 +80,8 @@ public final class PasswordUtil {
      * salt size and number of iterations into account.
      *
      * @param password The password to be hashed.
-     * @param algorithm The desired hash algorithm.
+     * @param algorithm The desired hash algorithm. If the algorith is
+     * {@code null} the {@link #DEFAULT_ALGORITHM} will be used.
      * @param saltSize The desired salt size. If the specified integer is lower
      * that {@link #DEFAULT_SALT_SIZE} the default is used.
      * @param iterations The desired number of iterations. If the specified
@@ -86,11 +90,10 @@ public final class PasswordUtil {
      * @throws NoSuchAlgorithmException If the specified algorithm is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
-    public static String buildPasswordHash(String password, String algorithm,
+    public static String buildPasswordHash(@Nonnull String password,
+                                           @Nullable String algorithm,
                                            int saltSize, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        if (password == null) {
-            throw new IllegalArgumentException("Password may not be null.");
-        }
+        checkNotNull(password);
         if (iterations < NO_ITERATIONS) {
             iterations = DEFAULT_ITERATIONS;
         }
@@ -112,10 +115,9 @@ public final class PasswordUtil {
      * @throws NoSuchAlgorithmException If the specified algorithm is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
-    public static String buildPasswordHash(String password, ConfigurationParameters config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        if (config == null) {
-            throw new IllegalArgumentException("UserConfig must not be null");
-        }
+    public static String buildPasswordHash(@Nonnull String password,
+                                           @Nonnull ConfigurationParameters config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        checkNotNull(config);
         String algorithm = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, DEFAULT_ALGORITHM);
         int iterations = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
         int saltSize = config.getConfigValue(UserConstants.PARAM_PASSWORD_SALT_SIZE, DEFAULT_SALT_SIZE);
@@ -144,7 +146,7 @@ public final class PasswordUtil {
      * @return If the hash created from the specified {@code password} equals
      * the given {@code hashedPassword} string.
      */
-    public static boolean isSame(String hashedPassword, char[] password) {
+    public static boolean isSame(@Nullable String hashedPassword, @Nonnull char[] password) {
         return isSame(hashedPassword, String.valueOf(password));
     }
 
@@ -157,7 +159,10 @@ public final class PasswordUtil {
      * @return If the hash created from the specified {@code password} equals
      * the given {@code hashedPassword} string.
      */
-    public static boolean isSame(String hashedPassword, String password) {
+    public static boolean isSame(@Nullable String hashedPassword, @Nonnull String password) {
+        if (hashedPassword == null) {
+            return false;
+        }
         try {
             String algorithm = extractAlgorithm(hashedPassword);
             if (algorithm != null) {
@@ -182,7 +187,8 @@ public final class PasswordUtil {
 
     //------------------------------------------------------------< private >---
 
-    public static String generateHash(String pwd, String algorithm, String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    private static String generateHash(@Nonnull String pwd, @Nonnull String algorithm,
+                                       @Nullable String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
         passwordHash.append('{').append(algorithm).append('}');
         if (salt != null && !salt.isEmpty()) {
@@ -207,6 +213,7 @@ public final class PasswordUtil {
         return passwordHash.toString();
     }
 
+    @Nonnull
     private static String generateSalt(int saltSize) {
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[saltSize];
@@ -221,7 +228,8 @@ public final class PasswordUtil {
      * @param bytes the byte array
      * @return the hex encoded string
      */
-    public static String convertBytesToHex(byte[] bytes) {
+    @Nonnull
+    private static String convertBytesToHex(byte[] bytes) {
         StringBuilder res = new StringBuilder(bytes.length * 2);
         for (byte b : bytes) {
             res.append(Text.hexTable[(b >> 4) & 15]);
@@ -236,7 +244,8 @@ public final class PasswordUtil {
      * @param s the hex encoded string
      * @return the byte array
      */
-    public static byte[] convertHexToBytes(String s) {
+    @Nonnull
+    private static byte[] convertHexToBytes(String s) {
         int len = s.length();
         if (len % 2 != 0) {
             throw new IllegalArgumentException("Not a hex encoded byte array: " + s);
@@ -249,8 +258,10 @@ public final class PasswordUtil {
         }
         return bytes;
     }
-    
-    private static String generatePBKDF2(String pwd, String salt, String algorithm, int iterations, int keyLength) throws NoSuchAlgorithmException {
+
+    @Nonnull
+    private static String generatePBKDF2(@Nonnull String pwd, @Nonnull String salt,
+                                         @Nonnull String algorithm, int iterations, int keyLength) throws NoSuchAlgorithmException {
         // for example PBKDF2WithHmacSHA1
         SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm);
         byte[] saltBytes = convertHexToBytes(salt);
@@ -264,7 +275,8 @@ public final class PasswordUtil {
         }  
     }
 
-    private static String generateDigest(String data, String algorithm, int iterations) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    @Nonnull
+    private static String generateDigest(@Nonnull String data, @Nonnull String algorithm, int iterations) throws UnsupportedEncodingException, NoSuchAlgorithmException {
         byte[] bytes = data.getBytes(ENCODING);
         MessageDigest md = MessageDigest.getInstance(algorithm);
 
@@ -287,7 +299,8 @@ public final class PasswordUtil {
      * leading {@code algorithm} such as created by {@code buildPasswordHash}
      * or if the extracted string isn't a supported algorithm.
      */
-    private static String extractAlgorithm(String hashedPwd) {
+    @CheckForNull
+    private static String extractAlgorithm(@Nullable String hashedPwd) {
         if (hashedPwd != null && !hashedPwd.isEmpty()) {
             int end = hashedPwd.indexOf('}');
             if (hashedPwd.charAt(0) == '{' && end > 0 && end < hashedPwd.length()-1) {
@@ -296,7 +309,7 @@ public final class PasswordUtil {
                     MessageDigest.getInstance(algorithm);
                     return algorithm;
                 } catch (NoSuchAlgorithmException e) {
-                    log.debug("Invalid algorithm detected " + algorithm);
+                    log.debug("Invalid algorithm detected " + algorithm, e);
                 }
             }
         }
@@ -305,23 +318,28 @@ public final class PasswordUtil {
         return null;
     }
 
-    private static String extractSalt(String hashedPwd, int start) {
-        int end = hashedPwd.indexOf(DELIMITER, start);
-        if (end > -1) {
-            return hashedPwd.substring(start, end);
+    @CheckForNull
+    private static String extractSalt(@Nullable String hashedPwd, int start) {
+        if (hashedPwd != null) {
+            int end = hashedPwd.indexOf(DELIMITER, start);
+            if (end > -1) {
+                return hashedPwd.substring(start, end);
+            }
         }
         // no salt
         return null;
     }
 
-    private static int extractIterations(String hashedPwd, int start) {
-        int end = hashedPwd.indexOf(DELIMITER, start);
-        if (end > -1) {
-            String str = hashedPwd.substring(start, end);
-            try {
-                return Integer.parseInt(str);
-            } catch (NumberFormatException e) {
-                log.debug("Expected number of iterations. Found: " + str);
+    private static int extractIterations(@Nullable String hashedPwd, int start) {
+        if (hashedPwd != null) {
+            int end = hashedPwd.indexOf(DELIMITER, start);
+            if (end > -1) {
+                String str = hashedPwd.substring(start, end);
+                try {
+                    return Integer.parseInt(str);
+                } catch (NumberFormatException e) {
+                    log.debug("Expected number of iterations. Found: " + str, e);
+                }
             }
         }
 
