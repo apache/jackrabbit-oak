@@ -159,7 +159,6 @@ abstract class ReadManyTest extends AbstractTest {
                     content.create(middle, "node" + k);
                 }
                 session.save(); // save once every 1k leaf entries
-                System.out.println(j);
             }
         }
     }
