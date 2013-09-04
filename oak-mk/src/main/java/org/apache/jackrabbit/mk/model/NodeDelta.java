@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.model.tree;
-
-import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.store.RevisionProvider;
+package org.apache.jackrabbit.mk.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,7 +24,7 @@ import java.util.Map;
 /**
  *
  */
-public class NodeDelta {
+public class NodeDelta implements NodeDiffHandler {
 
     public static enum ConflictType {
         /**
@@ -50,9 +47,8 @@ public class NodeDelta {
         REMOVED_DIRTY_NODE_CONFLICT
     }
 
-    private final RevisionProvider provider;
-
-    private final NodeState node1;
+    private final StoredNode node1;
+    private final StoredNode node2;
 
     Map<String, String> addedProperties = new HashMap<String, String>();
     Map<String, String> removedProperties = new HashMap<String, String>();
@@ -62,11 +58,10 @@ public class NodeDelta {
     Map<String, Id> removedChildNodes = new HashMap<String, Id>();
     Map<String, Id> changedChildNodes = new HashMap<String, Id>();
 
-    public NodeDelta(
-            RevisionProvider provider, NodeState node1, NodeState node2) {
-        this.provider = provider;
+    public NodeDelta(StoredNode node1, StoredNode node2) {
         this.node1 = node1;
-        provider.compare(node1,  node2, new DiffHandler());
+        this.node2 = node2;
+        node1.diff(node2, this);
     }
 
     public Map<String, String> getAddedProperties() {
@@ -99,7 +94,7 @@ public class NodeDelta {
 
     public List<Conflict> listConflicts(NodeDelta other) {
         // assume that both delta's were built using the *same* base node revision
-        if (!node1.equals(other.node1)) {
+        if (!node1.getId().equals(other.node1.getId())) {
             throw new IllegalArgumentException("other and this NodeDelta object are expected to share common node1 instance");
         }
 
@@ -172,42 +167,39 @@ public class NodeDelta {
         return conflicts;
     }
 
-    //--------------------------------------------------------< inner classes >
+    //--------------------------------------------------------< NodeDiffHandler >
 
-    private class DiffHandler implements NodeStateDiff {
-
-        @Override
-        public void propertyAdded(PropertyState after) {
-            addedProperties.put(after.getName(), after.getEncodedValue());
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
-            changedProperties.put(after.getName(), after.getEncodedValue());
-        }
-
-        @Override
-        public void propertyDeleted(PropertyState before) {
-            removedProperties.put(before.getName(), before.getEncodedValue());
-        }
-
-        @Override
-        public void childNodeAdded(String name, NodeState after) {
-            addedChildNodes.put(name, provider.getId(after));
-        }
-
-        @Override
-        public void childNodeChanged(
-                String name, NodeState before, NodeState after) {
-            changedChildNodes.put(name, provider.getId(after));
-        }
-
-        @Override
-        public void childNodeDeleted(String name, NodeState before) {
-            removedChildNodes.put(name, provider.getId(before));
-        }
-
+    @Override
+    public void propAdded(String propName, String value) {
+        addedProperties.put(propName, value);
     }
+
+    @Override
+    public void propChanged(String propName, String oldValue, String newValue) {
+        changedProperties.put(propName, newValue);
+    }
+
+    @Override
+    public void propDeleted(String propName, String value) {
+        removedProperties.put(propName, value);
+    }
+
+    @Override
+    public void childNodeAdded(ChildNodeEntry added) {
+        addedChildNodes.put(added.getName(), added.getId());
+    }
+
+    @Override
+    public void childNodeDeleted(ChildNodeEntry deleted) {
+        removedChildNodes.put(deleted.getName(), deleted.getId());
+    }
+
+    @Override
+    public void childNodeChanged(ChildNodeEntry changed, Id newId) {
+        changedChildNodes.put(changed.getName(), newId);
+    }
+
+    //--------------------------------------------------------< inner classes >
 
     public static class Conflict {
 

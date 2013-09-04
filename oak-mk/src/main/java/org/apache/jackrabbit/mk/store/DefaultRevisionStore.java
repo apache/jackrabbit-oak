@@ -22,12 +22,8 @@ import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
-import org.apache.jackrabbit.mk.model.Node;
-import org.apache.jackrabbit.mk.model.NodeDiffHandler;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
-import org.apache.jackrabbit.mk.model.tree.NodeState;
-import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
 import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.Persistence;
 import org.apache.jackrabbit.mk.util.IOUtils;
@@ -58,8 +54,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Default revision store implementation, passing calls to a {@code Persistence}
  * and a {@code BlobStore}, respectively and providing caching.
  */
-public class DefaultRevisionStore extends AbstractRevisionStore implements
-        Closeable {
+public class DefaultRevisionStore implements RevisionStore, Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultRevisionStore.class);
     
@@ -467,55 +462,6 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         if (counter > commitCounter.get()) {
             commitCounter.set(counter);
         }
-    }
-
-    // ------------------------------------------------------------< overrides >
-
-    @Override
-    public void compare(final NodeState before, final NodeState after,
-            final NodeStateDiff diff) {
-        // OAK-46: Efficient diffing of large child node lists
-
-        Node beforeNode = ((StoredNodeAsState) before).unwrap();
-        Node afterNode = ((StoredNodeAsState) after).unwrap();
-
-        beforeNode.diff(afterNode, new NodeDiffHandler() {
-            @Override
-            public void propAdded(String propName, String value) {
-                diff.propertyAdded(after.getProperty(propName));
-            }
-
-            @Override
-            public void propChanged(String propName, String oldValue,
-                    String newValue) {
-                diff.propertyChanged(before.getProperty(propName),
-                        after.getProperty(propName));
-            }
-
-            @Override
-            public void propDeleted(String propName, String value) {
-                diff.propertyDeleted(before.getProperty(propName));
-            }
-
-            @Override
-            public void childNodeAdded(ChildNodeEntry added) {
-                String name = added.getName();
-                diff.childNodeAdded(name, after.getChildNode(name));
-            }
-
-            @Override
-            public void childNodeDeleted(ChildNodeEntry deleted) {
-                String name = deleted.getName();
-                diff.childNodeDeleted(name, before.getChildNode(name));
-            }
-
-            @Override
-            public void childNodeChanged(ChildNodeEntry changed, Id newId) {
-                String name = changed.getName();
-                diff.childNodeChanged(name, before.getChildNode(name),
-                        after.getChildNode(name));
-            }
-        });
     }
 
     // -----------------------------------------------------------------------

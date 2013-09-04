@@ -22,10 +22,11 @@ import java.io.File;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
-import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.persistence.H2Persistence;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.apache.jackrabbit.mk.store.DefaultRevisionStore;
@@ -166,19 +167,20 @@ public class Repository {
         return rs.getCommit(id);
     }
 
-    public NodeState getNodeState(Id revId, String path) throws Exception {
+    public StoredNode getNode(Id revId, String path) throws NotFoundException, Exception {
         if (!initialized) {
             throw new IllegalStateException("not initialized");
         } else if (!PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("illegal path");
         }
 
-        NodeState node = rs.getNodeState(rs.getRootNode(revId));
+        StoredNode node = rs.getRootNode(revId);
         for (String name : PathUtils.elements(path)) {
-            node = node.getChildNode(name);
-            if (node == null) {
-                break;
+            ChildNodeEntry cne = node.getChildNodeEntry(name);
+            if (cne == null) {
+                throw new NotFoundException();
             }
+            node = rs.getNode(cne.getId()) ;
         }
         return node;
     }
@@ -190,12 +192,13 @@ public class Repository {
             throw new IllegalArgumentException("illegal path");
         }
 
-        NodeState node = rs.getNodeState(rs.getRootNode(revId));
+        StoredNode node = rs.getRootNode(revId);
         for (String name : PathUtils.elements(path)) {
-            node = node.getChildNode(name);
-            if (node == null) {
+            ChildNodeEntry cne = node.getChildNodeEntry(name);
+            if (cne == null) {
                 return false;
             }
+            node = rs.getNode(cne.getId()) ;
         }
         return true;
     }

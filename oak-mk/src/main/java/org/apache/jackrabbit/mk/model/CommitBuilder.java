@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -212,8 +211,8 @@ public class CommitBuilder {
         newCommit.setMsg(msg);
         // dynamically build diff for rebased commit
         String diff = new DiffBuilder(
-                store.getNodeState(store.getRootNode(toId)),
-                store.getNodeState(store.getNode(rebasedId)),
+                store.getRootNode(toId),
+                store.getNode(rebasedId),
                 "/", -1, store, "").build();
         newCommit.setChanges(diff);
         newCommit.setRootNodeId(rebasedId);
@@ -259,8 +258,8 @@ public class CommitBuilder {
             newCommit.setMsg(msg);
             // dynamically build diff of merged commit
             String diff = new DiffBuilder(
-                    store.getNodeState(store.getRootNode(currentHead)),
-                    store.getNodeState(store.getNode(rootNodeId)),
+                    store.getRootNode(currentHead),
+                    store.getNode(rootNodeId),
                     "/", -1, store, "").build();
             if (diff.isEmpty()) {
                 LOG.debug("merge of empty branch {} with differing content hashes encountered, ignore and keep current head {}",
