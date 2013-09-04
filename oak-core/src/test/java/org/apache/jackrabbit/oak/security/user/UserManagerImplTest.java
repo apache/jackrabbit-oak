@@ -16,18 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
@@ -45,6 +37,13 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 /**
  * @since OAK 1.0
@@ -114,14 +113,14 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         try {
             userMgr.setPassword(userTree, null, true);
             fail("setting null password should fail");
-        } catch (IllegalArgumentException e) {
+        } catch (NullPointerException e) {
             // expected
         }
 
         try {
             userMgr.setPassword(userTree, null, false);
             fail("setting null password should fail");
-        } catch (IllegalArgumentException e) {
+        } catch (NullPointerException e) {
             // expected
         }
     }
