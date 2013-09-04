@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.util.ISO9075;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,10 +177,9 @@ public class XPathToSQL2Converter {
                         // any
                         pathPattern += "%";
                     } else {
-                        currentSelector.isChild = false;
-                        String name = readIdentifier();
+                        String name = readPathSegment();
                         pathPattern += name;
-                        currentSelector.path = PathUtils.concat(currentSelector.path, name);
+                        appendNodeName(name);
                     }
                     if (readIf(",")) {
                         currentSelector.nodeType = readIdentifier();
@@ -210,24 +210,9 @@ public class XPathToSQL2Converter {
                 read(")");
             } else if (currentTokenType == IDENTIFIER) {
                 // path restriction
-                String name = readIdentifier();
+                String name = readPathSegment();
                 pathPattern += name;
-                if (!currentSelector.isChild) {
-                    currentSelector.nodeName = name;
-                } else {
-                    if (selectors.size() > 0) {
-                        // no explicit path restriction - so it's a node name restriction
-                        currentSelector.isChild = true;
-                        currentSelector.nodeName = name;
-                    } else {
-                        if (currentSelector.isChild) {
-                            currentSelector.isChild = false;
-                            String oldPath = currentSelector.path;
-                            // further extending the path
-                            currentSelector.path = PathUtils.concat(oldPath, name);
-                        }
-                    }
-                }
+                appendNodeName(name);
             } else if (readIf(".")) {
                 // just "." this is simply ignored, so that
                 // "a/./b" is the same as "a/b"
@@ -364,6 +349,23 @@ public class XPathToSQL2Converter {
         buff.append(query);
         buff.append(" */");
         return buff.toString();
+    }
+    
+    private void appendNodeName(String name) {
+        if (!currentSelector.isChild) {
+            currentSelector.nodeName = name;
+        } else {
+            if (selectors.size() > 0) {
+                // no explicit path restriction - so it's a node name restriction
+                currentSelector.isChild = true;
+                currentSelector.nodeName = name;
+            } else {
+                currentSelector.isChild = false;
+                String oldPath = currentSelector.path;
+                // further extending the path
+                currentSelector.path = PathUtils.concat(oldPath, name);
+            }
+        }
     }
     
     /**
@@ -723,6 +725,11 @@ public class XPathToSQL2Converter {
             read(".");
             read(")");
         }
+    }
+
+    private String readPathSegment() throws ParseException {
+        String raw = readIdentifier();
+        return ISO9075.decode(raw);
     }
 
     private String readIdentifier() throws ParseException {
