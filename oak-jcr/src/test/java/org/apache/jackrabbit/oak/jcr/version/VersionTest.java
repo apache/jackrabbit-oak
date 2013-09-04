@@ -56,9 +56,6 @@ public class VersionTest extends AbstractJCRTest {
 
     public void testVersionFromQuery()
             throws RepositoryException, NotExecutableException {
-        if (true) {
-            throw new NotExecutableException("OAK-996");
-        }
         Node n = testRootNode.addNode(nodeName1, testNodeType);
         n.addMixin(mixVersionable);
         superuser.save();

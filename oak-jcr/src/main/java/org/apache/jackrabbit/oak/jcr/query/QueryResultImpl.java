@@ -39,12 +39,16 @@ import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The implementation of the corresponding JCR interface.
  */
 public class QueryResultImpl implements QueryResult {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(QueryResultImpl.class);
+
     /**
      * The minimum number of rows / nodes to pre-fetch.
      */ 
@@ -157,12 +161,12 @@ public class QueryResultImpl implements QueryResult {
     }
 
     @CheckForNull
-    NodeImpl<NodeDelegate> getNode(String path) {
+    NodeImpl<? extends NodeDelegate> getNode(String path) throws RepositoryException {
         if (path == null) {
             return null;
         }
         NodeDelegate d = sessionDelegate.getNode(path);
-        return d == null ? null : new NodeImpl<NodeDelegate>(d, sessionContext);
+        return d == null ? null : NodeImpl.createNode(d, sessionContext);
     }
 
     String getLocalPath(String path) {
@@ -184,10 +188,10 @@ public class QueryResultImpl implements QueryResult {
         }
         // use the last selector
         final String selectorName = selectorNames[selectorNames.length - 1];
-        Iterator<NodeImpl<NodeDelegate>> nodeIterator = new Iterator<NodeImpl<NodeDelegate>>() {
+        Iterator<NodeImpl<? extends NodeDelegate>> nodeIterator = new Iterator<NodeImpl<? extends NodeDelegate>>() {
 
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();
-            private NodeImpl<NodeDelegate> current;
+            private NodeImpl<? extends NodeDelegate> current;
 
             {
                 fetch();
@@ -199,8 +203,12 @@ public class QueryResultImpl implements QueryResult {
                     ResultRow r = it.next();
                     String path = r.getPath(selectorName);
                     if (includeRow(path)) {
-                        current = getNode(getLocalPath(path));
-                        break;
+                        try {
+                            current = getNode(getLocalPath(path));
+                            break;
+                        } catch (RepositoryException e) {
+                            log.warn("Unable to fetch result node for path " + path, e);
+                        }
                     }
                 }
             }
@@ -211,11 +219,11 @@ public class QueryResultImpl implements QueryResult {
             }
 
             @Override
-            public NodeImpl<NodeDelegate> next() {
+            public NodeImpl<? extends NodeDelegate> next() {
                 if (current == null) {
                     throw new NoSuchElementException();
                 }
-                NodeImpl<NodeDelegate> n = current;
+                NodeImpl<? extends NodeDelegate> n = current;
                 fetch();
                 return n;
             }
@@ -226,7 +234,7 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        final PrefetchIterator<NodeImpl<NodeDelegate>> prefIt = new  PrefetchIterator<NodeImpl<NodeDelegate>>(
+        final PrefetchIterator<NodeImpl<? extends NodeDelegate>> prefIt = new  PrefetchIterator<NodeImpl<? extends NodeDelegate>>(
                 nodeIterator, 
                 PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
                 result.getSize());
