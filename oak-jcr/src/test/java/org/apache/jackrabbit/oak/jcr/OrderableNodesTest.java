@@ -18,14 +18,13 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.jackrabbit.commons.iterator.NodeIterable;
-import org.junit.Test;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import org.apache.jackrabbit.commons.iterator.NodeIterable;
+import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
@@ -47,6 +46,15 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         // check ordering with node type without a residual properties definition
         new TestContentLoader().loadTestContent(getAdminSession());
         doTest("test:orderableFolder");
+    }
+
+    @Test
+    public void orderSameNode() throws Exception {
+        Session session = getAdminSession();
+        Node n = session.getRootNode().addNode("test", "nt:unstructured");
+        Node a = n.addNode("a");
+
+        n.orderBefore("a", "a");
     }
 
     @Test
