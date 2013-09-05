@@ -76,8 +76,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
     @Override
     public PropertyValue currentProperty() {
         String path = selector.currentPath();
-        // Name escaping (convert space to _x0020_)
-        String name = ISO9075.encode(PathUtils.getName(path));
+        String name = PathUtils.getName(path);
         return PropertyValues.newName(name);
     }
 
