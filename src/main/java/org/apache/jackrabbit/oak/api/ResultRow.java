@@ -21,13 +21,39 @@ package org.apache.jackrabbit.oak.api;
  * A query result row.
  */
 public interface ResultRow {
-
+    
+    /**
+     * The path, assuming there is only one selector.
+     * 
+     * @return the path
+     * @throws IllegalArgumentException if there are multiple selectors
+     */
     String getPath();
 
+    /**
+     * The path for the given selector name.
+     * 
+     * @param selectorName the selector name (null if there is only one selector)
+     * @return the path
+     * @throws IllegalArgumentException if the selector was not found,
+     *      or if there are multiple selectors but the passed selectorName is null
+     */
     String getPath(String selectorName);
 
+    /**
+     * The property value.
+     * 
+     * @param columnName the column name
+     * @return the value
+     * @throws IllegalArgumentException if the column was not found
+     */
     PropertyValue getValue(String columnName);
 
+    /**
+     * Get the list of values.
+     * 
+     * @return the values
+     */
     PropertyValue[] getValues();
 
 }
