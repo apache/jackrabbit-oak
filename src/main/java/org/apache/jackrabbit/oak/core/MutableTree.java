@@ -18,22 +18,8 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.indexOf;
-import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
-import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
-import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
-
 import java.util.Collections;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -49,6 +35,19 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.indexOf;
+import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
+import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
+import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 public class MutableTree extends AbstractTree {
 
@@ -295,9 +294,11 @@ public class MutableTree extends AbstractTree {
             // root does not have siblings
             return false;
         }
-        if (name != null && !parent.hasChild(name)) {
-            // so such sibling or not accessible
-            return false;
+        if (name != null) {
+            if (name.equals(this.name) || !parent.hasChild(name)) {
+                // same node or no such sibling (not existing or not accessible)
+                return false;
+            }
         }
         // perform the reorder
         parent.ensureChildOrderProperty();
