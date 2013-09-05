@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import com.google.common.base.Function;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
 
 /**
  * A tree instance represents a snapshot of the {@link ContentRepository}
@@ -292,7 +292,7 @@ public interface Tree {
      *             before. This tree will become the last sibling if
      *             {@code name} is {@code null}.
      * @return {@code false} if there is no sibling with the given
-     *         {@code name} and no reordering was performed;
+     *         {@code name} or no reordering was performed;
      *         {@code true} otherwise.
      */
     boolean orderBefore(@Nullable String name);
