@@ -33,10 +33,12 @@ public class RowImpl implements Row {
 
     private final QueryResultImpl result;
     private final ResultRow row;
+    private final String pathSelector;
 
-    public RowImpl(QueryResultImpl result, ResultRow row) {
+    public RowImpl(QueryResultImpl result, ResultRow row, String pathSelector) {
         this.result = result;
         this.row = row;
+        this.pathSelector = pathSelector;
     }
 
     @Override
@@ -52,7 +54,7 @@ public class RowImpl implements Row {
     @Override
     public String getPath() throws RepositoryException {
         try {
-            return result.getLocalPath(row.getPath());
+            return result.getLocalPath(row.getPath(pathSelector));
         } catch (IllegalArgumentException e) {
             throw new RepositoryException(e);
         }
