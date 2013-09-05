@@ -45,7 +45,6 @@ import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -318,7 +317,6 @@ public class QueryTest extends AbstractRepositoryTest {
 
     @SuppressWarnings("deprecation")
     @Test
-    @Ignore
     public void fnNameEncoding() throws Exception {
         Session session = getAdminSession();
         session.getRootNode().addNode("123456_test_name");
@@ -331,7 +329,7 @@ public class QueryTest extends AbstractRepositoryTest {
         assertEquals("/123456_test_name", getPaths(q));
 
         q = qm.createQuery("//*[fn:name() = '123456_test_name']", Query.XPATH);
-        assertEquals("/123456_test_name", getPaths(q));
+        assertEquals("", getPaths(q));
     }
 
 }

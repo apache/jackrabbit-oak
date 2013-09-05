@@ -136,6 +136,11 @@ select [jcr:path] from [nt:base] as a where issamenode(a, '/')
 commit / + "test": { "My Documents": { "x" : {}}}
 
 select [jcr:path] from [nt:base] where name() = 'My_x0020_Documents'
+
+select [jcr:path] from [nt:base] where name() like '%My Documents%'
+/test/My Documents
+
+select [jcr:path] from [nt:base] where name() = 'My Documents'
 /test/My Documents
 
 commit / - "test"
