@@ -393,8 +393,11 @@ public class XPathToSQL2Converter {
         if (currentSelector.nodeName != null) {
             Function f = new Function("name");
             f.params.add(new SelectorExpr(currentSelector));
+            String n = currentSelector.nodeName;
+            // encode again, because it will be decoded again
+            n = ISO9075.encode(n);
             Condition c = new Condition(f, "=", 
-                    Literal.newString(currentSelector.nodeName), 
+                    Literal.newString(n), 
                     Expression.PRECEDENCE_CONDITION);
             condition = add(condition, c);
         }
@@ -1148,6 +1151,16 @@ public class XPathToSQL2Converter {
         String getColumnAliasName() {
             return toString();
         }
+        
+        /**
+         * Whether the result of this expression is a name. Names are subject to
+         * ISO9075 encoding.
+         * 
+         * @return whether this expression is a name.
+         */
+        boolean isName() {
+            return false;
+        }
 
     }
 
@@ -1175,21 +1188,23 @@ public class XPathToSQL2Converter {
     static class Literal extends Expression {
 
         final String value;
+        final String rawText;
 
-        Literal(String value) {
+        Literal(String value, String rawText) {
             this.value = value;
+            this.rawText = rawText;
         }
 
         public static Expression newBoolean(boolean value) {
-            return new Literal(String.valueOf(value));
+            return new Literal(String.valueOf(value), String.valueOf(value));
         }
 
         static Literal newNumber(String s) {
-            return new Literal(s);
+            return new Literal(s, s);
         }
 
         static Literal newString(String s) {
-            return new Literal(SQL2Parser.escapeStringLiteral(s));
+            return new Literal(SQL2Parser.escapeStringLiteral(s), s);
         }
 
         @Override
@@ -1265,25 +1280,50 @@ public class XPathToSQL2Converter {
 
         @Override
         public String toString() {
-            StringBuilder buff = new StringBuilder();
-            if (left != null) {
+            String leftExpr;
+            boolean leftExprIsName;
+            if (left == null) {
+                leftExprIsName = false;
+                leftExpr = "";
+            } else {
+                leftExprIsName = left.isName();
+                leftExpr = left.toString();
                 if (left.getPrecedence() < precedence) {
-                    buff.append('(').append(left.toString()).append(')');
-                } else {
-                    buff.append(left.toString());
+                    leftExpr = "(" + leftExpr + ")";
                 }
-                buff.append(' ');
             }
-            buff.append(operator);
-            if (right != null) {
-                buff.append(' ');
+            boolean impossible = false;
+            String rightExpr;
+            if (right == null) {
+                rightExpr = "";
+            } else {
+                if (leftExprIsName && !"like".equals(operator)) {
+                    // need to de-escape _x0020_ and so on
+                    if (!(right instanceof Literal)) {
+                        throw new IllegalArgumentException(
+                                "Can only compare a name against a string literal, not " + right);
+                    }
+                    Literal l = (Literal) right;
+                    String raw = l.rawText;
+                    String decoded = ISO9075.decode(raw);
+                    String encoded = ISO9075.encode(decoded);
+                    rightExpr = SQL2Parser.escapeStringLiteral(decoded);
+                    if (!encoded.toUpperCase().equals(raw.toUpperCase())) {
+                        // nothing can potentially match
+                        impossible = true;
+                    }
+                } else {
+                    rightExpr = right.toString();
+                }
                 if (right.getPrecedence() < precedence) {
-                    buff.append('(').append(right.toString()).append(')');
-                } else {
-                    buff.append(right.toString());
+                    rightExpr = "(" + right + ")";
                 }
             }
-            return buff.toString();
+            if (impossible) {
+                // a condition that can not possibly be true
+                return "upper(" + leftExpr + ") = 'never matches'";
+            }
+            return (leftExpr + " " + operator + " " + rightExpr).trim();
         }
 
         @Override
@@ -1322,6 +1362,14 @@ public class XPathToSQL2Converter {
         @Override
         boolean isCondition() {
             return name.equals("contains") || name.equals("not");
+        }
+        
+        @Override
+        boolean isName() {
+            if ("upper".equals(name) || "lower".equals(name)) {
+                return params.get(0).isName();
+            }
+            return "name".equals(name);
         }
 
     }

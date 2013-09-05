@@ -23,6 +23,35 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# xpath name escaping
+
+xpath2sql //My_x0020_Documents
+select [jcr:path], [jcr:score], * from [nt:base] as a where name(a) = 'My Documents' /* xpath: //My_x0020_Documents */
+
+xpath2sql //*[fn:name() = 'My Documents']
+select [jcr:path], [jcr:score], * from [nt:base] as a where upper(name(a)) = 'never matches' /* xpath: //*[fn:name() = 'My Documents'] */
+
+xpath2sql //*[fn:name() = 'My_x0020_Documents']
+select [jcr:path], [jcr:score], * from [nt:base] as a where name(a) = 'My Documents' /* xpath: //*[fn:name() = 'My_x0020_Documents'] */
+
+xpath2sql //*[fn:name() <> 'My_x0020_Documents']
+select [jcr:path], [jcr:score], * from [nt:base] as a where name(a) <> 'My Documents' /* xpath: //*[fn:name() <> 'My_x0020_Documents'] */
+
+xpath2sql //*[fn:upper-case(fn:name()) > 'MY_x0020_DOCS']
+select [jcr:path], [jcr:score], * from [nt:base] as a where upper(name(a)) > 'MY DOCS' /* xpath: //*[fn:upper-case(fn:name()) > 'MY_x0020_DOCS'] */
+
+xpath2sql //*[fn:lower-case(fn:name()) < 'my_x0020_docs']
+select [jcr:path], [jcr:score], * from [nt:base] as a where lower(name(a)) < 'my docs' /* xpath: //*[fn:lower-case(fn:name()) < 'my_x0020_docs'] */
+
+xpath2sql //*[fn:lower-case(fn:upper-case(fn:name())) >= 'my_x0020_docs']
+select [jcr:path], [jcr:score], * from [nt:base] as a where lower(upper(name(a))) >= 'my docs' /* xpath: //*[fn:lower-case(fn:upper-case(fn:name())) >= 'my_x0020_docs'] */
+
+xpath2sql //*[fn:upper-case(fn:lower-case(fn:name())) <= 'MY_x0020_DOCS']
+select [jcr:path], [jcr:score], * from [nt:base] as a where upper(lower(name(a))) <= 'MY DOCS' /* xpath: //*[fn:upper-case(fn:lower-case(fn:name())) <= 'MY_x0020_DOCS'] */
+
+xpath2sql //*[jcr:like(fn:name(), '%My Documents%')]
+select [jcr:path], [jcr:score], * from [nt:base] as a where name(a) like '%My Documents%' /* xpath: //*[jcr:like(fn:name(), '%My Documents%')] */
+
 # jackrabbit test queries
 
 xpath2sql /*[jcr:contains(., 'hello')]/rep:excerpt(.)
