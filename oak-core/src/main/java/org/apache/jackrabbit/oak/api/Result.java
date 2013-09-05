@@ -27,6 +27,15 @@ public interface Result {
      * @return the column names
      */
     String[] getColumnNames();
+    
+    /**
+     * Get the distinct selector names of all columns. The list is ordered as
+     * selectors appear in the result. For columns without selector, an empty
+     * entry (null) is used.
+     * 
+     * @return the distinct selector names
+     */
+    String[] getColumnSelectorNames();
 
     /**
      * Get the list of selector names.

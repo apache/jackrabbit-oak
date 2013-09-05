@@ -51,16 +51,19 @@ public class ResultRowImpl implements ResultRow {
 
     @Override
     public String getPath() {
-        if (paths.length > 1) {
-            throw new IllegalArgumentException("More than one selector");
-        } else if (paths.length == 0) {
-            throw new IllegalArgumentException("This query does not have a selector");
-        }
-        return paths[0];
+        return getPath(null);
     }
 
     @Override
     public String getPath(String selectorName) {
+        if (selectorName == null) {
+            if (paths.length > 1) {
+                throw new IllegalArgumentException("More than one selector");
+            } else if (paths.length == 0) {
+                throw new IllegalArgumentException("This query does not have a selector");
+            }
+            return paths[0];
+        }
         int index = query.getSelectorIndex(selectorName);
         if (paths == null || index >= paths.length) {
             return null;

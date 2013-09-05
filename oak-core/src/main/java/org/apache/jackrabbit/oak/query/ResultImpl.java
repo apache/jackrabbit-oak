@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
+import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 
 /**
  * A query result.
@@ -41,6 +43,19 @@ public class ResultImpl implements Result {
             names[i] = cols[i].getColumnName();
         }
         return names;
+    }
+    
+    @Override
+    public String[] getColumnSelectorNames() {
+        ArrayList<String> list = new ArrayList<String>();
+        for (ColumnImpl c : query.getColumns()) {
+            SelectorImpl selector = c.getSelector();
+            String name = selector == null ? null : selector.getSelectorName();
+            if (!list.contains(name)) {
+                list.add(name);
+            }
+        }
+        return list.toArray(new String[list.size()]);
     }
 
     @Override
