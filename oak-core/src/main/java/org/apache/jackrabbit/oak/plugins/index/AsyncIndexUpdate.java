@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -49,15 +48,15 @@ public class AsyncIndexUpdate implements Runnable {
             .getLogger(AsyncIndexUpdate.class);
 
     /**
-     * Name of the hidden node under which information about the
-     * checkpoints seen and indexed by each async indexer is kept.
+     * Name of the hidden node under which information about the checkpoints
+     * seen and indexed by each async indexer is kept.
      */
     private static final String ASYNC = ":async";
 
     private static final long DEFAULT_LIFETIME = TimeUnit.HOURS.toMillis(1);
 
-    private static final CommitFailedException CONCURRENT_UPDATE =
-            new CommitFailedException("Async", 1, "Concurrent update detected");
+    private static final CommitFailedException CONCURRENT_UPDATE = new CommitFailedException(
+            "Async", 1, "Concurrent update detected");
 
     private final String name;
 
@@ -70,9 +69,7 @@ public class AsyncIndexUpdate implements Runnable {
     /** Flag to avoid repeatedly logging failure warnings */
     private boolean failing = false;
 
-    public AsyncIndexUpdate(
-            @Nonnull String name,
-            @Nonnull NodeStore store,
+    public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider) {
         this.name = checkNotNull(name);
         this.store = checkNotNull(store);
@@ -104,47 +101,46 @@ public class AsyncIndexUpdate implements Runnable {
             before = MISSING_NODE;
         }
 
-            CommitFailedException exception = EditorDiff.process(
-                    new IndexUpdate(provider, name, after, builder),
-                    before, after);
-            if (exception == null) {
-                try {
-                    async.setProperty(name, checkpoint);
-                    postAsyncRunStatus(builder);
-                    branch.setRoot(builder.getNodeState());
-                    branch.merge(new CommitHook() {
-                        @Override @Nonnull
-                        public NodeState processCommit(
-                                NodeState before, NodeState after)
-                                throws CommitFailedException {
-                            // check for concurrent updates by this async task
-                            PropertyState stateAfterRebase =
-                                    before.getChildNode(ASYNC).getProperty(name);
-                            if (Objects.equal(state, stateAfterRebase)) {
-                                return after;
-                            } else {
-                                throw CONCURRENT_UPDATE;
-                            }
+        CommitFailedException exception = EditorDiff.process(new IndexUpdate(
+                provider, name, after, builder), before, after);
+        if (exception == null) {
+            try {
+                async.setProperty(name, checkpoint);
+                postAsyncRunStatus(builder);
+                branch.setRoot(builder.getNodeState());
+                branch.merge(new CommitHook() {
+                    @Override
+                    @Nonnull
+                    public NodeState processCommit(NodeState before,
+                            NodeState after) throws CommitFailedException {
+                        // check for concurrent updates by this async task
+                        PropertyState stateAfterRebase = before.getChildNode(
+                                ASYNC).getProperty(name);
+                        if (Objects.equal(state, stateAfterRebase)) {
+                            return after;
+                        } else {
+                            throw CONCURRENT_UPDATE;
                         }
-                    }, PostCommitHook.EMPTY);
-                } catch (CommitFailedException e) {
-                    if (e != CONCURRENT_UPDATE) {
-                        exception = e;
                     }
+                }, PostCommitHook.EMPTY);
+            } catch (CommitFailedException e) {
+                if (e != CONCURRENT_UPDATE) {
+                    exception = e;
                 }
             }
+        }
 
-            if (exception != null) {
-                if (!failing) {
-                    log.warn("Index update {} failed", name, exception);
-                }
-                failing = true;
-            } else {
-                if (failing) {
-                    log.info("Index update {} no longer fails", name);
-                }
-                failing = false;
+        if (exception != null) {
+            if (!failing) {
+                log.warn("Index update {} failed", name, exception);
             }
+            failing = true;
+        } else {
+            if (failing) {
+                log.info("Index update {} no longer fails", name);
+            }
+            failing = false;
+        }
     }
 
     private void preAsyncRun(NodeStore store) {
@@ -162,16 +158,14 @@ public class AsyncIndexUpdate implements Runnable {
     private static void preAsyncRunStatus(NodeBuilder builder) {
         builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
                 .setProperty("async-status", "running")
-                .setProperty("async-start",
-                        Calendar.getInstance().getTimeInMillis(), Type.DATE)
-                .removeProperty("async-done");
+                .setProperty("async-start", System.currentTimeMillis(),
+                        Type.DATE).removeProperty("async-done");
     }
 
     private static void postAsyncRunStatus(NodeBuilder builder) {
         builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
                 .setProperty("async-status", "done")
-                .setProperty("async-done",
-                        Calendar.getInstance().getTimeInMillis(), Type.DATE)
-                .removeProperty("async-start");
+                .setProperty("async-done", System.currentTimeMillis(),
+                        Type.DATE).removeProperty("async-start");
     }
 }
