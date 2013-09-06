@@ -187,9 +187,18 @@ public class FullTextSearchImpl extends ConstraintImpl {
         // and because we might not implement all features
         // such as index aggregation
         if (selector.index instanceof FulltextQueryIndex) {
+            // first verify if a property level condition exists and if that
+            // condition checks out, this takes out some extra rows from the index
+            // aggregation bits
+            if (relativePath == null && propertyName != null) {
+                PropertyValue p = selector.currentProperty(propertyName);
+                if (p == null) {
+                    return false;
+                }
+            }
             return true;
         }
-        
+
         StringBuilder buff = new StringBuilder();
         if (relativePath == null && propertyName != null) {
             PropertyValue p = selector.currentProperty(propertyName);
