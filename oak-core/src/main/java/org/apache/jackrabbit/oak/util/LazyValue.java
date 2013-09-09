@@ -34,6 +34,13 @@ public abstract class LazyValue<T> {
     protected abstract T createValue();
 
     /**
+     * @return  {@code true} iff {@link #get()} has been called at least once.
+     */
+    public boolean hasValue() {
+        return value != null;
+    }
+
+    /**
      * Get value. Calls {@link #createValue()} if called for the first time.
      * @return  the value
      */
