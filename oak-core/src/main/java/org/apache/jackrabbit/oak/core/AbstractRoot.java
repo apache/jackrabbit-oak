@@ -117,7 +117,7 @@ public abstract class AbstractRoot implements Root {
      */
     private long modCount;
 
-    private LazyValue<PermissionProvider> permissionProvider = new LazyValue<PermissionProvider>() {
+    private final LazyValue<PermissionProvider> permissionProvider = new LazyValue<PermissionProvider>() {
         @Override
         protected PermissionProvider createValue() {
             return getAcConfig().getPermissionProvider(AbstractRoot.this, subject.getPrincipals());
@@ -218,7 +218,7 @@ public abstract class AbstractRoot implements Root {
             purgePendingChanges();
             branch.rebase();
             reset();
-            if (permissionProvider != null) {
+            if (permissionProvider.hasValue()) {
                 permissionProvider.get().refresh();
             }
         }
@@ -230,7 +230,7 @@ public abstract class AbstractRoot implements Root {
         branch = store.branch();
         reset();
         modCount = 0;
-        if (permissionProvider != null) {
+        if (permissionProvider.hasValue()) {
             permissionProvider.get().refresh();
         }
     }
