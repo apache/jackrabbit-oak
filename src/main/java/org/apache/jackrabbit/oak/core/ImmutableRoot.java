@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -91,7 +92,7 @@ public final class ImmutableRoot implements Root {
     }
 
     @Override
-    public void commit() {
+    public void commit(CommitHook... hooks) {
         throw new UnsupportedOperationException();
     }
 
