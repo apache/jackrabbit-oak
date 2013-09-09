@@ -39,7 +39,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.version.VersionManager;
@@ -62,6 +61,14 @@ import org.slf4j.LoggerFactory;
  */
 abstract class ItemImpl<T extends ItemDelegate> implements Item {
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
+
+    /**
+     * The value of this flag determines the behaviour of {@link #save()}. If {@code false},
+     * save will throw a {@link javax.jcr.UnsupportedRepositoryOperationException} if the
+     * sub tree rooted at this item does not contain <em>all</em> transient changes. If
+     * {@code true}, save will delegate to {@link Session#save()}.
+     */
+    public static final boolean SAVE_SESSION = Boolean.getBoolean("item-safe-does-session-safe");
 
     protected final SessionContext sessionContext;
     protected final T dlg;
@@ -121,7 +128,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     public String getName() throws RepositoryException {
         String oakName = perform(new ItemOperation<String>(dlg) {
             @Override
-            public String perform() throws RepositoryException {
+            public String perform() {
                 return item.getName();
             }
         });
@@ -137,7 +144,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     public String getPath() throws RepositoryException {
         return toJcrPath(perform(new ItemOperation<String>(dlg) {
             @Override
-            public String perform() throws RepositoryException {
+            public String perform() {
                 return item.getPath();
             }
         }));
@@ -228,17 +235,32 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     /**
+     * This implementation delegates to {@link Session#save()} if {@link #SAVE_SESSION} is
+     * {@code true}. Otherwise it only performs the save if the subtree rooted at this item contains
+     * all transient changes. That is, if calling {@link Session#save()} would have the same effect
+     * as calling this method. In all other cases this method will throw an
+     * {@link javax.jcr.UnsupportedRepositoryOperationException}
+     *
      * @see javax.jcr.Item#save()
      */
     @Override
     public void save() throws RepositoryException {
-        log.warn("Item#save is no longer supported. Please use Session#save instead.");
-        
-        if (isNew()) {
-            throw new RepositoryException("Item.save() not allowed on new item");
+        if (SAVE_SESSION) {
+            getSession().save();
+        } else {
+            perform(new ItemWriteOperation<Void>() {
+                @Override
+                public Void perform() throws RepositoryException {
+                    dlg.save();
+                    return null;
+                }
+
+                @Override
+                public boolean isSave() {
+                    return true;
+                }
+            });
         }
-        
-        getSession().save();
     }
 
     /**

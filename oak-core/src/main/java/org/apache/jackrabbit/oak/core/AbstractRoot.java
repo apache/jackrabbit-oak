@@ -18,15 +18,21 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -55,10 +61,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.LazyValue;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public abstract class AbstractRoot implements Root {
 
@@ -234,7 +236,7 @@ public abstract class AbstractRoot implements Root {
     }
 
     @Override
-    public void commit() throws CommitFailedException {
+    public void commit(final CommitHook... hooks) throws CommitFailedException {
         checkLive();
         purgePendingChanges();
         CommitFailedException exception = Subject.doAs(
@@ -242,7 +244,7 @@ public abstract class AbstractRoot implements Root {
             @Override
             public CommitFailedException run() {
                 try {
-                    branch.merge(getCommitHook(), postHook);
+                    branch.merge(getCommitHook(hooks), postHook);
                     return null;
                 } catch (CommitFailedException e) {
                     return e;
@@ -256,14 +258,15 @@ public abstract class AbstractRoot implements Root {
     }
 
     /**
-     * Combine the globally defined commit hook(s) with the hooks and
+     * Combine the passed {@code hooks}, the globally defined commit hook(s) and the hooks and
      * validators defined by the various security related configurations.
      *
-     * @return A commit hook combining repository global commit hook(s) with
-     *         the pluggable hooks defined with the security modules.
+     * @return A commit hook combining repository global commit hook(s) with the pluggable hooks
+     *         defined with the security modules and the padded {@code hooks}.
+     * @param hooks
      */
-    private CommitHook getCommitHook() {
-        List<CommitHook> commitHooks = new ArrayList<CommitHook>();
+    private CommitHook getCommitHook(CommitHook[] hooks) {
+        List<CommitHook> commitHooks = Lists.newArrayList(hooks);
         commitHooks.add(hook);
         List<CommitHook> postValidationHooks = new ArrayList<CommitHook>();
         for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
@@ -285,7 +288,7 @@ public abstract class AbstractRoot implements Root {
 
     /**
      * TODO: review again once the permission validation is completed.
-     * Build a read only subject for the {@link #commit()} call that makes the
+     * Build a read only subject for the {@link #commit(CommitHook...)} call that makes the
      * principals and the permission provider available to the commit hooks.
      *
      * @return a new read only subject.

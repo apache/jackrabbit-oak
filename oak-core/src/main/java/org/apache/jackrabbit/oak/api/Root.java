@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.api;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+
 /**
  * A {@code Root} instance serves as a container for a {@link Tree}. It is
  * obtained from a {@link ContentSession}, which governs accessibility and
@@ -30,8 +32,8 @@ import javax.annotation.Nonnull;
  * will throw an {@code InvalidStateException}.
  * <p>
  * {@link Tree} instances may become non existing after a call to
- * {@link #refresh()}, {@link #rebase()} or {@link #commit()}. Any write
- * access to non existing {@code Tree} instances will cause an
+ * {@link #refresh()}, {@link #rebase()} or {@link #commit(CommitHook... hooks)}.
+ * Any write access to non existing {@code Tree} instances will cause an
  * {@code InvalidStateException}.
  * @see Tree Existence and iterability of trees
  */
@@ -50,7 +52,7 @@ public interface Root {
      * </ul>
      * If a tree at {@code destinationPath} exists but is not accessible to the
      * editing content session this method succeeds but a subsequent
-     * {@link #commit()} will detect the violation and fail.
+     * {@link #commit(CommitHook... hooks)} will detect the violation and fail.
      *
      * @param sourcePath The source path
      * @param destPath The destination path
@@ -70,7 +72,7 @@ public interface Root {
      * </ul>
      * If a tree at {@code destinationPath} exists but is not accessible to the
      * editing content session this method succeeds but a subsequent
-     * {@link #commit()} will detect the violation and fail.
+     * {@link #commit(CommitHook... hooks)} will detect the violation and fail.
      *
      * @param sourcePath source path
      * @param destPath destination path
@@ -102,13 +104,20 @@ public interface Root {
     void refresh();
 
     /**
-     * Atomically apply all changes made to the tree contained in this root to the
-     * underlying store and refreshes this root. After a call to this method,
-     * trees obtained through {@link #getTree(String)} may become non existing.
+     * Atomically persists all changes made to the tree contained in this root to the underlying
+     * store.
+     * <p>
+     * Before any changes are actually persisted the passed commit hooks are run and may fail the
+     * commit by throwing a {@code CommitFailedException}. The commit hooks are run in the order as
+     * passed and <em>before</em> any other commit hook that might be present in this root.
+     * <p>
+     * After a successful operation the root is automatically {@link #refresh() refreshed}, such
+     * that trees obtained through {@link #getTree(String)} may become non existing.
      *
+     * @param hooks  commit hooks to run before any changes are persisted.
      * @throws CommitFailedException
      */
-    void commit() throws CommitFailedException;
+    void commit(CommitHook... hooks) throws CommitFailedException;
 
     /**
      * Determine whether there are changes on this tree
