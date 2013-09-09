@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
@@ -28,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 
@@ -101,9 +105,21 @@ public class AggregateIndex implements FulltextQueryIndex {
 
         private boolean init;
         private boolean closed;
+
+        /**
+         * current item of the cursor
+         */
+        private String item;
+
+        /**
+         * all of the item's known aggregates
+         */
         private Iterator<String> aggregates;
 
-        private String item;
+        /**
+         * should enforce uniqueness of the aggregated paths
+         */
+        private Set<String> seenPaths = new HashSet<String>();
 
         public AggregationCursor(Cursor cursor, NodeAggregator aggregator,
                 NodeState rootState) {
@@ -131,8 +147,10 @@ public class AggregateIndex implements FulltextQueryIndex {
             if (cursor.hasNext()) {
                 IndexRow row = cursor.next();
                 String path = row.getPath();
-                aggregates = Iterators.concat(ImmutableSet.of(path).iterator(),
-                        aggregator.getParents(rootState, path));
+                aggregates = Iterators.filter(Iterators.concat(
+                        ImmutableSet.of(path).iterator(),
+                        aggregator.getParents(rootState, path)), Predicates
+                        .not(Predicates.in(seenPaths)));
                 fetchNext();
                 return;
             }
@@ -144,6 +162,7 @@ public class AggregateIndex implements FulltextQueryIndex {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
+            seenPaths.add(item);
             init = false;
             return new IndexRowImpl(item);
         }
