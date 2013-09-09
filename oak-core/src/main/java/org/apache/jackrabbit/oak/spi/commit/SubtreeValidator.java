@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Validator that detects changes to a specified subtree and delegates the
  * validation of such changes to another given validator.
  *
+ * @see SubtreeExcludingValidator
  * @since Oak 0.3
  */
 public class SubtreeValidator extends DefaultValidator {

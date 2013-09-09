@@ -16,20 +16,21 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import static java.lang.String.format;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.NamespaceException;
 import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
-
-import static java.lang.String.format;
 
 /**
  * Main exception thrown by methods defined on the {@code ContentSession}
@@ -58,7 +59,7 @@ public class CommitFailedException extends Exception {
     public static final String CONSTRAINT = "Constraint";
 
     /**
-     * Type name for referencial integrity violation errors.
+     * Type name for referential integrity violation errors.
      */
     public static final String INTEGRITY = "Integrity";
 
@@ -96,6 +97,11 @@ public class CommitFailedException extends Exception {
      * Type name for label exists version errors.
      */
     public static final String LABEL_EXISTS = "LabelExists";
+
+    /**
+     * Unsupported operation or feature
+     */
+    public static final String UNSUPPORTED = "Unsupported";
 
     /**
      * Serial version UID
@@ -230,6 +236,8 @@ public class CommitFailedException extends Exception {
             return new LabelExistsVersionException(message, this);
         } else if (isOfType(LOCK)) {
             return new LockException(message, this);
+        } else if (isOfType(UNSUPPORTED)) {
+            return new UnsupportedRepositoryOperationException(message, this);
         } else {
             return new RepositoryException(message, this);
         }

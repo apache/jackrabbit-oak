@@ -110,4 +110,12 @@ public abstract class ItemDelegate {
      */
     public abstract boolean remove() throws InvalidItemStateException;
 
+    /**
+     * Save the subtree rooted at this item.
+     *
+     * @throws RepositoryException
+     */
+    public void save() throws RepositoryException {
+        sessionDelegate.save(getPath());
+    }
 }
