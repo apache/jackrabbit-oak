@@ -34,7 +34,6 @@ import static org.junit.Assert.assertTrue;
  */
 public class DocumentSplitTest extends BaseMongoMKTest {
 
-    @Ignore
     @Test
     public void splitRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
