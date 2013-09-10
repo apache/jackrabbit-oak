@@ -91,6 +91,8 @@
       org.apache.jackrabbit.core.query.SimpleQueryTest#testNegativeNumber                            <!-- OAK-327 -->
       org.apache.jackrabbit.core.query.SQL2OrderByTest#testOrderByScore
       org.apache.jackrabbit.oak.jcr.query.QueryFulltextTest#testFulltextRelativeProperty             <!-- OAK-828 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testPredefinedEntityReference             <!-- OAK-XXX -->
+
     </known.issues>
   </properties>
 

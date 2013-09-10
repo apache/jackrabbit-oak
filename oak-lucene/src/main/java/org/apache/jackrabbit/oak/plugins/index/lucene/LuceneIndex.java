@@ -656,7 +656,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             if (hasFulltextToken) {
                 return new WildcardQuery(newFulltextTerm(text));
             } else {
-                return new PrefixQuery(newFulltextTerm(text));
+                return new TermQuery(newFulltextTerm(text));
             }
         } else {
             PhraseQuery pq = new PhraseQuery();

@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.standard.ClassicAnalyzer;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.Version;
 
@@ -29,7 +29,7 @@ public interface LuceneIndexConstants {
 
     Version VERSION = Version.LUCENE_43;
 
-    Analyzer ANALYZER = new StandardAnalyzer(VERSION, CharArraySet.EMPTY_SET);
+    Analyzer ANALYZER = new ClassicAnalyzer(VERSION, CharArraySet.EMPTY_SET);
 
     /**
      * include only certain property types in the index
