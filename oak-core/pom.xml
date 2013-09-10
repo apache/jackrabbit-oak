@@ -85,7 +85,7 @@
             <Jaas-ModuleClass>
               org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule,
            	  org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl,
-              org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule
+              org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule,
               org.apache.jackrabbit.oak.security.authentication.ldap.LdapLoginModule
            	</Jaas-ModuleClass>
             <Bundle-Activator>
