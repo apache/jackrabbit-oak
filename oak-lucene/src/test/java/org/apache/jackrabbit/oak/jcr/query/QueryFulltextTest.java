@@ -59,7 +59,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
 //                    "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
 //                    getResult(q.execute(), "plan"));
             assertEquals("[nt:base] as [nt:base] /* " + 
-                    "aggregate +(:fulltext:hallo* :fulltext:hello*) +text:{* TO *} " + 
+                    "aggregate +(:fulltext:hallo :fulltext:hello) +text:{* TO *} " + 
                     "ft:(text:\"hallo\" OR text:\"hello\") " +
                     "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
                     getResult(q.execute(), "plan"));
