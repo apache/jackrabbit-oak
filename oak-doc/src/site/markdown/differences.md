@@ -64,8 +64,10 @@ relying on one session seeing the other session's changes. Oak requires explicit
 On Oak `Item.refresh()` is deprecated and will always cause an `Session.refresh()`. The former call
 will result in a warning written to the log in order to facilitate locating trouble spots.
 
-On Oak `Item.save()` is deprecated and will only work it the subtree rooted at the respective item
-covers all transient changes. Otherwise it will throw an `UnsupportedRepositoryException`. See
+On Oak `Item.save()` is deprecated and will per default log a warning and fall back to
+`Session.save()`. This behaviour can be tweaked with `-Ditem-save-does-session-save=false` in which
+case no fall back to `Session#save()` will happen but an `UnsupportedRepositoryException` is thrown
+if the sub-tree rooted at the respective item does not contain all transient changes. See
 [OAK-993](https://issues.apache.org/jira/browse/OAK-993) for details.
 
 Query

@@ -37,6 +37,7 @@ import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -62,13 +63,19 @@ import org.slf4j.LoggerFactory;
 abstract class ItemImpl<T extends ItemDelegate> implements Item {
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
+    public static final String ITEM_SAVE_DOES_SESSION_SAVE = "item-save-does-session-save";
+
     /**
      * The value of this flag determines the behaviour of {@link #save()}. If {@code false},
      * save will throw a {@link javax.jcr.UnsupportedRepositoryOperationException} if the
      * sub tree rooted at this item does not contain <em>all</em> transient changes. If
      * {@code true}, save will delegate to {@link Session#save()}.
      */
-    public static final boolean SAVE_SESSION = Boolean.getBoolean("item-safe-does-session-safe");
+    public static final boolean SAVE_SESSION;
+    static {
+        String property = System.getProperty(ITEM_SAVE_DOES_SESSION_SAVE);
+        SAVE_SESSION = property == null || Boolean.parseBoolean(property);
+    }
 
     protected final SessionContext sessionContext;
     protected final T dlg;
@@ -242,12 +249,12 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * {@link javax.jcr.UnsupportedRepositoryOperationException}
      *
      * @see javax.jcr.Item#save()
+     *
+     *
      */
     @Override
     public void save() throws RepositoryException {
-        if (SAVE_SESSION) {
-            getSession().save();
-        } else {
+        try {
             perform(new ItemWriteOperation<Void>() {
                 @Override
                 public Void perform() throws RepositoryException {
@@ -260,6 +267,19 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
                     return true;
                 }
             });
+        } catch (UnsupportedRepositoryOperationException e) {
+            if (SAVE_SESSION) {
+                if (isNew()) {
+                    throw new RepositoryException("Item.save() not allowed on new item");
+                }
+
+                log.warn("Item#save is only supported when the subtree rooted at that item " +
+                        "contains all transient changes. Falling back to Session#save since " +
+                        "system property " + ITEM_SAVE_DOES_SESSION_SAVE + " is true.");
+                getSession().save();
+            } else {
+                throw e;
+            }
         }
     }
 
