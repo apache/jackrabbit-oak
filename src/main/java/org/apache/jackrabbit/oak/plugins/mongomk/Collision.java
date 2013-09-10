@@ -44,18 +44,18 @@ class Collision {
     private static final Logger LOG = LoggerFactory.getLogger(Collision.class);
 
     private final NodeDocument document;
-    private final String theirRev;
+    private final Revision theirRev;
     private final UpdateOp ourOp;
-    private final String ourRev;
+    private final Revision ourRev;
 
     Collision(@Nonnull NodeDocument document,
               @Nonnull Revision theirRev,
               @Nonnull UpdateOp ourOp,
               @Nonnull Revision ourRev) {
         this.document = checkNotNull(document);
-        this.theirRev = checkNotNull(theirRev).toString();
+        this.theirRev = checkNotNull(theirRev);
         this.ourOp = checkNotNull(ourOp);
-        this.ourRev = checkNotNull(ourRev).toString();
+        this.ourRev = checkNotNull(ourRev);
     }
 
     /**
@@ -72,7 +72,7 @@ class Collision {
             return;
         }
         // their commit wins, we have to mark ourRev
-        NodeDocument newDoc = Collection.NODES.newDocument();
+        NodeDocument newDoc = Collection.NODES.newDocument(store);
         document.deepCopy(newDoc);
         MemoryDocumentStore.applyChanges(newDoc, ourOp);
         if (!markCommitRoot(newDoc, ourRev, store)) {
@@ -94,8 +94,9 @@ class Collision {
      *         successfully; <code>false</code> otherwise.
      */
     private static boolean markCommitRoot(@Nonnull NodeDocument document,
-                                          @Nonnull String revision,
+                                          @Nonnull Revision revision,
                                           @Nonnull DocumentStore store) {
+        String rev = revision.toString();
         String p = Utils.getPathFromId(document.getId());
         String commitRootPath = null;
         // first check if we can mark the commit with the given revision
@@ -109,9 +110,9 @@ class Collision {
             commitRootPath = p;
         } else {
             // next look at commit root
-            commitRootPath = document.getCommitRootPath(revision);
+            commitRootPath = document.getCommitRootPath(rev);
             if (commitRootPath == null) {
-                throwNoCommitRootException(revision, document);
+                throwNoCommitRootException(rev, document);
             }
         }
         // at this point we have a commitRootPath
@@ -121,7 +122,7 @@ class Collision {
         if (document.isCommitted(revision)) {
             return false;
         }
-        op.setMapEntry(NodeDocument.COLLISIONS, revision, true);
+        op.setMapEntry(NodeDocument.COLLISIONS, rev, true);
         document = store.createOrUpdate(Collection.NODES, op);
         // check again on old document right before our update was applied
         if (document.isCommitted(revision)) {

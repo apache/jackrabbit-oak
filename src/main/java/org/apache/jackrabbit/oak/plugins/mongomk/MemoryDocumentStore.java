@@ -166,7 +166,7 @@ public class MemoryDocumentStore implements DocumentStore {
             // get the node if it's there
             oldDoc = map.get(update.key);
 
-            T doc = collection.newDocument();
+            T doc = collection.newDocument(this);
             if (oldDoc == null) {
                 if (!update.isNew) {
                     throw new MicroKernelException("Document does not exist: " + update.key);

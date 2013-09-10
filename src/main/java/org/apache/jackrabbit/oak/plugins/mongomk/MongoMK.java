@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -61,6 +62,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Weigher;
+import com.google.common.collect.Maps;
 import com.mongodb.DB;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -181,6 +183,11 @@ public class MongoMK implements MicroKernel, RevisionContext {
      * Key: path, value: revision.
      */
     private final UnsavedModifications unsavedLastRevisions = new UnsavedModifications();
+
+    /**
+     * Set of IDs for documents that may need to be split.
+     */
+    private final Map<String, String> splitCandidates = Maps.newConcurrentMap();
     
     /**
      * The last known revision for each cluster instance.
@@ -317,6 +324,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         }
         synchronized (this) {
             try {
+                backgroundSplit();
                 backgroundWrite();
                 backgroundRead();
             } catch (RuntimeException e) {
@@ -372,7 +380,26 @@ public class MongoMK implements MicroKernel, RevisionContext {
         }
         revisionComparator.purge(Revision.getCurrentTimestamp() - REMEMBER_REVISION_ORDER_MILLIS);
     }
-    
+
+    private void backgroundSplit() {
+        for (Iterator<String> it = splitCandidates.keySet().iterator(); it.hasNext(); ) {
+            String id = it.next();
+            NodeDocument doc = store.find(Collection.NODES, id);
+            if (doc == null) {
+                continue;
+            }
+            for (UpdateOp op : doc.split(this)) {
+                NodeDocument before = store.createOrUpdate(Collection.NODES, op);
+                if (before != null) {
+                    NodeDocument after = store.find(Collection.NODES, op.getKey());
+                    LOG.info("Split operation on {}. Size before: {}, after: {}",
+                            new Object[]{id, before.getMemory(), after.getMemory()});
+                }
+            }
+            it.remove();
+        }
+    }
+
     void backgroundWrite() {
         if (unsavedLastRevisions.getPaths().size() == 0) {
             return;
@@ -411,7 +438,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
             unsavedLastRevisions.remove(p);
         }
     }
-    
+
     public void dispose() {
         // force background write (with asyncDelay > 0, the root wouldn't be written)
         // TODO make this more obvious / explicit
@@ -454,6 +481,15 @@ public class MongoMK implements MicroKernel, RevisionContext {
             }
         }
         return node;
+    }
+
+    /**
+     * Enqueue the document with the given id as a split candidate.
+     *
+     * @param id the id of the document to check if it needs to be split.
+     */
+    void addSplitCandidate(String id) {
+        splitCandidates.put(id, id);
     }
     
     private void checkRevisionAge(Revision r, String path) {
@@ -526,7 +562,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
             Set<Revision> validRevisions = new HashSet<Revision>();
             for (NodeDocument doc : list) {
                 // filter out deleted children
-                if (doc.getLiveRevision(this, store, rev, validRevisions) == null) {
+                if (doc.isDeleted(this, rev, validRevisions)) {
                     continue;
                 }
                 String p = Utils.getPathFromId(doc.getId());
@@ -553,7 +589,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         if (doc == null) {
             return null;
         }
-        return doc.getNodeAtRevision(this, store, readRevision);
+        return doc.getNodeAtRevision(this, readRevision);
     }
     
     @Override

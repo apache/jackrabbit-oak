@@ -35,29 +35,15 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.mongomk.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
+
 /**
  * A higher level object representing a commit.
  */
 public class Commit {
 
-    /**
-     * Whether to purge old revisions if a node gets too large. If false, old
-     * revisions are stored in a separate document. If true, old revisions are
-     * removed (purged).
-     * TODO: enable once document split and garbage collection implementation is complete.
-     */
-    static final boolean PURGE_OLD_REVISIONS = false;
-    
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
-    /**
-     * The maximum size of a document. If it is larger, it is split.
-     * TODO: check which value is the best one
-     *       Document splitting is currently disabled until the implementation
-     *       is complete.
-     */
-    private static final int MAX_DOCUMENT_SIZE = Integer.MAX_VALUE;
-   
     private final MongoMK mk;
     private final Revision baseRevision;
     private final Revision revision;
@@ -221,7 +207,7 @@ public class Commit {
                 NodeDocument.setLastRev(op, revision);
             }
             if (op.isNew) {
-                op.setMapEntry(NodeDocument.DELETED, revision.toString(), "false");
+                NodeDocument.setDeleted(op, revision, false);
             }
             if (op == commitRoot) {
                 // apply at the end
@@ -306,7 +292,7 @@ public class Commit {
             final AtomicReference<List<Revision>> collisions = new AtomicReference<List<Revision>>();
             Revision newestRev = null;
             if (doc != null) {
-                newestRev = doc.getNewestRevision(mk, store, revision,
+                newestRev = doc.getNewestRevision(mk, revision,
                         new CollisionHandler() {
                             @Override
                             void concurrentModification(Revision other) {
@@ -353,23 +339,8 @@ public class Commit {
             }
         }
 
-        if (doc != null && doc.getMemory() > MAX_DOCUMENT_SIZE) {
-            UpdateOp[] split = doc.splitDocument(mk, revision, mk.getSplitDocumentAgeMillis());
-            
-            // TODO check if the new main document is actually smaller;
-            // otherwise, splitting doesn't make sense
-            
-            // the old version
-            UpdateOp old = split[0];
-            if (old != null) {
-                store.createOrUpdate(Collection.NODES, old);
-            }
-            
-            // the (shrunken) main document
-            UpdateOp main = split[1];
-            if (main != null) {
-                store.createOrUpdate(Collection.NODES, main);
-            }
+        if (doc != null && doc.getMemory() > SPLIT_CANDIDATE_THRESHOLD) {
+            mk.addSplitCandidate(doc.getId());
         }
     }
 
@@ -392,44 +363,7 @@ public class Commit {
             // or document did not exist before
             return false;
         }
-        // did existence of node change after baseRevision?
-        @SuppressWarnings("unchecked")
-        Map<String, String> deleted = (Map<String, String>) doc.get(NodeDocument.DELETED);
-        if (deleted != null) {
-            for (Map.Entry<String, String> entry : deleted.entrySet()) {
-                if (mk.isRevisionNewer(Revision.fromString(entry.getKey()), baseRevision)) {
-                    return true;
-                }
-            }
-        }
-
-        for (Map.Entry<String, UpdateOp.Operation> entry : op.changes.entrySet()) {
-            if (entry.getValue().type != UpdateOp.Operation.Type.SET_MAP_ENTRY) {
-                continue;
-            }
-            int idx = entry.getKey().indexOf('.');
-            String name = entry.getKey().substring(0, idx);
-            if (NodeDocument.DELETED.equals(name)) {
-                // existence of node changed, this always conflicts with
-                // any other concurrent change
-                return true;
-            }
-            if (!Utils.isPropertyName(name)) {
-                continue;
-            }
-            // was this property touched after baseRevision?
-            @SuppressWarnings("unchecked")
-            Map<String, Object> changes = (Map<String, Object>) doc.get(name);
-            if (changes == null) {
-                continue;
-            }
-            for (String rev : changes.keySet()) {
-                if (mk.isRevisionNewer(Revision.fromString(rev), baseRevision)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return doc.isConflicting(op, baseRevision, mk);
     }
 
     /**
@@ -507,7 +441,7 @@ public class Commit {
         removedNodes.add(path);
         UpdateOp op = getUpdateOperationForNode(path);
         op.setDelete(true);
-        op.setMapEntry(NodeDocument.DELETED, revision.toString(), "true");
+        NodeDocument.setDeleted(op, revision, true);
     }
 
 }

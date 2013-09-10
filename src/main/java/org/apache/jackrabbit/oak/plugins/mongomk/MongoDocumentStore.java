@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
@@ -176,7 +177,9 @@ public class MongoDocumentStore implements DocumentStore {
                 return null;
             }
             T doc = convertFromDBObject(collection, obj);
-            doc.seal();
+            if (doc != null) {
+                doc.seal();
+            }
             return doc;
         } finally {
             end("findUncached", start);
@@ -217,8 +220,8 @@ public class MongoDocumentStore implements DocumentStore {
             for (int i = 0; i < limit && cursor.hasNext(); i++) {
                 DBObject o = cursor.next();
                 T doc = convertFromDBObject(collection, o);
-                doc.seal();
-                if (collection == Collection.NODES) {
+                if (collection == Collection.NODES && doc != null) {
+                    doc.seal();
                     nodesCache.put(doc.getId(), (NodeDocument) doc);
                 }
                 list.add(doc);
@@ -322,19 +325,21 @@ public class MongoDocumentStore implements DocumentStore {
             if (checkConditions && oldNode == null) {
                 return null;
             }
-            T doc = convertFromDBObject(collection, oldNode);
+            T oldDoc = convertFromDBObject(collection, oldNode);
             
             // cache the new document
             if (collection == Collection.NODES) {
-                T newDoc = collection.newDocument();
-                doc.deepCopy(newDoc);
+                T newDoc = collection.newDocument(this);
+                if (oldDoc != null) {
+                    oldDoc.deepCopy(newDoc);
+                    oldDoc.seal();
+                }
                 String key = updateOp.getKey();
                 MemoryDocumentStore.applyChanges(newDoc, updateOp);
                 newDoc.seal();
                 nodesCache.put(key, (NodeDocument) newDoc);
             }
-            doc.seal();
-            return doc;
+            return oldDoc;
         } catch (Exception e) {
             throw new MicroKernelException(e);
         } finally {
@@ -370,7 +375,7 @@ public class MongoDocumentStore implements DocumentStore {
         for (int i = 0; i < updateOps.size(); i++) {
             inserts[i] = new BasicDBObject();
             UpdateOp update = updateOps.get(i);
-            T target = collection.newDocument();
+            T target = collection.newDocument(this);
             MemoryDocumentStore.applyChanges(target, update);
             docs.add(target);
             for (Entry<String, Operation> entry : update.changes.entrySet()) {
@@ -422,10 +427,12 @@ public class MongoDocumentStore implements DocumentStore {
         }        
     }
 
-    private static <T extends Document> T convertFromDBObject(Collection<T> collection,
-                                                              DBObject n) {
-        T copy = collection.newDocument();
+    @CheckForNull
+    private <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection,
+                                                       @Nullable DBObject n) {
+        T copy = null;
         if (n != null) {
+            copy = collection.newDocument(this);
             for (String key : n.keySet()) {
                 Object o = n.get(key);
                 if (o instanceof String) {
