@@ -18,14 +18,18 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
+
+import com.google.common.collect.Maps;
 
 /**
  * A document corresponds to a node stored in the MongoMK. A document contains
@@ -42,7 +46,7 @@ public class Document implements CacheValue {
     /**
      * The data of this document.
      */
-    protected Map<String, Object> data = new TreeMap<String, Object>();
+    protected Map<String, Object> data = Maps.newHashMap();
 
     /**
      * Whether this document is sealed (immutable data).
@@ -94,7 +98,14 @@ public class Document implements CacheValue {
      */
     public void seal() {
         if (!sealed.getAndSet(true)) {
-            data = seal(data);
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
+                if (entry.getValue() instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<Object, Object> map = (Map<Object, Object>) entry.getValue();
+                    entry.setValue(transformAndSeal(map, entry.getKey(), 1));
+                }
+            }
+            data = Collections.unmodifiableMap(data);
         }
     }
 
@@ -123,17 +134,34 @@ public class Document implements CacheValue {
         return Utils.estimateMemoryUsage(this.data);
     }
 
-    //------------------------------< internal >--------------------------------
-
-    private static Map<String, Object> seal(Map<String, Object> map) {
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
+    /**
+     * Transform and seal the data of this document. That is, the data becomes
+     * immutable and transformation may be performed on the data.
+     *
+     * @param map the map to transform.
+     * @param key the key for the given map or <code>null</code> if the map
+     *            is the top level data map.
+     * @param level the level. Zero for the top level map, one for an entry in
+     *              the top level map, etc.
+     * @return the transformed and sealed map.
+     */
+    @Nonnull
+    protected Map<?, ?> transformAndSeal(@Nonnull Map<Object, Object> map,
+                                         @Nullable String key,
+                                         int level) {
+        for (Map.Entry<Object, Object> entry : map.entrySet()) {
             Object value = entry.getValue();
             if (value instanceof Map) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> childMap = (Map<String, Object>) value;
-                entry.setValue(seal(childMap));
+                Map<Object, Object> childMap = (Map<Object, Object>) value;
+                entry.setValue(transformAndSeal(
+                        childMap, entry.getKey().toString(), level + 1));
             }
         }
-        return Collections.unmodifiableMap(map);
+        if (map instanceof NavigableMap) {
+            return Maps.unmodifiableNavigableMap((NavigableMap<Object, Object>) map);
+        } else {
+            return Collections.unmodifiableMap(map);
+        }
     }
 }
