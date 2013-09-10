@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.jcr.operation;
+package org.apache.jackrabbit.oak.jcr.session.operation;
 
 import javax.jcr.RepositoryException;
 

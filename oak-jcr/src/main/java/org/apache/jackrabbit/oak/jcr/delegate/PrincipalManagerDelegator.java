@@ -23,7 +23,7 @@ import java.security.Principal;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 
 /**
  * This implementation of {@code PrincipalManager} delegates back to a

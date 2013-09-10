@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.jcr.lock;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 
 /**
  * Abstract base class for locking operations.

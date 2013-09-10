@@ -14,17 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.operation;
+package org.apache.jackrabbit.oak.jcr.session.operation;
 
-import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import javax.jcr.RepositoryException;
 
-public abstract class PropertyOperation<U> extends ItemOperation<U> {
+import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 
-    protected final PropertyDelegate property;
+public abstract class ItemOperation<U> extends SessionOperation<U> {
 
-    protected PropertyOperation(PropertyDelegate property) {
-        super(property);
-        this.property = property;
+    protected final ItemDelegate item;
+
+    protected ItemOperation(ItemDelegate item) {
+        this.item = item;
+    }
+
+    @Override
+    public void checkPreconditions() throws RepositoryException {
+        item.checkAlive();
     }
 
 }

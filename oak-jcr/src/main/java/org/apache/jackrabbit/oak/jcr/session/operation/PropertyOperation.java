@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.operation;
+package org.apache.jackrabbit.oak.jcr.session.operation;
 
-import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 
-public abstract class NodeOperation<U> extends ItemOperation<U> {
+public abstract class PropertyOperation<U> extends ItemOperation<U> {
 
-    protected final NodeDelegate node;
+    protected final PropertyDelegate property;
 
-    protected NodeOperation(NodeDelegate node) {
-        super(node);
-        this.node = node;
+    protected PropertyOperation(PropertyDelegate property) {
+        super(property);
+        this.property = property;
     }
 
 }

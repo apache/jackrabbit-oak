@@ -47,7 +47,7 @@ import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.StaticOperand;
 import javax.jcr.query.qom.UpperCase;
 
-import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 
 /**

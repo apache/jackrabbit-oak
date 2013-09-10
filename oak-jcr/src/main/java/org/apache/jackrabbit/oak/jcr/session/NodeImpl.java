@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.session;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -71,7 +71,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockImpl;
 import org.apache.jackrabbit.oak.jcr.lock.LockOperation;
-import org.apache.jackrabbit.oak.jcr.operation.NodeOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;

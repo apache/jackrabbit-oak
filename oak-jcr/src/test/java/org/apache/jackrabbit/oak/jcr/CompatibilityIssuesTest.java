@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static javax.jcr.observation.Event.PROPERTY_CHANGED;
-import static org.apache.jackrabbit.oak.jcr.RepositoryImpl.REFRESH_INTERVAL;
+import static org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl.REFRESH_INTERVAL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -113,7 +113,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      *    at java.lang.reflect.Constructor.newInstance(Constructor.java:513)
      *    at org.apache.jackrabbit.oak.api.CommitFailedException.throwRepositoryException(CommitFailedException.java:57)
      *    at org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate.save(SessionDelegate.java:258)
-     *    at org.apache.jackrabbit.oak.jcr.SessionImpl.save(SessionImpl.java:277)
+     *    at org.apache.jackrabbit.oak.jcr.session.SessionImpl.save(SessionImpl.java:277)
      *    ...
      *Caused by: org.apache.jackrabbit.oak.api.CommitFailedException: Cannot add node 'f1362578685631' at /
      *    at org.apache.jackrabbit.oak.plugins.nodetype.TypeValidator.childNodeAdded(TypeValidator.java:128)

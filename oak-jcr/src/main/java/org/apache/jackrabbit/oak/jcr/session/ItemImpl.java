@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.session;
 
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -49,8 +49,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.operation.ItemOperation;
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.slf4j.Logger;

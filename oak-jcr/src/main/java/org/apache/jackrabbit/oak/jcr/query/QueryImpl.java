@@ -34,8 +34,8 @@ import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 
 /**

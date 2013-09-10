@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.session;
 
 import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -60,7 +60,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;

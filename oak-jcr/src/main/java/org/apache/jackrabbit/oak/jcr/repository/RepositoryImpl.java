@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.repository;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -37,10 +37,12 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.jcr.RefreshStrategy.LogOnce;
-import org.apache.jackrabbit.oak.jcr.RefreshStrategy.Once;
-import org.apache.jackrabbit.oak.jcr.RefreshStrategy.ThreadSynchronising;
-import org.apache.jackrabbit.oak.jcr.RefreshStrategy.Timed;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.LogOnce;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Once;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.ThreadSynchronising;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Timed;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -61,7 +63,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      * Name of the session attribute value determining the session refresh
      * interval in seconds.
      *
-     * @see RefreshStrategy
+     * @see org.apache.jackrabbit.oak.jcr.session.RefreshStrategy
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
 
@@ -205,7 +207,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             SessionDelegate sessionDelegate = new SessionDelegate(
                     contentSession, refreshStrategy, securityProvider);
             SessionContext context = createSessionContext(
-                    createAttributes(refreshInterval), sessionDelegate);
+                    securityProvider, createAttributes(refreshInterval), sessionDelegate);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -227,16 +229,9 @@ public class RepositoryImpl implements JackrabbitRepository {
      * @return session context
      */
     protected SessionContext createSessionContext(
-            Map<String, Object> attributes, SessionDelegate delegate) {
-        return new SessionContext(this, whiteboard, attributes, delegate);
-    }
-
-    SecurityProvider getSecurityProvider() {
-        return securityProvider;
-    }
-
-    ContentRepository getContentRepository() {
-        return contentRepository;
+            SecurityProvider securityProvider, Map<String, Object> attributes,
+            SessionDelegate delegate) {
+        return new SessionContext(this, securityProvider, whiteboard, attributes, delegate);
     }
 
     //------------------------------------------------------------< private >---

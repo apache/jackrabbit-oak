@@ -36,11 +36,11 @@ import com.google.common.collect.Iterators;
 
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**

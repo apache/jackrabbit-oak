@@ -25,7 +25,7 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 
 /**
  * This implementation of {@code AccessControlManager} delegates back to a
