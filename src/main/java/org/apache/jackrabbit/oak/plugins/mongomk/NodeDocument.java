@@ -642,7 +642,7 @@ public class NodeDocument extends Document {
             }
         }
         NavigableMap<Revision, String> splitRevs
-                = Maps.newTreeMap(context.getRevisionComparator());
+                = new TreeMap<Revision, String>(context.getRevisionComparator());
         Map<String, String> revisions = getRevisionsMap();
         // only consider if there are enough revisions
         if (revisions.size() > REVISIONS_SPLIT_OFF_SIZE) {
