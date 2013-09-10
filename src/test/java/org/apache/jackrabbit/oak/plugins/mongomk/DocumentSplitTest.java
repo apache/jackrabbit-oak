@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -33,6 +34,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class DocumentSplitTest extends BaseMongoMKTest {
 
+    @Ignore
     @Test
     public void splitRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
