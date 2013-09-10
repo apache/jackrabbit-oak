@@ -60,14 +60,14 @@ public class Utils {
     }
 
     @SuppressWarnings("unchecked")
-    public static int estimateMemoryUsage(Map<String, Object> map) {
+    public static int estimateMemoryUsage(Map<?, Object> map) {
         if (map == null) {
             return 0;
         }
         int size = 0;
 
-        for (Entry<String, Object> e : map.entrySet()) {
-            size += e.getKey().length() * 2;
+        for (Entry<?, Object> e : map.entrySet()) {
+            size += e.getKey().toString().length() * 2;
             Object o = e.getValue();
             if (o instanceof String) {
                 size += ((String) o).length() * 2;
@@ -178,6 +178,10 @@ public class Utils {
     public static String getPathFromId(String id) {
         int index = id.indexOf(':');
         return id.substring(index + 1);
+    }
+
+    public static String getPreviousIdFor(String id, Revision r) {
+        return getIdFromPath("p" + PathUtils.concat(getPathFromId(id), r.toString()));
     }
 
     /**

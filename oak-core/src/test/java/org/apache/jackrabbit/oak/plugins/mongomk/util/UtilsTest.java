@@ -14,34 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.mongomk;
+package org.apache.jackrabbit.oak.plugins.mongomk.util;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.jackrabbit.oak.plugins.mongomk.Revision;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
- * <code>BaseMongoMKTest</code>...
+ * Tests for {@link Utils}.
  */
-public class BaseMongoMKTest extends MongoMKTestBase {
+public class UtilsTest {
 
-    protected MongoMK mk;
-
-    @Before
-    public void initMongoMK() {
-        mk = new MongoMK.Builder().open();
-    }
-
-    @Override
-    protected MicroKernel getMicroKernel() {
-        return mk;
-    }
-
-    @After
-    public void disposeMongoMK() {
-        if (mk != null) {
-            mk.dispose();
-            mk = null;
-        }
+    @Test
+    public void getPreviousIdFor() {
+        Revision r = new Revision(System.currentTimeMillis(), 0, 0);
+        assertEquals("1:p/" + r.toString(), Utils.getPreviousIdFor("0:/", r));
+        assertEquals("2:p/test/" + r.toString(), Utils.getPreviousIdFor("1:/test", r));
     }
 }
