@@ -31,13 +31,13 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.jcr.operation.UserManagerOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.UserManagerOperation;
 
 /**
  * This implementation of {@code UserManager} delegates back to a
  * delegatee wrapping each call into a {@link UserManager} closure.
  *
- * @see SessionDelegate#perform(org.apache.jackrabbit.oak.jcr.operation.SessionOperation)
+ * @see SessionDelegate#perform(org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation)
  */
 public class UserManagerDelegator implements UserManager {
     private final UserManager userManagerDelegate;

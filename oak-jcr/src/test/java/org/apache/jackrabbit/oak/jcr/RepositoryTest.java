@@ -65,6 +65,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;

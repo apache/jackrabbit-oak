@@ -14,23 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.operation;
+package org.apache.jackrabbit.oak.jcr.session.operation;
 
-import javax.jcr.RepositoryException;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 
-import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
+public abstract class NodeOperation<U> extends ItemOperation<U> {
 
-public abstract class ItemOperation<U> extends SessionOperation<U> {
+    protected final NodeDelegate node;
 
-    protected final ItemDelegate item;
-
-    protected ItemOperation(ItemDelegate item) {
-        this.item = item;
-    }
-
-    @Override
-    public void checkPreconditions() throws RepositoryException {
-        item.checkAlive();
+    protected NodeOperation(NodeDelegate node) {
+        super(node);
+        this.node = node;
     }
 
 }

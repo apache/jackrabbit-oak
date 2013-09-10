@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.repository;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.session;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newHashSet;
@@ -51,7 +51,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.PrivilegeManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.UserManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.jcr.operation.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -83,7 +83,8 @@ public class SessionContext implements NamePathMapper {
     private static final Logger log =
             LoggerFactory.getLogger(SessionContext.class);
 
-    private final RepositoryImpl repository;
+    private final Repository repository;
+    private final SecurityProvider securityProvider;
     private final Whiteboard whiteboard;
     private final Map<String, Object> attributes;
     private final SessionDelegate delegate;
@@ -108,11 +109,13 @@ public class SessionContext implements NamePathMapper {
     private final Set<String> sessionScopedLocks = newHashSet();
 
     public SessionContext(
-            @Nonnull RepositoryImpl repository, @Nonnull Whiteboard whiteboard,
-            Map<String, Object> attributes, @Nonnull final SessionDelegate delegate) {
+            @Nonnull Repository repository, @Nonnull SecurityProvider securityProvider,
+            @Nonnull Whiteboard whiteboard, @Nonnull Map<String, Object> attributes,
+            @Nonnull final SessionDelegate delegate) {
         this.repository = checkNotNull(repository);
+        this.securityProvider = checkNotNull(securityProvider);
         this.whiteboard = checkNotNull(whiteboard);
-        this.attributes = attributes;
+        this.attributes = checkNotNull(attributes);
         this.delegate = checkNotNull(delegate);
 
         this.namespaces = new SessionNamespaces(this);
@@ -239,7 +242,7 @@ public class SessionContext implements NamePathMapper {
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         // TODO: take non-security related importers into account as well (proper configuration)
         List<ProtectedItemImporter> importers = new ArrayList<ProtectedItemImporter>();
-        for (SecurityConfiguration sc : repository.getSecurityProvider().getConfigurations()) {
+        for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
             importers.addAll(sc.getProtectedItemImporters());
         }
         return importers;
@@ -355,7 +358,7 @@ public class SessionContext implements NamePathMapper {
 
     @Nonnull
     public SecurityProvider getSecurityProvider() {
-        return repository.getSecurityProvider();
+        return securityProvider;
     }
 
     //-----------------------------------------------------------< internal >---
@@ -402,7 +405,7 @@ public class SessionContext implements NamePathMapper {
 
     @Nonnull
     private <T> T getConfig(Class<T> clss) {
-        return repository.getSecurityProvider().getConfiguration(clss);
+        return securityProvider.getConfiguration(clss);
     }
 
 }
