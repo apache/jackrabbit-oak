@@ -349,46 +349,6 @@ public class SessionDelegate {
     }
 
     /**
-     * Copy a node
-     * @param srcPath  oak path to the source node to copy
-     * @param destPath  oak path to the destination
-     * @throws RepositoryException
-     */
-    public void copy(String srcPath, String destPath, AccessManager accessManager) throws RepositoryException {
-        // check destination
-        Tree dest = root.getTree(destPath);
-        if (dest.exists()) {
-            throw new ItemExistsException(destPath);
-        }
-
-        // check parent of destination
-        String destParentPath = PathUtils.getParentPath(destPath);
-        Tree destParent = root.getTree(destParentPath);
-        if (!destParent.exists()) {
-            throw new PathNotFoundException(PathUtils.getParentPath(destPath));
-        }
-
-        // check source exists
-        Tree src = root.getTree(srcPath);
-        if (!src.exists()) {
-            throw new PathNotFoundException(srcPath);
-        }
-
-        accessManager.checkPermissions(destPath, Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
-
-        try {
-            Root currentRoot = contentSession.getLatestRoot();
-            if (!currentRoot.copy(srcPath, destPath)) {
-                throw new RepositoryException("Cannot copy node at " + srcPath + " to " + destPath);
-            }
-            currentRoot.commit();
-            refresh(false);
-        } catch (CommitFailedException e) {
-            throw newRepositoryException(e);
-        }
-    }
-
-    /**
      * Move a node
      * @param srcPath  oak path to the source node to copy
      * @param destPath  oak path to the destination
