@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -29,6 +30,7 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -78,6 +80,7 @@ public class ItemSaveTest extends AbstractRepositoryTest {
 
     @Test
     public void saveMissesNode() throws RepositoryException {
+        assumeTrue(!NodeImpl.SAVE_SESSION);
         try {
             root.addNode("child1");
             foo.addNode("child2");
@@ -90,6 +93,7 @@ public class ItemSaveTest extends AbstractRepositoryTest {
 
     @Test
     public void saveOnNewNode() throws RepositoryException {
+        assumeTrue(!NodeImpl.SAVE_SESSION);
         try {
             foo.addNode("child").save();
             fail("Expected UnsupportedRepositoryOperationException");
@@ -111,6 +115,7 @@ public class ItemSaveTest extends AbstractRepositoryTest {
 
     @Test
     public void saveMissesProperty() throws RepositoryException {
+        assumeTrue(!NodeImpl.SAVE_SESSION);
         try {
             prop1.setValue("changed");
             prop2.setValue("changed");
@@ -125,6 +130,7 @@ public class ItemSaveTest extends AbstractRepositoryTest {
 
     @Test
     public void saveOnNewProperty() throws RepositoryException {
+        assumeTrue(!NodeImpl.SAVE_SESSION);
         try {
             foo.setProperty("p3", "v3").save();
             fail("Expected UnsupportedRepositoryOperationException");
@@ -133,7 +139,6 @@ public class ItemSaveTest extends AbstractRepositoryTest {
         } finally {
             session.refresh(false);
         }
-
     }
 
 }
