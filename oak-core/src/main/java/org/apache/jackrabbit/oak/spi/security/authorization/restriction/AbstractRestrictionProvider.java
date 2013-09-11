@@ -45,7 +45,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     private Map<String, RestrictionDefinition> supported;
 
-    public AbstractRestrictionProvider(Map<String, ? extends RestrictionDefinition> definitions) {
+    public AbstractRestrictionProvider(@Nonnull Map<String, ? extends RestrictionDefinition> definitions) {
         this.supported = ImmutableMap.copyOf(definitions);
     }
 
