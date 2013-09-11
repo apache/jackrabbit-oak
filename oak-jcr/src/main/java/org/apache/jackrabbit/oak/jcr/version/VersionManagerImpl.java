@@ -422,7 +422,10 @@ public class VersionManagerImpl implements VersionManager {
             protected void entering(Node node, int level)
                     throws RepositoryException {
                 if (node.isNodeType(NodeType.NT_FROZEN_NODE)) {
-                    uuids.add(node.getProperty(Property.JCR_FROZEN_UUID).getString());
+                    String id = node.getProperty(Property.JCR_FROZEN_UUID).getString();
+                    if (id.length() > 0) {
+                        uuids.add(id);
+                    }
                 } else if (node.isNodeType(NodeType.NT_VERSIONED_CHILD)) {
                     Node history = node.getProperty(
                             Property.JCR_CHILD_VERSION_HISTORY).getNode();
