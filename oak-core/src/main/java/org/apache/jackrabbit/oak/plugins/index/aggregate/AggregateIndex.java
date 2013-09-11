@@ -16,11 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -30,9 +38,7 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 
 /**
@@ -70,7 +76,59 @@ public class AggregateIndex implements FulltextQueryIndex {
         FilterImpl f = new FilterImpl(filter);
         // disables node type checks for now
         f.setMatchesAllTypes(true);
+
+        // TODO OAK-828
+        // FullTextExpression constraint = filter.getFullTextConstraint();
+        // constraint = getFlatConstraint(constraint);
+        // f.setFullTextConstraint(constraint);
+
         return f;
+    }
+
+    static FullTextExpression getFlatConstraint(
+            FullTextExpression constraint) {
+        if (constraint == null) {
+            return null;
+        }
+        final AtomicReference<FullTextExpression> result = new AtomicReference<FullTextExpression>();
+        constraint.accept(new FullTextVisitor() {
+            
+            @Override
+            public boolean visit(FullTextTerm term) {
+                String p = term.getPropertyName();
+                if (p != null) {
+                    if (PathUtils.getDepth(p) > 1) {
+                        // remove indirection
+                        String name = PathUtils.getName(p);
+                        term = new FullTextTerm(name, term);
+                    }
+                }
+                result.set(term);
+                return true;
+            }
+
+            @Override
+            public boolean visit(FullTextAnd and) {
+                ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+                for (FullTextExpression e : and.list) {
+                    list.add(getFlatConstraint(e));
+                }
+                result.set(new FullTextAnd(list));
+                return true;
+            }
+
+            @Override
+            public boolean visit(FullTextOr or) {
+                ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
+                for (FullTextExpression e : or.list) {
+                    list.add(getFlatConstraint(e));
+                }
+                result.set(new FullTextOr(list));
+                return true;
+            }
+            
+        });
+        return result.get();
     }
 
     @Override
@@ -148,7 +206,7 @@ public class AggregateIndex implements FulltextQueryIndex {
                 IndexRow row = cursor.next();
                 String path = row.getPath();
                 aggregates = Iterators.filter(Iterators.concat(
-                        ImmutableSet.of(path).iterator(),
+                        Iterators.singletonIterator(path),
                         aggregator.getParents(rootState, path)), Predicates
                         .not(Predicates.in(seenPaths)));
                 fetchNext();

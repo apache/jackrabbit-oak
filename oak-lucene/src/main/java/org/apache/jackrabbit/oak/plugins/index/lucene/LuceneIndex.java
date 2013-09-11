@@ -342,6 +342,11 @@ public class LuceneIndex implements FulltextQueryIndex {
                     Collection<String> paths = new ArrayList<String>();
                     Query query = getQuery(filter, reader,
                             nonFullTextConstraints, analyzer);
+
+//                    TODO OAK-828
+//                    HashSet<String> seenPaths = new HashSet<String>();
+//                    int parentDepth = PathUtils.getDepth(parent);
+
                     if (query != null) {
                         // OAK-925
                         // TODO how to best avoid loading all entries in memory?
@@ -355,6 +360,8 @@ public class LuceneIndex implements FulltextQueryIndex {
                                 if ("".equals(path)) {
                                     path = "/";
                                 }
+
+//                                TODO OAK-828
 //                                if (!parent.isEmpty()) {
 //                                    // ensure the path ends with the given
 //                                    // relative path
@@ -369,6 +376,7 @@ public class LuceneIndex implements FulltextQueryIndex {
 //                                    }
 //                                    seenPaths.add(path);
 //                                }
+
                                 paths.add(path);
                             }
                         }
@@ -631,7 +639,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         return result.get();
     }
 
-    private static Query tokenToQuery(String text, Analyzer analyzer) {
+    static Query tokenToQuery(String text, Analyzer analyzer) {
         if (analyzer == null) {
             return null;
         }
@@ -747,57 +755,6 @@ public class LuceneIndex implements FulltextQueryIndex {
             }
         }
         return tokens;
-    }
-
-    /**
-     * 
-     * inspired from lucene's WildcardQuery#toAutomaton
-     */
-    private static List<String> tokenize(String in) {
-        List<String> out = new ArrayList<String>();
-        StringBuilder token = new StringBuilder();
-        boolean quote = false;
-        for (int i = 0; i < in.length();) {
-            final int c = in.codePointAt(i);
-            int length = Character.charCount(c);
-            switch (c) {
-            case ' ':
-            case '&':
-                if (quote) {
-                    token.append(' ');
-                } else if (token.length() > 0) {
-                    out.add(token.toString());
-                    token = new StringBuilder();
-                }
-                break;
-            case '"':
-            case '\'':
-                if (quote) {
-                    quote = false;
-                    if (token.length() > 0) {
-                        out.add(token.toString());
-                        token = new StringBuilder();
-                    }
-                } else {
-                    quote = true;
-                }
-                break;
-            case '\\':
-                if (i + length < in.length()) {
-                    final int nextChar = in.codePointAt(i + length);
-                    length += Character.charCount(nextChar);
-                    token.append(new String(Character.toChars(nextChar)));
-                    break;
-                }
-            default:
-                token.append(new String(Character.toChars(c)));
-            }
-            i += length;
-        }
-        if (token.length() > 0) {
-            out.add(token.toString());
-        }
-        return out;
     }
 
     @Override

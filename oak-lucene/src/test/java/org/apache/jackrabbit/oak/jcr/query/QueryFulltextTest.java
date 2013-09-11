@@ -127,6 +127,14 @@ public class QueryFulltextTest extends AbstractQueryTest {
         sql2 = "select [jcr:path] as [path] from [nt:base] " + 
                 "where contains([node1/text], 'hello') order by [jcr:path]";
         
+//      q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
+//    assertEquals("[nt:base] as [nt:base] /* " + 
+//            "+text:hallo +:path:/testroot/* +text:{* TO *} " + 
+//            "ft:(text:\"hallo\") " + 
+//            "where (ischildnode([nt:base], [/testroot])) " + 
+//            "and (contains([nt:base].[text], cast('hallo' as string))) */", 
+//            getResult(q.execute(), "plan"));
+
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         if (FullTextSearchImpl.OAK_890_ADVANCED_FT_SEARCH) {
             assertEquals("/testroot", getResult(q.execute(), "path"));
@@ -144,7 +152,7 @@ public class QueryFulltextTest extends AbstractQueryTest {
 //                    "where contains([nt:base].[node2/text], cast('hello OR hallo' as string)) */", 
 //                    getResult(q.execute(), "plan"));
             assertEquals("[nt:base] as [nt:base] /* " + 
-                    ":fulltext:hallo* :fulltext:hello* " + 
+                    "aggregate :fulltext:hallo* :fulltext:hello* " + 
                     "ft:(node2/text:\"hallo\" OR node2/text:\"hello\") " + 
                     "parent:node2 " + 
                     "where contains([nt:base].[node2/text], cast('hello OR hallo' as string)) */", 
@@ -170,13 +178,13 @@ public class QueryFulltextTest extends AbstractQueryTest {
         if (FullTextSearchImpl.OAK_890_ADVANCED_FT_SEARCH) {
             // TODO OAK-890
             assertEquals("[nt:base] as [nt:base] /* " + 
-                    "Not yet implemented " + 
+                    "aggregate Not yet implemented " + 
                     "where (contains([nt:base].[node1/text], cast('hello' as string))) " + 
                     "and (contains([nt:base].[node2/text], cast('hallo' as string))) */", 
                     getResult(q.execute(), "plan"));
-//            q = qm.createQuery(sql2, Query.JCR_SQL2);
-//            assertEquals("/testroot", 
-//                    getResult(q.execute(), "path"));            
+            q = qm.createQuery(sql2, Query.JCR_SQL2);
+            // assertEquals("/testroot", 
+            //        getResult(q.execute(), "path"));            
         }
         
     }
