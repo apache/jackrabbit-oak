@@ -90,9 +90,6 @@ import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
  */
 public class TokenProviderImpl implements TokenProvider {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(TokenProviderImpl.class);
 
     /**
