@@ -19,11 +19,14 @@ package org.apache.jackrabbit.oak.security.authentication;
 import javax.annotation.Nonnull;
 import javax.security.auth.login.Configuration;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -49,9 +52,15 @@ import org.slf4j.LoggerFactory;
  * </ul>
  *
  */
+@Component()
+@Service({AuthenticationConfiguration.class, SecurityConfiguration.class})
 public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);
+
+    public AuthenticationConfigurationImpl() {
+        super();
+    }
 
     public AuthenticationConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider);

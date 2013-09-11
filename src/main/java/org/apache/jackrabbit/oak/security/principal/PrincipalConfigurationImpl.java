@@ -18,10 +18,13 @@ package org.apache.jackrabbit.oak.security.principal;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -30,7 +33,13 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 /**
  * Default implementation of the {@code PrincipalConfiguration}
  */
+@Component()
+@Service({PrincipalConfiguration.class, SecurityConfiguration.class})
 public class PrincipalConfigurationImpl extends ConfigurationBase implements PrincipalConfiguration {
+
+    public PrincipalConfigurationImpl() {
+        super();
+    }
 
     public PrincipalConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider);
