@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -28,11 +30,14 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 
 /**
  * Configuration for the privilege management component.
  */
+@Component()
+@Service({PrivilegeConfiguration.class, SecurityConfiguration.class})
 public class PrivilegeConfigurationImpl extends ConfigurationBase implements PrivilegeConfiguration {
 
     //---------------------------------------------< PrivilegeConfiguration >---
