@@ -86,5 +86,6 @@ public interface AuthInfo {
      *
      * @return A set of principals.
      */
+    @Nonnull
     Set<Principal> getPrincipals();
 }
