@@ -59,7 +59,7 @@ public abstract class ItemDelegate {
         if (updateCount != sessionCount) {
             if (!exists()) {
                 throw new InvalidItemStateException(
-                        "This item does not exist anymore");
+                        "This item does not exist anymore : " + getPath());
             }
             updateCount = sessionCount;
         }
