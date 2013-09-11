@@ -56,6 +56,10 @@ public abstract class SessionOperation<T> {
         return false;
     }
 
+    public boolean isLogout() {
+        return false;
+    }
+
     public void checkPreconditions() throws RepositoryException {
     }
 
