@@ -168,7 +168,19 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
     }
 
     @Test
+    public void testAddAccessControlEntry() throws Exception {
+        assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
+        assertFalse(acl.isEmpty());
+    }
+
+    @Test
     public void testAddEntry() throws Exception {
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true));
+        assertFalse(acl.isEmpty());
+    }
+
+    @Test
+    public void testAddEntry2() throws Exception {
         assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap()));
         assertFalse(acl.isEmpty());
     }
