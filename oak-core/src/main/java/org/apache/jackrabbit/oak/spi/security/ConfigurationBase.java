@@ -18,17 +18,18 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Activate;
+import org.osgi.service.component.ComponentContext;
+
 /**
  * Abstract base implementation for the various security configurations.
  */
 public abstract class ConfigurationBase extends SecurityConfiguration.Default {
 
-    private final SecurityProvider securityProvider;
-    private final ConfigurationParameters config;
+    private SecurityProvider securityProvider;
+    private ConfigurationParameters config = ConfigurationParameters.EMPTY;
 
     public ConfigurationBase() {
-        securityProvider = null;
-        config = ConfigurationParameters.EMPTY;
     }
 
     public ConfigurationBase(SecurityProvider securityProvider) {
@@ -37,11 +38,16 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
     }
 
     @Nonnull
-    protected SecurityProvider getSecurityProvider() {
+    public SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
             throw new IllegalStateException();
         }
         return securityProvider;
+    }
+
+    public void setSecurityProvider(@Nonnull SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
+        config = securityProvider.getParameters(getName());
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -49,5 +55,11 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
     @Override
     public ConfigurationParameters getParameters() {
         return config;
+    }
+
+    //----------------------------------------------------< SCR Integration >---
+    @Activate
+    protected void activate(ComponentContext context) {
+        config = ConfigurationParameters.newInstance(context.getProperties());
     }
 }
