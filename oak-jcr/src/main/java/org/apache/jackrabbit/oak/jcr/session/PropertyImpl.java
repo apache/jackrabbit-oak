@@ -108,6 +108,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 dlg.remove();
                 return null;
             }
+
+            @Override
+            public String description() throws RepositoryException {
+                return String.format("Removing property [%s/%s] ",dlg.getPath(),dlg.getName());
+            }
         });
     }
 
@@ -446,6 +451,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 dlg.setState(createSingleState(dlg.getName(), converted, type));
                 return null;
             }
+
+            @Override
+            public String description() throws RepositoryException {
+                return String.format("Setting property [%s/%s]",dlg.getPath(),dlg.getName());
+            }
         });
     }
 
@@ -470,6 +480,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 }
                 dlg.setState(createMultiState(dlg.getName(), converted, type));
                 return null;
+            }
+
+            @Override
+            public String description() throws RepositoryException {
+                return String.format("Setting property [%s/%s]",dlg.getPath(),dlg.getName());
             }
         });
     }

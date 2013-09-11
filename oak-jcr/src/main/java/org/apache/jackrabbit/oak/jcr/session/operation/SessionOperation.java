@@ -61,4 +61,14 @@ public abstract class SessionOperation<T> {
 
     public abstract T perform() throws RepositoryException;
 
+    /**
+     * Provide details about the operation being performed
+     *
+     * @return operation description. Would return <code>null</code>
+     * if no description provided
+     */
+    public String description() throws RepositoryException{
+        return null;
+    }
+
 }

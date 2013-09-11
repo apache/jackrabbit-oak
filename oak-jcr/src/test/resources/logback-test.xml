@@ -25,12 +25,13 @@
     <appender name="file" class="ch.qos.logback.core.FileAppender">
         <file>target/unit-tests.log</file>
         <encoder>
-            <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %msg%n</pattern>
+            <pattern>%date{HH:mm:ss.SSS} %-5level %-40([%thread] %F:%L) %marker %msg%n</pattern>
         </encoder>
     </appender>
 
     <logger name="org.apache.jackrabbit.test.api" level="DEBUG"/>
     <logger name="com.mongodb.tcp" level="ERROR"/>
+    <logger name="org.apache.jackrabbit.oak.jcr.operations" level="INFO"/>
 
     <root level="INFO">
         <!--
