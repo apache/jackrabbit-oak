@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import javax.jcr.Session;
+
 /**
  * Randomly read 1000 items from the deep tree.
  */
@@ -31,6 +33,8 @@ public class ReadDeepTreeTest extends AbstractDeepTreeTest {
 
     @Override
     protected void runTest() throws Exception {
-        randomRead(getTestSession(), allPaths, itemsToRead, true);
+        Session testSession = getTestSession();
+        randomRead(testSession, allPaths, itemsToRead, true);
+        testSession.logout();
     }
 }
