@@ -91,7 +91,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
         Iterator<Restriction> it = Sets.newHashSet(restrictions).iterator();
         while (it.hasNext()) {
             Restriction r = it.next();
-            if (REP_NODE_PATH.equals(r.getName())) {
+            if (REP_NODE_PATH.equals(r.getDefinition().getName())) {
                 it.remove();
             }
         }

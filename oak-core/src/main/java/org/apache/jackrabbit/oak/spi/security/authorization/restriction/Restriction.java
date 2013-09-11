@@ -27,7 +27,15 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  *
  * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlList#addEntry(java.security.Principal, javax.jcr.security.Privilege[], boolean, java.util.Map)
  */
-public interface Restriction extends RestrictionDefinition {
+public interface Restriction {
+
+    /**
+     * Returns the underlying restriction definition.
+     *
+     * @return the restriction definition that applies to this restriction.
+     */
+    @Nonnull
+    RestrictionDefinition getDefinition();
 
     /**
      * The OAK property state associated with this restriction.
