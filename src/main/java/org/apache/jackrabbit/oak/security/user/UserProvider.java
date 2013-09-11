@@ -338,7 +338,7 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     private String getNodeName(String authorizableId) {
-        AuthorizableNodeName generator = config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT);
+        AuthorizableNodeName generator = checkNotNull(config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT, AuthorizableNodeName.class));
         return generator.generateNodeName(authorizableId);
     }
 }

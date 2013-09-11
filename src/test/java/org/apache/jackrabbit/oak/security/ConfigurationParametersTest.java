@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security;
 
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,7 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
 import static org.junit.Assert.assertArrayEquals;
 
 public class ConfigurationParametersTest {
@@ -72,10 +74,17 @@ public class ConfigurationParametersTest {
         map.put("o1", "v");
         ConfigurationParameters options = new ConfigurationParameters(map);
 
-        assertEquals("v", options.getNullableConfigValue("o1", null));
-        assertEquals("v", options.getNullableConfigValue("o1", "v2"));
-        assertEquals("v2", options.getNullableConfigValue("missing", "v2"));
-        assertEquals(null, options.getNullableConfigValue("missing", null));
+        assertEquals("v", options.getConfigValue("o1", null, null));
+        assertEquals("v", options.getConfigValue("o1", null, String.class));
+
+        assertEquals("v", options.getConfigValue("o1", "v2", null));
+        assertEquals("v", options.getConfigValue("o1", "v2", String.class));
+
+        assertEquals("v2", options.getConfigValue("missing", "v2", null));
+        assertEquals("v2", options.getConfigValue("missing", "v2", String.class));
+
+        assertNull(options.getConfigValue("missing", null, null));
+        assertNull(options.getConfigValue("missing", null, TestObject.class));
 
     }
 
@@ -89,9 +98,11 @@ public class ConfigurationParametersTest {
         assertEquals(obj, options.getConfigValue("missing", obj));
         assertEquals(int1000, options.getConfigValue("missing", int1000));
 
-        assertNull(options.getNullableConfigValue("missing", null));
-        assertEquals(obj, options.getNullableConfigValue("missing", obj));
-        assertEquals(int1000, options.getNullableConfigValue("missing", int1000));
+        assertNull(options.getConfigValue("missing", null, null));
+        assertNull(options.getConfigValue("missing", null, String.class));
+        assertEquals(obj, options.getConfigValue("missing", obj, null));
+        assertEquals(obj, options.getConfigValue("missing", obj, TestObject.class));
+        assertEquals(int1000, options.getConfigValue("missing", int1000, Integer.class));
     }
 
     @Test
@@ -111,14 +122,17 @@ public class ConfigurationParametersTest {
     public void testArrayDefaultValue2() {
         TestObject[] testArray = new TestObject[] {new TestObject("t")};
 
-        TestObject[] result = ConfigurationParameters.EMPTY.getNullableConfigValue("test", new TestObject[0]);
+        TestObject[] result = ConfigurationParameters.EMPTY.getConfigValue("test", new TestObject[0], null);
         assertNotNull(result);
         assertEquals(0, result.length);
-        assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getNullableConfigValue("test", testArray));
+        assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getConfigValue("test", testArray, null));
+        assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getConfigValue("test", testArray, TestObject[].class));
 
         ConfigurationParameters options = new ConfigurationParameters(Collections.singletonMap("test", testArray));
-        assertArrayEquals(testArray, (TestObject[]) options.getNullableConfigValue("test", null));
-        assertArrayEquals(testArray, options.getNullableConfigValue("test", new TestObject[] {new TestObject("s")}));
+        assertArrayEquals(testArray, (TestObject[]) options.getConfigValue("test", null, null));
+        assertArrayEquals(testArray, options.getConfigValue("test", null, TestObject[].class));
+        assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[]{new TestObject("s")}, null));
+        assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[]{new TestObject("s")}, TestObject[].class));
     }
 
     @Test
@@ -159,24 +173,63 @@ public class ConfigurationParametersTest {
         m.put("Int3", 1000);
         ConfigurationParameters options = new ConfigurationParameters(m);
 
-        assertNotNull(options.getNullableConfigValue("TEST", null));
-        assertEquals(testObject, options.getNullableConfigValue("TEST", null));
+        assertNotNull(options.getConfigValue("TEST", null, null));
+        assertNotNull(options.getConfigValue("TEST", null, TestObject.class));
 
-        assertEquals(testObject, options.getNullableConfigValue("TEST", testObject));
-        assertEquals("t", options.getNullableConfigValue("TEST", "defaultString"));
+        assertEquals(testObject, options.getConfigValue("TEST", null, null));
+        assertEquals(testObject, options.getConfigValue("TEST", null, TestObject.class));
 
-        assertEquals("1000", options.getNullableConfigValue("String", null));
-        assertEquals(int1000, options.getNullableConfigValue("String", new Integer(10)));
-        assertEquals(new Long(1000), options.getNullableConfigValue("String", new Long(10)));
-        assertEquals("1000", options.getNullableConfigValue("String", "10"));
+        assertEquals(testObject, options.getConfigValue("TEST", testObject, null));
+        assertEquals(testObject, options.getConfigValue("TEST", testObject, TestObject.class));
 
-        assertEquals(int1000, options.getNullableConfigValue("Int2", null));
-        assertEquals(int1000, options.getNullableConfigValue("Int2", new Integer(10)));
-        assertEquals("1000", options.getNullableConfigValue("Int2", "1000"));
+        assertEquals("t", options.getConfigValue("TEST", "defaultString", null));
+        assertEquals("t", options.getConfigValue("TEST", "defaultString", String.class));
 
-        assertEquals(1000, options.getNullableConfigValue("Int3", null));
-        assertEquals(int1000, options.getNullableConfigValue("Int3", new Integer(10)));
-        assertEquals("1000", options.getNullableConfigValue("Int3", "1000"));
+        assertEquals("1000", options.getConfigValue("String", null, null));
+        assertEquals("1000", options.getConfigValue("String", null, String.class));
+
+        assertEquals(int1000, options.getConfigValue("String", new Integer(10), null));
+        assertEquals(int1000, options.getConfigValue("String", new Integer(10), Integer.class));
+
+        assertEquals(new Long(1000), options.getConfigValue("String", new Long(10), null));
+        assertEquals(new Long(1000), options.getConfigValue("String", new Long(10), Long.class));
+
+        assertEquals("1000", options.getConfigValue("String", "10", null));
+        assertEquals("1000", options.getConfigValue("String", "10", String.class));
+
+        assertEquals(int1000, options.getConfigValue("Int2", null, null));
+        assertEquals(int1000, options.getConfigValue("Int2", new Integer(10), null));
+        assertEquals("1000", options.getConfigValue("Int2", "1000", null));
+
+        assertEquals(1000, options.getConfigValue("Int3", null, null));
+        assertEquals(int1000, options.getConfigValue("Int3", new Integer(10), null));
+        assertEquals("1000", options.getConfigValue("Int3", "1000", null));
+    }
+
+    @Test
+    public void testImpossibleConversion() {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("string", "v");
+        map.put("obj", new TestObject("test"));
+        map.put("int", new Integer(10));
+        ConfigurationParameters options = new ConfigurationParameters(map);
+
+        Map<String, Class> impossible = new HashMap();
+        impossible.put("string", TestObject.class);
+        impossible.put("string", Integer.class);
+        impossible.put("string", Calendar.class);
+        impossible.put("obj", Integer.class);
+        impossible.put("int", TestObject.class);
+        impossible.put("int", Calendar.class);
+
+        for (String key : impossible.keySet()) {
+            try {
+                options.getConfigValue(key, null, impossible.get(key));
+                fail("Impossible conversion for " + key + " to " + impossible.get(key));
+            } catch (IllegalArgumentException e) {
+                // success
+            }
+        }
     }
 
     @Test
@@ -194,11 +247,12 @@ public class ConfigurationParametersTest {
     public void testNullValue2() {
         ConfigurationParameters options = new ConfigurationParameters(Collections.singletonMap("test", null));
 
-        assertNull(options.getNullableConfigValue("test", null));
-        assertNull(options.getNullableConfigValue("test", "value"));
-        assertNull(options.getNullableConfigValue("test", "value"));
-        assertNull(options.getNullableConfigValue("test", new TestObject("t")));
-        assertNull(options.getNullableConfigValue("test", false));
+        assertNull(options.getConfigValue("test", null, null));
+        assertNull(options.getConfigValue("test", null, TestObject.class));
+        assertNull(options.getConfigValue("test", "value", null));
+        assertNull(options.getConfigValue("test", "value", null));
+        assertNull(options.getConfigValue("test", new TestObject("t"), null));
+        assertNull(options.getConfigValue("test", false, null));
     }
 
     private class TestObject {
