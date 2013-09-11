@@ -57,12 +57,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 /**
  * TODO document
  */
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
+    static final Logger operationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations");
 
     private final ContentSession contentSession;
     private final RefreshStrategy refreshStrategy;
@@ -128,7 +131,9 @@ public class SessionDelegate {
         }
         try {
             sessionOpCount++;
-            return sessionOperation.perform();
+            T result =  sessionOperation.perform();
+            logOperationDetails(sessionOperation);
+            return result;
         } finally {
             sessionOpCount--;
             if (sessionOperation.isUpdate()) {
@@ -423,6 +428,17 @@ public class SessionDelegate {
     }
 
     //------------------------------------------------------------< internal >---
+
+    private <T> void logOperationDetails(SessionOperation<T> ops)  throws RepositoryException {
+        if(operationLogger.isDebugEnabled()){
+            String desc = ops.description();
+            if(desc != null){
+                Marker sessionMarker = MarkerFactory.getMarker(this.toString());
+                operationLogger.debug(sessionMarker,desc);
+            }
+        }
+    }
+
 
     /**
      * Wraps the given {@link CommitFailedException} instance using the

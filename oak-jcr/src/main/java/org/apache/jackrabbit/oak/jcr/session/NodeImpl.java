@@ -212,6 +212,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 dlg.remove();
                 return null;
             }
+
+            @Override
+            public String description() throws RepositoryException {
+                return String.format("Removing node [%s]",dlg.getPath());
+            }
         });
     }
 
@@ -244,6 +249,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
         SessionImpl.checkIndexOnName(sessionContext, relPath);
         return perform(new ItemWriteOperation<Node>() {
+            private NodeDelegate nodeAdded;
+
             @Override
             public Node perform() throws RepositoryException {
                 String oakName = PathUtils.getName(oakPath);
@@ -280,7 +287,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (added == null) {
                     throw new ItemExistsException();
                 }
+                nodeAdded = added;
+
                 return NodeImpl.createNode(added, sessionContext);
+            }
+
+            @Override
+            public String description() {
+                return String.format("Adding node [%s]",nodeAdded.getPath());
             }
         });
     }
@@ -1291,7 +1305,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private Property internalSetProperty(
-            String jcrName, final Value value, final boolean exactTypeMatch)
+            final String jcrName, final Value value, final boolean exactTypeMatch)
             throws RepositoryException {
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createSingleState(
@@ -1311,11 +1325,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         dlg.setProperty(state, exactTypeMatch, false),
                         sessionContext);
             }
+
+            @Override
+            public String description() throws RepositoryException {
+                return String.format("Setting property [%s/%s]",dlg.getPath(),jcrName);
+            }
         });
     }
 
     private Property internalSetProperty(
-            String jcrName, final Value[] values,
+            final String jcrName, final Value[] values,
             final int type, final boolean exactTypeMatch)
             throws RepositoryException {
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
@@ -1335,6 +1354,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 return new PropertyImpl(
                         dlg.setProperty(state, exactTypeMatch, false),
                         sessionContext);
+            }
+
+            @Override
+            public String description() throws RepositoryException {
+                return String.format("Setting property [%s/%s]",dlg.getPath(),jcrName);
             }
         });
     }
@@ -1370,6 +1394,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     property = dlg.getProperty(oakName);
                 }
                 return new PropertyImpl(property, sessionContext);
+            }
+
+            @Override
+            public String description() throws RepositoryException {
+                return String.format("Removing property [%s]",jcrName);
             }
         });
     }

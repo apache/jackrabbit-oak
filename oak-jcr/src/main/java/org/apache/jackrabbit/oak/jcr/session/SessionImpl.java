@@ -399,6 +399,11 @@ public class SessionImpl implements JackrabbitSession {
             public boolean isSave() {
                 return true;
             }
+
+            @Override
+            public String description() {
+                return "Session saved";
+            }
         });
     }
 
