@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 
@@ -33,10 +34,11 @@ public final class AuthInfoImpl implements AuthInfo {
     private final Map<String,?> attributes;
     private final Set<Principal> principals;
 
-    public AuthInfoImpl(String userID, Map<String, ?> attributes, Set<? extends Principal> principals) {
+    public AuthInfoImpl(@Nullable String userID, @Nullable Map<String, ?> attributes,
+                        @Nullable Set<? extends Principal> principals) {
         this.userID = userID;
         this.attributes = (attributes == null) ? Collections.<String, Object>emptyMap() : attributes;
-        this.principals = Collections.unmodifiableSet(principals);
+        this.principals = (principals == null) ? Collections.<Principal>emptySet() : Collections.unmodifiableSet(principals);
     }
 
     //-----------------------------------------------------------< AuthInfo >---
