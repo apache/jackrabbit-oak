@@ -112,7 +112,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         return Collections2.transform(restrictions, new Function<Restriction, String>() {
             @Override
             public String apply(Restriction restriction) {
-                return namePathMapper.getJcrName(restriction.getName());
+                return getJcrName(restriction);
             }
         }).toArray(new String[restrictions.size()]);
     }
@@ -121,10 +121,9 @@ public class ACE implements JackrabbitAccessControlEntry {
     @Override
     public Value getRestriction(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
-            String jcrName = namePathMapper.getJcrName(restriction.getName());
+            String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {
-
-                if (restriction.getRequiredType().isArray()) {
+                if (restriction.getDefinition().getRequiredType().isArray()) {
                     List<Value> values = ValueFactoryImpl.createValues(restriction.getProperty(), namePathMapper);
                     switch (values.size()) {
                         case 1: return values.get(0);
@@ -142,7 +141,7 @@ public class ACE implements JackrabbitAccessControlEntry {
     @Override
     public Value[] getRestrictions(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
-            String jcrName = namePathMapper.getJcrName(restriction.getName());
+            String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {
                 List<Value> values = ValueFactoryImpl.createValues(restriction.getProperty(), namePathMapper);
                 return values.toArray(new Value[values.size()]);
@@ -204,5 +203,9 @@ public class ACE implements JackrabbitAccessControlEntry {
             }
         }
         return aggrPrivNames;
+    }
+
+    private String getJcrName(Restriction restriction) {
+        return namePathMapper.getJcrName(restriction.getDefinition().getName());
     }
 }
