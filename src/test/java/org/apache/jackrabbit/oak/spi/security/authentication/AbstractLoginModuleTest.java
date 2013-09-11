@@ -112,6 +112,7 @@ public class AbstractLoginModuleTest {
         assertNull(lm.getCredentials());
     }
 
+    @Test
     public void testGetCredentialsFromCallbackHandler() {
         CallbackHandler cbh = new CallbackHandler() {
             @Override
