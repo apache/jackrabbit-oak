@@ -62,9 +62,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**
@@ -537,8 +540,18 @@ class VersionableState {
     private int getOPV(NodeBuilder parent, NodeBuilder child, String childName)
             throws RepositoryException {
         ImmutableTree parentTree = new ImmutableTree(parent.getNodeState());
+        NodeState childState;
+        if (NT_FROZENNODE.equals(child.getName(JCR_PRIMARYTYPE))) {
+            // need to translate into a regular node to get proper OPV value
+            NodeBuilder builder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+            builder.setProperty(JCR_PRIMARYTYPE, child.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
+            builder.setProperty(JCR_MIXINTYPES, child.getNames(JCR_MIXINTYPES), Type.NAMES);
+            childState = builder.getNodeState();
+        } else {
+            childState = child.getNodeState();
+        }
         ImmutableTree childTree = new ImmutableTree(
-                parentTree, childName, child.getNodeState());
+                parentTree, childName, childState);
         return ntMgr.getDefinition(parentTree, childTree).getOnParentVersion();
     }
 
