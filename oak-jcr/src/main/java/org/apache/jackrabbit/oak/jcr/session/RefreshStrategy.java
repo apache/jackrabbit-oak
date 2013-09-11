@@ -71,7 +71,8 @@ public class RefreshStrategy {
     public boolean needsRefresh(SessionOperation<?> sessionOperation) {
         // Don't refresh if this operation is a refresh operation itself or
         // a save operation, which does an implicit refresh
-        if (sessionOperation.isRefresh() || sessionOperation.isSave()) {
+        if (sessionOperation.isRefresh() || sessionOperation.isSave()
+                || sessionOperation.isLogout()) {
             return false;
         }
 

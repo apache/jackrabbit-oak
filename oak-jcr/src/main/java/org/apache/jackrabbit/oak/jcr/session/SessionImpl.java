@@ -117,6 +117,11 @@ public class SessionImpl implements JackrabbitSession {
         return sd.perform(op);
     }
 
+    @CheckForNull
+    private <T> T safePerform(@Nonnull SessionOperation<T> op) {
+        return sd.safePerform(op);
+    }
+
     @Nonnull
     private String getOakPathOrThrow(String absPath) throws RepositoryException {
         String p = sessionContext.getOakPathOrThrow(absPath);
@@ -438,8 +443,19 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void logout() {
         if (sd.isAlive()) {
-            sessionContext.dispose();
-            sd.logout();
+            safePerform(new SessionOperation<Void>() {
+                @Override
+                public Void perform() {
+                    sessionContext.dispose();
+                    sd.logout();
+                    return null;
+                }
+
+                @Override
+                public boolean isLogout() {
+                    return true;
+                }
+            });
         }
     }
 
