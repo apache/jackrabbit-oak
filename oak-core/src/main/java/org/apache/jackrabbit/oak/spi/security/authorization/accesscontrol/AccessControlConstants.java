@@ -19,10 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import java.util.Collection;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 /**
  * Constants for the default access control management implementation and
@@ -68,4 +64,5 @@ public interface AccessControlConstants {
 
     Collection<String> AC_NODETYPE_NAMES = ImmutableSet.of(NT_REP_POLICY, NT_REP_ACL, NT_REP_ACE, NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_RESTRICTIONS);
 
+    String PARAM_RESTRICTION_PROVIDER = "restrictionProvider";
 }
