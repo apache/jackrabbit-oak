@@ -57,7 +57,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
         Set<SecurityConfiguration> scs = new HashSet<SecurityConfiguration>();
         scs.add(getAuthenticationConfiguration());
-        scs.add(getAccessControlConfiguration());
+        scs.add(getAuthorizationConfiguration());
         scs.add(getUserConfiguration());
         scs.add(getPrincipalConfiguration());
         scs.add(getPrivilegeConfiguration());
@@ -70,7 +70,7 @@ public class SecurityProviderImpl implements SecurityProvider {
         if (AuthenticationConfiguration.class == configClass) {
             return (T) getAuthenticationConfiguration();
         } else if (AuthorizationConfiguration.class == configClass) {
-            return (T) getAccessControlConfiguration();
+            return (T) getAuthorizationConfiguration();
         } else if (UserConfiguration.class == configClass) {
             return (T) getUserConfiguration();
         } else if (PrincipalConfiguration.class == configClass) {
@@ -88,7 +88,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     }
 
     @Nonnull
-    private AuthorizationConfiguration getAccessControlConfiguration() {
+    private AuthorizationConfiguration getAuthorizationConfiguration() {
         return new AuthorizationConfigurationImpl(this);
     }
 
