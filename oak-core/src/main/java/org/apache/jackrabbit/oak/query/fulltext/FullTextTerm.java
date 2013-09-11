@@ -29,6 +29,15 @@ public class FullTextTerm extends FullTextExpression {
     private final String boost;
     private final LikePattern like;
 
+    public FullTextTerm(String propertyName, FullTextTerm copy) {
+        this.propertyName = propertyName;
+        this.not = copy.not;
+        this.text = copy.text;
+        this.filteredText = copy.filteredText;
+        this.boost = copy.boost;
+        this.like = copy.like;
+    }    
+
     public FullTextTerm(String propertyName, String text, boolean not, boolean escaped, String boost) {
         this.propertyName = propertyName;
         this.text = text;
