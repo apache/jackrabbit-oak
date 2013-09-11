@@ -17,12 +17,14 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
@@ -59,7 +61,8 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         user = (User) getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID());
 
         testAction.reset();
-        pwAction.setConstraint("^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*");
+        pwAction.init(getSecurityProvider(), new ConfigurationParameters(
+                Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*")));
 
     }
 
@@ -140,7 +143,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         testUser = getUserManager(root).createUser("testuser", "testPw123456");
         root.commit();
         try {
-            pwAction.setConstraint("abc");
+            pwAction.init(getSecurityProvider(), new ConfigurationParameters(Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "abc")));
 
             String hashed = PasswordUtil.buildPasswordHash("abc");
             testUser.changePassword(hashed);
@@ -164,11 +167,6 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         }
 
         @Override
-        protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
-            // nothing to do
-        }
-
-        @Override
         public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
             onCreateCalled++;
         }
@@ -181,10 +179,15 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     private class TestSecurityProvider extends SecurityProviderImpl {
 
-        private final AuthorizableAction[] actions;
+        private final AuthorizableActionProvider actionProvider;
 
         private TestSecurityProvider() {
-            this.actions = new AuthorizableAction[]{pwAction, testAction};
+            actionProvider = new AuthorizableActionProvider() {
+                @Override
+                public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+                    return ImmutableList.of(pwAction, testAction);
+                }
+            };
         }
 
         public <T> T getConfiguration(Class<T> configClass) {
@@ -192,13 +195,9 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
                 return (T) new UserConfigurationImpl(this) {
                     @Nonnull
                     @Override
-                    public AuthorizableActionProvider getAuthorizableActionProvider() {
-                        return new AuthorizableActionProvider() {
-                            @Override
-                            public List<AuthorizableAction> getAuthorizableActions() {
-                                return Arrays.asList(actions);
-                            }
-                        };
+                    public ConfigurationParameters getParameters() {
+                        Map<String, AuthorizableActionProvider> m = Collections.singletonMap(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
+                        return ConfigurationParameters.newInstance(super.getParameters(), new ConfigurationParameters(m));
                     }
                 };
             } else {

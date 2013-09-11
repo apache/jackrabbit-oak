@@ -20,7 +20,6 @@ import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
-import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -48,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
@@ -69,7 +70,7 @@ public class UserManagerImpl implements UserManager {
     private final UserProvider userProvider;
     private final MembershipProvider membershipProvider;
     private final ConfigurationParameters config;
-    private final List<AuthorizableAction> authorizableActions;
+    private final AuthorizableActionProvider actionProvider;
 
     private UserQueryManager queryManager;
     private ReadOnlyNodeTypeManager ntMgr;
@@ -83,7 +84,16 @@ public class UserManagerImpl implements UserManager {
         this.config = uc.getParameters();
         this.userProvider = new UserProvider(root, config);
         this.membershipProvider = new MembershipProvider(root, config);
-        this.authorizableActions = uc.getAuthorizableActionProvider().getAuthorizableActions();
+        this.actionProvider = getActionProvider(config);
+    }
+
+    @Nonnull
+    private static AuthorizableActionProvider getActionProvider(ConfigurationParameters config) {
+        AuthorizableActionProvider actionProvider = config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, null, AuthorizableActionProvider.class);
+        if (actionProvider == null) {
+            actionProvider = new DefaultAuthorizableActionProvider(config);
+        }
+        return actionProvider;
     }
 
     //--------------------------------------------------------< UserManager >---
@@ -224,7 +234,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(User user, String password) throws RepositoryException {
-        for (AuthorizableAction action : authorizableActions) {
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onCreate(user, password, root, namePathMapper);
         }
     }
@@ -238,7 +248,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(Group group) throws RepositoryException {
-        for (AuthorizableAction action : authorizableActions) {
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onCreate(group, root, namePathMapper);
         }
     }
@@ -252,7 +262,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
-        for (AuthorizableAction action : authorizableActions) {
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onRemove(authorizable, root, namePathMapper);
         }
     }
@@ -267,7 +277,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
-        for (AuthorizableAction action : authorizableActions) {
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onPasswordChange(user, password, root, namePathMapper);
         }
     }
@@ -302,11 +312,6 @@ public class UserManagerImpl implements UserManager {
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
         return securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
-    }
-
-    @Nonnull
-    SecurityProvider getSecurityProvider() {
-        return securityProvider;
     }
 
     @Nonnull

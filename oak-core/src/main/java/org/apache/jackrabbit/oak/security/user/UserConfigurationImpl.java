@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -27,17 +29,21 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
-import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
  * Default implementation of the {@link UserConfiguration}.
  */
-public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration {
+@Component()
+@Service({UserConfiguration.class, SecurityConfiguration.class})
+public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
+
+    public UserConfigurationImpl() {
+        super();
+    }
 
     public UserConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider);
@@ -79,13 +85,5 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
         return new UserManagerImpl(root, namePathMapper, getSecurityProvider());
-    }
-
-    @Nonnull
-    @Override
-    public AuthorizableActionProvider getAuthorizableActionProvider() {
-        // TODO OAK-521: add proper implementation
-        AuthorizableActionProvider defProvider = new DefaultAuthorizableActionProvider(getSecurityProvider(), getParameters());
-        return getParameters().getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, defProvider);
     }
 }

@@ -24,8 +24,6 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -42,11 +40,6 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
  * @since OAK 1.0
  */
 public class PasswordChangeAction extends AbstractAuthorizableAction {
-
-    @Override
-    protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
-        // nothing to do
-    }
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override

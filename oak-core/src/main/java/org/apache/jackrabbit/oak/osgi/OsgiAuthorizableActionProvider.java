@@ -14,20 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.user.action;
+package org.apache.jackrabbit.oak.osgi;
 
 import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.security.user.action.CompositeActionProvider;
 
 /**
- * {@code AuthorizableActionProvider} is used to provide {@code AuthorizableAction}s
- * for each instance of {@code UserManager}.
- *
- * @since OAK 1.0
+ * OsgiAuthorizableActionProvider... TODO
  */
-public interface AuthorizableActionProvider {
+public class OsgiAuthorizableActionProvider extends AbstractServiceTracker<AuthorizableActionProvider> implements AuthorizableActionProvider {
 
-    List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider);
+    public OsgiAuthorizableActionProvider() {
+        super(AuthorizableActionProvider.class);
+    }
+
+    @Override
+    public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+        AuthorizableActionProvider actionProvider = new CompositeActionProvider(getServices());
+        return actionProvider.getAuthorizableActions(securityProvider);
+    }
 }

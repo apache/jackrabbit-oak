@@ -22,7 +22,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 
 /**
  * Configuration interface for user management.
@@ -33,7 +32,4 @@ public interface UserConfiguration extends SecurityConfiguration {
 
     @Nonnull
     UserManager getUserManager(Root root, NamePathMapper namePathMapper);
-
-    @Nonnull
-    AuthorizableActionProvider getAuthorizableActionProvider();
 }

@@ -23,8 +23,6 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
 /**
  * Authorizable action attempting to clear all group membership before removing
@@ -33,12 +31,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
  * throws an exception and removing the specified authorizable will be aborted.
  */
 public class ClearMembershipAction extends AbstractAuthorizableAction {
-
-    //-----------------------------------------< AbstractAuthorizableAction >---
-    @Override
-    protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
-        // nothing to do
-    }
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override

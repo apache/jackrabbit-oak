@@ -57,16 +57,15 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
 
     private Pattern pattern;
 
-    //-----------------------------------------< AbstractAuthorizableAction >---
+    //-------------------------------------------------< AuthorizableAction >---
     @Override
-    protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
-        String constraint = config.getNullableConfigValue(CONSTRAINT, (String) null);
+    public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+        String constraint = config.getConfigValue(CONSTRAINT, null, String.class);
         if (constraint != null) {
             setConstraint(constraint);
         }
     }
 
-    //-------------------------------------------------< AuthorizableAction >---
     @Override
     public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(password, false);
@@ -77,13 +76,13 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
         validatePassword(newPassword, true);
     }
 
-    //------------------------------------------------------< Configuration >---
+    //------------------------------------------------------------< private >---
     /**
      * Set the password constraint.
      *
      * @param constraint A regular expression that can be used to validate a new password.
      */
-    public void setConstraint(@Nonnull String constraint) {
+    private void setConstraint(@Nonnull String constraint) {
         try {
             pattern = Pattern.compile(constraint);
         } catch (PatternSyntaxException e) {
@@ -91,7 +90,6 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
         }
     }
 
-    //------------------------------------------------------------< private >---
     /**
      * Validate the specified password.
      *

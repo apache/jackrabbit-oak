@@ -26,6 +26,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +50,15 @@ public class ConfigurationParameters {
         this.options = (options == null) ? Collections.<String, Object>emptyMap() : Collections.unmodifiableMap(options);
     }
 
-    public static ConfigurationParameters newInstance(Properties properties) {
+    public static ConfigurationParameters newInstance(@Nonnull ConfigurationParameters... params) {
+        Map<String, Object> m = Maps.newHashMap();
+        for (ConfigurationParameters cp : params) {
+            m.putAll(cp.options);
+        }
+        return new ConfigurationParameters(ImmutableMap.copyOf(m));
+    }
+
+    public static ConfigurationParameters newInstance(@Nonnull Properties properties) {
         if (properties.isEmpty()) {
             return EMPTY;
         }
@@ -60,7 +70,7 @@ public class ConfigurationParameters {
         return new ConfigurationParameters(options);
     }
 
-    public static ConfigurationParameters newInstance(Dictionary<String, Object> properties) {
+    public static ConfigurationParameters newInstance(@Nonnull Dictionary<String, Object> properties) {
         if (properties.isEmpty()) {
             return EMPTY;
         }
@@ -101,15 +111,18 @@ public class ConfigurationParameters {
      *     match the type of the default value.</li>
      * </ul>
      *
+     *
      * @param key The name of the configuration option.
      * @param defaultValue The default value to return if no such entry exists
      * or to use for conversion.
+     * @param targetClass The target class
      * @return The original or converted configuration value or {@code null}.
      */
     @CheckForNull
-    public <T> T getNullableConfigValue(@Nonnull String key, @Nullable T defaultValue) {
-        if (options != null && options.containsKey(key)) {
-            return convert(options.get(key), defaultValue);
+    public <T> T getConfigValue(@Nonnull String key, @Nullable T defaultValue,
+                                @Nullable Class<T> targetClass) {
+        if (options.containsKey(key)) {
+            return convert(options.get(key), defaultValue, targetClass);
         } else {
             return defaultValue;
         }
@@ -117,8 +130,8 @@ public class ConfigurationParameters {
 
     @Nonnull
     public <T> T getConfigValue(@Nonnull String key, @Nonnull T defaultValue) {
-        if (options != null && options.containsKey(key)) {
-            T value = convert(options.get(key), defaultValue);
+        if (options.containsKey(key)) {
+            T value = convert(options.get(key), defaultValue, null);
             return (value == null) ? defaultValue : value;
         } else {
             return defaultValue;
@@ -128,16 +141,21 @@ public class ConfigurationParameters {
     //--------------------------------------------------------< private >---
     @SuppressWarnings("unchecked")
     @Nullable
-    private static <T> T convert(@Nullable Object configProperty, @Nullable T defaultValue) {
+    private static <T> T convert(@Nullable Object configProperty, @Nullable T defaultValue, @Nullable Class<T> trgtClass) {
         if (configProperty == null) {
             return null;
         }
 
         T value;
         String str = configProperty.toString();
-        Class targetClass = (defaultValue == null) ? configProperty.getClass() : defaultValue.getClass();
+        Class targetClass;
+        if (trgtClass != null) {
+            targetClass = trgtClass;
+        } else {
+            targetClass = (defaultValue == null) ? configProperty.getClass() : defaultValue.getClass();
+        }
         try {
-            if (targetClass == configProperty.getClass()) {
+            if (targetClass.equals(configProperty.getClass()) || targetClass.isAssignableFrom(configProperty.getClass())) {
                 value = (T) configProperty;
             } else if (targetClass == String.class) {
                 value = (T) str;
@@ -156,7 +174,7 @@ public class ConfigurationParameters {
             }
         } catch (NumberFormatException e) {
             log.warn("Invalid value {}; cannot be parsed into {}", str, targetClass.getName());
-            value = defaultValue;
+            throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + targetClass.getName());
         }
         return value;
     }
