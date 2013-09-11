@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Composit
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
  * Default restriction provider implementation that supports the following
@@ -43,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  *     parent node is taken into consideration when evaluating the permissions.</li>
  * </ul>
  */
+@Component
+@Service(RestrictionProvider.class)
 public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     public RestrictionProviderImpl() {
