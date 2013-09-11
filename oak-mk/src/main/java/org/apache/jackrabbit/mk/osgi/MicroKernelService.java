@@ -34,7 +34,7 @@ public class MicroKernelService extends MicroKernelImpl {
     public static final String NAME = "name";
 
     @Property(description="The home directory (in-memory if not set)")
-    public static final String HOME_DIR = "homeDir";
+    public static final String HOME_DIR = "repository.home";
 
     private String name;
 
@@ -45,11 +45,21 @@ public class MicroKernelService extends MicroKernelImpl {
 
     @Activate
     public void activate(ComponentContext context) {
-        Object homeDir = context.getProperties().get(HOME_DIR);
         name = "" + context.getProperties().get(NAME);
+        String homeDir = readDirectory(context);
         if (homeDir != null) {
-            init(homeDir.toString());
+            init(homeDir);
         }
+    }
+
+    private static String readDirectory(ComponentContext context) {
+        if (context.getProperties().get(HOME_DIR) != null) {
+            return context.getProperties().get(HOME_DIR).toString();
+        }
+        if (context.getBundleContext().getProperty(HOME_DIR) != null) {
+            return context.getBundleContext().getProperty(HOME_DIR).toString();
+        }
+        return null;
     }
 
     @Deactivate
