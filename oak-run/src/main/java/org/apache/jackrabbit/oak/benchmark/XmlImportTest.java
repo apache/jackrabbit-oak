@@ -45,5 +45,6 @@ public class XmlImportTest extends AbstractTest {
     protected void afterTest() throws Exception {
         testRoot.remove();
         adminSession.save();
+        adminSession.logout();
     }
 }
