@@ -50,12 +50,12 @@ public class CompositeEditorProvider implements EditorProvider {
             @Nonnull Collection<? extends EditorProvider> providers) {
         checkNotNull(providers);
         switch (providers.size()) {
-        case 0:
-            return EMPTY_PROVIDER;
-        case 1:
-            return providers.iterator().next();
-        default:
-            return new CompositeEditorProvider(providers);
+            case 0:
+                return EMPTY_PROVIDER;
+            case 1:
+                return providers.iterator().next();
+            default:
+                return new CompositeEditorProvider(providers);
         }
     }
 
