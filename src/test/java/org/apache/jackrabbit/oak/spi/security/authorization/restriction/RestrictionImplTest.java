@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -57,17 +59,17 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
 
     @Test
     public void testGetName() {
-        assertEquals(name, restriction.getName());
+        assertEquals(name, restriction.getDefinition().getName());
     }
 
     @Test
     public void testGetRequiredType() {
-        assertEquals(Type.NAME, restriction.getRequiredType());
+        assertEquals(Type.NAME, restriction.getDefinition().getRequiredType());
     }
 
     @Test
     public void testIsMandatory() {
-        assertTrue(restriction.isMandatory());
+        assertTrue(restriction.getDefinition().isMandatory());
     }
 
     @Test
@@ -101,18 +103,12 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
         rs.add(new RestrictionImpl(createProperty(name, value), false));
         // - different impl
         rs.add(new Restriction() {
+            @Nonnull
             @Override
-            public String getName() {
-                return name;
+            public RestrictionDefinition getDefinition() {
+                return new RestrictionDefinitionImpl(name, Type.NAME, true);
             }
-            @Override
-            public Type<?> getRequiredType() {
-                return Type.NAME;
-            }
-            @Override
-            public boolean isMandatory() {
-                return true;
-            }
+
             @Override
             public PropertyState getProperty() {
                 return createProperty(name, value);

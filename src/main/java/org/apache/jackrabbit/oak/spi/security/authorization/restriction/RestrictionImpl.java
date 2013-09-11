@@ -24,16 +24,23 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 /**
  * {@code RestrictionImpl}
  */
-public class RestrictionImpl extends RestrictionDefinitionImpl implements Restriction {
+public class RestrictionImpl implements Restriction {
 
+    private final RestrictionDefinition definition;
     private final PropertyState property;
 
     public RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory) {
-        super(property.getName(), property.getType(), isMandatory);
+        this.definition = new RestrictionDefinitionImpl(property.getName(), property.getType(), isMandatory);
         this.property = property;
     }
 
     //--------------------------------------------------------< Restriction >---
+    @Nonnull
+    @Override
+    public RestrictionDefinition getDefinition() {
+        return definition;
+    }
+
     @Nonnull
     @Override
     public PropertyState getProperty() {
@@ -43,7 +50,7 @@ public class RestrictionImpl extends RestrictionDefinitionImpl implements Restri
     //-------------------------------------------------------------< Object >---
     @Override
     public int hashCode() {
-        return Objects.hashCode(getName(), getRequiredType(), isMandatory(), property);
+        return Objects.hashCode(definition, property);
     }
 
     @Override
@@ -53,9 +60,8 @@ public class RestrictionImpl extends RestrictionDefinitionImpl implements Restri
         }
         if (o instanceof RestrictionImpl) {
             RestrictionImpl other = (RestrictionImpl) o;
-            return super.equals(other) && property.equals(other.property);
+            return definition.equals(other.definition) && property.equals(other.property);
         }
-
         return false;
     }
 }

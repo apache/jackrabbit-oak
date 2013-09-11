@@ -179,7 +179,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void testCreateRestriction() throws Exception {
         Restriction r = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
         assertNotNull(r);
-        assertEquals(REP_GLOB, r.getName());
+        assertEquals(REP_GLOB, r.getDefinition().getName());
         assertEquals(globValue.getString(), r.getProperty().getValue(Type.STRING));
     }
 
@@ -189,8 +189,8 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
                 valueFactory.createValue("nt:folder", PropertyType.NAME),
                 valueFactory.createValue("nt:file", PropertyType.NAME));
         assertNotNull(r);
-        assertEquals(REP_NT_NAMES, r.getName());
-        assertEquals(Type.NAMES, r.getRequiredType());
+        assertEquals(REP_NT_NAMES, r.getDefinition().getName());
+        assertEquals(Type.NAMES, r.getDefinition().getRequiredType());
 
         PropertyState ps = r.getProperty();
         assertTrue(ps.isArray());
@@ -204,8 +204,8 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void testCreateMvRestriction2() throws Exception {
         Restriction r = restrictionProvider.createRestriction(testPath, REP_NT_NAMES, nameValues);
         assertNotNull(r);
-        assertEquals(REP_NT_NAMES, r.getName());
-        assertEquals(Type.NAMES, r.getRequiredType());
+        assertEquals(REP_NT_NAMES, r.getDefinition().getName());
+        assertEquals(Type.NAMES, r.getDefinition().getRequiredType());
 
         PropertyState ps = r.getProperty();
         assertTrue(ps.isArray());
@@ -219,8 +219,8 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void testCreateMvRestriction3() throws Exception {
         Restriction r = restrictionProvider.createRestriction(testPath, REP_NT_NAMES, nameValue);
         assertNotNull(r);
-        assertEquals(REP_NT_NAMES, r.getName());
-        assertEquals(Type.NAMES, r.getRequiredType());
+        assertEquals(REP_NT_NAMES, r.getDefinition().getName());
+        assertEquals(Type.NAMES, r.getDefinition().getRequiredType());
 
         assertTrue(r.getProperty().isArray());
         assertEquals(Type.NAMES, r.getProperty().getType());
@@ -233,8 +233,8 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void testCreateEmptyMvRestriction() throws Exception {
         Restriction r = restrictionProvider.createRestriction(testPath, REP_NT_NAMES);
         assertNotNull(r);
-        assertEquals(REP_NT_NAMES, r.getName());
-        assertEquals(Type.NAMES, r.getRequiredType());
+        assertEquals(REP_NT_NAMES, r.getDefinition().getName());
+        assertEquals(Type.NAMES, r.getDefinition().getRequiredType());
 
         assertTrue(r.getProperty().isArray());
         assertEquals(Type.NAMES, r.getProperty().getType());
@@ -248,8 +248,8 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void testCreateEmptyMvRestriction2() throws Exception {
         Restriction r = restrictionProvider.createRestriction(testPath, REP_NT_NAMES, new Value[0]);
         assertNotNull(r);
-        assertEquals(REP_NT_NAMES, r.getName());
-        assertEquals(Type.NAMES, r.getRequiredType());
+        assertEquals(REP_NT_NAMES, r.getDefinition().getName());
+        assertEquals(Type.NAMES, r.getDefinition().getRequiredType());
 
         assertTrue(r.getProperty().isArray());
         assertEquals(Type.NAMES, r.getProperty().getType());
