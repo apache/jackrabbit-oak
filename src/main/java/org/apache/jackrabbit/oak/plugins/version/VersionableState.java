@@ -154,25 +154,32 @@ class VersionableState {
     }
 
     /**
-     * Creates a frozen node under the version and initializes it with the basic
+     * Creates a frozen node and initializes it with the basic
      * frozen properties (jcr:frozenPrimaryType, jcr:frozenMixinTypes and
-     * jcr:frozenUuid) from the given node. The node must be referenceable.
+     * jcr:frozenUuid) from the given node.
      *
      * @return this versionable state.
      */
     private VersionableState initFrozen(NodeBuilder frozen,
-                                        NodeBuilder referenceable) {
+                                        NodeBuilder node) {
         // initialize jcr:frozenNode
         frozen.setProperty(JCR_UUID, IdentifierManager.generateUUID(), Type.STRING);
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         List<String> mixinTypes;
-        if (referenceable.hasProperty(JCR_MIXINTYPES)) {
-            mixinTypes = Lists.newArrayList(referenceable.getNames(JCR_MIXINTYPES));
+        if (node.hasProperty(JCR_MIXINTYPES)) {
+            mixinTypes = Lists.newArrayList(node.getNames(JCR_MIXINTYPES));
         } else {
             mixinTypes = Collections.emptyList();
         }
-        frozen.setProperty(JCR_FROZENUUID, uuidFromNode(referenceable), Type.STRING);
-        frozen.setProperty(JCR_FROZENPRIMARYTYPE, primaryTypeOf(referenceable), Type.NAME);
+        String id;
+        if (node.hasProperty(JCR_UUID)) {
+            id = uuidFromNode(node);
+        } else {
+            // TODO: use identifier
+            id = "";
+        }
+        frozen.setProperty(JCR_FROZENUUID, id, Type.STRING);
+        frozen.setProperty(JCR_FROZENPRIMARYTYPE, primaryTypeOf(node), Type.NAME);
         if (mixinTypes.isEmpty()) {
             frozen.removeProperty(JCR_FROZENMIXINTYPES);
         } else {
@@ -311,9 +318,10 @@ class VersionableState {
                                           @Nonnull NodeBuilder dest) {
         dest.setProperty(JCR_PRIMARYTYPE,
                 frozen.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
-        dest.setProperty(JCR_UUID,
-                frozen.getProperty(JCR_FROZENUUID).getValue(Type.STRING),
-                Type.STRING);
+        String id = frozen.getProperty(JCR_FROZENUUID).getValue(Type.STRING);
+        if (id.length() > 0) {
+            dest.setProperty(JCR_UUID, id, Type.STRING);
+        }
         if (frozen.hasProperty(JCR_FROZENMIXINTYPES)) {
             dest.setProperty(JCR_MIXINTYPES,
                     frozen.getNames(JCR_FROZENMIXINTYPES), Type.NAMES);
@@ -483,12 +491,8 @@ class VersionableState {
     private void copy(NodeBuilder src,
                       NodeBuilder dest)
             throws RepositoryException, CommitFailedException {
-        if (isReferenceable(src)) {
-            initFrozen(dest, src);
-            copyProperties(src, dest, OPVForceCopy.INSTANCE, true);
-        } else {
-            copyProperties(src, dest, OPVForceCopy.INSTANCE, false);
-        }
+        initFrozen(dest, src);
+        copyProperties(src, dest, OPVForceCopy.INSTANCE, true);
         for (String name : src.getChildNodeNames()) {
             NodeBuilder child = src.getChildNode(name);
             copy(child, dest.child(name));
