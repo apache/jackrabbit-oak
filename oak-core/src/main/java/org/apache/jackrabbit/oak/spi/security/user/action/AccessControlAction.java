@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -38,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +57,8 @@ import org.slf4j.LoggerFactory;
  * </p>
  * <p>Example configuration:
  * <pre>
- *    groupPrivilegeNames : "jcr:read"
- *    userPrivilegeNames  : "jcr:read, rep:write"
+ *    groupPrivilegeNames : ["jcr:read"]
+ *    userPrivilegeNames  : ["jcr:read,rep:write"]
  * </pre>
  * </p>
  * <p>This configuration could for example lead to the following content
@@ -109,15 +106,14 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     private String[] groupPrivilegeNames = new String[0];
     private String[] userPrivilegeNames = new String[0];
 
-    //-----------------------------------------< AbstractAuthorizableAction >---
+    //-------------------------------------------------< AuthorizableAction >---
     @Override
-    protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
-        setSecurityProvider(securityProvider);
-        setUserPrivilegeNames(config.getNullableConfigValue(USER_PRIVILEGE_NAMES, (String) null));
-        setGroupPrivilegeNames(config.getNullableConfigValue(GROUP_PRIVILEGE_NAMES, (String) null));
+    public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+        this.securityProvider = securityProvider;
+        userPrivilegeNames = privilegeNames(config, USER_PRIVILEGE_NAMES);
+        groupPrivilegeNames = privilegeNames(config, GROUP_PRIVILEGE_NAMES);
     }
 
-    //-------------------------------------------------< AuthorizableAction >---
     @Override
     public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         setAC(group, root, namePathMapper);
@@ -128,35 +124,22 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         setAC(user, root, namePathMapper);
     }
 
-    //------------------------------------------------------< Configuration >---
-    public void setSecurityProvider(@Nonnull SecurityProvider securityProvider) {
-        this.securityProvider = securityProvider;
-    }
-
-    /**
-     * Sets the privileges a new group will be granted on the group's home directory.
-     *
-     * @param privilegeNames A comma separated list of privilege names.
-     */
-    public void setGroupPrivilegeNames(@Nullable String privilegeNames) {
-        if (privilegeNames != null && privilegeNames.length() > 0) {
-            groupPrivilegeNames = split(privilegeNames);
-        }
-
-    }
-
-    /**
-     * Sets the privileges a new user will be granted on the user's home directory.
-     *
-     * @param privilegeNames  A comma separated list of privilege names.
-     */
-    public void setUserPrivilegeNames(@Nullable String privilegeNames) {
-        if (privilegeNames != null && privilegeNames.length() > 0) {
-            userPrivilegeNames = split(privilegeNames);
-        }
-    }
-
     //------------------------------------------------------------< private >---
+    /**
+     * Gets the privilege names that be granted on the group's home directory.
+     *
+     * @param config the configuration parameters.
+     * @param paramName the name of the configuration option
+     * @return a valid string array containing the privilege names.
+     */
+    private static String[] privilegeNames(ConfigurationParameters config, String paramName) {
+        String[] privilegeNames = config.getConfigValue(paramName, null, String[].class);
+        if (privilegeNames != null && privilegeNames.length > 0) {
+            return privilegeNames;
+        } else {
+            return new String[0];
+        }
+    }
 
     private void setAC(@Nonnull Authorizable authorizable, @Nonnull Root root,
                        @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
@@ -235,23 +218,5 @@ public class AccessControlAction extends AbstractAuthorizableAction {
             privileges[i] = acMgr.privilegeFromName(privNames[i]);
         }
         return privileges;
-    }
-
-    /**
-     * Split the specified configuration parameter into privilege names.
-     *
-     * @param configParam The configuration parameter defining a comma separated
-     * list of privilege names.
-     * @return An array of privilege names.
-     */
-    private static String[] split(@Nonnull String configParam) {
-        List<String> nameList = new ArrayList<String>();
-        for (String pn : Text.explode(configParam, ',', false)) {
-            String privName = pn.trim();
-            if (privName.length()  > 0) {
-                nameList.add(privName);
-            }
-        }
-        return nameList.toArray(new String[nameList.size()]);
     }
 }

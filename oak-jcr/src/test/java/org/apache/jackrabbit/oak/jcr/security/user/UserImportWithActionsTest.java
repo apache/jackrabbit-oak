@@ -25,7 +25,6 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -33,6 +32,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
@@ -116,7 +117,7 @@ public class UserImportWithActionsTest extends AbstractUserTest {
 
     public void testAccessControlActionExecutionForUser() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        a1.setUserPrivilegeNames(Privilege.JCR_ALL);
+        //a1.setUserPrivilegeNames(Privilege.JCR_ALL);
 
         setAuthorizableActions(a1);
 
@@ -152,7 +153,7 @@ public class UserImportWithActionsTest extends AbstractUserTest {
 
     public void testAccessControlActionExecutionForUser2() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        a1.setUserPrivilegeNames(Privilege.JCR_ALL);
+        //a1.setUserPrivilegeNames(Privilege.JCR_ALL);
 
         setAuthorizableActions(a1);
 
@@ -188,7 +189,7 @@ public class UserImportWithActionsTest extends AbstractUserTest {
 
     public void testAccessControlActionExecutionForGroup() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        a1.setGroupPrivilegeNames(Privilege.JCR_READ);
+        //a1.setGroupPrivilegeNames(Privilege.JCR_READ);
 
         setAuthorizableActions(a1);
 
@@ -234,6 +235,10 @@ public class UserImportWithActionsTest extends AbstractUserTest {
     private final class TestAction implements AuthorizableAction {
         private String id;
         private String pw;
+
+        @Override
+        public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+        }
 
         @Override
         public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {

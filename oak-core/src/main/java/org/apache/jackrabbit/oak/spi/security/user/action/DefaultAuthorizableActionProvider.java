@@ -16,31 +16,74 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.Lists;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyOption;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * DefaultAuthorizableActionProvider... TODO
+ * Default implementation of the {@link AuthorizableActionProvider} interface
+ * that allows to config all actions provided by the OAK.
  */
+@Component()
+@Service(AuthorizableActionProvider.class)
 public class DefaultAuthorizableActionProvider implements AuthorizableActionProvider {
 
-    private final SecurityProvider securityProvider;
-    private final ConfigurationParameters config;
+    private static final Logger log = LoggerFactory.getLogger(DefaultAuthorizableActionProvider.class);
 
-    public DefaultAuthorizableActionProvider(SecurityProvider securityProvider,
-                                             ConfigurationParameters config) {
-        this.securityProvider = securityProvider;
+    private static final String ENABLED_ACTIONS = "enabledActions";
+
+    @Property(name = ENABLED_ACTIONS,
+            options = {
+                    @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction", value = "AccessControlAction"),
+                    @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction", value = "PasswordValidationAction"),
+                    @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction", value = "PasswordChangeAction"),
+                    @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction", value = "ClearMembershipAction")
+            })
+    private String[] enabledActions = new String[] {AccessControlAction.class.getName()};
+
+    private ConfigurationParameters config = ConfigurationParameters.EMPTY;
+
+    public DefaultAuthorizableActionProvider() {}
+
+    public DefaultAuthorizableActionProvider(ConfigurationParameters config) {
         this.config = config;
     }
 
+    //-----------------------------------------< AuthorizableActionProvider >---
     @Override
-    public List<AuthorizableAction> getAuthorizableActions() {
-        // TODO OAK-521: create and initialize actions from configuration
-        AccessControlAction action = new AccessControlAction();
-        action.init(securityProvider, config);
-        return Collections.<AuthorizableAction>singletonList(action);
+    public List<? extends AuthorizableAction> getAuthorizableActions(SecurityProvider securityProvider) {
+        List<AuthorizableAction> actions = Lists.newArrayList();
+        for (String className : enabledActions) {
+            try {
+                Object o = Class.forName(className).newInstance();
+                if (o instanceof AuthorizableAction) {
+                    actions.add((AuthorizableAction) o);
+                }
+            } catch (Exception e) {
+                log.debug("Unable to create authorizable action", e);
+            }
+        }
+
+        // merge configurations that may contain action configuration information
+        for (AuthorizableAction action : actions) {
+            action.init(securityProvider, config);
+        }
+        return actions;
+    }
+
+    //----------------------------------------------------< SCR Integration >---
+    @Activate
+    protected void activate(ComponentContext context) {
+        config = ConfigurationParameters.newInstance(context.getProperties());
     }
 }

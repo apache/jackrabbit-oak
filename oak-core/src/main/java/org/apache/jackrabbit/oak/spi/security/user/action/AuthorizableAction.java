@@ -23,6 +23,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
 /**
  * The {@code AuthorizableAction} interface provide an implementation
@@ -43,6 +45,14 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
  * @since OAK 1.0
  */
 public interface AuthorizableAction {
+
+    /**
+     * Initialize this action with the specified security provider and configuration.
+     *
+     * @param securityProvider
+     * @param config
+     */
+    void init(SecurityProvider securityProvider, ConfigurationParameters config);
 
     /**
      * Allows to add application specific modifications or validation associated

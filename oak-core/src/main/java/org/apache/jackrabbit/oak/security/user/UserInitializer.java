@@ -126,7 +126,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
                 boolean omitPw = params.getConfigValue(PARAM_OMIT_ADMIN_PW, false);
                 userManager.createUser(adminId, (omitPw) ? null : adminId);
             }
-            String anonymousId = Strings.emptyToNull(params.getNullableConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID));
+            String anonymousId = Strings.emptyToNull(params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID, String.class));
             if (anonymousId != null && userManager.getAuthorizable(anonymousId) == null) {
                 userManager.createUser(anonymousId, null);
             }

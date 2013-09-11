@@ -35,14 +35,17 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
  */
 public abstract class AbstractAuthorizableAction implements AuthorizableAction {
 
-    // TODO OAK-521:: review again
-    protected abstract void init(SecurityProvider securityProvider, ConfigurationParameters config);
-
     //-------------------------------------------------< AuthorizableAction >---
     /**
      * Doesn't perform any action.
-     *
-     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.Group, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)
+     */
+    @Override
+    public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+        // nothing to do
+    }
+
+    /**
+     * Doesn't perform any action.
      */
     @Override
     public void onCreate(@Nonnull Group group, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
@@ -51,8 +54,6 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
 
     /**
      * Doesn't perform any action.
-     *
-     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.User, String, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)
      */
     @Override
     public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
@@ -61,8 +62,6 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
 
     /**
      * Doesn't perform any action.
-     *
-     * @see AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)
      */
     @Override
     public void onRemove(@Nonnull Authorizable authorizable, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
@@ -71,8 +70,6 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
 
     /**
      * Doesn't perform any action.
-     *
-     * @see AuthorizableAction#onPasswordChange(org.apache.jackrabbit.api.security.user.User, String, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)
      */
     @Override
     public void onPasswordChange(@Nonnull User user, @Nullable String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
