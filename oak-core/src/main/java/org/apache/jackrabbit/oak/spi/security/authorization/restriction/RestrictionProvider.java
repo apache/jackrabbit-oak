@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
+import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -129,4 +130,51 @@ public interface RestrictionProvider {
      */
     @Nonnull
     RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree);
+
+    /**
+     * Empty restriction provider implementation that doesn't support any
+     * restrictions.
+     */
+    RestrictionProvider EMPTY = new RestrictionProvider() {
+
+        @Nonnull
+        @Override
+        public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
+            return Collections.emptySet();
+        }
+
+        @Nonnull
+        @Override
+        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws AccessControlException, RepositoryException {
+            throw new AccessControlException("This implementation doesn't support any restrictions");
+        }
+
+        @Nonnull
+        @Override
+        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws AccessControlException, RepositoryException {
+            throw new AccessControlException("This implementation doesn't support any restrictions");
+        }
+
+        @Nonnull
+        @Override
+        public Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
+            return Collections.emptySet();
+        }
+
+        @Override
+        public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) {
+            // nothing to do
+        }
+
+        @Override
+        public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
+            // nothing to do
+        }
+
+        @Nonnull
+        @Override
+        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            return RestrictionPattern.EMPTY;
+        }
+    };
 }
