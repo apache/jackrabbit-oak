@@ -23,11 +23,11 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
-class ClassicFile extends SegmentFile {
+class RandomAccessTarFile extends TarFile {
 
     private final RandomAccessFile file;
 
-    ClassicFile(File file) throws IOException {
+    RandomAccessTarFile(File file) throws IOException {
         this.file = new RandomAccessFile(file, "rw");
     }
 
