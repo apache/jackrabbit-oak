@@ -36,6 +36,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeDefinition;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
@@ -249,6 +253,29 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         } catch (ItemExistsException e){
             //ItemExistsException is expected to be thrown
         }
+    }
+
+    @Test(expected = ConstraintViolationException.class)
+    public void addNodeTest() throws RepositoryException {
+        Session session = getAdminSession();
+
+        // node type with default child-node type of to nt:base
+        String ntName = "test";
+        NodeTypeManager ntm = session.getWorkspace().getNodeTypeManager();
+        NodeTypeTemplate ntt = ntm.createNodeTypeTemplate();
+        ntt.setName(ntName);
+        NodeDefinitionTemplate child = ntm.createNodeDefinitionTemplate();
+        child.setName("*");
+        child.setDefaultPrimaryTypeName("nt:base");
+        child.setRequiredPrimaryTypeNames(new String[] {"nt:base"});
+        List<NodeDefinition> children = ntt.getNodeDefinitionTemplates();
+        children.add(child);
+        ntm.registerNodeType(ntt, true);
+
+        // try to create a node with the default nt:base
+        Node node = session.getRootNode().addNode("defaultNtBase", ntName);
+        node.addNode("throw");  // Throws ConstraintViolationException on Oak, works on Jackrabbit 2
+        session.save();
     }
 
 }
