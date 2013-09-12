@@ -112,7 +112,7 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void remove(Collection collection, String path) {
+    public <T extends Document> void remove(Collection<T> collection, String path) {
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {
@@ -341,12 +341,12 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public boolean isCached(Collection collection, String key) {
+    public <T extends Document> boolean isCached(Collection<T> collection, String key) {
         return false;
     }
 
     @Override
-    public void invalidateCache(Collection collection, String key) {
+    public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         // ignore
     }
 

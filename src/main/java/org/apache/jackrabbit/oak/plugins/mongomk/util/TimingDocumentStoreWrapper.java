@@ -135,7 +135,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public void remove(Collection collection, String key) {
+    public <T extends Document> void remove(Collection<T> collection, String key) {
         try {
             long start = now();
             base.remove(collection, key);
@@ -197,7 +197,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache(Collection collection, String key) {
+    public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         try {
             long start = now();
             base.invalidateCache(collection, key);
@@ -219,7 +219,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public boolean isCached(Collection collection, String key) {
+    public <T extends Document> boolean isCached(Collection<T> collection, String key) {
         try {
             long start = now();
             boolean result = base.isCached(collection, key);

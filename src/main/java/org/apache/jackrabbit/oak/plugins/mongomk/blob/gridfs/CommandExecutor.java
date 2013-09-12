@@ -35,6 +35,7 @@ public interface CommandExecutor {
      * If an retry behavior is specified this will be taken care of by the implementation as well.
      * </p>
      *
+     * @param <T> the command type
      * @param command
      * @return The result of the execution.
      * @throws Exception If an error occurred while executing.

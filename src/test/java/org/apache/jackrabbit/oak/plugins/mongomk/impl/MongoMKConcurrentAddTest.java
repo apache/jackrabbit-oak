@@ -63,6 +63,8 @@ public class MongoMKConcurrentAddTest extends AbstractMongoConnectionTest {
      * Creates NB_THREADS microkernels, each commiting two nodes (one parent,
      * one child) in its own thread. The nodes being committed by separate
      * threads do not overlap / conflict.
+     * 
+     * @throws Exception 
      */
     @Test
     public void testConcurrentAdd() throws Exception {

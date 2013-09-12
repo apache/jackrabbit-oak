@@ -37,7 +37,7 @@ public class MongoMKLimitsTest extends AbstractMongoConnectionTest {
      */
     @Test
     @Ignore
-    public void pathLimit() throws Exception {
+    public void pathLimit() {
         String path = "/";
         String baseNodeName = "testingtestingtesting";
         int numberOfCommits = 100;
@@ -61,7 +61,7 @@ public class MongoMKLimitsTest extends AbstractMongoConnectionTest {
      */
     @Test
     @Ignore
-    public void overMaxBSONLimit() throws Exception {
+    public void overMaxBSONLimit() {
         String path = "/";
         String baseNodeName = "N";
         StringBuilder jsonDiff = new StringBuilder();
