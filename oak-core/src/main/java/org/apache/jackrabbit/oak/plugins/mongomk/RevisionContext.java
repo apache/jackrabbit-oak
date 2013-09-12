@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.Comparator;
+
 /**
  * Provides revision related context.
  */
@@ -35,7 +37,7 @@ public interface RevisionContext {
     /**
      * @return the revision comparator.
      */
-    public Revision.RevisionComparator getRevisionComparator();
+    public Comparator<Revision> getRevisionComparator();
 
     /**
      * Ensure the revision visible from now on, possibly by updating the head
