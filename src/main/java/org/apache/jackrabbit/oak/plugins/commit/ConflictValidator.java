@@ -87,8 +87,8 @@ public class ConflictValidator extends DefaultValidator {
                     //Conflict details are not made part of ExceptionMessage instead they are
                     //logged. This to avoid exposing property details to the caller as it might not have
                     //permission to access it
-                    if(log.isDebugEnabled()){
-                        log.debug(getConflictMessage(),ex);
+                    if (log.isDebugEnabled()) {
+                        log.debug(getConflictMessage(), ex);
                     }
                     throw ex;
                 }
@@ -96,20 +96,20 @@ public class ConflictValidator extends DefaultValidator {
         }
     }
 
-    private String getConflictMessage(){
+    private String getConflictMessage() {
         StringBuilder sb = new StringBuilder("Commit failed due to unresolved conflicts in ");
         sb.append(parentAfter.getPath());
         sb.append(" = {");
-        for(Tree conflict : parentAfter.getChild(NodeTypeConstants.REP_OURS).getChildren()){
+        for (Tree conflict : parentAfter.getChild(NodeTypeConstants.REP_OURS).getChildren()) {
             ConflictType ct = ConflictType.fromName(conflict.getName());
 
             sb.append(ct.getName()).append(" = {");
-            if(ct.effectsNode()){
+            if (ct.effectsNode()) {
                 sb.append(getChildNodeNamesAsString(conflict));
             } else {
-                for(PropertyState ps : conflict.getProperties()){
+                for (PropertyState ps : conflict.getProperties()) {
                     PropertyState ours = null, theirs = null;
-                    switch(ct){
+                    switch (ct) {
                         case DELETE_CHANGED_PROPERTY:
                             ours = null;
                             theirs = ps;
@@ -126,47 +126,47 @@ public class ConflictValidator extends DefaultValidator {
                     }
 
                     sb.append(ps.getName())
-                      .append(" = {")
-                      .append(toString(ours))
-                      .append(',')
-                      .append(toString(theirs))
-                      .append("}");
+                            .append(" = {")
+                            .append(toString(ours))
+                            .append(',')
+                            .append(toString(theirs))
+                            .append('}');
 
-                    sb.append(",");
+                    sb.append(',');
                 }
-                sb.deleteCharAt(sb.length()-1);
+                sb.deleteCharAt(sb.length() - 1);
             }
 
             sb.append("},");
         }
 
         sb.deleteCharAt(sb.length() - 1);
-        sb.append("}");
+        sb.append('}');
         return sb.toString();
     }
 
-    private static String getChildNodeNamesAsString(Tree t){
+    private static String getChildNodeNamesAsString(Tree t) {
         return Joiner.on(',').join(transform(t.getChildren(), Tree.GET_NAME));
     }
 
-    private static String toString(PropertyState ps){
-        if(ps == null){
+    private static String toString(PropertyState ps) {
+        if (ps == null) {
             return "<N/A>";
         }
 
         final Type type = ps.getType();
-        if(type.isArray()){
+        if (type.isArray()) {
             return "<ARRAY>";
         }
-        if(Type.BINARY == type){
+        if (Type.BINARY == type) {
             return "<BINARY>";
         }
 
         String value = ps.getValue(Type.STRING);
 
         //Trim the value so as to not blowup diff message
-        if(Type.STRING == type && value.length() > 10){
-            value = value.substring(0,10) + "...";
+        if (Type.STRING == type && value.length() > 10) {
+            value = value.substring(0, 10) + "...";
         }
 
         return value;
