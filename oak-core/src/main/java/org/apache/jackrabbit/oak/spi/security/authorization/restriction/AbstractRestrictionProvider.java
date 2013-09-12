@@ -70,7 +70,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         }
         PropertyState propertyState;
         if (requiredType.isArray()) {
-            propertyState = PropertyStates.createProperty(oakName, ImmutableList.of(value));
+            propertyState = PropertyStates.createProperty(oakName, ImmutableList.of(value), tag);
         } else {
             propertyState = PropertyStates.createProperty(oakName, value);
         }

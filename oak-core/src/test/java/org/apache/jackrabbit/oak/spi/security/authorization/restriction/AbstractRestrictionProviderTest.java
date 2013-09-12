@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -57,6 +55,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     private Value nameValue;
 
     private ValueFactory valueFactory;
+    private Map<String, ? extends RestrictionDefinition> supported;
     private AbstractRestrictionProvider restrictionProvider;
 
     @Before
@@ -72,7 +71,11 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
                 valueFactory.createValue("nt:file", PropertyType.NAME)
         };
 
-        restrictionProvider = new TestProvider();
+        RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false);
+        RestrictionDefinition nts  = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
+        RestrictionDefinition mand = new RestrictionDefinitionImpl("mandatory", Type.BOOLEAN, true);
+        supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
+        restrictionProvider = new TestProvider(supported);
     }
 
     @After
@@ -98,8 +101,8 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void testGetSupportedRestrictions() throws Exception {
         Set<RestrictionDefinition> defs = restrictionProvider.getSupportedRestrictions(testPath);
         assertNotNull(defs);
-        assertEquals(TestProvider.supportedRestrictions().size(), defs.size());
-        for (RestrictionDefinition def : TestProvider.supportedRestrictions().values()) {
+        assertEquals(supported.size(), defs.size());
+        for (RestrictionDefinition def : supported.values()) {
             assertTrue(defs.contains(def));
         }
     }
@@ -364,25 +367,5 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         restrictionProvider.validateRestrictions(testPath, getAceTree(mand, glob));
         restrictionProvider.validateRestrictions(testPath, getAceTree(mand, ntNames));
         restrictionProvider.validateRestrictions(testPath, getAceTree(mand, glob, ntNames));
-    }
-
-    private static final class TestProvider extends AbstractRestrictionProvider {
-
-        private TestProvider() {
-            super(supportedRestrictions());
-        }
-
-        private static Map<String, RestrictionDefinition> supportedRestrictions() {
-            RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false);
-            RestrictionDefinition nts  = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
-            RestrictionDefinition mand = new RestrictionDefinitionImpl("mandatory", Type.BOOLEAN, true);
-            return ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
-        }
-
-        @Nonnull
-        @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
-            throw new UnsupportedOperationException();
-        }
     }
 }
