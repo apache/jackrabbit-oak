@@ -16,44 +16,37 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static java.util.Collections.emptyMap;
+import static java.nio.channels.FileChannel.MapMode.READ_WRITE;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.util.Map;
-import java.util.UUID;
 
-abstract class SegmentFile {
+class MappedTarFile extends TarFile {
 
-    protected static class Entry {
+    private final ByteBuffer buffer;
 
-        int position;
-
-        int length;
-
-        Entry(int position, int length) {
-            this.position = position;
-            this.length = length;
-        }
-
-    }
-
-    private volatile Map<UUID, Entry> entries = emptyMap();
-
-    ByteBuffer readEntry(UUID id) throws IOException {
-        Entry entry = entries.get(id);
-        if (entry != null) {
-            return read(entry.position, entry.length);
-        } else {
-            return null;
+    MappedTarFile(File file) throws IOException {
+        RandomAccessFile f = new RandomAccessFile(file, "rw");
+        try {
+            buffer = f.getChannel().map(READ_WRITE, 0, f.length());
+        } finally {
+            f.close();
         }
     }
 
-    protected abstract int length() throws IOException;
-
-    protected abstract ByteBuffer read(int position, int length)
-            throws IOException;
-
-    void close() throws IOException {
+    @Override
+    protected int length() {
+        return buffer.limit();
     }
+
+    @Override
+    protected ByteBuffer read(int position, int length) {
+        ByteBuffer entry = buffer.asReadOnlyBuffer();
+        entry.position(position);
+        entry.limit(position + length);
+        return entry;
+    }
+
 }
