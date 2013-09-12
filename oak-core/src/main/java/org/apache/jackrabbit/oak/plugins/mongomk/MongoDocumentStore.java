@@ -113,7 +113,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
     
     @Override
-    public void invalidateCache(Collection collection, String key) {
+    public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         if (collection == Collection.NODES) {
             nodesCache.invalidate(key);
         }
@@ -159,8 +159,9 @@ public class MongoDocumentStore implements DocumentStore {
             if (doc == NodeDocument.NULL) {
                 return null;
             } else {
-                //noinspection unchecked
-                return (T) doc;
+                @SuppressWarnings("unchecked")
+                T result = (T) doc;
+                return result;
             }
         } catch (ExecutionException e) {
             throw new IllegalStateException("Failed to load document with " + key, e);
@@ -233,7 +234,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void remove(Collection collection, String key) {
+    public <T extends Document> void remove(Collection<T> collection, String key) {
         log("remove", key);        
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
@@ -447,7 +448,7 @@ public class MongoDocumentStore implements DocumentStore {
         return copy;
     }
 
-    private DBCollection getDBCollection(Collection collection) {
+    private <T extends Document> DBCollection getDBCollection(Collection<T> collection) {
         if (collection == Collection.NODES) {
             return nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
@@ -485,7 +486,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
     
     @Override
-    public boolean isCached(Collection collection, String key) {
+    public <T extends Document> boolean isCached(Collection<T> collection, String key) {
         if (collection != Collection.NODES) {
             return false;
         }

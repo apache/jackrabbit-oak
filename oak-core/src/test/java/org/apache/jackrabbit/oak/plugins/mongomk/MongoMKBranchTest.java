@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -44,9 +45,11 @@ public class MongoMKBranchTest extends BaseMongoMKTest {
      * </pre>
      * The test reads /child from <code>branchRev2</code> and expects
      * the version from the first commit.
+     * 
+     * @throws ParseException 
      */
     @Test
-    public void isolatedBranches() throws Exception {
+    public void isolatedBranches() throws ParseException {
         String rev1 = mk.commit("", "+\"/child1\":{}", null, "");
 
         String branchRev1 = mk.branch(rev1);
@@ -86,7 +89,7 @@ public class MongoMKBranchTest extends BaseMongoMKTest {
         String branchRev1 = mk.commit("/test/node", "+\"branch-node\":{}", branchRev, null);
 
         // trunk commit under /test/node
-        String rev1 = mk.commit("/test/node", "+\"trunk-node\":{}", null, null);
+        mk.commit("/test/node", "+\"trunk-node\":{}", null, null);
 
         // branch commit on /
         String branchRev2 = mk.commit("/", "+\"other\":{}", branchRev1, null);
@@ -111,7 +114,7 @@ public class MongoMKBranchTest extends BaseMongoMKTest {
         String rev1 = mk.commit("/test/node", "+\"trunk-node\":{}", null, null);
 
         // branch commit under /test/node
-        String branchRev1 = mk.commit("/test/node", "+\"branch-node\":{}", branchRev, null);
+        mk.commit("/test/node", "+\"branch-node\":{}", branchRev, null);
 
         // trunk commit on /
         String rev2 = mk.commit("/", "+\"other\":{}", null, null);

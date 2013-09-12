@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -41,7 +40,10 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
         revisions.addAll(doc.getRevisionsMap().keySet());
-        int numRevs = 1; // MongoMK initializes with a root node with a single revision
+        
+        // MongoMK initializes with a root node with a single revision
+        int numRevs = 1; 
+        
         revisions.add(mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null));
         numRevs++;
         // create nodes

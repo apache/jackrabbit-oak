@@ -192,6 +192,7 @@ public class QueryObjectModelImpl implements QueryObjectModel {
         this.bindVariableMap.put(var.getBindVariableName(), null);
     }
 
+    @Override
     public String toString() {
         return getStatement();
     }
