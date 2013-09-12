@@ -205,8 +205,7 @@ public class RepositoryImpl implements JackrabbitRepository {
 
             RefreshStrategy refreshStrategy = createRefreshStrategy(refreshInterval);
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            SessionDelegate sessionDelegate = new SessionDelegate(
-                    contentSession, refreshStrategy, securityProvider);
+            SessionDelegate sessionDelegate = new SessionDelegate(contentSession, refreshStrategy);
             SessionContext context = createSessionContext(
                     securityProvider, createAttributes(refreshInterval), sessionDelegate);
             return context.getSession();

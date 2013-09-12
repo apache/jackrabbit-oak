@@ -16,14 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-
 import java.io.IOException;
 import java.util.List;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -40,18 +34,15 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.FailingValidator;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeExcludingValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -59,6 +50,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 /**
  * TODO document
@@ -72,7 +68,6 @@ public class SessionDelegate {
 
     private final Root root;
     private final IdentifierManager idManager;
-    private final PermissionProvider permissionProvider;
 
     private boolean isAlive = true;
     private int sessionOpCount;
@@ -88,17 +83,12 @@ public class SessionDelegate {
      *
      * @param contentSession  the content session
      * @param refreshStrategy  the refresh strategy used for auto refreshing this session
-     * @param securityProvider the security provider
      */
-    public SessionDelegate(@Nonnull ContentSession contentSession, RefreshStrategy refreshStrategy,
-            SecurityProvider securityProvider) {
+    public SessionDelegate(@Nonnull ContentSession contentSession, RefreshStrategy refreshStrategy) {
         this.contentSession = checkNotNull(contentSession);
         this.refreshStrategy = checkNotNull(refreshStrategy);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
-        this.permissionProvider = checkNotNull(securityProvider)
-                .getConfiguration(AuthorizationConfiguration.class)
-                .getPermissionProvider(root, contentSession.getAuthInfo().getPrincipals());
     }
 
     public synchronized void refreshAtNextAccess() {
@@ -306,7 +296,6 @@ public class SessionDelegate {
         } catch (CommitFailedException e) {
             throw newRepositoryException(e);
         }
-        permissionProvider.refresh();
     }
 
     /**
@@ -334,7 +323,6 @@ public class SessionDelegate {
                 throw newRepositoryException(e);
             }
         }
-        permissionProvider.refresh();
     }
 
     public void refresh(boolean keepChanges) {
@@ -343,7 +331,6 @@ public class SessionDelegate {
         } else {
             root.refresh();
         }
-        permissionProvider.refresh();
     }
 
     //----------------------------------------------------------< Workspace >---
@@ -402,11 +389,6 @@ public class SessionDelegate {
     @Nonnull
     public QueryEngine getQueryEngine() {
         return root.getQueryEngine();
-    }
-
-    @Nonnull
-    public PermissionProvider getPermissionProvider() {
-        return permissionProvider;
     }
 
     /**
