@@ -244,7 +244,15 @@ public class RepositoryImpl implements JackrabbitRepository {
         return new Descriptors(new SimpleValueFactory());
     }
 
-    //------------------------------------------------------------< private >---
+    /**
+     * Returns the descriptors associated with the repository
+     * @return repository descriptor
+     */
+    protected Descriptors getDescriptors() {
+        return descriptors;
+    }
+
+//------------------------------------------------------------< private >---
 
     private static Long getRefreshInterval(Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
