@@ -338,37 +338,7 @@ public class NodeDocument extends Document {
         if (validRevisions.contains(rev)) {
             return true;
         }
-        if (containsRevision(rev)) {
-            if (isCommitted(context, rev, readRevision)) {
-                validRevisions.add(rev);
-                return true;
-            } else {
-                // rev is in revisions map of this node, but not committed
-                // no need to check _commitRoot field
-                return false;
-            }
-        }
-        // check commit root
-        @SuppressWarnings("unchecked")
-        Map<String, Integer> commitRoot = (Map<String, Integer>) get(COMMIT_ROOT);
-        String commitRootPath = null;
-        if (commitRoot != null) {
-            Integer depth = commitRoot.get(rev.toString());
-            if (depth != null) {
-                String p = Utils.getPathFromId(getId());
-                commitRootPath = PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - depth);
-            }
-        }
-        if (commitRootPath == null) {
-            // shouldn't happen, either node is commit root for a revision
-            // or has a reference to the commit root
-            log.warn("Node {} does not have commit root reference for revision {}",
-                    getId(), rev);
-            return false;
-        }
-        // get root of commit
-        NodeDocument doc = store.find(Collection.NODES,
-                Utils.getIdFromPath(commitRootPath));
+        NodeDocument doc = getCommitRoot(rev);
         if (doc == null) {
             return false;
         }
@@ -761,6 +731,40 @@ public class NodeDocument extends Document {
     //----------------------------< internal >----------------------------------
 
     /**
+     * Returns the commit root document for the given revision. This may either
+     * be this document or another one.
+     *
+     * @param rev a revision.
+     * @return the commit root or <code>null</code> if there is none.
+     */
+    @CheckForNull
+    private NodeDocument getCommitRoot(@Nonnull Revision rev) {
+        if (containsRevision(rev)) {
+            return this;
+        }
+        // check commit root
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> commitRoot = (Map<String, Integer>) get(COMMIT_ROOT);
+        String commitRootPath = null;
+        if (commitRoot != null) {
+            Integer depth = commitRoot.get(rev.toString());
+            if (depth != null) {
+                String p = Utils.getPathFromId(getId());
+                commitRootPath = PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - depth);
+            }
+        }
+        if (commitRootPath == null) {
+            // shouldn't happen, either node is commit root for a revision
+            // or has a reference to the commit root
+            log.warn("Node {} does not have commit root reference for revision {}",
+                    getId(), rev);
+            return null;
+        }
+        // get root of commit
+        return store.find(Collection.NODES, Utils.getIdFromPath(commitRootPath));
+    }
+
+    /**
      * Checks that revision x is newer than another revision.
      *
      * @param x the revision to check
@@ -787,9 +791,47 @@ public class NodeDocument extends Document {
     private boolean isCommitted(@Nonnull RevisionContext context,
                                 @Nonnull Revision revision,
                                 @Nonnull Revision readRevision) {
-        if (revision.equals(readRevision)) {
+        if (revision.equalsIgnoreBranch(readRevision)) {
             return true;
         }
+        String value = getCommitValue(revision);
+        if (value == null) {
+            return false;
+        }
+        if (Utils.isCommitted(value)) {
+            if (context.getBranches().getBranch(readRevision) == null
+                    && !readRevision.isBranch()) {
+                // resolve commit revision
+                revision = Utils.resolveCommitRevision(revision, value);
+                // readRevision is not from a branch
+                // compare resolved revision as is
+                return !isRevisionNewer(context, revision, readRevision);
+            } else {
+                // on same merged branch?
+                if (value.equals(getCommitValue(readRevision.asTrunkRevision()))) {
+                    // compare unresolved revision
+                    return !isRevisionNewer(context, revision, readRevision);
+                }
+            }
+        } else {
+            // branch commit (not merged)
+            if (Revision.fromString(value).getClusterId() != context.getClusterId()) {
+                // this is an unmerged branch commit from another cluster node,
+                // hence never visible to us
+                return false;
+            }
+        }
+        return includeRevision(context, Utils.resolveCommitRevision(revision, value), readRevision);
+    }
+
+    /**
+     * Returns the commit value for the given <code>revision</code>.
+     *
+     * @param revision a revision.
+     * @return the commit value or <code>null</code> if the revision is unknown.
+     */
+    @CheckForNull
+    private String getCommitValue(Revision revision) {
         String r = revision.toString();
         String value = getRevisionsMap().get(r);
         if (value == null) {
@@ -801,26 +843,7 @@ public class NodeDocument extends Document {
                 }
             }
         }
-        if (value == null) {
-            return false;
-        }
-        if (Utils.isCommitted(value)) {
-            // resolve commit revision
-            revision = Utils.resolveCommitRevision(revision, value);
-            if (context.getBranches().getBranch(readRevision) == null) {
-                // readRevision is not from a branch
-                // compare resolved revision as is
-                return !isRevisionNewer(context, revision, readRevision);
-            }
-        } else {
-            // branch commit
-            if (Revision.fromString(value).getClusterId() != context.getClusterId()) {
-                // this is an unmerged branch commit from another cluster node,
-                // hence never visible to us
-                return false;
-            }
-        }
-        return includeRevision(context, revision, readRevision);
+        return value;
     }
 
     private static boolean includeRevision(RevisionContext context,
@@ -833,7 +856,8 @@ public class NodeDocument extends Document {
             if (b.containsCommit(requestRevision)) {
                 // in same branch, include if the same revision or
                 // requestRevision is newer
-                return x.equals(requestRevision) || isRevisionNewer(context, requestRevision, x);
+                return x.equalsIgnoreBranch(requestRevision)
+                        || isRevisionNewer(context, requestRevision, x);
             }
             // not part of branch identified by requestedRevision
             return false;
