@@ -67,7 +67,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
 
-    private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
+    private final Descriptors descriptors;
     private final ContentRepository contentRepository;
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
@@ -80,6 +80,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
         this.threadSaveCount = new ThreadLocal<Long>();
+        this.descriptors = determineDescriptors();
     }
 
     //---------------------------------------------------------< Repository >---
@@ -232,6 +233,15 @@ public class RepositoryImpl implements JackrabbitRepository {
             SecurityProvider securityProvider, Map<String, Object> attributes,
             SessionDelegate delegate) {
         return new SessionContext(this, securityProvider, whiteboard, attributes, delegate);
+    }
+
+    /**
+     * Provides descriptors for current repository implementations. Can be overridden
+     * by the subclasses to add more values to the descriptor
+     * @return  repository descriptor
+     */
+    protected Descriptors determineDescriptors() {
+        return new Descriptors(new SimpleValueFactory());
     }
 
     //------------------------------------------------------------< private >---
