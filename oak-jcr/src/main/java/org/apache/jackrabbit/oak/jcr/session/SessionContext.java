@@ -16,16 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newTreeSet;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -51,8 +46,8 @@ import org.apache.jackrabbit.oak.jcr.delegate.PrivilegeManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.UserManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
@@ -63,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -70,6 +66,10 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newTreeSet;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -97,6 +97,7 @@ public class SessionContext implements NamePathMapper {
     private WorkspaceImpl workspace = null;
 
     private AccessControlManager accessControlManager;
+    private AccessManager accessManager;
     private PrincipalManager principalManager;
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
@@ -353,7 +354,13 @@ public class SessionContext implements NamePathMapper {
 
     @Nonnull
     public AccessManager getAccessManager() throws RepositoryException {
-        return new AccessManager(delegate);
+        if (accessManager == null) {
+            PermissionProvider pp = checkNotNull(securityProvider)
+                    .getConfiguration(AuthorizationConfiguration.class)
+                    .getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
+            accessManager = new AccessManager(delegate, pp);
+        }
+        return accessManager;
     }
 
     @Nonnull
