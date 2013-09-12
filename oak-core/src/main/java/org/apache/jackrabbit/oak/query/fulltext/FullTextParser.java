@@ -45,11 +45,6 @@ public class FullTextParser {
     public static FullTextExpression parse(String propertyName, String text) throws ParseException {
         FullTextParser p = new FullTextParser();
         p.propertyName = propertyName;
-        if (FullTextSearchImpl.JACKRABBIT_2_AMPERSAND_TO_SPACE) {
-            if (text.indexOf('&') >= 0) {
-                text = text.replace('&', ' ');
-            }
-        }
         p.text = text;
         FullTextExpression e = p.parseOr();
         return e;
