@@ -85,10 +85,10 @@ public class ConflictValidator extends DefaultValidator {
                             CommitFailedException.STATE, 1, "Unresolved conflicts in " + parentAfter.getPath());
 
                     //Conflict details are not made part of ExceptionMessage instead they are
-                    //logged. This to avoid exposing property details to the calller as it might not have
+                    //logged. This to avoid exposing property details to the caller as it might not have
                     //permission to access it
-                    if(log.isWarnEnabled()){
-                        log.warn(getConflictMessage(),ex);
+                    if(log.isDebugEnabled()){
+                        log.debug(getConflictMessage(),ex);
                     }
                     throw ex;
                 }
