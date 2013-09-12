@@ -19,11 +19,13 @@ package org.apache.jackrabbit.oak.spi.security;
 import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
 import org.osgi.service.component.ComponentContext;
 
 /**
  * Abstract base implementation for the various security configurations.
  */
+@Component(componentAbstract = true)
 public abstract class ConfigurationBase extends SecurityConfiguration.Default {
 
     private SecurityProvider securityProvider;
