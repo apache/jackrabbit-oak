@@ -39,7 +39,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         Set<String> revisions = Sets.newHashSet();
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
-        revisions.addAll(doc.getRevisionsMap().keySet());
+        revisions.addAll(doc.getLocalRevisions().keySet());
         
         // MongoMK initializes with a root node with a single revision
         int numRevs = 1; 
@@ -55,7 +55,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         String head = mk.getHeadRevision();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
-        Map<String, String> revs = doc.getRevisionsMap();
+        Map<String, String> revs = doc.getLocalRevisions();
         // one remaining in the local revisions map
         assertEquals(1, revs.size());
         for (String r : revisions) {
