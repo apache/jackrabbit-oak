@@ -32,7 +32,6 @@ import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
-import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.junit.Test;
 
 /**
@@ -110,15 +109,10 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         Query q;
         
         q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
-        if (FullTextSearchImpl.OAK_890_ADVANCED_FT_SEARCH) {
-            assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " + 
-                    "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
-                    getResult(q.execute(), "plan"));
-        } else {
-            assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " + 
-                    "where contains([nt:base].[*], cast('hello OR hallo' as string)) */", 
-                    getResult(q.execute(), "plan"));
-        }
+
+        assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " + 
+                "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
+                getResult(q.execute(), "plan"));
         
         // verify the result
         // uppercase "OR" mean logical "or"
