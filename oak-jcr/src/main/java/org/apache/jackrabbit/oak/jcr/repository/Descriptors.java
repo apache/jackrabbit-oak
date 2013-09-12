@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.jcr.repository;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
@@ -88,7 +88,7 @@ public class Descriptors {
 
     @SuppressWarnings("deprecation")
     public Descriptors(ValueFactory valueFactory) {
-        descriptors = new HashMap<String, Descriptor>();
+        descriptors = new ConcurrentHashMap<String, Descriptor>();
         Value trueValue = valueFactory.createValue(true);
         Value falseValue = valueFactory.createValue(false);
 
@@ -325,7 +325,7 @@ public class Descriptors {
 
     //------------------------------------------< private >---
 
-    private void put(Descriptor descriptor) {
+    public void put(Descriptor descriptor) {
         descriptors.put(descriptor.name, descriptor);
     }
 
