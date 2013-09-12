@@ -47,16 +47,13 @@ class Branch {
      *
      * @param commits the initial branch commits.
      * @param base the base commit.
-     * @param comparator the revision comparator.
      * @throws IllegalArgumentException if base is a branch revision.
      */
     Branch(@Nonnull SortedSet<Revision> commits,
-           @Nonnull Revision base,
-           @Nonnull Revision.RevisionComparator comparator) {
+           @Nonnull Revision base) {
         checkArgument(!checkNotNull(base).isBranch(), "base is not a trunk revision: %s", base);
         this.base = base;
-        this.commits = new TreeMap<Revision, BranchCommit>(
-                checkNotNull(comparator));
+        this.commits = new TreeMap<Revision, BranchCommit>(commits.comparator());
         for (Revision r : commits) {
             this.commits.put(r.asBranchRevision(), new BranchCommit(base));
         }
