@@ -441,14 +441,18 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
         }
     }
 
-    @Ignore("OAK-992")
     @Test
     public void branchReadAfterMerge() {
         String branchRev = mk.branch(null);
-        branchRev = mk.commit("/", "+\"foo\":{}", branchRev, null);
-        branchRev = mk.commit("/", "+\"bar\":{}", branchRev, null);
-        mk.merge(branchRev, null);
-        assertNodesExist(branchRev, "/foo");
+        String branchRev1 = mk.commit("/", "+\"foo\":{}", branchRev, null);
+        String branchRev2 = mk.commit("/", "+\"bar\":{}", branchRev1, null);
+        mk.merge(branchRev2, null);
+
+        assertNodesExist(branchRev2, "/foo");
+        assertNodesExist(branchRev2, "/bar");
+
+        assertNodesExist(branchRev1, "/foo");
+        assertNodesNotExist(branchRev1, "/bar");
     }
 
     //--------------------------< internal >------------------------------------
