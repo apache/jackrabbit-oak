@@ -658,8 +658,6 @@ public class MongoMK implements MicroKernel, RevisionContext {
         if (path == null || path.equals("")) {
             path = "/";
         }
-        fromRevisionId = stripBranchRevMarker(fromRevisionId);
-        toRevisionId = stripBranchRevMarker(toRevisionId);
         Revision fromRev = Revision.fromString(fromRevisionId);
         Revision toRev = Revision.fromString(toRevisionId);
         Node from = getNode(path, fromRev);
@@ -779,7 +777,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
             throw new MicroKernelException("Path is not absolute: " + path);
         }
         revisionId = revisionId != null ? revisionId : headRevision.toString();
-        Revision rev = Revision.fromString(stripBranchRevMarker(revisionId));
+        Revision rev = Revision.fromString(revisionId);
         Node n = getNode(path, rev);
         return n != null;
     }
@@ -799,7 +797,6 @@ public class MongoMK implements MicroKernel, RevisionContext {
             throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
         }
         revisionId = revisionId != null ? revisionId : headRevision.toString();
-        revisionId = stripBranchRevMarker(revisionId);
         Revision rev = Revision.fromString(revisionId);
         Node n = getNode(path, rev);
         if (n == null) {
@@ -850,7 +847,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
             baseRev = headRevision;
             baseRevId = baseRev.toString();
         } else {
-            baseRev = Revision.fromString(stripBranchRevMarker(baseRevId));
+            baseRev = Revision.fromString(baseRevId);
         }
         JsopReader t = new JsopTokenizer(json);
         Revision rev = newRevision();
@@ -923,11 +920,13 @@ public class MongoMK implements MicroKernel, RevisionContext {
                 throw new MicroKernelException("token: " + (char) t.getTokenType());
             }
         }
-        if (baseRevId.startsWith("b")) {
+        if (baseRev.isBranch()) {
+            rev = rev.asBranchRevision();
             // remember branch commit
             Branch b = branches.getBranch(baseRev);
             if (b == null) {
-                b = branches.create(baseRev, rev);
+                // baseRev is marker for new branch
+                b = branches.create(baseRev.asTrunkRevision(), rev);
             } else {
                 b.addCommit(rev);
             }
@@ -945,11 +944,12 @@ public class MongoMK implements MicroKernel, RevisionContext {
                 }
             }
 
-            return "b" + rev.toString();
+            return rev.toString();
+        } else {
+            commit.apply();
+            headRevision = commit.getRevision();
+            return rev.toString();
         }
-        commit.apply();
-        headRevision = commit.getRevision();
-        return rev.toString();
     }
 
     //------------------------< RevisionContext >-------------------------------
@@ -1073,13 +1073,6 @@ public class MongoMK implements MicroKernel, RevisionContext {
         nodeCache.invalidate(path + "@" + rev);
     }
 
-    private static String stripBranchRevMarker(String revisionId) {
-        if (revisionId.startsWith("b")) {
-            return revisionId.substring(1);
-        }
-        return revisionId;
-    }
-    
     public static void parseAddNode(Commit commit, JsopReader t, String path) {
         Node n = new Node(path, commit.getRevision());
         if (!t.matches('}')) {
@@ -1104,27 +1097,28 @@ public class MongoMK implements MicroKernel, RevisionContext {
     public String branch(@Nullable String trunkRevisionId) throws MicroKernelException {
         // nothing is written when the branch is created, the returned
         // revision simply acts as a reference to the branch base revision
-        String revisionId = trunkRevisionId != null ? trunkRevisionId : headRevision.toString();
-        return "b" + revisionId;
+        Revision revision = trunkRevisionId != null
+                ? Revision.fromString(trunkRevisionId) : headRevision;
+        return revision.asBranchRevision().toString();
     }
 
     @Override
     public synchronized String merge(String branchRevisionId, String message)
             throws MicroKernelException {
         // TODO improve implementation if needed
-        if (!branchRevisionId.startsWith("b")) {
+        Revision revision = Revision.fromString(branchRevisionId);
+        if (!revision.isBranch()) {
             throw new MicroKernelException("Not a branch: " + branchRevisionId);
         }
 
-        String revisionId = stripBranchRevMarker(branchRevisionId);
         // make branch commits visible
         UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
-        Revision revision = Revision.fromString(revisionId);
         Branch b = branches.getBranch(revision);
         Revision mergeCommit = newRevision();
         NodeDocument.setModified(op, mergeCommit);
         if (b != null) {
             for (Revision rev : b.getCommits()) {
+                rev = rev.asTrunkRevision();
                 NodeDocument.setRevision(op, rev, "c-" + mergeCommit.toString());
                 op.containsMapEntry(NodeDocument.COLLISIONS, rev.toString(), false);
             }
@@ -1148,23 +1142,23 @@ public class MongoMK implements MicroKernel, RevisionContext {
                          @Nullable String newBaseRevisionId)
             throws MicroKernelException {
         // TODO conflict handling
-        Revision r = Revision.fromString(stripBranchRevMarker(branchRevisionId));
+        Revision r = Revision.fromString(branchRevisionId);
         Revision base = newBaseRevisionId != null ?
                 Revision.fromString(newBaseRevisionId) :
                 headRevision;
         Branch b = branches.getBranch(r);
         if (b == null) {
             // empty branch
-            return "b" + base.toString();
+            return base.asBranchRevision().toString();
         }
         if (b.getBase().equals(base)) {
             return branchRevisionId;
         }
         // add a pseudo commit to make sure current head of branch
         // has a higher revision than base of branch
-        Revision head = newRevision();
+        Revision head = newRevision().asBranchRevision();
         b.rebase(head, base);
-        return "b" + head.toString();
+        return head.toString();
     }
 
     @Override
@@ -1226,7 +1220,8 @@ public class MongoMK implements MicroKernel, RevisionContext {
             ArrayList<String> removed) {
         UnsavedModifications unsaved = unsavedLastRevisions;
         if (isBranchCommit) {
-            unsaved = branches.getBranch(rev).getModifications(rev);
+            Revision branchRev = rev.asBranchRevision();
+            unsaved = branches.getBranch(branchRev).getModifications(branchRev);
         }
         // track unsaved modifications of nodes that were not
         // written in the commit (implicitly modified parent)
