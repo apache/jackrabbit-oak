@@ -55,11 +55,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class NodeDocument extends Document {
 
-    private static final Logger log = LoggerFactory.getLogger(NodeDocument.class);
+    /**
+     * Marker document, which indicates the document does not exist.
+     */
+    public static final NodeDocument NULL = new NodeDocument(new MemoryDocumentStore());
 
-    private static final SortedMap<Revision, Range> EMPTY_RANGE_MAP
-            = Collections.unmodifiableSortedMap(new TreeMap<Revision, Range>());
-
+    static final Logger LOG = LoggerFactory.getLogger(NodeDocument.class);
+    
     /**
      * A size threshold after which to consider a document a split candidate.
      * TODO: check which value is the best one
@@ -72,9 +74,19 @@ public class NodeDocument extends Document {
     static final int REVISIONS_SPLIT_OFF_SIZE = 1000;
 
     /**
-     * Marker document, which indicates the document does not exist.
+     * Revision collision markers set by commits with modifications, which
+     * overlap with un-merged branch commits.
+     * Key: revision, value:
      */
-    public static final NodeDocument NULL = new NodeDocument(new MemoryDocumentStore());
+    static final String COLLISIONS = "_collisions";
+
+    /**
+     * The modified time (5 second resolution).
+     */
+    static final String MODIFIED = "_modified";
+
+    private static final SortedMap<Revision, Range> EMPTY_RANGE_MAP = 
+            Collections.unmodifiableSortedMap(new TreeMap<Revision, Range>());
 
     /**
      * The list of revision to root commit depth mappings to find out if a
@@ -96,18 +108,6 @@ public class NodeDocument extends Document {
     private static final String DELETED = "_deleted";
 
     /**
-     * Revision collision markers set by commits with modifications, which
-     * overlap with un-merged branch commits.
-     * Key: revision, value:
-     */
-    static final String COLLISIONS = "_collisions";
-
-    /**
-     * The modified time (5 second resolution).
-     */
-    static final String MODIFIED = "_modified";
-
-    /**
      * The list of recent revisions for this node, where this node is the
      * root of the commit. Key: revision, value: true or the base revision of an
      * un-merged branch commit.
@@ -119,9 +119,9 @@ public class NodeDocument extends Document {
      */
     private static final String LAST_REV = "_lastRev";
 
-    private final long time = System.currentTimeMillis();
+    final DocumentStore store;
 
-    private final DocumentStore store;
+    private final long time = System.currentTimeMillis();
 
     NodeDocument(@Nonnull DocumentStore store) {
         this.store = checkNotNull(store);
@@ -261,6 +261,7 @@ public class NodeDocument extends Document {
     /**
      * Get the revision of the latest change made to this node.
      *
+     * @param context the revision context
      * @param changeRev the revision of the current change
      * @param handler the conflict handler, which is called for concurrent changes
      *                preceding <code>before</code>.
@@ -276,7 +277,7 @@ public class NodeDocument extends Document {
         if (data.containsKey(COMMIT_ROOT)) {
             revisions.addAll(((Map<String, Integer>) get(COMMIT_ROOT)).keySet());
         }
-        Map<String, String> deletedMap = (Map<String, String>)get(DELETED);
+        Map<String, String> deletedMap = (Map<String, String>) get(DELETED);
         if (deletedMap != null) {
             revisions.addAll(deletedMap.keySet());
         }
@@ -475,7 +476,8 @@ public class NodeDocument extends Document {
     /**
      * Get the earliest (oldest) revision where the node was alive at or before
      * the provided revision, if the node was alive at the given revision.
-     *
+     * 
+     * @param context the revision context
      * @param maxRev the maximum revision to return
      * @param validRevisions the set of revisions already checked against maxRev
      *            and considered valid.
@@ -756,7 +758,7 @@ public class NodeDocument extends Document {
         if (commitRootPath == null) {
             // shouldn't happen, either node is commit root for a revision
             // or has a reference to the commit root
-            log.warn("Node {} does not have commit root reference for revision {}",
+            LOG.warn("Node {} does not have commit root reference for revision {}",
                     getId(), rev);
             return null;
         }
@@ -883,7 +885,7 @@ public class NodeDocument extends Document {
      * @return the value, or null if not found
      */
     @CheckForNull
-    private String getLatestValue(@Nonnull RevisionContext context,
+    private static String getLatestValue(@Nonnull RevisionContext context,
                                   @Nonnull Map<String, String> valueMap,
                                   @Nullable Revision min,
                                   @Nonnull Revision max) {
@@ -905,7 +907,7 @@ public class NodeDocument extends Document {
         return value;
     }
 
-    private Map<String, String> getRevisions() {
+    Map<String, String> getRevisions() {
         final Map<String, String> map = getRevisionsMap();
         if (!data.containsKey(PREVIOUS)) {
             return map;
@@ -1003,7 +1005,7 @@ public class NodeDocument extends Document {
      * @param revision the revision to match or <code>null</code>.
      * @return previous documents.
      */
-    private Iterable<NodeDocument> getPreviousDocs(final @Nullable Revision revision) {
+    Iterable<NodeDocument> getPreviousDocs(@Nullable final Revision revision) {
         Iterable<NodeDocument> docs = Iterables.transform(
                 Iterables.filter(getPreviousRanges().entrySet(),
                 new Predicate<Map.Entry<Revision, Range>>() {
@@ -1019,7 +1021,7 @@ public class NodeDocument extends Document {
                 String prevId = Utils.getPreviousIdFor(getId(), r);
                 NodeDocument prev = store.find(Collection.NODES, prevId);
                 if (prev == null) {
-                    log.warn("Document with previous revisions not found: " + prevId);
+                    LOG.warn("Document with previous revisions not found: " + prevId);
                 }
                 return prev;
             }
@@ -1052,6 +1054,9 @@ public class NodeDocument extends Document {
         return previous;
     }
 
+    /**
+     * A range of revisions.
+     */
     private static final class Range {
 
         final Revision high;
@@ -1088,5 +1093,7 @@ public class NodeDocument extends Document {
         public String toString() {
             return low.toString();
         }
+        
     }
+    
 }

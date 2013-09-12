@@ -382,7 +382,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
     }
 
     private void backgroundSplit() {
-        for (Iterator<String> it = splitCandidates.keySet().iterator(); it.hasNext(); ) {
+        for (Iterator<String> it = splitCandidates.keySet().iterator(); it.hasNext();) {
             String id = it.next();
             NodeDocument doc = store.find(Collection.NODES, id);
             if (doc == null) {

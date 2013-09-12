@@ -33,6 +33,7 @@ public interface DocumentStore {
      * <p>
      * The returned document is immutable.
      * 
+     * @param <T> the document type
      * @param collection the collection
      * @param key the key
      * @return the document, or null if not found
@@ -46,6 +47,7 @@ public interface DocumentStore {
      * <p>
      * The returned document is immutable.
      * 
+     * @param <T> the document type
      * @param collection the collection
      * @param key the key
      * @param maxCacheAge the maximum age of the cached document
@@ -58,6 +60,7 @@ public interface DocumentStore {
      * Get a list of documents where the key is greater than a start value and
      * less than an end value. The returned documents are immutable.
      * 
+     * @param <T> the document type
      * @param collection the collection
      * @param fromKey the start value (excluding)
      * @param toKey the end value (excluding)
@@ -74,6 +77,7 @@ public interface DocumentStore {
      * Get a list of documents where the key is greater than a start value and
      * less than an end value. The returned documents are immutable.
      * 
+     * @param <T> the document type
      * @param collection the collection
      * @param fromKey the start value (excluding)
      * @param toKey the end value (excluding)
@@ -93,6 +97,7 @@ public interface DocumentStore {
     /**
      * Remove a document.
      *
+     * @param <T> the document type
      * @param collection the collection
      * @param key the key
      */
@@ -101,6 +106,7 @@ public interface DocumentStore {
     /**
      * Try to create a list of documents.
      * 
+     * @param <T> the document type
      * @param collection the collection
      * @param updateOps the list of documents to add
      * @return true if this worked (if none of the documents already existed)
@@ -111,6 +117,7 @@ public interface DocumentStore {
      * Create or update a document. For MongoDb, this is using "findAndModify" with
      * the "upsert" flag (insert or update). The returned document is immutable.
      *
+     * @param <T> the document type
      * @param collection the collection
      * @param update the update operation
      * @return the old document or <code>null</code> if it didn't exist before.
@@ -126,6 +133,7 @@ public interface DocumentStore {
      * document if the condition is <code>true</code>. The returned document is
      * immutable.
      *
+     * @param <T> the document type
      * @param collection the collection
      * @param update the update operation with the condition
      * @return the old document or <code>null</code> if the condition is not met.
@@ -143,6 +151,7 @@ public interface DocumentStore {
     /**
      * Invalidate the document cache for the given key.
      * 
+     * @param <T> the document type
      * @param collection the collection
      * @param key the key
      */
@@ -156,6 +165,7 @@ public interface DocumentStore {
     /**
      * Check whether the given document is in the cache.
      * 
+     * @param <T> the document type
      * @param collection the collection
      * @param key the key
      * @return true if yes

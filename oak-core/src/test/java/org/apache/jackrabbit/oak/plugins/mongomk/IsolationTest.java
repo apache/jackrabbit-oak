@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
