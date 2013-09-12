@@ -50,14 +50,6 @@ public class FullTextSearchImpl extends ConstraintImpl {
      */
     public static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
 
-    /**
-     * Compatibility for Jackrabbit 2.0 queries with ampersand.
-     * (contains(., "max&moritz"))
-     * The ampersand is converted to a space, and a search is made for the 
-     * two words "max" and "moritz" (not a phrase search).
-     */
-    public static final boolean JACKRABBIT_2_AMPERSAND_TO_SPACE = true;
-
     private final String selectorName;
     private final String relativePath;
     private final String propertyName;
