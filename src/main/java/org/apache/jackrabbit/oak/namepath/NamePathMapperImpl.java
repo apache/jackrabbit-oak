@@ -110,7 +110,7 @@ public class NamePathMapperImpl implements NamePathMapper {
                 if (index == 0) {
                     elements.add(p);
                 } else {
-                    elements.add(p + "[" + index + "]");
+                    elements.add(p + '[' + index + ']');
                 }
                 return true;
             }
@@ -162,7 +162,25 @@ public class NamePathMapperImpl implements NamePathMapper {
             return this.idManager.getPath(jcrPath.substring(1, length - 1));
         }
 
+        // Shortcut iff the JCR path does not start with a dot, does not contain any of
+        // {}[]/ and if it contains a colon the session does not have local re-mappings.
+        boolean hasLocalMappings = hasSessionLocalMappings();
+        boolean shortcut = length > 0 && jcrPath.charAt(0) != '.';
+        for (int i = 0; shortcut && i < length; i++) {
+            char c = jcrPath.charAt(i);
+            if (c == '{' || c == '}' || c == '[' || c == ']' || c == '/') {
+                shortcut = false;
+            } else if (c == ':') {
+                shortcut = !hasLocalMappings;
+            }
+        }
+
+        if (shortcut) {
+            return jcrPath;
+        }
+
         final StringBuilder parseErrors = new StringBuilder();
+
         PathListener listener = new PathListener() {
             @Override
             public void error(String message) {
