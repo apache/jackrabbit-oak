@@ -61,7 +61,7 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         Row row;
         String s;
         
-        String xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.)";
+        String xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.) order by jcr:path descending";
         
         q = qm.createQuery(xpath, "xpath");
         it = q.execute().getRows();
@@ -75,7 +75,7 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         assertTrue(s, s.indexOf("Hello World") >= 0);
         assertTrue(s, s.indexOf("Description") >= 0);
         
-        xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.)";
+        xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.) order by jcr:path descending";
 
         q = qm.createQuery(xpath, "xpath");
         it = q.execute().getRows();
