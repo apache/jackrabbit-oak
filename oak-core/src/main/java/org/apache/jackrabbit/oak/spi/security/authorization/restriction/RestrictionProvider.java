@@ -95,7 +95,7 @@ public interface RestrictionProvider {
 
     /**
      * Writes the given restrictions to the specified ACE tree. Note, that this
-     * method does not validate the specified restrictions (see also
+     * method does not need to validate the specified restrictions (see also
      * {@link #validateRestrictions(String, org.apache.jackrabbit.oak.api.Tree)}).
      *
      * @param oakPath The path of the access controlled tree or {@code null} if

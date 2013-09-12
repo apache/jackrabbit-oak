@@ -17,9 +17,13 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -30,6 +34,7 @@ import javax.jcr.security.AccessControlException;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 
 /**
  * Aggregates of a collection of {@link RestrictionProvider} implementations
@@ -41,6 +46,10 @@ public class CompositeRestrictionProvider implements RestrictionProvider {
 
     private CompositeRestrictionProvider(@Nonnull Collection<? extends RestrictionProvider> providers) {
         this.providers = ImmutableSet.copyOf(providers);
+    }
+
+    public static RestrictionProvider newInstance(@Nonnull RestrictionProvider... providers) {
+        return newInstance(Arrays.<RestrictionProvider>asList(providers));
     }
 
     public static RestrictionProvider newInstance(@Nonnull Collection<? extends RestrictionProvider> providers) {
@@ -87,31 +96,31 @@ public class CompositeRestrictionProvider implements RestrictionProvider {
     public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
         for (Restriction r : restrictions) {
             RestrictionProvider rp = getProvider(oakPath, getName(r));
-            rp.writeRestrictions(oakPath, aceTree, restrictions);
+            rp.writeRestrictions(oakPath, aceTree, Collections.singleton(r));
         }
     }
 
     @Override
     public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException, RepositoryException {
-        Set<RestrictionDefinition> supported = getSupportedRestrictions(oakPath);
+        Map<String,RestrictionDefinition> supported = getSupported(oakPath);
         Set<String> rNames = new HashSet<String>();
         for (Restriction r : readRestrictions(oakPath, aceTree)) {
             String name = getName(r);
             rNames.add(name);
-            boolean valid = false;
-            for (RestrictionDefinition def : supported) {
-                if (name.equals(def.getName())) {
-                    valid = def.equals(r.getDefinition());
-                    break;
-                }
+            if (!supported.containsKey(name)) {
+                throw new AccessControlException("Unsupported restriction: " + name + " at " + oakPath);
             }
-            if (!valid) {
-                throw new AccessControlException("Invalid restriction: " + r + " at " + oakPath);
+            if (!r.getDefinition().equals(supported.get(name))) {
+                throw new AccessControlException("Invalid restriction: " + name + " at " + oakPath);
             }
         }
-        for (RestrictionDefinition def : supported) {
-            if (def.isMandatory() && !rNames.contains(def.getName())) {
-                throw new AccessControlException("Mandatory restriction " + def.getName() + " is missing.");
+        for (RestrictionDefinition def : supported.values()) {
+            String defName = def.getName();
+            if (hasRestrictionProperty(aceTree, defName) && !rNames.contains(defName)) {
+                throw new AccessControlException("Invalid restriction " + defName + " at " + oakPath);
+            }
+            if (def.isMandatory() && !rNames.contains(defName)) {
+                throw new AccessControlException("Mandatory restriction " + defName + " is missing.");
             }
         }
     }
@@ -143,6 +152,24 @@ public class CompositeRestrictionProvider implements RestrictionProvider {
             }
         }
         throw new AccessControlException("Unsupported restriction (path = " + oakPath + "; name = " + oakName + ')');
+    }
+
+    private Map<String, RestrictionDefinition> getSupported(@Nullable String oakPath) {
+        Map<String, RestrictionDefinition> supported = new HashMap<String, RestrictionDefinition>();
+        for (RestrictionProvider rp : providers) {
+            for (RestrictionDefinition rd : rp.getSupportedRestrictions(oakPath)) {
+                supported.put(rd.getName(), rd);
+            }
+        }
+        return supported;
+    }
+
+    private static boolean hasRestrictionProperty(Tree aceTree, String name) {
+        if (aceTree.hasProperty(name)) {
+            return true;
+        }
+        Tree restrictionTree = aceTree.getChild(AccessControlConstants.REP_RESTRICTIONS);
+        return restrictionTree.exists() && restrictionTree.hasProperty(name);
     }
 
     private static String getName(Restriction restriction) {
