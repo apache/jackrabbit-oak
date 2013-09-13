@@ -99,12 +99,6 @@
 
   <profiles>
     <profile>
-      <id>mongomk</id>
-      <modules>
-        <module>oak-mongomk-perf</module>
-      </modules>
-    </profile>
-    <profile>
       <id>apache-release</id>
       <properties>
         <keyfile>${user.home}/.ssh/id_rsa</keyfile>
