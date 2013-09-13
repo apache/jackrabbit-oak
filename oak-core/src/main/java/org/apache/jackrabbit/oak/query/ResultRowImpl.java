@@ -22,7 +22,6 @@ import java.util.Comparator;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.fulltext.SimpleExcerptProvider;
@@ -73,27 +72,23 @@ public class ResultRowImpl implements ResultRow {
 
     @Override
     public PropertyValue getValue(String columnName) {
-        // OAK-318:
-        // somebody might call rep:excerpt(text)
-        // even thought the query doesn't contain that column
-        if (columnName.startsWith(QueryImpl.REP_EXCERPT)) {
-            // get the search token
-            int index = query.getColumnIndex(QueryImpl.REP_EXCERPT);
-            String searchToken = values[index].getValue(Type.STRING);
-            String ex = new SimpleExcerptProvider().getExcerpt(getPath(),
-                    columnName, query, searchToken, true);
-            // missing excerpt, generate a default value
-            if (ex != null) {
-                return PropertyValues.newString(ex);
-            }
-            return null;
-        }
-        
         int index = query.getColumnIndex(columnName);
         if (index >= 0) {
             return values[index];
         }
         if (JcrConstants.JCR_PATH.equals(columnName)) {
+            return PropertyValues.newString(getPath());
+        }
+        // OAK-318:
+        // somebody might call rep:excerpt(text)
+        // even thought the query doesn't contain that column
+        if (columnName.startsWith(QueryImpl.REP_EXCERPT)) {
+            // missing excerpt, generate a default value
+            String ex = SimpleExcerptProvider.getExcerpt(getPath(), columnName,
+                    query, true);
+            if (ex != null) {
+                return PropertyValues.newString(ex);
+            }
             return PropertyValues.newString(getPath());
         }
         throw new IllegalArgumentException("Column not found: " + columnName);
