@@ -16,19 +16,24 @@
  */
 package org.apache.jackrabbit.oak.query.fulltext;
 
-import java.util.ArrayList;
-import java.util.List;
+import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.Query;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
-import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
+import org.apache.jackrabbit.oak.query.ast.OrImpl;
+
+import com.google.common.collect.ImmutableSet;
 
 public class SimpleExcerptProvider {
 
@@ -36,8 +41,8 @@ public class SimpleExcerptProvider {
 
     private static int maxFragmentSize = 150;
 
-    public String getExcerpt(String path, String columnName, Query query, String searchToken,
-            boolean highlight) {
+    public static String getExcerpt(String path, String columnName,
+            Query query, boolean highlight) {
         if (path == null) {
             return null;
         }
@@ -45,8 +50,8 @@ public class SimpleExcerptProvider {
         if (t == null || !t.exists()) {
             return null;
         }
-        String filter = null;
-        if (columnName.contains("/")) {
+        columnName = extractExcerptProperty(columnName);
+        if (columnName != null && columnName.contains("/")) {
             for (String p : PathUtils.elements(PathUtils
                     .getParentPath(columnName))) {
                 if (t.hasChild(p)) {
@@ -55,16 +60,15 @@ public class SimpleExcerptProvider {
                     return null;
                 }
             }
-            filter = extractExcerptProperty(PathUtils.getName(columnName));
-        } else {
-            filter = extractExcerptProperty(columnName);
+            columnName = PathUtils.getName(columnName);
         }
 
         StringBuilder text = new StringBuilder();
         String separator = "";
         for (PropertyState p : t.getProperties()) {
             if (p.getType().tag() == Type.STRING.tag()
-                    && (filter == null || filter.equalsIgnoreCase(p.getName()))) {
+                    && (columnName == null || columnName.equalsIgnoreCase(p
+                            .getName()))) {
                 text.append(separator);
                 separator = " ";
                 for (String v : p.getValue(Type.STRINGS)) {
@@ -72,10 +76,10 @@ public class SimpleExcerptProvider {
                 }
             }
         }
-        if (highlight) {
-            if (searchToken != null) {
-                return highlight(text, searchToken);
-            }
+        Set<String> searchToken = extractFulltext(query);
+        if (highlight && searchToken != null) {
+            String h = highlight(text, searchToken);
+            return h;
         }
         return noHighlight(text);
     }
@@ -88,30 +92,48 @@ public class SimpleExcerptProvider {
         return column.substring(column.indexOf("(") + 1, column.indexOf(")"));
     }
 
-    public static String extractFulltext(ConstraintImpl c) {
-        // TODO instanceof should not be used, 
+    private static Set<String> extractFulltext(Query q) {
+        // TODO instanceof should not be used
+        if (q instanceof QueryImpl) {
+            return extractFulltext(((QueryImpl) q).getConstraint());
+        }
+        return ImmutableSet.of();
+    }
+
+    private static Set<String> extractFulltext(ConstraintImpl c) {
+        Set<String> tokens = new HashSet<String>();
+        // TODO instanceof should not be used,
         // as it will break without us noticing if we extend the AST
         if (c instanceof FullTextSearchImpl) {
             FullTextSearchImpl f = (FullTextSearchImpl) c;
             if (f.getFullTextSearchExpression() instanceof LiteralImpl) {
                 LiteralImpl l = (LiteralImpl) f.getFullTextSearchExpression();
-                return l.getLiteralValue().getValue(Type.STRING);
+                tokens.add(l.getLiteralValue().getValue(Type.STRING));
             }
-            return null;
         }
         if (c instanceof AndImpl) {
             AndImpl a = (AndImpl) c;
-            String t = extractFulltext(a.getConstraint1());
-            if (t == null) {
-                return extractFulltext(a.getConstraint2());
-            }
-            return t;
+            tokens.addAll(extractFulltext(a.getConstraint1()));
+            tokens.addAll(extractFulltext(a.getConstraint2()));
         }
-        return null;
+        if (c instanceof OrImpl) {
+            OrImpl o = (OrImpl) c;
+            tokens.addAll(extractFulltext(o.getConstraint1()));
+            tokens.addAll(extractFulltext(o.getConstraint2()));
+        }
+        return tokens;
     }
 
-    private static List<String> tokenize(String in) {
-        List<String> out = new ArrayList<String>();
+    private static Set<String> tokenize(Set<String> in) {
+        Set<String> tokens = new HashSet<String>();
+        for (String s : in) {
+            tokens.addAll(tokenize(s));
+        }
+        return tokens;
+    }
+
+    private static Set<String> tokenize(String in) {
+        Set<String> out = new HashSet<String>();
         StringBuilder token = new StringBuilder();
         boolean quote = false;
         for (int i = 0; i < in.length();) {
@@ -165,8 +187,8 @@ public class SimpleExcerptProvider {
         return excerpt.toString();
     }
 
-    private static String highlight(StringBuilder text, String searchToken) {
-        List<String> tokens = tokenize(searchToken);
+    private static String highlight(StringBuilder text, Set<String> searchToken) {
+        Set<String> tokens = tokenize(searchToken);
         text = new StringBuilder(encodeIllegalXMLCharacters(text.toString()));
         for (String token : tokens) {
             text = replaceAll(text, token, "<strong>", "</strong>");
