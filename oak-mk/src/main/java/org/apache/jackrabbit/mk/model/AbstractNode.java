@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 /**
  *
@@ -148,7 +149,8 @@ public abstract class AbstractNode implements Node, CacheObject {
     }
 
     public void serialize(Binding binding) throws Exception {
-        final Iterator<Map.Entry<String, String>> iter = properties.entrySet().iterator();
+        final Iterator<Map.Entry<String, String>> iter =
+                new TreeMap<String, String>(properties).entrySet().iterator();
         binding.writeMap(":props", properties.size(),
                 new Binding.StringEntryIterator() {
                     @Override
