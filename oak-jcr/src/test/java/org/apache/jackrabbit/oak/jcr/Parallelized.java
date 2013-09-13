@@ -22,12 +22,23 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.runners.Parameterized;
 import org.junit.runners.model.RunnerScheduler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Extension of the {@link Parameterized} test runner, which runs tests in
  * parallel.
  */
 public class Parallelized extends Parameterized {
+
+    /**
+     * Logger instance. Unused by this class, but present to force early
+     * auto-initialization of the logging system and thus to avoid warnings
+     * about concurrent initialization.
+     */
+    @SuppressWarnings("unused")
+    private static final Logger log =
+            LoggerFactory.getLogger(Parallelized.class);
 
     private static class ThreadPoolScheduler implements RunnerScheduler {
         private ExecutorService executor;
