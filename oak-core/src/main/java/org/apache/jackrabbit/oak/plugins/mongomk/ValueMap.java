@@ -46,7 +46,7 @@ class ValueMap {
             @Nonnull
             public Iterator<Map.Entry<String, String>> iterator() {
                 return Iterators.concat(map.entrySet().iterator(), Iterators.concat(new Iterator<Iterator<Map.Entry<String, String>>>() {
-                    private final Iterator<NodeDocument> previous = doc.getPreviousDocs(null).iterator();
+                    private final Iterator<NodeDocument> previous = doc.getPreviousDocs(null, property).iterator();
 
                     @Override
                     public boolean hasNext() {
@@ -68,7 +68,7 @@ class ValueMap {
             @Override
             public int size() {
                 int size = map.size();
-                for (NodeDocument prev : doc.getPreviousDocs(null)) {
+                for (NodeDocument prev : doc.getPreviousDocs(null, property)) {
                     size += prev.getLocalMap(property).size();
                 }
                 return size;
@@ -92,7 +92,7 @@ class ValueMap {
                     return value;
                 }
                 Revision r = Revision.fromString(key.toString());
-                for (NodeDocument prev : doc.getPreviousDocs(r)) {
+                for (NodeDocument prev : doc.getPreviousDocs(r, property)) {
                     value = prev.getLocalMap(property).get(key);
                     if (value != null) {
                         return value;
