@@ -39,7 +39,7 @@ public class TarFileTest {
 
     @After
     public void tearDown() {
-        // file.delete();
+        file.delete();
     }
 
     @Test
