@@ -128,4 +128,34 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             assertTrue(doc.isCommitted(rev));
         }
     }
+
+    @Test
+    public void splitPropertyRevisions() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        mk.commit("/", "+\"foo\":{}", null, null);
+        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(doc);
+        Set<String> revisions = Sets.newHashSet();
+        // create nodes
+        while (revisions.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
+            revisions.add(mk.commit("/", "^\"foo/prop\":" + revisions.size(), null, null));
+        }
+        mk.runBackgroundOperations();
+        doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(doc);
+        Map<String, String> localRevs = doc.getLocalRevisions();
+        // one remaining in the local revisions map
+        assertEquals(1, localRevs.size());
+        for (String r : revisions) {
+            Revision rev = Revision.fromString(r);
+            assertTrue(doc.isCommitted(rev));
+        }
+        // all revisions in the prop map
+        Map<String, String> valueMap = doc.getValueMap("prop");
+        assertNotNull(valueMap);
+        assertEquals((long) revisions.size(), valueMap.size());
+        // one remaining revision in the local map
+        valueMap = doc.getLocalMap("prop");
+        assertEquals(1L, valueMap.size());
+    }
 }
