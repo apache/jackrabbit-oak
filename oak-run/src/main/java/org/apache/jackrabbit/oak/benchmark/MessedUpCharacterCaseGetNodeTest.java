@@ -27,17 +27,17 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.core.security.principal.EveryonePrincipal;
 
 /**
- * {@code GetNodeTest} implements a performance test, which reads
+ * {@code MessedUpCharacterCaseGetNodeTest} implements a performance test, which reads
  * nodes from the repository. To determine the effect of access control
  * evaluation the test can either run with anonymous or with admin.
  */
-public abstract class GetNodeTest extends AbstractTest {
+public abstract class MessedUpCharacterCaseGetNodeTest extends AbstractTest {
     private final String name;
 
     private Node testRoot;
 
     public static Benchmark withAdmin() {
-        return new GetNodeTest("GetNodeWithAdmin") {
+        return new MessedUpCharacterCaseGetNodeTest("GetNodeWithAdmin") {
             @Override
             protected Session login() {
                 return loginWriter();
@@ -46,7 +46,7 @@ public abstract class GetNodeTest extends AbstractTest {
     }
 
     public static Benchmark withAnonymous() {
-        return new GetNodeTest("GetNodeWithAnonymous") {
+        return new MessedUpCharacterCaseGetNodeTest("GetNodeWithAnonymous") {
             @Override
             protected Session login() {
                 return loginAnonymous();
@@ -54,7 +54,7 @@ public abstract class GetNodeTest extends AbstractTest {
         };
     }
 
-    protected GetNodeTest(String name) {
+    protected MessedUpCharacterCaseGetNodeTest(String name) {
         this.name = name;
     }
 
@@ -68,7 +68,7 @@ public abstract class GetNodeTest extends AbstractTest {
     @Override
     protected void beforeSuite() throws Exception {
         Session session = loginWriter();
-        testRoot = session.getRootNode().addNode(GetNodeTest.class.getSimpleName(), "nt:unstructured");
+        testRoot = session.getRootNode().addNode(MessedUpCharacterCaseGetNodeTest.class.getSimpleName(), "nt:unstructured");
         testRoot.addNode("node1").addNode("node2");
 
         addAccessControlEntry(session, testRoot.getPath(), EveryonePrincipal.getInstance(),
