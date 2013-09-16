@@ -20,17 +20,15 @@ import java.io.File;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 public class BenchmarkRunner {
 
@@ -77,6 +75,8 @@ public class BenchmarkRunner {
             new LoginLogoutTest(),
             new NamespaceTest(),
             new ReadPropertyTest(),
+            GetNodeTest.withAdmin(),
+            GetNodeTest.withAnonymous(),
             new SetPropertyTest(),
             new SmallFileReadTest(),
             new SmallFileWriteTest(),
