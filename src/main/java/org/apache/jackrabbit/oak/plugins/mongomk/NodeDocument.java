@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -116,6 +117,13 @@ public class NodeDocument extends Document {
      */
     private static final String LAST_REV = "_lastRev";
 
+    /**
+     * Properties to ignore when a document is split.
+     */
+    private static final Set<String> IGNORE_ON_SPLIT =
+            Collections.unmodifiableSet(new HashSet<String>(
+                    Arrays.asList(ID, MODIFIED, PREVIOUS, LAST_REV)));
+
     final DocumentStore store;
 
     /**
@@ -127,6 +135,27 @@ public class NodeDocument extends Document {
 
     NodeDocument(@Nonnull DocumentStore store) {
         this.store = checkNotNull(store);
+    }
+
+    /**
+     * Gets the value map for the given key. This method is similar to {@link
+     * #get(String)} but only returns a map instance if the value associated
+     * with <code>key</code> is a map. The returned value map may span multiple
+     * documents if the values of the given <code>key</code> were split off to
+     * {@link #PREVIOUS} documents.
+     *
+     * @param key a string key.
+     * @return the map associated with the key or <code>null</code> if there is
+     *         no such entry.
+     */
+    @CheckForNull
+    public Map<String, String> getValueMap(@Nonnull String key) {
+        Object value = super.get(key);
+        if (IGNORE_ON_SPLIT.contains(key) || !(value instanceof Map)) {
+            return null;
+        } else {
+            return ValueMap.create(this, key);
+        }
     }
 
     /**
@@ -142,14 +171,11 @@ public class NodeDocument extends Document {
     @Nonnull
     public Map<Integer, Revision> getLastRev() {
         Map<Integer, Revision> map = Maps.newHashMap();
-        @SuppressWarnings("unchecked")
-        Map<String, String> valueMap = (Map<String, String>) get(LAST_REV);
-        if (valueMap != null) {
-            for (Map.Entry<String, String> e : valueMap.entrySet()) {
-                int clusterId = Integer.parseInt(e.getKey());
-                Revision rev = Revision.fromString(e.getValue());
-                map.put(clusterId, rev);
-            }
+        Map<String, String> valueMap = getLocalMap(LAST_REV);
+        for (Map.Entry<String, String> e : valueMap.entrySet()) {
+            int clusterId = Integer.parseInt(e.getKey());
+            Revision rev = Revision.fromString(e.getValue());
+            map.put(clusterId, rev);
         }
         return map;
     }
@@ -368,9 +394,7 @@ public class NodeDocument extends Document {
             if (!Utils.isPropertyName(key)) {
                 continue;
             }
-            Object v = get(key);
-            @SuppressWarnings("unchecked")
-            Map<String, String> valueMap = (Map<String, String>) v;
+            Map<String, String> valueMap = getValueMap(key);
             if (valueMap != null) {
                 if (valueMap instanceof NavigableMap) {
                     // TODO instanceof should be avoided
@@ -569,8 +593,7 @@ public class NodeDocument extends Document {
                 continue;
             }
             // was this property touched after baseRevision?
-            @SuppressWarnings("unchecked")
-            Map<String, Object> changes = (Map<String, Object>) get(name);
+            Map<String, String> changes = getValueMap(name);
             if (changes == null) {
                 continue;
             }
@@ -611,7 +634,10 @@ public class NodeDocument extends Document {
         }
         Map<String, NavigableMap<Revision, String>> splitValues
                 = new HashMap<String, NavigableMap<Revision, String>>();
-        for (String property : new String[]{REVISIONS, COMMIT_ROOT, DELETED}) {
+        for (String property : data.keySet()) {
+            if (IGNORE_ON_SPLIT.contains(property)) {
+                continue;
+            }
             NavigableMap<Revision, String> splitMap
                     = new TreeMap<Revision, String>(context.getRevisionComparator());
             splitValues.put(property, splitMap);
@@ -770,7 +796,7 @@ public class NodeDocument extends Document {
     @Nonnull
     Map<String, String> getLocalMap(String key) {
         @SuppressWarnings("unchecked")
-        Map<String, String> map = (Map<String, String>) get(key);
+        Map<String, String> map = (Map<String, String>) super.get(key);
         if (map == null) {
             map = Collections.emptyMap();
         }
