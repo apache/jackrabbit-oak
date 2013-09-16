@@ -22,31 +22,53 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 
-class MappedTarFile extends TarFile {
+class MappedAccess implements FileAccess {
 
-    private final ByteBuffer buffer;
+    private final MappedByteBuffer buffer;
 
-    MappedTarFile(File file) throws IOException {
+    MappedAccess(File file, int length) throws IOException {
         RandomAccessFile f = new RandomAccessFile(file, "rw");
         try {
-            buffer = f.getChannel().map(READ_WRITE, 0, f.length());
+            long l = f.length();
+            if (l == 0) { // it's a new file
+                l = length;
+            }
+            buffer = f.getChannel().map(READ_WRITE, 0, l);
         } finally {
             f.close();
         }
     }
 
     @Override
-    protected int length() {
+    public int length() {
         return buffer.limit();
     }
 
     @Override
-    protected ByteBuffer read(int position, int length) {
+    public ByteBuffer read(int position, int length) {
         ByteBuffer entry = buffer.asReadOnlyBuffer();
         entry.position(position);
         entry.limit(position + length);
-        return entry;
+        return entry.slice();
+    }
+
+    @Override
+    public void write(int position, byte[] b, int offset, int length)
+            throws IOException {
+        ByteBuffer entry = buffer.duplicate();
+        entry.position(position);
+        entry.put(b, offset, length);
+    }
+
+    @Override
+    public void flush() {
+        buffer.force();
+    }
+
+    @Override
+    public void close() {
     }
 
 }

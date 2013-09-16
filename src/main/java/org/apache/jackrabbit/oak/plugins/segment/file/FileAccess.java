@@ -16,40 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
-class RandomAccessTarFile extends TarFile {
+interface FileAccess {
 
-    private final RandomAccessFile file;
+    int length() throws IOException;
 
-    RandomAccessTarFile(File file) throws IOException {
-        this.file = new RandomAccessFile(file, "rw");
-    }
+    ByteBuffer read(int position, int length) throws IOException;
 
-    @Override
-    protected synchronized ByteBuffer read(int position, int length)
-            throws IOException {
-        ByteBuffer entry = ByteBuffer.allocate(length);
-        file.seek(position);
-        file.readFully(entry.array());
-        return entry;
-    }
+    void write(int position, byte[] b, int offset, int length)
+            throws IOException;
 
-    @Override
-    protected int length() throws IOException {
-        long length = file.length();
-        checkState(length < Integer.MAX_VALUE);
-        return (int) length;
-    }
+    void flush() throws IOException;
 
-    @Override
-    void close() throws IOException {
-        file.close();
-    }
+    void close() throws IOException;
 
 }
