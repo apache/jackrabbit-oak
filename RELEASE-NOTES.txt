@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.8
+Release Notes -- Apache Jackrabbit Oak -- Version 0.9
 
 Introduction
 ------------
@@ -10,42 +10,166 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.8 is to alpha-level software. Use at your own risk.
+Jackrabbit Oak 0.9 is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.8
+Changes in Oak 0.9
 ------------------
 
 New features
 
-  [OAK-788] File backend for the SegmentMK
+  [OAK-763] Asynchronous indexing
+  [OAK-764] Oak error codes
+  [OAK-882] Query: support conditions of type "property in(value1, value2)"
+  [OAK-935] Implement JackrabbitRepository
 
 Improvements
 
-  [OAK-601] Node#getVersionHistory fails with UnsupportedRepository...
-  [OAK-602] VersionManager is never updated
-  [OAK-734] Refactor indexing code to use Editors
-  [OAK-750] Reduce log level of oak-solr-core tests
-  [OAK-796] PermissionValidator: proper check for jcr:uuid modifications.
-  [OAK-807] Keep original xpath query as a comment appended to the ...
-  [OAK-809] Review remove permissions
-  [OAK-811] Refactor Lucene index impl
-  [OAK-812] QueryEngine support for multiple indices (tests)
-  [OAK-814] Update/Insertion of ACEs for Group principals
-  [OAK-816] Property index: restrictions of the type "x > 10" can be ...
-  [OAK-817] Expose LuceneIndexHelper via osgi and make it consistent with ...
+  [OAK-64] Privilege Management
+  [OAK-90] Implement Principal Management
+  [OAK-125] Improved namespace registry
+  [OAK-237] Run Jackrabbit query tests
+  [OAK-521] Configurable AuthorizableAction(s)
+  [OAK-528] Support configurable/pluggable restrictions
+  [OAK-641] Improved benchmark tooling
+  [OAK-675] Observation generates NPE in an existing EventListener
+  [OAK-702] Optimize access to node type information
+  [OAK-709] Consider moving permission evaluation to the node state level
+  [OAK-711] PermissionValidator: Proper permission handling for jcr:nodetypeManagement privilege
+  [OAK-767] Implement Node#removeMixin
+  [OAK-772] Session Import
+  [OAK-773] Workspace Import
+  [OAK-775] Implement backward compatible observation
+  [OAK-786] Fall back to pessimism
+  [OAK-793] Authentication: Document changes wrt. Jackrabbit
+  [OAK-798] Review / refactor TreeImpl and related classes
+  [OAK-804] MBean to track observation listeners
+  [OAK-819] Lucene fulltext on node not working properly
   [OAK-831] Lucene filesystem based index
+  [OAK-836] MongoMk LogWrapper generics
+  [OAK-838] Refactor JsopUtil to not duplicate code from KernelNodeState
+  [OAK-839] Optimization in the Node#getNodes
+  [OAK-843] Optimization in the Node#hasNodes()
+  [OAK-844] Solr core name should be taken from the SolrServerProvider
+  [OAK-845] Upgrade oak-lucene to Lucene 4.3
+  [OAK-848] Segmentmk should log a warning when using the file backend on 32-bit systems
+  [OAK-849] Automatically create Oak collection for SolrCloud deployments
+  [OAK-853] Many child nodes: Diffing causes many calls to the MicroKernel
+  [OAK-854] Use weight based caching limit instead of size based limits
+  [OAK-858] NodeBuilder.getChildNodeCount performance and scalability
+  [OAK-860] Streamline the IndexEditor
+  [OAK-863] Enable stats for various caches used in Oak by default
+  [OAK-871] RootImpl.hasPendingChanges is slow
+  [OAK-875] Move MongoMk code to Oak Core
+  [OAK-877] Generating observation events takes too long when intermediate save calls are involved
+  [OAK-879] Default ScheduledExecutorService improvements
+  [OAK-885] Skinny MongoMK Children objects
+  [OAK-887] Bottleneck while creating multiple children with ACLs
+  [OAK-889] Add respect orderable children capability in ImmutableTree#getChildren
+  [OAK-895] Random access for Lucene index binaries
+  [OAK-906] Add the REP_VERSION_DESC descriptor
+  [OAK-909] PrincipalManagement: Document changes wrt Jackrabbit
+  [OAK-911] Optimize Session.getItem(String)
+  [OAK-914] Relax the NodeStateDiff.childNodeChanged() semantics
+  [OAK-922] Optimize UpdateManyChildNodesTest
+  [OAK-932] RootImpl to AbstractRoot
+  [OAK-933] Implement Session#hasCapability
+  [OAK-936] Incorporate Oak documentation into the Oak website
+  [OAK-943] Provide more details with CommitFailedException
+  [OAK-945] UserImporter should not cast UserManager to UserManagerImpl
+  [OAK-953] Allow sub-classing of SessionImpl
+  [OAK-961] Parametrise tests to run against all Microkernel backends
+  [OAK-963] Clarify NodeStoreBranch.move() contract for move to self
+  [OAK-971] More accurate cache weight for AbstractNode
+  [OAK-975] Refactor KernelNodeStoreBranch
+  [OAK-980] Add status information for the async index process
+  [OAK-984] Add exclude property list to the Lucene index definition
+  [OAK-997] cleanup codebase: remove unneeded internal abstraction
+  [OAK-1006] Clean up oak-jcr package structure
+  [OAK-1010] Unify the repository home config for the OSGi setup
+  [OAK-1012] XmlImportTest should log out its session after each run
+  [OAK-1014] Allow customization of repository descriptors
+  [OAK-1015] Optimise path parsing
 
 Bug fixes
 
-  [OAK-510] Multivalued properties with array size 0 forget their type
-  [OAK-815] Wrong type for empty multi-valued property
-  [OAK-822] TypeEditor: Missing validation for mandatory items
-  [OAK-824] Query engine: automatic expansion of "x=1 or x=2" to "(x is ...
-  [OAK-830] XPathToSQL2Converter fails to wrap or clauses
-  [OAK-832] RegistrationEditor always sets oak:protectedChildNodes to 'false'
+  [OAK-212] Tree#getPropertyStatus requires tree to exist
+  [OAK-214] PropertyImpl#getParent violates JCR API
+  [OAK-220] PropertyState can only be accessed from parent tree
+  [OAK-226] Property#getPath() relies on accessibility of the parent node
+  [OAK-530] Optimization for xpath queries of type "/jcr:root//*[x/@y]"
+  [OAK-708] SecureNodeState#getChildNodeCount and #getPropertyCount: don't respect read permissions
+  [OAK-753] TreeImpl exposes hidden child trees
+  [OAK-802] Occasional type validation errors in TCK setup
+  [OAK-813] Removing a Node if the parent is not accessible
+  [OAK-821] UserImportTest.testImportGroupIntoUsersTree failing
+  [OAK-823] Missing validation for jcr:uuid property
+  [OAK-826] NodeDefinition#getRequiredPrimaryTypes throws IllegalStateException
+  [OAK-829] ConstraintViolationException while retrieving definition for all nodes with name jcr:childNodeDefinition
+  [OAK-837] Lucene: colliding concurrency node creation
+  [OAK-840] Intermittent test failure for testRegisterNodeType on JDK 7
+  [OAK-841] Indexing empty string fails with "there's already a child node with name ':index'"
+  [OAK-846] Branch conflicts not detected by MongoMK
+  [OAK-847] Condition check broken in MemoryDocumentStore
+  [OAK-851] Slowness while traversing a tree
+  [OAK-864] MicroKernelException when moving a node to its own descendant
+  [OAK-868] KernelNodeState.processJsonDiff throws IAE
+  [OAK-870] Session.getNode/Property/Item() with relative path throws IllegalArgumentException
+  [OAK-872] NodeStoreTest diff failures with MongoMK
+  [OAK-873] Wrong readStatus resolution when using glob restriction and write permission
+  [OAK-876] SegmentMK: File backend restart problem due to missing padding
+  [OAK-878] IllegalArgumentException while adding/removing read permission to user/group
+  [OAK-880] ChangeProcessor causes IllegalArgumentException when path filter ends with a slash
+  [OAK-881] KernelNodeState.processJsonDiff() does not propagate return value of NodeStateDiff
+  [OAK-883] Possible NPE in ContentMirrorStoreStrategy.PathIterator
+  [OAK-888] PathUtils#getDepth returns 1 for empty path
+  [OAK-892] Parameterize oak-jcr tests
+  [OAK-893] MongoMK may fail with MicroKernelException under concurrent commits
+  [OAK-897] Query+Security: Ensure joins can not reveal existence of invisible nodes
+  [OAK-898] Session#move with a fresh session doesn't work properly
+  [OAK-899] Query: simplify duplicate conditions
+  [OAK-902] Lucene fulltext query: "contains(*, 'x OR y')" not working
+  [OAK-912] Lucene index only filters the first contains clause
+  [OAK-915] Workspace#copy of referenceable nodes does not generate new UUIDs
+  [OAK-921] Failure on AccessControlManagerImpl.getPrivileges for rep:policy nodes
+  [OAK-923] Runtime exception while creating a group
+  [OAK-927] Concurrent commits may cause duplicate observation events
+  [OAK-929] Permission changes not visible on root after refresh
+  [OAK-930] VersionManager#isCheckedOut throws IllegalStateException
+  [OAK-938] UserManager does not honour session refresh settings
+  [OAK-940] Manually specified jcr:frozenUuid overwriting the one assigned by the VersionManager when versioning node
+  [OAK-947] New node becomes existing after Session.refresh(true)
+  [OAK-958] Session related entities do not honour session refresh settings
+  [OAK-959] Deadlock between ChangeDispatcher and SegmentNodeStoreService
+  [OAK-962] RootFuzzIT fails on MongoMK with seed -1091889749
+  [OAK-965] SegmentNodeState.equals fails with IllegalArgumentException
+  [OAK-966] Restore RepositoryHelper after TCK tests
+  [OAK-967] Run parameterized tests in parallel
+  [OAK-968] TCK tests run OOM when MongoDB is available
+  [OAK-976] MicroKernel.diff() returns invalid JSON (H2)
+  [OAK-977] Version restore may include jcr:frozenXXX properties
+  [OAK-978] AssertionError thrown for invalid paths
+  [OAK-979] MicroKernel.diff() returns incomplete JSON when moves are involved (H2)
+  [OAK-983] Non full-text indices should ignore queries that have full-text constraints
+  [OAK-989] Query parser doesn't decode paths
+  [OAK-990] ConcurrentRead(Write)Test leaks session
+  [OAK-991] DescendantSearchTest fails with NamespaceException on Jackrabbit 2
+  [OAK-992] NPE when running FlatTreeWithAceForSamePrincipalTest on MongoMK
+  [OAK-994] XPath to SQL-2 conversion error for "element(..)"
+  [OAK-995] XPath: allow using RowIterator Row.getPath() for all queries
+  [OAK-996] Incorrect types for version result nodes
+  [OAK-998] Node#orderBefore() is not JCR conform
+  [OAK-999] Version creates frozenNode children with orignial NoteType instead of frozenNode
+  [OAK-1000] Queries on node name fail if the name starts with a number
+  [OAK-1003] Missing package exports in oak-jcr module
+  [OAK-1004] Typo in oak-core pom.xml
+  [OAK-1007] Switch default Lucene Analyzer to ClassicAnalyzer
+  [OAK-1008] Query parser splits token: FulltextQueryTest#testPredefinedEntityReference
+  [OAK-1011] ReadDeepTreeTest should log session out after each test iteration
+  [OAK-1017] Unstable hashes in MicroKernelImpl
+
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 0.6 release.
+all the changes included up to the Apache Jackrabbit Oak 0.8 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
