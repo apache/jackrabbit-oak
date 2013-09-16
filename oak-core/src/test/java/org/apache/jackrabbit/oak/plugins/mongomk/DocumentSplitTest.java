@@ -103,4 +103,29 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             assertNotNull(node);
         }
     }
+
+    @Test
+    public void splitCommitRoot() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
+        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(doc);
+        Set<String> commitRoots = Sets.newHashSet();
+        commitRoots.addAll(doc.getLocalCommitRoot().keySet());
+        // create nodes
+        while (commitRoots.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
+            commitRoots.add(mk.commit("/", "^\"foo/prop\":" + commitRoots.size() +
+                    "^\"bar/prop\":" + commitRoots.size(), null, null));
+        }
+        mk.runBackgroundOperations();
+        doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        assertNotNull(doc);
+        Map<String, String> commits = doc.getLocalCommitRoot();
+        // one remaining in the local commit root map
+        assertEquals(1, commits.size());
+        for (String r : commitRoots) {
+            Revision rev = Revision.fromString(r);
+            assertTrue(doc.isCommitted(rev));
+        }
+    }
 }
