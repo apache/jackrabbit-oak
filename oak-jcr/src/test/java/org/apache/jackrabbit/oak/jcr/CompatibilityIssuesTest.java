@@ -22,6 +22,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +36,7 @@ import javax.jcr.Credentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
@@ -40,11 +45,15 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
+import junit.framework.Assert;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.junit.Test;
@@ -276,6 +285,46 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         Node node = session.getRootNode().addNode("defaultNtBase", ntName);
         node.addNode("throw");  // Throws ConstraintViolationException on Oak, works on Jackrabbit 2
         session.save();
+    }
+
+    @Test
+    public void testBinaryCoercion() throws RepositoryException, IOException {
+        Session session = getAdminSession();
+
+        // node type with default child-node type of to nt:base
+        String ntName = "binaryCoercionTest";
+        NodeTypeManager ntm = session.getWorkspace().getNodeTypeManager();
+
+        NodeTypeTemplate ntt = ntm.createNodeTypeTemplate();
+        ntt.setName(ntName);
+
+        PropertyDefinitionTemplate propertyWithType = ntm.createPropertyDefinitionTemplate();
+        propertyWithType.setName("javaObject");
+        propertyWithType.setRequiredType(PropertyType.STRING);
+
+        PropertyDefinitionTemplate unnamed = ntm.createPropertyDefinitionTemplate();
+        unnamed.setName("*");
+        unnamed.setRequiredType(PropertyType.UNDEFINED);
+
+        List<PropertyDefinition> properties = ntt.getPropertyDefinitionTemplates();
+        properties.add(propertyWithType);
+        properties.add(unnamed);
+
+        ntm.registerNodeType(ntt, false);
+
+        Node node = session.getRootNode().addNode("testNodeForBinary", ntName);
+        ByteArrayOutputStream bos = serializeObject("testValue");
+        node.setProperty("javaObject",session.getValueFactory().createBinary(new ByteArrayInputStream(bos.toByteArray())));
+
+        Assert.assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(bos.toByteArray()), node.getProperty("javaObject").getStream()));
+    }
+
+    private ByteArrayOutputStream serializeObject(Object o) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream(5000);
+        ObjectOutputStream objectStream = new ObjectOutputStream(out);
+        objectStream.writeObject(o);
+        objectStream.flush();
+        return out;
     }
 
 }
