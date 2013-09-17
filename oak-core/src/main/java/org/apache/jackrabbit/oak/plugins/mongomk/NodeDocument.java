@@ -36,6 +36,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.slf4j.Logger;
@@ -83,7 +84,7 @@ public class NodeDocument extends Document {
      */
     static final String MODIFIED = "_modified";
 
-    private static final SortedMap<Revision, Range> EMPTY_RANGE_MAP = 
+    private static final SortedMap<Revision, Range> EMPTY_RANGE_MAP =
             Collections.unmodifiableSortedMap(new TreeMap<Revision, Range>());
 
     /**
@@ -842,6 +843,21 @@ public class NodeDocument extends Document {
                                   @Nonnull Revision revision,
                                   boolean deleted) {
         checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision).toString(), String.valueOf(deleted));
+    }
+
+    static final class Children implements CacheValue {
+
+        final List<String> childNames = new ArrayList<String>();
+        boolean isComplete;
+
+        @Override
+        public int getMemory() {
+            int size = 8;
+            for (String name : childNames) {
+                size += name.length() * 2 + 8;
+            }
+            return size;
+        }
     }
 
     //----------------------------< internal >----------------------------------
