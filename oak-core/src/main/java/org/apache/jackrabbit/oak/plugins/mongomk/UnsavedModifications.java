@@ -64,7 +64,7 @@ class UnsavedModifications {
      */
     public void applyTo(UnsavedModifications other, Revision mergeCommit) {
         for (Map.Entry<String, Revision> entry : map.entrySet()) {
-            Revision r = other.map.putIfAbsent(entry.getKey(), entry.getValue());
+            Revision r = other.map.putIfAbsent(entry.getKey(), mergeCommit);
             if (r != null) {
                 if (r.compareRevisionTime(mergeCommit) < 0) {
                     other.map.put(entry.getKey(), mergeCommit);

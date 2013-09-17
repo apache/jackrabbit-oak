@@ -59,9 +59,11 @@ import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Weigher;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.mongodb.DB;
 
@@ -72,6 +74,8 @@ import static com.google.common.base.Preconditions.checkState;
  * A MicroKernel implementation that stores the data in a MongoDB.
  */
 public class MongoMK implements MicroKernel, RevisionContext {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
     /**
      * The threshold where special handling for many child node starts.
@@ -85,7 +89,11 @@ public class MongoMK implements MicroKernel, RevisionContext {
     static final boolean LIRS_CACHE = Boolean.parseBoolean(
             System.getProperty("oak.mongoMK.lirsCache", "false"));
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
+    /**
+     * Do not cache more than this number of children for a document.
+     */
+    private static final int NUM_CHILDREN_CACHE_LIMIT = Integer.getInteger(
+            "oak.mongoMK.childrenCacheLimit", 1000);
 
     /**
      * When trying to access revisions that are older than this many
@@ -172,6 +180,12 @@ public class MongoMK implements MicroKernel, RevisionContext {
      */
     private final Cache<String, Diff> diffCache;
     private final CacheStats diffCacheStats;
+
+    /**
+     * Child doc cache.
+     */
+    private final Cache<String, NodeDocument.Children> docChildrenCache;
+    private final CacheStats docChildrenCacheStats;
 
     /**
      * The unsaved last revisions. This contains the parents of all changed
@@ -268,6 +282,10 @@ public class MongoMK implements MicroKernel, RevisionContext {
         diffCache = builder.buildCache(builder.getDiffCacheSize());
         diffCacheStats = new CacheStats(diffCache, "MongoMk-DiffCache",
                 builder.getWeigher(), builder.getDiffCacheSize());
+
+        docChildrenCache = builder.buildCache(builder.getDocChildrenCacheSize());
+        docChildrenCacheStats = new CacheStats(docChildrenCache, "MongoMk-DocChildren",
+                builder.getWeigher(), builder.getDocChildrenCacheSize());
 
         init();
         // initial reading of the revisions of other cluster nodes
@@ -370,6 +388,8 @@ public class MongoMK implements MicroKernel, RevisionContext {
             // TODO invalidating the whole cache is not really needed,
             // instead only those children that are cached could be checked
             store.invalidateCache();
+            // TODO only invalidate affected items
+            docChildrenCache.invalidateAll();
             // add a new revision, so that changes are visible
             Revision r = Revision.newRevision(clusterId);
             // the latest revisions of the current cluster node
@@ -549,18 +569,17 @@ public class MongoMK implements MicroKernel, RevisionContext {
         // TODO use offset, to avoid O(n^2) and running out of memory
         // to do that, use the *name* of the last entry of the previous batch of children
         // as the starting point
-        String from = Utils.getKeyLowerLimit(path);
-        String to = Utils.getKeyUpperLimit(path);
-        List<NodeDocument> list;
+        Iterable<NodeDocument> docs;
         Children c = new Children();
         int rawLimit = limit;
         do {
             c.children.clear();
             c.hasMore = true;
-            list = store.query(Collection.NODES,
-                    from, to, rawLimit);
+            docs = readChildren(path, rawLimit);
             Set<Revision> validRevisions = new HashSet<Revision>();
-            for (NodeDocument doc : list) {
+            int numReturned = 0;
+            for (NodeDocument doc : docs) {
+                numReturned++;
                 // filter out deleted children
                 if (doc.isDeleted(this, rev, validRevisions)) {
                     continue;
@@ -571,7 +590,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
                     c.children.add(p);
                 }
             }
-            if (list.size() < rawLimit) {
+            if (numReturned < rawLimit) {
                 // fewer documents returned than requested
                 // -> no more documents
                 c.hasMore = false;
@@ -580,6 +599,35 @@ public class MongoMK implements MicroKernel, RevisionContext {
             rawLimit = (int) Math.min(((long) rawLimit) * 2, Integer.MAX_VALUE);
         } while (c.children.size() < limit && c.hasMore);
         return c;
+    }
+
+    @Nonnull
+    Iterable<NodeDocument> readChildren(final String path, int limit) {
+        String from = Utils.getKeyLowerLimit(path);
+        String to = Utils.getKeyUpperLimit(path);
+        if (limit > NUM_CHILDREN_CACHE_LIMIT) {
+            // do not use cache
+            return store.query(Collection.NODES, from, to, limit);
+        }
+        // check cache
+        NodeDocument.Children c = docChildrenCache.getIfPresent(path);
+        if (c == null || (c.childNames.size() < limit && !c.isComplete)) {
+            c = new NodeDocument.Children();
+            List<NodeDocument> docs = store.query(Collection.NODES, from, to, limit);
+            for (NodeDocument doc : docs) {
+                String p = Utils.getPathFromId(doc.getId());
+                c.childNames.add(PathUtils.getName(p));
+            }
+            c.isComplete = docs.size() < limit;
+            docChildrenCache.put(path, c);
+        }
+        return Iterables.transform(c.childNames, new Function<String, NodeDocument>() {
+            @Override
+            public NodeDocument apply(String name) {
+                String p = PathUtils.concat(path, name);
+                return store.find(Collection.NODES, Utils.getIdFromPath(p));
+            }
+        });
     }
 
     @CheckForNull
@@ -1059,7 +1107,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
 
             // remove from the cache
             nodeCache.invalidate(path + "@" + rev);
-            
+
             if (n != null) {
                 Node.Children c = getChildren(path, rev, Integer.MAX_VALUE);
                 for (String childPath : c.children) {
@@ -1257,6 +1305,23 @@ public class MongoMK implements MicroKernel, RevisionContext {
             c2.children.addAll(set);
             nodeChildrenCache.put(key, c2);
         }
+        if (!added.isEmpty()) {
+            NodeDocument.Children docChildren = docChildrenCache.getIfPresent(path);
+            if (docChildren != null) {
+                if (docChildren.isComplete) {
+                    TreeSet<String> names = new TreeSet<String>(docChildren.childNames);
+                    for (String childPath : added) {
+                        names.add(PathUtils.getName(childPath));
+                    }
+                    docChildren = new NodeDocument.Children();
+                    docChildren.isComplete = true;
+                    docChildren.childNames.addAll(names);
+                    docChildrenCache.put(path, docChildren);
+                } else {
+                    docChildrenCache.invalidate(path);
+                }
+            }
+        }
     }
 
     public CacheStats getNodeCacheStats() {
@@ -1271,6 +1336,10 @@ public class MongoMK implements MicroKernel, RevisionContext {
         return diffCacheStats;
     }
     
+    public CacheStats getDocChildrenCacheStats() {
+        return docChildrenCacheStats;
+    }
+
     public ClusterNodeInfo getClusterInfo() {
         return clusterNodeInfo;
     }
@@ -1353,6 +1422,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         private long childrenCacheSize;
         private long diffCacheSize;
         private long documentCacheSize;
+        private long docChildrenCacheSize;
         private boolean useSimpleRevision;
         private long splitDocumentAgeMillis = 5 * 60 * 1000;
 
@@ -1470,7 +1540,8 @@ public class MongoMK implements MicroKernel, RevisionContext {
             this.nodeCacheSize = memoryCacheSize * 20 / 100;
             this.childrenCacheSize = memoryCacheSize * 10 / 100;
             this.diffCacheSize = memoryCacheSize * 2 / 100;
-            this.documentCacheSize = memoryCacheSize - nodeCacheSize - childrenCacheSize - diffCacheSize;
+            this.docChildrenCacheSize = memoryCacheSize * 3 / 100;
+            this.documentCacheSize = memoryCacheSize - nodeCacheSize - childrenCacheSize - diffCacheSize - docChildrenCacheSize;
             return this;
         }
 
@@ -1484,6 +1555,10 @@ public class MongoMK implements MicroKernel, RevisionContext {
 
         public long getDocumentCacheSize() {
             return documentCacheSize;
+        }
+
+        public long getDocChildrenCacheSize() {
+            return docChildrenCacheSize;
         }
 
         public long getDiffCacheSize() {
