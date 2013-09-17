@@ -293,7 +293,7 @@ public class NodeDocument extends Document {
      * @param context the revision context
      * @param changeRev the revision of the current change
      * @param handler the conflict handler, which is called for concurrent changes
-     *                preceding <code>before</code>.
+     *                preceding <code>changeRev</code>.
      * @return the revision, or null if deleted
      */
     @SuppressWarnings("unchecked")
@@ -302,10 +302,11 @@ public class NodeDocument extends Document {
                                       Revision changeRev,
                                       CollisionHandler handler) {
         SortedSet<String> revisions = new TreeSet<String>(Collections.reverseOrder());
-        revisions.addAll(getRevisions().keySet());
-        revisions.addAll(getCommitRoot().keySet());
-        Map<String, String> deletedMap = getDeleted();
-        revisions.addAll(deletedMap.keySet());
+        // no need to look at all commits. the primary document
+        // always contains at least one commit, including all
+        // branch commits which are not yet merged
+        revisions.addAll(getLocalRevisions().keySet());
+        revisions.addAll(getLocalCommitRoot().keySet());
         Revision newestRev = null;
         for (String r : revisions) {
             Revision propRev = Revision.fromString(r);
@@ -329,7 +330,8 @@ public class NodeDocument extends Document {
         if (newestRev == null) {
             return null;
         }
-        String value = deletedMap.get(newestRev.toString());
+
+        String value = getDeleted().get(newestRev.toString());
         if ("true".equals(value)) {
             // deleted in the newest revision
             return null;
@@ -1026,11 +1028,6 @@ public class NodeDocument extends Document {
             }
         }
         return value;
-    }
-
-    @Nonnull
-    private Map<String, String> getRevisions() {
-        return ValueMap.create(this, REVISIONS);
     }
 
     @Nonnull
