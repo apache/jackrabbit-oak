@@ -34,7 +34,7 @@ abstract class OffsetCache<T> {
 
     private static final SoftReference<?>[] NO_VALUES = new SoftReference<?>[0];
 
-    private int length = 0;
+    private int size = 0;
 
     private int[] offsets;
 
@@ -56,10 +56,10 @@ abstract class OffsetCache<T> {
             }
         });
 
-        int n = list.size();
-        offsets = new int[n];
-        values = new SoftReference<?>[n];
-        for (int i = 0; i < n; i++) {
+        size = list.size();
+        offsets = new int[size];
+        values = new SoftReference<?>[size];
+        for (int i = 0; i < size; i++) {
             Entry<T, RecordId> entry = list.get(i);
             offsets[i] = entry.getValue().getOffset();
             values[i] = new SoftReference<T>(entry.getKey());
@@ -68,7 +68,7 @@ abstract class OffsetCache<T> {
 
     @SuppressWarnings("unchecked")
     public synchronized T get(int offset) {
-        int i = Arrays.binarySearch(offsets, 0, length, offset);
+        int i = Arrays.binarySearch(offsets, 0, size, offset);
         if (i >= 0) {
             T value = (T) values[i].get();
             if (value == null) {
@@ -78,24 +78,25 @@ abstract class OffsetCache<T> {
             return value;
         } else {
             i = ~i;
-            if (length < offsets.length) {
-                System.arraycopy(offsets, i, offsets, i + 1, length - i);
-                System.arraycopy(values, i, values, i + 1, length - i);
+            if (size < offsets.length) {
+                System.arraycopy(offsets, i, offsets, i + 1, size - i);
+                System.arraycopy(values, i, values, i + 1, size - i);
             } else {
-                int[] newOffsets = new int[length + SIZE_INCREMENT];
+                int[] newOffsets = new int[size + SIZE_INCREMENT];
                 System.arraycopy(offsets, 0, newOffsets, 0, i);
-                System.arraycopy(offsets, i, newOffsets, i + 1, length - i);
+                System.arraycopy(offsets, i, newOffsets, i + 1, size - i);
                 offsets = newOffsets;
                 SoftReference<?>[] newValues =
-                        new SoftReference<?>[length + SIZE_INCREMENT];
+                        new SoftReference<?>[size + SIZE_INCREMENT];
                 System.arraycopy(values, 0, newValues, 0, i);
-                System.arraycopy(values, i, newValues, i + 1, length - i);
+                System.arraycopy(values, i, newValues, i + 1, size - i);
                 values = newValues;
             }
 
             T value = load(offset);
             offsets[i] = offset;
             values[i] = new SoftReference<T>(value);
+            size++;
             return value;
         }
     }
