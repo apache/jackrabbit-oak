@@ -128,6 +128,13 @@ public class MongoMicroKernelService {
                     CacheStatsMBean.TYPE,
                     mk.getDiffCacheStats().getName())
         );
+        registrations.add(
+                registerMBean(wb,
+                        CacheStatsMBean.class,
+                        mk.getDocChildrenCacheStats(),
+                        CacheStatsMBean.TYPE,
+                        mk.getDocChildrenCacheStats().getName())
+        );
 
         DocumentStore ds = mk.getDocumentStore();
         if (ds instanceof MongoDocumentStore) {
