@@ -31,6 +31,7 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
@@ -287,9 +288,27 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @see Item#refresh(boolean)
      */
     @Override
-    public void refresh(boolean keepChanges) throws RepositoryException {
+    public void refresh(final boolean keepChanges) throws RepositoryException {
         log.warn("Item#refresh is no longer supported. Please use Session#refresh");
-        getSession().refresh(keepChanges);
+        perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws InvalidItemStateException {
+                sessionDelegate.refresh(keepChanges);
+                if (!dlg.exists()) {
+                    throw new InvalidItemStateException(
+                            "This item no longer exists");
+                }
+                return null;
+            }
+            @Override
+            public boolean isUpdate() {
+                return true;
+            }
+            @Override
+            public boolean isRefresh() {
+                return true;
+            }
+        });
     }
 
     @Override
