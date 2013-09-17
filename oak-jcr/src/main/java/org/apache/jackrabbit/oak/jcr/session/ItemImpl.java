@@ -289,7 +289,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      */
     @Override
     public void refresh(final boolean keepChanges) throws RepositoryException {
-        log.warn("Item#refresh is no longer supported. Please use Session#refresh");
+        log.warn("Item#refresh invokes Session#refresh!");
         perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws InvalidItemStateException {
