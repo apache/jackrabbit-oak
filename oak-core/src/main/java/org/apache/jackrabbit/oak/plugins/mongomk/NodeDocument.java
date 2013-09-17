@@ -139,20 +139,18 @@ public class NodeDocument extends Document {
 
     /**
      * Gets the value map for the given key. This method is similar to {@link
-     * #get(String)} but only returns a map instance if the value associated
-     * with <code>key</code> is a map. The returned value map may span multiple
-     * documents if the values of the given <code>key</code> were split off to
-     * {@link #PREVIOUS} documents.
+     * #get(String)} but will always return a value map. The returned value map
+     * may span multiple documents if the values of the given <code>key</code>
+     * were split off to {@link #PREVIOUS} documents.
      *
      * @param key a string key.
-     * @return the map associated with the key or <code>null</code> if there is
-     *         no such entry.
+     * @return the map associated with the key.
      */
-    @CheckForNull
+    @Nonnull
     public Map<String, String> getValueMap(@Nonnull String key) {
         Object value = super.get(key);
         if (IGNORE_ON_SPLIT.contains(key) || !(value instanceof Map)) {
-            return null;
+            return Collections.emptyMap();
         } else {
             return ValueMap.create(this, key);
         }
@@ -396,17 +394,14 @@ public class NodeDocument extends Document {
             if (!Utils.isPropertyName(key)) {
                 continue;
             }
-            Map<String, String> valueMap = getValueMap(key);
-            if (valueMap != null) {
-                if (valueMap instanceof NavigableMap) {
-                    // TODO instanceof should be avoided
-                    // use descending keys (newest first) if map is sorted
-                    valueMap = ((NavigableMap<String, String>) valueMap).descendingMap();
-                }
-                String value = getLatestValue(context, valueMap, min, readRevision);
-                String propertyName = Utils.unescapePropertyName(key);
-                n.setProperty(propertyName, value);
+            // first check local map, which contains most recent values
+            String value = getLatestValue(context, getLocalMap(key), min, readRevision);
+            if (value == null) {
+                // check complete revision history
+                value = getLatestValue(context, getValueMap(key), min, readRevision);
             }
+            String propertyName = Utils.unescapePropertyName(key);
+            n.setProperty(propertyName, value);
         }
 
         // when was this node last modified?
@@ -471,11 +466,6 @@ public class NodeDocument extends Document {
         if (valueMap.isEmpty()) {
             return false;
         }
-        if (valueMap instanceof NavigableMap) {
-            // TODO instanceof should be avoided
-            // use descending keys (newest first) if map is sorted
-            valueMap = ((NavigableMap<String, String>) valueMap).descendingMap();
-        }
         Revision mostRecent = null;
         boolean deleted = false;
         for (Map.Entry<String, String> entry : valueMap.entrySet()) {
@@ -515,11 +505,6 @@ public class NodeDocument extends Document {
         }
         // first, search the newest deleted revision
         Revision deletedRev = null;
-        if (valueMap instanceof NavigableMap) {
-            // TODO instanceof should be avoided
-            // use descending keys (newest first) if map is sorted
-            valueMap = ((NavigableMap<String, String>) valueMap).descendingMap();
-        }
         for (String r : valueMap.keySet()) {
             String value = valueMap.get(r);
             if (!"true".equals(value)) {
@@ -595,11 +580,7 @@ public class NodeDocument extends Document {
                 continue;
             }
             // was this property touched after baseRevision?
-            Map<String, String> changes = getValueMap(name);
-            if (changes == null) {
-                continue;
-            }
-            for (String rev : changes.keySet()) {
+            for (String rev : getValueMap(name).keySet()) {
                 if (isRevisionNewer(context, Revision.fromString(rev), baseRevision)) {
                     return true;
                 }
