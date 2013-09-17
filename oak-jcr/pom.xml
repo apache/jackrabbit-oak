@@ -40,26 +40,17 @@
       org.apache.jackrabbit.test.api.SessionUUIDTest#testSaveReferentialIntegrityException             <!-- OAK-66 -->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
       org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException                <!-- OAK-66 -->
-      org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveMovedRefNode                                 <!-- OAK-66 -->
-      org.apache.jackrabbit.test.api.SetValueValueFormatExceptionTest#testNodeNotReferenceable
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
       org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn <!-- OAK-118 -->
-      org.apache.jackrabbit.test.api.WorkspaceMoveReferenceableTest#testMoveNodesReferenceableNodesNewUUID  <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveVersionableTest#testMoveNodesVersionableAndCheckedIn <!-- OAK-118 -->
-      org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedNode
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedChildItem
       org.apache.jackrabbit.test.api.NodeAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeCanAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeRemoveMixinTest#testLocked
-      org.apache.jackrabbit.test.api.ValueFactoryTest#testValueFormatException                         <!-- OAK-204 -->
-      org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest                                     <!-- OAK-118 -->
-      org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesAccessDenied                       <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest#testCopyNodesNodeExistsAtDestPath2  <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesLocked                             <!-- OAK-118 -->
-      org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest                                     <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest#testMoveNodesOrderingSupportedByParent <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
-      org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied                       <!-- OAK-118 -->
-      org.apache.jackrabbit.test.api.DocumentViewImportTest#testWorkspaceImportXml                     <!-- OAK-970 -->
-      org.apache.jackrabbit.test.api.DocumentViewImportTest#testSessionGetImportContentHandler         <!-- OAK-970 -->
 
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked
