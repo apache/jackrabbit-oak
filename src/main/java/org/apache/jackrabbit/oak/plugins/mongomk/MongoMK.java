@@ -572,11 +572,11 @@ public class MongoMK implements MicroKernel, RevisionContext {
         Iterable<NodeDocument> docs;
         Children c = new Children();
         int rawLimit = limit;
+        Set<Revision> validRevisions = new HashSet<Revision>();
         do {
             c.children.clear();
             c.hasMore = true;
             docs = readChildren(path, rawLimit);
-            Set<Revision> validRevisions = new HashSet<Revision>();
             int numReturned = 0;
             for (NodeDocument doc : docs) {
                 numReturned++;
