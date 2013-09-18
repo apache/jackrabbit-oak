@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryJournal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -37,8 +39,12 @@ class FileJournal extends MemoryJournal {
     @Override
     public synchronized boolean setHead(RecordId base, RecordId head) {
         if (super.setHead(base, head)) {
-            store.writeJournals();
-            return true;
+            try {
+                store.writeJournals();
+                return true;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         } else {
             return false;
         }
@@ -47,6 +53,10 @@ class FileJournal extends MemoryJournal {
     @Override
     public synchronized void merge() {
         super.merge();
-        store.writeJournals();
+        try {
+            store.writeJournals();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
