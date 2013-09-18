@@ -571,7 +571,9 @@ public class MongoMK implements MicroKernel, RevisionContext {
         // as the starting point
         Iterable<NodeDocument> docs;
         Children c = new Children();
-        int rawLimit = limit;
+        // retrieve one more than requested to check if there
+        // are potentially more than 'limit' nodes
+        int rawLimit = (int) Math.min(((long) limit) + 1, Integer.MAX_VALUE);
         Set<Revision> validRevisions = new HashSet<Revision>();
         do {
             c.children.clear();
@@ -857,17 +859,12 @@ public class MongoMK implements MicroKernel, RevisionContext {
         n.append(json, includeId);
         int max;
         if (maxChildNodes == -1) {
-            max = MANY_CHILDREN_THRESHOLD;
+            max = Integer.MAX_VALUE;
             maxChildNodes = Integer.MAX_VALUE;
         } else {
             // use long to avoid overflows
-            long m = maxChildNodes + 1L + offset;
+            long m = ((long) maxChildNodes) + offset;
             max = (int) Math.min(m, Integer.MAX_VALUE);
-        }
-        if (offset > 0) {
-            // TODO workaround for missing offset 
-            // support in getChildren
-            max = Integer.MAX_VALUE;
         }
         Children c = getChildren(path, rev, max);
         for (long i = offset; i < c.children.size(); i++) {
