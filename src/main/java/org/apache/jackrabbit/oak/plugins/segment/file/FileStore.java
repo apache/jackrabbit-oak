@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.Template;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -55,11 +54,13 @@ public class FileStore implements SegmentStore {
 
     static final UUID JOURNALS_UUID = new UUID(0, 0);
 
-    private static final int FILE_SIZE = 256 * 1024 * 1024;
-
     private static final String FILE_NAME_FORMAT = "data%05d.tar";
 
     private final File directory;
+
+    private final int maxFileSize;
+
+    private final boolean memoryMapping;
 
     private final LinkedList<TarFile> files = newLinkedList();
 
@@ -68,15 +69,18 @@ public class FileStore implements SegmentStore {
     private final Cache<UUID, Segment> segments =
             CacheBuilder.newBuilder().maximumSize(1000).build();
 
-    public FileStore(File directory, NodeState root) throws IOException {
+    public FileStore(File directory, int maxFileSize, boolean memoryMapping)
+            throws IOException {
         checkNotNull(directory).mkdirs();
         this.directory = directory;
+        this.maxFileSize = maxFileSize;
+        this.memoryMapping = memoryMapping;
 
         for (int i = 0; true; i++) {
             String name = String.format(FILE_NAME_FORMAT, i);
             File file = new File(directory, name);
             if (file.isFile()) {
-                files.add(new TarFile(file, FILE_SIZE));
+                files.add(new TarFile(file, maxFileSize, memoryMapping));
             } else {
                 break;
             }
@@ -102,17 +106,9 @@ public class FileStore implements SegmentStore {
 
         if (!journals.containsKey("root")) {
             NodeBuilder builder = EMPTY_NODE.builder();
-            builder.setChildNode("root", root);
+            builder.setChildNode("root", EMPTY_NODE);
             journals.put("root", new FileJournal(this, builder.getNodeState()));
         }
-    }
-
-    public FileStore(File directory) throws IOException {
-        this(directory, EMPTY_NODE);
-    }
-
-    public FileStore(String directory) throws IOException {
-        this(new File(directory));
     }
 
     public synchronized void close() {
@@ -217,7 +213,8 @@ public class FileStore implements SegmentStore {
         if (files.isEmpty() || !files.getLast().writeEntry(
                 segmentId, buffer, 0, buffer.length)) {
             String name = String.format(FILE_NAME_FORMAT, files.size());
-            TarFile last = new TarFile(new File(directory, name), FILE_SIZE);
+            File file = new File(directory, name);
+            TarFile last = new TarFile(file, maxFileSize, memoryMapping);
             checkState(last.writeEntry(segmentId, buffer, 0, buffer.length));
             files.add(last);
         }

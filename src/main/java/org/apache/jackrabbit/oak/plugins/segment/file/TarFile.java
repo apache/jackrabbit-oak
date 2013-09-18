@@ -32,11 +32,6 @@ import com.google.common.collect.ImmutableMap;
 
 class TarFile {
 
-    private static boolean USE_MEMORY_MAPPING =
-            System.getProperty("tarmk.mmap") != null
-            ? Boolean.getBoolean("tarmk.mmap")
-            : "64".equals(System.getProperty("sun.arch.data.model"));
-
     /** The tar file block size. */
     private static final int BLOCK_SIZE = 512;
 
@@ -59,17 +54,18 @@ class TarFile {
 
     private int position = 0;
 
-    private final int maxLength;
+    private final int maxFileSize;
 
     private volatile Map<UUID, Location> entries;
 
-    TarFile(File file, int maxLength) throws IOException {
+    TarFile(File file, int maxFileSize, boolean memoryMapping)
+            throws IOException {
         long len = file.length();
         checkState(len <= Integer.MAX_VALUE);
-        this.maxLength = Math.max((int) len, maxLength);
+        this.maxFileSize = Math.max((int) len, maxFileSize);
 
-        if (USE_MEMORY_MAPPING) {
-            this.file = new MappedAccess(file, maxLength);
+        if (memoryMapping) {
+            this.file = new MappedAccess(file, this.maxFileSize);
         } else {
             this.file = new RandomAccess(file);
         }
@@ -122,7 +118,7 @@ class TarFile {
 
     synchronized boolean writeEntry(UUID id, byte[] b, int offset, int size)
             throws IOException {
-        if (position + BLOCK_SIZE + size > maxLength) {
+        if (position + BLOCK_SIZE + size > maxFileSize) {
             return false;
         }
 
