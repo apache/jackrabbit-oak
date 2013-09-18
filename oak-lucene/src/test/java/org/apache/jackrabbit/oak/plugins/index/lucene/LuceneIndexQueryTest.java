@@ -149,14 +149,27 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void containsPath() throws Exception {
-        String h = "/p1/p2/p3";
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("name", h);
+        test.addChild("a").setProperty("name", "/parent/child/node");
         root.commit();
 
         StringBuffer stmt = new StringBuffer();
-        stmt.append("//*[jcr:contains(., '/p1/p2*')]");
+        stmt.append("//*[jcr:contains(., '/parent/child')]");
+        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+
+    }
+
+    @Test
+    public void containsPathNum() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("name", "/segment1/segment2/segment3");
+        root.commit();
+
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("//*[jcr:contains(., '/segment1/segment2')]");
         assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
 
     }
@@ -171,6 +184,19 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         stmt.append("//*[jcr:contains(., 'match')]");
         assertQuery(stmt.toString(), "xpath",
                 ImmutableList.of("/match_on_path"));
+
+    }
+
+    @Test
+    public void containsPathStrictNum() throws Exception {
+        root.getTree("/").addChild("matchOnPath1234");
+        root.getTree("/").addChild("match_on_path1234");
+        root.commit();
+
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("//*[jcr:contains(., 'match')]");
+        assertQuery(stmt.toString(), "xpath",
+                ImmutableList.of("/match_on_path1234"));
 
     }
 

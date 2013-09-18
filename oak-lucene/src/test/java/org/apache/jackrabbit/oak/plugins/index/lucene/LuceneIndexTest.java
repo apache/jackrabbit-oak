@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class LuceneIndexTest {
@@ -51,7 +52,8 @@ public class LuceneIndexTest {
     private static final Analyzer analyzer = LuceneIndexConstants.ANALYZER;
 
     private static final EditorHook HOOK = new EditorHook(
-            new IndexUpdateProvider(new LuceneIndexEditorProvider().with(analyzer)));
+            new IndexUpdateProvider(
+                    new LuceneIndexEditorProvider().with(analyzer)));
 
     private NodeState root = new InitialContent().initialize(EMPTY_NODE);
 
@@ -112,14 +114,15 @@ public class LuceneIndexTest {
     @Test
     public void testLucene3() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(
-                index, "lucene", ImmutableSet.of(PropertyType.TYPENAME_STRING));
+        newLuceneIndexDefinition(index, "lucene",
+                ImmutableSet.of(PropertyType.TYPENAME_STRING));
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
         builder.child("a").setProperty("foo", "bar");
         builder.child("a").child("b").setProperty("foo", "bar", Type.NAME);
-        builder.child("a").child("b").child("c").setProperty("foo", "bar", Type.NAME);
+        builder.child("a").child("b").child("c")
+                .setProperty("foo", "bar", Type.NAME);
 
         NodeState after = builder.getNodeState();
 
@@ -143,7 +146,24 @@ public class LuceneIndexTest {
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
         NodeState type = types.getChildNode(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", null);
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
+                null);
+    }
+
+    @Test
+    public void testTokens() {
+        assertEquals(ImmutableList.of("parent", "child"),
+                LuceneIndex.tokenize("/parent/child", analyzer));
+        assertEquals(ImmutableList.of("p1234", "p5678"),
+                LuceneIndex.tokenize("/p1234/p5678", analyzer));
+        assertEquals(ImmutableList.of("first", "second"),
+                LuceneIndex.tokenize("first_second", analyzer));
+        assertEquals(ImmutableList.of("first1", "second2"),
+                LuceneIndex.tokenize("first1_second2", analyzer));
+        assertEquals(ImmutableList.of("first", "second"),
+                LuceneIndex.tokenize("first. second", analyzer));
+        assertEquals(ImmutableList.of("first", "second"),
+                LuceneIndex.tokenize("first.second", analyzer));
     }
 
 }

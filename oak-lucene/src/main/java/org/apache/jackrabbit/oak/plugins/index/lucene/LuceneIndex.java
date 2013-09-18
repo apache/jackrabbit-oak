@@ -615,7 +615,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             public boolean visit(FullTextTerm term) {
                 String p = term.getPropertyName();
                 if (p != null && p.indexOf('/') >= 0) {
-                    //do not add constraints on child nodes properties
+                    // do not add constraints on child nodes properties
                     p = "*";
                 }
                 Query q = tokenToQuery(term.getText(), analyzer);
@@ -686,7 +686,7 @@ public class LuceneIndex implements FulltextQueryIndex {
      * @param analyzer
      * @return
      */
-    private static List<String> tokenize(String text, Analyzer analyzer) {
+    static List<String> tokenize(String text, Analyzer analyzer) {
         List<String> tokens = new ArrayList<String>();
         TokenStream stream = null;
         try {
