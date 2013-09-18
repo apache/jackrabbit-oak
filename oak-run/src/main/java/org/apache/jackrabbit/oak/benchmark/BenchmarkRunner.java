@@ -43,6 +43,9 @@ public class BenchmarkRunner {
                 .withRequiredArg().defaultsTo("localhost");
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
+        OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
         OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(100);
         OptionSpec<File> wikipedia =
@@ -68,7 +71,8 @@ public class BenchmarkRunner {
                         host.value(options), port.value(options), cacheSize * MB),
                 OakRepositoryFixture.getSegment(
                         host.value(options), port.value(options), cacheSize * MB),
-                OakRepositoryFixture.getTar(base.value(options))
+                OakRepositoryFixture.getTar(
+                        base.value(options), 256 * 1024 * 1024, mmap.value(options))
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new LoginTest(),
