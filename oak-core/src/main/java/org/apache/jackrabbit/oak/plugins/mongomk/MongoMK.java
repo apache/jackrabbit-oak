@@ -1308,17 +1308,32 @@ public class MongoMK implements MicroKernel, RevisionContext {
         if (!added.isEmpty()) {
             NodeDocument.Children docChildren = docChildrenCache.getIfPresent(path);
             if (docChildren != null) {
-                if (docChildren.isComplete) {
-                    TreeSet<String> names = new TreeSet<String>(docChildren.childNames);
+                int currentSize = docChildren.childNames.size();
+                TreeSet<String> names = new TreeSet<String>(docChildren.childNames);
+                // incomplete cache entries must not be updated with
+                // names at the end of the list because there might be
+                // a next name in MongoDB smaller than the one added
+                if (!docChildren.isComplete) {
+                    for (String childPath : added) {
+                        String name = PathUtils.getName(childPath);
+                        if (names.higher(name) != null) {
+                            names.add(name);
+                        }
+                    }
+                } else {
+                    // add all
                     for (String childPath : added) {
                         names.add(PathUtils.getName(childPath));
                     }
+                }
+                // any changes?
+                if (names.size() != currentSize) {
+                    // create new cache entry with updated names
+                    boolean complete = docChildren.isComplete;
                     docChildren = new NodeDocument.Children();
-                    docChildren.isComplete = true;
+                    docChildren.isComplete = complete;
                     docChildren.childNames.addAll(names);
                     docChildrenCache.put(path, docChildren);
-                } else {
-                    docChildrenCache.invalidate(path);
                 }
             }
         }
