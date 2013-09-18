@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Dictionary;
@@ -55,6 +56,12 @@ public class SegmentNodeStoreService extends AbstractNodeStore {
     @Property(description="TarMK directory (if unset, use MongoDB)")
     public static final String DIRECTORY = "repository.home";
 
+    @Property(description="TarMK mode (64 for memory mapping, 32 for normal file access)")
+    public static final String MODE = "tarmk.mode";
+
+    @Property(description="TarMK maximum file size")
+    public static final String SIZE = "tarmk.size";
+
     @Property(description="MongoDB host")
     public static final String HOST = "host";
 
@@ -93,8 +100,25 @@ public class SegmentNodeStoreService extends AbstractNodeStore {
         String host = lookup(context, HOST);
         if (host == null) {
             String directory = lookup(context, DIRECTORY);
+            if (directory == null) {
+                directory = "tarmk";
+            }
+
+            String mode = lookup(context, MODE);
+            if (mode == null) {
+                mode = System.getProperty(MODE,
+                        System.getProperty("sun.arch.data.model", "32"));
+            }
+
+            String size = lookup(context, SIZE);
+            if (size == null) {
+                size = System.getProperty(SIZE, "268435456"); // 256MB
+            }
+
             mongo = null;
-            store = new FileStore(directory);
+            store = new FileStore(
+                    new File(directory),
+                    Integer.parseInt(size), "64".equals(mode));
         } else {
             int port = Integer.parseInt(String.valueOf(properties.get(PORT)));
             String db = String.valueOf(properties.get(DB));
