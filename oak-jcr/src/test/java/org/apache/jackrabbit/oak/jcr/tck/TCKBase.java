@@ -26,6 +26,7 @@ import java.util.Properties;
 import org.apache.jackrabbit.oak.jcr.OakMongoMKRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakSegmentMKRepositoryStub;
+import org.apache.jackrabbit.oak.jcr.OakTarMKRepositoryStub;
 import org.apache.jackrabbit.test.RepositoryHelper;
 import org.apache.jackrabbit.test.RepositoryHelperPool;
 import org.apache.jackrabbit.test.RepositoryHelperPoolImpl;
@@ -48,6 +49,7 @@ public abstract class TCKBase extends TestSuite {
     public TCKBase(String name) {
         super(name);
         Setup.wrap(this, OakRepositoryStub.class.getName());
+        Setup.wrap(this, OakTarMKRepositoryStub.class.getName());
         if (OakSegmentMKRepositoryStub.isAvailable()) {
             Setup.wrap(this, OakSegmentMKRepositoryStub.class.getName());
         }
