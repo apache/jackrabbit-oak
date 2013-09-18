@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.equalTo;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.Maps.filterKeys;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,6 +76,7 @@ class TarFile {
 
         ImmutableMap.Builder<UUID, Location> builder = ImmutableMap.builder();
 
+        Location journals = null;
         this.position = 0;
         while (position + BLOCK_SIZE <= len) {
             // read the tar header block
@@ -87,13 +91,21 @@ class TarFile {
             }
 
             try {
+                Location location = new Location(position + BLOCK_SIZE, size);
                 UUID id = UUID.fromString(name);
-                builder.put(id, new Location(position + BLOCK_SIZE, size));
+                if (FileStore.JOURNALS_UUID.equals(id)) {
+                    journals = location;
+                } else {
+                    builder.put(id, location);
+                }
             } catch (IllegalArgumentException e) {
                 throw new IOException("Unexpected tar entry: " + name);
             }
 
             position += (1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE;
+        }
+        if (journals != null) {
+            builder.put(FileStore.JOURNALS_UUID, journals);
         }
 
         this.entries = builder.build();
@@ -169,7 +181,7 @@ class TarFile {
 
         file.write(position, b, offset, size);
         entries = ImmutableMap.<UUID, Location>builder()
-                .putAll(entries)
+                .putAll(filterKeys(entries, not(equalTo(id))))
                 .put(id, new Location(position, size))
                 .build();
         position += size;
