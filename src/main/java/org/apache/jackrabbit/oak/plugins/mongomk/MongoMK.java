@@ -1461,7 +1461,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
          * @return this
          */
         public Builder setTiming(boolean timing) {
-            this.timing = true;
+            this.timing = timing;
             return this;
         }
         
