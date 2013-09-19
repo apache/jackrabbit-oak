@@ -18,17 +18,13 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.equalTo;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.Maps.filterKeys;
+import static com.google.common.collect.Maps.newConcurrentMap;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
-
-import com.google.common.collect.ImmutableMap;
 
 class TarFile {
 
@@ -56,7 +52,7 @@ class TarFile {
 
     private final int maxFileSize;
 
-    private volatile Map<UUID, Location> entries;
+    private final Map<UUID, Location> entries = newConcurrentMap();
 
     TarFile(File file, int maxFileSize, boolean memoryMapping)
             throws IOException {
@@ -70,9 +66,6 @@ class TarFile {
             this.file = new RandomAccess(file);
         }
 
-        ImmutableMap.Builder<UUID, Location> builder = ImmutableMap.builder();
-
-        Location journals = null;
         this.position = 0;
         while (position + BLOCK_SIZE <= len) {
             // read the tar header block
@@ -87,24 +80,14 @@ class TarFile {
             }
 
             try {
-                Location location = new Location(position + BLOCK_SIZE, size);
                 UUID id = UUID.fromString(name);
-                if (FileStore.JOURNALS_UUID.equals(id)) {
-                    journals = location;
-                } else {
-                    builder.put(id, location);
-                }
+                entries.put(id, new Location(position + BLOCK_SIZE, size));
             } catch (IllegalArgumentException e) {
                 throw new IOException("Unexpected tar entry: " + name);
             }
 
             position += (1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE;
         }
-        if (journals != null) {
-            builder.put(FileStore.JOURNALS_UUID, journals);
-        }
-
-        this.entries = builder.build();
     }
 
     ByteBuffer readEntry(UUID id) throws IOException {
@@ -176,10 +159,7 @@ class TarFile {
         position += BLOCK_SIZE;
 
         file.write(position, b, offset, size);
-        entries = ImmutableMap.<UUID, Location>builder()
-                .putAll(filterKeys(entries, not(equalTo(id))))
-                .put(id, new Location(position, size))
-                .build();
+        entries.put(id, new Location(position, size));
         position += size;
 
         int padding = BLOCK_SIZE - position % BLOCK_SIZE;
