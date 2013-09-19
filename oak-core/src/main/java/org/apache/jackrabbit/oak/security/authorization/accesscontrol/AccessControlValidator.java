@@ -16,17 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -213,8 +215,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         // enforced on the oak level.
     }
 
-    private void checkValidPrivileges(String[] privilegeNames) throws CommitFailedException {
-        if (privilegeNames == null || privilegeNames.length == 0) {
+    private void checkValidPrivileges(Iterable<String> privilegeNames) throws CommitFailedException {
+        if (privilegeNames == null || Iterables.isEmpty(privilegeNames)) {
             throw accessViolation(9, "Missing privileges.");
         }
         for (String privilegeName : privilegeNames) {
@@ -249,8 +251,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
 
     private static void checkMixinTypes(Tree parentTree) throws CommitFailedException {
-        String[] mixinNames = TreeUtil.getStrings(parentTree, JcrConstants.JCR_MIXINTYPES);
-        if (mixinNames != null && Arrays.asList(mixinNames).contains(MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
+        Iterable<String> mixinNames = TreeUtil.getNames(parentTree, JcrConstants.JCR_MIXINTYPES);
+        if (mixinNames != null && Iterables.contains(mixinNames, MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
             checkValidRepoAccessControlled(parentTree);
         }
     }

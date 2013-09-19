@@ -19,12 +19,15 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -126,8 +129,10 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
         Tree princName = oakIndex.getChild("principalName");
         assertIndexDefinition(princName, UserConstants.REP_PRINCIPAL_NAME, true);
-        String[] declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
-        assertArrayEquals(new String[]{UserConstants.NT_REP_AUTHORIZABLE}, declaringNtNames);
+        Iterable<String> declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
+        assertArrayEquals(
+                new String[]{UserConstants.NT_REP_AUTHORIZABLE},
+                Iterables.toArray(declaringNtNames, String.class));
 
         Tree members = oakIndex.getChild("members");
         assertIndexDefinition(members, UserConstants.REP_MEMBERS, false);
@@ -237,6 +242,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
         assertTrue(tree.exists());
 
         assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
-        assertArrayEquals(propName, new String[]{propName}, TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES));
+        assertArrayEquals(
+                propName, new String[]{propName},
+                Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
     }
 }
