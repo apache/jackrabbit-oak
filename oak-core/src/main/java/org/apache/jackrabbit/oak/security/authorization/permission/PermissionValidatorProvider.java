@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.security.AccessController;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -45,17 +44,22 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     private final AuthorizationConfiguration acConfig;
     private final long jr2Permissions;
 
+    private final Subject subject;
+
     private ReadOnlyNodeTypeManager ntMgr;
     private Context acCtx;
     private Context userCtx;
 
-    public PermissionValidatorProvider(SecurityProvider securityProvider) {
+    public PermissionValidatorProvider(
+            SecurityProvider securityProvider, Subject subject) {
         this.securityProvider = securityProvider;
         this.acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
 
         ConfigurationParameters params = acConfig.getParameters();
         String compatValue = params.getConfigValue(PermissionConstants.PARAM_PERMISSIONS_JR2, null, String.class);
         jr2Permissions = Permissions.getPermissions(compatValue);
+
+        this.subject = subject;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -97,7 +101,6 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     }
 
     private PermissionProvider getPermissionProvider() {
-        Subject subject = Subject.getSubject(AccessController.getContext());
         if (subject == null || subject.getPublicCredentials(PermissionProvider.class).isEmpty()) {
             throw new IllegalStateException("Unable to validate permissions; no permission provider associated with the commit call.");
         } else {

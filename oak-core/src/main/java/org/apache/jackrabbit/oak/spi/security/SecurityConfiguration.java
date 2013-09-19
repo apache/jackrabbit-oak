@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nonnull;
+import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -73,7 +75,8 @@ public interface SecurityConfiguration {
     List<? extends CommitHook> getCommitHooks(String workspaceName);
 
     @Nonnull
-    List<? extends ValidatorProvider> getValidators(String workspaceName);
+    List<? extends ValidatorProvider> getValidators(
+            String workspaceName, Subject subject);
 
     @Nonnull
     List<ProtectedItemImporter> getProtectedItemImporters();
@@ -119,7 +122,8 @@ public interface SecurityConfiguration {
 
         @Nonnull
         @Override
-        public List<? extends ValidatorProvider> getValidators(String workspaceName) {
+        public List<? extends ValidatorProvider> getValidators(
+                String workspaceName, Subject subject) {
             return Collections.emptyList();
         }
 
