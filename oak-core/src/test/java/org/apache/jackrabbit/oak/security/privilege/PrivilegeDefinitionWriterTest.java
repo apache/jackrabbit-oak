@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.util.Collections;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Test;
 
+import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -51,7 +51,7 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
     public void testNameCollision() {
         try {
             PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
-            writer.writeDefinition(new ImmutablePrivilegeDefinition(JCR_READ, true, Collections.<String>emptySet()));
+            writer.writeDefinition(new ImmutablePrivilegeDefinition(JCR_READ, true, null));
             fail("name collision");
         } catch (RepositoryException e) {
             // success
@@ -64,7 +64,7 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
         Root tmpRoot = repo.login(null, null).getLatestRoot();
         try {
             PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(tmpRoot);
-            writer.writeDefinition(new ImmutablePrivilegeDefinition("newName", true, Collections.<String>emptySet()));
+            writer.writeDefinition(new ImmutablePrivilegeDefinition("newName", true, null));
             fail("missing privilege root");
         } catch (RepositoryException e) {
             // success
@@ -76,7 +76,8 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
     @Test
     public void testWriteDefinition() throws Exception {
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
-        writer.writeDefinition(new ImmutablePrivilegeDefinition("tmp", true, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL));
+        writer.writeDefinition(new ImmutablePrivilegeDefinition(
+                "tmp", true, asList(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL)));
 
         Tree privRoot = root.getTree(PRIVILEGES_PATH);
         assertTrue(privRoot.hasChild("tmp"));

@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
@@ -52,8 +54,11 @@ public final class PrivilegeUtil implements PrivilegeConstants {
     public static PrivilegeDefinition readDefinition(@Nonnull Tree definitionTree) {
         String name = definitionTree.getName();
         boolean isAbstract = TreeUtil.getBoolean(definitionTree, REP_IS_ABSTRACT);
-        String[] declAggrNames = TreeUtil.getStrings(definitionTree, REP_AGGREGATES);
-
+        Iterable<String> declAggrNames = null;
+        PropertyState property = definitionTree.getProperty(REP_AGGREGATES);
+        if (property != null) {
+            declAggrNames = property.getValue(Type.NAMES);
+        }
         return new ImmutablePrivilegeDefinition(name, isAbstract, declAggrNames);
     }
 }
