@@ -261,7 +261,7 @@ public class ClusterTest {
         String oldHead = mk2.getHeadRevision();
         
         mk1.commit("/", "+\"test\":{}", null, null);
-        String m1h = mk1.getNodes("/", mk1.getHeadRevision(), 0, 0, 1, null);
+        String m1h = mk1.getNodes("/", mk1.getHeadRevision(), 0, 0, 2, null);
         assertEquals("{\"test\":{},\":childNodeCount\":1}", m1h);
         
         // not available yet...

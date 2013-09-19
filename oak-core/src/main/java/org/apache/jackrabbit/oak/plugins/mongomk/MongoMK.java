@@ -571,9 +571,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         // as the starting point
         Iterable<NodeDocument> docs;
         Children c = new Children();
-        // retrieve one more than requested to check if there
-        // are potentially more than 'limit' nodes
-        int rawLimit = (int) Math.min(((long) limit) + 1, Integer.MAX_VALUE);
+        int rawLimit = limit;
         Set<Revision> validRevisions = new HashSet<Revision>();
         do {
             c.children.clear();
