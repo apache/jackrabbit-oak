@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+binmode STDOUT, ":utf8";
+
 my %traces = ();
 my $root = { 'count' => 0, 'frame' => 'root', 'children' => {} };
 my $leaf = { 'count' => 0, 'frame' => 'leaf', 'children' => {} };
@@ -56,12 +58,12 @@ sub output {
 
   my $last = $children[-1];
   for my $child (@children) {
-    printf "%s+%d%% (%d%%) %s\n",
+    printf "%s%s%d%% %s\n",
       $prefix,
+      ($child == $last) ? "\x{2514}" : "\x{251c}",
       $child->{'count'} * 100 / $total,
-      $child->{'count'} * 100 / $info->{'count'},
       $child->{'frame'};
-    output($total, $child, ($child == $last) ? "$prefix " : "$prefix|");
+    output($total, $child, ($child == $last) ? "$prefix " : "$prefix\x{2502}");
   }
 }
 
@@ -73,7 +75,7 @@ while (<>) {
   /^\s*\d+\s+\S+%\s+\S+%\s+(\d+)\s+(\d+)/ and accumulate($2, $1); 
 }
 
-print "ROOT\n====\n";
+print "Caller tree\n===========\n";
 output($root->{'count'}, $root, "");
-print "LEAF\n====\n";
+print "Callee tree\n===========\n";
 output($leaf->{'count'}, $leaf, "");
