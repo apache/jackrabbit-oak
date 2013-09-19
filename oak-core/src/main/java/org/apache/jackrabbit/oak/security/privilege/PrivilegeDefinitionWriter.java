@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import static java.util.Arrays.asList;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -169,11 +173,11 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
     private static Collection<PrivilegeDefinition> getBuiltInDefinitions() {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
         for (String privilegeName : NON_AGGR_PRIVILEGES) {
-            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false);
+            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, null);
             definitions.put(privilegeName, def);
         }
         for (String privilegeName : AGGREGATE_PRIVILEGES.keySet()) {
-            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, AGGREGATE_PRIVILEGES.get(privilegeName));
+            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, asList(AGGREGATE_PRIVILEGES.get(privilegeName)));
             definitions.put(privilegeName, def);
         }
         PrivilegeDefinition all = new ImmutablePrivilegeDefinition(JCR_ALL, false, definitions.keySet());

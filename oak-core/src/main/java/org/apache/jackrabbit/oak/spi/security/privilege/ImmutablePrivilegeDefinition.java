@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
@@ -32,20 +31,16 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
     private final boolean isAbstract;
     private final Set<String> declaredAggregateNames;
 
-    public ImmutablePrivilegeDefinition(String name, boolean isAbstract,
-                                        Set<String> declaredAggregateNames) {
+    public ImmutablePrivilegeDefinition(
+            String name, boolean isAbstract,
+            Iterable<String> declaredAggregateNames) {
         this.name = name;
         this.isAbstract = isAbstract;
-        this.declaredAggregateNames = ImmutableSet.copyOf(declaredAggregateNames);
-    }
-
-    public ImmutablePrivilegeDefinition(String name, boolean isAbstract,
-                                        String... declaredAggregateNames) {
-        this.name = name;
-        this.isAbstract = isAbstract;
-        this.declaredAggregateNames = (declaredAggregateNames == null) ?
-                Collections.<String>emptySet() :
-                ImmutableSet.copyOf(declaredAggregateNames);
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        if (declaredAggregateNames != null) {
+            builder.addAll(declaredAggregateNames);
+        }
+        this.declaredAggregateNames = builder.build();
     }
 
     //------------------------------------------------< PrivilegeDefinition >---
