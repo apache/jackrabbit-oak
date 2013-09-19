@@ -633,8 +633,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private Set<Privilege> getPrivileges(@Nonnull Tree aceTree) throws RepositoryException {
-        String[] privNames = checkNotNull(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
-        Set<Privilege> privileges = new HashSet<Privilege>(privNames.length);
+        Iterable<String> privNames = checkNotNull(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
+        Set<Privilege> privileges = new HashSet<Privilege>();
         for (String name : privNames) {
             privileges.add(privilegeManager.getPrivilege(name));
         }

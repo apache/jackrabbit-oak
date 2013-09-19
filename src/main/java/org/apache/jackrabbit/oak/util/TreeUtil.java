@@ -81,12 +81,12 @@ public final class TreeUtil {
     }
 
     @CheckForNull
-    public static String[] getStrings(Tree tree, String propertyName) {
+    public static Iterable<String> getStrings(Tree tree, String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         if (property == null) {
             return null;
         } else {
-            return Iterables.toArray(property.getValue(STRINGS), String.class);
+            return property.getValue(STRINGS);
         }
     }
 

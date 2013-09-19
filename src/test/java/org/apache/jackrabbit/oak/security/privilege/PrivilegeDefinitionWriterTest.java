@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
+
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
@@ -84,7 +86,8 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
 
         Tree tmpTree = privRoot.getChild("tmp");
         assertTrue(TreeUtil.getBoolean(tmpTree, REP_IS_ABSTRACT));
-        assertArrayEquals(new String[] {JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL},
-                TreeUtil.getStrings(tmpTree, REP_AGGREGATES));
+        assertArrayEquals(
+                new String[] {JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL},
+                Iterables.toArray(TreeUtil.getStrings(tmpTree, REP_AGGREGATES), String.class));
     }
 }

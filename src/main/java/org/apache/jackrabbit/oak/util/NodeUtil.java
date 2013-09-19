@@ -36,7 +36,9 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -222,7 +224,7 @@ public class NodeUtil {
     }
 
     @CheckForNull
-    public String[] getStrings(String name) {
+    public Iterable<String> getStrings(String name) {
         return TreeUtil.getStrings(tree, name);
     }
 
@@ -251,15 +253,15 @@ public class NodeUtil {
     }
 
     @CheckForNull
-    public String[] getNames(String propertyName, String... defaultValues) {
-        String[] strings = getStrings(propertyName);
-        if (strings == null) {
-            strings = defaultValues;
-        }
-        for (int i = 0; i < strings.length; i++) {
-            strings[i] = mapper.getJcrName(strings[i]);
-        }
-        return strings;
+    public Iterable<String> getNames(String propertyName) {
+        return Iterables.transform(
+                TreeUtil.getNames(tree, propertyName),
+                new Function<String, String>() {
+                    @Override
+                    public String apply(String input) {
+                        return mapper.getJcrName(input);
+                    }
+                });
     }
 
     public void setNames(String propertyName, String... values) {
