@@ -67,7 +67,7 @@ public class FullTextTerm extends FullTextExpression {
                 } else if (c == '_') {
                     buff.append("\\_");
                     pattern = true;
-                } else if (Character.isLetterOrDigit(c) || " +-:&".indexOf(c) >= 0) {
+                } else if (Character.isLetterOrDigit(c) || " +-:&/".indexOf(c) >= 0) {
                     buff.append(c);
                 }
             }
