@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nonnull;
+import javax.security.auth.Subject;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
@@ -64,7 +66,8 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     @Nonnull
     @Override
-    public List<? extends ValidatorProvider> getValidators(String workspaceName) {
+    public List<? extends ValidatorProvider> getValidators(
+            String workspaceName, Subject subject) {
         return Collections.singletonList(new UserValidatorProvider(getParameters()));
     }
 
