@@ -239,21 +239,7 @@ public abstract class AbstractRoot implements Root {
     public void commit(final CommitHook... hooks) throws CommitFailedException {
         checkLive();
         purgePendingChanges();
-        CommitFailedException exception = Subject.doAs(
-                getCommitSubject(), new PrivilegedAction<CommitFailedException>() {
-            @Override
-            public CommitFailedException run() {
-                try {
-                    branch.merge(getCommitHook(hooks), postHook);
-                    return null;
-                } catch (CommitFailedException e) {
-                    return e;
-                }
-            }
-        });
-        if (exception != null) {
-            throw exception;
-        }
+        branch.merge(getCommitHook(hooks), postHook);
         refresh();
     }
 
@@ -277,7 +263,8 @@ public abstract class AbstractRoot implements Root {
                     commitHooks.add(ch);
                 }
             }
-            List<? extends ValidatorProvider> validators = sc.getValidators(workspaceName);
+            List<? extends ValidatorProvider> validators =
+                    sc.getValidators(workspaceName, getCommitSubject());
             if (!validators.isEmpty()) {
                 commitHooks.add(new EditorHook(CompositeEditorProvider.compose(validators)));
             }

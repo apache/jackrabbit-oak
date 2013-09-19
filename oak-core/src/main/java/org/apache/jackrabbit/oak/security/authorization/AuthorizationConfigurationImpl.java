@@ -20,10 +20,13 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
+import javax.security.auth.Subject;
 
 import com.google.common.collect.ImmutableList;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Root;
@@ -92,10 +95,11 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     }
 
     @Override
-    public List<ValidatorProvider> getValidators(String workspaceName) {
+    public List<ValidatorProvider> getValidators(
+            String workspaceName, Subject subject) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
-                new PermissionValidatorProvider(getSecurityProvider()),
+                new PermissionValidatorProvider(getSecurityProvider(), subject),
                 new AccessControlValidatorProvider(getSecurityProvider()));
     }
 
