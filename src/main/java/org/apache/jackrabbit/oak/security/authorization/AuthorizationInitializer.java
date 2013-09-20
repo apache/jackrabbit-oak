@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -47,11 +46,9 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
 
     @Nonnull
     @Override
-    public NodeState initialize(NodeState workspaceRoot, String workspaceName, QueryIndexProvider indexProvider, CommitHook commitHook) {
-        NodeBuilder root = workspaceRoot.builder();
-
+    public void initialize(NodeBuilder builder, String workspaceName, QueryIndexProvider indexProvider, CommitHook commitHook) {
         // property index for rep:principalName stored in ACEs
-        NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
+        NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
         if (!index.hasChildNode("acPrincipalName")) {
             IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
                     ImmutableList.<String>of(REP_PRINCIPAL_NAME),
@@ -59,13 +56,12 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
         }
 
         // create the permission store and the root for this workspace.
-        NodeBuilder permissionStore = root.child(JCR_SYSTEM).child(REP_PERMISSION_STORE);
+        NodeBuilder permissionStore = builder.child(JCR_SYSTEM).child(REP_PERMISSION_STORE);
         if (!permissionStore.hasProperty(JCR_PRIMARYTYPE)) {
             permissionStore.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         }
         if (!permissionStore.hasChildNode(workspaceName)) {
             permissionStore.child(workspaceName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         }
-        return root.getNodeState();
     }
 }
