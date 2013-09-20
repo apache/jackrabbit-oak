@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,17 +54,14 @@ public class KernelNodeStoreCacheTest {
     public void setUp() throws Exception {
         wrapper = new MicroKernelWrapper(new MicroKernelImpl());
         store = new KernelNodeStore(wrapper);
-        NodeStoreBranch branch = store.branch();
 
-        NodeBuilder builder = branch.getHead().builder();
+        NodeBuilder builder = store.getRoot().builder();
         builder.child("a");
         NodeBuilder b = builder.child("b");
         b.child("c");
         b.child("d");
         b.child("e");
-        branch.setRoot(builder.getNodeState());
-
-        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
     }
 
     /**
@@ -111,13 +107,13 @@ public class KernelNodeStoreCacheTest {
     public void withIdFilter() throws Exception {
         wrapper.filter = PROP_FILTER_WITH_ID;
         int uncachedReads = readTreeWithCleanedCache();
-        System.out.println("Uncached reads: " + uncachedReads);
+        // System.out.println("Uncached reads: " + uncachedReads);
 
         modifyContent();
 
         int cachedReads = readTreeWithCache();
 
-        System.out.println("Cached reads: " + cachedReads);
+        // System.out.println("Cached reads: " + cachedReads);
         assertTrue(cachedReads < uncachedReads);
     }
 
@@ -140,11 +136,9 @@ public class KernelNodeStoreCacheTest {
     }
 
     private void modifyContent() throws Exception {
-        NodeStoreBranch branch = store.branch();
-        NodeBuilder builder = branch.getHead().builder();
+        NodeBuilder builder = store.getRoot().builder();
         builder.child("a").setProperty("foo", "bar");
-        branch.setRoot(builder.getNodeState());
-        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
     }
 
     private void readTree(NodeState root) {
