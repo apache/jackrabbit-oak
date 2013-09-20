@@ -417,7 +417,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     /**
      * @return path of this builder.
      */
-    protected final String getPath() {
+    public final String getPath() {
         return parent == null ? "/" : getPath(new StringBuilder()).toString();
     }
 
