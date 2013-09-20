@@ -168,16 +168,14 @@ public class RepositoryUpgrade {
                 "Copying repository content from {} to Oak",
                 source.getRepositoryConfig().getHomeDir());
         try {
-            NodeStoreBranch branch = target.branch();
-            NodeBuilder builder = branch.getHead().builder();
+            NodeBuilder builder = target.getRoot().builder();
 
             copyNamespaces(builder);
             copyNodeTypes(builder);
             copyVersionStore(builder);
             copyWorkspaces(builder);
 
-            branch.setRoot(builder.getNodeState());
-            branch.merge(new EditorHook(new RegistrationEditorProvider()), PostCommitHook.EMPTY); // TODO: default hooks?
+            target.merge(builder, new EditorHook(new RegistrationEditorProvider()), PostCommitHook.EMPTY); // TODO: default hooks?
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }

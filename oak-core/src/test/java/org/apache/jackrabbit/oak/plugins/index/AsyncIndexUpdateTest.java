@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -73,21 +72,18 @@ public class AsyncIndexUpdateTest {
         NodeStore store = new MemoryNodeStore();
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
-        NodeStoreBranch branch = store.branch();
-        NodeState root = branch.getHead();
-        NodeBuilder builder = root.builder();
+        NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "rootIndex", true, false, ImmutableSet.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("testRoot").setProperty("foo", "abc");
 
         // merge it back in
-        branch.setRoot(builder.getNodeState());
-        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
-        root = store.getRoot();
+        NodeState root = store.getRoot();
 
         // first check that the index content nodes exist
         checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
@@ -111,9 +107,7 @@ public class AsyncIndexUpdateTest {
         NodeStore store = new MemoryNodeStore();
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
-        NodeStoreBranch branch = store.branch();
-        NodeState root = branch.getHead();
-        NodeBuilder builder = root.builder();
+        NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "rootIndex", true, false, ImmutableSet.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
@@ -126,12 +120,11 @@ public class AsyncIndexUpdateTest {
         builder.child("testSecond").setProperty("bar", "ghi");
 
         // merge it back in
-        branch.setRoot(builder.getNodeState());
-        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
-        root = store.getRoot();
+        NodeState root = store.getRoot();
 
         // first check that the index content nodes exist
         checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
@@ -164,9 +157,7 @@ public class AsyncIndexUpdateTest {
         NodeStore store = new MemoryNodeStore();
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
 
-        NodeStoreBranch branch = store.branch();
-        NodeState root = branch.getHead();
-        NodeBuilder builder = root.builder();
+        NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "rootIndex", true, false, ImmutableSet.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
@@ -181,12 +172,11 @@ public class AsyncIndexUpdateTest {
                 .setProperty("foo", "xyz");
 
         // merge it back in
-        branch.setRoot(builder.getNodeState());
-        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
-        root = store.getRoot();
+        NodeState root = store.getRoot();
 
         // first check that the index content nodes exist
         checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",

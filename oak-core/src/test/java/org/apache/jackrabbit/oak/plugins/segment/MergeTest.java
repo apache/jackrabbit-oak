@@ -45,16 +45,16 @@ public class MergeTest {
         assertFalse(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
 
-        NodeStoreBranch a = store.branch();
-        a.setRoot(a.getHead().builder().setProperty("foo", "abc").getNodeState());
-        a.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        NodeBuilder a = store.getRoot().builder();
+        a.setProperty("foo", "abc");
+        store.merge(a, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
 
-        NodeStoreBranch b = store.branch();
-        b.setRoot(b.getHead().builder().setProperty("bar", "xyz").getNodeState());
-        b.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        NodeBuilder b = store.getRoot().builder();
+        b.setProperty("bar", "xyz");
+        store.merge(b, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertTrue(store.getRoot().hasProperty("bar"));
@@ -64,21 +64,21 @@ public class MergeTest {
     public void testOptimisticMerge() throws CommitFailedException {
         NodeStore store = new SegmentNodeStore(new MemoryStore());
 
-        NodeStoreBranch a = store.branch();
-        a.setRoot(a.getHead().builder().setProperty("foo", "abc").getNodeState());
+        NodeBuilder a = store.getRoot().builder();
+        a.setProperty("foo", "abc");
 
-        NodeStoreBranch b = store.branch();
-        b.setRoot(b.getHead().builder().setProperty("bar", "xyz").getNodeState());
+        NodeBuilder b = store.getRoot().builder();
+        b.setProperty("bar", "xyz");
 
         assertFalse(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
 
-        a.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        store.merge(a, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
 
-        b.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        store.merge(b, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertTrue(store.getRoot().hasProperty("foo"));
         assertTrue(store.getRoot().hasProperty("bar"));
