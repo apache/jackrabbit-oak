@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,15 +60,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.LazyValue;
 
 public abstract class AbstractRoot implements Root {
-
-    /**
-     * Number of {@link #updated} calls for which changes are kept in memory.
-     */
-    private static final int PURGE_LIMIT = Integer.getInteger("oak.root.purgeLimit", 1000);
 
     /**
      * The underlying store to which this root belongs
@@ -92,19 +87,19 @@ public abstract class AbstractRoot implements Root {
     private final MutableTree rootTree;
 
     /**
-     * Secured builder for the root tree
-     */
-    private final SecureNodeBuilder secureBuilder;
-
-    /**
      * Unsecured builder for the root tree
      */
     private final NodeBuilder builder;
 
     /**
-     * Current branch this root operates on
+     * Secured builder for the root tree
      */
-    private NodeStoreBranch branch;
+    private final SecureNodeBuilder secureBuilder;
+
+    /**
+     * Base state of the root tree
+     */
+    private NodeState base;
 
     /**
      * Sentinel for the next move operation to take place on the this root
@@ -112,8 +107,7 @@ public abstract class AbstractRoot implements Root {
     private Move lastMove = new Move();
 
     /**
-     * Number of {@link #updated} occurred so since the last
-     * purge.
+     * Number of {@link #updated} occurred.
      */
     private long modCount;
 
@@ -149,9 +143,8 @@ public abstract class AbstractRoot implements Root {
         this.securityProvider = checkNotNull(securityProvider);
         this.indexProvider = indexProvider;
 
-        branch = this.store.branch();
-        NodeState root = branch.getHead();
-        builder = root.builder();
+        base = store.getRoot();
+        builder = base.builder();
         secureBuilder = new SecureNodeBuilder(builder, permissionProvider, getAcContext());
         rootTree = new MutableTree(this, secureBuilder, lastMove);
     }
@@ -171,22 +164,29 @@ public abstract class AbstractRoot implements Root {
 
     @Override
     public boolean move(String sourcePath, String destPath) {
-        if (PathUtils.isAncestor(sourcePath, destPath)) {
+        if (isAncestor(checkNotNull(sourcePath), checkNotNull(destPath))) {
             return false;
+        } else if (sourcePath.equals(destPath)) {
+            return true;
         }
 
         checkLive();
-        MutableTree destParent = rootTree.getTree(getParentPath(destPath));
-        if (!destParent.exists()) {
+        MutableTree source = rootTree.getTree(sourcePath);
+        if (!source.exists()) {
             return false;
         }
-        purgePendingChanges();
-        boolean success = branch.move(sourcePath, destPath);
-        reset();
+
+        String newName = getName(destPath);
+        MutableTree newParent = rootTree.getTree(getParentPath(destPath));
+        if (!newParent.exists() || newParent.hasChild(newName)) {
+            return false;
+        }
+
+        boolean success = source.moveTo(newParent, newName);
         if (success) {
             getTree(getParentPath(sourcePath)).updateChildOrder();
             getTree(getParentPath(destPath)).updateChildOrder();
-            lastMove = lastMove.setMove(sourcePath, destParent, getName(destPath));
+            lastMove = lastMove.setMove(sourcePath, newParent, newName);
             updated();
         }
         return success;
@@ -195,9 +195,18 @@ public abstract class AbstractRoot implements Root {
     @Override
     public boolean copy(String sourcePath, String destPath) {
         checkLive();
-        purgePendingChanges();
-        boolean success = branch.copy(sourcePath, destPath);
-        reset();
+        MutableTree source = rootTree.getTree(sourcePath);
+        if (!source.exists()) {
+            return false;
+        }
+
+        String newName = getName(destPath);
+        MutableTree newParent = rootTree.getTree(getParentPath(destPath));
+        if (!newParent.exists() || newParent.hasChild(newName)) {
+            return false;
+        }
+
+        boolean success = source.copyTo(newParent, newName);
         if (success) {
             getTree(getParentPath(destPath)).updateChildOrder();
             updated();
@@ -215,9 +224,8 @@ public abstract class AbstractRoot implements Root {
     public void rebase() {
         checkLive();
         if (!store.getRoot().equals(getBaseState())) {
-            purgePendingChanges();
-            branch.rebase();
-            reset();
+            store.rebase(builder);
+            secureBuilder.baseChanged();
             if (permissionProvider.hasValue()) {
                 permissionProvider.get().refresh();
             }
@@ -227,8 +235,8 @@ public abstract class AbstractRoot implements Root {
     @Override
     public final void refresh() {
         checkLive();
-        branch = store.branch();
-        reset();
+        base = store.reset(builder);
+        secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
             permissionProvider.get().refresh();
@@ -238,9 +246,12 @@ public abstract class AbstractRoot implements Root {
     @Override
     public void commit(final CommitHook... hooks) throws CommitFailedException {
         checkLive();
-        purgePendingChanges();
-        branch.merge(getCommitHook(hooks), postHook);
-        refresh();
+        base = store.merge(builder, getCommitHook(hooks), postHook);
+        secureBuilder.baseChanged();
+        modCount = 0;
+        if (permissionProvider.hasValue()) {
+            permissionProvider.get().refresh();
+        }
     }
 
     /**
@@ -335,30 +346,27 @@ public abstract class AbstractRoot implements Root {
     //-----------------------------------------------------------< internal >---
 
     /**
-     * Returns the node state from which the current branch was created.
+     * Returns the node state from the time this root was created, that
+     * is this root's base state.
      *
      * @return base node state
      */
     @Nonnull
     NodeState getBaseState() {
-        return branch.getBase();
+        return base;
     }
 
     /**
-     * Returns the secure view of the base state from which the current branch was creates.
+     * Returns the secure view of this root's base state.
      *
      * @return secure base node state
      */
     NodeState getSecureBase() {
-        NodeState root = branch.getBase();
-        return new SecureNodeState(root, permissionProvider.get(), getAcContext());
+        return new SecureNodeState(base, permissionProvider.get(), getAcContext());
     }
 
-    // TODO better way to determine purge limit. See OAK-175
     void updated() {
-        if (++modCount % PURGE_LIMIT == 0) {
-            purgePendingChanges();
-        }
+        modCount++;
     }
 
     //------------------------------------------------------------< private >---
@@ -372,22 +380,6 @@ public abstract class AbstractRoot implements Root {
     @Nonnull
     private NodeState getRootState() {
         return builder.getNodeState();
-    }
-
-    /**
-     * Purge all pending changes to the underlying {@link NodeStoreBranch}.
-     */
-    private void purgePendingChanges() {
-        branch.setRoot(getRootState());
-        reset();
-    }
-
-    /**
-     * Reset the root builder to the branch's current root state
-     */
-    private void reset() {
-        NodeState root = branch.getHead();
-        secureBuilder.reset(root);
     }
 
     @Nonnull
@@ -452,7 +444,7 @@ public abstract class AbstractRoot implements Root {
             Move move = this;
             while (move.next != null) {
                 if (move.source.equals(tree.getPathInternal())) {
-                    tree.moveTo(move.destParent, move.destName);
+                    tree.setParentAndName(move.destParent, move.destName);
                 }
                 move = move.next;
             }
