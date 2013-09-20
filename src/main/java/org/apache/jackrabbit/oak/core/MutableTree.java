@@ -391,7 +391,6 @@ public class MutableTree extends AbstractTree {
     boolean moveTo(MutableTree newParent, String newName) {
         name = newName;
         parent = newParent;
-        // FIXME this falls back to MemoryNodeBuilder#moveTo if newParent is a SecureNodeState
         return nodeBuilder.moveTo(newParent.nodeBuilder, newName);
     }
 
@@ -402,7 +401,6 @@ public class MutableTree extends AbstractTree {
      * @param newName   new name for this tree
      */
     boolean copyTo(MutableTree newParent, String newName) {
-        // FIXME this falls back to MemoryNodeBuilder#copyTo if newParent is a SecureNodeState
         return nodeBuilder.copyTo(newParent.nodeBuilder, newName);
     }
 
