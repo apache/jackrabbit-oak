@@ -79,7 +79,7 @@ public class Segment {
      * value. And since small values are never stored as medium ones, we can
      * extend the size range to cover that many longer values.
      */
-    static final int MEDIUM_LIMIT = 1 << (16-2) + SMALL_LIMIT;
+    static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
 
     static final Weigher<UUID, Segment> WEIGHER =
             new Weigher<UUID, Segment>() {
