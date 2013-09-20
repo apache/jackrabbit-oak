@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,18 +49,16 @@ public class KernelNodeStateTest {
     @Before
     public void setUp() throws CommitFailedException {
         NodeStore store = new KernelNodeStore(new MicroKernelImpl());
-        NodeStoreBranch branch = store.branch();
 
-        NodeBuilder builder = branch.getHead().builder();
+        NodeBuilder builder = store.getRoot().builder();
         builder.setProperty("a", 1);
         builder.setProperty("b", 2);
         builder.setProperty("c", 3);
         builder.child("x");
         builder.child("y");
         builder.child("z");
-        branch.setRoot(builder.getNodeState());
 
-        state = branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        state = store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
     }
 
     @After
