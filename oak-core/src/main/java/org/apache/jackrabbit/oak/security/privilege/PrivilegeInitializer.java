@@ -16,23 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,33 +41,22 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
     private static final Logger log = LoggerFactory.getLogger(PrivilegeInitializer.class);
 
     @Override
-    public NodeState initialize(NodeState state) {
-        NodeBuilder root = state.builder();
-        NodeBuilder system = root.child(JcrConstants.JCR_SYSTEM);
+    public void initialize(NodeBuilder builder) {
+        NodeBuilder system = builder.child(JcrConstants.JCR_SYSTEM);
         system.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_SYSTEM, Type.NAME);
 
         if (!system.hasChildNode(REP_PRIVILEGES)) {
             NodeBuilder privileges = system.child(REP_PRIVILEGES);
             privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
 
-            NodeStore store = new MemoryNodeStore();
-            NodeStoreBranch branch = store.branch();
-            try {
-                branch.setRoot(root.getNodeState());
-                branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
-            } catch (CommitFailedException e) {
-                log.error("Failed to initialize privilege content ", e);
-                throw new RuntimeException(e);
-            }
-
+            NodeStore store = new MemoryNodeStore(builder.getNodeState());
             try {
                 new PrivilegeDefinitionWriter(new SystemRoot(store)).writeBuiltInDefinitions();
+                builder.reset(store.getRoot());
             } catch (RepositoryException e) {
                 log.error("Failed to register built-in privileges", e);
                 throw new RuntimeException(e);
             }
-            return store.getRoot();
         }
-        return root.getNodeState();
     }
 }

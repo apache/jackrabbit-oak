@@ -60,7 +60,7 @@ public class PropertyIndexTest {
 
     @Test
     public void testPropertyLookup() throws Exception {
-        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeState root = InitialContent.INITIAL_CONTENT;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -105,7 +105,7 @@ public class PropertyIndexTest {
 
     @Test
     public void testCustomConfigPropertyLookup() throws Exception {
-        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeState root = InitialContent.INITIAL_CONTENT;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -153,7 +153,7 @@ public class PropertyIndexTest {
      */
     @Test
     public void testCustomConfigNodeType() throws Exception {
-        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeState root = InitialContent.INITIAL_CONTENT;
 
         // Add index definitions
         NodeBuilder builder = root.builder();

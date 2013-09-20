@@ -16,26 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import com.google.common.collect.ImmutableList;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} and
@@ -45,13 +45,20 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 @Service(RepositoryInitializer.class)
 public class InitialContent implements RepositoryInitializer, NodeTypeConstants {
 
-    @Override
-    public NodeState initialize(NodeState state) {
-        NodeBuilder root = state.builder();
-        root.setProperty(JCR_PRIMARYTYPE, NT_REP_ROOT, Type.NAME);
+    public static final NodeState INITIAL_CONTENT = createInitialContent();
 
-        if (!root.hasChildNode(JCR_SYSTEM)) {
-            NodeBuilder system = root.child(JCR_SYSTEM);
+    private static NodeState createInitialContent() {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        new InitialContent().initialize(builder);
+        return ModifiedNodeState.squeeze(builder.getNodeState());
+    }
+
+    @Override
+    public void initialize(NodeBuilder builder) {
+        builder.setProperty(JCR_PRIMARYTYPE, NT_REP_ROOT, Type.NAME);
+
+        if (!builder.hasChildNode(JCR_SYSTEM)) {
+            NodeBuilder system = builder.child(JCR_SYSTEM);
             system.setProperty(JCR_PRIMARYTYPE, NT_REP_SYSTEM, Type.NAME);
 
             system.child(JCR_VERSIONSTORAGE)
@@ -62,8 +69,8 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
                     .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_ACTIVITIES, Type.NAME);
         }
 
-        if (!root.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
-            NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
+        if (!builder.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
+            NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
 
             IndexUtils.createIndexDefinition(index, "uuid", true, true,
                     ImmutableList.<String>of(JCR_UUID), null);
@@ -73,16 +80,10 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
             // the cost of using the property index for "@primaryType is not null" is very high
             nt.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.valueOf(Long.MAX_VALUE));
         }
-        NodeStore store = new MemoryNodeStore();
-        NodeStoreBranch branch = store.branch();
-        branch.setRoot(root.getNodeState());
-        try {
-            branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
-        } catch (CommitFailedException e) {
-            throw new RuntimeException(e);
-        }
+
+        NodeStore store = new MemoryNodeStore(builder.getNodeState());
         BuiltInNodeTypes.register(new SystemRoot(store, new EditorHook(new RegistrationEditorProvider())));
-        return store.getRoot();
+        builder.reset(store.getRoot());
     }
 
 }
