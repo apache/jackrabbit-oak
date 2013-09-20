@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.query;
 
 import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import java.text.ParseException;
@@ -31,10 +32,8 @@ import org.junit.Test;
  */
 public class SQL2ParserTest {
 
-    private final NodeState types = InitialContent.INITIAL_CONTENT
-            .getChildNode(JCR_SYSTEM)
-            .getChildNode(JCR_NODE_TYPES);
-
+    private final NodeState types = new InitialContent().initialize(EMPTY_NODE)
+            .getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
     private final SQL2Parser p = new SQL2Parser(types);
 
     @Test
