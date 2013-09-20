@@ -24,7 +24,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class LuceneInitializerHelper implements RepositoryInitializer {
 
@@ -70,22 +69,19 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
     }
 
     @Override
-    public NodeState initialize(NodeState state) {
-        if (state.hasChildNode(INDEX_DEFINITIONS_NAME)
-                && state.getChildNode(INDEX_DEFINITIONS_NAME)
-                        .hasChildNode(name)) {
-            return state;
-        }
-        NodeBuilder builder = state.builder();
-
-        if (filePath == null) {
-            newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+    public void initialize(NodeBuilder builder) {
+        if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)
+                && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
+            // do nothing
+        } else if (filePath == null) {
+            newLuceneIndexDefinition(
+                    builder.child(INDEX_DEFINITIONS_NAME),
                     name, propertyTypes, excludes, async);
         } else {
-            newLuceneFileIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+            newLuceneFileIndexDefinition(
+                    builder.child(INDEX_DEFINITIONS_NAME),
                     name, propertyTypes, excludes, filePath, async);
         }
-        return builder.getNodeState();
     }
 
 }

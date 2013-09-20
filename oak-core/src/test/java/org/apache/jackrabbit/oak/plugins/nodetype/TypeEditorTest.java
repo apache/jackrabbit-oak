@@ -38,7 +38,7 @@ public class TypeEditorTest {
     public void ignoreHidden() throws CommitFailedException {
         EditorHook hook = new EditorHook(new TypeEditorProvider());
 
-        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeState root = InitialContent.INITIAL_CONTENT;
         NodeBuilder builder = root.builder();
 
         NodeState before = builder.getNodeState();

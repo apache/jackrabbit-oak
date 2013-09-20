@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+
 import com.google.common.base.Strings;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
@@ -84,14 +84,14 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     }
 
     //-----------------------------------------------< WorkspaceInitializer >---
-    @Nonnull
+
     @Override
-    public NodeState initialize(NodeState workspaceRoot, String workspaceName,
+    public void initialize(NodeBuilder builder, String workspaceName,
                                 QueryIndexProvider indexProvider,
                                 CommitHook commitHook) {
         MemoryNodeStore store = new MemoryNodeStore();
         NodeStoreBranch branch = store.branch();
-        branch.setRoot(workspaceRoot);
+        branch.setRoot(builder.getNodeState());
         try {
             branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
         } catch (CommitFailedException e) {
@@ -133,6 +133,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             if (root.hasPendingChanges()) {
                 root.commit();
             }
+
+            builder.reset(store.getRoot());
         } catch (RepositoryException e) {
             log.error(errorMsg, e);
             throw new RuntimeException(e);
@@ -140,6 +142,5 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             log.error(errorMsg, e);
             throw new RuntimeException(e);
         }
-        return store.getRoot();
     }
 }

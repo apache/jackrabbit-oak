@@ -55,7 +55,7 @@ public class LuceneIndexTest {
             new IndexUpdateProvider(
                     new LuceneIndexEditorProvider().with(analyzer)));
 
-    private NodeState root = new InitialContent().initialize(EMPTY_NODE);
+    private NodeState root = InitialContent.INITIAL_CONTENT;
 
     private NodeBuilder builder = root.builder();
 

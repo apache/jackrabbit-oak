@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -34,8 +37,7 @@ public interface RepositoryInitializer {
      */
     RepositoryInitializer DEFAULT = new RepositoryInitializer() {
         @Override
-        public NodeState initialize(NodeState state) {
-            return state;
+        public void initialize(NodeBuilder builder) {
         }
     };
 
@@ -45,7 +47,8 @@ public interface RepositoryInitializer {
      * have been initialized, so the implementation of this method should
      * check for that before blindly adding new content.
      *
-     * @param state the current state of the repository
+     * @param builder builder for accessing and modifying repository content
      */
-    NodeState initialize(NodeState state);
+    void initialize(@Nonnull NodeBuilder builder);
+
 }
