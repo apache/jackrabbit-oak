@@ -80,14 +80,28 @@ public class SegmentNodeStore extends AbstractNodeStore {
     }
 
     @Override
-    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook, PostCommitHook committed) throws CommitFailedException {
-        return super.merge(builder, commitHook, committed);    // TODO implement merge
+    public synchronized NodeState merge(
+            @Nonnull NodeBuilder builder,
+            @Nonnull CommitHook commitHook, PostCommitHook committed)
+            throws CommitFailedException {
+        checkNotNull(commitHook);
+        SegmentNodeState head = getHead();
+        rebase(builder, head.getChildNode(ROOT)); // TODO: can we avoid this?
+        SegmentNodeStoreBranch branch = new SegmentNodeStoreBranch(
+                this, new SegmentWriter(store), head);
+        branch.setRoot(builder.getNodeState());
+        NodeState merged = branch.merge(commitHook, committed);
+        builder.reset(merged);
+        return merged;
     }
 
     @Override @Nonnull
     public NodeState rebase(@Nonnull NodeBuilder builder) {
+        return rebase(builder, getRoot());
+    }
+
+    private NodeState rebase(@Nonnull NodeBuilder builder, NodeState newBase) {
         NodeState oldBase = builder.getBaseState();
-        NodeState newBase = getRoot();
         if (!SegmentNodeState.fastEquals(oldBase, newBase)) {
             NodeState head = builder.getNodeState();
             builder.reset(newBase);
