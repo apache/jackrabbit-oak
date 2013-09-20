@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
