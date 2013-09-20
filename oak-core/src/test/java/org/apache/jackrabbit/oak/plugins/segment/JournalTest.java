@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Test;
 
 public class JournalTest {
@@ -48,9 +47,7 @@ public class JournalTest {
         builder.setProperty("foo", "bar");
         NodeState newState = builder.getNodeState();
 
-        NodeStoreBranch branch = root.branch();
-        branch.setRoot(newState);
-        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        root.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertEquals(newState, root.getRoot());
         assertEquals(oldState, left.getRoot());
@@ -77,9 +74,7 @@ public class JournalTest {
         builder.setProperty("foo", "bar");
         NodeState newState = builder.getNodeState();
 
-        NodeStoreBranch branch = left.branch();
-        branch.setRoot(newState);
-        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        left.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertEquals(oldState, root.getRoot());
         assertEquals(newState, left.getRoot());
@@ -106,9 +101,7 @@ public class JournalTest {
         leftBuilder.setProperty("foo", "bar");
         NodeState leftState = leftBuilder.getNodeState();
 
-        NodeStoreBranch leftBranch = left.branch();
-        leftBranch.setRoot(leftState);
-        leftBranch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        left.merge(leftBuilder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         assertEquals(oldState, root.getRoot());
         assertEquals(leftState, left.getRoot());
@@ -121,11 +114,8 @@ public class JournalTest {
 
         NodeBuilder rightBuilder = oldState.builder();
         rightBuilder.setProperty("bar", "foo");
-        NodeState rightState = rightBuilder.getNodeState();
 
-        NodeStoreBranch rightBranch = right.branch();
-        rightBranch.setRoot(rightState);
-        rightBranch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        right.merge(rightBuilder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         store.getJournal("right").merge();
         NodeState newState = root.getRoot();
@@ -138,6 +128,6 @@ public class JournalTest {
         assertEquals(newState, root.getRoot());
         assertEquals(newState, left.getRoot());
         assertEquals(newState, right.getRoot());
-}
+    }
 
 }

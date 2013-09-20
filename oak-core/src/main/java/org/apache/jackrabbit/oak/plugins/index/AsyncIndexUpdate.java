@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,8 +87,7 @@ public class AsyncIndexUpdate implements Runnable {
 
         preAsyncRun(store);
 
-        NodeStoreBranch branch = store.branch();
-        NodeBuilder builder = branch.getHead().builder();
+        NodeBuilder builder = store.getRoot().builder();
         NodeBuilder async = builder.child(ASYNC);
 
         NodeState before = null;
@@ -107,8 +105,7 @@ public class AsyncIndexUpdate implements Runnable {
             try {
                 async.setProperty(name, checkpoint);
                 postAsyncRunStatus(builder);
-                branch.setRoot(builder.getNodeState());
-                branch.merge(new CommitHook() {
+                store.merge(builder, new CommitHook() {
                     @Override
                     @Nonnull
                     public NodeState processCommit(NodeState before,
@@ -144,12 +141,10 @@ public class AsyncIndexUpdate implements Runnable {
     }
 
     private void preAsyncRun(NodeStore store) {
-        NodeStoreBranch branch = store.branch();
-        NodeBuilder builder = branch.getHead().builder();
+        NodeBuilder builder = store.getRoot().builder();
         preAsyncRunStatus(builder);
-        branch.setRoot(builder.getNodeState());
         try {
-            branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+            store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
         } catch (CommitFailedException e) {
             log.warn("Index status update {} failed", name, e);
         }
