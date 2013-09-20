@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.osgi;
 
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.framework.ServiceReference;
 
 /**
@@ -39,8 +39,8 @@ public class OsgiRepositoryInitializer
     }
 
     @Override
-    public void initialize(NodeBuilder builder) {
-        new CompositeInitializer(getServices()).initialize(builder);
+    public NodeState initialize(NodeState state) {
+        return new CompositeInitializer(getServices()).initialize(state);
     }
 
     @Override

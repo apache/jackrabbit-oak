@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
-
 import com.google.common.base.Strings;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
@@ -84,12 +84,20 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     }
 
     //-----------------------------------------------< WorkspaceInitializer >---
-
+    @Nonnull
     @Override
-    public void initialize(NodeBuilder builder, String workspaceName,
+    public NodeState initialize(NodeState workspaceRoot, String workspaceName,
                                 QueryIndexProvider indexProvider,
                                 CommitHook commitHook) {
-        MemoryNodeStore store = new MemoryNodeStore(builder.getNodeState());
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeStoreBranch branch = store.branch();
+        branch.setRoot(workspaceRoot);
+        try {
+            branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        } catch (CommitFailedException e) {
+            throw new RuntimeException(e);
+        }
+
         Root root = new SystemRoot(store, commitHook, workspaceName, securityProvider, indexProvider);
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
@@ -133,7 +141,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             throw new RuntimeException(e);
         }
 
-        builder.reset(store.getRoot());
+        return store.getRoot();
     }
 
 }

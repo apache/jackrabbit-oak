@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 /**
@@ -45,10 +46,12 @@ public class RelativePathTest extends AbstractQueryTest {
         return new Oak().with(new InitialContent())
                 .with(new RepositoryInitializer() {
                     @Override
-                    public void initialize(NodeBuilder builder) {
-                        NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
+                    public NodeState initialize(NodeState state) {
+                        NodeBuilder root = state.builder();
+                        NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
                         IndexUtils.createIndexDefinition(index, "myProp", true,
                                 false, ImmutableList.<String>of("myProp"), null);
+                        return root.getNodeState();
                     }
                 })
                 .with(new OpenSecurityProvider())
