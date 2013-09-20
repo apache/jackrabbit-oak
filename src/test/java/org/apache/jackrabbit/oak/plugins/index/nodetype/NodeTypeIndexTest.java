@@ -47,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,8 +69,7 @@ public class NodeTypeIndexTest {
 
     @Test
     public void nodeType() throws Exception {
-        NodeStoreBranch branch = store.branch();
-        NodeBuilder root = branch.getHead().builder();
+        NodeBuilder root = store.getRoot().builder();
 
         // remove "rep:security" as it interferes with tests
         root.getChildNode("rep:security").remove(); 
@@ -80,8 +78,7 @@ public class NodeTypeIndexTest {
         addFolder(root, "folder-2");
         addFile(root, "file-1");
 
-        branch.setRoot(root.getNodeState());
-        branch.merge(new EditorHook(new IndexUpdateProvider(
+        store.merge(root, new EditorHook(new IndexUpdateProvider(
                 new PropertyIndexEditorProvider())), PostCommitHook.EMPTY);
 
         NodeState rootState = store.getRoot();
