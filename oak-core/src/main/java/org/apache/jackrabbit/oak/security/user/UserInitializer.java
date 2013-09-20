@@ -89,15 +89,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     public void initialize(NodeBuilder builder, String workspaceName,
                                 QueryIndexProvider indexProvider,
                                 CommitHook commitHook) {
-        MemoryNodeStore store = new MemoryNodeStore();
-        NodeStoreBranch branch = store.branch();
-        branch.setRoot(builder.getNodeState());
-        try {
-            branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
-        } catch (CommitFailedException e) {
-            throw new RuntimeException(e);
-        }
-
+        MemoryNodeStore store = new MemoryNodeStore(builder.getNodeState());
         Root root = new SystemRoot(store, commitHook, workspaceName, securityProvider, indexProvider);
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
@@ -133,8 +125,6 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             if (root.hasPendingChanges()) {
                 root.commit();
             }
-
-            builder.reset(store.getRoot());
         } catch (RepositoryException e) {
             log.error(errorMsg, e);
             throw new RuntimeException(e);
@@ -142,5 +132,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             log.error(errorMsg, e);
             throw new RuntimeException(e);
         }
+
+        builder.reset(store.getRoot());
     }
+
 }
