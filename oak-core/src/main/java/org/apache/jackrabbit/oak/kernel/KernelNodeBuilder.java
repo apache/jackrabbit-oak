@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * them to the underlying store if possible.
  * @see KernelRootBuilder
  */
-public class KernelNodeBuilder extends MemoryNodeBuilder {
+public class KernelNodeBuilder extends MemoryNodeBuilder implements FastCopyMove {
 
     private final KernelRootBuilder root;
 
@@ -65,10 +65,8 @@ public class KernelNodeBuilder extends MemoryNodeBuilder {
      */
     @Override
     public boolean moveTo(NodeBuilder newParent, String newName) {
-        if (newParent instanceof KernelNodeBuilder) {
-            String source = getPath();
-            String target = PathUtils.concat(((KernelNodeBuilder) newParent).getPath(), checkNotNull(newName));
-            return root.move(source, target);
+        if (newParent instanceof FastCopyMove) {
+            return ((FastCopyMove) newParent).moveFrom(this, newName);
         } else {
             return super.moveTo(newParent, newName);
         }
@@ -84,12 +82,25 @@ public class KernelNodeBuilder extends MemoryNodeBuilder {
      */
     @Override
     public boolean copyTo(NodeBuilder newParent, String newName) {
-        if (newParent instanceof KernelNodeBuilder) {
-            String source = getPath();
-            String target = PathUtils.concat(((KernelNodeBuilder) newParent).getPath(), checkNotNull(newName));
-            return root.copy(source, target);
+        if (newParent instanceof FastCopyMove) {
+            return ((FastCopyMove) newParent).copyFrom(this, newName);
         } else {
             return super.copyTo(newParent, newName);
         }
     }
+
+    @Override
+    public boolean moveFrom(KernelNodeBuilder source, String newName) {
+        String sourcePath = source.getPath();
+        String destPath = PathUtils.concat(getPath(), newName);
+        return root.move(sourcePath, destPath);
+    }
+
+    @Override
+    public boolean copyFrom(KernelNodeBuilder source, String newName) {
+        String sourcePath = source.getPath();
+        String destPath = PathUtils.concat(getPath(), newName);
+        return root.copy(sourcePath, destPath);
+    }
+
 }
