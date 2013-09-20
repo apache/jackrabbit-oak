@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -52,7 +53,7 @@ public class IndexUpdateTest {
     private static final EditorHook HOOK = new EditorHook(
             new IndexUpdateProvider(new PropertyIndexEditorProvider()));
 
-    private NodeState root = InitialContent.INITIAL_CONTENT;
+    private NodeState root = new InitialContent().initialize(EMPTY_NODE);
 
     private NodeBuilder builder = root.builder();
 
