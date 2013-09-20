@@ -119,7 +119,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @param parent parent builder
      * @param name name of this node
      */
-    private MemoryNodeBuilder(MemoryNodeBuilder parent, String name) {
+    protected MemoryNodeBuilder(MemoryNodeBuilder parent, String name) {
         this.parent = parent;
         this.name = name;
         this.rootBuilder = parent.rootBuilder;
@@ -189,11 +189,28 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * Called whenever <em>this</em> node is modified, i.e. a property is
      * added, changed or removed, or a child node is added or removed. Changes
      * inside child nodes or the subtrees below are not reported. The default
-     * implementation does nothing, but subclasses may override this method
-     * to better track changes.
+     * implementation triggers an {@link #updated()} call on the root builder
+     * (unless this is already the root builder), which subclasses can use
+     * to capture aggregate update information across the whole tree.
      */
     protected void updated() {
-        // do nothing
+        if (this != rootBuilder) {
+            rootBuilder.updated();
+        }
+    }
+
+    /**
+     * Accessor for parent builder
+     */
+    protected final MemoryNodeBuilder getParent() {
+        return parent;
+    }
+
+    /**
+     * Accessor for name
+     */
+    protected final String getName() {
+        return name;
     }
 
     //--------------------------------------------------------< NodeBuilder >---
@@ -285,6 +302,33 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean moveTo(NodeBuilder newParent, String newName) {
+        if (isRoot()) {
+            return false;
+        } else {
+            NodeState nodeState = getNodeState();
+            remove();
+            if (newParent.exists()) {
+                checkNotNull(newParent).setChildNode(checkNotNull(newName), nodeState);
+                return true;
+            } else {
+                // Move to descendant
+                return false;
+            }
+        }
+    }
+
+    @Override
+    public boolean copyTo(NodeBuilder newParent, String newName) {
+        if (isRoot()) {
+            return false;
+        } else {
+            checkNotNull(newParent).setChildNode(checkNotNull(newName), getNodeState());
+            return true;
+        }
+    }
+
+    @Override
     public long getPropertyCount() {
         return head().getCurrentNodeState().getPropertyCount();
     }
@@ -371,9 +415,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * @return path of this builder. For debugging purposes only
+     * @return path of this builder.
      */
-    private String getPath() {
+    protected final String getPath() {
         return parent == null ? "/" : getPath(new StringBuilder()).toString();
     }
 

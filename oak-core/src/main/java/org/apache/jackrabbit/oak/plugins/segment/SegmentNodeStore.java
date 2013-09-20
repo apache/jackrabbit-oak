@@ -26,9 +26,14 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class SegmentNodeStore extends AbstractNodeStore {
@@ -72,6 +77,30 @@ public class SegmentNodeStore extends AbstractNodeStore {
     @Override @Nonnull
     public synchronized NodeState getRoot() {
         return getHead().getChildNode(ROOT);
+    }
+
+    @Override
+    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook, PostCommitHook committed) throws CommitFailedException {
+        return super.merge(builder, commitHook, committed);    // TODO implement merge
+    }
+
+    @Override @Nonnull
+    public NodeState rebase(@Nonnull NodeBuilder builder) {
+        NodeState oldBase = builder.getBaseState();
+        NodeState newBase = getRoot();
+        if (!SegmentNodeState.fastEquals(oldBase, newBase)) {
+            NodeState head = builder.getNodeState();
+            builder.reset(newBase);
+            head.compareAgainstBaseState(oldBase, new ConflictAnnotatingRebaseDiff(builder));
+        }
+        return builder.getNodeState();
+    }
+
+    @Override @Nonnull
+    public NodeState reset(@Nonnull NodeBuilder builder) {
+        NodeState state = getRoot();
+        checkNotNull(builder).reset(state);
+        return state;
     }
 
     @Override @Nonnull

@@ -145,9 +145,25 @@ class SecureNodeBuilder implements NodeBuilder {
         securityContext = null;
     }
 
+    public void baseChanged() {
+        baseRevision++;
+        securityContext = null;
+    }
+
     @Override
     public boolean remove() {
         return exists() && builder.remove();
+    }
+
+
+    @Override
+    public boolean moveTo(NodeBuilder newParent, String newName) {
+        return exists() && builder.moveTo(newParent, newName);
+    }
+
+    @Override
+    public boolean copyTo(NodeBuilder newParent, String newName) {
+        return exists() && builder.copyTo(newParent, newName);
     }
 
     @Override @CheckForNull
@@ -272,13 +288,13 @@ class SecureNodeBuilder implements NodeBuilder {
 
     @Override @Nonnull
     public NodeBuilder setChildNode(@Nonnull String name) {
-        NodeBuilder child = builder.setChildNode(name);
+        builder.setChildNode(name);
         return new SecureNodeBuilder(this, name);
     }
 
     @Override @Nonnull
     public NodeBuilder setChildNode(String name, @Nonnull NodeState nodeState) {
-        NodeBuilder child = builder.setChildNode(name, nodeState);
+        builder.setChildNode(name, nodeState);
         return new SecureNodeBuilder(this, name);
     }
 
@@ -307,7 +323,7 @@ class SecureNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Security context of this subtree. This accessor memoizes the security context
+     * Security context of this subtree. This accessor memoises the security context
      * as long as {@link #reset(NodeState)} has not been called.
      */
     private SecurityContext getSecurityContext() {
