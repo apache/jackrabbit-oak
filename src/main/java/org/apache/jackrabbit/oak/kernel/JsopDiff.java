@@ -87,12 +87,27 @@ public class JsopDiff implements NodeStateDiff {
      * @return  jsop diff between {@code before} and {@code after}
      */
     public static String diffToJsop(NodeState before, NodeState after) {
-        JsopDiff diff = new JsopDiff(null) {
+        class ToStringDiff extends JsopDiff {
+            public ToStringDiff() {
+                super(null);
+            }
+
+            public ToStringDiff(JsopBuilder jsop, String path) {
+                super(null, jsop, path);
+            }
+
             @Override
             protected String writeBlob(Blob blob) {
                 return "Blob{" + Arrays.toString(blob.sha256()) + '}';
             }
-        };
+
+            @Override
+            protected JsopDiff createChildDiff(JsopBuilder jsop, String path) {
+                return new ToStringDiff(jsop, path);
+            }
+        }
+
+        JsopDiff diff = new ToStringDiff();
         after.compareAgainstBaseState(before, diff);
         return diff.toString();
     }
