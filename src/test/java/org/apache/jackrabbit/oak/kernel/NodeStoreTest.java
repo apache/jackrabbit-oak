@@ -31,6 +31,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -348,6 +350,44 @@ public class NodeStoreTest {
         branch.setRoot(builder.getNodeState());
         branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
         return store;
+    }
+
+    @Test
+    public void merge() throws CommitFailedException {
+        NodeStoreBranch branch1 = store.branch();
+        NodeBuilder builder1 = branch1.getHead().builder();
+
+        NodeStoreBranch branch2 = store.branch();
+        NodeBuilder builder2 = branch1.getHead().builder();
+
+        builder1.setChildNode("node1");
+        branch1.setRoot(builder1.getNodeState());
+        builder2.setChildNode("node2");
+        branch2.setRoot(builder2.getNodeState());
+
+        store.merge(builder1, EmptyHook.INSTANCE, new PostCommitHook() {
+            @Override
+            public void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after) {
+                assertFalse(before.hasChildNode("node1"));
+                assertFalse(before.hasChildNode("node2"));
+                assertTrue(after.hasChildNode("node1"));
+                assertFalse(after.hasChildNode("node2"));
+            }
+        });
+        assertTrue(store.getRoot().hasChildNode("node1"));
+        assertFalse(store.getRoot().hasChildNode("node2"));
+
+        store.merge(builder2, EmptyHook.INSTANCE, new PostCommitHook() {
+            @Override
+            public void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after) {
+                assertTrue(before.hasChildNode("node1"));
+                assertFalse(before.hasChildNode("node2"));
+                assertTrue(after.hasChildNode("node1"));
+                assertTrue(after.hasChildNode("node2"));
+            }
+        });
+        assertTrue(store.getRoot().hasChildNode("node1"));
+        assertTrue(store.getRoot().hasChildNode("node2"));
     }
 
     @Test

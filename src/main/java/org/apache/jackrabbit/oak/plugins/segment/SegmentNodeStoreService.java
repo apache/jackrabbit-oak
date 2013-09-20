@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,6 +26,7 @@ import java.util.Dictionary;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.mongodb.Mongo;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -31,20 +34,20 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.osgi.service.component.ComponentContext;
-
-import com.mongodb.Mongo;
-
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(NodeStore.class)
@@ -164,6 +167,23 @@ public class SegmentNodeStoreService extends AbstractNodeStore {
     @Override @Nonnull
     public NodeState getRoot() {
         return getDelegate().getRoot();
+    }
+
+    @Nonnull
+    @Override
+    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            PostCommitHook committed) throws CommitFailedException {
+        return getDelegate().merge(builder, commitHook, committed);
+    }
+
+    @Override
+    public NodeState rebase(@Nonnull NodeBuilder builder) {
+        return getDelegate().rebase(builder);
+    }
+
+    @Override
+    public NodeState reset(@Nonnull NodeBuilder builder) {
+        return getDelegate().reset(builder);
     }
 
     @Override @Nonnull

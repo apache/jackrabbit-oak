@@ -18,8 +18,22 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.indexOf;
+import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
+import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
+import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
+
 import java.util.Collections;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -35,19 +49,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.indexOf;
-import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
-import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
-import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 public class MutableTree extends AbstractTree {
 
@@ -372,14 +373,37 @@ public class MutableTree extends AbstractTree {
     //-----------------------------------------------------------< internal >---
 
     /**
-     * Move this tree to the parent at {@code destParent} with the new name
-     * {@code destName}.
-     * @param destParent new parent for this tree
-     * @param destName   new name for this tree
+     * Set the parent and name of this tree.
+     * @param parent  parent of this tree
+     * @param name  name of this tree
      */
-    void moveTo(MutableTree destParent, String destName) {
-        name = destName;
-        parent = destParent;
+    void setParentAndName(MutableTree parent, String name) {
+        this.name = name;
+        this.parent = parent;
+    }
+
+    /**
+     * Move this tree to the parent at {@code destParent} with the new name
+     * {@code newName}.
+     * @param newParent new parent for this tree
+     * @param newName   new name for this tree
+     */
+    boolean moveTo(MutableTree newParent, String newName) {
+        name = newName;
+        parent = newParent;
+        // FIXME this falls back to MemoryNodeBuilder#moveTo if newParent is a SecureNodeState
+        return nodeBuilder.moveTo(newParent.nodeBuilder, newName);
+    }
+
+    /**
+     * Copy this tree to the parent at {@code destParent} with the new name
+     * {@code newName}.
+     * @param newParent new parent for this tree
+     * @param newName   new name for this tree
+     */
+    boolean copyTo(MutableTree newParent, String newName) {
+        // FIXME this falls back to MemoryNodeBuilder#copyTo if newParent is a SecureNodeState
+        return nodeBuilder.copyTo(newParent.nodeBuilder, newName);
     }
 
     /**
