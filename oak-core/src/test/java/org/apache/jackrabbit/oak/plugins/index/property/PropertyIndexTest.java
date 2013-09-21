@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -60,7 +61,7 @@ public class PropertyIndexTest {
 
     @Test
     public void testPropertyLookup() throws Exception {
-        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeState root = INITIAL_CONTENT;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -105,7 +106,7 @@ public class PropertyIndexTest {
 
     @Test
     public void testCustomConfigPropertyLookup() throws Exception {
-        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeState root = INITIAL_CONTENT;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -153,7 +154,7 @@ public class PropertyIndexTest {
      */
     @Test
     public void testCustomConfigNodeType() throws Exception {
-        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeState root = INITIAL_CONTENT;
 
         // Add index definitions
         NodeBuilder builder = root.builder();

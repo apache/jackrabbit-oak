@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -39,11 +40,13 @@ public final class OakInitializer {
     public static void initialize(@Nonnull NodeStore store,
                                   @Nonnull RepositoryInitializer initializer,
                                   @Nonnull IndexEditorProvider indexEditor) {
-        NodeStoreBranch branch = store.branch();
-        NodeState before = branch.getHead();
-        branch.setRoot(initializer.initialize(before));
         try {
-            branch.merge(new EditorHook(new IndexUpdateProvider(indexEditor)), PostCommitHook.EMPTY);
+            NodeBuilder builder = store.getRoot().builder();
+            initializer.initialize(builder);
+            store.merge(
+                    builder,
+                    new EditorHook(new IndexUpdateProvider(indexEditor)),
+                    PostCommitHook.EMPTY);
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }

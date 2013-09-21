@@ -18,9 +18,11 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.osgi.framework.ServiceReference;
 
 /**
@@ -39,8 +41,8 @@ public class OsgiRepositoryInitializer
     }
 
     @Override
-    public NodeState initialize(NodeState state) {
-        return new CompositeInitializer(getServices()).initialize(state);
+    public void initialize(@Nonnull NodeBuilder builder) {
+        new CompositeInitializer(getServices()).initialize(builder);
     }
 
     @Override
