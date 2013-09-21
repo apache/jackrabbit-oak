@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -43,17 +42,17 @@ public class MultipleIndicesTest extends AbstractQueryTest {
                 .with(new InitialContent())
                 .with(new RepositoryInitializer() {
                     @Override
-                    public NodeState initialize(NodeState state) {
-                        NodeBuilder root = state.builder();
-                        createIndexDefinition(getOrCreateOakIndex(root), "pid",
+                    public void initialize(NodeBuilder builder) {
+                        createIndexDefinition(
+                                getOrCreateOakIndex(builder), "pid",
                                 true, false, ImmutableList.of("pid"), null);
                         createIndexDefinition(
-                                getOrCreateOakIndex(root.child("content")),
+                                getOrCreateOakIndex(builder.child("content")),
                                 "pid", true, false, ImmutableList.of("pid"),
                                 null);
-                        return root.getNodeState();
                     }
-                }).with(new OpenSecurityProvider())
+                })
+                .with(new OpenSecurityProvider())
                 .with(new PropertyIndexProvider())
                 .with(new PropertyIndexEditorProvider())
                 .createContentRepository();

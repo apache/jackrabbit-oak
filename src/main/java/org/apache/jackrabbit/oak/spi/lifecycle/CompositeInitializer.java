@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 import java.util.Arrays;
 import java.util.Collection;
 
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -41,11 +44,9 @@ public class CompositeInitializer implements RepositoryInitializer {
     }
 
     @Override
-    public NodeState initialize(NodeState state) {
-        NodeState newState = state;
+    public void initialize(@Nonnull NodeBuilder builder) {
         for (RepositoryInitializer tracker : initializers) {
-            newState = tracker.initialize(newState);
+            tracker.initialize(builder);
         }
-        return newState;
     }
 }

@@ -47,10 +47,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
  */
 public class MemoryNodeStore extends AbstractNodeStore {
 
-    private final AtomicReference<NodeState> root =
-            new AtomicReference<NodeState>(EMPTY_NODE);
+    private final AtomicReference<NodeState> root;
 
     private final Map<String, NodeState> checkpoints = newHashMap();
+
+    public MemoryNodeStore(NodeState state) {
+        this.root = new AtomicReference<NodeState>(state);
+    }
+
+    public MemoryNodeStore() {
+        this(EMPTY_NODE);
+    }
 
     @Override
     protected void reset(NodeBuilder builder, NodeState state) {
