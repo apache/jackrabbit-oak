@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+
 import com.google.common.base.Strings;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -30,16 +30,15 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,19 +83,13 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     }
 
     //-----------------------------------------------< WorkspaceInitializer >---
-    @Nonnull
+
     @Override
-    public NodeState initialize(NodeState workspaceRoot, String workspaceName,
-                                QueryIndexProvider indexProvider,
-                                CommitHook commitHook) {
-        MemoryNodeStore store = new MemoryNodeStore();
-        NodeStoreBranch branch = store.branch();
-        branch.setRoot(workspaceRoot);
-        try {
-            branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
-        } catch (CommitFailedException e) {
-            throw new RuntimeException(e);
-        }
+    public void initialize(
+            NodeBuilder builder, String workspaceName,
+            QueryIndexProvider indexProvider, CommitHook commitHook) {
+        NodeState base = builder.getNodeState();
+        MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = new SystemRoot(store, commitHook, workspaceName, securityProvider, indexProvider);
 
@@ -141,7 +134,8 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             throw new RuntimeException(e);
         }
 
-        return store.getRoot();
+        NodeState target = store.getRoot();
+        target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }
 
 }
