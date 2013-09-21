@@ -140,13 +140,6 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
         return builder.isModified();
     }
 
-    @Override
-    public void reset(@Nonnull NodeState state) throws IllegalStateException {
-        builder.reset(state); // NOTE: can be dangerous with SecureNodeState
-        baseRevision++;
-        securityContext = null;
-    }
-
     public void baseChanged() {
         baseRevision++;
         securityContext = null;

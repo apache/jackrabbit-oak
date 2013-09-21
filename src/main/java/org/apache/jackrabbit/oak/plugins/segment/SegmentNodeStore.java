@@ -31,12 +31,12 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-public class SegmentNodeStore extends AbstractNodeStore {
+public class SegmentNodeStore implements NodeStore {
 
     static final String ROOT = "root";
 
@@ -84,6 +84,7 @@ public class SegmentNodeStore extends AbstractNodeStore {
             @Nonnull NodeBuilder builder,
             @Nonnull CommitHook commitHook, PostCommitHook committed)
             throws CommitFailedException {
+        checkArgument(builder instanceof SegmentNodeBuilder);
         checkNotNull(commitHook);
         SegmentNodeState head = getHead();
         rebase(builder, head.getChildNode(ROOT)); // TODO: can we avoid this?
@@ -91,7 +92,7 @@ public class SegmentNodeStore extends AbstractNodeStore {
                 this, new SegmentWriter(store), head);
         branch.setRoot(builder.getNodeState());
         NodeState merged = branch.merge(commitHook, committed);
-        builder.reset(merged);
+        ((SegmentNodeBuilder) builder).reset(merged);
         return merged;
     }
 
@@ -101,10 +102,11 @@ public class SegmentNodeStore extends AbstractNodeStore {
     }
 
     private NodeState rebase(@Nonnull NodeBuilder builder, NodeState newBase) {
+        checkArgument(builder instanceof SegmentNodeBuilder);
         NodeState oldBase = builder.getBaseState();
         if (!SegmentNodeState.fastEquals(oldBase, newBase)) {
             NodeState head = builder.getNodeState();
-            builder.reset(newBase);
+            ((SegmentNodeBuilder) builder).reset(newBase);
             head.compareAgainstBaseState(oldBase, new ConflictAnnotatingRebaseDiff(builder));
         }
         return builder.getNodeState();
@@ -112,8 +114,9 @@ public class SegmentNodeStore extends AbstractNodeStore {
 
     @Override @Nonnull
     public NodeState reset(@Nonnull NodeBuilder builder) {
+        checkArgument(builder instanceof SegmentNodeBuilder);
         NodeState state = getRoot();
-        checkNotNull(builder).reset(state);
+        ((SegmentNodeBuilder) builder).reset(state);
         return state;
     }
 
