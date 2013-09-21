@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.easymock.EasyMock.createControl;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,7 +38,7 @@ public class TypeEditorTest {
     public void ignoreHidden() throws CommitFailedException {
         EditorHook hook = new EditorHook(new TypeEditorProvider());
 
-        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeState root = INITIAL_CONTENT;
         NodeBuilder builder = root.builder();
 
         NodeState before = builder.getNodeState();
