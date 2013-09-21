@@ -31,6 +31,18 @@ import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 public abstract class AbstractNodeStore implements NodeStore {
 
     /**
+     * Replaces the base state of the given builder and throws away all
+     * changes in it. The effect of this method is equivalent to replacing
+     * the builder (and the connected subtree) with a new builder returned
+     * by {@code state.builder()}.
+     *
+     * @param state new base state
+     * @throws IllegalArgumentException if the builder is not acquired
+     *                                  from a root state of this store
+     */
+    protected abstract void reset(NodeBuilder builder, NodeState state);
+
+    /**
      * This default implementation is equal to first rebasing the builder
      * and then applying it to a new branch and immediately merging it back.
      * <p>
@@ -41,6 +53,8 @@ public abstract class AbstractNodeStore implements NodeStore {
      * @param committed  the pos commit hook
      * @return the node state resulting from the merge.
      * @throws CommitFailedException
+     * @throws IllegalArgumentException if the builder is not acquired
+     *                                  from a root state of this store
      */
     @Override
     public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
@@ -50,7 +64,7 @@ public abstract class AbstractNodeStore implements NodeStore {
         NodeStoreBranch branch = branch();
         branch.setRoot(builder.getNodeState());
         NodeState merged = branch.merge(commitHook, committed);
-        builder.reset(merged);
+        reset(builder, merged);
         return merged;
     }
 
@@ -61,14 +75,21 @@ public abstract class AbstractNodeStore implements NodeStore {
      * conflicts.
      * @param builder  the builder to rebase
      * @return the node state resulting from the rebase.
+     * @throws IllegalArgumentException if the builder is not acquired
+     *                                  from a root state of this store
      */
     @Override
     public NodeState rebase(@Nonnull NodeBuilder builder) {
         NodeState head = checkNotNull(builder).getNodeState();
         NodeState base = builder.getBaseState();
-        builder.reset(getRoot());
-        head.compareAgainstBaseState(base, new ConflictAnnotatingRebaseDiff(builder));
-        return builder.getNodeState();
+        NodeState newBase = getRoot();
+        if (base != newBase) {
+            reset(builder, newBase);
+            head.compareAgainstBaseState(
+                    base, new ConflictAnnotatingRebaseDiff(builder));
+            head = builder.getNodeState();
+        }
+        return head;
     }
 
     /**
@@ -76,11 +97,14 @@ public abstract class AbstractNodeStore implements NodeStore {
      * the store and returning the resulting node state from the builder.
      * @param builder the builder to reset
      * @return the node state resulting from the reset.
+     * @throws IllegalArgumentException if the builder is not acquired
+     *                                  from a root state of this store
      */
     @Override
     public NodeState reset(@Nonnull NodeBuilder builder) {
-        builder.reset(getRoot());
-        return builder.getNodeState();
+        NodeState head = getRoot();
+        reset(builder, head);
+        return head;
     }
 
 //------------------------------------------------------------< Object >--

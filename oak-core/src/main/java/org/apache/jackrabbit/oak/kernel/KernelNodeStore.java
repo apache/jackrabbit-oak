@@ -34,10 +34,12 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -133,6 +135,12 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     public void setObserver(@Nonnull Observer observer) {
         this.observer = checkNotNull(observer);
+    }
+
+    @Override
+    protected void reset(NodeBuilder builder, NodeState state) {
+        checkArgument(builder instanceof MemoryNodeBuilder);
+        ((MemoryNodeBuilder) builder).reset(state);
     }
 
     //----------------------------------------------------------< NodeStore >---

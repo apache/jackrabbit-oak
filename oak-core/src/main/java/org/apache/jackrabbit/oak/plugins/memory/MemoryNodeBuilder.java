@@ -213,6 +213,12 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return name;
     }
 
+    public void reset(NodeState newBase) {
+        base = checkNotNull(newBase);
+        baseRevision++;
+        head().reset();
+    }
+
     //--------------------------------------------------------< NodeBuilder >---
 
     @Override
@@ -238,13 +244,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public boolean isModified() {
         return head().isModified();
-    }
-
-    @Override
-    public void reset(NodeState newBase) {
-        base = checkNotNull(newBase);
-        baseRevision++;
-        head().reset();
     }
 
     @Override

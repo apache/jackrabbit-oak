@@ -144,7 +144,7 @@ public class MemoryNodeBuilderTest {
         assertTrue(child.hasChildNode("new"));
         assertTrue(root.child("x").hasChildNode("new"));
 
-        root.reset(base);
+        ((MemoryNodeBuilder) root).reset(base);
         assertFalse(child.hasChildNode("new"));
         assertFalse(root.child("x").hasChildNode("new"));
     }
@@ -155,7 +155,7 @@ public class MemoryNodeBuilderTest {
         NodeBuilder x = root.child("x");
         x.child("y");
 
-        root.reset(base);
+        ((MemoryNodeBuilder) root).reset(base);
         assertTrue(root.hasChildNode("x"));
         assertFalse(x.hasChildNode("y"));
     }
