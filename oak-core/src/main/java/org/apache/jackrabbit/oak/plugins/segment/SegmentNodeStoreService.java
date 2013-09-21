@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -51,7 +50,7 @@ import org.osgi.service.component.ComponentContext;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(NodeStore.class)
-public class SegmentNodeStoreService extends AbstractNodeStore {
+public class SegmentNodeStoreService implements NodeStore {
 
     @Property(description="The unique name of this instance")
     public static final String NAME = "name";

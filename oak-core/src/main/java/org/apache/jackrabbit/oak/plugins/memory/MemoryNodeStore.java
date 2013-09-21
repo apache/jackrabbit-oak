@@ -31,11 +31,13 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -49,6 +51,12 @@ public class MemoryNodeStore extends AbstractNodeStore {
             new AtomicReference<NodeState>(EMPTY_NODE);
 
     private final Map<String, NodeState> checkpoints = newHashMap();
+
+    @Override
+    protected void reset(NodeBuilder builder, NodeState state) {
+        checkArgument(builder instanceof MemoryNodeBuilder);
+        ((MemoryNodeBuilder) builder).reset(state);
+    }
 
     @Override
     public NodeState getRoot() {

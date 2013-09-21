@@ -54,6 +54,8 @@ public interface NodeStore {
      * @param committed  the post commit hook
      * @return the node state resulting from the merge.
      * @throws CommitFailedException if the merge failed
+     * @throws IllegalArgumentException if the builder is not acquired
+     *                                  from a root state of this store
      */
     @Nonnull
     NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
@@ -61,8 +63,11 @@ public interface NodeStore {
 
     /**
      * Rebase the changes in the passed {@code builder} on top of the current root state.
+     *
      * @param builder  the builder to rebase
      * @return the node state resulting from the rebase.
+     * @throws IllegalArgumentException if the builder is not acquired
+     *                                  from a root state of this store
      */
     @Nonnull
     NodeState rebase(@Nonnull NodeBuilder builder);
@@ -70,8 +75,11 @@ public interface NodeStore {
     /**
      * Reset the passed {@code builder} by throwing away all its changes and
      * setting its base state to the current root state.
+     *
      * @param builder the builder to reset
      * @return the node state resulting from the reset.
+     * @throws IllegalArgumentException if the builder is not acquired
+     *                                  from a root state of this store
      */
     NodeState reset(@Nonnull NodeBuilder builder);
 

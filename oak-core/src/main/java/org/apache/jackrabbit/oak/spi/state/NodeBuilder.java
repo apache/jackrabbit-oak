@@ -113,23 +113,6 @@ public interface NodeBuilder {
     boolean isModified();
 
     /**
-     * Replaces the base state of this builder and throws away all changes.
-     * The effect of this method is equivalent to replacing this builder
-     * (and the connected subtree) with a new builder returned by
-     * {@code state.builder()}.
-     * <p>
-     * This method only works on builders acquired directly from a call
-     * to {@link NodeState#builder()}. Calling it on a builder returned
-     * by the {@link #child(String)} method will throw an
-     * {@link IllegalStateException}.
-     *
-     * @param state new base state
-     * @throws IllegalStateException if this is not a root builder
-     */
-    void reset(@Nonnull NodeState state)
-        throws IllegalStateException;
-
-    /**
      * Returns the current number of child nodes.
      * <p>
      * If an implementation does know the exact value, it returns it (even if
