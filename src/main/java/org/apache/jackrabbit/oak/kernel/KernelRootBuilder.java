@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
@@ -41,7 +40,7 @@ class KernelRootBuilder extends MemoryNodeBuilder implements FastCopyMove {
     /**
      * The underlying store
      */
-    private final NodeStore store;
+    private final KernelNodeStore store;
 
     /**
      * The base state of this builder, possibly non-existent if this builder

@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +52,8 @@ public class SegmentNodeStore implements NodeStore {
 
     private SegmentNodeState head;
 
+    private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
+
     public SegmentNodeStore(SegmentStore store, String journal) {
         this.store = store;
         this.journal = store.getJournal(journal);
@@ -60,6 +64,10 @@ public class SegmentNodeStore implements NodeStore {
 
     public SegmentNodeStore(SegmentStore store) {
         this(store, "root");
+    }
+
+    void setMaximumBackoff(long max) {
+        this.maximumBackoff = max;
     }
 
     synchronized SegmentNodeState getHead() {
@@ -89,7 +97,7 @@ public class SegmentNodeStore implements NodeStore {
         SegmentNodeState head = getHead();
         rebase(builder, head.getChildNode(ROOT)); // TODO: can we avoid this?
         SegmentNodeStoreBranch branch = new SegmentNodeStoreBranch(
-                this, new SegmentWriter(store), head);
+                this, new SegmentWriter(store), head, maximumBackoff);
         branch.setRoot(builder.getNodeState());
         NodeState merged = branch.merge(commitHook, committed);
         ((SegmentNodeBuilder) builder).reset(merged);
@@ -118,12 +126,6 @@ public class SegmentNodeStore implements NodeStore {
         NodeState state = getRoot();
         ((SegmentNodeBuilder) builder).reset(state);
         return state;
-    }
-
-    @Override @Nonnull
-    public SegmentNodeStoreBranch branch() {
-        return new SegmentNodeStoreBranch(
-                this, new SegmentWriter(store), getHead());
     }
 
     @Override

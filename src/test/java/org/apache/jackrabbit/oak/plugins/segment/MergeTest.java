@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Test;
 
 public class MergeTest {
@@ -95,11 +94,9 @@ public class MergeTest {
             public void run() {
                 for (int i = 0; running.get(); i++) {
                     try {
-                        SegmentNodeStoreBranch a = store.branch();
-                        NodeBuilder builder = a.getHead().builder();
-                        builder.setProperty("foo", "abc" + i);
-                        a.setRoot(builder.getNodeState());
-                        a.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+                        NodeBuilder a = store.getRoot().builder();
+                        a.setProperty("foo", "abc" + i);
+                        store.merge(a, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
                         semaphore.release();
                     } catch (CommitFailedException e) {
                         fail();
@@ -115,10 +112,10 @@ public class MergeTest {
         assertTrue(store.getRoot().hasProperty("foo"));
         assertFalse(store.getRoot().hasProperty("bar"));
 
-        SegmentNodeStoreBranch b = store.branch();
-        b.setMaximumBackoff(100);
-        b.setRoot(b.getHead().builder().setProperty("bar", "xyz").getNodeState());
-        b.merge(new CommitHook() {
+        NodeBuilder b = store.getRoot().builder();
+        b.setProperty("bar", "xyz");
+        store.setMaximumBackoff(100);
+        store.merge(b, new CommitHook() {
             @Override @Nonnull
             public NodeState processCommit(NodeState before, NodeState after) {
                 try {

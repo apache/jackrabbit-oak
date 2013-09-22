@@ -209,7 +209,7 @@ public class KernelNodeStore extends AbstractNodeStore {
     }
 
     @Override
-    public NodeStoreBranch branch() {
+    protected NodeStoreBranch branch() {
         return new KernelNodeStoreBranch(this, mergeLock, getRoot());
     }
 

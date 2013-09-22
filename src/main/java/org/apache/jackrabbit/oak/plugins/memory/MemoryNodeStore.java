@@ -66,13 +66,13 @@ public class MemoryNodeStore extends AbstractNodeStore {
     }
 
     @Override
-    public NodeState getRoot() {
-        return root.get();
+    protected NodeStoreBranch branch() {
+        return new MemoryNodeStoreBranch(this, root.get());
     }
 
     @Override
-    public NodeStoreBranch branch() {
-        return new MemoryNodeStoreBranch(this, root.get());
+    public NodeState getRoot() {
+        return root.get();
     }
 
     /**

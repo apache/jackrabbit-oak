@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.Nonnull;
@@ -41,6 +40,14 @@ public abstract class AbstractNodeStore implements NodeStore {
      *                                  from a root state of this store
      */
     protected abstract void reset(NodeBuilder builder, NodeState state);
+
+    /**
+     * Creates a new branch of the tree to which transient changes can be applied.
+     *
+     * @return branch
+     */
+    @Nonnull
+    protected abstract NodeStoreBranch branch();
 
     /**
      * This default implementation is equal to first rebasing the builder
