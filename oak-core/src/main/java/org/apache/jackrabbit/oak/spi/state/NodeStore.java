@@ -84,14 +84,6 @@ public interface NodeStore {
     NodeState reset(@Nonnull NodeBuilder builder);
 
     /**
-     * Creates a new branch of the tree to which transient changes can be applied.
-     *
-     * @return branch
-     */
-    @Nonnull
-    NodeStoreBranch branch();
-
-    /**
      * Create a {@link Blob} from the given input stream. The input stream
      * is closed after this method returns.
      * @param inputStream  The input stream for the {@code Blob}

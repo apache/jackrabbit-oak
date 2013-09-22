@@ -185,11 +185,6 @@ public class SegmentNodeStoreService implements NodeStore {
         return getDelegate().reset(builder);
     }
 
-    @Override @Nonnull
-    public NodeStoreBranch branch() {
-        return getDelegate().branch();
-    }
-
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         return getDelegate().createBlob(stream);

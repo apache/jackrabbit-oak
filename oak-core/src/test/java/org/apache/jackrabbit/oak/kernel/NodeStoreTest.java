@@ -109,10 +109,8 @@ public class NodeStoreTest {
     }
 
     @Test
-    public void branch() throws CommitFailedException {
-        NodeStoreBranch branch = store.branch();
-
-        NodeBuilder rootBuilder = branch.getHead().builder();
+    public void simpleMerge() throws CommitFailedException {
+        NodeBuilder rootBuilder = store.getRoot().builder();
         NodeBuilder testBuilder = rootBuilder.child("test");
         NodeBuilder newNodeBuilder = testBuilder.child("newNode");
 
@@ -126,25 +124,12 @@ public class NodeStoreTest {
         assertFalse(testState.getChildNode("x").exists());
         assertEquals(42, (long) testState.getChildNode("newNode").getProperty("n").getValue(LONG));
 
-        // Assert changes are not yet present in the branch
-        testState = branch.getHead().getChildNode("test");
-        assertFalse(testState.getChildNode("newNode").exists());
-        assertTrue(testState.getChildNode("x").exists());
-
-        branch.setRoot(rootBuilder.getNodeState());
-
-        // Assert changes are present in the branch
-        testState = branch.getHead().getChildNode("test");
-        assertTrue(testState.getChildNode("newNode").exists());
-        assertFalse(testState.getChildNode("x").exists());
-        assertEquals(42, (long) testState.getChildNode("newNode").getProperty("n").getValue(LONG));
-
         // Assert changes are not yet present in the trunk
         testState = store.getRoot().getChildNode("test");
         assertFalse(testState.getChildNode("newNode").exists());
         assertTrue(testState.getChildNode("x").exists());
 
-        branch.merge(EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        store.merge(rootBuilder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
 
         // Assert changes are present in the trunk
         testState = store.getRoot().getChildNode("test");
