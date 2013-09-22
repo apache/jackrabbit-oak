@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.ROOT;
 
 import java.util.Random;
@@ -47,19 +46,16 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
 
     private SegmentNodeState head;
 
-    private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
+    private long maximumBackoff;
 
     SegmentNodeStoreBranch(
             SegmentNodeStore store, SegmentWriter writer,
-            SegmentNodeState base) {
+            SegmentNodeState base, long maximumBackoff) {
         this.store = store;
         this.writer = writer;
         this.base = base;
         this.head = base;
-    }
-
-    void setMaximumBackoff(long max) {
-        this.maximumBackoff = max;
+        this.maximumBackoff = maximumBackoff;
     }
 
     @Override @Nonnull
