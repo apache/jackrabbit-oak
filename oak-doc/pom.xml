@@ -107,7 +107,7 @@
   <distributionManagement>
     <site>
       <id>jackrabbit.oak.site-deploy</id>
-      <url>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/site/live/oak/docs/${project.version}</url>
+      <url>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/site/live/oak/docs</url>
     </site>
   </distributionManagement>
 
