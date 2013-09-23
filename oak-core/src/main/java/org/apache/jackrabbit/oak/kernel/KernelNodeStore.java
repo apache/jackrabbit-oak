@@ -34,25 +34,23 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
  */
-public class KernelNodeStore extends AbstractNodeStore {
+public class KernelNodeStore implements NodeStore {
 
     private static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
 
@@ -137,10 +135,11 @@ public class KernelNodeStore extends AbstractNodeStore {
         this.observer = checkNotNull(observer);
     }
 
-    @Override
-    protected void reset(NodeBuilder builder, NodeState state) {
-        checkArgument(builder instanceof MemoryNodeBuilder);
-        ((MemoryNodeBuilder) builder).reset(state);
+    /**
+     * Returns a string representation the head state of this node store.
+     */
+    public String toString() {
+        return getRoot().toString();
     }
 
     //----------------------------------------------------------< NodeStore >---
@@ -158,59 +157,40 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     /**
      * This implementation delegates to {@link KernelRootBuilder#merge(CommitHook, PostCommitHook)}
-     * if {@code builder} is a {@link KernelNodeBuilder} instance. Otherwise it falls
-     * back to the default implementation of its super class.
+     * if {@code builder} is a {@link KernelNodeBuilder} instance. Otherwise it throws
+     * an {@code IllegalArgumentException}.
      */
     @Override
     public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
             PostCommitHook committed) throws CommitFailedException {
-        if (builder instanceof KernelRootBuilder) {
-            return ((KernelRootBuilder) builder).merge(commitHook, committed);
-        } else {
-            mergeLock.lock();
-            try {
-                return super.merge(builder, commitHook, committed);
-            } finally {
-                mergeLock.unlock();
-            }
-        }
+        checkArgument(builder instanceof KernelRootBuilder);
+        return ((KernelRootBuilder) builder).merge(commitHook, committed);
     }
 
     /**
      * This implementation delegates to {@link KernelRootBuilder#rebase()} if {@code builder}
-     * is a {@link KernelNodeBuilder} instance. Otherwise it falls back to the default
-     * implementation of its super class.
+     * is a {@link KernelNodeBuilder} instance. Otherwise Otherwise it throws an
+     * {@code IllegalArgumentException}.
      * @param builder  the builder to rebase
      * @return
      */
     @Override
     public NodeState rebase(@Nonnull NodeBuilder builder) {
-        if (builder instanceof KernelRootBuilder) {
-            return ((KernelRootBuilder) builder).rebase();
-        } else {
-            return super.rebase(builder);
-        }
+        checkArgument(builder instanceof KernelRootBuilder);
+        return ((KernelRootBuilder) builder).rebase();
     }
 
     /**
      * This implementation delegates to {@link KernelRootBuilder#reset()} if {@code builder}
-     * is a {@link KernelNodeBuilder} instance. Otherwise it falls back to the default
-     * implementation of its super class.
+     * is a {@link KernelNodeBuilder} instance. Otherwise it throws an
+     * {@code IllegalArgumentException}.
      * @param builder  the builder to rebase
      * @return
      */
     @Override
     public NodeState reset(@Nonnull NodeBuilder builder) {
-        if (builder instanceof KernelRootBuilder) {
-            return ((KernelRootBuilder) builder).reset();
-        } else {
-            return super.reset(builder);
-        }
-    }
-
-    @Override
-    protected NodeStoreBranch createBranch(NodeState base) {
-        return new KernelNodeStoreBranch(this, mergeLock, (KernelNodeState) base);
+        checkArgument(builder instanceof KernelRootBuilder);
+        return ((KernelRootBuilder) builder).reset();
     }
 
     /**
@@ -254,6 +234,10 @@ public class KernelNodeStore extends AbstractNodeStore {
         } catch (ExecutionException e) {
             throw new MicroKernelException(e);
         }
+    }
+
+    NodeStoreBranch createBranch(NodeState base) {
+        return new KernelNodeStoreBranch(this, mergeLock, (KernelNodeState) base);
     }
 
     MicroKernel getKernel() {

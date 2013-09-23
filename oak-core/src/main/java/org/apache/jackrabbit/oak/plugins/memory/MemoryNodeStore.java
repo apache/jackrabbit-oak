@@ -31,21 +31,21 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.io.ByteStreams;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * Basic in-memory node store implementation. Useful as a base class for
  * more complex functionality.
  */
-public class MemoryNodeStore extends AbstractNodeStore {
+public class MemoryNodeStore implements NodeStore {
 
     private final AtomicReference<NodeState> root;
 
@@ -59,20 +59,81 @@ public class MemoryNodeStore extends AbstractNodeStore {
         this(EMPTY_NODE);
     }
 
-    @Override
-    protected void reset(NodeBuilder builder, NodeState state) {
-        checkArgument(builder instanceof MemoryNodeBuilder);
-        ((MemoryNodeBuilder) builder).reset(state);
-    }
-
-    @Override
-    protected NodeStoreBranch createBranch(NodeState base) {
-        return new MemoryNodeStoreBranch(this, base);
+    /**
+     * Returns a string representation the head state of this node store.
+     */
+    public String toString() {
+        return getRoot().toString();
     }
 
     @Override
     public NodeState getRoot() {
         return root.get();
+    }
+
+    /**
+     * This implementation is equal to first rebasing the builder and then applying it to a
+     * new branch and immediately merging it back.
+     * @param builder  the builder whose changes to apply
+     * @param commitHook the commit hook to apply while merging changes
+     * @param committed  the pos commit hook
+     * @return the node state resulting from the merge.
+     * @throws CommitFailedException
+     * @throws IllegalArgumentException if the builder is not acquired from a root state of
+     *                                  this store
+     */
+    @Override
+    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            PostCommitHook committed) throws CommitFailedException {
+        checkArgument(builder instanceof MemoryNodeBuilder);
+        checkNotNull(commitHook);
+        rebase(checkNotNull(builder));
+        NodeStoreBranch branch = new MemoryNodeStoreBranch(this, getRoot());
+        branch.setRoot(builder.getNodeState());
+        NodeState merged = branch.merge(commitHook, committed);
+        ((MemoryNodeBuilder) builder).reset(merged);
+        return merged;
+    }
+
+    /**
+     * This implementation is equal to applying the differences between the builders base state
+     * and its head state to a fresh builder on the stores root state using
+     * {@link org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff} for resolving
+     * conflicts.
+     * @param builder  the builder to rebase
+     * @return the node state resulting from the rebase.
+     * @throws IllegalArgumentException if the builder is not acquired from a root state of
+     *                                  this store
+     */
+    @Override
+    public NodeState rebase(@Nonnull NodeBuilder builder) {
+        checkArgument(builder instanceof MemoryNodeBuilder);
+        NodeState head = checkNotNull(builder).getNodeState();
+        NodeState base = builder.getBaseState();
+        NodeState newBase = getRoot();
+        if (base != newBase) {
+            ((MemoryNodeBuilder) builder).reset(newBase);
+            head.compareAgainstBaseState(
+                    base, new ConflictAnnotatingRebaseDiff(builder));
+            head = builder.getNodeState();
+        }
+        return head;
+    }
+
+    /**
+     * This implementation is equal resetting the builder to the root of the store and returning
+     * the resulting node state from the builder.
+     * @param builder the builder to reset
+     * @return the node state resulting from the reset.
+     * @throws IllegalArgumentException if the builder is not acquired from a root state of
+     *                                  this store
+     */
+    @Override
+    public NodeState reset(@Nonnull NodeBuilder builder) {
+        checkArgument(builder instanceof MemoryNodeBuilder);
+        NodeState head = getRoot();
+        ((MemoryNodeBuilder) builder).reset(head);
+        return head;
     }
 
     /**
@@ -100,6 +161,8 @@ public class MemoryNodeStore extends AbstractNodeStore {
     public synchronized NodeState retrieve(@Nonnull String checkpoint) {
         return checkpoints.get(checkNotNull(checkpoint));
     }
+
+    //------------------------------------------------------------< private >---
 
     private static class MemoryNodeStoreBranch extends AbstractNodeStoreBranch {
 
