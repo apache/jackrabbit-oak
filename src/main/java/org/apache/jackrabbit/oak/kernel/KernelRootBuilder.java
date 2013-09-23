@@ -123,7 +123,7 @@ class KernelRootBuilder extends MemoryNodeBuilder implements FastCopyMove {
      * state of that branch as the new base state of this builder.
      */
     NodeState reset() {
-        branch = store.branch();
+        branch = store.createBranch(store.getRoot());
         NodeState head = branch.getHead();
         reset(head);
         return head;
