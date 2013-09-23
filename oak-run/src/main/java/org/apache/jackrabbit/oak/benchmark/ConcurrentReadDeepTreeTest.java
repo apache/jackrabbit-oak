@@ -24,8 +24,9 @@ import javax.jcr.Session;
  */
 public class ConcurrentReadDeepTreeTest extends AbstractDeepTreeTest {
 
-    public ConcurrentReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders) {
-        super(runAsAdmin, itemsToRead, bgReaders);
+    public ConcurrentReadDeepTreeTest(
+            boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
+        super(runAsAdmin, itemsToRead, bgReaders, doReport);
     }
 
     @Override
@@ -55,7 +56,7 @@ public class ConcurrentReadDeepTreeTest extends AbstractDeepTreeTest {
 
         public void run() {
             try {
-                randomRead(testSession, allPaths, itemsToRead, true);
+                randomRead(testSession, allPaths, itemsToRead);
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }

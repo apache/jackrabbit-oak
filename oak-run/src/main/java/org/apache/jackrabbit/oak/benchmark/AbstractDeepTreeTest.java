@@ -33,16 +33,19 @@ public abstract class AbstractDeepTreeTest extends AbstractTest {
     protected final boolean runAsAdmin;
     protected final int itemsToRead;
     protected final int bgReaders;
+    protected final boolean doReport;
 
     protected Session adminSession;
     protected Node testRoot;
 
     protected List<String> allPaths;
 
-    public AbstractDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders) {
+    public AbstractDeepTreeTest(
+            boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
         this.runAsAdmin = runAsAdmin;
         this.itemsToRead = itemsToRead;
         this.bgReaders = bgReaders;
+        this.doReport = doReport;
     }
 
     @Override
@@ -92,7 +95,7 @@ public abstract class AbstractDeepTreeTest extends AbstractTest {
         }
     }
 
-    protected static void randomRead(Session testSession, List<String> allPaths, int cnt, boolean doReport) throws RepositoryException {
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
         int nodeCnt = 0;
         int propertyCnt = 0;
         int noAccess = 0;

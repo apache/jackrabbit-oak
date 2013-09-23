@@ -57,7 +57,9 @@ public class BenchmarkRunner {
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> bgReaders = parser.accepts("bgReaders", "Number of background readers")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(20);
-
+        OptionSpec<Boolean> report = parser.accepts("report", "Whether to output intermediate results")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
 
         OptionSet options = parser.parse(args);
         int cacheSize = cache.value(options);
@@ -99,9 +101,20 @@ public class BenchmarkRunner {
             new ObservationTest(),
             new XmlImportTest(),
             new FlatTreeWithAceForSamePrincipalTest(),
-            new ReadDeepTreeTest(runAsAdmin.value(options), itemsToRead.value(options)),
-            new ConcurrentReadAccessControlledTreeTest(runAsAdmin.value(options), itemsToRead.value(options), bgReaders.value(options)),
-            new ConcurrentReadDeepTreeTest(runAsAdmin.value(options), itemsToRead.value(options), bgReaders.value(options)),
+            new ReadDeepTreeTest(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    report.value(options)),
+            new ConcurrentReadAccessControlledTreeTest(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    bgReaders.value(options),
+                    report.value(options)),
+            new ConcurrentReadDeepTreeTest(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    bgReaders.value(options),
+                    report.value(options)),
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
             ReadManyTest.linear("LinearReadNodes", 1, ReadManyTest.NODES),

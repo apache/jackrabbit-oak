@@ -23,9 +23,11 @@ import javax.jcr.Session;
  */
 public class ReadDeepTreeTest extends AbstractDeepTreeTest {
 
-    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead) {
-        super(runAsAdmin, itemsToRead, 0);
+    public ReadDeepTreeTest(
+            boolean runAsAdmin, int itemsToRead, boolean doReport) {
+        super(runAsAdmin, itemsToRead, 0, doReport);
     }
+
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
@@ -34,7 +36,7 @@ public class ReadDeepTreeTest extends AbstractDeepTreeTest {
     @Override
     protected void runTest() throws Exception {
         Session testSession = getTestSession();
-        randomRead(testSession, allPaths, itemsToRead, true);
+        randomRead(testSession, allPaths, itemsToRead);
         testSession.logout();
     }
 }

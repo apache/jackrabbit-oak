@@ -37,8 +37,9 @@ import org.apache.jackrabbit.util.Text;
  */
 public class ConcurrentReadAccessControlledTreeTest extends AbstractDeepTreeTest {
 
-    public ConcurrentReadAccessControlledTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders) {
-        super(runAsAdmin, itemsToRead, bgReaders);
+    public ConcurrentReadAccessControlledTreeTest(
+            boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
+        super(runAsAdmin, itemsToRead, bgReaders, doReport);
     }
 
     @Override
@@ -91,14 +92,14 @@ public class ConcurrentReadAccessControlledTreeTest extends AbstractDeepTreeTest
         visitor.visit(testRoot);
 
         for (int i = 0; i < bgReaders; i++) {
-            addBackgroundJob(new RandomRead(getTestSession(), false));
+            addBackgroundJob(new RandomRead(getTestSession()));
         }
     }
 
     @Override
     protected void runTest() throws Exception {
         Session testSession = getTestSession();
-        RandomRead randomRead = new RandomRead(testSession, true);
+        RandomRead randomRead = new RandomRead(testSession);
         randomRead.run();
         testSession.logout();
     }
@@ -106,15 +107,14 @@ public class ConcurrentReadAccessControlledTreeTest extends AbstractDeepTreeTest
     private class RandomRead implements Runnable {
 
         private final Session testSession;
-        private final boolean doReport;
 
-        private RandomRead(Session testSession, boolean doReport) {
+        private RandomRead(Session testSession) {
             this.testSession = testSession;
-            this.doReport = doReport;
         }
+
         public void run() {
             try {
-                randomRead(testSession, allPaths, itemsToRead, doReport);
+                randomRead(testSession, allPaths, itemsToRead);
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
