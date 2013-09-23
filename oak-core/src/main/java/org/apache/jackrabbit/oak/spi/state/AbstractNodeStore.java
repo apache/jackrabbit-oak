@@ -47,7 +47,7 @@ public abstract class AbstractNodeStore implements NodeStore {
      * @return branch
      */
     @Nonnull
-    protected abstract NodeStoreBranch branch();
+    protected abstract NodeStoreBranch createBranch(NodeState base);
 
     /**
      * This default implementation is equal to first rebasing the builder
@@ -68,7 +68,7 @@ public abstract class AbstractNodeStore implements NodeStore {
             PostCommitHook committed) throws CommitFailedException {
         checkNotNull(commitHook);
         rebase(checkNotNull(builder));
-        NodeStoreBranch branch = branch();
+        NodeStoreBranch branch = createBranch(getRoot());
         branch.setRoot(builder.getNodeState());
         NodeState merged = branch.merge(commitHook, committed);
         reset(builder, merged);

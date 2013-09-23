@@ -209,8 +209,8 @@ public class KernelNodeStore extends AbstractNodeStore {
     }
 
     @Override
-    protected NodeStoreBranch branch() {
-        return new KernelNodeStoreBranch(this, mergeLock, getRoot());
+    protected NodeStoreBranch createBranch(NodeState base) {
+        return new KernelNodeStoreBranch(this, mergeLock, (KernelNodeState) base);
     }
 
     /**
@@ -258,10 +258,6 @@ public class KernelNodeStore extends AbstractNodeStore {
 
     MicroKernel getKernel() {
         return kernel;
-    }
-
-    NodeStoreBranch createBranch(KernelNodeState base) {
-        return new KernelNodeStoreBranch(this, mergeLock, base);
     }
 
     KernelNodeState commit(String jsop, KernelNodeState base) {

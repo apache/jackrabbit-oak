@@ -66,8 +66,8 @@ public class MemoryNodeStore extends AbstractNodeStore {
     }
 
     @Override
-    protected NodeStoreBranch branch() {
-        return new MemoryNodeStoreBranch(this, root.get());
+    protected NodeStoreBranch createBranch(NodeState base) {
+        return new MemoryNodeStoreBranch(this, base);
     }
 
     @Override
