@@ -213,10 +213,27 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return name;
     }
 
+    /**
+     * Throws away all changes in this builder and resets the base to the
+     * given node state.
+     *
+     * @param newBase new base state
+     */
     public void reset(NodeState newBase) {
         base = checkNotNull(newBase);
         baseRevision++;
-        head().reset();
+        head().setState(newBase);
+    }
+
+    /**
+     * Replaces the current state of this builder with the given node state.
+     * The base state remains unchanged.
+     *
+     * @param newHead new head state
+     */
+    protected void set(NodeState newHead) {
+        baseRevision++; // this forces all sub-builders to refresh their heads
+        head().setState(newHead);
     }
 
     //--------------------------------------------------------< NodeBuilder >---
@@ -483,9 +500,10 @@ public class MemoryNodeBuilder implements NodeBuilder {
          */
         public abstract boolean isModified();
 
-        public void reset() {
+        public void setState(NodeState state) {
             throw new IllegalStateException("Cannot reset a non-root builder");
         }
+
     }
 
     private class UnconnectedHead extends Head {
@@ -603,10 +621,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         @Override
-        public final void reset() {
-            state = new MutableNodeState(base);
+        public final void setState(NodeState state) {
+            this.state = new MutableNodeState(state);
             revision++;
         }
+
     }
 
 }
