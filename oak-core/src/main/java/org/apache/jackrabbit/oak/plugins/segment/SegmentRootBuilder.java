@@ -25,19 +25,30 @@ class SegmentRootBuilder extends SegmentNodeBuilder {
     private static final int UPDATE_LIMIT =
             Integer.getInteger("update.limit", 1000);
 
+    private final SegmentWriter writer;
+
     private long updateCount = 0;
 
-    SegmentRootBuilder(SegmentNodeState base) {
+    SegmentRootBuilder(SegmentNodeState base, SegmentStore store) {
         super(base);
+        this.writer = new SegmentWriter(store);
     }
 
     @Override
     protected void updated() {
         updateCount++;
         if (updateCount > UPDATE_LIMIT) {
-            // TODO: flush
-            updateCount = 0;
+            getNodeState();
         }
+    }
+
+    @Override
+    public SegmentNodeState getNodeState() {
+        SegmentNodeState state = writer.writeNode(super.getNodeState());
+        writer.flush();
+        set(state);
+        updateCount = 0;
+        return state;
     }
 
 }
