@@ -23,6 +23,8 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 
+import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
+
 /**
  * Performance test to check performance of queries on sub-trees.
  */
@@ -62,8 +64,9 @@ public class DescendantSearchTest extends AbstractTest {
             session.setNamespacePrefix("oak", "http://jackrabbit.apache.org/oak/ns/1.0");
         }
 
-        IndexManager.createPropertyIndex(session, "testcount");
-
+        new OakIndexUtils.PropertyIndex().
+            property("testcount").
+            create(session);
     }
 
     @Override
