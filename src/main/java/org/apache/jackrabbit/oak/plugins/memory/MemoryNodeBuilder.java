@@ -501,7 +501,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         public abstract boolean isModified();
 
         public void setState(NodeState state) {
-            throw new IllegalStateException("Cannot reset a non-root builder");
+            throw new IllegalStateException("Cannot set the state of a non-root builder");
         }
 
     }
