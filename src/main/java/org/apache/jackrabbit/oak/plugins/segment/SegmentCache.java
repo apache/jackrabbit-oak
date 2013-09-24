@@ -16,77 +16,101 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import org.apache.jackrabbit.oak.cache.CacheStats;
 
 /**
- * Combined memory and disk cache for segments.
+ * Memory cache for segments.
  */
 public class SegmentCache {
 
-    private static final long DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
+    private static final int DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
 
-    private final Cache<UUID, Segment> memoryCache;
+    private final int maximumSize;
 
-    private final CacheStats cacheStats;
+    private int currentSize = 0;
 
-    // private final Cache<UUID, File> diskCache;
+    private final Map<UUID, Segment> segments =
+        new LinkedHashMap<UUID, Segment>(1000, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Entry<UUID, Segment> eldest) {
+                if (currentSize > maximumSize) {
+                    currentSize -= eldest.getValue().size();
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        };
 
-    // private final File diskCacheDirectory;
+    private final Set<UUID> currentlyLoading = new HashSet<UUID>();
 
-    public SegmentCache(long memoryCacheSize) {
-//        this.diskCacheDirectory = diskCacheDirectory;
-//        this.diskCache = CacheBuilder.newBuilder()
-//                .maximumWeight(diskCacheSize)
-//                .weigher(new Weigher<UUID, File>() {
-//                    @Override
-//                    public int weigh(UUID key, File value) {
-//                        return (int) value.length(); // <= max segment size
-//                    }
-//                }).build();
-        this.memoryCache = CacheBuilder.newBuilder()
-                .maximumWeight(memoryCacheSize)
-                .recordStats()
-                .weigher(Segment.WEIGHER)
-//                .removalListener(new RemovalListener<UUID, Segment>() {
-//                    @Override
-//                    public void onRemoval(
-//                            RemovalNotification<UUID, Segment> notification) {
-//                        notification.getValue();
-//                    }
-//                })
-                .build();
-
-        cacheStats = new CacheStats(memoryCache, "Segment", Segment.WEIGHER, memoryCacheSize);
+    public SegmentCache(int maximumSize) {
+        this.maximumSize = maximumSize;
     }
 
     public SegmentCache() {
         this(DEFAULT_MEMORY_CACHE_SIZE);
     }
 
-    public Segment getSegment(UUID segmentId, Callable<Segment> loader) {
-        try {
-            return memoryCache.get(segmentId, loader);
-        } catch (ExecutionException e) {
-            throw new IllegalStateException(
-                    "Failed to load segment " + segmentId, e);
+    public Segment getSegment(UUID segmentId, Callable<Segment> loader)
+            throws Exception {
+        synchronized (this) {
+            Segment segment = segments.get(segmentId);
+
+            while (segment == null && currentlyLoading.contains(segmentId)) {
+                wait();
+                segment = segments.get(segmentId);
+            }
+
+            if (segment != null) {
+                return segment;
+            } else {
+                currentlyLoading.add(segmentId);
+            }
+        }
+
+        Segment segment = loader.call();
+        synchronized (this) {
+            segments.put(segmentId, segment);
+            currentSize += segment.size();
+            currentlyLoading.remove(segmentId);
+            notifyAll();
+        }
+        return segment;
+    }
+
+    public synchronized void addSegment(Segment segment) {
+        checkState(!segments.containsKey(segment.getSegmentId()));
+        checkState(!currentlyLoading.contains(segment.getSegmentId()));
+        segments.put(segment.getSegmentId(), segment);
+        currentSize += segment.size();
+    }
+
+    public synchronized void removeSegment(UUID segmentId)
+            throws InterruptedException {
+        while (currentlyLoading.contains(segmentId)) {
+            wait();
+        }
+        Segment segment = segments.remove(segmentId);
+        if (segment != null) {
+            currentSize -= segment.size();
         }
     }
 
-    public void addSegment(Segment segment) {
-        memoryCache.put(segment.getSegmentId(), segment);
+    public synchronized void clear() throws InterruptedException {
+        while (!currentlyLoading.isEmpty()) {
+            wait();
+        }
+        segments.clear();
+        currentSize = 0;
     }
 
-    public void removeSegment(UUID segmentId) {
-        memoryCache.invalidate(segmentId);
-    }
-
-    public CacheStats getCacheStats() {
-        return cacheStats;
-    }
 }
