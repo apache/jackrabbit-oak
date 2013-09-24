@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.junit.Test;
 
@@ -153,5 +154,51 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         // one remaining revision in the local map
         valueMap = doc.getLocalMap("prop");
         assertEquals(1L, valueMap.size());
+    }
+
+    @Test
+    public void cluster() {
+        MemoryDocumentStore ds = new MemoryDocumentStore();
+        MemoryBlobStore bs = new MemoryBlobStore();
+        MongoMK.Builder builder;
+
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
+        MongoMK mk1 = builder.setClusterId(1).open();
+
+        mk1.commit("/", "+\"test\":{\"prop1\":0}", null, null);
+        // make sure the new node is visible to other MongoMK instances
+        mk1.backgroundWrite();
+
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
+        MongoMK mk2 = builder.setClusterId(2).open();
+        builder = new MongoMK.Builder();
+        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
+        MongoMK mk3 = builder.setClusterId(3).open();
+
+        for (int i = 0; i < NodeDocument.REVISIONS_SPLIT_OFF_SIZE; i++) {
+            mk1.commit("/", "^\"test/prop1\":" + i, null, null);
+            mk2.commit("/", "^\"test/prop2\":" + i, null, null);
+            mk3.commit("/", "^\"test/prop3\":" + i, null, null);
+        }
+
+        mk1.runBackgroundOperations();
+        mk2.runBackgroundOperations();
+        mk3.runBackgroundOperations();
+
+        NodeDocument doc = ds.find(Collection.NODES, Utils.getIdFromPath("/test"));
+        assertNotNull(doc);
+        Map<Revision, String> revs = doc.getLocalRevisions();
+        assertEquals(3, revs.size());
+        revs = doc.getValueMap("_revisions");
+        assertEquals(3 * NodeDocument.REVISIONS_SPLIT_OFF_SIZE + 1, revs.size());
+        Revision previous = null;
+        for (Map.Entry<Revision, String> entry : revs.entrySet()) {
+            if (previous != null) {
+                assertTrue(previous.compareRevisionTime(entry.getKey()) > 0);
+            }
+            previous = entry.getKey();
+        }
     }
 }
