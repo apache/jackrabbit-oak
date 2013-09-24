@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import java.security.Principal;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.CheckForNull;
@@ -27,7 +26,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.security.AccessControlException;
-import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -37,49 +35,42 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlEntry} interface.
  * It asserts that the basic contract is fulfilled but does perform any additional
  * validation on the principal, the privileges or the specified restrictions.
  */
-public class ACE implements JackrabbitAccessControlEntry {
+public abstract class ACE implements JackrabbitAccessControlEntry {
 
     private final Principal principal;
-    private final Set<Privilege> privileges;
+    private final PrivilegeBits privilegeBits;
     private final boolean isAllow;
     private final Set<Restriction> restrictions;
     private final NamePathMapper namePathMapper;
 
-    private Set<String> aggrPrivNames;
     private int hashCode;
 
-    public ACE(Principal principal, Privilege[] privileges,
-               boolean isAllow, Set<Restriction> restrictions,
-               NamePathMapper namePathMapper) throws AccessControlException {
-        this(principal, (privileges == null) ? null : ImmutableSet.copyOf(privileges), isAllow, restrictions, namePathMapper);
-    }
-
-    public ACE(Principal principal, Set<Privilege> privileges,
+    public ACE(Principal principal, PrivilegeBits privilegeBits,
                boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws AccessControlException {
-        if (principal == null || privileges == null || privileges.isEmpty()) {
+        if (principal == null || privilegeBits == null || privilegeBits.isEmpty()) {
             throw new AccessControlException();
-        }
-        // make sure no abstract privileges are passed.
-        for (Privilege privilege : privileges) {
-            if (privilege == null) {
-                throw new AccessControlException("Null Privilege.");
-            }
-            if (privilege.isAbstract()) {
-                throw new AccessControlException("Privilege " + privilege + " is abstract.");
-            }
         }
 
         this.principal = principal;
-        this.privileges = ImmutableSet.copyOf(privileges);
+        this.privilegeBits = privilegeBits;
         this.isAllow = isAllow;
         this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : ImmutableSet.copyOf(restrictions);
         this.namePathMapper = namePathMapper;
+    }
+
+
+
+    //--------------------------------------------------------------------------
+    @Nonnull
+    public PrivilegeBits getPrivilegeBits() {
+        return privilegeBits;
     }
 
     @Nonnull
@@ -92,12 +83,6 @@ public class ACE implements JackrabbitAccessControlEntry {
     @Override
     public Principal getPrincipal() {
         return principal;
-    }
-
-    @Nonnull
-    @Override
-    public Privilege[] getPrivileges() {
-        return privileges.toArray(new Privilege[privileges.size()]);
     }
 
     //---------------------------------------< JackrabbitAccessControlEntry >---
@@ -158,7 +143,7 @@ public class ACE implements JackrabbitAccessControlEntry {
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = Objects.hashCode(principal.getName(), aggrPrivNames(), isAllow, restrictions);
+            hashCode = Objects.hashCode(principal.getName(), privilegeBits, isAllow, restrictions);
         }
         return hashCode;
     }
@@ -172,7 +157,7 @@ public class ACE implements JackrabbitAccessControlEntry {
             ACE other = (ACE) obj;
             return principal.getName().equals(other.principal.getName())
                     && isAllow == other.isAllow
-                    && aggrPrivNames().equals(other.aggrPrivNames())
+                    && privilegeBits.equals(other.privilegeBits)
                     && restrictions.equals(other.restrictions);
         }
         return false;
@@ -182,29 +167,11 @@ public class ACE implements JackrabbitAccessControlEntry {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(principal.getName()).append('-').append(isAllow).append('-');
-        sb.append(privileges.toString()).append('-').append(restrictions.toString());
+        sb.append(privilegeBits.toString()).append('-').append(restrictions.toString());
         return sb.toString();
     }
 
     //------------------------------------------------------------< private >---
-    private Set<String> aggrPrivNames() {
-        if (aggrPrivNames == null) {
-            aggrPrivNames = new HashSet<String>();
-            for (Privilege priv : privileges) {
-                if (priv.isAggregate()) {
-                    for (Privilege aggr : priv.getAggregatePrivileges()) {
-                        if (!aggr.isAggregate()) {
-                            aggrPrivNames.add(aggr.getName());
-                        }
-                    }
-                } else {
-                    aggrPrivNames.add(priv.getName());
-                }
-            }
-        }
-        return aggrPrivNames;
-    }
-
     private String getJcrName(Restriction restriction) {
         return namePathMapper.getJcrName(restriction.getDefinition().getName());
     }

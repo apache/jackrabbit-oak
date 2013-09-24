@@ -78,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
@@ -105,6 +106,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     private final AuthorizationConfiguration acConfig;
 
     private final PrivilegeManager privilegeManager;
+    private final PrivilegeBitsProvider bitsProvider;
     private final PrincipalManager principalManager;
     private final RestrictionProvider restrictionProvider;
     private final ReadOnlyNodeTypeManager ntMgr;
@@ -119,6 +121,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         this.namePathMapper = namePathMapper;
 
         privilegeManager = getConfig(securityProvider, PrivilegeConfiguration.class).getPrivilegeManager(root, namePathMapper);
+        bitsProvider = new PrivilegeBitsProvider(root);
         principalManager = getConfig(securityProvider, PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
 
         acConfig = getConfig(securityProvider, AuthorizationConfiguration.class);
@@ -571,7 +574,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                           @Nonnull RestrictionProvider restrictionProvider) throws RepositoryException {
         boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
         Set<Restriction> restrictions = restrictionProvider.readRestrictions(oakPath, aceTree);
-        return new ACE(getPrincipal(aceTree), getPrivileges(aceTree), isAllow, restrictions, namePathMapper);
+        Iterable<String> privNames = checkNotNull(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
+        return new Entry(getPrincipal(aceTree), bitsProvider.getBits(privNames), isAllow, restrictions, namePathMapper);
     }
 
     @Nonnull
@@ -728,7 +732,12 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
         @Override
         PrivilegeBitsProvider getPrivilegeBitsProvider() {
-            return new PrivilegeBitsProvider(root);
+            return bitsProvider;
+        }
+
+        @Override
+        ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException {
+            return new Entry(principal, privilegeBits, isAllow, restrictions, namePathMapper);
         }
 
         @Override
@@ -785,7 +794,12 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
         @Override
         PrivilegeBitsProvider getPrivilegeBitsProvider() {
-            return new PrivilegeBitsProvider(root);
+            return bitsProvider;
+        }
+
+        @Override
+        ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException {
+            return new Entry(principal, privilegeBits, isAllow, restrictions, namePathMapper);
         }
 
         @Override
@@ -809,6 +823,26 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         @Override
         public int hashCode() {
             return 0;
+        }
+    }
+
+    private final class Entry extends ACE {
+
+        private Entry(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws AccessControlException {
+            super(principal, privilegeBits, isAllow, restrictions, namePathMapper);
+        }
+
+        @Override
+        public Privilege[] getPrivileges() {
+            Set<Privilege> privileges = new HashSet<Privilege>();
+            for (String name : bitsProvider.getPrivilegeNames(getPrivilegeBits())) {
+                try {
+                    privileges.add(privilegeManager.getPrivilege(name));
+                } catch (RepositoryException e) {
+                    log.warn("Unable to get privilege with name : " + name, e);
+                }
+            }
+            return privileges.toArray(new Privilege[privileges.size()]);
         }
     }
 

@@ -16,24 +16,33 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+import javax.jcr.security.Privilege;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reads and writes privilege definitions from and to the repository content
  * without applying any validation.
  */
 public final class PrivilegeBitsProvider implements PrivilegeConstants {
+
+    private static final Logger log = LoggerFactory.getLogger(PrivilegeBitsProvider.class);
 
     private final Map<PrivilegeBits, Set<String>> bitsToNames = new HashMap<PrivilegeBits, Set<String>>();
 
@@ -62,20 +71,9 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     public PrivilegeBits getBits(@Nonnull String... privilegeNames) {
         if (privilegeNames.length == 0) {
             return PrivilegeBits.EMPTY;
+        } else {
+            return getBits(Arrays.asList(privilegeNames));
         }
-
-        Tree privilegesTree = getPrivilegesTree();
-        if (!privilegesTree.exists()) {
-            return PrivilegeBits.EMPTY;
-        }
-        PrivilegeBits bits = PrivilegeBits.getInstance();
-        for (String privilegeName : privilegeNames) {
-            Tree defTree = privilegesTree.getChild(checkNotNull(privilegeName));
-            if (defTree.exists()) {
-                bits.add(PrivilegeBits.getInstance(defTree));
-            }
-        }
-        return bits.unmodifiable();
     }
 
     /**
@@ -94,12 +92,41 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();
         for (String privilegeName : privilegeNames) {
-            Tree defTree = privilegesTree.getChild(checkNotNull(privilegeName));
-            if (defTree.exists()) {
-                bits.add(PrivilegeBits.getInstance(defTree));
+            if (privilegeName != null) {
+                Tree defTree = privilegesTree.getChild(privilegeName);
+                if (defTree.exists()) {
+                    bits.add(PrivilegeBits.getInstance(defTree));
+                }
+            } else {
+                log.debug("Ignoring 'null' privilege name");
             }
         }
         return bits.unmodifiable();
+    }
+
+    /**
+     *
+     * @param privileges
+     * @param nameMapper
+     * @return
+     */
+    @Nonnull
+    public PrivilegeBits getBits(@Nonnull Privilege[] privileges, final @Nonnull NameMapper nameMapper) {
+        return getBits(Iterables.transform(Arrays.asList(privileges), new Function<Privilege, String>() {
+
+            @Override
+            public String apply(@Nullable Privilege privilege) {
+                if (privilege != null) {
+                    try {
+                        return nameMapper.getOakName(privilege.getName());
+                    } catch (RepositoryException e) {
+                        log.debug("Unable to resolve OAK name of privilege " + privilege, e);
+                    }
+                }
+                // null privilege or failed to resolve the privilege name
+                return null;
+            }
+        }));
     }
 
     /**

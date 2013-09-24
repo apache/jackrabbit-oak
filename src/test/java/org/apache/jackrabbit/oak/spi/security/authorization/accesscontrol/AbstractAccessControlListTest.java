@@ -87,10 +87,8 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
     protected List<ACE> createTestEntries() throws RepositoryException {
         List<ACE> entries = new ArrayList<ACE>(3);
         for (int i = 0; i < 3; i++) {
-            entries.add(new ACE(
-                    new PrincipalImpl("testPrincipal" + i),
-                    new Privilege[]{getPrivilegeManager(root).getPrivilege(PrivilegeConstants.JCR_READ)},
-                    true, null, namePathMapper));
+            entries.add(createEntry(
+                    new PrincipalImpl("testPrincipal" + i), true, null, PrivilegeConstants.JCR_READ));
         }
         return entries;
     }
