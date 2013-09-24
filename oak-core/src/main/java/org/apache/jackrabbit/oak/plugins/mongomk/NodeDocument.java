@@ -28,9 +28,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -48,6 +46,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Key;
+import static org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
 
 /**
  * A document storing data about a node.
@@ -148,7 +148,7 @@ public class NodeDocument extends Document {
      * @return the map associated with the key.
      */
     @Nonnull
-    public Map<String, String> getValueMap(@Nonnull String key) {
+    public Map<Revision, String> getValueMap(@Nonnull String key) {
         Object value = super.get(key);
         if (IGNORE_ON_SPLIT.contains(key) || !(value instanceof Map)) {
             return Collections.emptyMap();
@@ -170,9 +170,9 @@ public class NodeDocument extends Document {
     @Nonnull
     public Map<Integer, Revision> getLastRev() {
         Map<Integer, Revision> map = Maps.newHashMap();
-        Map<String, String> valueMap = getLocalMap(LAST_REV);
-        for (Map.Entry<String, String> e : valueMap.entrySet()) {
-            int clusterId = Integer.parseInt(e.getKey());
+        Map<Revision, String> valueMap = getLocalMap(LAST_REV);
+        for (Map.Entry<Revision, String> e : valueMap.entrySet()) {
+            int clusterId = e.getKey().getClusterId();
             Revision rev = Revision.fromString(e.getValue());
             map.put(clusterId, rev);
         }
@@ -191,8 +191,7 @@ public class NodeDocument extends Document {
         if (commitRootDoc == null) {
             return false;
         }
-        String rev = checkNotNull(revision).toString();
-        String value = commitRootDoc.getLocalRevisions().get(rev);
+        String value = commitRootDoc.getLocalRevisions().get(revision);
         if (value != null) {
             return Utils.isCommitted(value);
         }
@@ -216,8 +215,7 @@ public class NodeDocument extends Document {
      * @return <code>true</code> if this document contains the given revision.
      */
     public boolean containsRevision(@Nonnull Revision revision) {
-        String rev = checkNotNull(revision).toString();
-        if (getLocalRevisions().containsKey(rev)) {
+        if (getLocalRevisions().containsKey(revision)) {
             return true;
         }
         for (NodeDocument prev : getPreviousDocs(revision, REVISIONS)) {
@@ -226,16 +224,6 @@ public class NodeDocument extends Document {
             }
         }
         return false;
-    }
-
-    /**
-     * Same as {@link #containsRevision(Revision)}, but with a String parameter.
-     *
-     * @param revision the revision.
-     * @return <code>true</code> if this document contains the given revision.
-     */
-    public boolean containsRevision(@Nonnull String revision) {
-        return containsRevision(Revision.fromString(checkNotNull(revision)));
     }
 
     /**
@@ -250,12 +238,12 @@ public class NodeDocument extends Document {
     public SortedMap<Revision, Revision> getUncommittedRevisions(RevisionContext context) {
         // only look at revisions in this document.
         // uncommitted revisions are not split off
-        Map<String, String> valueMap = getLocalRevisions();
+        Map<Revision, String> valueMap = getLocalRevisions();
         SortedMap<Revision, Revision> revisions =
                 new TreeMap<Revision, Revision>(context.getRevisionComparator());
-        for (Map.Entry<String, String> commit : valueMap.entrySet()) {
+        for (Map.Entry<Revision, String> commit : valueMap.entrySet()) {
             if (!Utils.isCommitted(commit.getValue())) {
-                Revision r = Revision.fromString(commit.getKey());
+                Revision r = commit.getKey();
                 if (r.getClusterId() == context.getClusterId()) {
                     Revision b = Revision.fromString(commit.getValue());
                     revisions.put(r, b);
@@ -274,8 +262,8 @@ public class NodeDocument extends Document {
      * @return the commit root path or <code>null</code>.
      */
     @CheckForNull
-    public String getCommitRootPath(String revision) {
-        Map<String, String> valueMap = getCommitRoot();
+    public String getCommitRootPath(Revision revision) {
+        Map<Revision, String> valueMap = getCommitRoot();
         String depth = valueMap.get(revision);
         if (depth != null) {
             String p = Utils.getPathFromId(getId());
@@ -300,29 +288,30 @@ public class NodeDocument extends Document {
     public Revision getNewestRevision(RevisionContext context,
                                       Revision changeRev,
                                       CollisionHandler handler) {
-        SortedSet<String> revisions = new TreeSet<String>(Collections.reverseOrder());
         // no need to look at all commits. the primary document
         // always contains at least one commit, including all
         // branch commits which are not yet merged
-        revisions.addAll(getLocalRevisions().keySet());
-        revisions.addAll(getLocalCommitRoot().keySet());
+        SortedMap<Revision, String> revisions = getLocalRevisions();
+        SortedMap<Revision, String> commitRoots = getLocalCommitRoot();
         Revision newestRev = null;
-        for (String r : revisions) {
-            Revision propRev = Revision.fromString(r);
-            if (isRevisionNewer(context, propRev, changeRev)) {
+        for (Revision r : Iterables.mergeSorted(
+                Arrays.asList(revisions.keySet(), commitRoots.keySet()),
+                revisions.comparator())) {
+            if (isRevisionNewer(context, r, changeRev)) {
                 // we have seen a previous change from another cluster node
                 // (which might be conflicting or not) - we need to make
                 // sure this change is visible from now on
                 // TODO verify this is really needed
-                context.publishRevision(propRev, changeRev);
+                context.publishRevision(r, changeRev);
             }
-            if (newestRev == null || isRevisionNewer(context, propRev, newestRev)) {
-                if (!propRev.equals(changeRev)) {
-                    if (!isValidRevision(context, propRev, changeRev, new HashSet<Revision>())) {
-                        handler.concurrentModification(propRev);
-                    } else {
-                        newestRev = propRev;
-                    }
+            if (!r.equals(changeRev)) {
+                if (!isValidRevision(context, r, changeRev, new HashSet<Revision>())) {
+                    handler.concurrentModification(r);
+                } else {
+                    newestRev = r;
+                    // found newest revision, no need to check more revisions
+                    // revisions are sorted newest first
+                    break;
                 }
             }
         }
@@ -330,7 +319,7 @@ public class NodeDocument extends Document {
             return null;
         }
 
-        String value = getDeleted().get(newestRev.toString());
+        String value = getDeleted().get(newestRev);
         if ("true".equals(value)) {
             // deleted in the newest revision
             return null;
@@ -508,19 +497,18 @@ public class NodeDocument extends Document {
                                  @Nonnull Revision baseRevision,
                                  @Nonnull RevisionContext context) {
         // did existence of node change after baseRevision?
-        Map<String, String> deleted = getDeleted();
-        for (Map.Entry<String, String> entry : deleted.entrySet()) {
-            if (isRevisionNewer(context, Revision.fromString(entry.getKey()), baseRevision)) {
+        Map<Revision, String> deleted = getDeleted();
+        for (Map.Entry<Revision, String> entry : deleted.entrySet()) {
+            if (isRevisionNewer(context, entry.getKey(), baseRevision)) {
                 return true;
             }
         }
 
-        for (Map.Entry<String, UpdateOp.Operation> entry : op.changes.entrySet()) {
-            if (entry.getValue().type != UpdateOp.Operation.Type.SET_MAP_ENTRY) {
+        for (Map.Entry<Key, Operation> entry : op.changes.entrySet()) {
+            if (entry.getValue().type != Operation.Type.SET_MAP_ENTRY) {
                 continue;
             }
-            int idx = entry.getKey().indexOf('.');
-            String name = entry.getKey().substring(0, idx);
+            String name = entry.getKey().getName();
             if (DELETED.equals(name)) {
                 // existence of node changed, this always conflicts with
                 // any other concurrent change
@@ -530,8 +518,8 @@ public class NodeDocument extends Document {
                 continue;
             }
             // was this property touched after baseRevision?
-            for (String rev : getValueMap(name).keySet()) {
-                if (isRevisionNewer(context, Revision.fromString(rev), baseRevision)) {
+            for (Revision rev : getValueMap(name).keySet()) {
+                if (isRevisionNewer(context, rev, baseRevision)) {
                     return true;
                 }
             }
@@ -574,11 +562,11 @@ public class NodeDocument extends Document {
             NavigableMap<Revision, String> splitMap
                     = new TreeMap<Revision, String>(context.getRevisionComparator());
             splitValues.put(property, splitMap);
-            Map<String, String> valueMap = getLocalMap(property);
+            Map<Revision, String> valueMap = getLocalMap(property);
             // collect committed changes of this cluster node after the
             // most recent previous split revision
-            for (Map.Entry<String, String> entry : valueMap.entrySet()) {
-                Revision rev = Revision.fromString(entry.getKey());
+            for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
+                Revision rev = entry.getKey();
                 if (rev.getClusterId() != context.getClusterId()) {
                     continue;
                 }
@@ -617,13 +605,13 @@ public class NodeDocument extends Document {
             splitOps = new ArrayList<UpdateOp>(2);
             // move to another document
             UpdateOp main = new UpdateOp(id, false);
-            main.setMapEntry(PREVIOUS, high.toString(), low.toString());
+            main.setMapEntry(PREVIOUS, high, low.toString());
             UpdateOp old = new UpdateOp(Utils.getPreviousIdFor(id, high), true);
-            old.set(ID, old.getKey());
+            old.set(ID, old.getId());
             for (String property : splitValues.keySet()) {
                 NavigableMap<Revision, String> splitMap = splitValues.get(property);
                 for (Map.Entry<Revision, String> entry : splitMap.entrySet()) {
-                    String r = entry.getKey().toString();
+                    Revision r = entry.getKey();
                     main.removeMapEntry(property, r);
                     old.setMapEntry(property, r, entry.getValue());
                 }
@@ -643,7 +631,7 @@ public class NodeDocument extends Document {
     @Nonnull
     SortedMap<Revision, Range> getPreviousRanges() {
         if (previous == null) {
-            Map<String, String> map = getLocalMap(PREVIOUS);
+            Map<Revision, String> map = getLocalMap(PREVIOUS);
             if (map.isEmpty()) {
                 previous = EMPTY_RANGE_MAP;
             } else {
@@ -661,8 +649,8 @@ public class NodeDocument extends Document {
                                 return c;
                             }
                         });
-                for (Map.Entry<String, String> entry : map.entrySet()) {
-                    Revision high = Revision.fromString(entry.getKey());
+                for (Map.Entry<Revision, String> entry : map.entrySet()) {
+                    Revision high = entry.getKey();
                     Revision low = Revision.fromString(entry.getValue());
                     transformed.put(high, new Range(high, low));
                 }
@@ -676,7 +664,8 @@ public class NodeDocument extends Document {
      * Returns previous {@link NodeDocument}, which include entries for the
      * property in the given revision.
      * If the <code>revision</code> is <code>null</code>, then all previous
-     * documents are returned.
+     * documents are returned. The returned documents are returned in descending
+     * revision order (newest first).
      *
      * @param revision the revision to match or <code>null</code>.
      * @param property the name of a property.
@@ -714,7 +703,7 @@ public class NodeDocument extends Document {
                     return false;
                 }
                 return revision == null
-                        || input.getLocalMap(property).containsKey(revision.toString());
+                        || input.getLocalMap(property).containsKey(revision);
             }
         });
     }
@@ -727,11 +716,11 @@ public class NodeDocument extends Document {
      * @return local value map.
      */
     @Nonnull
-    Map<String, String> getLocalMap(String key) {
+    SortedMap<Revision, String> getLocalMap(String key) {
         @SuppressWarnings("unchecked")
-        Map<String, String> map = (Map<String, String>) super.get(key);
+        SortedMap<Revision, String> map = (SortedMap<Revision, String>) get(key);
         if (map == null) {
-            map = Collections.emptyMap();
+            map = ValueMap.EMPTY;
         }
         return map;
     }
@@ -740,17 +729,17 @@ public class NodeDocument extends Document {
      * @return the {@link #REVISIONS} stored on this document.
      */
     @Nonnull
-    Map<String, String> getLocalRevisions() {
+    SortedMap<Revision, String> getLocalRevisions() {
         return getLocalMap(REVISIONS);
     }
 
     @Nonnull
-    Map<String, String> getLocalCommitRoot() {
+    SortedMap<Revision, String> getLocalCommitRoot() {
         return getLocalMap(COMMIT_ROOT);
     }
 
     @Nonnull
-    Map<String, String> getLocalDeleted() {
+    SortedMap<Revision, String> getLocalDeleted() {
         return getLocalMap(DELETED);
     }
 
@@ -765,33 +754,33 @@ public class NodeDocument extends Document {
                                    @Nonnull Revision revision,
                                    @Nonnull String commitValue) {
         checkNotNull(op).setMapEntry(REVISIONS,
-                checkNotNull(revision).toString(), checkNotNull(commitValue));
+                checkNotNull(revision), checkNotNull(commitValue));
     }
 
     public static void unsetRevision(@Nonnull UpdateOp op,
                                      @Nonnull Revision revision) {
-        checkNotNull(op).unsetMapEntry(REVISIONS,
-                checkNotNull(revision).toString());
+        checkNotNull(op).unsetMapEntry(REVISIONS, checkNotNull(revision));
     }
 
     public static void setLastRev(@Nonnull UpdateOp op,
                                   @Nonnull Revision revision) {
         checkNotNull(op).setMapEntry(LAST_REV,
-                String.valueOf(checkNotNull(revision).getClusterId()),
+                new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
     }
 
     public static void setCommitRoot(@Nonnull UpdateOp op,
                                      @Nonnull Revision revision,
                                      int commitRootDepth) {
-        checkNotNull(op).setMapEntry(COMMIT_ROOT,
-                checkNotNull(revision).toString(), String.valueOf(commitRootDepth));
+        checkNotNull(op).setMapEntry(COMMIT_ROOT, checkNotNull(revision),
+                String.valueOf(commitRootDepth));
     }
 
     public static void setDeleted(@Nonnull UpdateOp op,
                                   @Nonnull Revision revision,
                                   boolean deleted) {
-        checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision).toString(), String.valueOf(deleted));
+        checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision),
+                String.valueOf(deleted));
     }
 
     static final class Children implements CacheValue {
@@ -823,7 +812,7 @@ public class NodeDocument extends Document {
         if (containsRevision(rev)) {
             return this;
         }
-        String commitRootPath = getCommitRootPath(rev.toString());
+        String commitRootPath = getCommitRootPath(rev);
         if (commitRootPath == null) {
             // shouldn't happen, either node is commit root for a revision
             // or has a reference to the commit root
@@ -903,12 +892,11 @@ public class NodeDocument extends Document {
      */
     @CheckForNull
     private String getCommitValue(Revision revision) {
-        String r = revision.toString();
-        String value = getLocalRevisions().get(r);
+        String value = getLocalRevisions().get(revision);
         if (value == null) {
             // check previous
             for (NodeDocument prev : getPreviousDocs(revision, REVISIONS)) {
-                value = prev.getLocalRevisions().get(r);
+                value = prev.getLocalRevisions().get(revision);
                 if (value != null) {
                     break;
                 }
@@ -948,7 +936,7 @@ public class NodeDocument extends Document {
      * Get the latest property value that is larger or equal the min revision,
      * and smaller or equal the readRevision revision.
      *
-     * @param valueMap the revision-value map
+     * @param valueMap the sorted revision-value map
      * @param min the minimum revision (null meaning unlimited)
      * @param readRevision the maximum revision
      * @param validRevisions set of revision considered valid against the given
@@ -957,35 +945,33 @@ public class NodeDocument extends Document {
      */
     @CheckForNull
     private Value getLatestValue(@Nonnull RevisionContext context,
-                                 @Nonnull Map<String, String> valueMap,
+                                 @Nonnull Map<Revision, String> valueMap,
                                  @Nullable Revision min,
                                  @Nonnull Revision readRevision,
                                  @Nonnull Set<Revision> validRevisions) {
         String value = null;
         Revision latestRev = null;
-        for (Map.Entry<String, String> entry : valueMap.entrySet()) {
-            Revision propRev = Revision.fromString(entry.getKey());
+        for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
+            Revision propRev = entry.getKey();
             if (min != null && isRevisionNewer(context, min, propRev)) {
-                continue;
-            }
-            if (latestRev != null && !isRevisionNewer(context, propRev, latestRev)) {
                 continue;
             }
             if (isValidRevision(context, propRev, readRevision, validRevisions)) {
                 latestRev = propRev;
                 value = entry.getValue();
+                break;
             }
         }
         return value != null ? new Value(value, latestRev) : null;
     }
 
     @Nonnull
-    private Map<String, String> getDeleted() {
+    private Map<Revision, String> getDeleted() {
         return ValueMap.create(this, DELETED);
     }
 
     @Nonnull
-    private Map<String, String> getCommitRoot() {
+    private Map<Revision, String> getCommitRoot() {
         return ValueMap.create(this, COMMIT_ROOT);
     }
 

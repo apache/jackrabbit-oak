@@ -16,36 +16,42 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A MongoDB "update" operation for one document.
  */
 public class UpdateOp {
 
-    final String key;
+    final String id;
     
     final boolean isNew;
     boolean isDelete;
     
-    final Map<String, Operation> changes = new TreeMap<String, Operation>();
+    final Map<Key, Operation> changes = new HashMap<Key, Operation>();
     
     /**
-     * Create an update operation for the given document. The commit root is assumed
-     * to be the path, unless this is changed later on.
+     * Create an update operation for the document with the given id. The commit
+     * root is assumed to be the path, unless this is changed later on.
      *
-     * @param key the primary key
+     * @param id the primary key
      * @param isNew whether this is a new document
      */
-    UpdateOp(String key, boolean isNew) {
-        this.key = key;
+    UpdateOp(String id, boolean isNew) {
+        this.id = id;
         this.isNew = isNew;
     }
     
-    String getKey() {
-        return key;
+    String getId() {
+        return id;
     }
     
     boolean isNew() {
@@ -58,47 +64,32 @@ public class UpdateOp {
     
     /**
      * Add a new or update an existing map entry.
-     * The property is a map of sub-names / values.
+     * The property is a map of revisions / values.
      * 
      * @param property the property
-     * @param subName the entry name
+     * @param revision the revision
      * @param value the value
      */
-    void setMapEntry(String property, String subName, Object value) {
+    void setMapEntry(@Nonnull String property, @Nonnull Revision revision, Object value) {
         Operation op = new Operation();
         op.type = Operation.Type.SET_MAP_ENTRY;
         op.value = value;
-        changes.put(property + "." + subName, op);
+        changes.put(new Key(property, checkNotNull(revision)), op);
     }
     
     /**
      * Remove a map entry.
-     * The property is a map of sub-names / values.
+     * The property is a map of revisions / values.
      * 
      * @param property the property
-     * @param subName the entry name
+     * @param revision the revision
      */
-    public void removeMapEntry(String property, String subName) {
+    public void removeMapEntry(@Nonnull String property, @Nonnull Revision revision) {
         Operation op = new Operation();
         op.type = Operation.Type.REMOVE_MAP_ENTRY;
-        changes.put(property + "." + subName, op);
+        changes.put(new Key(property, checkNotNull(revision)), op);
     }
     
-    /**
-     * Set a map to a single key-value pair.
-     * The property is a map of sub-names / values.
-     * 
-     * @param property the property
-     * @param subName the entry name
-     * @param value the value
-     */
-    public void setMap(String property, String subName, Object value) {
-        Operation op = new Operation();
-        op.type = Operation.Type.SET_MAP;
-        op.value = value;
-        changes.put(property + "." + subName, op);
-    }
-
     /**
      * Set the property to the given value.
      * 
@@ -109,27 +100,18 @@ public class UpdateOp {
         Operation op = new Operation();
         op.type = Operation.Type.SET;
         op.value = value;
-        changes.put(property, op);
-    }
-    
-    /**
-     * Do not set the property (after it has been set).
-     * 
-     * @param property the property name
-     */
-    void unset(String property) {
-        changes.remove(property);
+        changes.put(new Key(property, null), op);
     }
     
     /**
      * Do not set the property entry (after it has been set).
-     * The property is a map of sub-names / values.
+     * The property is a map of revisions / values.
      * 
      * @param property the property name
-     * @param subName the entry name
+     * @param revision the revision
      */
-    void unsetMapEntry(String property, String subName) {
-        changes.remove(property + "." + subName);
+    void unsetMapEntry(@Nonnull String property, @Nonnull Revision revision) {
+        changes.remove(new Key(property, checkNotNull(revision)));
     }
 
     /**
@@ -137,16 +119,18 @@ public class UpdateOp {
      * method can be used to make a conditional update.
      *
      * @param property the property name
-     * @param subName the entry name
+     * @param revision the revision
      */
-    void containsMapEntry(String property, String subName, boolean exists) {
+    void containsMapEntry(@Nonnull String property,
+                          @Nonnull Revision revision,
+                          boolean exists) {
         if (isNew) {
             throw new IllegalStateException("Cannot use containsMapEntry() on new document");
         }
         Operation op = new Operation();
         op.type = Operation.Type.CONTAINS_MAP_ENTRY;
         op.value = exists;
-        changes.put(property + "." + subName, op);
+        changes.put(new Key(property, checkNotNull(revision)), op);
     }
 
     /**
@@ -155,27 +139,16 @@ public class UpdateOp {
      * @param property the key
      * @param value the increment
      */
-    void increment(String property, long value) {
+    void increment(@Nonnull String property, long value) {
         Operation op = new Operation();
         op.type = Operation.Type.INCREMENT;
         op.value = value;
-        changes.put(property, op);
-    }
-    
-    public Long getIncrement(String property) {
-        Operation op = changes.get(property);
-        if (op == null) {
-            return null;
-        }
-        if (op.type != Operation.Type.INCREMENT) {
-            throw new IllegalArgumentException("Not an increment operation");
-        }
-        return (Long) op.value;
+        changes.put(new Key(property, null), op);
     }
     
     public UpdateOp getReverseOperation() {
-        UpdateOp reverse = new UpdateOp(key, isNew);
-        for (Entry<String, Operation> e : changes.entrySet()) {
+        UpdateOp reverse = new UpdateOp(id, isNew);
+        for (Entry<Key, Operation> e : changes.entrySet()) {
             Operation r = e.getValue().getReverse();
             if (r != null) {
                 reverse.changes.put(e.getKey(), r);
@@ -186,7 +159,7 @@ public class UpdateOp {
 
     @Override
     public String toString() {
-        return "key: " + key + " " + (isNew ? "new" : "update") + " " + changes;
+        return "key: " + id + " " + (isNew ? "new" : "update") + " " + changes;
     }
     
     /**
@@ -226,14 +199,8 @@ public class UpdateOp {
             /**
              * Checks if the sub-key is present in a map or not.
              */
-            CONTAINS_MAP_ENTRY,
+            CONTAINS_MAP_ENTRY
              
-            /**
-             * Set the sub-key / value pair.
-             * The value in the stored node is a map.
-             */
-            SET_MAP,
-
          }
              
         
@@ -262,7 +229,6 @@ public class UpdateOp {
                 break;
             case SET:
             case REMOVE_MAP_ENTRY:
-            case SET_MAP:
             case CONTAINS_MAP_ENTRY:
                 // nothing to do
                 break;
@@ -274,6 +240,60 @@ public class UpdateOp {
             return reverse;
         }
         
+    }
+
+    /**
+     * A key for an operation consists of a property name and an optional
+     * revision. The revision is only set if the value for the operation is
+     * set for a certain revision.
+     */
+    public static final class Key {
+
+        private final String name;
+        private final Revision revision;
+
+        public Key(@Nonnull String name, @Nullable Revision revision) {
+            this.name = checkNotNull(name);
+            this.revision = revision;
+        }
+
+        @Nonnull
+        public String getName() {
+            return name;
+        }
+
+        @CheckForNull
+        public Revision getRevision() {
+            return revision;
+        }
+
+        @Override
+        public String toString() {
+            String s = name;
+            if (revision != null) {
+                s += "." + revision.toString();
+            }
+            return s;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = name.hashCode();
+            if (revision != null) {
+                hash ^= revision.hashCode();
+            }
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof Key) {
+                Key other = (Key) obj;
+                return name.equals(other.name) &&
+                        revision != null ? revision.equals(other.revision) : other.revision == null;
+            }
+            return false;
+        }
     }
 
 }

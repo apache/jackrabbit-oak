@@ -81,7 +81,7 @@ public class Node implements CacheValue {
         NodeDocument.setDeleted(op, rev, false);
         for (String p : properties.keySet()) {
             String key = Utils.escapePropertyName(p);
-            op.setMapEntry(key, rev.toString(), properties.get(p));
+            op.setMapEntry(key, rev, properties.get(p));
         }
         return op;
     }

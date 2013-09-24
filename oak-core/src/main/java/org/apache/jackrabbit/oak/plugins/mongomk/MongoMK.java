@@ -263,10 +263,10 @@ public class MongoMK implements MicroKernel, RevisionContext {
             clusterNodeInfo = null;
         }
         this.clusterId = cid;
-        
+
         this.revisionComparator = new RevisionComparator(clusterId);
         this.asyncDelay = builder.getAsyncDelay();
-        this.branches = new UnmergedBranches(revisionComparator);
+        this.branches = new UnmergedBranches(getRevisionComparator());
 
         //TODO Make stats collection configurable as it add slight overhead
         //TODO Expose the stats as JMX beans
@@ -290,7 +290,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         init();
         // initial reading of the revisions of other cluster nodes
         backgroundRead();
-        revisionComparator.add(headRevision, Revision.newRevision(0));
+        getRevisionComparator().add(headRevision, Revision.newRevision(0));
         headRevision = newRevision();
         LOG.info("Initialized MongoMK with clusterNodeId: {}", clusterId);
     }
@@ -364,8 +364,12 @@ public class MongoMK implements MicroKernel, RevisionContext {
     void backgroundRead() {
         String id = Utils.getIdFromPath("/");
         NodeDocument doc = store.find(Collection.NODES, id, asyncDelay);
+        if (doc == null) {
+            return;
+        }
         Map<Integer, Revision> lastRevMap = doc.getLastRev();
         
+        RevisionComparator revisionComparator = getRevisionComparator();
         boolean hasNewRevisions = false;
         // the (old) head occurred first
         Revision headSeen = Revision.newRevision(0);
@@ -411,9 +415,11 @@ public class MongoMK implements MicroKernel, RevisionContext {
             for (UpdateOp op : doc.split(this)) {
                 NodeDocument before = store.createOrUpdate(Collection.NODES, op);
                 if (before != null) {
-                    NodeDocument after = store.find(Collection.NODES, op.getKey());
-                    LOG.info("Split operation on {}. Size before: {}, after: {}",
-                            new Object[]{id, before.getMemory(), after.getMemory()});
+                    NodeDocument after = store.find(Collection.NODES, op.getId());
+                    if (after != null) {
+                        LOG.info("Split operation on {}. Size before: {}, after: {}",
+                                new Object[]{id, before.getMemory(), after.getMemory()});
+                    }
                 }
             }
             it.remove();
@@ -530,7 +536,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
      * @return true if x is newer
      */
     boolean isRevisionNewer(@Nonnull Revision x, @Nonnull Revision previous) {
-        return revisionComparator.compare(x, previous) > 0;
+        return getRevisionComparator().compare(x, previous) > 0;
     }
 
     public long getSplitDocumentAgeMillis() {
@@ -1014,6 +1020,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
 
     @Override
     public void publishRevision(Revision foreignRevision, Revision changeRevision) {
+        RevisionComparator revisionComparator = getRevisionComparator();
         if (revisionComparator.compare(headRevision, foreignRevision) >= 0) {
             // already visible
             return;
@@ -1163,7 +1170,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
             for (Revision rev : b.getCommits()) {
                 rev = rev.asTrunkRevision();
                 NodeDocument.setRevision(op, rev, "c-" + mergeCommit.toString());
-                op.containsMapEntry(NodeDocument.COLLISIONS, rev.toString(), false);
+                op.containsMapEntry(NodeDocument.COLLISIONS, rev, false);
             }
             if (store.findAndUpdate(Collection.NODES, op) != null) {
                 // remove from branchCommits map after successful update

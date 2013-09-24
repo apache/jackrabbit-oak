@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -379,35 +380,41 @@ public class SimpleTest {
         MongoMK mk = createMK();
         try {
             DocumentStore store = mk.getDocumentStore();
-            String head = mk.getHeadRevision();
-            head = mk.commit("", "+\"/test\":{\"foo\":{}}", head, null);
+            Revision head = Revision.fromString(mk.getHeadRevision());
+            head = Revision.fromString(mk.commit("", "+\"/test\":{\"foo\":{}}", head.toString(), null));
 
             // root node must not have the revision
             NodeDocument rootDoc = store.find(Collection.NODES, "0:/");
+            assertNotNull(rootDoc);
             assertFalse(rootDoc.containsRevision(head));
 
             // test node must have head in revisions
             NodeDocument node = store.find(Collection.NODES, "1:/test");
+            assertNotNull(node);
             assertTrue(node.containsRevision(head));
 
             // foo must not have head in revisions and must refer to test
             // as commit root (depth = 1)
             NodeDocument foo = store.find(Collection.NODES, "2:/test/foo");
+            assertNotNull(foo);
             assertFalse(foo.containsRevision(head));
             assertEquals("/test", foo.getCommitRootPath(head));
 
-            head = mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head, null);
+            head = Revision.fromString(mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head.toString(), null));
 
             // root node is root of commit
             rootDoc = store.find(Collection.NODES, "0:/");
+            assertNotNull(rootDoc);
             assertTrue(rootDoc.containsRevision(head));
 
             // /bar refers to root nodes a commit root
             NodeDocument bar = store.find(Collection.NODES, "1:/bar");
+            assertNotNull(bar);
             assertEquals("/", bar.getCommitRootPath(head));
 
             // /test/foo/bar refers to root nodes a commit root
             bar = store.find(Collection.NODES, "3:/test/foo/bar");
+            assertNotNull(bar);
             assertEquals("/", bar.getCommitRootPath(head));
 
         } finally {

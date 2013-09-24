@@ -120,7 +120,7 @@ public class Commit {
     void updateProperty(String path, String propertyName, String value) {
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);
-        op.setMapEntry(key, revision.toString(), value);
+        op.setMapEntry(key, revision, value);
     }
 
     void addNode(Node n) {
@@ -277,7 +277,7 @@ public class Commit {
             store.createOrUpdate(Collection.NODES, reverse);
         }
         for (UpdateOp op : newDocuments) {
-            store.remove(Collection.NODES, op.key);
+            store.remove(Collection.NODES, op.id);
         }
     }
 
@@ -309,17 +309,17 @@ public class Commit {
             if (newestRev == null) {
                 if (op.isDelete || !op.isNew) {
                     conflictMessage = "The node " + 
-                            op.getKey() + " does not exist or is already deleted";
+                            op.getId() + " does not exist or is already deleted";
                 }
             } else {
                 if (op.isNew) {
                     conflictMessage = "The node " + 
-                            op.getKey() + " was already added in revision\n" +
+                            op.getId() + " was already added in revision\n" +
                             newestRev;
                 } else if (mk.isRevisionNewer(newestRev, baseRevision)
                         && (op.isDelete || isConflicting(doc, op))) {
                     conflictMessage = "The node " + 
-                            op.getKey() + " was changed in revision\n" + newestRev +
+                            op.getId() + " was changed in revision\n" + newestRev +
                             ", which was applied after the base revision\n" + 
                             baseRevision;
                 }
@@ -336,7 +336,7 @@ public class Commit {
             if (collisions.get() != null && isConflicting(doc, op)) {
                 for (Revision r : collisions.get()) {
                     // mark collisions on commit root
-                    new Collision(doc, r, op, revision).mark(store);
+                    new Collision(doc, r, op, revision, mk).mark(store);
                 }
             }
         }
