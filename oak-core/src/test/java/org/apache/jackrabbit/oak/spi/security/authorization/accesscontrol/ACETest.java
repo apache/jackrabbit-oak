@@ -40,6 +40,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,24 +88,16 @@ public class ACETest extends AbstractAccessControlTest {
 
     private ACE createEntry(String... privilegeNames)
             throws RepositoryException {
-        Privilege[] privs = AccessControlUtils.privilegesFromNames(acMgr, privilegeNames);
-        return createEntry(testPrincipal, privs, true);
+        return createEntry(testPrincipal, true, null, privilegeNames);
     }
 
     private ACE createEntry(String[] privilegeNames, boolean isAllow)
             throws RepositoryException {
-        Privilege[] privs = AccessControlUtils.privilegesFromNames(acMgr, privilegeNames);
-        return createEntry(testPrincipal, privs, isAllow);
-    }
-
-    private ACE createEntry(Principal principal, Privilege[] privileges, boolean isAllow) throws AccessControlException {
-        return new ACE(principal, privileges, isAllow, null, namePathMapper);
+        return createEntry(testPrincipal, isAllow, null, privilegeNames);
     }
 
     private ACE createEntry(Set<Restriction> restrictions) throws Exception {
-        return new ACE(testPrincipal,
-                privilegesFromNames(PrivilegeConstants.JCR_READ), true,
-                restrictions, namePathMapper);
+        return createEntry(testPrincipal, true, restrictions, PrivilegeConstants.JCR_READ);
     }
 
     private Restriction createRestriction(String name, Value value) throws Exception {
@@ -169,14 +162,38 @@ public class ACETest extends AbstractAccessControlTest {
         Privilege[] expected = AccessControlUtils.privilegesFromNames(acMgr,
                 PrivilegeConstants.JCR_ADD_CHILD_NODES,
                 PrivilegeConstants.JCR_REMOVE_CHILD_NODES);
-        assertEquals(Arrays.asList(expected), Arrays.asList(privs));
+        assertEquals(ImmutableSet.copyOf(expected), ImmutableSet.copyOf(privs));
+    }
+
+    @Test
+    public void testGetPrivilegeBits() throws RepositoryException {
+        ACE entry = createEntry(new String[]{PrivilegeConstants.JCR_READ}, true);
+
+        PrivilegeBits bits = entry.getPrivilegeBits();
+        assertNotNull(bits);
+        assertEquals(bits, getBitsProvider().getBits(PrivilegeConstants.JCR_READ));
+
+        entry = createEntry(new String[]{PrivilegeConstants.REP_WRITE}, true);
+        bits = entry.getPrivilegeBits();
+        assertNotNull(bits);
+        assertEquals(bits, getBitsProvider().getBits(PrivilegeConstants.REP_WRITE));
+
+        entry = createEntry(new String[]{PrivilegeConstants.JCR_ADD_CHILD_NODES,
+                PrivilegeConstants.JCR_REMOVE_CHILD_NODES}, true);
+        bits = entry.getPrivilegeBits();
+        assertNotNull(bits);
+
+        PrivilegeBits expected = getBitsProvider().getBits(
+                PrivilegeConstants.JCR_ADD_CHILD_NODES,
+                PrivilegeConstants.JCR_REMOVE_CHILD_NODES);
+        assertEquals(expected, bits);
     }
 
     @Test
     public void testNullPrivileges() throws Exception {
         try {
-            createEntry(testPrincipal, null, true);
-            fail("Principal must not be null");
+            ACE empty = new EmptyACE(null);
+            fail("Privileges must not be null");
         } catch (AccessControlException e) {
             // success
         }
@@ -185,8 +202,8 @@ public class ACETest extends AbstractAccessControlTest {
     @Test
     public void testEmptyPrivileges() throws Exception {
         try {
-            createEntry(testPrincipal, new Privilege[0], true);
-            fail("Privilege array must not be null.");
+            ACE empty = new EmptyACE(PrivilegeBits.EMPTY);
+            fail("Privileges must not be empty.");
         } catch (AccessControlException e) {
             // success
         }
@@ -195,9 +212,7 @@ public class ACETest extends AbstractAccessControlTest {
     @Test
     public void testRedundantPrivileges() throws Exception {
         ACE ace = createEntry(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ);
-        Privilege[] privs = ace.getPrivileges();
-        assertEquals(1, privs.length);
-        assertEquals(PrivilegeConstants.JCR_READ, privs[0].getName());
+        assertEquals(getBitsProvider().getBits(PrivilegeConstants.JCR_READ), ace.getPrivilegeBits());
     }
 
     /**
@@ -227,7 +242,16 @@ public class ACETest extends AbstractAccessControlTest {
             }
         };
         Privilege[] privs = new Privilege[]{invalidPriv, acMgr.privilegeFromName(PrivilegeConstants.JCR_READ)};
-        createEntry(testPrincipal, privs, true);
+        ACE entry = createEntry(testPrincipal, privs, true);
+        assertEquals(getBitsProvider().getBits(PrivilegeConstants.JCR_READ), entry.getPrivilegeBits());
+    }
+
+    @Test
+    public void testAggregatePrivileges() throws Exception {
+        ACE ace = createEntry(PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
+
+        assertEquals(getBitsProvider().getBits(PrivilegeConstants.JCR_READ), ace.getPrivilegeBits());
+        assertArrayEquals(privilegesFromNames(PrivilegeConstants.JCR_READ), ace.getPrivileges());
     }
 
     @Test
@@ -563,5 +587,17 @@ public class ACETest extends AbstractAccessControlTest {
             assertFalse(ace.hashCode() == otherAce.hashCode());
         }
 
+    }
+
+    private class EmptyACE extends ACE {
+
+        public EmptyACE(PrivilegeBits privilegeBits) throws AccessControlException {
+            super(testPrincipal, privilegeBits, true, null, namePathMapper);
+        }
+
+        @Override
+        public Privilege[] getPrivileges() {
+            return new Privilege[0];
+        }
     }
 }

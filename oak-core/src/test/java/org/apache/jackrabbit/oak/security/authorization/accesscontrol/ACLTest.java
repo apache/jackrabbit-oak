@@ -28,6 +28,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
@@ -53,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
@@ -114,7 +116,12 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
             @Override
             PrivilegeBitsProvider getPrivilegeBitsProvider() {
-                return new PrivilegeBitsProvider(root);
+                return getBitsProvider();
+            }
+
+            @Override
+            ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException {
+                return createEntry(principal, privilegeBits, isAllow, restrictions);
             }
         };
     }
@@ -244,7 +251,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
     @Test
     public void testRemoveNonExisting() throws Exception {
         try {
-            acl.removeAccessControlEntry(new ACE(testPrincipal, testPrivileges, true, null, namePathMapper));
+            acl.removeAccessControlEntry(createEntry(testPrincipal, testPrivileges, true));
             fail("Removing a non-existing ACE should fail.");
         } catch (AccessControlException e) {
             // success
@@ -309,7 +316,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         acl.addAccessControlEntry(testPrincipal, read);
         acl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
 
-        AccessControlEntry invalid = new ACE(testPrincipal, write, false, Collections.<Restriction>emptySet(), namePathMapper);
+        AccessControlEntry invalid = createEntry(testPrincipal, false, null, JCR_WRITE);
         try {
             acl.orderBefore(invalid, acl.getEntries().get(0));
             fail("src entry not contained in list -> reorder should fail.");

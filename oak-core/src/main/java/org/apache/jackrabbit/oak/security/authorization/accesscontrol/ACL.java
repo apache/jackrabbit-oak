@@ -39,10 +39,10 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +70,8 @@ abstract class ACL extends AbstractAccessControlList {
 
     abstract PrivilegeBitsProvider getPrivilegeBitsProvider();
 
+    abstract ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException;
+
     //------------------------------------------< AbstractAccessControlList >---
     @Nonnull
     @Override
@@ -96,7 +98,10 @@ abstract class ACL extends AbstractAccessControlList {
             throw new AccessControlException("Privileges may not be null nor an empty array");
         }
         for (Privilege p : privileges) {
-            getPrivilegeManager().getPrivilege(p.getName());
+            Privilege pv = getPrivilegeManager().getPrivilege(p.getName());
+            if (pv.isAbstract()) {
+                throw new AccessControlException("Privilege " + p + " is abstract.");
+            }
         }
 
         Util.checkValidPrincipal(principal, getPrincipalManager());
@@ -119,7 +124,7 @@ abstract class ACL extends AbstractAccessControlList {
             }
         }
 
-        ACE entry = new ACE(principal, privileges, isAllow, rs, getNamePathMapper());
+        ACE entry = createACE(principal, getPrivilegeBits(privileges), isAllow, rs, getNamePathMapper());
         if (entries.contains(entry)) {
             log.debug("Entry is already contained in policy -> no modification.");
             return false;
@@ -189,8 +194,8 @@ abstract class ACL extends AbstractAccessControlList {
         }));
 
         for (ACE existing : subList) {
-            PrivilegeBits existingBits = getPrivilegeBits(existing);
-            PrivilegeBits entryBits = getPrivilegeBits(entry);
+            PrivilegeBits existingBits = PrivilegeBits.getInstance(existing.getPrivilegeBits());
+            PrivilegeBits entryBits = entry.getPrivilegeBits();
             if (entry.getRestrictions().equals(existing.getRestrictions())) {
                 if (entry.isAllow() == existing.isAllow()) {
                     if (existingBits.includes(entryBits)) {
@@ -225,23 +230,11 @@ abstract class ACL extends AbstractAccessControlList {
         return true;
     }
 
-    private ACE createACE(ACE existing, PrivilegeBits newPrivilegeBits) throws RepositoryException {
-        return new ACE(existing.getPrincipal(), getPrivileges(newPrivilegeBits), existing.isAllow(), existing.getRestrictions(), getNamePathMapper());
+    private ACE createACE(@Nonnull ACE existing, @Nonnull PrivilegeBits newPrivilegeBits) throws RepositoryException {
+        return createACE(existing.getPrincipal(), newPrivilegeBits, existing.isAllow(), existing.getRestrictions(), getNamePathMapper());
     }
 
-    private Set<Privilege> getPrivileges(PrivilegeBits bits) throws RepositoryException {
-        Set<Privilege> privileges = new HashSet<Privilege>();
-        for (String name : getPrivilegeBitsProvider().getPrivilegeNames(bits)) {
-            privileges.add(getPrivilegeManager().getPrivilege(name));
-        }
-        return privileges;
-    }
-
-    private PrivilegeBits getPrivilegeBits(ACE entry) {
-        PrivilegeBits bits = PrivilegeBits.getInstance();
-        for (Privilege privilege : entry.getPrivileges()) {
-            bits.add(getPrivilegeBitsProvider().getBits(privilege.getName()));
-        }
-        return bits;
+    private PrivilegeBits getPrivilegeBits(Privilege[] privileges) {
+        return getPrivilegeBitsProvider().getBits(privileges, getNamePathMapper());
     }
 }
