@@ -33,9 +33,12 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.api.security.AbstractAccessControlTest;
 import org.junit.Test;
+
+import static org.junit.Assert.assertArrayEquals;
 
 /**
  * Testing {@code JackrabbitAccessControlList} functionality exposed by the API.
@@ -166,5 +169,27 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
         assertTrue(acl.isEmpty());
         assertEquals(0, acl.size());
         assertEquals(0, acl.getAccessControlEntries().length);
+    }
+
+    /**
+     * <a href="https://issues.apache.org/jira/browse/OAK-1026">OAK-1026</a>
+     */
+    @Test
+    public void testEntryWithAggregatePrivileges() throws Exception {
+        Privilege write = acMgr.privilegeFromName(Privilege.JCR_WRITE);
+        acl.addEntry(testPrincipal, write.getAggregatePrivileges(), true);
+
+        AccessControlEntry[] entries = acl.getAccessControlEntries();
+        assertEquals(1, entries.length);
+        assertArrayEquals(new Privilege[]{write}, entries[0].getPrivileges());
+
+        acMgr.setPolicy(acl.getPath(), acl);
+
+        AccessControlPolicy policy = AccessControlUtils.getAccessControlList(acMgr, acl.getPath());
+        assertNotNull(policy);
+
+        entries = acl.getAccessControlEntries();
+        assertEquals(1, entries.length);
+        assertArrayEquals(new Privilege[]{write}, entries[0].getPrivileges());
     }
 }
