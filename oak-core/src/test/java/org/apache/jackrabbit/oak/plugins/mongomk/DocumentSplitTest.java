@@ -37,25 +37,24 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     @Test
     public void splitRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
-        Set<String> revisions = Sets.newHashSet();
+        Set<Revision> revisions = Sets.newHashSet();
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
         revisions.addAll(doc.getLocalRevisions().keySet());
-        revisions.add(mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null));
+        revisions.add(Revision.fromString(mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null)));
         // create nodes
         while (revisions.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
-            revisions.add(mk.commit("/", "+\"foo/node-" + revisions.size() + "\":{}" +
-                    "+\"bar/node-" + revisions.size() + "\":{}", null, null));
+            revisions.add(Revision.fromString(mk.commit("/", "+\"foo/node-" + revisions.size() + "\":{}" +
+                    "+\"bar/node-" + revisions.size() + "\":{}", null, null)));
         }
         mk.runBackgroundOperations();
         String head = mk.getHeadRevision();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
-        Map<String, String> revs = doc.getLocalRevisions();
+        Map<Revision, String> revs = doc.getLocalRevisions();
         // one remaining in the local revisions map
         assertEquals(1, revs.size());
-        for (String r : revisions) {
-            Revision rev = Revision.fromString(r);
+        for (Revision rev : revisions) {
             assertTrue(doc.containsRevision(rev));
             assertTrue(doc.isCommitted(rev));
         }
@@ -69,7 +68,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     @Test
     public void splitDeleted() throws Exception {
         DocumentStore store = mk.getDocumentStore();
-        Set<String> revisions = Sets.newHashSet();
+        Set<Revision> revisions = Sets.newHashSet();
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -77,9 +76,9 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         boolean create = false;
         while (revisions.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
             if (create) {
-                revisions.add(mk.commit("/", "+\"foo\":{}", null, null));
+                revisions.add(Revision.fromString(mk.commit("/", "+\"foo\":{}", null, null)));
             } else {
-                revisions.add(mk.commit("/", "-\"foo\"", null, null));
+                revisions.add(Revision.fromString(mk.commit("/", "-\"foo\"", null, null)));
             }
             create = !create;
         }
@@ -87,11 +86,10 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         String head = mk.getHeadRevision();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
-        Map<String, String> deleted = doc.getLocalDeleted();
+        Map<Revision, String> deleted = doc.getLocalDeleted();
         // one remaining in the local deleted map
         assertEquals(1, deleted.size());
-        for (String r : revisions) {
-            Revision rev = Revision.fromString(r);
+        for (Revision rev : revisions) {
             assertTrue(doc.containsRevision(rev));
             assertTrue(doc.isCommitted(rev));
         }
@@ -110,21 +108,20 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
-        Set<String> commitRoots = Sets.newHashSet();
+        Set<Revision> commitRoots = Sets.newHashSet();
         commitRoots.addAll(doc.getLocalCommitRoot().keySet());
         // create nodes
         while (commitRoots.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
-            commitRoots.add(mk.commit("/", "^\"foo/prop\":" + commitRoots.size() +
-                    "^\"bar/prop\":" + commitRoots.size(), null, null));
+            commitRoots.add(Revision.fromString(mk.commit("/", "^\"foo/prop\":" +
+                    commitRoots.size() + "^\"bar/prop\":" + commitRoots.size(), null, null)));
         }
         mk.runBackgroundOperations();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
-        Map<String, String> commits = doc.getLocalCommitRoot();
+        Map<Revision, String> commits = doc.getLocalCommitRoot();
         // one remaining in the local commit root map
         assertEquals(1, commits.size());
-        for (String r : commitRoots) {
-            Revision rev = Revision.fromString(r);
+        for (Revision rev : commitRoots) {
             assertTrue(doc.isCommitted(rev));
         }
     }
@@ -135,24 +132,23 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
-        Set<String> revisions = Sets.newHashSet();
+        Set<Revision> revisions = Sets.newHashSet();
         // create nodes
         while (revisions.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
-            revisions.add(mk.commit("/", "^\"foo/prop\":" + revisions.size(), null, null));
+            revisions.add(Revision.fromString(mk.commit("/", "^\"foo/prop\":" +
+                    revisions.size(), null, null)));
         }
         mk.runBackgroundOperations();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
-        Map<String, String> localRevs = doc.getLocalRevisions();
+        Map<Revision, String> localRevs = doc.getLocalRevisions();
         // one remaining in the local revisions map
         assertEquals(1, localRevs.size());
-        for (String r : revisions) {
-            Revision rev = Revision.fromString(r);
+        for (Revision rev : revisions) {
             assertTrue(doc.isCommitted(rev));
         }
         // all revisions in the prop map
-        Map<String, String> valueMap = doc.getValueMap("prop");
-        assertNotNull(valueMap);
+        Map<Revision, String> valueMap = doc.getValueMap("prop");
         assertEquals((long) revisions.size(), valueMap.size());
         // one remaining revision in the local map
         valueMap = doc.getLocalMap("prop");
