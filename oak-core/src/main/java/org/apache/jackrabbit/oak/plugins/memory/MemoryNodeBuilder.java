@@ -311,6 +311,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         if (!isRoot() && exists()) {
             head().getMutableNodeState();  // Make sure the removed node is connected
             parent.head().getMutableNodeState().removeChildNode(name);
+            updated();
             return true;
         } else {
             return false;
