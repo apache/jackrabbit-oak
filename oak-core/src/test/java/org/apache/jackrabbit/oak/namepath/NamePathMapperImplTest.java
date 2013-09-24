@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.namepath;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -28,7 +29,6 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class NamePathMapperImplTest {
@@ -47,7 +47,7 @@ public class NamePathMapperImplTest {
             "foo", "http://www.example.com/foo",
             "quu", "http://www.example.com/quu");
 
-    private NameMapper mapper = new LocalNameMapper() {
+    private final NameMapper mapper = new LocalNameMapper() {
         @Override
         protected Map<String, String> getNamespaceMap() {
             return GLOBAL;
@@ -62,7 +62,6 @@ public class NamePathMapperImplTest {
     private NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
     @Test
-    @Ignore("OAK-658")
     public void testInvalidIdentifierPath() {
         String uuid = IdentifierManager.generateUUID();
         List<String> invalid = new ArrayList<String>();
@@ -70,10 +69,7 @@ public class NamePathMapperImplTest {
         invalid.add('[' + uuid + "]/a/b/c");
 
         for (String jcrPath : invalid) {
-            try {
-                npMapper.getOakPath(jcrPath);
-                fail("Expected IllegalArgumentException for path: " + jcrPath);
-            } catch (IllegalArgumentException ignore) {}
+            assertNull(npMapper.getOakPath(jcrPath));
         }
     }
 
@@ -175,15 +171,11 @@ public class NamePathMapperImplTest {
     }
 
     @Test
-    @Ignore("OAK-658")
     public void testInvalidJcrPaths() {
         String[] paths = {"//", "/foo//", "/..//", "/..", "/foo/../.."};
 
         for (String path : paths) {
-            try {
-                npMapper.getOakPath(path);
-                fail("Expected IllegalArgumentException for path " + path);
-            } catch (IllegalArgumentException ignore) {}
+            assertNull(npMapper.getOakPath(path));
         }
     }
 
