@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
@@ -33,8 +34,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
-
-import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Key;
@@ -269,7 +268,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 @SuppressWarnings("unchecked")
                 Map<Revision, Object> m = (Map<Revision, Object>) old;
                 if (m == null) {
-                    m = Maps.newTreeMap(comparator);
+                    m = new TreeMap<Revision, Object>(comparator);
                     doc.put(k.getName(), m);
                 }
                 m.put(k.getRevision(), op.value);
