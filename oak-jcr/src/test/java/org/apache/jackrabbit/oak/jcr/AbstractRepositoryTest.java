@@ -18,12 +18,15 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.Arrays;
 import java.util.Collection;
-
+import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Ignore;
@@ -90,9 +93,10 @@ public abstract class AbstractRepositoryTest {
     }
 
     protected Session createAnonymousSession() throws RepositoryException {
-        // FIXME: provider proper permission setup for the anonymous session (e.g. full read access)
-        // return getRepository().login(new GuestCredentials());
-        return createAdminSession();
+        Session admin = getAdminSession();
+        AccessControlUtils.addAccessControlEntry(admin, "/", EveryonePrincipal.getInstance(), new String[] {Privilege.JCR_READ}, true);
+        admin.save();
+        return getRepository().login(new GuestCredentials());
     }
 
     protected Session createAdminSession() throws RepositoryException {
