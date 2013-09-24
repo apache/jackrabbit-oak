@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,7 +33,6 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -43,8 +40,6 @@ import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.osgi.service.component.ComponentContext;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
@@ -75,7 +70,7 @@ public class SegmentNodeStoreService implements NodeStore {
     @Property(description="Cache size (MB)", intValue=200)
     public static final String CACHE = "cache";
 
-    private static final long MB = 1024 * 1024;
+    private static final int MB = 1024 * 1024;
 
     private String name;
 
@@ -84,8 +79,6 @@ public class SegmentNodeStoreService implements NodeStore {
     private SegmentStore store;
 
     private NodeStore delegate;
-
-    private Registration cacheStatsReg;
 
     private synchronized NodeStore getDelegate() {
         assert delegate != null : "service must be activated when used";
@@ -128,9 +121,6 @@ public class SegmentNodeStoreService implements NodeStore {
             mongo = new Mongo(host, port);
             SegmentCache sc = new SegmentCache(cache * MB);
             store = new MongoStore(mongo.getDB(db), sc);
-
-            cacheStatsReg = registerMBean(new OsgiWhiteboard(context.getBundleContext()), CacheStatsMBean.class,
-                    sc.getCacheStats(), CacheStatsMBean.TYPE, sc.getCacheStats().getName());
         }
 
         delegate = new SegmentNodeStore(store);
@@ -149,10 +139,6 @@ public class SegmentNodeStoreService implements NodeStore {
     @Deactivate
     public synchronized void deactivate() {
         delegate = null;
-
-        if(cacheStatsReg != null){
-            cacheStatsReg.unregister();
-        }
 
         store.close();
         if (mongo != null) {

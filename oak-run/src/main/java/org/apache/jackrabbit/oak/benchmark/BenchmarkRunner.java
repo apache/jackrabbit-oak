@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 public class BenchmarkRunner {
 
-    private static final long MB = 1024 * 1024;
+    private static final int MB = 1024 * 1024;
 
     public static void main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
