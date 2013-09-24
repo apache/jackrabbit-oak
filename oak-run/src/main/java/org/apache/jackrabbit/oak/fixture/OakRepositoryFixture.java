@@ -115,7 +115,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
     }
 
     public static RepositoryFixture getSegment(
-            final String host, final int port, final long cacheSize) {
+            final String host, final int port, final int cacheSize) {
         return new OakRepositoryFixture("Oak-Segment") {
             private SegmentStore[] stores;
             private Mongo mongo;

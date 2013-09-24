@@ -70,12 +70,12 @@ public class MongoStore implements SegmentStore {
                 concern, builder.getNodeState()));
     }
 
-    public MongoStore(DB db, long cacheSize) {
+    public MongoStore(DB db, int cacheSize) {
         this(db, new SegmentCache(cacheSize));
     }
 
 
-    public MongoStore(Mongo mongo, long cacheSize) {
+    public MongoStore(Mongo mongo, int cacheSize) {
         this(mongo.getDB("Oak"), cacheSize);
     }
 
@@ -96,12 +96,16 @@ public class MongoStore implements SegmentStore {
 
     @Override
     public Segment readSegment(final UUID segmentId) {
-        return cache.getSegment(segmentId, new Callable<Segment>() {
-            @Override
-            public Segment call() throws Exception {
-                return findSegment(segmentId);
-            }
-        });
+        try {
+            return cache.getSegment(segmentId, new Callable<Segment>() {
+                @Override
+                public Segment call() throws Exception {
+                    return findSegment(segmentId);
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -162,6 +166,11 @@ public class MongoStore implements SegmentStore {
     @Override
     public void deleteSegment(UUID segmentId) {
         segments.remove(new BasicDBObject("_id", segmentId.toString()));
-        cache.removeSegment(segmentId);
+        try {
+            cache.removeSegment(segmentId);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
+
 }

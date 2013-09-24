@@ -31,20 +31,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.Template;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 
 public class FileStore implements SegmentStore {
 
@@ -66,8 +63,7 @@ public class FileStore implements SegmentStore {
 
     private final Map<String, Journal> journals = newHashMap();
 
-    private final Cache<UUID, Segment> segments =
-            CacheBuilder.newBuilder().maximumSize(1000).build();
+    private final SegmentCache cache = new SegmentCache();
 
     public FileStore(File directory, int maxFileSize, boolean memoryMapping)
             throws IOException {
@@ -112,17 +108,16 @@ public class FileStore implements SegmentStore {
     }
 
     public synchronized void close() {
-        for (TarFile file : files) {
-            try {
+        try {
+            for (TarFile file : files) {
                 file.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
+            files.clear();
+            cache.clear();
+            System.gc(); // for any memory-mappings that are no longer used
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        files.clear();
-        segments.invalidateAll();
-        segments.cleanUp();
-        System.gc(); // for any memory-mappings that are no longer used
     }
 
     @Override
@@ -138,41 +133,47 @@ public class FileStore implements SegmentStore {
     @Override
     public Segment readSegment(final UUID id) {
         try {
-            return segments.get(id, new Callable<Segment>() {
+            return cache.getSegment(id, new Callable<Segment>() {
                 @Override
                 public Segment call() throws Exception {
-                    for (TarFile file : files) {
-                        ByteBuffer buffer = file.readEntry(id);
-                        if (buffer != null) {
-                            checkState(SEGMENT_MAGIC == buffer.getLong());
-                            int length = buffer.getInt();
-                            int count = buffer.getInt();
-
-                            checkState(id.equals(new UUID(
-                                    buffer.getLong(), buffer.getLong())));
-
-                            Collection<UUID> referencedIds =
-                                    newArrayListWithCapacity(count);
-                            for (int i = 0; i < count; i++) {
-                                referencedIds.add(new UUID(
-                                        buffer.getLong(), buffer.getLong()));
-                            }
-
-                            buffer.limit(buffer.position() + length);
-                            return new Segment(
-                                    FileStore.this, id,
-                                    buffer.slice(), referencedIds,
-                                    Collections.<String, RecordId>emptyMap(),
-                                    Collections.<Template, RecordId>emptyMap());
-                        }
-                    }
-                    throw new IllegalStateException(
-                            "Segment " + id + " not found");
+                    return loadSegment(id);
                 }
             });
-        } catch (ExecutionException e) {
-            throw new RuntimeException("Failed to load segment " + id, e);
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    private Segment loadSegment(UUID id) throws Exception {
+        for (TarFile file : files) {
+            ByteBuffer buffer = file.readEntry(id);
+            if (buffer != null) {
+                checkState(SEGMENT_MAGIC == buffer.getLong());
+                int length = buffer.getInt();
+                int count = buffer.getInt();
+
+                checkState(id.equals(new UUID(
+                        buffer.getLong(), buffer.getLong())));
+
+                Collection<UUID> referencedIds =
+                        newArrayListWithCapacity(count);
+                for (int i = 0; i < count; i++) {
+                    referencedIds.add(new UUID(
+                            buffer.getLong(), buffer.getLong()));
+                }
+
+                buffer.limit(buffer.position() + length);
+                return new Segment(
+                        FileStore.this, id,
+                        buffer.slice(), referencedIds,
+                        Collections.<String, RecordId>emptyMap(),
+                        Collections.<Template, RecordId>emptyMap());
+            }
+        }
+
+        throw new IllegalStateException("Segment " + id + " not found");
     }
 
     @Override
@@ -203,7 +204,8 @@ public class FileStore implements SegmentStore {
         }
 
         buffer.position(pos);
-        segments.put(segmentId, new Segment(
+
+        cache.addSegment(new Segment(
                 this, segmentId, buffer.slice(),
                 referencedSegmentIds, strings, templates));
     }
@@ -223,6 +225,11 @@ public class FileStore implements SegmentStore {
     @Override
     public void deleteSegment(UUID segmentId) {
         // TODO: implement
+        try {
+            cache.removeSegment(segmentId);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     synchronized void writeJournals() throws IOException {
