@@ -153,4 +153,23 @@ class MapBranch extends MapRecord {
         return true;
     }
 
+    @Override
+    public boolean compareAgainstEmptyMap(MapDiff diff) {
+        Segment segment = getSegment();
+        int offset = getOffset() + 8;
+
+        for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
+            if ((bitmap & (1 << i)) != 0) {
+                MapRecord bucket =
+                        MapRecord.readMap(store, segment.readRecordId(offset));
+                if (!bucket.compareAgainstEmptyMap(diff)) {
+                    return false;
+                }
+                offset += RECORD_ID_BYTES;
+            }
+        }
+
+        return true;
+    }
+
 }

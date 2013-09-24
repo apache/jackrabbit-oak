@@ -156,6 +156,23 @@ class MapLeaf extends MapRecord {
         return true;
     }
 
+    @Override
+    public boolean compareAgainstEmptyMap(MapDiff diff) {
+        Segment segment = getSegment();
+
+        int keyOffset = getOffset() + 4 + size * 4;
+        int valueOffset = keyOffset + size * RECORD_ID_BYTES;
+        for (int i = 0; i < size; i++) {
+            RecordId key = segment.readRecordId(keyOffset + i * RECORD_ID_BYTES);
+            RecordId value = segment.readRecordId(valueOffset + i * RECORD_ID_BYTES);
+            if (!diff.entryAdded(segment.readString(key), value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     //-----------------------------------------------------------< private >--
 
     private Iterator<String> getKeyIterator() {

@@ -33,6 +33,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -540,6 +541,66 @@ public class Template {
 
         return true;
     }
+
+    public boolean compareAgainstEmptyState(
+            final SegmentStore store, RecordId recordId,
+            final NodeStateDiff diff) {
+        checkNotNull(store);
+        checkNotNull(recordId);
+        checkNotNull(diff);
+
+        // Type properties
+        if (primaryType != null && !diff.propertyAdded(primaryType)) {
+            return false;
+        }
+        if (mixinTypes != null && !diff.propertyAdded(mixinTypes)) {
+            return false;
+        }
+
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        int offset = recordId.getOffset() + RECORD_ID_BYTES;
+
+        if (childName == MANY_CHILD_NODES) {
+            RecordId childNodesId = segment.readRecordId(offset);
+            MapRecord children = MapRecord.readMap(store, childNodesId);
+            children.compareAgainstEmptyMap(new MapDiff() {
+                @Override
+                public boolean entryAdded(String key, RecordId after) {
+                    return diff.childNodeAdded(
+                            key, new SegmentNodeState(store, after));
+                }
+                @Override
+                public boolean entryChanged(
+                        String key, RecordId before, RecordId after) {
+                    throw new IllegalStateException();
+                }
+                @Override
+                public boolean entryDeleted(String key, RecordId before) {
+                    throw new IllegalStateException();
+                }
+            });
+            offset += RECORD_ID_BYTES;
+        } else if (childName != ZERO_CHILD_NODES) {
+            RecordId childNodeId = segment.readRecordId(offset);
+            if (!diff.childNodeAdded(
+                    childName, new SegmentNodeState(store, childNodeId))) {
+                return false;
+            }
+            offset += RECORD_ID_BYTES;
+        }
+
+        // Other properties
+        for (int i = 0; i < properties.length; i++) {
+            if (!diff.propertyAdded(new SegmentPropertyState(
+                    properties[i], store, segment.readRecordId(offset)))) {
+                return false;
+            }
+            offset += RECORD_ID_BYTES;
+        }
+
+        return true;
+    }
+
 
     private boolean fastEquals(NodeState a, NodeState b) {
         if (a == b) {
