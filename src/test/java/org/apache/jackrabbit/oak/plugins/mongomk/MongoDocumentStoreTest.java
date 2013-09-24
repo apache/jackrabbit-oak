@@ -78,14 +78,17 @@ public class MongoDocumentStoreTest {
         DocumentStore docStore = openDocumentStore();
 
         UpdateOp updateOp = new UpdateOp("/", true);
-        updateOp.setMapEntry("property1", "key1", "value1");
+        Revision r1 = new Revision(0, 0, 0);
+        updateOp.setMapEntry("property1", r1, "value1");
         updateOp.increment("property2", 1);
         updateOp.set("property3", "value3");
         docStore.createOrUpdate(Collection.NODES, updateOp);
         NodeDocument doc = docStore.find(Collection.NODES, "/");
+        assertNotNull(doc);
 
         Map<?, ?> property1 = (Map<?, ?>) doc.get("property1");
-        String value1 = (String) property1.get("key1");
+        assertNotNull(property1);
+        String value1 = (String) property1.get(r1);
         assertEquals("value1", value1);
 
         Long value2 = (Long) doc.get("property2");
@@ -102,13 +105,14 @@ public class MongoDocumentStoreTest {
     @Test
     public void batchAdd() throws Exception {
         DocumentStore docStore = openDocumentStore();
+        Revision r1 = new Revision(0, 0, 0);
         int nUpdates = 10;
         List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
         for (int i = 0; i < nUpdates; i++) {
             String path = "/node" + i;
             UpdateOp updateOp = new UpdateOp(path, true);
             updateOp.set(Document.ID, "/node" + i);
-            updateOp.setMapEntry("property1", "key1", "value1");
+            updateOp.setMapEntry("property1", r1, "value1");
             updateOp.increment("property2", 1);
             updateOp.set("property3", "value3");
             updateOps.add(updateOp);
@@ -143,36 +147,40 @@ public class MongoDocumentStoreTest {
 
     @Test
     public void containsMapEntry() {
+        Revision r = new Revision(0, 0, 0);
+        Revision unknown = new Revision(0, 1, 0);
         DocumentStore docStore = openDocumentStore();
         UpdateOp op = new UpdateOp("/node", true);
-        op.setMapEntry("map", "key", "value");
+        op.setMapEntry("map", r, "value");
         docStore.createOrUpdate(Collection.NODES, op);
 
         op = new UpdateOp("/node", false);
         op.set("prop", "value");
-        op.containsMapEntry("map", "unknown-key", true);
+        op.containsMapEntry("map", unknown, true);
         // update if unknown-key exists -> must not succeed
         assertNull(docStore.findAndUpdate(Collection.NODES, op));
 
         op = new UpdateOp("/node", false);
         op.set("prop", "value");
-        op.containsMapEntry("map", "key", true);
+        op.containsMapEntry("map", r, true);
         // update if key exists -> must succeed
         NodeDocument doc = docStore.findAndUpdate(Collection.NODES, op);
         assertNotNull(doc);
 
         doc = docStore.find(Collection.NODES, "/node");
+        assertNotNull(doc);
         assertNotNull(doc.get("prop"));
         assertEquals("value", doc.get("prop"));
 
         op = new UpdateOp("/node", false);
         op.set("prop", "other");
-        op.containsMapEntry("map", "key", false);
+        op.containsMapEntry("map", r, false);
         // update if key does not exist -> must not succeed
         assertNull(docStore.findAndUpdate(Collection.NODES, op));
 
         // value must still be the same
         doc = docStore.find(Collection.NODES, "/node");
+        assertNotNull(doc);
         assertNotNull(doc.get("prop"));
         assertEquals("value", doc.get("prop"));
     }
@@ -264,20 +272,22 @@ public class MongoDocumentStoreTest {
         }
 
         private void addNodes() {
+            Revision r1 = new Revision(0, 0, 0);
             for (int i = 0; i < nNodes; i++) {
                 String path = "/" + nodeName + i;
                 UpdateOp updateOp = new UpdateOp(path, true);
-                updateOp.setMapEntry("property1", "key1", "value1");
+                updateOp.setMapEntry("property1", r1, "value1");
                 updateOp.set("property3", "value3");
                 docStore.createOrUpdate(Collection.NODES, updateOp);
             }
         }
 
         private void updateNodes() {
+            Revision r2 = new Revision(0, 1, 0);
             for (int i = 0; i < nNodes; i++) {
                 String path = "/" + nodeName + i;
                 UpdateOp updateOp = new UpdateOp(path, false);
-                updateOp.setMapEntry("property1", "key2", "value2");
+                updateOp.setMapEntry("property1", r2, "value2");
                 updateOp.set("property4", "value4");
                 docStore.createOrUpdate(Collection.NODES, updateOp);
             }

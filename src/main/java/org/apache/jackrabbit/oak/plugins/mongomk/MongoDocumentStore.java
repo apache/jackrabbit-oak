@@ -18,8 +18,12 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -44,6 +48,8 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
+import static org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Key;
+
 /**
  * A document store that uses MongoDB as the backend.
  */
@@ -64,12 +70,18 @@ public class MongoDocumentStore implements DocumentStore {
     private final Cache<String, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
 
+    /**
+     * Comparator for maps with {@link Revision} keys. The maps are ordered
+     * descending, newest revisions first!
+     */
+    private final Comparator<Revision> comparator = Collections.reverseOrder(new StableRevisionComparator());
+
     public MongoDocumentStore(DB db, MongoMK.Builder builder) {
         nodes = db.getCollection(
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(
                 Collection.CLUSTER_NODES.toString());
-        
+
         // indexes:
         // the _id field is the primary key, so we don't need to define it
         DBObject index = new BasicDBObject();
@@ -257,46 +269,39 @@ public class MongoDocumentStore implements DocumentStore {
                                                  boolean upsert,
                                                  boolean checkConditions) {
         DBCollection dbCollection = getDBCollection(collection);
-        QueryBuilder query = getByKeyQuery(updateOp.key);
+        QueryBuilder query = getByKeyQuery(updateOp.id);
 
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();
 
-        for (Entry<String, Operation> entry : updateOp.changes.entrySet()) {
-            String k = entry.getKey();
-            if (k.equals(Document.ID)) {
+        for (Entry<Key, Operation> entry : updateOp.changes.entrySet()) {
+            Key k = entry.getKey();
+            if (k.getName().equals(Document.ID)) {
                 // avoid exception "Mod on _id not allowed"
                 continue;
             }
             Operation op = entry.getValue();
             switch (op.type) {
                 case SET: {
-                    setUpdates.append(k, op.value);
+                    setUpdates.append(k.toString(), op.value);
                     break;
                 }
                 case INCREMENT: {
-                    incUpdates.append(k, op.value);
+                    incUpdates.append(k.toString(), op.value);
                     break;
                 }
                 case SET_MAP_ENTRY: {
-                    setUpdates.append(k, op.value);
+                    setUpdates.append(k.toString(), op.value);
                     break;
                 }
                 case REMOVE_MAP_ENTRY: {
-                    unsetUpdates.append(k, "1");
-                    break;
-                }
-                case SET_MAP: {
-                    String[] kv = k.split("\\.");
-                    BasicDBObject sub = new BasicDBObject();
-                    sub.put(kv[1], op.value);
-                    setUpdates.append(kv[0], sub);
+                    unsetUpdates.append(k.toString(), "1");
                     break;
                 }
                 case CONTAINS_MAP_ENTRY: {
                     if (checkConditions) {
-                        query.and(k).exists(op.value);
+                        query.and(k.toString()).exists(op.value);
                     }
                     break;
                 }
@@ -335,8 +340,8 @@ public class MongoDocumentStore implements DocumentStore {
                     oldDoc.deepCopy(newDoc);
                     oldDoc.seal();
                 }
-                String key = updateOp.getKey();
-                MemoryDocumentStore.applyChanges(newDoc, updateOp);
+                String key = updateOp.getId();
+                MemoryDocumentStore.applyChanges(newDoc, updateOp, comparator);
                 newDoc.seal();
                 nodesCache.put(key, (NodeDocument) newDoc);
             }
@@ -377,22 +382,26 @@ public class MongoDocumentStore implements DocumentStore {
             inserts[i] = new BasicDBObject();
             UpdateOp update = updateOps.get(i);
             T target = collection.newDocument(this);
-            MemoryDocumentStore.applyChanges(target, update);
+            MemoryDocumentStore.applyChanges(target, update, comparator);
             docs.add(target);
-            for (Entry<String, Operation> entry : update.changes.entrySet()) {
-                String k = entry.getKey();
+            for (Entry<Key, Operation> entry : update.changes.entrySet()) {
+                Key k = entry.getKey();
                 Operation op = entry.getValue();
                 switch (op.type) {
                     case SET:
                     case INCREMENT: {
-                        inserts[i].put(k, op.value);
+                        inserts[i].put(k.toString(), op.value);
                         break;
                     }
-                    case SET_MAP:
                     case SET_MAP_ENTRY: {
-                        String[] kv = k.split("\\.");
-                        DBObject value = new BasicDBObject(kv[1], op.value);
-                        inserts[i].put(kv[0], value);
+                        Revision r = k.getRevision();
+                        if (r == null) {
+                            throw new IllegalStateException(
+                                    "SET_MAP_ENTRY must not have null revision");
+                        }
+                        DBObject value = new BasicDBObject(
+                                k.getRevision().toString(), op.value);
+                        inserts[i].put(k.getName(), value);
                         break;
                     }
                     case REMOVE_MAP_ENTRY:
@@ -441,11 +450,20 @@ public class MongoDocumentStore implements DocumentStore {
                 } else if (o instanceof Long) {
                     copy.put(key, o);
                 } else if (o instanceof BasicDBObject) {
-                    copy.put(key, o);
+                    copy.put(key, convertMongoMap((BasicDBObject) o));
                 }
             }
         }
         return copy;
+    }
+
+    @Nonnull
+    private Map<Revision, Object> convertMongoMap(@Nonnull BasicDBObject obj) {
+        Map<Revision, Object> map = new TreeMap<Revision, Object>(comparator);
+        for (Map.Entry<String, Object> entry : obj.entrySet()) {
+            map.put(Revision.fromString(entry.getKey()), entry.getValue());
+        }
+        return map;
     }
 
     private <T extends Document> DBCollection getDBCollection(Collection<T> collection) {
