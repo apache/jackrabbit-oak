@@ -181,6 +181,7 @@ public class SegmentSizeTest {
         RecordId id = writer.writeNode(state).getRecordId();
         writer.flush();
         int base = store.readSegment(id.getSegmentId()).size();
+        writer = new SegmentWriter(store); // avoid cross-segment caching
         writer.writeNode(state);
         id = writer.writeNode(state).getRecordId();
         writer.flush();
