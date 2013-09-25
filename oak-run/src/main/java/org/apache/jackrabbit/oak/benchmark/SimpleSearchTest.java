@@ -23,6 +23,8 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 
+import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
+
 /**
  * Run a simple query of the form "//*[@testcount=...]".
  */
@@ -55,6 +57,9 @@ public class SimpleSearchTest extends AbstractTest {
             session.save();
         }
 
+        new OakIndexUtils.PropertyIndex().
+                property("testcount").
+                create(session);
     }
 
     @Override
