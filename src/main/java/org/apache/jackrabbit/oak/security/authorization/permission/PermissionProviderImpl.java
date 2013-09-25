@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
@@ -55,13 +56,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * PermissionProviderImpl... TODO
  * <p/>
- * FIXME: define read/write access patterns on version-store content
- * FIXME: proper access permissions on activity-store and configuration-store
  * FIXME: decide on where to filter out hidden items (OAK-753)
  */
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionProviderImpl.class);
+
+    private static final Set<String> V_ROOT_NAMES = ImmutableSet.of(
+            JcrConstants.JCR_VERSIONSTORAGE,
+            VersionConstants.JCR_CONFIGURATIONS,
+            VersionConstants.JCR_ACTIVITIES);
 
     private final Root root;
 
@@ -145,15 +149,17 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                 // TODO: OAK-753 decide on where to filter out hidden items.
                 return true;
             case TreeTypeProvider.TYPE_VERSION:
-                TreeLocation location = getVersionableLocation(tree, property);
+                TreeLocation location = getLocation(tree, property);
                 if (location == null) {
-                    // TODO: review permission evaluation on hierarchy nodes within the different version stores.
-                    return compiledPermissions.isGranted(tree, property, permissions);
+                    // unable to determine the location of the versionable item -> deny access.
+                    return false;
                 }
                 Tree versionableTree = (property == null) ? location.getTree() : location.getParent().getTree();
                 if (versionableTree != null) {
                     return compiledPermissions.isGranted(versionableTree, property, permissions);
                 } else {
+                    // versionable node does not exist (anymore) in this workspace;
+                    // use best effort calculation based on the item path.
                     return compiledPermissions.isGranted(location.getPath(), permissions);
                 }
             default:
@@ -168,15 +174,12 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
 
         boolean isGranted = false;
-        if (!location.exists()) {
-            // TODO: deal with version content
+        PropertyState property = location.getProperty();
+        Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
+        if (tree != null) {
+            isGranted = isGranted(tree, property, permissions);
+        } else if (!isVersionStorePath(oakPath)) {
             isGranted = compiledPermissions.isGranted(oakPath, permissions);
-        } else {
-            PropertyState property = location.getProperty();
-            Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
-            if (tree != null) {
-                isGranted = isGranted(tree, property, permissions);
-            }
         }
         return isGranted;
     }
@@ -222,53 +225,82 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     private ReadStatus getVersionContentReadStatus(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
-        TreeLocation location = getVersionableLocation(versionStoreTree, property);
-        ReadStatus status;
+        TreeLocation location = getLocation(versionStoreTree, property);
+        ReadStatus status = ReadStatus.DENY_THIS;
         if (location != null) {
             Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
-            if (tree == null) {
+            if (tree != null) {
+                status = compiledPermissions.getReadStatus(tree, property);
+            } else {
+                // versionable node does not exist (anymore) in this workspace;
+                // use best effort calculation based on the item path.
                 long permission = (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY;
                 if (compiledPermissions.isGranted(location.getPath(), permission)) {
                     status = ReadStatus.ALLOW_THIS;
-                } else {
-                    status = ReadStatus.DENY_THIS;
                 }
-            } else {
-                status = compiledPermissions.getReadStatus(tree, property);
             }
-        } else {
-            // TODO: review access on hierarchy nodes within the different version stores.
-            status = compiledPermissions.getReadStatus(versionStoreTree, property);
         }
         return status;
     }
 
     @CheckForNull
-    private TreeLocation getVersionableLocation(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
+    private TreeLocation getLocation(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
         String relPath = "";
         String propName = (property == null) ? "" : property.getName();
         String versionablePath = null;
         Tree t = versionStoreTree;
-        while (t.exists() && !t.isRoot() && !JcrConstants.JCR_VERSIONSTORAGE.equals(t.getName())) {
-            String name = t.getName();
+        while (t.exists() && !t.isRoot() && !V_ROOT_NAMES.contains(t.getName())) {
             String ntName = checkNotNull(TreeUtil.getPrimaryTypeName(t));
-            if (VersionConstants.JCR_FROZENNODE.equals(name) && t != versionStoreTree) {
+            if (VersionConstants.JCR_FROZENNODE.equals(t.getName()) && t != versionStoreTree) {
                 relPath = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
             } else if (JcrConstants.NT_VERSIONHISTORY.equals(ntName)) {
                 PropertyState prop = t.getProperty(workspaceName);
                 if (prop != null) {
                     versionablePath = PathUtils.concat(prop.getValue(Type.PATH), relPath, propName);
                 }
-                break;
+                return createLocation(versionablePath);
+            } else if (VersionConstants.NT_CONFIGURATION.equals(ntName)) {
+                String rootId = TreeUtil.getString(t, VersionConstants.JCR_ROOT);
+                versionablePath = new IdentifierManager(root).getPath(rootId);
+                return createLocation(versionablePath);
+            } else if (VersionConstants.NT_ACTIVITY.equals(ntName)) {
+                return createLocation(versionStoreTree, property);
             }
             t = t.getParent();
         }
 
-        if (versionablePath == null || versionablePath.length() == 0) {
-            log.debug("Unable to determine versionable path of the version store node.");
-            return null;
+        // intermediate node in the version, configuration or activity store that
+        // matches none of the special conditions checked above -> regular permission eval.
+        return createLocation(versionStoreTree, property);
+    }
+
+    private static boolean isVersionStorePath(@Nonnull String oakPath) {
+        if (oakPath.indexOf(JcrConstants.JCR_SYSTEM) == 1) {
+            for (String p : VersionConstants.SYSTEM_PATHS) {
+                if (oakPath.startsWith(p)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @CheckForNull
+    private TreeLocation createLocation(@Nullable String oakPath) {
+        if (oakPath != null && PathUtils.isAbsolute(oakPath)) {
+            return TreeLocation.create(immutableRoot, oakPath);
         } else {
-            return TreeLocation.create(immutableRoot, versionablePath);
+            log.debug("Unable to create location for path " + oakPath);
+            return null;
+        }
+    }
+
+    @Nonnull
+    private static TreeLocation createLocation(@Nonnull Tree tree, @Nullable PropertyState property) {
+        if (property == null) {
+            return TreeLocation.create(tree);
+        } else {
+            return TreeLocation.create(tree, property);
         }
     }
 }
