@@ -586,7 +586,8 @@ public final class KernelNodeState extends AbstractNodeState {
                         && propState.getType() != Type.BINARIES) {
                     // assume binaries go into blob store
                     for (int i = 0; i < propState.count(); i++) {
-                        memory += propState.size(i);
+                        // size() returns length of string
+                        memory += 12 + propState.size(i) * 2;
                     }
                 }
             }
