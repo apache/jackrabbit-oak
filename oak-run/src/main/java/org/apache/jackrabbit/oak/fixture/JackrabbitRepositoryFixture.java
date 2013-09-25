@@ -20,6 +20,8 @@ import static org.apache.jackrabbit.core.config.RepositoryConfigurationParser.RE
 
 import java.io.File;
 import java.io.InputStream;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import javax.jcr.Repository;
@@ -62,6 +64,11 @@ public class JackrabbitRepositoryFixture implements RepositoryFixture {
             RepositoryConfig config = RepositoryConfig.create(
                     new InputSource(xml), variables);
 
+            // Prevent Derby from polluting the current directory
+            System.setProperty(
+                    "derby.stream.error.file",
+                    new File(directory, "derby.log").getPath());
+
             RepositoryImpl repository = RepositoryImpl.create(config);
             this.cluster = new RepositoryImpl[] { repository };
             return new Repository[] { repository };
@@ -80,6 +87,11 @@ public class JackrabbitRepositoryFixture implements RepositoryFixture {
         for (RepositoryImpl repository : cluster) {
             File directory = new File(repository.getConfig().getHomeDir());
             repository.shutdown();
+            try {
+                DriverManager.getConnection("jdbc:derby:;shutdown=true");
+            } catch (SQLException e) {
+                // ignore
+            }
             FileUtils.deleteQuietly(directory);
         }
     }
