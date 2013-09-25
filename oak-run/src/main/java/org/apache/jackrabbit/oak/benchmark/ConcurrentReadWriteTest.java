@@ -21,7 +21,6 @@ import java.util.Random;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 
 /**
  * A {@link ConcurrentReadTest} with a single writer thread that continuously
@@ -38,26 +37,20 @@ public class ConcurrentReadWriteTest extends ConcurrentReadTest {
 
     class Writer implements Runnable {
 
-        private Session session;
-
         private final Random random = new Random();
+
+        private final Session session = loginWriter();
 
         private long count;
 
         public void run() {
             try {
-                session = getRepository().login(
-                        new SimpleCredentials("admin", "admin".toCharArray()));
-                try {
-                    int i = random.nextInt(NODE_COUNT);
-                    int j = random.nextInt(NODE_COUNT);
-                    Node node = session.getRootNode().getNode(
-                            "testroot/node" + i + "/node" + j);
-                    node.setProperty("count", count++);
-                    session.save();
-                } finally {
-                    session.logout();
-                }
+                int i = random.nextInt(NODE_COUNT);
+                int j = random.nextInt(NODE_COUNT);
+                Node node = session.getRootNode().getNode(
+                        "testroot/node" + i + "/node" + j);
+                node.setProperty("count", count++);
+                session.save();
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }

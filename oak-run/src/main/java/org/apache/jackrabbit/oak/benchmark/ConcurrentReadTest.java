@@ -21,7 +21,6 @@ import java.util.Random;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 
 /**
  * Test case that traverses 10k unstructured nodes (100x100) while 50 concurrent
@@ -33,25 +32,24 @@ public class ConcurrentReadTest extends AbstractTest {
 
     private static final int READER_COUNT = getScale(20);
 
+    private Reader reader;
+
     @Override
     public void beforeSuite() throws Exception {
-        Session session = getRepository().login(
-                new SimpleCredentials("admin", "admin".toCharArray()));
-        try {
-            Node root = session.getRootNode().addNode("testroot", "nt:unstructured");
-            for (int i = 0; i < NODE_COUNT; i++) {
-                Node node = root.addNode("node" + i, "nt:unstructured");
-                for (int j = 0; j < NODE_COUNT; j++) {
-                    node.addNode("node" + j, "nt:unstructured");
-                }
-                session.save();
+        Session session = loginWriter();
+        Node root = session.getRootNode().addNode("testroot", "nt:unstructured");
+        for (int i = 0; i < NODE_COUNT; i++) {
+            Node node = root.addNode("node" + i, "nt:unstructured");
+            for (int j = 0; j < NODE_COUNT; j++) {
+                node.addNode("node" + j, "nt:unstructured");
             }
+            session.save();
+        }
 
-            for (int i = 0; i < READER_COUNT; i++) {
-                addBackgroundJob(new Reader());
-            }
-        } finally {
-            session.logout();
+        reader = new Reader();
+
+        for (int i = 0; i < READER_COUNT; i++) {
+            addBackgroundJob(new Reader());
         }
     }
 
@@ -59,18 +57,13 @@ public class ConcurrentReadTest extends AbstractTest {
 
         private final Random random = new Random();
 
+        private final Session session = loginWriter(); // TODO: anonymous is slow
+
         public void run() {
             try {
-                Session session = getRepository().login(
-                        new SimpleCredentials("admin", "admin".toCharArray()));
-                try {
-                    int i = random.nextInt(NODE_COUNT);
-                    int j = random.nextInt(NODE_COUNT);
-                    session.getRootNode()
-                        .getNode("testroot/node" + i + "/node" + j);
-                } finally {
-                    session.logout();
-                }
+                int i = random.nextInt(NODE_COUNT);
+                int j = random.nextInt(NODE_COUNT);
+                session.getRootNode().getNode("testroot/node" + i + "/node" + j);
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -80,7 +73,6 @@ public class ConcurrentReadTest extends AbstractTest {
 
     @Override
     public void runTest() throws Exception {
-        Reader reader = new Reader();
         for (int i = 0; i < 1000; i++) {
             reader.run();
         }
@@ -88,20 +80,14 @@ public class ConcurrentReadTest extends AbstractTest {
 
     @Override
     public void afterSuite() throws Exception {
-        Session session = getRepository().login(
-                new SimpleCredentials("admin", "admin".toCharArray()));
-        try {
-            Node root = session.getRootNode().getNode("testroot");
-            for (int i = 0; i < NODE_COUNT; i++) {
-                root.getNode("node" + i).remove();
-                session.save();
-            }
-
-            root.remove();
+        Session session = loginWriter();
+        Node root = session.getRootNode().getNode("testroot");
+        for (int i = 0; i < NODE_COUNT; i++) {
+            root.getNode("node" + i).remove();
             session.save();
-        } finally {
-            session.logout();
         }
+        root.remove();
+        session.save();
     }
 
 }
