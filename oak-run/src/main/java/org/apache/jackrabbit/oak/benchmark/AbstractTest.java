@@ -279,13 +279,8 @@ abstract class AbstractTest extends Benchmark {
             @Override
             public void run() {
                 while (running) {
-                    try {
-                        // rate-limit, to avoid 100% cpu usage
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        // ignore
-                    }
                     job.run();
+                    Thread.yield();
                 }
             }
         };
