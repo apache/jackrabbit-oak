@@ -19,11 +19,8 @@ package org.apache.jackrabbit.oak.plugins.version;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
 
 import org.apache.jackrabbit.JcrConstants;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * VersionConstants... TODO
@@ -130,10 +127,6 @@ public interface VersionConstants extends JcrConstants {
             JCR_VERSIONABLEUUID,
             JCR_VERSIONHISTORY
     ));
-
-    Set<String> LOCK_PROPERTY_NAMES = ImmutableSet.of(
-            JCR_LOCKISDEEP,
-            JCR_LOCKOWNER);
 
     Collection<String> VERSION_NODE_NAMES = Collections.unmodifiableList(Arrays.asList(
             JCR_ACTIVITIES,
