@@ -184,6 +184,10 @@ public class FullTextSearchImpl extends ConstraintImpl {
             appendString(buff, p);
         } else {
             String path = selector.currentPath();
+            if (!PathUtils.denotesRoot(path)) {
+                appendString(buff,
+                        PropertyValues.newString(PathUtils.getName(path)));
+            }
             if (relativePath != null) {
                 path = PathUtils.concat(path, relativePath);
             }
