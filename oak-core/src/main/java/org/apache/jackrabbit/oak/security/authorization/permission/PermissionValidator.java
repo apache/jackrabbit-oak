@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.AbstractTree;
+import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -228,7 +229,7 @@ class PermissionValidator extends DefaultValidator {
                    property defined by mix:referenceable */
                 perm = defaultPermission;
             }
-        } else if (isLockProperty(name)) {
+        } else if (LockConstants.LOCK_PROPERTY_NAMES.contains(name)) {
             perm = Permissions.LOCK_MANAGEMENT;
         } else if (VersionConstants.VERSION_PROPERTY_NAMES.contains(name)) {
             perm = Permissions.VERSION_MANAGEMENT;
@@ -241,10 +242,6 @@ class PermissionValidator extends DefaultValidator {
             perm = defaultPermission;
         }
         return perm;
-    }
-
-    private static boolean isLockProperty(String name) {
-        return JcrConstants.JCR_LOCKISDEEP.equals(name) || JcrConstants.JCR_LOCKOWNER.equals(name);
     }
 
     public boolean noTraverse(long permission, long defaultPermission) {
