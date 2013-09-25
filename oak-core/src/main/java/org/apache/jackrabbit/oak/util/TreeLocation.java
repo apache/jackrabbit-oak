@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.util;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -30,6 +25,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
 /**
  * A {@code TreeLocation} denotes a location inside a tree.
@@ -47,8 +47,16 @@ public abstract class TreeLocation {
     /**
      * Create a new {@code TreeLocation} instance for a {@code tree}
      */
-    public static TreeLocation create(Tree tree) {
+    public static TreeLocation create(@Nonnull Tree tree) {
         return new NodeLocation(tree);
+    }
+
+    /**
+     * Create a new {@code TreeLocation} instance for the specified {@code tree}
+     * and {@code property}.
+     */
+    public static TreeLocation create(@Nonnull Tree tree, @Nonnull PropertyState property) {
+        return new PropertyLocation(tree, property.getName());
     }
 
     /**
