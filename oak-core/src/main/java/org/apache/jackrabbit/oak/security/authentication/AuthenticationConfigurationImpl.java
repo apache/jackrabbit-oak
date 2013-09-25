@@ -96,7 +96,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
      * </ul>
      *
      * @param contentRepository The content repository.
-     * @return An new instance of {@link LoginContextProviderImpl}.
+     * @return An new instance of {@link LoginContextProvider}.
      */
     @Nonnull
     @Override
@@ -120,7 +120,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     }
 
     /**
-     * Returns a new instance of {@link TokenProviderImpl}.
+     * Returns a new instance of {@link TokenProvider}.
      *
      * <h4>Configuration Options</h4>
      * <ul>
@@ -130,7 +130,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
      * </ul>
      *
      * @param root The target root.
-     * @return A new instance of {@link TokenProviderImpl}.
+     * @return A new instance of {@link TokenProvider}.
      */
     @Nonnull
     @Override
