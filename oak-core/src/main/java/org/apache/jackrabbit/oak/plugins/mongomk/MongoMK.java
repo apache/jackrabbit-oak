@@ -93,7 +93,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
      * Do not cache more than this number of children for a document.
      */
     private static final int NUM_CHILDREN_CACHE_LIMIT = Integer.getInteger(
-            "oak.mongoMK.childrenCacheLimit", 1000);
+            "oak.mongoMK.childrenCacheLimit", 16 * 1024);
 
     /**
      * When trying to access revisions that are older than this many
@@ -617,7 +617,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         }
         // check cache
         NodeDocument.Children c = docChildrenCache.getIfPresent(path);
-        if (c == null || (c.childNames.size() < limit && !c.isComplete)) {
+        if (c == null) {
             c = new NodeDocument.Children();
             List<NodeDocument> docs = store.query(Collection.NODES, from, to, limit);
             for (NodeDocument doc : docs) {
@@ -626,6 +626,22 @@ public class MongoMK implements MicroKernel, RevisionContext {
             }
             c.isComplete = docs.size() < limit;
             docChildrenCache.put(path, c);
+        } else if (c.childNames.size() < limit && !c.isComplete) {
+            // fetch more and update cache
+            String lastName = c.childNames.get(c.childNames.size() - 1);
+            String lastPath = PathUtils.concat(path, lastName);
+            from = Utils.getIdFromPath(lastPath);
+            int remainingLimit = limit - c.childNames.size();
+            List<NodeDocument> docs = store.query(Collection.NODES,
+                    from, to, remainingLimit);
+            NodeDocument.Children clone = c.clone();
+            for (NodeDocument doc : docs) {
+                String p = Utils.getPathFromId(doc.getId());
+                clone.childNames.add(PathUtils.getName(p));
+            }
+            clone.isComplete = docs.size() < remainingLimit;
+            docChildrenCache.put(path, clone);
+            c = clone;
         }
         return Iterables.transform(c.childNames, new Function<String, NodeDocument>() {
             @Override
