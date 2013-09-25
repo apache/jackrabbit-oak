@@ -75,8 +75,6 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class MongoMK implements MicroKernel, RevisionContext {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
-
     /**
      * The threshold where special handling for many child node starts.
      */
@@ -88,6 +86,8 @@ public class MongoMK implements MicroKernel, RevisionContext {
      */
     static final boolean LIRS_CACHE = Boolean.parseBoolean(
             System.getProperty("oak.mongoMK.lirsCache", "false"));
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
     /**
      * Do not cache more than this number of children for a document.
@@ -121,6 +121,11 @@ public class MongoMK implements MicroKernel, RevisionContext {
     private static final int REMEMBER_REVISION_ORDER_MILLIS = 60 * 60 * 1000;
 
     /**
+     * The MongoDB store (might be used by multiple MongoMKs).
+     */
+    protected final DocumentStore store;
+
+    /**
      * The delay for asynchronous operations (delayed commit propagation and
      * cache update).
      */
@@ -130,11 +135,6 @@ public class MongoMK implements MicroKernel, RevisionContext {
      * Whether this instance is disposed.
      */
     private final AtomicBoolean isDisposed = new AtomicBoolean();
-
-    /**
-     * The MongoDB store (might be used by multiple MongoMKs).
-     */
-    private final DocumentStore store;
 
     /**
      * The MongoDB blob store.
