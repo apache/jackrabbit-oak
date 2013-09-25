@@ -102,7 +102,7 @@ public class MemoryDocumentStore implements DocumentStore {
         lock.lock();
         try {
             ConcurrentSkipListMap<String, T> map = getMap(collection);
-            ConcurrentNavigableMap<String, T> sub = map.subMap(fromKey, toKey);
+            ConcurrentNavigableMap<String, T> sub = map.subMap(fromKey + "\0", toKey);
             ArrayList<T> list = new ArrayList<T>();
             for (T doc : sub.values()) {
                 if (indexedProperty != null) {
