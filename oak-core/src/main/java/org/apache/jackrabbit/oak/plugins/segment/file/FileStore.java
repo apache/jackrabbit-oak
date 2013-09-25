@@ -27,9 +27,9 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.UUID;
@@ -157,8 +157,7 @@ public class FileStore implements SegmentStore {
                 checkState(id.equals(new UUID(
                         buffer.getLong(), buffer.getLong())));
 
-                Collection<UUID> referencedIds =
-                        newArrayListWithCapacity(count);
+                List<UUID> referencedIds = newArrayListWithCapacity(count);
                 for (int i = 0; i < count; i++) {
                     referencedIds.add(new UUID(
                             buffer.getLong(), buffer.getLong()));
@@ -167,9 +166,7 @@ public class FileStore implements SegmentStore {
                 buffer.limit(buffer.position() + length);
                 return new Segment(
                         FileStore.this, id,
-                        buffer.slice(), referencedIds,
-                        Collections.<String, RecordId>emptyMap(),
-                        Collections.<Template, RecordId>emptyMap());
+                        buffer.slice(), referencedIds);
             }
         }
 
@@ -177,10 +174,9 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
-    public synchronized void createSegment(
+    public synchronized void writeSegment(
             UUID segmentId, byte[] data, int offset, int length,
-            Collection<UUID> referencedSegmentIds,
-            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
+            List<UUID> referencedSegmentIds) {
         int size = 8 + 4 + 4 + 16 + 16 * referencedSegmentIds.size() + length;
         ByteBuffer buffer = ByteBuffer.allocate(size);
 
@@ -204,10 +200,6 @@ public class FileStore implements SegmentStore {
         }
 
         buffer.position(pos);
-
-        cache.addSegment(new Segment(
-                this, segmentId, buffer.slice(),
-                referencedSegmentIds, strings, templates));
     }
 
     private void writeEntry(UUID segmentId, byte[] buffer)

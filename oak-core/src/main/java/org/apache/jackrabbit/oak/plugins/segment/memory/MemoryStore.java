@@ -19,19 +19,18 @@ package org.apache.jackrabbit.oak.plugins.segment.memory;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
-import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.Template;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class MemoryStore implements SegmentStore {
@@ -76,15 +75,14 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
-    public void createSegment(
+    public void writeSegment(
             UUID segmentId, byte[] data, int offset, int length,
-            Collection<UUID> referencedSegmentIds,
-            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
+            List<UUID> referencedSegmentIds) {
         byte[] buffer = new byte[length];
         System.arraycopy(data, offset, buffer, 0, length);
         Segment segment = new Segment(
                 this, segmentId, ByteBuffer.wrap(buffer),
-                referencedSegmentIds, strings, templates);
+                Lists.newArrayList(referencedSegmentIds));
         if (segments.putIfAbsent(segment.getSegmentId(), segment) != null) {
             throw new IllegalStateException(
                     "Segment override: " + segment.getSegmentId());

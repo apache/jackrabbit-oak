@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
@@ -101,9 +102,9 @@ public class SegmentWriter {
 
     public synchronized void flush() {
         if (length > 0) {
-            store.createSegment(
+            store.writeSegment(
                     uuid, buffer, buffer.length - length, length,
-                    uuids.keySet(), strings, templates);
+                    newArrayList(uuids.keySet()));
 
             uuid = UUID.randomUUID();
             length = 0;
@@ -498,11 +499,9 @@ public class SegmentWriter {
                 UUID segmentId = UUID.randomUUID();
                 int align = Segment.RECORD_ALIGN_BYTES - 1;
                 int bulkAlignLength = (bulkLength + align) & ~align;
-                store.createSegment(
+                store.writeSegment(
                         segmentId, bulk, 0, bulkAlignLength,
-                        Collections.<UUID>emptyList(),
-                        Collections.<String, RecordId>emptyMap(),
-                        Collections.<Template, RecordId>emptyMap());
+                        Collections.<UUID>emptyList());
                 for (int pos = Segment.MAX_SEGMENT_SIZE - bulkAlignLength;
                         pos < Segment.MAX_SEGMENT_SIZE;
                         pos += BLOCK_SIZE) {
