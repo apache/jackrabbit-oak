@@ -22,8 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -89,34 +88,31 @@ public class Segment {
                 }
             };
 
-    private static final UUID[] NO_UUIDS = new UUID[0];
-
     private final SegmentStore store;
 
     private final UUID uuid;
 
     private final ByteBuffer data;
 
-    private final UUID[] uuids;
+    private final List<UUID> uuids;
 
     private final OffsetCache<String> strings;
 
     private final OffsetCache<Template> templates;
 
-    public Segment(SegmentStore store,
-            UUID uuid, ByteBuffer data, Collection<UUID> uuids,
-            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
+    public Segment(
+            SegmentStore store, UUID uuid, ByteBuffer data, List<UUID> uuids) {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
-        this.uuids = checkNotNull(uuids).toArray(NO_UUIDS);
-        this.strings = new OffsetCache<String>(strings) {
+        this.uuids = checkNotNull(uuids);
+        this.strings = new OffsetCache<String>() {
             @Override
             protected String load(int offset) {
                 return loadString(offset);
             }
         };
-        this.templates = new OffsetCache<Template>(templates) {
+        this.templates = new OffsetCache<Template>() {
             @Override
             protected Template load(int offset) {
                 return loadTemplate(offset);
@@ -145,10 +141,6 @@ public class Segment {
 
     public ByteBuffer getData() {
         return data;
-    }
-
-    public UUID[] getUUIDs() {
-        return uuids;
     }
 
     public int size() {
@@ -183,7 +175,7 @@ public class Segment {
 
     private RecordId internalReadRecordId(int pos) {
         return new RecordId(
-                uuids[data.get(pos) & 0xff],
+                uuids.get(data.get(pos) & 0xff),
                 (data.get(pos + 1) & 0xff) << (8 + Segment.RECORD_ALIGN_BITS)
                 | (data.get(pos + 2) & 0xff) << Segment.RECORD_ALIGN_BITS);
     }

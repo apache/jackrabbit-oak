@@ -24,18 +24,15 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
-import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.Template;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.collect.Lists;
@@ -109,18 +106,11 @@ public class MongoStore implements SegmentStore {
     }
 
     @Override
-    public void createSegment(
+    public void writeSegment(
             UUID segmentId, byte[] data, int offset, int length,
-            Collection<UUID> referencedSegmentIds,
-            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
+            List<UUID> referencedSegmentIds) {
         byte[] d = new byte[length];
         System.arraycopy(data, offset, d, 0, length);
-
-        cache.addSegment(new Segment(
-                this, segmentId, ByteBuffer.wrap(d), referencedSegmentIds,
-                Collections.<String, RecordId>emptyMap(),
-                Collections.<Template, RecordId>emptyMap()));
-
         insertSegment(segmentId, d, referencedSegmentIds);
     }
 
@@ -143,10 +133,7 @@ public class MongoStore implements SegmentStore {
         for (Object object : list) {
             uuids.add(UUID.fromString(object.toString()));
         }
-        return new Segment(
-                this, segmentId, ByteBuffer.wrap(data), uuids,
-                Collections.<String, RecordId>emptyMap(),
-                Collections.<Template, RecordId>emptyMap());
+        return new Segment(this, segmentId, ByteBuffer.wrap(data), uuids);
     }
 
     private void insertSegment(
