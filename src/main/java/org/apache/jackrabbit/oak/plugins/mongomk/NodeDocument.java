@@ -68,6 +68,12 @@ public class NodeDocument extends Document {
     static final int SPLIT_CANDIDATE_THRESHOLD = 32 * 1024;
 
     /**
+     * A document size threshold after which a split is forced even if
+     * {@link #REVISIONS_SPLIT_OFF_SIZE} is not reached.
+     */
+    static final int FORCE_SPLIT_THRESHOLD = 1024 * 1024;
+
+    /**
      * Only split off at least this number of revisions.
      */
     static final int REVISIONS_SPLIT_OFF_SIZE = 1000;
@@ -535,8 +541,10 @@ public class NodeDocument extends Document {
      */
     @Nonnull
     public Iterable<UpdateOp> split(@Nonnull RevisionContext context) {
-        // only consider if there are enough commits
-        if (getLocalRevisions().size() + getLocalCommitRoot().size() <= REVISIONS_SPLIT_OFF_SIZE) {
+        // only consider if there are enough commits,
+        // unless document is really big
+        if (getLocalRevisions().size() + getLocalCommitRoot().size() <= REVISIONS_SPLIT_OFF_SIZE
+                && getMemory() < FORCE_SPLIT_THRESHOLD) {
             return Collections.emptyList();
         }
         String id = getId();
@@ -599,7 +607,8 @@ public class NodeDocument extends Document {
             }
             numValues += splitMap.size();
         }
-        if (high != null && low != null && numValues >= REVISIONS_SPLIT_OFF_SIZE) {
+        if (high != null && low != null
+                && (numValues >= REVISIONS_SPLIT_OFF_SIZE || getMemory() > FORCE_SPLIT_THRESHOLD)) {
             // enough revisions to split off
             splitOps = new ArrayList<UpdateOp>(2);
             // move to another document
@@ -963,12 +972,12 @@ public class NodeDocument extends Document {
      * The list of children for a node. The list might be complete or not, in
      * which case it only represents a block of children.
      */
-    static final class Children implements CacheValue {
+    static final class Children implements CacheValue, Cloneable {
 
         /**
          * The child node names, ordered as stored in MongoDB.
          */
-        final List<String> childNames = new ArrayList<String>();
+        ArrayList<String> childNames = new ArrayList<String>();
         
         /**
          * Whether the list is complete (in which case there are no other
@@ -983,6 +992,18 @@ public class NodeDocument extends Document {
                 size += name.length() * 2 + 56;
             }
             return size;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public Children clone() {
+            try {
+                Children clone = (Children) super.clone();
+                clone.childNames = (ArrayList<String>) childNames.clone();
+                return clone;
+            } catch (CloneNotSupportedException e) {
+                throw new RuntimeException();
+            }
         }
     }
 
