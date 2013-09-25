@@ -30,7 +30,7 @@ public class EmpiricalWeigher implements Weigher<String, CacheValue> {
 
     @Override
     public int weigh(String key, CacheValue value) {
-        return key.length() * 2 + value.getMemory();
+        return 48 + key.length() * 2 + value.getMemory();
     }
     
 }
