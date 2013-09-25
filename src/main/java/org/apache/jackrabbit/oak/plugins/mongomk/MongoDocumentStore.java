@@ -219,7 +219,7 @@ public class MongoDocumentStore implements DocumentStore {
         log("query", fromKey, toKey, limit);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
-        queryBuilder.greaterThanEquals(fromKey);
+        queryBuilder.greaterThan(fromKey);
         queryBuilder.lessThan(toKey);
         if (indexedProperty != null) {
             queryBuilder.and(indexedProperty);
