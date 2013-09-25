@@ -71,7 +71,7 @@ public class MongoStore implements SegmentStore {
     }
 
     public MongoStore(DB db, int cacheSize) {
-        this(db, new SegmentCache(cacheSize));
+        this(db, SegmentCache.create(cacheSize));
     }
 
 
