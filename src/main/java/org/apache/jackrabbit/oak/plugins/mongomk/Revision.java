@@ -57,11 +57,6 @@ public class Revision {
      */
     private final boolean branch;
     
-    /**
-     * The string representation.
-     */
-    private String string;
-    
     public Revision(long timestamp, int counter, int clusterId) {
         this(timestamp, counter, clusterId, false);
     }
@@ -166,17 +161,8 @@ public class Revision {
     
     @Override
     public String toString() {
-        if (string == null) {
-            string = new StringBuilder(branch ? "b" : "").
-                append('r').
-                append(Long.toHexString(timestamp)).
-                append('-').
-                append(Integer.toHexString(counter)).
-                append('-').
-                append(Integer.toHexString(clusterId)).
-                toString();
-        }
-        return string;
+        return (branch ? "b" : "") + 'r' + Long.toHexString(timestamp) + '-' +
+                Integer.toHexString(counter) + '-' + Integer.toHexString(clusterId);
     }
     
     /**

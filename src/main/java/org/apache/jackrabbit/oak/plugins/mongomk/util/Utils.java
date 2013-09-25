@@ -69,23 +69,31 @@ public class Utils {
         int size = 0;
 
         for (Entry<?, Object> e : map.entrySet()) {
-            size += e.getKey().toString().length() * 2;
+            if (e.getKey() instanceof Revision) {
+                size += 32;
+            } else {
+                size += 48 + e.getKey().toString().length() * 2;
+            }
             Object o = e.getValue();
             if (o instanceof String) {
-                size += ((String) o).length() * 2;
+                size += 48 + ((String) o).length() * 2;
             } else if (o instanceof Long) {
-                size += 8;
+                size += 16;
             } else if (o instanceof Integer) {
-                size += 4;
+                size += 8;
             } else if (o instanceof Map) {
                 size += 8 + estimateMemoryUsage((Map<String, Object>) o);
             }
         }
 
         if (map instanceof BasicDBObject) {
-            // Based on emperical testing using JAMM
+            // Based on empirical testing using JAMM
             size += 176;
-            size += map.entrySet().size() * 136;
+            size += map.size() * 136;
+        } else {
+            // overhead for some other kind of map
+            size += 112; // TreeMap (80) + unmodifiable wrapper (32)
+            size += map.size() * 64; // 64 bytes per entry
         }
         return size;
     }
