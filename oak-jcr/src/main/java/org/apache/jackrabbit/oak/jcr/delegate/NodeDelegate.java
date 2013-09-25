@@ -98,19 +98,6 @@ public class NodeDelegate extends ItemDelegate {
     /** The underlying {@link org.apache.jackrabbit.oak.api.Tree} of this node. */
     private final Tree tree;
 
-    /**
-     * Create a new {@code NodeDelegate} instance for an existing {@code Tree}. That
-     * is for one where {@code exists() == true}.
-     *
-     * @param sessionDelegate
-     * @param tree
-     * @return  A new {@code NodeDelegate} instance or {@code null} if {@code tree}
-     *          doesn't exist.
-     */
-    static NodeDelegate create(SessionDelegate sessionDelegate, Tree tree) {
-        return tree.exists() ? new NodeDelegate(sessionDelegate, tree) : null;
-    }
-
     protected NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
         super(sessionDelegate);
         this.tree = tree;
@@ -131,9 +118,9 @@ public class NodeDelegate extends ItemDelegate {
     @Override
     @CheckForNull
     public NodeDelegate getParent() {
-        return tree.isRoot()
+        return tree.isRoot() || !tree.getParent().exists() 
             ? null
-            : create(sessionDelegate, tree.getParent());
+            : new NodeDelegate(sessionDelegate, tree.getParent());
     }
 
     @Override
@@ -264,9 +251,9 @@ public class NodeDelegate extends ItemDelegate {
     @CheckForNull
     public PropertyDelegate getPropertyOrNull(String relPath) throws RepositoryException {
         Tree parent = getTree(PathUtils.getParentPath(relPath));
-        if (parent != null) {
-            String name = PathUtils.getName(relPath);
-            return PropertyDelegate.create(sessionDelegate, parent, name);
+        String name = PathUtils.getName(relPath);
+        if (parent != null && parent.hasProperty(name)) {
+            return new PropertyDelegate(sessionDelegate, parent, name);
         } else {
             return null;
         }
@@ -336,7 +323,7 @@ public class NodeDelegate extends ItemDelegate {
     @CheckForNull
     public NodeDelegate getChild(String relPath) throws RepositoryException {
         Tree tree = getTree(relPath);
-        return tree == null ? null : create(sessionDelegate, tree);
+        return tree == null || !tree.exists() ? null : new NodeDelegate(sessionDelegate, tree);
     }
 
     /**

@@ -42,21 +42,6 @@ public class PropertyDelegate extends ItemDelegate {
 
     private final String name;
 
-    /**
-     * Create a new property delegate for an existing parent.
-     * @param sessionDelegate
-     * @param parent  parent tree
-     * @param name  property name
-     * @return  {@code PropertyDelegate} instance or {@code null} if either {@code parent}
-     *          does not exist or does not have a property {@code name}.
-     */
-    @CheckForNull
-    static PropertyDelegate create(SessionDelegate sessionDelegate, Tree parent, String name) {
-        return parent.hasProperty(name)
-            ? new PropertyDelegate(sessionDelegate, parent, name)
-            : null;
-    }
-
     PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, String name) {
         super(sessionDelegate);
         this.parent = parent;
@@ -78,7 +63,7 @@ public class PropertyDelegate extends ItemDelegate {
     @Override
     @CheckForNull
     public NodeDelegate getParent() {
-        return NodeDelegate.create(sessionDelegate, parent);
+        return parent.exists() ? new NodeDelegate(sessionDelegate, parent) : null;
     }
 
     @Override
