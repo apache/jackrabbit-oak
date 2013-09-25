@@ -565,29 +565,32 @@ public final class KernelNodeState extends AbstractNodeState {
         // base memory footprint is roughly 64 bytes
         int memory = 64;
         // path String
-        memory += 12 + path.length() * 2;
+        memory += 48 + path.length() * 2;
         // revision String
-        memory += 12 + revision.length() * 2;
+        memory += 48 + revision.length() * 2;
         // optional hash String
         if (hash != null) {
-            memory += 12 + hash.length() * 2;
+            memory += 48 + hash.length() * 2;
         }
         // optional id String
         if (id != null && !id.equals(hash)) {
-            memory += 12 + id.length() * 2;
+            memory += 48 + id.length() * 2;
         }
         // rough approximation for properties
         if (properties != null) {
             for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
                 // name
-                memory += 12 + entry.getKey().length() * 2;
+                memory += 48 + entry.getKey().length() * 2;
                 PropertyState propState = entry.getValue();
                 if (propState.getType() != Type.BINARY
                         && propState.getType() != Type.BINARIES) {
                     // assume binaries go into blob store
                     for (int i = 0; i < propState.count(); i++) {
                         // size() returns length of string
-                        memory += 12 + propState.size(i) * 2;
+                        // overhead:
+                        // - 8 bytes per reference in values list
+                        // - 48 bytes per string
+                        memory += 56 + propState.size(i) * 2;
                     }
                 }
             }
