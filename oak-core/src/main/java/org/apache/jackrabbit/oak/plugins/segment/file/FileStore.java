@@ -63,7 +63,7 @@ public class FileStore implements SegmentStore {
 
     private final Map<String, Journal> journals = newHashMap();
 
-    private final SegmentCache cache = new SegmentCache();
+    private final SegmentCache cache = SegmentCache.create();
 
     public FileStore(File directory, int maxFileSize, boolean memoryMapping)
             throws IOException {

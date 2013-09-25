@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -168,14 +166,13 @@ public class CacheStats implements CacheStatsMBean {
         return cache.stats().minus(lastSnapshot);
     }
 
-    private static String timeInWords(long nanos){
+    private static String timeInWords(long nanos) {
         long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
         return String.format("%d min, %d sec",
                 TimeUnit.MILLISECONDS.toMinutes(millis),
                 TimeUnit.MILLISECONDS.toSeconds(millis) -
                         TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
         );
-        //return (new SimpleDateFormat("mm:ss:SSS")).format(new Date(millis));
     }
 
     /**

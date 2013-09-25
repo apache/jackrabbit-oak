@@ -1093,6 +1093,7 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
         
         private Weigher<?, ?> weigher;
         private long maxWeight;
+        private int averageWeight = 100;
 
         public Builder recordStats() {
             return this;
@@ -1108,10 +1109,16 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
             return this;
         }
 
-        public <K, V> Cache<K, V> build() {
+        public <K, V> CacheLIRS<K, V> build() {
             @SuppressWarnings("unchecked")
             Weigher<K, V> w = (Weigher<K, V>) weigher;
-            return new CacheLIRS<K, V>(w, maxWeight, 100, 16, 16);
+            return new CacheLIRS<K, V>(w, maxWeight, averageWeight, 16, 16);
+        }
+
+        public Builder maximumSize(int maxSize) {
+            this.maxWeight = maxSize;
+            this.averageWeight = 1;
+            return this;
         }
         
     }
