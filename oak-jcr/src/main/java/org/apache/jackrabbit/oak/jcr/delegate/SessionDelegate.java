@@ -239,7 +239,8 @@ public class SessionDelegate {
      */
     @CheckForNull
     public NodeDelegate getNode(String path) {
-        return NodeDelegate.create(this, root.getTree(path));
+        Tree tree = root.getTree(path);
+        return tree.exists() ? new NodeDelegate(this, tree) : null;
     }
 
     /**
@@ -256,11 +257,11 @@ public class SessionDelegate {
         } else {
             Tree parent = root.getTree(PathUtils.getParentPath(path));
             if (parent.hasProperty(name)) {
-                return PropertyDelegate.create(this, parent, name);
+                return new PropertyDelegate(this, parent, name);
             }
             Tree child = parent.getChild(name);
             if (child.exists()) {
-                return NodeDelegate.create(this, child);
+                return new NodeDelegate(this, child);
             } else {
                 return null;
             }
@@ -283,7 +284,8 @@ public class SessionDelegate {
     public PropertyDelegate getProperty(String path) {
         Tree parent = root.getTree(PathUtils.getParentPath(path));
         String name = PathUtils.getName(path);
-        return PropertyDelegate.create(this, parent, name);
+        return parent.hasProperty(name) ? new PropertyDelegate(this, parent,
+                name) : null;
     }
 
     public boolean hasPendingChanges() {
