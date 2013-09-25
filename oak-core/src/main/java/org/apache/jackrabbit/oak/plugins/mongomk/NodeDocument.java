@@ -978,9 +978,9 @@ public class NodeDocument extends Document {
 
         @Override
         public int getMemory() {
-            int size = 8;
+            int size = 114;
             for (String name : childNames) {
-                size += name.length() * 2 + 8;
+                size += name.length() * 2 + 56;
             }
             return size;
         }
