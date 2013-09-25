@@ -56,4 +56,10 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
                 ImmutableList.of("/content"));
     }
 
+    @Test
+    public void testFullTextTermName() throws Exception {
+        root.getTree("/").addChild("content").addChild("testFullTextTermName");
+        assertQuery("//*[jcr:contains(., 'testFullTextTermName')]", "xpath",
+                ImmutableList.of("/content/testFullTextTermName"));
+    }
 }
