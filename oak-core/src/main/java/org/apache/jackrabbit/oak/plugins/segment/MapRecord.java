@@ -97,10 +97,6 @@ abstract class MapRecord extends Record {
         return store.readSegment(uuid);
     }
 
-    protected int getOffset() {
-        return getRecordId().getOffset();
-    }
-
     int size() {
         return size;
     }
