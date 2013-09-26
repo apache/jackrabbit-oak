@@ -52,7 +52,7 @@ public class RecordTest {
 
     private SegmentReader reader = new SegmentReader(store);
 
-    private SegmentWriter writer = new SegmentWriter(store);
+    private SegmentWriter writer = store.getWriter();
 
     private final Random random = new Random(0xcafefaceL);
 
