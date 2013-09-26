@@ -1319,7 +1319,11 @@ public class MongoMK implements MicroKernel, RevisionContext {
                 set.addAll(c.children);
             }
             set.removeAll(removed);
-            set.addAll(added);
+            for (String name : added) {
+                // make sure the name string does not contain
+                // unnecessary baggage
+                set.add(new String(name));
+            }
             c2.children.addAll(set);
             nodeChildrenCache.put(key, c2);
         }
@@ -1335,13 +1339,17 @@ public class MongoMK implements MicroKernel, RevisionContext {
                     for (String childPath : added) {
                         String name = PathUtils.getName(childPath);
                         if (names.higher(name) != null) {
-                            names.add(name);
+                            // make sure the name string does not contain
+                            // unnecessary baggage
+                            names.add(new String(name));
                         }
                     }
                 } else {
                     // add all
                     for (String childPath : added) {
-                        names.add(PathUtils.getName(childPath));
+                        // make sure the name string does not contain
+                        // unnecessary baggage
+                        names.add(new String(PathUtils.getName(childPath)));
                     }
                 }
                 // any changes?
