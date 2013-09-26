@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import javax.jcr.PropertyType;
 
@@ -77,10 +76,8 @@ public class JsopDiff implements NodeStateDiff {
      * debugging purposes.
      * <p>
      * This method does not store binaries but returns them inlined
-     * in the format
-     * <pre>
-     *   "Blob{" + Arrays.toString(blob.sha256()) + "}"
-     * </pre>.
+     * in the format <code>Blob{...}</code>, where the <code>...</code>
+     * is implementation-dependent - typically the SHA256 hash of the binary.
      *
      * @param before  before node state
      * @param after  after node state
@@ -98,7 +95,7 @@ public class JsopDiff implements NodeStateDiff {
 
             @Override
             protected String writeBlob(Blob blob) {
-                return "Blob{" + Arrays.toString(blob.sha256()) + '}';
+                return "Blob{" + blob + '}';
             }
 
             @Override

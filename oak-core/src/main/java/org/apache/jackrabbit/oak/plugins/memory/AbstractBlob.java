@@ -22,14 +22,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import com.google.common.base.Optional;
 import com.google.common.hash.HashCode;
-import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.InputSupplier;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Abstract base class for {@link Blob} implementations.
@@ -37,9 +35,32 @@ import org.slf4j.LoggerFactory;
  * {@code hashCode} and {@code equals}.
  */
 public abstract class AbstractBlob implements Blob {
-    private static final Logger log = LoggerFactory.getLogger(AbstractBlob.class);
 
-    private Optional<HashCode> hashCode = Optional.absent();
+    private static HashCode calculateSha256(final Blob blob) {
+        try {
+            return ByteStreams.hash(
+                    new InputSupplier<InputStream>() {
+                        @Override
+                        public InputStream getInput() throws IOException {
+                            return blob.getNewStream();
+                        }
+                    },
+                    Hashing.sha256());
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Failed to calculate the hash code of a stream", e);
+        }
+    }
+
+    private HashCode hashCode = null;
+
+    private synchronized HashCode calculateSha256() {
+        // Blobs are immutable so we can safely cache the hash
+        if (hashCode == null) {
+            hashCode = calculateSha256(this);
+        }
+        return hashCode;
+    }
 
     /**
      * This hash code implementation returns the hash code of the underlying stream
@@ -50,39 +71,13 @@ public abstract class AbstractBlob implements Blob {
         return calculateSha256().asInt();
     }
 
-    @Override
-    public byte[] sha256() {
+    protected byte[] sha256() {
         return calculateSha256().asBytes();
     }
 
-    private HashCode calculateSha256() {
-        // Blobs are immutable so we can safely cache the hash
-        if (!hashCode.isPresent()) {
-            InputStream is = getNewStream();
-            try {
-                try {
-                    Hasher hasher = Hashing.sha256().newHasher();
-                    byte[] buf = new byte[0x1000];
-                    int r;
-                    while((r = is.read(buf)) != -1) {
-                        hasher.putBytes(buf, 0, r);
-                    }
-                    hashCode = Optional.of(hasher.hash());
-                }
-                catch (IOException e) {
-                    log.warn("Error while hashing stream", e);
-                }
-            }
-            finally {
-                close(is);
-            }
-        }
-        return hashCode.get();
-    }
-
     /**
-     * To {@code Blob} instances are considered equal iff they have the same SHA-256 hash code
-     * are equal.
+     * To {@code Blob} instances are considered equal iff they have the
+     * same SHA-256 hash code  are equal.
      * @param other
      * @return
      */
@@ -90,22 +85,21 @@ public abstract class AbstractBlob implements Blob {
     public boolean equals(Object other) {
         if (other == this) {
             return true;
-        }
-        if (!(other instanceof Blob)) {
+        } else if (other instanceof AbstractBlob) {
+            AbstractBlob that = (AbstractBlob) other;
+            return Arrays.equals(sha256(), that.sha256());
+        } else if (other instanceof Blob) {
+            Blob that = (Blob) other;
+            return Arrays.equals(sha256(), calculateSha256(that).asBytes());
+        } else {
             return false;
         }
-
-        Blob that = (Blob) other;
-        return Arrays.equals(sha256(), that.sha256());
     }
 
-    private static void close(InputStream s) {
-        try {
-            s.close();
-        }
-        catch (IOException e) {
-            log.warn("Error while closing stream", e);
-        }
+    @Override
+    public String toString() {
+        return calculateSha256().toString();
     }
+
 
 }

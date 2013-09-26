@@ -42,10 +42,4 @@ public interface Blob {
      */
     long length();
 
-    /**
-     * The SHA-256 digest of the underlying stream
-     * @return
-     */
-    byte[] sha256();
-
 }
