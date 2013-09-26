@@ -187,7 +187,6 @@ class MongoJournal implements Journal {
                 after.compareAgainstBaseState(before, new MergeDiff(builder));
                 RecordId newHead =
                         writer.writeNode(builder.getNodeState()).getRecordId();
-                writer.flush();
 
                 base = newBase;
                 head = newHead;

@@ -132,7 +132,7 @@ public class Segment {
     private int pos(int offset, int length) {
         int pos = offset - (MAX_SEGMENT_SIZE - size());
         checkPositionIndexes(pos, pos + length, size());
-        return pos;
+        return data.position() + pos;
     }
 
     public UUID getSegmentId() {
@@ -144,7 +144,7 @@ public class Segment {
     }
 
     public int size() {
-        return data.limit();
+        return data.remaining();
     }
 
     byte readByte(int offset) {

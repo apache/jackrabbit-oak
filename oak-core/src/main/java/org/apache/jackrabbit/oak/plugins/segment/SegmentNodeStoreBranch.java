@@ -73,7 +73,6 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         NodeBuilder builder = head.builder();
         builder.setChildNode(ROOT, newRoot);
         head = writer.writeNode(builder.getNodeState());
-        writer.flush();
     }
 
     @Override
@@ -86,7 +85,6 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                     new ConflictAnnotatingRebaseDiff(builder.child(ROOT)));
             base = newBase;
             head = writer.writeNode(builder.getNodeState());
-            writer.flush();
         }
     }
 
@@ -106,7 +104,6 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
             builder.setChildNode(ROOT, hook.processCommit(
                     base.getChildNode(ROOT), head.getChildNode(ROOT)));
             SegmentNodeState newHead = writer.writeNode(builder.getNodeState());
-            writer.flush();
 
             // use optimistic locking to update the journal
             if (base.hasProperty("token")
@@ -156,7 +153,6 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
 
                 SegmentNodeState after =
                         writer.writeNode(builder.getNodeState());
-                writer.flush();
                 if (store.setHead(before, after)) {
                     SegmentNodeState originalBase = base;
                     SegmentNodeState originalHead = head;
@@ -171,7 +167,6 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                     // complete the commit
                     SegmentNodeState newHead =
                             writer.writeNode(builder.getNodeState());
-                    writer.flush();
                     if (store.setHead(after, newHead)) {
                         NodeState previousBase = base;
                         base = newHead;

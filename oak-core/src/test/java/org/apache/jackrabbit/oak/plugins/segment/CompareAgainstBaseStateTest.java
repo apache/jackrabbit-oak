@@ -30,18 +30,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Test case for ensuring that segment size remains within bounds.
+ * Test case for segment node state comparisons.
  */
 public class CompareAgainstBaseStateTest {
-
-    private final SegmentStore store = new MemoryStore();
-
-    private final SegmentWriter writer = store.getWriter();
 
     private final NodeStateDiff diff =
             createControl().createMock("diff", NodeStateDiff.class);
 
-    private NodeBuilder builder = EMPTY_NODE.builder();
+    private NodeBuilder builder =
+            new MemoryStore().getWriter().writeNode(EMPTY_NODE).builder();
 
     @Before
     public void setUp() {
@@ -52,7 +49,7 @@ public class CompareAgainstBaseStateTest {
 
     @Test
     public void testSameState() {
-        NodeState node = persist(builder);
+        NodeState node = builder.getNodeState();
 
         replay(diff);
 
@@ -62,8 +59,8 @@ public class CompareAgainstBaseStateTest {
 
     @Test
     public void testEqualState() {
-        NodeState before = persist(builder);
-        NodeState after = persist(before.builder());
+        NodeState before = builder.getNodeState();
+        NodeState after = before.builder().getNodeState();
 
         replay(diff);
 
@@ -73,10 +70,10 @@ public class CompareAgainstBaseStateTest {
 
     @Test
     public void testPropertyAdded() {
-        NodeState before = persist(builder);
+        NodeState before = builder.getNodeState();
         builder = before.builder();
         builder.setProperty("test", "test");
-        NodeState after = persist(builder);
+        NodeState after = builder.getNodeState();
 
         expect(diff.propertyAdded(after.getProperty("test"))).andReturn(true);
         replay(diff);
@@ -87,10 +84,10 @@ public class CompareAgainstBaseStateTest {
 
     @Test
     public void testPropertyChanged() {
-        NodeState before = persist(builder);
+        NodeState before = builder.getNodeState();
         builder = before.builder();
         builder.setProperty("foo", "test");
-        NodeState after = persist(builder);
+        NodeState after = builder.getNodeState();
 
         expect(diff.propertyChanged(
                 before.getProperty("foo"), after.getProperty("foo"))).andReturn(true);
@@ -102,10 +99,10 @@ public class CompareAgainstBaseStateTest {
 
     @Test
     public void testPropertyDeleted() {
-        NodeState before = persist(builder);
+        NodeState before = builder.getNodeState();
         builder = before.builder();
         builder.removeProperty("foo");
-        NodeState after = persist(builder);
+        NodeState after = builder.getNodeState();
 
         expect(diff.propertyDeleted(before.getProperty("foo"))).andReturn(true);
         replay(diff);
@@ -116,10 +113,10 @@ public class CompareAgainstBaseStateTest {
 
     @Test
     public void testChildNodeAdded() {
-        NodeState before = persist(builder);
+        NodeState before = builder.getNodeState();
         builder = before.builder();
         builder.child("test");
-        NodeState after = persist(builder);
+        NodeState after = builder.getNodeState();
 
         expect(diff.childNodeAdded("test", after.getChildNode("test"))).andReturn(true);
         replay(diff);
@@ -130,9 +127,9 @@ public class CompareAgainstBaseStateTest {
 
     @Test
     public void testChildNodeChanged() {
-        NodeState before = persist(builder);
+        NodeState before = builder.getNodeState();
         builder.child("baz").setProperty("test", "test");
-        NodeState after = persist(builder);
+        NodeState after = builder.getNodeState();
 
         expect(diff.childNodeChanged(
                 "baz", before.getChildNode("baz"), after.getChildNode("baz"))).andReturn(true);
@@ -144,21 +141,15 @@ public class CompareAgainstBaseStateTest {
 
     @Test
     public void testChildNodeDeleted() {
-        NodeState before = persist(builder);
+        NodeState before = builder.getNodeState();
         builder.getChildNode("baz").remove();
-        NodeState after = persist(builder);
+        NodeState after = builder.getNodeState();
 
         expect(diff.childNodeDeleted("baz", before.getChildNode("baz"))).andReturn(true);
         replay(diff);
 
         after.compareAgainstBaseState(before, diff);
         verify(diff);
-    }
-
-    private NodeState persist(NodeBuilder builder) {
-        NodeState state = writer.writeNode(builder.getNodeState());
-        writer.flush();
-        return state;
     }
 
 }

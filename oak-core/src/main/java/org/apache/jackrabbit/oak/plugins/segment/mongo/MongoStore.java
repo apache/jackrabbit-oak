@@ -102,12 +102,16 @@ public class MongoStore implements SegmentStore {
     @Override
     public Segment readSegment(final UUID segmentId) {
         try {
-            return cache.getSegment(segmentId, new Callable<Segment>() {
-                @Override
-                public Segment call() throws Exception {
-                    return findSegment(segmentId);
-                }
-            });
+            Segment segment = writer.getCurrentSegment(segmentId);
+            if (segment == null) {
+                segment = cache.getSegment(segmentId, new Callable<Segment>() {
+                    @Override
+                    public Segment call() throws Exception {
+                        return findSegment(segmentId);
+                    }
+                });
+            }
+            return segment;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

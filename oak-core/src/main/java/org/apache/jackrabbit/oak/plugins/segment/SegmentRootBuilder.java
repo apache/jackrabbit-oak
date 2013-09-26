@@ -44,11 +44,9 @@ class SegmentRootBuilder extends SegmentNodeBuilder {
 
     @Override
     public SegmentNodeState getNodeState() {
-        SegmentNodeState state = writer.writeNode(super.getNodeState());
-        writer.flush();
-        set(state);
+        set(writer.writeNode(super.getNodeState()));
         updateCount = 0;
-        return state;
+        return writer.writeNode(super.getNodeState());
     }
 
 }
