@@ -70,7 +70,7 @@ class MongoJournal implements Journal {
         DBObject id = new BasicDBObject("_id", "root");
         state = journals.findOne(id, null, primaryPreferred());
         if (state == null) {
-            SegmentWriter writer = new SegmentWriter(store);
+            SegmentWriter writer = store.getWriter();
             RecordId headId = writer.writeNode(head).getRecordId();
             writer.flush();
             state = new BasicDBObject(of(
@@ -179,7 +179,7 @@ class MongoJournal implements Journal {
             NodeState after = new SegmentNodeState(store, head);
 
             Journal parent = store.getJournal(state.get("parent").toString());
-            SegmentWriter writer = new SegmentWriter(store);
+            SegmentWriter writer = store.getWriter();
             while (!parent.setHead(base, head)) {
                 RecordId newBase = parent.getHead();
                 NodeBuilder builder =

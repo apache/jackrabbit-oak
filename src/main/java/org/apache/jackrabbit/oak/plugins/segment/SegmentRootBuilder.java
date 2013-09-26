@@ -29,9 +29,9 @@ class SegmentRootBuilder extends SegmentNodeBuilder {
 
     private long updateCount = 0;
 
-    SegmentRootBuilder(SegmentNodeState base, SegmentStore store) {
+    SegmentRootBuilder(SegmentNodeState base, SegmentWriter writer) {
         super(base);
-        this.writer = new SegmentWriter(store);
+        this.writer = writer;
     }
 
     @Override

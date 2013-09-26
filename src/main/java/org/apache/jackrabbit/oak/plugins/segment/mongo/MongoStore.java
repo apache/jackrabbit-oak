@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.collect.Lists;
@@ -56,6 +57,8 @@ public class MongoStore implements SegmentStore {
 
     private final SegmentCache cache;
 
+    private final SegmentWriter writer = new SegmentWriter(this);
+
     public MongoStore(DB db, SegmentCache cache) {
         this.db = checkNotNull(db);
         this.segments = db.getCollection("segments");
@@ -74,6 +77,11 @@ public class MongoStore implements SegmentStore {
 
     public MongoStore(Mongo mongo, int cacheSize) {
         this(mongo.getDB("Oak"), cacheSize);
+    }
+
+    @Override
+    public SegmentWriter getWriter() {
+        return writer;
     }
 
     @Override

@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,7 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.Template;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 public class FileStore implements SegmentStore {
@@ -64,6 +63,8 @@ public class FileStore implements SegmentStore {
     private final Map<String, Journal> journals = newHashMap();
 
     private final SegmentCache cache = SegmentCache.create();
+
+    private final SegmentWriter writer = new SegmentWriter(this);
 
     public FileStore(File directory, int maxFileSize, boolean memoryMapping)
             throws IOException {
@@ -107,6 +108,12 @@ public class FileStore implements SegmentStore {
         }
     }
 
+    @Override
+    public SegmentWriter getWriter() {
+        return writer;
+    }
+
+    @Override
     public synchronized void close() {
         try {
             for (TarFile file : files) {

@@ -41,7 +41,7 @@ public class MemoryJournal implements Journal {
         this.store = checkNotNull(store);
         this.parent = null;
 
-        SegmentWriter writer = new SegmentWriter(store);
+        SegmentWriter writer = store.getWriter();
         RecordId id = writer.writeNode(head).getRecordId();
         writer.flush();
 
@@ -77,13 +77,14 @@ public class MemoryJournal implements Journal {
             NodeState before = new SegmentNodeState(store, base);
             NodeState after = new SegmentNodeState(store, head);
 
-            SegmentWriter writer = new SegmentWriter(store);
             while (!parent.setHead(base, head)) {
                 RecordId newBase = parent.getHead();
                 NodeBuilder builder =
                         new SegmentNodeState(store, newBase).builder();
                 after.compareAgainstBaseState(before, new MergeDiff(builder));
                 NodeState state = builder.getNodeState();
+
+                SegmentWriter writer = store.getWriter();
                 RecordId newHead = writer.writeNode(state).getRecordId();
                 writer.flush();
 
