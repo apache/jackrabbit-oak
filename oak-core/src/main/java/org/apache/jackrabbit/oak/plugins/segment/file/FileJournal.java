@@ -38,7 +38,7 @@ class FileJournal extends MemoryJournal {
 
     @Override
     public synchronized boolean setHead(RecordId base, RecordId head) {
-        if (super.setHead(base, head)) {
+        if (super.setHead(base, head)) { // flushes the segment if needed
             try {
                 store.writeJournals();
                 return true;

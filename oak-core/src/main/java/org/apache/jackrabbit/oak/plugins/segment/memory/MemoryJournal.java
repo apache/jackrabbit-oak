@@ -64,6 +64,10 @@ public class MemoryJournal implements Journal {
     @Override
     public synchronized boolean setHead(RecordId base, RecordId head) {
         if (checkNotNull(base).equals(this.head)) {
+            SegmentWriter writer = store.getWriter();
+            if (writer.getCurrentSegment(head.getSegmentId()) != null) {
+                writer.flush();
+            }
             this.head = checkNotNull(head);
             return true;
         } else {
@@ -77,6 +81,7 @@ public class MemoryJournal implements Journal {
             NodeState before = new SegmentNodeState(store, base);
             NodeState after = new SegmentNodeState(store, head);
 
+            SegmentWriter writer = store.getWriter();
             while (!parent.setHead(base, head)) {
                 RecordId newBase = parent.getHead();
                 NodeBuilder builder =
@@ -84,9 +89,7 @@ public class MemoryJournal implements Journal {
                 after.compareAgainstBaseState(before, new MergeDiff(builder));
                 NodeState state = builder.getNodeState();
 
-                SegmentWriter writer = store.getWriter();
                 RecordId newHead = writer.writeNode(state).getRecordId();
-                writer.flush();
 
                 base = newBase;
                 head = newHead;

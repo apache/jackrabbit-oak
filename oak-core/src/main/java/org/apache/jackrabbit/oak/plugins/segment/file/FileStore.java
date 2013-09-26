@@ -140,12 +140,16 @@ public class FileStore implements SegmentStore {
     @Override
     public Segment readSegment(final UUID id) {
         try {
-            return cache.getSegment(id, new Callable<Segment>() {
-                @Override
-                public Segment call() throws Exception {
-                    return loadSegment(id);
-                }
-            });
+            Segment segment = writer.getCurrentSegment(id);
+            if (segment == null) {
+                segment = cache.getSegment(id, new Callable<Segment>() {
+                    @Override
+                    public Segment call() throws Exception {
+                        return loadSegment(id);
+                    }
+                });
+            }
+            return segment;
         } catch (IllegalStateException e) {
             throw e;
         } catch (Exception e) {

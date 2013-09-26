@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -30,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -108,6 +110,17 @@ public class SegmentWriter {
 
     public SegmentWriter(SegmentStore store) {
         this.store = store;
+    }
+
+    public synchronized Segment getCurrentSegment(UUID id) {
+        if (equal(id, uuid)) {
+            return new Segment(
+                    store, uuid,
+                    ByteBuffer.wrap(buffer, buffer.length - length, length),
+                    newArrayList(uuids.keySet()));
+        } else {
+            return null;
+        }
     }
 
     public synchronized void flush() {
