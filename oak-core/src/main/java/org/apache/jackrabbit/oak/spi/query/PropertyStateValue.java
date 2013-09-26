@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Iterator;
 
@@ -25,6 +27,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
@@ -99,10 +102,11 @@ public class PropertyStateValue implements PropertyValue {
         case PropertyType.LONG:
             return compare(getValue(Type.LONGS), p2.getValue(Type.LONGS));
         case PropertyType.BINARY:
-            return compare(getValue(Type.BINARIES), p2.getValue(Type.BINARIES));
+            return compareBinaries(
+                    getValue(Type.BINARIES), p2.getValue(Type.BINARIES));
         case PropertyType.DATE:
-            return compareAsDate(getValue(Type.STRINGS),
-                    p2.getValue(Type.STRINGS));
+            return compareAsDate(
+                    getValue(Type.STRINGS), p2.getValue(Type.STRINGS));
         default:
             return compare(getValue(Type.STRINGS), p2.getValue(Type.STRINGS));
         }
@@ -122,6 +126,44 @@ public class PropertyStateValue implements PropertyValue {
             int compare = i1.next().compareTo(i2.next());
             if (compare != 0) {
                 return compare;
+            }
+        }
+        return 0;
+    }
+
+    private static int compareBinaries(Iterable<Blob> p1, Iterable<Blob> p2) {
+        Iterator<Blob> i1 = p1.iterator();
+        Iterator<Blob> i2 = p2.iterator();
+        while (i1.hasNext() || i2.hasNext()) {
+            if (!i1.hasNext()) {
+                return 1;
+            }
+            if (!i2.hasNext()) {
+                return -1;
+            }
+            try {
+                InputStream v1 = i1.next().getNewStream();
+                try {
+                    InputStream v2 = i2.next().getNewStream();
+                    try {
+                        while (true) {
+                            int b1 = v1.read();
+                            int b2 = v2.read();
+                            int compare = b1 - b2;
+                            if (compare != 0) {
+                                return compare;
+                            } else if (b1 == -1) {
+                                break;
+                            }
+                        }
+                    } finally {
+                        v2.close();
+                    }
+                } finally {
+                    v1.close();
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to compare stream values", e);
             }
         }
         return 0;

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.value;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
+
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -28,6 +29,8 @@ import javax.jcr.ValueFormatException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+
+import com.google.common.base.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -263,7 +266,14 @@ public class ValueImpl implements Value {
     public boolean equals(Object other) {
         if (other instanceof ValueImpl) {
             ValueImpl that = (ValueImpl) other;
-            return compare(propertyState, index, that.propertyState, that.index) == 0;
+            Type<?> type = propertyState.getType();
+            if (type.isArray()) {
+                type = type.getBaseType();
+            }
+            return type.tag() == that.propertyState.getType().tag()
+                    && Objects.equal(
+                            propertyState.getValue(type, index),
+                            that.propertyState.getValue(type, that.index));
         } else {
             return false;
         }
@@ -284,38 +294,6 @@ public class ValueImpl implements Value {
     @Override
     public String toString() {
         return getOakString();
-    }
-
-    private static int compare(PropertyState p1, int i1, PropertyState p2, int i2) {
-        if (p1.getType().tag() != p2.getType().tag()) {
-            return Integer.signum(p1.getType().tag() - p2.getType().tag());
-        }
-        switch (p1.getType().tag()) {
-            case PropertyType.BINARY:
-                return compare(p1.getValue(Type.BINARY, i1), p2.getValue(Type.BINARY, i2));
-            case PropertyType.DOUBLE:
-                return compare(p1.getValue(Type.DOUBLE, i1), p2.getValue(Type.DOUBLE, i2));
-            case PropertyType.LONG:
-                return compare(p1.getValue(Type.LONG, i1), p2.getValue(Type.LONG, i2));
-            case PropertyType.DECIMAL:
-                return compare(p1.getValue(Type.DECIMAL, i1), p2.getValue(Type.DECIMAL, i2));
-            case PropertyType.DATE:
-                return compareAsDate(p1.getValue(Type.STRING, i1), p2.getValue(Type.STRING, i2));
-            default:
-                return compare(p1.getValue(Type.STRING, i1), p2.getValue(Type.STRING, i2));
-        }
-    }
-
-    private static <T extends Comparable<T>> int compare(T p1, T p2) {
-        return p1.compareTo(p2);
-    }
-
-    private static int compareAsDate(String p1, String p2) {
-        Calendar c1 = Conversions.convert(p1).toCalendar();
-        Calendar c2 = Conversions.convert(p1).toCalendar();
-        return c1 != null && c2 != null
-                ? c1.compareTo(c2)
-                : p1.compareTo(p2);
     }
 
 }

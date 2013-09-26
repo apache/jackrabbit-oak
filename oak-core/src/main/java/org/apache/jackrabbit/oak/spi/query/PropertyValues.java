@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import static com.google.common.collect.Iterables.contains;
+
 import java.math.BigDecimal;
 import java.net.URI;
-import java.util.Iterator;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -184,20 +185,8 @@ public final class PropertyValues {
 
     }
 
-    private static <T extends Comparable<T>> boolean contains(Iterable<T> p1,
-            T p2) {
-        Iterator<T> i1 = p1.iterator();
-        while (i1.hasNext()) {
-            int compare = i1.next().compareTo(p2);
-            if (compare == 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     // --
-    
+
     /**
      * Converts the given value to a value of the specified target type. The
      * conversion is performed according to the rules described in
