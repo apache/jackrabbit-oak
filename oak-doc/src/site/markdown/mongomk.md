@@ -27,7 +27,7 @@ Content Model
 The `MongoMK` stores each node in a separate MongoDB document and updates to
 a node are stored by adding new revision/value pairs to the document. This way
 the previous state of a node is preserved and can still be retrieved by a
-session looking a given snapshot (revision) of the repository.
+session looking at a given snapshot (revision) of the repository.
 
 The basic MongoDB document of a node in Oak looks like this:
 
@@ -37,10 +37,7 @@ The basic MongoDB document of a node in Oak looks like this:
             "r13f3875b5d1-0-1" : "false"
         },
         "_lastRev" : {
-            "1" : "r13f3875b5d1-0-1"
-        },
-        "_commitRoot": {
-            "r13f3875b5d1-0-1": 0
+            "r0-0-1" : "r13f3875b5d1-0-1"
         },
         "_modified" : NumberLong(274208361),
         "_revisions" : {
@@ -49,7 +46,9 @@ The basic MongoDB document of a node in Oak looks like this:
     }
 
 All fields in the above document are metadata and are not exposed through the
-Oak API.
+Oak API. MongoMK has two types of fields. Simple fields are key/value pairs
+like the `_id` or `_modified` field. Versioned fields are kept in sub-documents
+where the key is a revision paired with the value at this revision.
 
 The `_id` field is used as the primary key and consists of a combination of the
 depth of the path and the path itself. This is an optimization to align sibling
@@ -63,21 +62,21 @@ the revision the node was deleted in.
 The sub-document `_lastRev` contains the last revision written to this node by
 each cluster node. In the above example the MongoMK cluster node with id `1`
 modified the node the last time in revision `r13f3875b5d1-0-1`, when it created
-the node. These revisions are only updated for non-branch commits.
+the node. The revision key in the `_lastRev` sub-document is synthetic and the
+only information actually used by MongoMK is the clusterId. The `_lastRev`
+sub-document is only updated for non-branch commits or on merge, when changes
+become visible to all readers.
 
 The `_modified` field contains a low-resolution timestamp when the node was last
 modified. The time resolution is five seconds. This field is also updated when
 a branch commit modifies a node.
-
-The sub-document `_commitRoot` contains commit root depth for the commit in which
-the node was created against the revision.
 
 Finally, the `_revisions` sub-document contains commit information about changes
 marked with a revision. E.g. the single entry in the above document tells us
 that everything marked with revision `r13f3875b5d1-0-1` is committed and
 therefore valid. In case the change is done in a branch then the value would be the
 base revision. It is only added for those nodes which happen to be the commit root
-for any give commit.
+for any given commit.
 
 Adding a property `prop` with value `foo` to the node in a next step will
 result in the following document:
@@ -88,7 +87,7 @@ result in the following document:
         },
         "_id" : "1:/node",
         "_lastRev" : {
-            "1" : "r13f38818ab6-0-1"
+            "r0-0-1" : "r13f38818ab6-0-1"
         },
         "_modified" : NumberLong(274208516),
         "_revisions" : {
@@ -115,7 +114,7 @@ After the node is deleted the document looks like this:
         },
         "_id" : "1:/node",
         "_lastRev" : {
-            "1" : "r13f38835063-2-1"
+            "r0-0-1" : "r13f38835063-2-1"
         },
         "_modified" : NumberLong(274208539),
         "_revisions" : {
@@ -167,7 +166,7 @@ A root node may look like this:
         },
         "_id" : "0:/",
         "_lastRev" : {
-            "1" : "r13fcda91720-0-1"
+            "r0-0-1" : "r13fcda91720-0-1"
         },
         "_modified" : NumberLong(274708995),
         "_revisions" : {
@@ -192,7 +191,7 @@ the root node looks like this:
         },
         "_id" : "0:/",
         "_lastRev" : {
-            "1" : "r13fcda91720-0-1"
+            "r0-0-1" : "r13fcda91720-0-1"
         },
         "_modified" : NumberLong(274708995),
         "_revisions" : {
@@ -220,7 +219,7 @@ When the branch is later merged, the root node will look like this:
         },
         "_id" : "0:/",
         "_lastRev" : {
-            "1" : "r13fcda91b12-0-1"
+            "r0-0-1" : "r13fcda91b12-0-1"
         },
         "_modified" : NumberLong(274708995),
         "_revisions" : {
@@ -241,21 +240,90 @@ The same logic is used for changes to other nodes that belong to a branch
 commit. MongoMK internally resolves the commit revision for a modification
 before it decides whether a reader is able to see a given change.
 
+Previous Documents
+------------------
+
+Over time the size of a document grows because MongoMK adds data to the document
+with every modification, but never deletes anything to keep the history. Old data
+is moved when there are 1000 commits to be moved or the document is bigger than
+1 MB. A document with a reference to old data looks like this:
+
+    {
+        "_deleted" : {
+            "r13fcda88ac0-0-1" : "false",
+        },
+        "_id" : "0:/",
+        "_lastRev" : {
+            "r0-0-1" : "r13fcda91b12-0-1"
+        },
+        "_modified" : NumberLong(274708995),
+        "_revisions" : {
+            "r13fcda88ac0-0-1" : "c",
+            "r13fcda91720-0-1" : "c",
+			"r13fcda919eb-0-1" : "c-r13fcda91b12-0-1"
+        },
+        "_prev" : {
+            "r13fcda88ae0-0-1" : "r13fcda91710-0-1"
+        },
+        "prop" : {
+            "r13fcda91720-0-1" : "\"foo\"",
+			"r13fcda919eb-0-1" : "\"bar\"",
+        }
+    }
+
+The optional sub-document `_prev` contains a list of revision pairs, each
+indicating the range of commit revisions a previous document contains. In
+the above example there is one document with previous commits from
+`r13fcda88ae0-0-1` to `r13fcda91710-0-1`. The id of the previous document
+is derived from the upper bound of the range and the id/path of the current
+document. The id of the previous document for `r13fcda88ae0-0-1` and `0:/`
+is `1:p/r13fcda88ae0-0-1` and may looks like this:
+
+    {
+        "_id" : "1:p/r13fcda88ae0-0-1",
+        "_revisions" : {
+            "r13fcda88ae0-0-1" : "c",
+            "r13fcda88af0-0-1" : "c",
+            ...  
+			"r13fcda91710-0-1" : "c"
+        },
+        "prop" : {
+            "r13fcda88ae0-0-1" : "\"foo\"",
+            "r13fcda88af0-0-1" : "\"bar\"",
+            ...
+			"r13fcda91710-0-1" : "\"baz\""
+        }
+    }
+
+Previous documents only contain immutable data, which means it only contains
+committed and merged `_revisions`. This also means the previous ranges of
+committed data may overlap because branch commits are not moved to previous
+documents until the branch is merged.
+ 
+
 Background Operations
 ---------------------
 Each MongoMK instance connecting to same database in Mongo server performs certain background task.
 
 ### Renew Cluster Id Lease
 
+### Background Document Split
+
+MongoMK periodically checks documents for their size and if necessary splits them up and
+moves old data to a previous document. This is done in the background by each MongoMK
+instance for the data it created.
+
 ### Background Writes
 
 While performing commits there are certain nodes which are modified but do not become part
-of commit. For example when a node under /a/b/c is updated then the `_lastRev` property also
-needs to be updated to the commit revision. Such changes are accumulated and flushed periodically
-through a asynchronous job.
+of commit. For example when a node under /a/b/c is updated then the `_lastRev` property
+of all ancestors also need to be updated to the commit revision. Such changes are accumulated
+and flushed periodically through a asynchronous job.
 
 ### Background Reads
 
+MongoMK periodically picks up changes from other MongoMK instances by polling the root node
+for changes of `_lastRev`. This happens once every second.
 
 Pending Topics
 --------------
