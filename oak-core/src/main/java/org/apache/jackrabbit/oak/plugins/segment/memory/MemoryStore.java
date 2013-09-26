@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -40,6 +41,8 @@ public class MemoryStore implements SegmentStore {
     private final ConcurrentMap<UUID, Segment> segments =
             Maps.newConcurrentMap();
 
+    private final SegmentWriter writer = new SegmentWriter(this);
+
     public MemoryStore(NodeState root) {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("root", root);
@@ -48,6 +51,11 @@ public class MemoryStore implements SegmentStore {
 
     public MemoryStore() {
         this(EMPTY_NODE);
+    }
+
+    @Override
+    public SegmentWriter getWriter() {
+        return writer;
     }
 
     @Override

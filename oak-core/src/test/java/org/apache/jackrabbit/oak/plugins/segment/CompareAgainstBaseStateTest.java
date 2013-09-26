@@ -36,7 +36,7 @@ public class CompareAgainstBaseStateTest {
 
     private final SegmentStore store = new MemoryStore();
 
-    private final SegmentWriter writer = new SegmentWriter(store);
+    private final SegmentWriter writer = store.getWriter();
 
     private final NodeStateDiff diff =
             createControl().createMock("diff", NodeStateDiff.class);

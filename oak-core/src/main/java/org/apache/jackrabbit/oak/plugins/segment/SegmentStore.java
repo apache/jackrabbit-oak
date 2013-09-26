@@ -21,6 +21,8 @@ import java.util.UUID;
 
 public interface SegmentStore {
 
+    SegmentWriter getWriter();
+
     Journal getJournal(String name);
 
     Segment readSegment(UUID segmentId);

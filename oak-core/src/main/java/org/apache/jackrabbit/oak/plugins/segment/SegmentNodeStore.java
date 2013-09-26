@@ -97,7 +97,7 @@ public class SegmentNodeStore implements NodeStore {
         SegmentNodeState head = getHead();
         rebase(builder, head.getChildNode(ROOT)); // TODO: can we avoid this?
         SegmentNodeStoreBranch branch = new SegmentNodeStoreBranch(
-                this, new SegmentWriter(store), head, maximumBackoff);
+                this, store.getWriter(), head, maximumBackoff);
         branch.setRoot(builder.getNodeState());
         NodeState merged = branch.merge(commitHook, committed);
         ((SegmentNodeBuilder) builder).reset(merged);
@@ -130,7 +130,7 @@ public class SegmentNodeStore implements NodeStore {
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        SegmentWriter writer = new SegmentWriter(store);
+        SegmentWriter writer = store.getWriter();
         RecordId recordId = writer.writeStream(stream);
         writer.flush();
         return new SegmentBlob(reader, recordId);
