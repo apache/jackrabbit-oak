@@ -23,8 +23,6 @@ import java.io.InputStream;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Charsets;
-
 /**
  * This {@code Blob} implementations is based on an array of bytes.
  */
@@ -33,11 +31,6 @@ public class ArrayBasedBlob extends AbstractBlob {
 
     public ArrayBasedBlob(byte[] value) {
         this.value = value;
-    }
-
-    @Override
-    public String toString() {
-        return new String(value, Charsets.UTF_8);
     }
 
     @Nonnull
