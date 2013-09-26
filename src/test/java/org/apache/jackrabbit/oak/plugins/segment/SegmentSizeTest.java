@@ -153,14 +153,14 @@ public class SegmentSizeTest {
         }
 
         SegmentNodeState state = writer.writeNode(builder.getNodeState());
-        writer.flush();
         Segment segment = store.readSegment(state.getRecordId().getSegmentId());
         assertEquals(26784, segment.size());
+
+        writer.flush(); // force flushing of the previous segment
 
         builder = state.builder();
         builder.child("child1000");
         state = writer.writeNode(builder.getNodeState());
-        writer.flush();
         segment = store.readSegment(state.getRecordId().getSegmentId());
         assertEquals(252, segment.size());
     }
@@ -169,7 +169,6 @@ public class SegmentSizeTest {
         SegmentStore store = new MemoryStore();
         SegmentWriter writer = store.getWriter();
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
-        writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
         return segment.size();
     }
@@ -179,14 +178,12 @@ public class SegmentSizeTest {
         SegmentWriter writer = store.getWriter();
         NodeState state = builder.getNodeState();
         RecordId id = writer.writeNode(state).getRecordId();
-        writer.flush();
         int base = store.readSegment(id.getSegmentId()).size();
 
         store = new MemoryStore(); // avoid cross-segment caching
         writer = store.getWriter();
         writer.writeNode(state);
         id = writer.writeNode(state).getRecordId();
-        writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
         return segment.size() - base;
     }

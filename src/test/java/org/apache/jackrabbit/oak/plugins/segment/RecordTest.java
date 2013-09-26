@@ -59,7 +59,6 @@ public class RecordTest {
     @Test
     public void testBlockRecord() {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        writer.flush();
         BlockRecord block = new BlockRecord(blockId, bytes.length);
 
         // Check reading with all valid positions and lengths
@@ -86,7 +85,6 @@ public class RecordTest {
         ListRecord level1p = writeList(LEVEL_SIZE + 1, blockId);
         ListRecord level2 = writeList(LEVEL_SIZE * LEVEL_SIZE, blockId);
         ListRecord level2p = writeList(LEVEL_SIZE * LEVEL_SIZE + 1, blockId);
-        writer.flush();
 
         assertEquals(1, one.size());
         assertEquals(blockId, one.getEntry(reader, 0));
@@ -130,8 +128,6 @@ public class RecordTest {
         random.nextBytes(source);
 
         RecordId valueId = writer.writeStream(new ByteArrayInputStream(source));
-        writer.flush();
-
         InputStream stream = reader.readStream(valueId);
         try {
             byte[] b = new byte[349]; // prime number
@@ -161,7 +157,6 @@ public class RecordTest {
         }
         RecordId large = writer.writeString(builder.toString());
 
-        writer.flush();
         Segment segment = store.readSegment(large.getSegmentId());
 
         assertEquals("", segment.readString(empty));
@@ -186,7 +181,6 @@ public class RecordTest {
         }
         MapRecord many = writer.writeMap(null, map);
 
-        writer.flush();
         Iterator<MapEntry> iterator;
 
         assertEquals(0, zero.size());
@@ -227,7 +221,6 @@ public class RecordTest {
         changes.put("key0", null);
         changes.put("key1000", blockId);
         MapRecord modified = writer.writeMap(many, changes);
-        writer.flush();
         assertEquals(1000, modified.size());
         iterator = modified.getEntries().iterator();
         for (int i = 1; i <= 1000; i++) {
@@ -251,7 +244,6 @@ public class RecordTest {
         }
 
         MapRecord bad = writer.writeMap(null, map);
-        writer.flush();
 
         assertEquals(map.size(), bad.size());
         Iterator<MapEntry> iterator = bad.getEntries().iterator();
@@ -266,7 +258,6 @@ public class RecordTest {
     public void testEmptyNode() {
         NodeState before = EMPTY_NODE;
         NodeState after = writer.writeNode(before);
-        writer.flush();
         assertEquals(before, after);
     }
 
@@ -278,7 +269,6 @@ public class RecordTest {
                 .setProperty("baz", Math.PI)
                 .getNodeState();
         NodeState after = writer.writeNode(before);
-        writer.flush();
         assertEquals(before, after);
     }
 
@@ -291,7 +281,6 @@ public class RecordTest {
         }
         NodeState before = builder.getNodeState();
         NodeState after = writer.writeNode(before);
-        writer.flush();
         assertEquals(before, after);
     }
 
@@ -302,7 +291,6 @@ public class RecordTest {
             builder.child("test" + i);
         }
         NodeState before = writer.writeNode(builder.getNodeState());
-        writer.flush();
         assertEquals(builder.getNodeState(), before);
 
         builder = before.builder();
@@ -310,7 +298,6 @@ public class RecordTest {
             builder.getChildNode("test" + i).remove();
         }
         NodeState after = writer.writeNode(builder.getNodeState());
-        writer.flush();
         assertEquals(builder.getNodeState(), after);
     }
 
