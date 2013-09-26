@@ -75,9 +75,8 @@ class SegmentPropertyState extends AbstractPropertyState {
 
         ListRecord values = getValueList();
         Segment segment = store.readSegment(recordId.getSegmentId());
-        SegmentReader reader = new SegmentReader(store);
         for (int i = 0; i < values.size(); i++) {
-            RecordId valueId = values.getEntry(reader, i);
+            RecordId valueId = values.getEntry(i);
             String value = segment.readString(valueId);
             map.put(value, valueId);
         }
@@ -163,7 +162,7 @@ class SegmentPropertyState extends AbstractPropertyState {
         }
 
         SegmentReader reader = new SegmentReader(store);
-        RecordId valueId = values.getEntry(reader, index);
+        RecordId valueId = values.getEntry(index);
         if (type == Type.BINARY) {
             return (T) new SegmentBlob(reader, valueId);
         } else {
@@ -206,9 +205,11 @@ class SegmentPropertyState extends AbstractPropertyState {
     public long size(int index) {
         ListRecord values = getValueList();
         checkElementIndex(index, values.size());
-        SegmentReader reader = new SegmentReader(store);
-        return reader.readLength(values.getEntry(reader, 0));
+        RecordId valueId = values.getEntry(0);
+        Segment segment = store.readSegment(valueId.getSegmentId());
+        return segment.readLength(valueId.getOffset());
     }
+
 
     //------------------------------------------------------------< Object >--
 
