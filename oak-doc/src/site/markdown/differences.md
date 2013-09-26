@@ -181,11 +181,6 @@ Changes with respect to Jackrabbit-core are collected in [OAK-14]
       See [OAK-150](https://issues.apache.org/jira/browse/OAK-150)
 
 
-* Nodetype Management:
-    * Removing mixins is not implemented yet
-      See [OAK-767](https://issues.apache.org/jira/browse/OAK-767)
-
-
 * Versioning [OAK-168](https://issues.apache.org/jira/browse/OAK-168):
     * `VersionHistory#removeVersion()` is not implemented yet
     * `VersionManager#merge()` is not implemented yet
