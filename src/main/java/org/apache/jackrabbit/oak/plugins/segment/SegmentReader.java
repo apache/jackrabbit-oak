@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkPositionIndexes;
 
 public class SegmentReader {
 
@@ -57,19 +56,6 @@ public class SegmentReader {
         return segment.readInt(recordId.getOffset() + position);
     }
 
-    public void readBytes(
-            RecordId recordId, int position,
-            byte[] buffer, int offset, int length) {
-        checkNotNull(recordId);
-        checkArgument(position >= 0);
-        checkNotNull(buffer);
-        checkPositionIndexes(offset, offset + length, buffer.length);
-
-        Segment segment = store.readSegment(recordId.getSegmentId());
-        segment.readBytes(
-                recordId.getOffset() + position, buffer, offset, length);
-    }
-
     public RecordId readRecordId(RecordId recordId, int position) {
         checkNotNull(recordId);
         checkArgument(position >= 0);
@@ -82,19 +68,13 @@ public class SegmentReader {
         checkNotNull(recordId);
         checkArgument(numberOfEntries >= 0);
 
+        Segment segment = store.readSegment(recordId.getSegmentId());
         if (numberOfEntries > 0) {
-            Segment segment = store.readSegment(recordId.getSegmentId());
             RecordId id = segment.readRecordId(recordId.getOffset());
-            return new ListRecord(id, numberOfEntries);
+            return new ListRecord(segment, id, numberOfEntries);
         } else {
-            return new ListRecord(recordId, numberOfEntries);
+            return new ListRecord(segment, recordId, numberOfEntries);
         }
-    }
-
-    public BlockRecord readBlock(RecordId recordId, int size) {
-        checkNotNull(recordId);
-        checkArgument(size > 0);
-        return new BlockRecord(recordId, size);
     }
 
     SegmentStore getStore() {

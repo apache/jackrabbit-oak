@@ -26,12 +26,14 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -50,6 +52,10 @@ public class RecordTest {
 
     private SegmentStore store = new MemoryStore();
 
+    private Segment segment = new Segment(
+            store, UUID.randomUUID(),
+            ByteBuffer.allocate(0), Collections.<UUID>emptyList());
+
     private SegmentReader reader = new SegmentReader(store);
 
     private SegmentWriter writer = store.getWriter();
@@ -59,20 +65,20 @@ public class RecordTest {
     @Test
     public void testBlockRecord() {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        BlockRecord block = new BlockRecord(blockId, bytes.length);
+        BlockRecord block = new BlockRecord(segment, blockId, bytes.length);
 
         // Check reading with all valid positions and lengths
         for (int n = 1; n < bytes.length; n++) {
             for (int i = 0; i + n <= bytes.length; i++) {
                 Arrays.fill(bytes, i, i + n, (byte) '.');
-                assertEquals(n, block.read(reader, i, bytes, i, n));
+                assertEquals(n, block.read(i, bytes, i, n));
                 assertEquals(hello, new String(bytes, Charsets.UTF_8));
             }
         }
 
         // Check reading with a too long length
         byte[] large = new byte[bytes.length * 2];
-        assertEquals(bytes.length, block.read(reader, 0, large, 0, large.length));
+        assertEquals(bytes.length, block.read(0, large, 0, large.length));
         assertEquals(hello, new String(large, 0, bytes.length, Charsets.UTF_8));
     }
 
@@ -104,7 +110,7 @@ public class RecordTest {
 
     private ListRecord writeList(int size, RecordId id) {
         List<RecordId> list = Collections.nCopies(size, id);
-        return new ListRecord(writer.writeList(list), size);
+        return new ListRecord(segment, writer.writeList(list), size);
     }
 
     @Test

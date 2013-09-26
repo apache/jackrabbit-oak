@@ -152,6 +152,15 @@ public class Segment {
     }
 
     /**
+     * Returns the identified segment.
+     *
+     * @param uuid segment identifier
+     */
+    Segment getSegment(UUID uuid) {
+        return store.readSegment(uuid);
+    }
+
+    /**
      * Reads the given number of bytes starting from the given position
      * in this segment.
      *
@@ -219,7 +228,7 @@ public class Segment {
         } else if (length < Integer.MAX_VALUE) {
             int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
             ListRecord list =
-                    new ListRecord(internalReadRecordId(pos + 8), size);
+                    new ListRecord(this, internalReadRecordId(pos + 8), size);
             SegmentStream stream = new SegmentStream(
                     store, new RecordId(uuid, offset), list, length);
             try {
@@ -340,7 +349,8 @@ public class Segment {
             return new SegmentStream(id, inline);
         } else {
             int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            ListRecord list = new ListRecord(internalReadRecordId(pos + 8), size);
+            ListRecord list =
+                    new ListRecord(this, internalReadRecordId(pos + 8), size);
             return new SegmentStream(store, id, list, length);
         }
     }
