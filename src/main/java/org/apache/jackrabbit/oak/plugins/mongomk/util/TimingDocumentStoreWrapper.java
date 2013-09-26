@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.Collection;
@@ -80,7 +81,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         try {
             long start = now();
             T result = base.find(collection, key);
-            updateAndLogTimes("find", start, 0, result.getMemory());
+            updateAndLogTimes("find", start, 0, size(result));
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -93,7 +94,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         try {
             long start = now();
             T result = base.find(collection, key, maxCacheAge);
-            updateAndLogTimes("find2", start, 0, result.getMemory());
+            updateAndLogTimes("find2", start, 0, size(result));
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -158,13 +159,13 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    @Nonnull
+    @CheckForNull
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws MicroKernelException {
         try {
             long start = now();
             T result = base.createOrUpdate(collection, update);
-            updateAndLogTimes("createOrUpdate", start, 0, result.getMemory());
+            updateAndLogTimes("createOrUpdate", start, 0, size(result));
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -178,7 +179,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         try {
             long start = now();
             T result = base.findAndUpdate(collection, update);
-            updateAndLogTimes("findAndUpdate", start, 0, result.getMemory());
+            updateAndLogTimes("findAndUpdate", start, 0, size(result));
             return result;
         } catch (Exception e) {
             throw convert(e);
@@ -249,6 +250,14 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             result += doc.getMemory();
         }
         return result;
+    }
+
+    private static int size(@Nullable Document document) {
+        if (document == null) {
+            return 0;
+        } else {
+            return document.getMemory();
+        }
     }
     
     private static long now() {
