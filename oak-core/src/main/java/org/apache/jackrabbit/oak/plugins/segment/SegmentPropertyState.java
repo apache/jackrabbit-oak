@@ -56,14 +56,14 @@ class SegmentPropertyState extends AbstractPropertyState {
     private ListRecord getValueList() {
         RecordId listId = recordId;
         int size = 1;
+        Segment segment = store.readSegment(recordId.getSegmentId());
         if (isArray()) {
-            Segment segment = store.readSegment(recordId.getSegmentId());
             size = segment.readInt(recordId.getOffset());
             if (size > 0) {
                 listId = segment.readRecordId(recordId.getOffset() + 4);
             }
         }
-        return new ListRecord(listId, size);
+        return new ListRecord(segment, listId, size);
     }
 
     Map<String, RecordId> getValueRecords() {
