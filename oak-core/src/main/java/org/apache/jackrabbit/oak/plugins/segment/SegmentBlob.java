@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 
 public class SegmentBlob extends AbstractBlob {
@@ -47,17 +46,6 @@ public class SegmentBlob extends AbstractBlob {
         } finally {
             stream.close();
         }
-    }
-
-    @Override
-    public int compareTo(Blob blob) {
-        if (blob instanceof SegmentBlob) {
-            SegmentBlob that = (SegmentBlob) blob;
-            if (recordId.equals(that.recordId)) {
-                return 0;
-            }
-        }
-        return super.compareTo(blob);
     }
 
     @Override
