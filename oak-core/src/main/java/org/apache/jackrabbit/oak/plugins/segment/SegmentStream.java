@@ -156,10 +156,9 @@ public class SegmentStream extends InputStream {
                 len = (int) (length - position);
             }
 
-            SegmentReader reader = new SegmentReader(store);
             BlockRecord block = new BlockRecord(
                     blocks.getSegment(),
-                    blocks.getEntry(reader, blockIndex),
+                    blocks.getEntry(blockIndex),
                     BLOCK_SIZE);
             len = block.read(blockOffset, b, off, len);
             position += len;

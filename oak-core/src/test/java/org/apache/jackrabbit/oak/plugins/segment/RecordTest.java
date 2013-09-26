@@ -93,19 +93,19 @@ public class RecordTest {
         ListRecord level2p = writeList(LEVEL_SIZE * LEVEL_SIZE + 1, blockId);
 
         assertEquals(1, one.size());
-        assertEquals(blockId, one.getEntry(reader, 0));
+        assertEquals(blockId, one.getEntry(0));
         assertEquals(LEVEL_SIZE, level1.size());
-        assertEquals(blockId, level1.getEntry(reader, 0));
-        assertEquals(blockId, level1.getEntry(reader, LEVEL_SIZE - 1));
+        assertEquals(blockId, level1.getEntry(0));
+        assertEquals(blockId, level1.getEntry(LEVEL_SIZE - 1));
         assertEquals(LEVEL_SIZE + 1, level1p.size());
-        assertEquals(blockId, level1p.getEntry(reader, 0));
-        assertEquals(blockId, level1p.getEntry(reader, LEVEL_SIZE));
+        assertEquals(blockId, level1p.getEntry(0));
+        assertEquals(blockId, level1p.getEntry(LEVEL_SIZE));
         assertEquals(LEVEL_SIZE * LEVEL_SIZE, level2.size());
-        assertEquals(blockId, level2.getEntry(reader, 0));
-        assertEquals(blockId, level2.getEntry(reader, LEVEL_SIZE * LEVEL_SIZE - 1));
+        assertEquals(blockId, level2.getEntry(0));
+        assertEquals(blockId, level2.getEntry(LEVEL_SIZE * LEVEL_SIZE - 1));
         assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, level2p.size());
-        assertEquals(blockId, level2p.getEntry(reader, 0));
-        assertEquals(blockId, level2p.getEntry(reader, LEVEL_SIZE * LEVEL_SIZE));
+        assertEquals(blockId, level2p.getEntry(0));
+        assertEquals(blockId, level2p.getEntry(LEVEL_SIZE * LEVEL_SIZE));
     }
 
     private ListRecord writeList(int size, RecordId id) {
