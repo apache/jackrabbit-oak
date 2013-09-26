@@ -91,10 +91,9 @@ public class SegmentWriter {
 
     /**
      * The segment write buffer, filled from the end to the beginning
-     * (see OAK-629). The buffer grows automatically up to
-     * {@link Segment#MAX_SEGMENT_SIZE}.
+     * (see OAK-629).
      */
-    private byte[] buffer = new byte[MAX_SEGMENT_SIZE];
+    private final byte[] buffer = new byte[MAX_SEGMENT_SIZE];
 
     /**
      * The number of bytes already written (or allocated). Counted from
@@ -108,16 +107,22 @@ public class SegmentWriter {
      */
     private int position;
 
+    private Segment currentSegment = null;
+
     public SegmentWriter(SegmentStore store) {
         this.store = store;
     }
 
     public synchronized Segment getCurrentSegment(UUID id) {
         if (equal(id, uuid)) {
-            return new Segment(
-                    store, uuid,
-                    ByteBuffer.wrap(buffer, buffer.length - length, length),
-                    newArrayList(uuids.keySet()));
+            if (currentSegment == null) {
+                ByteBuffer b = ByteBuffer.allocate(length);
+                System.arraycopy(
+                        buffer, buffer.length - length, b.array(), 0, length);
+                currentSegment = new Segment(
+                        store, uuid, b, newArrayList(uuids.keySet()));
+            }
+            return currentSegment;
         } else {
             return null;
         }
@@ -131,9 +136,9 @@ public class SegmentWriter {
 
             uuid = UUID.randomUUID();
             uuids.clear();
-            buffer = new byte[MAX_SEGMENT_SIZE];
             length = 0;
             position = buffer.length;
+            currentSegment = null;
         }
     }
 
@@ -165,6 +170,7 @@ public class SegmentWriter {
         length += alignedSize;
         position = buffer.length - length;
         checkState(position >= 0);
+        currentSegment = null;
         return new RecordId(uuid, position);
     }
 
