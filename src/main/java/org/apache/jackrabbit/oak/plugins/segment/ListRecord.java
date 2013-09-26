@@ -43,7 +43,7 @@ class ListRecord extends Record {
         return size;
     }
 
-    public RecordId getEntry(SegmentReader reader, int index) {
+    public RecordId getEntry(int index) {
         checkElementIndex(index, size);
 
         if (size == 1) {
@@ -54,7 +54,7 @@ class ListRecord extends Record {
             Segment segment = getSegment();
             RecordId bucketId = segment.readRecordId(getOffset(0, bucketIndex));
             ListRecord bucket = new ListRecord(segment, bucketId, bucketSize);
-            return bucket.getEntry(reader, bucketOffset);
+            return bucket.getEntry(bucketOffset);
         }
     }
 
