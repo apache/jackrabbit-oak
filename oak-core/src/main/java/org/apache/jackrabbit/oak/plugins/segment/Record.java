@@ -16,18 +16,82 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Objects.equal;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.UUID;
+
+import javax.annotation.Nonnull;
+
 /**
  * Record within a segment.
  */
 class Record {
 
     /**
-     * Identifier of this record.
+     * The segment that contains this record, or initially some other segment
+     * in the same store. The reference is lazily updated when the
+     * {@link #getSegment()} method is first called to prevent the potentially
+     * costly pre-loading of segments that might actually not be needed.
      */
-    private final RecordId id;
+    private Segment segment;
 
-    protected Record(RecordId id) {
-        this.id = id;
+    /**
+     * Identifier of the segment that contains this record. The value of
+     * this identifier never changes, but the exact instance reference may
+     * get updated by the {@link #getSegment()} method to indicate that
+     * lazy initialization has happened.
+     */
+    private UUID uuid;
+
+    /**
+     * Segment offset of this record.
+     */
+    private final int offset;
+
+    /**
+     * Creates a new object for the identified record. The segment from which
+     * the record identifier was read is also given as it either directly
+     * contains the identified record (common case) or can be used to look
+     * up the segment that contains the record.
+     *
+     * @param segment from which the record identifier was read
+     * @param id record identified
+     */
+    protected Record(@Nonnull Segment segment, @Nonnull RecordId id) {
+        this.segment = checkNotNull(segment);
+
+        checkNotNull(id);
+        if (equal(id.getSegmentId(), segment.getSegmentId())) {
+            this.uuid = segment.getSegmentId();
+        } else {
+            this.uuid = id.getSegmentId();
+        }
+        this.offset = id.getOffset();
+    }
+
+    // TODO: remove this ugly hack
+    protected Record(SegmentStore store, RecordId id) {
+        this(new Segment(
+                store, UUID.randomUUID(),
+                ByteBuffer.allocate(0), Collections.<UUID>emptyList()), id);
+    }
+
+    /**
+     * Returns the segment that contains this record.
+     *
+     * @return segment that contains this record
+     */
+    protected synchronized Segment getSegment() {
+        if (uuid != segment.getSegmentId()) {
+            segment = segment.getSegment(uuid);
+            checkState(uuid.equals(segment.getSegmentId()));
+            uuid = segment.getSegmentId();
+        }
+        return segment;
     }
 
     /**
@@ -35,8 +99,8 @@ class Record {
      *
      * @return record identifier
      */
-    public RecordId getRecordId() {
-        return id;
+    public synchronized RecordId getRecordId() {
+        return new RecordId(uuid, offset);
     }
 
     /**
@@ -44,8 +108,8 @@ class Record {
      *
      * @return segment offset of this record
      */
-    protected int getOffset() {
-        return id.getOffset();
+    protected final int getOffset() {
+        return offset;
     }
 
     /**
@@ -54,7 +118,7 @@ class Record {
      * @param position byte position within this record
      * @return segment offset of the given byte position
      */
-    protected int getOffset(int position) {
+    protected final int getOffset(int position) {
         return getOffset() + position;
     }
 
@@ -67,7 +131,7 @@ class Record {
      * @param ids number of record identifiers before the position
      * @return segment offset of the specified byte position
      */
-    protected int getOffset(int bytes, int ids) {
+    protected final int getOffset(int bytes, int ids) {
         return getOffset(bytes + ids * Segment.RECORD_ID_BYTES);
     }
 
