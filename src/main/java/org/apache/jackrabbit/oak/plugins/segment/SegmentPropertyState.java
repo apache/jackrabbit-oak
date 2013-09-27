@@ -30,37 +30,28 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.AbstractPropertyState;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-class SegmentPropertyState extends AbstractPropertyState {
+class SegmentPropertyState extends Record implements PropertyState {
 
     private final PropertyTemplate template;
 
-    private final SegmentStore store;
-
-    private final RecordId recordId;
-
     public SegmentPropertyState(
-            PropertyTemplate template, SegmentStore store, RecordId recordId) {
+            Segment segment, RecordId id, PropertyTemplate template) {
+        super(segment, id);
         this.template = checkNotNull(template);
-        this.store = checkNotNull(store);
-        this.recordId = checkNotNull(recordId);
     }
 
-    RecordId getRecordId() {
-        return recordId;
-    }
-
-    private ListRecord getValueList() {
-        RecordId listId = recordId;
+    private ListRecord getValueList(Segment segment) {
+        RecordId listId = getRecordId();
         int size = 1;
-        Segment segment = store.readSegment(recordId.getSegmentId());
         if (isArray()) {
-            size = segment.readInt(recordId.getOffset());
+            size = segment.readInt(getOffset());
             if (size > 0) {
-                listId = segment.readRecordId(recordId.getOffset() + 4);
+                listId = segment.readRecordId(getOffset(4));
             }
         }
         return new ListRecord(segment, listId, size);
@@ -73,8 +64,8 @@ class SegmentPropertyState extends AbstractPropertyState {
 
         Map<String, RecordId> map = newHashMap();
 
-        ListRecord values = getValueList();
-        Segment segment = store.readSegment(recordId.getSegmentId());
+        Segment segment = getSegment();
+        ListRecord values = getValueList(segment);
         for (int i = 0; i < values.size(); i++) {
             RecordId valueId = values.getEntry(i);
             String value = segment.readString(valueId);
@@ -102,8 +93,7 @@ class SegmentPropertyState extends AbstractPropertyState {
     @Override
     public int count() {
         if (isArray()) {
-            Segment segment = store.readSegment(recordId.getSegmentId());
-            return segment.readInt(recordId.getOffset());
+            return getSegment().readInt(getOffset());
         } else {
             return 1;
         }
@@ -153,7 +143,8 @@ class SegmentPropertyState extends AbstractPropertyState {
         checkNotNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");
 
-        ListRecord values = getValueList();
+        Segment segment = getSegment();
+        ListRecord values = getValueList(segment);
         checkElementIndex(index, values.size());
 
         Type<?> base = getType();
@@ -161,7 +152,6 @@ class SegmentPropertyState extends AbstractPropertyState {
             base = base.getBaseType();
         }
 
-        Segment segment = store.readSegment(recordId.getSegmentId());
         RecordId valueId = values.getEntry(index);
         if (type == Type.BINARY) {
             return (T) new SegmentBlob(segment, valueId);
@@ -202,11 +192,10 @@ class SegmentPropertyState extends AbstractPropertyState {
 
     @Override
     public long size(int index) {
-        ListRecord values = getValueList();
+        Segment segment = getSegment();
+        ListRecord values = getValueList(segment);
         checkElementIndex(index, values.size());
-        RecordId valueId = values.getEntry(0);
-        Segment segment = store.readSegment(valueId.getSegmentId());
-        return segment.readLength(valueId.getOffset());
+        return segment.readLength(values.getEntry(0));
     }
 
 
@@ -219,13 +208,25 @@ class SegmentPropertyState extends AbstractPropertyState {
             return true;
         } else if (object instanceof SegmentPropertyState) {
             SegmentPropertyState that = (SegmentPropertyState) object;
-            if (recordId.equals(that.recordId)
-                    && template.equals(that.template)) {
+            if (!template.equals(that.template)) {
+                return false;
+            } else if (getRecordId().equals(that.getRecordId())) {
                 return true;
             }
         }
         // fall back to default equality check in AbstractPropertyState
-        return super.equals(object);
+        return object instanceof PropertyState
+                && AbstractPropertyState.equal(this, (PropertyState) object);
+    }
+
+    @Override
+    public int hashCode() {
+        return AbstractPropertyState.hashCode(this);
+    }
+
+    @Override
+    public String toString() {
+        return AbstractPropertyState.toString(this);
     }
 
 }
