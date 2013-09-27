@@ -28,8 +28,8 @@ import com.google.common.collect.Maps;
 
 class MapLeaf extends MapRecord {
 
-    MapLeaf(SegmentStore store, RecordId id, int size, int level) {
-        super(store, id, size, level);
+    MapLeaf(Segment segment, RecordId id, int size, int level) {
+        super(segment, id, size, level);
         checkArgument(size != 0 || level == 0);
         checkArgument(size <= BUCKETS_PER_LEVEL || level == MAX_NUMBER_OF_LEVELS);
     }
@@ -39,20 +39,19 @@ class MapLeaf extends MapRecord {
         RecordId[] values = new RecordId[size];
 
         Segment segment = getSegment();
-        int offset = getOffset() + 4 + size * 4;
+        int bytes = 4 + size * 4;
+        int ids = 0;
         for (int i = 0; i < size; i++) {
-            keys[i] = segment.readRecordId(offset);
-            offset += RECORD_ID_BYTES;
+            keys[i] = segment.readRecordId(getOffset(bytes, ids++));
         }
         for (int i = 0; i < size; i++) {
-            values[i] = segment.readRecordId(offset);
-            offset += RECORD_ID_BYTES;
+            values[i] = segment.readRecordId(getOffset(bytes, ids++));
         }
 
         Map<String, MapEntry> entries = Maps.newHashMapWithExpectedSize(size);
         for (int i = 0; i < size; i++) {
             String name = segment.readString(keys[i]);
-            entries.put(name, new MapEntry(store, name, keys[i], values[i]));
+            entries.put(name, new MapEntry(segment, name, keys[i], values[i]));
         }
         return entries;
     }
