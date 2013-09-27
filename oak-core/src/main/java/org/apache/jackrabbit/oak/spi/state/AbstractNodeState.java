@@ -50,22 +50,15 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  */
 public abstract class AbstractNodeState implements NodeState {
 
-    @Override
-    public boolean hasProperty(String name) {
-        return getProperty(name) != null;
-    }
-
-    @Override
-    public boolean getBoolean(String name) {
-        PropertyState property = getProperty(name);
+    public static boolean getBoolean(NodeState state, String name) {
+        PropertyState property = state.getProperty(name);
         return property != null
                 && property.getType() == BOOLEAN
                 && property.getValue(BOOLEAN);
     }
 
-    @Override
-    public long getLong(String name) {
-        PropertyState property = getProperty(name);
+    public static long getLong(NodeState state, String name) {
+        PropertyState property = state.getProperty(name);
         if (property != null && property.getType() == LONG) {
             return property.getValue(LONG);
         } else {
@@ -73,9 +66,8 @@ public abstract class AbstractNodeState implements NodeState {
         }
     }
 
-    @Override
-    public String getString(String name) {
-        PropertyState property = getProperty(name);
+    public static String getString(NodeState state, String name) {
+        PropertyState property = state.getProperty(name);
         if (property != null && property.getType() == STRING) {
             return property.getValue(STRING);
         } else {
@@ -83,9 +75,8 @@ public abstract class AbstractNodeState implements NodeState {
         }
     }
 
-    @Override @CheckForNull
-    public String getName(@Nonnull String name) {
-        PropertyState property = getProperty(name);
+    public static String getName(NodeState state, String name) {
+        PropertyState property = state.getProperty(name);
         if (property != null && property.getType() == NAME) {
             return property.getValue(NAME);
         } else {
@@ -93,14 +84,126 @@ public abstract class AbstractNodeState implements NodeState {
         }
     }
 
-    @Override @Nonnull
-    public Iterable<String> getNames(@Nonnull String name) {
-        PropertyState property = getProperty(name);
+    public static Iterable<String> getNames(NodeState state, String name) {
+        PropertyState property = state.getProperty(name);
         if (property != null && property.getType() == NAMES) {
             return property.getValue(NAMES);
         } else {
             return emptyList();
         }
+    }
+
+    /**
+     * Generic default comparison algorithm that simply walks through the
+     * property and child node lists of the given base state and compares
+     * the entries one by one with corresponding ones (if any) in this state.
+     */
+    public static boolean compareAgainstBaseState(
+            NodeState state, NodeState base, NodeStateDiff diff) {
+        if (!comparePropertiesAgainstBaseState(state, base, diff)) {
+            return false;
+        }
+
+        Set<String> baseChildNodes = new HashSet<String>();
+        for (ChildNodeEntry beforeCNE : base.getChildNodeEntries()) {
+            String name = beforeCNE.getName();
+            NodeState beforeChild = beforeCNE.getNodeState();
+            NodeState afterChild = state.getChildNode(name);
+            if (!afterChild.exists()) {
+                if (!diff.childNodeDeleted(name, beforeChild)) {
+                    return false;
+                }
+            } else {
+                baseChildNodes.add(name);
+                if (afterChild != beforeChild) { // TODO: fastEquals?
+                    if (!diff.childNodeChanged(name, beforeChild, afterChild)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        for (ChildNodeEntry afterChild : state.getChildNodeEntries()) {
+            String name = afterChild.getName();
+            if (!baseChildNodes.contains(name)) {
+                if (!diff.childNodeAdded(name, afterChild.getNodeState())) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Compares the properties of {@code base} state with {@code this}
+     * state.
+     *
+     * @param state the head node state.
+     * @param base the base node state.
+     * @param diff the node state diff.
+     * @return {@code true} to continue the comparison, {@code false} to stop
+     */
+    public static boolean comparePropertiesAgainstBaseState(
+            NodeState state, NodeState base, NodeStateDiff diff) {
+        Set<String> baseProperties = new HashSet<String>();
+        for (PropertyState beforeProperty : base.getProperties()) {
+            String name = beforeProperty.getName();
+            PropertyState afterProperty = state.getProperty(name);
+            if (afterProperty == null) {
+                if (!diff.propertyDeleted(beforeProperty)) {
+                    return false;
+                }
+            } else {
+                baseProperties.add(name);
+                if (!beforeProperty.equals(afterProperty)) {
+                    if (!diff.propertyChanged(beforeProperty, afterProperty)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        for (PropertyState afterProperty : state.getProperties()) {
+            if (!baseProperties.contains(afterProperty.getName())) {
+                if (!diff.propertyAdded(afterProperty)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+
+    @Override
+    public boolean hasProperty(String name) {
+        return getProperty(name) != null;
+    }
+
+    @Override
+    public boolean getBoolean(String name) {
+        return getBoolean(this, name);
+    }
+
+    @Override
+    public long getLong(String name) {
+        return getLong(this, name);
+    }
+
+    @Override
+    public String getString(String name) {
+        return getString(this, name);
+    }
+
+    @Override @CheckForNull
+    public String getName(@Nonnull String name) {
+        return getName(this, name);
+    }
+
+    @Override @Nonnull
+    public Iterable<String> getNames(@Nonnull String name) {
+        return getNames(this, name);
     }
 
     @Override
@@ -156,39 +259,7 @@ public abstract class AbstractNodeState implements NodeState {
      */
     @Override
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        if (!comparePropertiesAgainstBaseState(base, diff)) {
-            return false;
-        }
-
-        Set<String> baseChildNodes = new HashSet<String>();
-        for (ChildNodeEntry beforeCNE : base.getChildNodeEntries()) {
-            String name = beforeCNE.getName();
-            NodeState beforeChild = beforeCNE.getNodeState();
-            NodeState afterChild = getChildNode(name);
-            if (!afterChild.exists()) {
-                if (!diff.childNodeDeleted(name, beforeChild)) {
-                    return false;
-                }
-            } else {
-                baseChildNodes.add(name);
-                if (afterChild != beforeChild) { // TODO: fastEquals?
-                    if (!diff.childNodeChanged(name, beforeChild, afterChild)) {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        for (ChildNodeEntry afterChild : getChildNodeEntries()) {
-            String name = afterChild.getName();
-            if (!baseChildNodes.contains(name)) {
-                if (!diff.childNodeAdded(name, afterChild.getNodeState())) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        return compareAgainstBaseState(this, base, diff);
     }
 
     /**
@@ -299,45 +370,6 @@ public abstract class AbstractNodeState implements NodeState {
     @Override
     public int hashCode() {
         return 0;
-    }
-
-    /**
-     * Compares the properties of {@code base} state with {@code this}
-     * state.
-     *
-     * @param base the base node state.
-     * @param diff the node state diff.
-     * @return {@code true} to continue the comparison, {@code false} to stop
-     */
-    protected boolean comparePropertiesAgainstBaseState(NodeState base,
-                                                     NodeStateDiff diff) {
-        Set<String> baseProperties = new HashSet<String>();
-        for (PropertyState beforeProperty : base.getProperties()) {
-            String name = beforeProperty.getName();
-            PropertyState afterProperty = getProperty(name);
-            if (afterProperty == null) {
-                if (!diff.propertyDeleted(beforeProperty)) {
-                    return false;
-                }
-            } else {
-                baseProperties.add(name);
-                if (!beforeProperty.equals(afterProperty)) {
-                    if (!diff.propertyChanged(beforeProperty, afterProperty)) {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        for (PropertyState afterProperty : getProperties()) {
-            if (!baseProperties.contains(afterProperty.getName())) {
-                if (!diff.propertyAdded(afterProperty)) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
     }
 
     //-----------------------------------------------------------< private >--

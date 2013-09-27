@@ -30,30 +30,24 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-public class SegmentNodeState extends AbstractNodeState {
+import com.google.common.base.Objects;
+
+public class SegmentNodeState extends Record implements NodeState {
 
     static boolean fastEquals(NodeState a, NodeState b) {
         return a instanceof SegmentNodeState
                 && b instanceof SegmentNodeState
-                && ((SegmentNodeState) a).recordId.equals(
-                        ((SegmentNodeState) b).recordId);
+                && Objects.equal(
+                        ((SegmentNodeState) a).getRecordId(),
+                        ((SegmentNodeState) b).getRecordId());
     }
-
-    private final SegmentStore store;
-
-    private final RecordId recordId;
 
     private RecordId templateId = null;
 
     private Template template = null;
 
-    public SegmentNodeState(SegmentStore store, RecordId id) {
-        this.store = checkNotNull(store);
-        this.recordId = checkNotNull(id);
-    }
-
-    public RecordId getRecordId() {
-        return recordId;
+    public SegmentNodeState(Segment segment, RecordId id) {
+        super(segment, id);
     }
 
     RecordId getTemplateId() {
@@ -63,15 +57,15 @@ public class SegmentNodeState extends AbstractNodeState {
 
     synchronized Template getTemplate() {
         if (template == null) {
-            Segment segment = store.readSegment(recordId.getSegmentId());
-            templateId = segment.readRecordId(recordId.getOffset());
+            Segment segment = getSegment();
+            templateId = segment.readRecordId(getOffset(0));
             template = segment.readTemplate(templateId);
         }
         return template;
     }
 
     MapRecord getChildNodeMap() {
-        return getTemplate().getChildNodeMap(store, recordId);
+        return getTemplate().getChildNodeMap(getSegment(), getRecordId());
     }
 
     @Override
@@ -93,44 +87,70 @@ public class SegmentNodeState extends AbstractNodeState {
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         checkNotNull(name);
-        return getTemplate().getProperty(name, store, recordId);
+        return getTemplate().getProperty(name, getSegment(), getRecordId());
     }
 
     @Override @Nonnull
     public Iterable<PropertyState> getProperties() {
-        return getTemplate().getProperties(store, recordId);
+        return getTemplate().getProperties(getSegment(), getRecordId());
+    }
+
+    @Override
+    public boolean getBoolean(String name) {
+        return AbstractNodeState.getBoolean(this, name);
+    }
+
+    @Override
+    public long getLong(String name) {
+        return AbstractNodeState.getLong(this, name);
+    }
+
+    @Override
+    public String getString(String name) {
+        return AbstractNodeState.getString(this, name);
+    }
+
+    @Override
+    public String getName(String name) {
+        return AbstractNodeState.getName(this, name);
+    }
+
+    @Override
+    public Iterable<String> getNames(String name) {
+        return AbstractNodeState.getNames(this, name);
     }
 
     @Override
     public long getChildNodeCount(long max) {
-        return getTemplate().getChildNodeCount(store, recordId);
+        return getTemplate().getChildNodeCount(getSegment(), getRecordId());
     }
 
     @Override
     public boolean hasChildNode(String name) {
         checkArgument(!checkNotNull(name).isEmpty());
-        return getTemplate().hasChildNode(name, store, recordId);
+        return getTemplate().hasChildNode(name, getSegment(), getRecordId());
     }
 
     @Override @CheckForNull
     public NodeState getChildNode(String name) {
         // checkArgument(!checkNotNull(name).isEmpty()); // TODO
-        return getTemplate().getChildNode(name, store, recordId);
+        return getTemplate().getChildNode(name, getSegment(), getRecordId());
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return getTemplate().getChildNodeNames(store, recordId);
+        return getTemplate().getChildNodeNames(getSegment(), getRecordId());
     }
 
     @Override @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return getTemplate().getChildNodeEntries(store, recordId);
+        return getTemplate().getChildNodeEntries(getSegment(), getRecordId());
     }
 
     @Override @Nonnull
     public NodeBuilder builder() {
-        return new SegmentRootBuilder(this, store.getWriter());
+        // TODO: avoid the Segment.store reference
+        return new SegmentRootBuilder(this, getSegment().store.getWriter());
     }
 
     @Override
@@ -139,15 +159,17 @@ public class SegmentNodeState extends AbstractNodeState {
              return true; // no changes
         } else if (base == EMPTY_NODE || !base.exists()) { // special case
             return getTemplate().compareAgainstEmptyState(
-                    store, recordId, diff);
+                    getSegment(), getRecordId(), diff);
         } else if (base instanceof SegmentNodeState) {
             SegmentNodeState that = (SegmentNodeState) base;
-            return recordId.equals(that.recordId)
+            return getRecordId().equals(that.getRecordId())
                 || getTemplate().compareAgainstBaseState(
-                        store, recordId, that.getTemplate(), that.recordId,
+                        getSegment(), getRecordId(),
+                        that.getTemplate(), that.getRecordId(),
                         diff);
         } else {
-            return super.compareAgainstBaseState(base, diff); // fallback
+            // fallback
+            return AbstractNodeState.compareAgainstBaseState(this, base, diff);
         }
     }
 
@@ -157,15 +179,17 @@ public class SegmentNodeState extends AbstractNodeState {
             return true;
         } else if (object instanceof SegmentNodeState) {
             SegmentNodeState that = (SegmentNodeState) object;
-            if (recordId.equals(that.recordId)) {
+            if (getRecordId().equals(that.getRecordId())) {
                 return true;
             } else {
                 Template template = getTemplate();
                 return template.equals(that.getTemplate())
-                        && template.compare(store, recordId, that.store, that.recordId);
+                        && template.compare(
+                                getSegment(), getRecordId(),
+                                that.getSegment(), that.getRecordId());
             }
         } else {
-            return super.equals(object);
+            return super.equals(object); // TODO
         }
     }
 

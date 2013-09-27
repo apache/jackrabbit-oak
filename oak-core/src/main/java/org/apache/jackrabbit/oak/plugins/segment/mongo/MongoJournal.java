@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.MergeDiff;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
+import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
@@ -175,15 +176,17 @@ class MongoJournal implements Journal {
             RecordId base = RecordId.fromString(state.get("base").toString());
             RecordId head = RecordId.fromString(state.get("head").toString());
 
-            NodeState before = new SegmentNodeState(store, base);
-            NodeState after = new SegmentNodeState(store, head);
+            SegmentWriter writer = store.getWriter();
+            Segment segment = writer.getDummySegment();
+
+            NodeState before = new SegmentNodeState(segment, base);
+            NodeState after = new SegmentNodeState(segment, head);
 
             Journal parent = store.getJournal(state.get("parent").toString());
-            SegmentWriter writer = store.getWriter();
             while (!parent.setHead(base, head)) {
                 RecordId newBase = parent.getHead();
                 NodeBuilder builder =
-                        new SegmentNodeState(store, newBase).builder();
+                        new SegmentNodeState(segment, newBase).builder();
                 after.compareAgainstBaseState(before, new MergeDiff(builder));
                 RecordId newHead =
                         writer.writeNode(builder.getNodeState()).getRecordId();
