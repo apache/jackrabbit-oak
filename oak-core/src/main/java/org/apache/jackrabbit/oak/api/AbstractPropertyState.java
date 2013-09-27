@@ -18,12 +18,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-
-import javax.jcr.PropertyType;
-
+import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 
 /**
@@ -34,11 +29,53 @@ import com.google.common.collect.Iterables;
 public abstract class AbstractPropertyState implements PropertyState {
 
     /**
-     * Checks whether the given object is equal to this one. Two property
-     * states are considered equal if their names and types match and
-     * their string representation of their values are equal.
-     * Subclasses may override this method with a more efficient
-     * equality check if one is available.
+     * Checks whether the given two property states are equal. They are
+     * considered equal if their names and types match, they have an equal
+     * number of values, and each of the values is equal with the
+     * corresponding value in the other property.
+     *
+     * @param a first property state
+     * @param b second property state
+     * @return {@code true} if the properties are equal, {@code false} otherwise
+     */
+    public static boolean equal(PropertyState a, PropertyState b) {
+        if (Objects.equal(a.getName(), b.getName())
+                && Objects.equal(a.getType(), b.getType())) {
+            Type<?> type = a.getType();
+            if (a.isArray()) {
+                return a.count() == b.count()
+                        && Iterables.elementsEqual(
+                                (Iterable<?>) a.getValue(type),
+                                (Iterable<?>) b.getValue(type));
+            } else {
+                return Objects.equal(a.getValue(type), b.getValue(type));
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public static int hashCode(PropertyState property) {
+        return property.getName().hashCode();
+    }
+
+    public static String toString(PropertyState property) {
+        String name = property.getName();
+        Type<?> type = property.getType();
+        if (type == Type.BINARIES) {
+            return name + " = [" + property.count() + " binaries]";
+        } else if (type == Type.BINARY) {
+            return name + " = {" + property.size() + " bytes}";
+        } else {
+            return name + " = " + property.getValue(type);
+        }
+    }
+
+    /**
+     * Checks whether the given object is equal to this one. See the
+     * {@link #equal(PropertyState, PropertyState)} method for the definition
+     * of property state equality. Subclasses may override this method with
+     * a more efficient equality check if one is available.
      *
      * @param other target of the comparison
      * @return {@code true} if the objects are equal, {@code false} otherwise
@@ -47,23 +84,9 @@ public abstract class AbstractPropertyState implements PropertyState {
     public boolean equals(Object other) {
         if (this == other) {
             return true;
-        } else if (other instanceof PropertyState) {
-            PropertyState that = (PropertyState) other;
-            if (!getName().equals(that.getName())) {
-                return false;
-            } else if (!getType().equals(that.getType())) {
-                return false;
-            } else if (isArray() && count() != that.count()) {
-                return false;
-            } else if (getType().tag() == PropertyType.BINARY) {
-                return Iterables.elementsEqual(
-                        getValue(BINARIES), that.getValue(BINARIES));
-            } else {
-                return Iterables.elementsEqual(
-                        getValue(STRINGS), that.getValue(STRINGS));
-            }
         } else {
-            return false;
+            return other instanceof PropertyState
+                    && equal(this, (PropertyState) other);
         }
     }
 
@@ -78,20 +101,12 @@ public abstract class AbstractPropertyState implements PropertyState {
      */
     @Override
     public int hashCode() {
-        return getName().hashCode();
+        return hashCode(this);
     }
 
     @Override
     public String toString() {
-        if (getType() == Type.BINARIES) {
-            return getName() + " = [" + count() + " binaries]"; 
-        } else if (getType() == Type.BINARY) {
-            return getName() + " = {" + size() + " bytes}"; 
-        } else if (isArray()) {
-            return getName() + " = " + getValue(STRINGS);
-        } else {
-            return getName() + " = " + getValue(STRING);
-        }
+        return toString(this);
     }
 
 }
