@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -36,25 +35,40 @@ import org.apache.jackrabbit.oak.api.Blob;
  */
 public abstract class AbstractBlob implements Blob {
 
-    private static HashCode calculateSha256(final Blob blob) {
+    private static class BlobSupplier implements InputSupplier<InputStream> {
+
+        private final Blob blob;
+
+        private BlobSupplier(Blob blob) {
+            this.blob = blob;
+        }
+
+        @Override
+        public InputStream getInput() throws IOException {
+            return blob.getNewStream();
+        }
+
+    }
+
+    private static boolean equal(Blob a, Blob b) {
         try {
-            return ByteStreams.hash(
-                    new InputSupplier<InputStream>() {
-                        @Override
-                        public InputStream getInput() throws IOException {
-                            return blob.getNewStream();
-                        }
-                    },
-                    Hashing.sha256());
+            return ByteStreams.equal(new BlobSupplier(a), new BlobSupplier(b));
         } catch (IOException e) {
-            throw new RuntimeException(
-                    "Failed to calculate the hash code of a stream", e);
+            throw new RuntimeException("Blob equality check failed", e);
         }
     }
 
-    private HashCode hashCode = null;
+    private static HashCode calculateSha256(final Blob blob) {
+        try {
+            return ByteStreams.hash(new BlobSupplier(blob), Hashing.sha256());
+        } catch (IOException e) {
+            throw new RuntimeException("Blob hash calculation failed", e);
+        }
+    }
 
-    private synchronized HashCode calculateSha256() {
+    private HashCode hashCode = null; // synchronized access
+
+    private synchronized HashCode getSha256() {
         // Blobs are immutable so we can safely cache the hash
         if (hashCode == null) {
             hashCode = calculateSha256(this);
@@ -66,13 +80,8 @@ public abstract class AbstractBlob implements Blob {
      * This hash code implementation returns the hash code of the underlying stream
      * @return
      */
-    @Override
-    public int hashCode() {
-        return calculateSha256().asInt();
-    }
-
     protected byte[] sha256() {
-        return calculateSha256().asBytes();
+        return getSha256().asBytes();
     }
 
     /**
@@ -85,21 +94,34 @@ public abstract class AbstractBlob implements Blob {
     public boolean equals(Object other) {
         if (other == this) {
             return true;
-        } else if (other instanceof AbstractBlob) {
-            AbstractBlob that = (AbstractBlob) other;
-            return Arrays.equals(sha256(), that.sha256());
-        } else if (other instanceof Blob) {
-            Blob that = (Blob) other;
-            return Arrays.equals(sha256(), calculateSha256(that).asBytes());
-        } else {
-            return false;
         }
+
+        if (other instanceof AbstractBlob) {
+            AbstractBlob that = (AbstractBlob) other;
+            // optimize the comparison if both this and the other blob
+            // already have pre-computed SHA-256 hash codes
+            synchronized (this) {
+                if (hashCode != null) {
+                    synchronized (that) {
+                        if (that.hashCode != null) {
+                            return hashCode.equals(that.hashCode);
+                        }
+                    }
+                }
+            }
+        }
+
+        return other instanceof Blob && equal(this, (Blob) other);
+    }
+
+    @Override
+    public int hashCode() {
+        return 0; // see Blob javadoc
     }
 
     @Override
     public String toString() {
-        return calculateSha256().toString();
+        return getSha256().toString();
     }
-
 
 }
