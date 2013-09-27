@@ -83,6 +83,7 @@ public class FileStore implements SegmentStore {
             }
         }
 
+        Segment segment = writer.getDummySegment();
         for (TarFile tar : files) {
             ByteBuffer buffer = tar.readEntry(JOURNALS_UUID);
             if (buffer != null) {
@@ -96,7 +97,7 @@ public class FileStore implements SegmentStore {
                             new UUID(buffer.getLong(), buffer.getLong()),
                             buffer.getInt());
                     journals.put(name, new FileJournal(
-                            this, new SegmentNodeState(this, recordId)));
+                            this, new SegmentNodeState(segment, recordId)));
                 }
             }
         }

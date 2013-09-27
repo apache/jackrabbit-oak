@@ -56,7 +56,8 @@ public class SegmentNodeStore implements NodeStore {
         this.store = store;
         this.journal = store.getJournal(journal);
         this.observer = EmptyObserver.INSTANCE;
-        this.head = new SegmentNodeState(store, this.journal.getHead());
+        this.head = new SegmentNodeState(
+                store.getWriter().getDummySegment(), this.journal.getHead());
     }
 
     public SegmentNodeStore(SegmentStore store) {
@@ -69,7 +70,8 @@ public class SegmentNodeStore implements NodeStore {
 
     synchronized SegmentNodeState getHead() {
         NodeState before = head.getChildNode(ROOT);
-        head = new SegmentNodeState(store, journal.getHead());
+        head = new SegmentNodeState(
+                store.getWriter().getDummySegment(), journal.getHead());
         NodeState after = head.getChildNode(ROOT);
         observer.contentChanged(before, after);
         return head;
@@ -141,7 +143,9 @@ public class SegmentNodeStore implements NodeStore {
     public synchronized NodeState retrieve(@Nonnull String checkpoint) {
         // TODO: Verify validity of the checkpoint
         RecordId id = RecordId.fromString(checkNotNull(checkpoint));
-        return new SegmentNodeState(store, id).getChildNode(ROOT);
+        SegmentNodeState root =
+                new SegmentNodeState(store.getWriter().getDummySegment(), id);
+        return root.getChildNode(ROOT);
     }
 
 }

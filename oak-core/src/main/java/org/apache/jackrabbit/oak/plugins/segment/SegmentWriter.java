@@ -782,7 +782,7 @@ public class SegmentWriter {
             for (RecordId id : ids) {
                 writeRecordId(id);
             }
-            return new SegmentNodeState(store, recordId);
+            return new SegmentNodeState(dummySegment, recordId);
         }
     }
 

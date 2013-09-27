@@ -59,7 +59,7 @@ class MapEntry extends AbstractChildNodeEntry
     @Override @Nonnull
     public NodeState getNodeState() {
         checkState(value != null);
-        return new SegmentNodeState(segment.store, value);
+        return new SegmentNodeState(segment, value);
     }
 
     //---------------------------------------------------------< Map.Entry >--
