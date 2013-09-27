@@ -16,26 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 
-public class SegmentBlob extends AbstractBlob {
+class SegmentBlob extends Record implements Blob {
 
-    private final SegmentReader reader;
-
-    private final RecordId recordId;
-
-    SegmentBlob(SegmentReader reader, RecordId recordId) {
-        this.reader = checkNotNull(reader);
-        this.recordId = checkNotNull(recordId);
+    SegmentBlob(Segment segment, RecordId id) {
+        super(segment, id);
     }
 
     @Override @Nonnull
     public SegmentStream getNewStream() {
-        return reader.readStream(recordId);
+        return getSegment().readStream(getOffset());
     }
 
     @Override
@@ -48,15 +42,23 @@ public class SegmentBlob extends AbstractBlob {
         }
     }
 
+    //------------------------------------------------------------< Object >--
+
     @Override
     public boolean equals(Object object) {
         if (object instanceof SegmentBlob) {
             SegmentBlob that = (SegmentBlob) object;
-            if (recordId.equals(that.recordId)) {
+            if (getRecordId().equals(that.getRecordId())) {
                 return true;
             }
         }
-        return super.equals(object);
+        return object instanceof Blob
+                && AbstractBlob.equal(this, (Blob) object);
+    }
+
+    @Override
+    public int hashCode() {
+        return 0;
     }
 
 }

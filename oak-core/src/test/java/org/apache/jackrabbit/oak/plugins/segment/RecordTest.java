@@ -26,15 +26,14 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -52,12 +51,6 @@ public class RecordTest {
 
     private SegmentStore store = new MemoryStore();
 
-    private Segment segment = new Segment(
-            store, UUID.randomUUID(),
-            ByteBuffer.allocate(0), Collections.<UUID>emptyList());
-
-    private SegmentReader reader = new SegmentReader(store);
-
     private SegmentWriter writer = store.getWriter();
 
     private final Random random = new Random(0xcafefaceL);
@@ -65,7 +58,8 @@ public class RecordTest {
     @Test
     public void testBlockRecord() {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        BlockRecord block = new BlockRecord(segment, blockId, bytes.length);
+        BlockRecord block = new BlockRecord(
+                writer.getDummySegment(), blockId, bytes.length);
 
         // Check reading with all valid positions and lengths
         for (int n = 1; n < bytes.length; n++) {
@@ -110,7 +104,8 @@ public class RecordTest {
 
     private ListRecord writeList(int size, RecordId id) {
         List<RecordId> list = Collections.nCopies(size, id);
-        return new ListRecord(segment, writer.writeList(list), size);
+        return new ListRecord(
+                writer.getDummySegment(), writer.writeList(list), size);
     }
 
     @Test
@@ -133,8 +128,8 @@ public class RecordTest {
         byte[] source = new byte[size];
         random.nextBytes(source);
 
-        RecordId valueId = writer.writeStream(new ByteArrayInputStream(source));
-        InputStream stream = reader.readStream(valueId);
+        Blob value = writer.writeStream(new ByteArrayInputStream(source));
+        InputStream stream = value.getNewStream();
         try {
             byte[] b = new byte[349]; // prime number
             int offset = 0;

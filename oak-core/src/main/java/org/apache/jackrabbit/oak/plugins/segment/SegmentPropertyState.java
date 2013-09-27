@@ -161,12 +161,11 @@ class SegmentPropertyState extends AbstractPropertyState {
             base = base.getBaseType();
         }
 
-        SegmentReader reader = new SegmentReader(store);
+        Segment segment = store.readSegment(recordId.getSegmentId());
         RecordId valueId = values.getEntry(index);
         if (type == Type.BINARY) {
-            return (T) new SegmentBlob(reader, valueId);
+            return (T) new SegmentBlob(segment, valueId);
         } else {
-            Segment segment = store.readSegment(recordId.getSegmentId());
             String value = segment.readString(valueId);
             if (type == Type.STRING || type == Type.URI
                     || type == Type.NAME || type == Type.PATH
