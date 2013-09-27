@@ -23,8 +23,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
 
-import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 
@@ -85,8 +83,7 @@ abstract class MapRecord extends Record {
     protected final int level;
 
     protected MapRecord(SegmentStore store, RecordId id, int size, int level) {
-        // FIXME: ugly hack
-        super(new Segment(store, UUID.randomUUID(), ByteBuffer.allocate(0), Collections.<UUID>emptyList()), checkNotNull(id));
+        super(store.getWriter().getDummySegment(), id);
         this.store = checkNotNull(store);
         this.size = checkElementIndex(size, MAX_SIZE);
         this.level = checkPositionIndex(level, MAX_NUMBER_OF_LEVELS);
