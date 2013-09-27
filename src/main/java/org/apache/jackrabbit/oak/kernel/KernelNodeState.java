@@ -623,7 +623,7 @@ public final class KernelNodeState extends AbstractNodeState {
         if (!hasChanges(jsonDiff)) {
             return true;
         }
-        if (!comparePropertiesAgainstBaseState(base, diff)) {
+        if (!AbstractNodeState.comparePropertiesAgainstBaseState(this, base, diff)) {
             return false;
         }
         JsopTokenizer t = new JsopTokenizer(jsonDiff);
