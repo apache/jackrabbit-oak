@@ -59,6 +59,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Closeables;
 
 public class SegmentWriter {
 
@@ -109,8 +110,13 @@ public class SegmentWriter {
 
     private Segment currentSegment = null;
 
+    private final Segment dummySegment;
+
     public SegmentWriter(SegmentStore store) {
         this.store = store;
+        this.dummySegment = new Segment(
+                store, UUID.randomUUID(),
+                ByteBuffer.allocate(0), Collections.<UUID>emptyList());
     }
 
     public synchronized Segment getCurrentSegment(UUID id) {
@@ -126,6 +132,10 @@ public class SegmentWriter {
         } else {
             return null;
         }
+    }
+
+    public Segment getDummySegment() {
+        return dummySegment;
     }
 
     public synchronized void flush() {
@@ -459,13 +469,21 @@ public class SegmentWriter {
             if (id == null) {
                 byte[] data = string.getBytes(Charsets.UTF_8);
                 try {
-                    id = writeStream(new ByteArrayInputStream(data));
+                    id = writeStream(new ByteArrayInputStream(data)).getRecordId();
                 } catch (IOException e) {
                     throw new IllegalStateException("Unexpected IOException", e);
                 }
                 strings.put(string, id);
             }
             return id;
+        }
+    }
+
+    public SegmentBlob writeBlob(Blob blob) throws IOException {
+        if (blob instanceof SegmentBlob) {
+            return (SegmentBlob) blob;
+        } else {
+            return writeStream(blob.getNewStream());
         }
     }
 
@@ -477,16 +495,18 @@ public class SegmentWriter {
      * @return value record identifier
      * @throws IOException if the stream could not be read
      */
-    public RecordId writeStream(InputStream stream) throws IOException {
+    public SegmentBlob writeStream(InputStream stream) throws IOException {
         RecordId id = SegmentStream.getRecordIdIfAvailable(stream);
         if (id == null) {
+            boolean threw = true;
             try {
                 id = internalWriteStream(stream);
+                threw = false;
             } finally {
-                stream.close();
+                Closeables.close(stream, threw);
             }
         }
-        return id;
+        return new SegmentBlob(dummySegment, id);
     }
 
     private RecordId internalWriteStream(InputStream stream)
@@ -556,8 +576,9 @@ public class SegmentWriter {
         for (int i = 0; i < count; i++) {
             if (type.tag() == PropertyType.BINARY) {
                 try {
-                    Blob blob = state.getValue(Type.BINARY, i);
-                    valueIds.add(writeStream(blob.getNewStream()));
+                    SegmentBlob blob =
+                            writeBlob(state.getValue(Type.BINARY, i));
+                    valueIds.add(blob.getRecordId());
                 } catch (IOException e) {
                     throw new IllegalStateException("Unexpected IOException", e);
                 }
