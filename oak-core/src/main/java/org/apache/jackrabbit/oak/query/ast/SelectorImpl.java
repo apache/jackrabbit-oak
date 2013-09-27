@@ -52,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.collect.ImmutableSet;
+
 /**
  * A selector within a query.
  */
@@ -60,6 +62,9 @@ public class SelectorImpl extends SourceImpl {
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     protected QueryIndex index;
 
+    /**
+     * the node type associated with the {@link #nodeTypeName}
+     */
     private final NodeState nodeType;
 
     private final String selectorName;
@@ -68,10 +73,20 @@ public class SelectorImpl extends SourceImpl {
 
     private final boolean matchesAllTypes;
 
+    /**
+     * all of the matching supertypes, or empty if the {@link #matchesAllTypes} flag is set
+     */
     private final Set<String> supertypes;
 
+    /**
+     * all of the matching primary subtypes, or empty if the {@link #matchesAllTypes} flag is set
+     */
     private final Set<String> primaryTypes;
 
+    /**
+     * all of the matching mixin types, or empty if the {@link #matchesAllTypes}
+     * flag is set
+     */
     private final Set<String> mixinTypes;
 
     private Cursor cursor;
@@ -94,15 +109,22 @@ public class SelectorImpl extends SourceImpl {
         this.nodeTypeName = nodeType.getName(JCR_NODETYPENAME);
         this.matchesAllTypes = NT_BASE.equals(nodeTypeName);
 
-        this.supertypes = newHashSet(nodeType.getNames(OAK_SUPERTYPES));
-        supertypes.add(nodeTypeName);
+        if (!this.matchesAllTypes) {
+            this.supertypes = newHashSet(nodeType.getNames(OAK_SUPERTYPES));
+            supertypes.add(nodeTypeName);
 
-        this.primaryTypes = newHashSet(nodeType.getNames(OAK_PRIMARY_SUBTYPES));
-        this.mixinTypes = newHashSet(nodeType.getNames(OAK_MIXIN_SUBTYPES));
-        if (nodeType.getBoolean(JCR_ISMIXIN)) {
-            mixinTypes.add(nodeTypeName);
+            this.primaryTypes = newHashSet(nodeType
+                    .getNames(OAK_PRIMARY_SUBTYPES));
+            this.mixinTypes = newHashSet(nodeType.getNames(OAK_MIXIN_SUBTYPES));
+            if (nodeType.getBoolean(JCR_ISMIXIN)) {
+                mixinTypes.add(nodeTypeName);
+            } else {
+                primaryTypes.add(nodeTypeName);
+            }
         } else {
-            primaryTypes.add(nodeTypeName);
+            this.supertypes = ImmutableSet.of();
+            this.primaryTypes = ImmutableSet.of();
+            this.mixinTypes = ImmutableSet.of();
         }
     }
 
@@ -114,16 +136,28 @@ public class SelectorImpl extends SourceImpl {
         return matchesAllTypes;
     }
 
+    /**
+     * @return all of the matching supertypes, or empty if the
+     *         {@link #matchesAllTypes} flag is set
+     */
     @Nonnull
     public Set<String> getSupertypes() {
         return supertypes;
     }
 
+    /**
+     * @return all of the matching primary subtypes, or empty if the
+     *         {@link #matchesAllTypes} flag is set
+     */
     @Nonnull
     public Set<String> getPrimaryTypes() {
         return primaryTypes;
     }
 
+    /**
+     * @return all of the matching mixin types, or empty if the
+     *         {@link #matchesAllTypes} flag is set
+     */
     @Nonnull
     public Set<String> getMixinTypes() {
         return mixinTypes;
@@ -140,7 +174,6 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public String toString() {
-        String nodeTypeName = nodeType.getName(JCR_NODETYPENAME);
         return quote(nodeTypeName) + " as " + quote(selectorName);
     }
 
