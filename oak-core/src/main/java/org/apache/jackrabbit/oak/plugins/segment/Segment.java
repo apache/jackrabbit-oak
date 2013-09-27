@@ -89,7 +89,7 @@ public class Segment {
                 }
             };
 
-    private final SegmentStore store;
+    final SegmentStore store; // TODO: should be private
 
     private final UUID uuid;
 

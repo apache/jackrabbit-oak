@@ -60,41 +60,28 @@ abstract class MapRecord extends Record {
      */
     protected static final int MAX_SIZE = (1 << SIZE_BITS) - 1; // ~268e6
 
-    static MapRecord readMap(SegmentStore store, RecordId id) {
-        checkNotNull(store);
-        checkNotNull(id);
-
-        Segment segment = checkNotNull(store).readSegment(id.getSegmentId());
-        int head = segment.readInt(id.getOffset());
+    static MapRecord readMap(Segment segment, RecordId id) {
+        segment = checkNotNull(segment).getSegment(checkNotNull(id));
+        int offset = id.getOffset();
+        int head = segment.readInt(offset);
         int level = head >>> SIZE_BITS;
         int size = head & ((1 << SIZE_BITS) - 1);
         if (size > BUCKETS_PER_LEVEL && level < MAX_NUMBER_OF_LEVELS) {
-            int bitmap = segment.readInt(id.getOffset() + 4);
-            return new MapBranch(store, id, size, level, bitmap);
+            int bitmap = segment.readInt(offset + 4);
+            return new MapBranch(segment, id, size, level, bitmap);
         } else {
-            return new MapLeaf(store, id, size, level);
+            return new MapLeaf(segment, id, size, level);
         }
     }
-
-    protected final SegmentStore store;
 
     protected final int size;
 
     protected final int level;
 
-    protected MapRecord(SegmentStore store, RecordId id, int size, int level) {
-        super(store.getWriter().getDummySegment(), id);
-        this.store = checkNotNull(store);
+    protected MapRecord(Segment segment, RecordId id, int size, int level) {
+        super(segment, id);
         this.size = checkElementIndex(size, MAX_SIZE);
         this.level = checkPositionIndex(level, MAX_NUMBER_OF_LEVELS);
-    }
-
-    protected Segment getSegment() {
-        return getSegment(getRecordId().getSegmentId());
-    }
-
-    protected Segment getSegment(UUID uuid) {
-        return store.readSegment(uuid);
     }
 
     int size() {
