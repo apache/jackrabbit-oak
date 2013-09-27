@@ -23,7 +23,6 @@ import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.transform;
 import static java.lang.Integer.bitCount;
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
 import java.util.Collections;
 
@@ -35,8 +34,8 @@ class MapBranch extends MapRecord {
 
     private final int bitmap;
 
-    MapBranch(SegmentStore store, RecordId id, int size, int level, int bitmap) {
-        super(store, id, size, level);
+    MapBranch(Segment segment, RecordId id, int size, int level, int bitmap) {
+        super(segment, id, size, level);
         checkArgument(size > BUCKETS_PER_LEVEL);
         checkArgument(level < MAX_NUMBER_OF_LEVELS);
         this.bitmap = bitmap;
@@ -44,13 +43,12 @@ class MapBranch extends MapRecord {
 
     RecordId[] getBuckets() {
         Segment segment = getSegment();
-        int offset = getOffset() + 8;
-
+        int bytes = 8;
+        int ids = 0;
         RecordId[] buckets = new RecordId[BUCKETS_PER_LEVEL];
         for (int i = 0; i < buckets.length; i++) {
             if ((bitmap & (1 << i)) != 0) {
-                buckets[i] = segment.readRecordId(offset);
-                offset += RECORD_ID_BYTES;
+                buckets[i] = segment.readRecordId(getOffset(bytes, ids++));
             } else {
                 buckets[i] = null;
             }
@@ -68,10 +66,11 @@ class MapBranch extends MapRecord {
 
         int bit = 1 << index;
         if ((bitmap & bit) != 0) {
-            int offset = getOffset()
-                    + 8 + bitCount(bitmap & (bit - 1)) * RECORD_ID_BYTES;
-            RecordId id = getSegment().readRecordId(offset);
-            return MapRecord.readMap(store, id).getEntry(key);
+            Segment segment = getSegment();
+            int bytes = 8;
+            int ids = bitCount(bitmap & (bit - 1));
+            RecordId id = segment.readRecordId(getOffset(bytes, ids));
+            return MapRecord.readMap(segment, id).getEntry(key);
         } else {
             return null;
         }
@@ -79,13 +78,14 @@ class MapBranch extends MapRecord {
 
     @Override
     Iterable<String> getKeys() {
+        final Segment segment = getSegment();
         return concat(transform(
                 asList(getBuckets()),
                 new Function<RecordId, Iterable<String>>() {
                     @Override @Nullable
                     public Iterable<String> apply(@Nullable RecordId input) {
                         if (input != null) {
-                            return MapRecord.readMap(store, input).getKeys();
+                            return MapRecord.readMap(segment, input).getKeys();
                         } else {
                             return Collections.emptyList();
                         }
@@ -95,13 +95,14 @@ class MapBranch extends MapRecord {
 
     @Override
     Iterable<MapEntry> getEntries() {
+        final Segment segment = getSegment();
         return concat(transform(
                 asList(getBuckets()),
                 new Function<RecordId, Iterable<MapEntry>>() {
                     @Override @Nullable
                     public Iterable<MapEntry> apply(@Nullable RecordId input) {
                         if (input != null) {
-                            return MapRecord.readMap(store, input).getEntries();
+                            return MapRecord.readMap(segment, input).getEntries();
                         } else {
                             return Collections.emptyList();
                         }
@@ -122,12 +123,14 @@ class MapBranch extends MapRecord {
         MapBranch after = this;
         checkState(after.level == before.level);
 
+        Segment afterSegment = after.getSegment();
+        Segment beforeSegment = before.getSegment();
         RecordId[] afterBuckets = after.getBuckets();
         RecordId[] beforeBuckets = before.getBuckets();
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
             if (afterBuckets[i] == null) {
                 if (beforeBuckets[i] != null) {
-                    MapRecord map = MapRecord.readMap(store, beforeBuckets[i]);
+                    MapRecord map = MapRecord.readMap(beforeSegment, beforeBuckets[i]);
                     for (MapEntry entry : map.getEntries()) {
                         if (!diff.entryDeleted(entry.getName(), entry.getValue())) {
                             return false;
@@ -135,15 +138,15 @@ class MapBranch extends MapRecord {
                     }
                 }
             } else if (beforeBuckets[i] == null) {
-                MapRecord map = MapRecord.readMap(store, afterBuckets[i]);
+                MapRecord map = MapRecord.readMap(afterSegment, afterBuckets[i]);
                 for (MapEntry entry : map.getEntries()) {
                     if (!diff.entryAdded(entry.getName(), entry.getValue())) {
                         return false;
                     }
                 }
             } else if (!afterBuckets[i].equals(beforeBuckets[i])) {
-                MapRecord afterMap = MapRecord.readMap(store, afterBuckets[i]);
-                MapRecord beforeMap = MapRecord.readMap(store, beforeBuckets[i]);
+                MapRecord afterMap = MapRecord.readMap(afterSegment, afterBuckets[i]);
+                MapRecord beforeMap = MapRecord.readMap(beforeSegment, beforeBuckets[i]);
                 if (!afterMap.compare(beforeMap, diff)) {
                     return false;
                 }
@@ -156,16 +159,15 @@ class MapBranch extends MapRecord {
     @Override
     public boolean compareAgainstEmptyMap(MapDiff diff) {
         Segment segment = getSegment();
-        int offset = getOffset() + 8;
-
+        int bytes = 8;
+        int ids = 0;
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
             if ((bitmap & (1 << i)) != 0) {
-                MapRecord bucket =
-                        MapRecord.readMap(store, segment.readRecordId(offset));
+                MapRecord bucket = MapRecord.readMap(
+                        segment, segment.readRecordId(getOffset(bytes, ids++)));
                 if (!bucket.compareAgainstEmptyMap(diff)) {
                     return false;
                 }
-                offset += RECORD_ID_BYTES;
             }
         }
 

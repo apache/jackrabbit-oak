@@ -247,7 +247,7 @@ public class SegmentWriter {
             for (MapEntry entry : array) {
                 writeRecordId(entry.getValue());
             }
-            return new MapLeaf(store, id, size, level);
+            return new MapLeaf(dummySegment, id, size, level);
         }
     }
 
@@ -268,7 +268,7 @@ public class SegmentWriter {
             for (RecordId id : ids) {
                 writeRecordId(id);
             }
-            return new MapBranch(store, mapId, size, level, bitmap);
+            return new MapBranch(dummySegment, mapId, size, level, bitmap);
         }
     }
 
@@ -288,19 +288,19 @@ public class SegmentWriter {
 
         if (entries == null || entries.isEmpty()) {
             if (baseId != null) {
-                return MapRecord.readMap(store, baseId);
+                return MapRecord.readMap(dummySegment, baseId);
             } else if (level == 0) {
                 synchronized (this) {
                     RecordId id = prepare(4);
                     writeInt(0);
-                    return new MapLeaf(store, id, 0, 0);
+                    return new MapLeaf(dummySegment, id, 0, 0);
                 }
             } else {
                 return null;
             }
         } else if (baseId != null) {
             // FIXME: messy code with lots of duplication
-            MapRecord base = MapRecord.readMap(store, baseId);
+            MapRecord base = MapRecord.readMap(dummySegment, baseId);
             if (base instanceof MapLeaf) {
                 Map<String, MapEntry> map = ((MapLeaf) base).getMapEntries();
                 for (MapEntry entry : entries) {
@@ -353,7 +353,7 @@ public class SegmentWriter {
                         synchronized (this) {
                             RecordId id = prepare(4);
                             writeInt(0);
-                            return new MapLeaf(store, id, 0, 0);
+                            return new MapLeaf(dummySegment, id, 0, 0);
                         }
                     } else {
                         return null;
@@ -448,7 +448,7 @@ public class SegmentWriter {
         for (Map.Entry<String, RecordId> entry : changes.entrySet()) {
             String name = entry.getKey();
             entries.add(new MapEntry(
-                    store, name, writeString(name), entry.getValue()));
+                    dummySegment, name, writeString(name), entry.getValue()));
         }
         RecordId baseId = null;
         if (base != null) {
