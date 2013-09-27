@@ -412,6 +412,7 @@ public class MutableTree extends AbstractTree {
     @CheckForNull
     MutableTree getTree(@Nonnull String path) {
         checkArgument(isAbsolute(checkNotNull(path)));
+        enter();
         MutableTree child = this;
         for (String name : elements(path)) {
             child = new MutableTree(root, child, name, pendingMoves);
