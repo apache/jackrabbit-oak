@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -32,6 +34,20 @@ public class MoveTest extends AbstractJCRTest {
         superuser.move(src, dest);
         if (save) {
             superuser.save();
+        }
+        assertFalse(superuser.nodeExists(src));
+        assertFalse(canGetNode(src));
+        assertTrue(superuser.nodeExists(dest));
+        assertTrue(canGetNode(dest));
+    }
+
+    // See OAK-1040
+    private boolean canGetNode(String path) throws RepositoryException {
+        try {
+            superuser.getNode(path);
+            return true;
+        } catch (PathNotFoundException e) {
+            return false;
         }
     }
 
