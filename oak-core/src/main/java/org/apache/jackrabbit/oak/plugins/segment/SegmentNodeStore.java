@@ -130,7 +130,7 @@ public class SegmentNodeStore implements NodeStore {
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        return new SegmentBlob(reader, store.getWriter().writeStream(stream));
+        return store.getWriter().writeStream(stream);
     }
 
     @Override @Nonnull

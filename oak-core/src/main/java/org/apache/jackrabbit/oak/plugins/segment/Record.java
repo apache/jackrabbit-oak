@@ -135,4 +135,11 @@ class Record {
         return getOffset(bytes + ids * Segment.RECORD_ID_BYTES);
     }
 
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public String toString() {
+        return getRecordId().toString();
+    }
+
 }

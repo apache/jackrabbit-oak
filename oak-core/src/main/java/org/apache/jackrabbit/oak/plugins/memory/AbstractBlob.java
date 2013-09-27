@@ -50,7 +50,7 @@ public abstract class AbstractBlob implements Blob {
 
     }
 
-    private static boolean equal(Blob a, Blob b) {
+    public static boolean equal(Blob a, Blob b) {
         try {
             return ByteStreams.equal(new BlobSupplier(a), new BlobSupplier(b));
         } catch (IOException e) {
