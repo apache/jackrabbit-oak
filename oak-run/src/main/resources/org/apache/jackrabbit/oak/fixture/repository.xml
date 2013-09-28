@@ -17,8 +17,8 @@
 -->
 
 <!DOCTYPE Repository
-          PUBLIC "-//The Apache Software Foundation//DTD Jackrabbit 2.0//EN"
-          "http://jackrabbit.apache.org/dtd/repository-2.0.dtd">
+          PUBLIC "-//The Apache Software Foundation//DTD Jackrabbit 2.6//EN"
+          "http://jackrabbit.apache.org/dtd/repository-2.6.dtd">
 
 <!-- Example Repository Configuration File
      Used by
