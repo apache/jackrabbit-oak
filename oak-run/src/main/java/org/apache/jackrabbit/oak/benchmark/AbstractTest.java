@@ -280,12 +280,9 @@ abstract class AbstractTest extends Benchmark {
             public void run() {
                 while (running) {
                     job.run();
-                    Thread.yield();
                 }
             }
         };
-        thread.setDaemon(true);
-        thread.setPriority(Thread.MIN_PRIORITY);
         thread.start();
         threads.add(thread);
     }

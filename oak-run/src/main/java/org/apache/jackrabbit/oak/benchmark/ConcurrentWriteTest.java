@@ -17,13 +17,14 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 /**
- * A {@link ConcurrentReadTest} with a single writer thread that continuously
- * updates the nodes being accessed by the readers.
+ * A variant of {@link ConcurrentReadTest} with a that tests the performance
+ * of a single writer thread that continuously updates the nodes being
+ * updated by background writers. No reader threads are used in this test.
  */
-public class ConcurrentReadWriteTest extends ConcurrentReadTest {
+public class ConcurrentWriteTest extends ConcurrentReadTest {
 
-    public ConcurrentReadWriteTest() {
-        super(getScale(20), 1, true);
+    public ConcurrentWriteTest() {
+        super(0, getScale(20), false);
     }
 
 }

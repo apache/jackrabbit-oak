@@ -88,6 +88,8 @@ public class BenchmarkRunner {
             new SmallFileWriteTest(),
             new ConcurrentReadTest(),
             new ConcurrentReadWriteTest(),
+            new ConcurrentWriteReadTest(),
+            new ConcurrentWriteTest(),
             new SimpleSearchTest(),
             new SQL2SearchTest(),
             new DescendantSearchTest(),
