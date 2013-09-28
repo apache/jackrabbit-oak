@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Random;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -30,9 +31,25 @@ public class ConcurrentReadTest extends AbstractTest {
 
     protected static final int NODE_COUNT = 100;
 
-    private static final int READER_COUNT = getScale(20);
+    private final int backgroundReaderCount;
 
-    private Reader reader;
+    private final int backgroundWriterCount;
+
+    private final boolean foregroundIsReader;
+
+    private Runnable foregroundTask;
+
+    protected ConcurrentReadTest(
+            int backgroundReaderCount, int backgroundWriterCount,
+            boolean foregroundIsReader) {
+        this.backgroundReaderCount = backgroundReaderCount;
+        this.backgroundWriterCount = backgroundWriterCount;
+        this.foregroundIsReader = foregroundIsReader;
+    }
+
+    public ConcurrentReadTest() {
+        this(getScale(20), 0, true);
+    }
 
     @Override
     public void beforeSuite() throws Exception {
@@ -46,14 +63,21 @@ public class ConcurrentReadTest extends AbstractTest {
             session.save();
         }
 
-        reader = new Reader();
+        if (foregroundIsReader) {
+            foregroundTask = new Reader();
+        } else {
+            foregroundTask = new Writer();
+        }
 
-        for (int i = 0; i < READER_COUNT; i++) {
+        for (int i = 0; i < backgroundReaderCount; i++) {
             addBackgroundJob(new Reader());
+        }
+        for (int i = 0; i < backgroundWriterCount; i++) {
+            addBackgroundJob(new Writer());
         }
     }
 
-    class Reader implements Runnable {
+    private class Reader implements Runnable {
 
         private final Random random = new Random();
 
@@ -61,9 +85,47 @@ public class ConcurrentReadTest extends AbstractTest {
 
         public void run() {
             try {
-                int i = random.nextInt(NODE_COUNT);
-                int j = random.nextInt(NODE_COUNT);
-                session.getRootNode().getNode("testroot/node" + i + "/node" + j);
+                session.refresh(false);
+                for (int i = 0; i < 10000; i++) {
+                    int a = random.nextInt(NODE_COUNT);
+                    int b = random.nextInt(NODE_COUNT);
+                    session.getRootNode().getNode("testroot/node" + a + "/node" + b);
+                }
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
+
+    private class Writer implements Runnable {
+
+        private final Random random = new Random();
+
+        private final Session session = loginWriter();
+
+        private long count;
+
+        public void run() {
+            try {
+                session.refresh(false);
+                for (int i = 0; i < 10; i++) {
+                    int a = random.nextInt(NODE_COUNT);
+                    int b = random.nextInt(NODE_COUNT);
+                    Node node = session.getRootNode().getNode(
+                            "testroot/node" + a + "/node" + b);
+                    boolean done = false;
+                    while (!done) {
+                        try {
+                            node.setProperty("count", count++);
+                            session.save();
+                            done = true;
+                        } catch (InvalidItemStateException e) {
+                            // retry with a fresh session
+                            session.refresh(false);
+                        }
+                    }
+                }
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -73,9 +135,7 @@ public class ConcurrentReadTest extends AbstractTest {
 
     @Override
     public void runTest() throws Exception {
-        for (int i = 0; i < 1000; i++) {
-            reader.run();
-        }
+        foregroundTask.run();
     }
 
     @Override
