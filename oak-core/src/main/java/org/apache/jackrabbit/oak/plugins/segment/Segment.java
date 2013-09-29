@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -97,36 +98,12 @@ public class Segment {
 
     private final List<UUID> uuids;
 
-    private final OffsetCache<String> strings;
-
-    private final OffsetCache<Template> templates;
-
-    private final OffsetCache<MapRecord> maps;
-
     public Segment(
             SegmentStore store, UUID uuid, ByteBuffer data, List<UUID> uuids) {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
         this.uuids = checkNotNull(uuids);
-        this.strings = new OffsetCache<String>() {
-            @Override
-            protected String load(int offset) {
-                return loadString(offset);
-            }
-        };
-        this.templates = new OffsetCache<Template>() {
-            @Override
-            protected Template load(int offset) {
-                return loadTemplate(offset);
-            }
-        };
-        this.maps = new OffsetCache<MapRecord>() {
-            @Override
-            protected MapRecord load(int offset) {
-                return loadMap(offset);
-            }
-        };
     }
 
     /**
@@ -222,15 +199,16 @@ public class Segment {
                 | (data.get(pos + 3) & 0xff);
     }
 
-    String readString(RecordId id) {
-        return getSegment(id).readString(id.getOffset());
+    String readString(final RecordId id) {
+        return store.getRecord(id, new Callable<String>() {
+            @Override
+            public String call() {
+                return getSegment(id).readString(id.getOffset());
+            }
+        });
     }
 
     String readString(int offset) {
-        return strings.get(offset);
-    }
-
-    private String loadString(int offset) {
         int pos = pos(offset, 1);
         long length = internalReadLength(pos);
         if (length < SMALL_LIMIT) {
@@ -261,15 +239,16 @@ public class Segment {
         }
     }
 
-    MapRecord readMap(RecordId id) {
-        return getSegment(id).readMap(id.getOffset());
+    MapRecord readMap(final RecordId id) {
+        return store.getRecord(id, new Callable<MapRecord>() {
+            @Override
+            public MapRecord call() {
+                return getSegment(id).readMap(id.getOffset());
+            }
+        });
     }
 
     MapRecord readMap(int offset) {
-        return maps.get(offset);
-    }
-
-    private MapRecord loadMap(int offset) {
         int head = readInt(offset);
         int level = head >>> MapRecord.SIZE_BITS;
         int size = head & ((1 << MapRecord.SIZE_BITS) - 1);
@@ -282,15 +261,16 @@ public class Segment {
         }
     }
 
-    Template readTemplate(RecordId id) {
-        return getSegment(id).readTemplate(id.getOffset());
+    Template readTemplate(final RecordId id) {
+        return store.getRecord(id, new Callable<Template>() {
+            @Override
+            public Template call() {
+                return getSegment(id).readTemplate(id.getOffset());
+            }
+        });
     }
 
     Template readTemplate(int offset) {
-        return templates.get(offset);
-    }
-
-    private Template loadTemplate(int offset) {
         int head = readInt(offset);
         boolean hasPrimaryType = (head & (1 << 31)) != 0;
         boolean hasMixinTypes = (head & (1 << 30)) != 0;

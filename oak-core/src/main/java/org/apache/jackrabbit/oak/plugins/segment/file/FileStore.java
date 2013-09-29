@@ -33,16 +33,16 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-public class FileStore implements SegmentStore {
+public class FileStore extends AbstractStore {
 
     private static final long SEGMENT_MAGIC = 0x4f616b0a527845ddL;
 
