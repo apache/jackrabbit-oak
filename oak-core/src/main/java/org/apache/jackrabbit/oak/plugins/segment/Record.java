@@ -73,6 +73,12 @@ class Record {
         this.offset = id.getOffset();
     }
 
+    protected Record(@Nonnull Segment segment, int offset) {
+        this.segment = checkNotNull(segment);
+        this.uuid = segment.getSegmentId();
+        this.offset = offset;
+    }
+
     // TODO: remove this ugly hack
     protected Record(SegmentStore store, RecordId id) {
         this(new Segment(
