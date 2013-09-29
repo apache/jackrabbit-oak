@@ -101,6 +101,8 @@ public class Segment {
 
     private final OffsetCache<Template> templates;
 
+    private final OffsetCache<MapRecord> maps;
+
     public Segment(
             SegmentStore store, UUID uuid, ByteBuffer data, List<UUID> uuids) {
         this.store = checkNotNull(store);
@@ -117,6 +119,12 @@ public class Segment {
             @Override
             protected Template load(int offset) {
                 return loadTemplate(offset);
+            }
+        };
+        this.maps = new OffsetCache<MapRecord>() {
+            @Override
+            protected MapRecord load(int offset) {
+                return loadMap(offset);
             }
         };
     }
@@ -250,6 +258,27 @@ public class Segment {
             }
         } else {
             throw new IllegalStateException("String is too long: " + length);
+        }
+    }
+
+    MapRecord readMap(RecordId id) {
+        return getSegment(id).readMap(id.getOffset());
+    }
+
+    MapRecord readMap(int offset) {
+        return maps.get(offset);
+    }
+
+    private MapRecord loadMap(int offset) {
+        int head = readInt(offset);
+        int level = head >>> MapRecord.SIZE_BITS;
+        int size = head & ((1 << MapRecord.SIZE_BITS) - 1);
+        if (size > MapRecord.BUCKETS_PER_LEVEL
+                && level < MapRecord.MAX_NUMBER_OF_LEVELS) {
+            int bitmap = readInt(offset + 4);
+            return new MapBranch(this, offset, size, level, bitmap);
+        } else {
+            return new MapLeaf(this, offset, size, level);
         }
     }
 

@@ -279,7 +279,7 @@ public class Template {
         segment = segment.getSegment(recordId);
         int offset = recordId.getOffset() + RECORD_ID_BYTES;
         RecordId childNodesId = segment.readRecordId(offset);
-        return MapRecord.readMap(segment, childNodesId);
+        return segment.readMap(childNodesId);
     }
 
     public boolean hasChildNode(
@@ -562,7 +562,7 @@ public class Template {
 
         if (childName == MANY_CHILD_NODES) {
             RecordId childNodesId = segment.readRecordId(offset);
-            MapRecord children = MapRecord.readMap(segment, childNodesId);
+            MapRecord children = segment.readMap(childNodesId);
             final Segment s = segment;
             children.compareAgainstEmptyMap(new MapDiff() {
                 @Override

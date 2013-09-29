@@ -17,14 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkElementIndex;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
 
 import java.util.Set;
-import java.util.UUID;
 
 abstract class MapRecord extends Record {
 
@@ -60,23 +58,15 @@ abstract class MapRecord extends Record {
      */
     protected static final int MAX_SIZE = (1 << SIZE_BITS) - 1; // ~268e6
 
-    static MapRecord readMap(Segment segment, RecordId id) {
-        segment = checkNotNull(segment).getSegment(checkNotNull(id));
-        int offset = id.getOffset();
-        int head = segment.readInt(offset);
-        int level = head >>> SIZE_BITS;
-        int size = head & ((1 << SIZE_BITS) - 1);
-        if (size > BUCKETS_PER_LEVEL && level < MAX_NUMBER_OF_LEVELS) {
-            int bitmap = segment.readInt(offset + 4);
-            return new MapBranch(segment, id, size, level, bitmap);
-        } else {
-            return new MapLeaf(segment, id, size, level);
-        }
-    }
-
     protected final int size;
 
     protected final int level;
+
+    protected MapRecord(Segment segment, int offset, int size, int level) {
+        super(segment, offset);
+        this.size = checkElementIndex(size, MAX_SIZE);
+        this.level = checkPositionIndex(level, MAX_NUMBER_OF_LEVELS);
+    }
 
     protected MapRecord(Segment segment, RecordId id, int size, int level) {
         super(segment, id);

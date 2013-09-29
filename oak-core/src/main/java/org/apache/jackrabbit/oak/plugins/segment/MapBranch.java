@@ -34,6 +34,13 @@ class MapBranch extends MapRecord {
 
     private final int bitmap;
 
+    MapBranch(Segment segment, int offset, int size, int level, int bitmap) {
+        super(segment, offset, size, level);
+        checkArgument(size > BUCKETS_PER_LEVEL);
+        checkArgument(level < MAX_NUMBER_OF_LEVELS);
+        this.bitmap = bitmap;
+    }
+
     MapBranch(Segment segment, RecordId id, int size, int level, int bitmap) {
         super(segment, id, size, level);
         checkArgument(size > BUCKETS_PER_LEVEL);
@@ -70,7 +77,7 @@ class MapBranch extends MapRecord {
             int bytes = 8;
             int ids = bitCount(bitmap & (bit - 1));
             RecordId id = segment.readRecordId(getOffset(bytes, ids));
-            return MapRecord.readMap(segment, id).getEntry(key);
+            return segment.readMap(id).getEntry(key);
         } else {
             return null;
         }
@@ -85,7 +92,7 @@ class MapBranch extends MapRecord {
                     @Override @Nullable
                     public Iterable<String> apply(@Nullable RecordId input) {
                         if (input != null) {
-                            return MapRecord.readMap(segment, input).getKeys();
+                            return segment.readMap(input).getKeys();
                         } else {
                             return Collections.emptyList();
                         }
@@ -102,7 +109,7 @@ class MapBranch extends MapRecord {
                     @Override @Nullable
                     public Iterable<MapEntry> apply(@Nullable RecordId input) {
                         if (input != null) {
-                            return MapRecord.readMap(segment, input).getEntries();
+                            return segment.readMap(input).getEntries();
                         } else {
                             return Collections.emptyList();
                         }
@@ -130,7 +137,7 @@ class MapBranch extends MapRecord {
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
             if (afterBuckets[i] == null) {
                 if (beforeBuckets[i] != null) {
-                    MapRecord map = MapRecord.readMap(beforeSegment, beforeBuckets[i]);
+                    MapRecord map = beforeSegment.readMap(beforeBuckets[i]);
                     for (MapEntry entry : map.getEntries()) {
                         if (!diff.entryDeleted(entry.getName(), entry.getValue())) {
                             return false;
@@ -138,15 +145,15 @@ class MapBranch extends MapRecord {
                     }
                 }
             } else if (beforeBuckets[i] == null) {
-                MapRecord map = MapRecord.readMap(afterSegment, afterBuckets[i]);
+                MapRecord map = afterSegment.readMap(afterBuckets[i]);
                 for (MapEntry entry : map.getEntries()) {
                     if (!diff.entryAdded(entry.getName(), entry.getValue())) {
                         return false;
                     }
                 }
             } else if (!afterBuckets[i].equals(beforeBuckets[i])) {
-                MapRecord afterMap = MapRecord.readMap(afterSegment, afterBuckets[i]);
-                MapRecord beforeMap = MapRecord.readMap(beforeSegment, beforeBuckets[i]);
+                MapRecord afterMap = afterSegment.readMap(afterBuckets[i]);
+                MapRecord beforeMap = beforeSegment.readMap(beforeBuckets[i]);
                 if (!afterMap.compare(beforeMap, diff)) {
                     return false;
                 }
@@ -163,8 +170,8 @@ class MapBranch extends MapRecord {
         int ids = 0;
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
             if ((bitmap & (1 << i)) != 0) {
-                MapRecord bucket = MapRecord.readMap(
-                        segment, segment.readRecordId(getOffset(bytes, ids++)));
+                MapRecord bucket = segment.readMap(
+                        segment.readRecordId(getOffset(bytes, ids++)));
                 if (!bucket.compareAgainstEmptyMap(diff)) {
                     return false;
                 }
