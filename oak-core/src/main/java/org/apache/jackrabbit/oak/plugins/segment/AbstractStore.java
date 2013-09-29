@@ -16,35 +16,31 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 
-public interface SegmentStore {
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
 
-    SegmentWriter getWriter();
+import com.google.common.cache.Cache;
 
-    Journal getJournal(String name);
+public abstract class AbstractStore implements SegmentStore {
 
-    Segment readSegment(UUID segmentId);
+    private final Cache<RecordId, Object> records =
+            CacheLIRS.newBuilder().maximumSize(10000).build();
 
-    /**
-     * Writes the given segment to the segment store.
-     *
-     * @param segmentId segment identifier
-     * @param bytes byte buffer that contains the raw contents of the segment
-     * @param offset start offset within the byte buffer
-     * @param length length of the segment
-     * @param referencedSegmentIds identifiers of all the referenced segments
-     */
-    void writeSegment(
-            UUID segmentId, byte[] bytes, int offset, int length,
-            List<UUID> referencedSegmentIds);
-
-    void deleteSegment(UUID segmentId);
-
-    void close();
-
-    <T> T getRecord(RecordId id, Callable<T> loader);
+    @Override
+    public <T> T getRecord(RecordId id, Callable<T> loader) {
+        @SuppressWarnings("unchecked")
+        T record = (T) records.getIfPresent(id);
+        if (record == null) {
+            try {
+                record = loader.call();
+                records.put(id, record);
+            } catch (Exception e) {
+                throw new IllegalStateException(
+                        "Failed to load record " + id, e);
+            }
+        }
+        return record;
+    }
 
 }
