@@ -288,7 +288,7 @@ public class SegmentWriter {
 
         if (entries == null || entries.isEmpty()) {
             if (baseId != null) {
-                return MapRecord.readMap(dummySegment, baseId);
+                return dummySegment.readMap(baseId);
             } else if (level == 0) {
                 synchronized (this) {
                     RecordId id = prepare(4);
@@ -300,7 +300,7 @@ public class SegmentWriter {
             }
         } else if (baseId != null) {
             // FIXME: messy code with lots of duplication
-            MapRecord base = MapRecord.readMap(dummySegment, baseId);
+            MapRecord base = dummySegment.readMap(baseId);
             if (base instanceof MapLeaf) {
                 Map<String, MapEntry> map = ((MapLeaf) base).getMapEntries();
                 for (MapEntry entry : entries) {
