@@ -269,12 +269,15 @@ public class MongoDocumentStore implements DocumentStore {
                                                  boolean upsert,
                                                  boolean checkConditions) {
         DBCollection dbCollection = getDBCollection(collection);
-        QueryBuilder query = getByKeyQuery(updateOp.id);
 
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();
 
+        // always increment modCount
+        updateOp.increment(Document.MOD_COUNT, 1);
+
+        // other updates
         for (Entry<Key, Operation> entry : updateOp.changes.entrySet()) {
             Key k = entry.getKey();
             if (k.getName().equals(Document.ID)) {
@@ -299,12 +302,6 @@ public class MongoDocumentStore implements DocumentStore {
                     unsetUpdates.append(k.toString(), "1");
                     break;
                 }
-                case CONTAINS_MAP_ENTRY: {
-                    if (checkConditions) {
-                        query.and(k.toString()).exists(op.value);
-                    }
-                    break;
-                }
             }
         }
 
@@ -323,28 +320,49 @@ public class MongoDocumentStore implements DocumentStore {
         //         WriteConcern.SAFE);
         // return null;
 
+        // get modCount of cached document
+        Number modCount = null;
+        @SuppressWarnings("unchecked")
+        T cachedDoc = (T) nodesCache.getIfPresent(updateOp.getId());
+        if (cachedDoc != null) {
+            modCount = cachedDoc.getModCount();
+        }
+
+
         long start = start();
         try {
-            DBObject oldNode = dbCollection.findAndModify(query.get(), null /*fields*/,
+            // perform a conditional update with limited result
+            // if we have a matching modCount
+            if (modCount != null) {
+                QueryBuilder query = createQueryForUpdate(updateOp, checkConditions);
+                query.and(Document.MOD_COUNT).is(modCount);
+                DBObject fields = new BasicDBObject();
+                // return _id only
+                fields.put("_id", 1);
+
+                DBObject oldNode = dbCollection.findAndModify(query.get(), fields,
+                        null /*sort*/, false /*remove*/, update, false /*returnNew*/,
+                        false /*upsert*/);
+                if (oldNode != null) {
+                    // success, update cached document
+                    // FIXME: ensure consistent cache update
+                    applyToCache(collection, cachedDoc, updateOp);
+                    // return previously cached document
+                    return cachedDoc;
+                }
+            }
+
+            // conditional update failed or not possible
+            // perform operation and get complete document
+            QueryBuilder query = createQueryForUpdate(updateOp, checkConditions);
+            DBObject oldNode = dbCollection.findAndModify(query.get(), null,
                     null /*sort*/, false /*remove*/, update, false /*returnNew*/,
-                    upsert /*upsert*/);
+                    upsert);
             if (checkConditions && oldNode == null) {
                 return null;
             }
             T oldDoc = convertFromDBObject(collection, oldNode);
-            
-            // cache the new document
-            if (collection == Collection.NODES) {
-                T newDoc = collection.newDocument(this);
-                if (oldDoc != null) {
-                    oldDoc.deepCopy(newDoc);
-                    oldDoc.seal();
-                }
-                String key = updateOp.getId();
-                MemoryDocumentStore.applyChanges(newDoc, updateOp, comparator);
-                newDoc.seal();
-                nodesCache.put(key, (NodeDocument) newDoc);
-            }
+            applyToCache(collection, oldDoc, updateOp);
             return oldDoc;
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -381,6 +399,7 @@ public class MongoDocumentStore implements DocumentStore {
         for (int i = 0; i < updateOps.size(); i++) {
             inserts[i] = new BasicDBObject();
             UpdateOp update = updateOps.get(i);
+            update.increment(Document.MOD_COUNT, 1);
             T target = collection.newDocument(this);
             MemoryDocumentStore.applyChanges(target, update, comparator);
             docs.add(target);
@@ -509,6 +528,44 @@ public class MongoDocumentStore implements DocumentStore {
             return false;
         }
         return nodesCache.getIfPresent(key) != null;
+    }
+
+
+    private <T extends Document> void applyToCache(@Nonnull Collection<T> collection,
+                                                   @Nullable T oldDoc,
+                                                   @Nonnull UpdateOp updateOp) {
+        // cache the new document
+        if (collection == Collection.NODES) {
+            T newDoc = collection.newDocument(this);
+            if (oldDoc != null) {
+                oldDoc.deepCopy(newDoc);
+                oldDoc.seal();
+            }
+            String key = updateOp.getId();
+            MemoryDocumentStore.applyChanges(newDoc, updateOp, comparator);
+            newDoc.seal();
+            nodesCache.put(key, (NodeDocument) newDoc);
+        }
+    }
+
+    @Nonnull
+    private QueryBuilder createQueryForUpdate(UpdateOp updateOp,
+                                              boolean checkConditions) {
+        QueryBuilder query = getByKeyQuery(updateOp.id);
+
+        for (Entry<Key, Operation> entry : updateOp.changes.entrySet()) {
+            Key k = entry.getKey();
+            Operation op = entry.getValue();
+            switch (op.type) {
+                case CONTAINS_MAP_ENTRY: {
+                    if (checkConditions) {
+                        query.and(k.toString()).exists(op.value);
+                    }
+                    break;
+                }
+            }
+        }
+        return query;
     }
 
 }

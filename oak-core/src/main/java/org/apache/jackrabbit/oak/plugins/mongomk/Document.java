@@ -44,6 +44,12 @@ public class Document implements CacheValue {
     static final String ID = "_id";
 
     /**
+     * The modification count on the document. This is an long value
+     * incremented on every modification.
+     */
+    static final String MOD_COUNT = "_modCount";
+
+    /**
      * The data of this document.
      */
     protected Map<String, Object> data = Maps.newHashMap();
@@ -59,6 +65,15 @@ public class Document implements CacheValue {
     @CheckForNull
     public String getId() {
         return (String) get(ID);
+    }
+
+    /**
+     * @return the modification count of this document or <code>null</code> if
+     *         none is set.
+     */
+    @CheckForNull
+    public Number getModCount() {
+        return (Number) get(MOD_COUNT);
     }
 
     /**
