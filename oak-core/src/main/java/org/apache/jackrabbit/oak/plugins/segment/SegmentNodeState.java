@@ -19,11 +19,15 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+
+import java.util.Collections;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -65,7 +69,8 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     MapRecord getChildNodeMap() {
-        return getTemplate().getChildNodeMap(getSegment(), getRecordId());
+        Segment segment = getSegment();
+        return segment.readMap(segment.readRecordId(getOffset(0, 1)));
     }
 
     @Override
@@ -122,29 +127,78 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public long getChildNodeCount(long max) {
-        return getTemplate().getChildNodeCount(getSegment(), getRecordId());
+        String childName = getTemplate().getChildName();
+        if (childName == Template.ZERO_CHILD_NODES) {
+            return 0;
+        } else if (childName == Template.MANY_CHILD_NODES) {
+            return getChildNodeMap().size();
+        } else {
+            return 1;
+        }
     }
 
     @Override
     public boolean hasChildNode(String name) {
         checkArgument(!checkNotNull(name).isEmpty());
-        return getTemplate().hasChildNode(name, getSegment(), getRecordId());
+        String childName = getTemplate().getChildName();
+        if (childName == Template.ZERO_CHILD_NODES) {
+            return false;
+        } else if (childName == Template.MANY_CHILD_NODES) {
+            return getChildNodeMap().getEntry(name) != null;
+        } else {
+            return childName.equals(name);
+        }
     }
 
-    @Override @CheckForNull
+    @Override @Nonnull
     public NodeState getChildNode(String name) {
         // checkArgument(!checkNotNull(name).isEmpty()); // TODO
-        return getTemplate().getChildNode(name, getSegment(), getRecordId());
+        String childName = getTemplate().getChildName();
+        if (childName == Template.ZERO_CHILD_NODES) {
+            return MISSING_NODE;
+        } else if (childName == Template.MANY_CHILD_NODES) {
+            RecordId childNodeId = getChildNodeMap().getEntry(name);
+            if (childNodeId != null) {
+                return new SegmentNodeState(getSegment(), childNodeId);
+            } else {
+                return MISSING_NODE;
+            }
+        } else {
+            if (childName.equals(name)) {
+                Segment segment = getSegment();
+                RecordId childNodeId = segment.readRecordId(getOffset(0, 1));
+                return new SegmentNodeState(segment, childNodeId);
+            } else {
+                return MISSING_NODE;
+            }
+        }
     }
 
-    @Override
+    @Override @Nonnull
     public Iterable<String> getChildNodeNames() {
-        return getTemplate().getChildNodeNames(getSegment(), getRecordId());
+        String childName = getTemplate().getChildName();
+        if (childName == Template.ZERO_CHILD_NODES) {
+            return Collections.emptyList();
+        } else if (childName == Template.MANY_CHILD_NODES) {
+            return getChildNodeMap().getKeys();
+        } else {
+            return Collections.singletonList(childName);
+        }
     }
 
     @Override @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return getTemplate().getChildNodeEntries(getSegment(), getRecordId());
+        String childName = getTemplate().getChildName();
+        if (childName == Template.ZERO_CHILD_NODES) {
+            return Collections.emptyList();
+        } else if (childName == Template.MANY_CHILD_NODES) {
+            return getChildNodeMap().getEntries();
+        } else {
+            Segment segment = getSegment();
+            RecordId childNodeId = segment.readRecordId(getOffset(0, 1));
+            return Collections.singletonList(new MemoryChildNodeEntry(
+                    childName, new SegmentNodeState(segment, childNodeId)));
+        }
     }
 
     @Override @Nonnull
