@@ -120,32 +120,42 @@ public class Template {
         }
     }
 
-    public boolean hasPrimaryType() {
-        return primaryType != null;
+    PropertyState getPrimaryType() {
+        return primaryType;
     }
 
-    public String getPrimaryType() {
-        if (primaryType != null) {
-            return primaryType.getValue(Type.NAME);
-        } else {
-            return null;
-        }
+    PropertyState getMixinTypes() {
+        return mixinTypes;
     }
 
-    public boolean hasMixinTypes() {
-        return mixinTypes != null;
-    }
-
-    public Iterable<String> getMixinTypes() {
-        if (mixinTypes != null) {
-            return mixinTypes.getValue(Type.NAMES);
-        } else {
-            return null;
-        }
-    }
-
-    public PropertyTemplate[] getPropertyTemplates() {
+    PropertyTemplate[] getPropertyTemplates() {
         return properties;
+    }
+
+    /**
+     * Returns the template of the named property, or {@code null} if no such
+     * property exists. Use the {@link #getPrimaryType()} and
+     * {@link #getMixinTypes()} for accessing the JCR type properties, as
+     * they don't have templates.
+     *
+     * @param name property name
+     * @return property template, or {@code} null if not found
+     */
+    PropertyTemplate getPropertyTemplate(String name) {
+        int hash = name.hashCode();
+        int index = 0;
+        while (index < properties.length
+                && properties[index].getName().hashCode() < hash) {
+            index++;
+        }
+        while (index < properties.length
+                && properties[index].getName().hashCode() == hash) {
+            if (name.equals(properties[index].getName())) {
+                return properties[index];
+            }
+            index++;
+        }
+        return null;
     }
 
     public boolean hasNoChildNodes() {
@@ -164,7 +174,7 @@ public class Template {
         return childName;
     }
 
-    public int getPropertyCount() {
+    int getPropertyCount() {
         if (primaryType != null && mixinTypes != null) {
             return properties.length + 2;
         } else if (primaryType != null || mixinTypes != null) {
