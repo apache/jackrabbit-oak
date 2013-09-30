@@ -18,10 +18,14 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -80,24 +84,85 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public long getPropertyCount() {
-        return getTemplate().getPropertyCount();
+        Template template = getTemplate();
+        long count = template.getPropertyTemplates().length;
+        if (template.getPrimaryType() != null) {
+            count++;
+        }
+        if (template.getMixinTypes() != null) {
+            count++;
+        }
+        return count;
     }
 
     @Override
     public boolean hasProperty(String name) {
         checkNotNull(name);
-        return getTemplate().hasProperty(name);
+        Template template = getTemplate();
+        if (JCR_PRIMARYTYPE.equals(name)) {
+            return template.getPrimaryType() != null;
+        } else if (JCR_MIXINTYPES.equals(name)) {
+            return template.getMixinTypes() != null;
+        } else {
+            return template.getPropertyTemplate(name) != null;
+        }
     }
 
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         checkNotNull(name);
-        return getTemplate().getProperty(name, getSegment(), getRecordId());
+        Template template = getTemplate();
+        if (JCR_PRIMARYTYPE.equals(name)) {
+            return template.getPrimaryType();
+        } else if (JCR_MIXINTYPES.equals(name)) {
+            return template.getMixinTypes();
+        } else {
+            PropertyTemplate propertyTemplate =
+                    template.getPropertyTemplate(name);
+            if (propertyTemplate != null) {
+                Segment segment = getSegment();
+                int ids = 1 + propertyTemplate.getIndex();
+                if (template.getChildName() != Template.ZERO_CHILD_NODES) {
+                    ids++;
+                }
+                return new SegmentPropertyState(
+                        segment, segment.readRecordId(getOffset(0, ids)),
+                        propertyTemplate);
+            } else {
+                return null;
+            }
+        }
     }
 
     @Override @Nonnull
     public Iterable<PropertyState> getProperties() {
-        return getTemplate().getProperties(getSegment(), getRecordId());
+        Template template = getTemplate();
+        PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
+        List<PropertyState> list =
+                newArrayListWithCapacity(propertyTemplates.length + 2);
+
+        PropertyState primaryType = template.getPrimaryType();
+        if (primaryType != null) {
+            list.add(primaryType);
+        }
+
+        PropertyState mixinTypes = template.getMixinTypes();
+        if (mixinTypes != null) {
+            list.add(mixinTypes);
+        }
+
+        Segment segment = getSegment();
+        int ids = 1;
+        if (template.getChildName() != Template.ZERO_CHILD_NODES) {
+            ids++;
+        }
+        for (int i = 0; i < propertyTemplates.length; i++) {
+            RecordId propertyId = segment.readRecordId(getOffset(0, ids++));
+            list.add(new SegmentPropertyState(
+                    segment, propertyId, propertyTemplates[i]));
+        }
+
+        return list;
     }
 
     @Override

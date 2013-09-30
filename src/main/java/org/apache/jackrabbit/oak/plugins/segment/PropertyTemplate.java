@@ -25,19 +25,27 @@ import com.google.common.collect.ComparisonChain;
 
 class PropertyTemplate implements Comparable<PropertyTemplate> {
 
+    private final int index;
+
     private final String name;
 
     private final Type<?> type;
 
-    PropertyTemplate(String name, Type<?> type) {
+    PropertyTemplate(int index, String name, Type<?> type) {
+        this.index = index;
         this.name = checkNotNull(name);
         this.type = checkNotNull(type);
     }
 
     PropertyTemplate(PropertyState state) {
         checkNotNull(state);
+        this.index = 0; // TODO: is this used anywhere
         this.name = state.getName();
         this.type = state.getType();
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public String getName() {
