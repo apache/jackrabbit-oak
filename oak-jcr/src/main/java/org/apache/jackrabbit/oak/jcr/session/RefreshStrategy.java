@@ -121,6 +121,21 @@ public class RefreshStrategy {
     }
 
     /**
+     * Force the next call to {@link #needsRefresh(SessionOperation)} to return {@code true} for
+     * every {@link Once} strategy in this composite.
+     * <p>
+     * This method is safe for calling concurrently to any other method of this class.
+     */
+    public void refreshAtNextAccess() {
+        accept(new Visitor() {
+            @Override
+            public void visit(Once strategy) {
+                strategy.reset();
+            }
+        });
+    }
+
+    /**
      * Visitor for traversing the composite.
      */
     public static class Visitor {
@@ -145,7 +160,7 @@ public class RefreshStrategy {
         public static RefreshStrategy NEVER = new Default(false);
 
         /** Value returned from {@code needsRefresh} */
-        protected boolean refresh;
+        protected volatile boolean refresh;
 
         /**
          * @param refresh  value returned from {@code needsRefresh}
@@ -181,14 +196,6 @@ public class RefreshStrategy {
      * {@link #reset()} enables the strategy.
      */
     public static class Once extends Default {
-
-        /** Visitor for resetting this refresh strategy */
-        public static final Visitor RESETTING_VISITOR = new Visitor() {
-            @Override
-            public void visit(Once strategy) {
-                strategy.reset();
-            }
-        };
 
         /**
          * @param enabled  whether this refresh strategy is initially enabled
