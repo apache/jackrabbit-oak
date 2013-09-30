@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -61,7 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
+import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
 /**
  * Default implementation of the {@code TokenProvider} interface that keeps login

@@ -16,20 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.core.IdentifierManager.generateUUID;
-import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.generateUUID;
+import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
 /**
  * Base class for {@link UserProvider} and {@link MembershipProvider}.

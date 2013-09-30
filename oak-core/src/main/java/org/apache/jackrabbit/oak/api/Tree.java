@@ -116,7 +116,7 @@ public interface Tree {
     String getName();
 
     /**
-     * @return {@code true} if this is the root
+     * @return {@code true} iff this is the root
      */
     boolean isRoot();
 

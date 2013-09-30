@@ -16,6 +16,34 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFormatException;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.security.AccessControlException;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.util.TreeUtil;
+
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Iterables.contains;
@@ -56,36 +84,6 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_R
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 import static org.apache.jackrabbit.oak.util.TreeUtil.getBoolean;
 import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.jcr.InvalidItemStateException;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFormatException;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.security.AccessControlException;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.util.TreeUtil;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.

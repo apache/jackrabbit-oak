@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,7 +23,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
@@ -48,9 +45,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
@@ -65,6 +62,8 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 public class ImporterImpl implements Importer {
     private static final Logger log = LoggerFactory.getLogger(ImporterImpl.class);

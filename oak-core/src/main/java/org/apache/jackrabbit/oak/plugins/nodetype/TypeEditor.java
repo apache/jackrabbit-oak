@@ -44,7 +44,7 @@ import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.core.IdentifierManager.isValidUUID;
+import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.isValidUUID;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;

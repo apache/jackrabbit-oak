@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.jcr.observation;
-
-import static com.google.common.base.Objects.toStringHelper;
+package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.Arrays;
-
 import javax.annotation.CheckForNull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -33,10 +30,12 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 
+import static com.google.common.base.Objects.toStringHelper;
+
 /**
  * Filter for filtering observation events according to a certain criterion.
  */
-class EventFilter {
+public class EventFilter {
     private final ReadOnlyNodeTypeManager ntMgr;
     private final int eventTypes;
     private final String path;
