@@ -129,7 +129,7 @@ public class NodeDocument extends Document {
      */
     private static final Set<String> IGNORE_ON_SPLIT =
             Collections.unmodifiableSet(new HashSet<String>(
-                    Arrays.asList(ID, MODIFIED, PREVIOUS, LAST_REV)));
+                    Arrays.asList(ID, MOD_COUNT, MODIFIED, PREVIOUS, LAST_REV)));
 
     final DocumentStore store;
 
