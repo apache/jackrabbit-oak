@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -28,6 +26,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Immutable implementation of the {@code Tree} interface in order to provide
@@ -60,8 +60,7 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  *     <li>{@link ParentProvider#ROOT_PROVIDER}: the default parent provider for
  *     the root tree. All children will get {@link DefaultParentProvider}</li>
  *     <li>{@link ParentProvider#UNSUPPORTED}: throws {@code UnsupportedOperationException}
- *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()} and
- *     {@link #getIdentifier()}</li>
+ *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()}</li>
  * </ul>
  *
  * <h3>TreeTypeProvider</h3>

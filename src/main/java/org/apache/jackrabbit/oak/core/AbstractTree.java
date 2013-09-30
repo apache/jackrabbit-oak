@@ -19,6 +19,18 @@
 
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Iterator;
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
@@ -28,21 +40,6 @@ import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
-
-import java.util.Iterator;
-
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * {@code AbstractTree} provides default implementations for most
@@ -268,27 +265,4 @@ public abstract class AbstractTree implements Tree {
                     }
                 });
     }
-
-    //------------------------------------------------------------< internal >---
-
-    /**
-     * The identifier of a tree is the value of its {@code jcr:uuid} property.
-     * If no such property exists the identifier is a slash ({@code/}) if the
-     * tree is the root. Otherwise the identifier is the tree's {@code name} appended
-     * to its parent's identifier separated by a slash ({@code/}).
-     * @return  the identifier of this tree
-     */
-    @Nonnull
-    String getIdentifier() {
-        PropertyState property = nodeBuilder.getProperty(JcrConstants.JCR_UUID);
-        if (property != null) {
-            return property.getValue(STRING);
-        } else if (isRoot()) {
-            return "/";
-        } else {
-            return PathUtils.concat(getParent().getIdentifier(), getName());
-        }
-    }
-
-
 }
