@@ -52,8 +52,9 @@ import com.google.common.base.Function;
  * will throw an {@code InvalidStateException}.
  * <p>
  * {@link Tree} instances may become non existing after a call to
- * {@link Root#refresh()}, {@link Root#rebase()} or {@link Root#commit()}. Any write
- * access to non existing {@code Tree} instances will cause an
+ * {@link Root#refresh()}, {@link Root#rebase()} or
+ * {@link Root#commit(org.apache.jackrabbit.oak.spi.commit.CommitHook...)}.
+ * Any write access to non existing {@code Tree} instances will cause an
  * {@code InvalidStateException}.
  *
  * <h2>Thread safety</h2>
@@ -115,7 +116,7 @@ public interface Tree {
     String getName();
 
     /**
-     * @return {@code true} iff this is the root
+     * @return {@code true} if this is the root
      */
     boolean isRoot();
 
