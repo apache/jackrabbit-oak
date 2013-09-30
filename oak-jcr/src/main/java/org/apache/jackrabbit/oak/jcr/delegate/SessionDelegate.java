@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 import java.io.IOException;
 import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -33,10 +39,10 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -50,11 +56,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 /**
  * TODO document
@@ -91,8 +92,8 @@ public class SessionDelegate {
         this.idManager = new IdentifierManager(root);
     }
 
-    public synchronized void refreshAtNextAccess() {
-        refreshStrategy.accept(RefreshStrategy.Once.RESETTING_VISITOR);
+    public void refreshAtNextAccess() {
+        refreshStrategy.refreshAtNextAccess();
     }
 
     /**
