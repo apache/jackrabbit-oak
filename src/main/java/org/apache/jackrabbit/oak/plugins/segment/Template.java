@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
@@ -158,77 +156,8 @@ public class Template {
         return null;
     }
 
-    public boolean hasNoChildNodes() {
-        return childName == ZERO_CHILD_NODES;
-    }
-
-    public boolean hasOneChildNode() {
-        return !hasNoChildNodes() && !hasManyChildNodes();
-    }
-
-    public boolean hasManyChildNodes() {
-        return childName == MANY_CHILD_NODES;
-    }
-
     String getChildName() {
         return childName;
-    }
-
-    int getPropertyCount() {
-        if (primaryType != null && mixinTypes != null) {
-            return properties.length + 2;
-        } else if (primaryType != null || mixinTypes != null) {
-            return properties.length + 1;
-        } else {
-            return properties.length;
-        }
-    }
-
-    public boolean hasProperty(String name) {
-        if (JCR_PRIMARYTYPE.equals(name)) {
-            return primaryType != null;
-        } else if (JCR_MIXINTYPES.equals(name)) {
-            return mixinTypes != null;
-        } else {
-            int hash = name.hashCode();
-            int index = 0;
-            while (index < properties.length
-                    && properties[index].getName().hashCode() < hash) {
-                index++;
-            }
-            while (index < properties.length
-                    && properties[index].getName().hashCode() == hash) {
-                if (name.equals(properties[index].getName())) {
-                    return true;
-                }
-                index++;
-            }
-            return false;
-        }
-    }
-
-    public PropertyState getProperty(
-            String name, Segment segment, RecordId recordId) {
-        if (JCR_PRIMARYTYPE.equals(name) && primaryType != null) {
-            return primaryType;
-        } else if (JCR_MIXINTYPES.equals(name) && mixinTypes != null) {
-            return mixinTypes;
-        } else {
-            int hash = name.hashCode();
-            int index = 0;
-            while (index < properties.length
-                    && properties[index].getName().hashCode() < hash) {
-                index++;
-            }
-            while (index < properties.length
-                    && properties[index].getName().hashCode() == hash) {
-                if (name.equals(properties[index].getName())) {
-                    return getProperty(segment, recordId, index);
-                }
-                index++;
-            }
-            return null;
-        }
     }
 
     private PropertyState getProperty(
@@ -237,7 +166,7 @@ public class Template {
         segment = checkNotNull(segment).getSegment(checkNotNull(recordId));
 
         int offset = recordId.getOffset() + RECORD_ID_BYTES;
-        if (!hasNoChildNodes()) {
+        if (childName != ZERO_CHILD_NODES) {
             offset += RECORD_ID_BYTES;
         }
         offset += index * RECORD_ID_BYTES;
@@ -245,32 +174,8 @@ public class Template {
                 segment, segment.readRecordId(offset), properties[index]);
     }
 
-    public Iterable<PropertyState> getProperties(
-            Segment segment, RecordId recordId) {
-        List<PropertyState> list =
-                Lists.newArrayListWithCapacity(properties.length + 2);
-        if (primaryType != null) {
-            list.add(primaryType);
-        }
-        if (mixinTypes != null) {
-            list.add(mixinTypes);
-        }
-        int offset = recordId.getOffset() + RECORD_ID_BYTES;
-        if (!hasNoChildNodes()) {
-            offset += RECORD_ID_BYTES;
-        }
-        segment = segment.getSegment(recordId);
-        for (int i = 0; i < properties.length; i++) {
-            RecordId propertyId = segment.readRecordId(offset);
-            list.add(new SegmentPropertyState(
-                    segment, propertyId, properties[i]));
-            offset += RECORD_ID_BYTES;
-        }
-        return list;
-    }
-
     MapRecord getChildNodeMap(Segment segment, RecordId recordId) {
-        checkState(hasManyChildNodes());
+        checkState(childName != ZERO_CHILD_NODES);
         segment = segment.getSegment(recordId);
         int offset = recordId.getOffset() + RECORD_ID_BYTES;
         RecordId childNodesId = segment.readRecordId(offset);
@@ -279,9 +184,9 @@ public class Template {
 
     public NodeState getChildNode(
             String name, Segment segment, RecordId recordId) {
-        if (hasNoChildNodes()) {
+        if (childName == ZERO_CHILD_NODES) {
             return MISSING_NODE;
-        } else if (hasManyChildNodes()) {
+        } else if (childName == MANY_CHILD_NODES) {
             MapRecord map = getChildNodeMap(segment, recordId);
             RecordId childNodeId = map.getEntry(name);
             if (childNodeId != null) {
@@ -301,9 +206,9 @@ public class Template {
 
     Iterable<? extends ChildNodeEntry> getChildNodeEntries(
             Segment segment, RecordId recordId) {
-        if (hasNoChildNodes()) {
+        if (childName == ZERO_CHILD_NODES) {
             return Collections.emptyList();
-        } else if (hasManyChildNodes()) {
+        } else if (childName == MANY_CHILD_NODES) {
             MapRecord map = getChildNodeMap(segment, recordId);
             return map.getEntries();
         } else {
@@ -330,9 +235,9 @@ public class Template {
         }
 
         // Compare child nodes
-        if (hasNoChildNodes()) {
+        if (childName == ZERO_CHILD_NODES) {
             return true;
-        } else if (hasOneChildNode()) {
+        } else if (childName != MANY_CHILD_NODES) {
             NodeState thisChild = getChildNode(childName, thisSegment, thisId);
             NodeState thatChild = getChildNode(childName, thatSegment, thatId);
             return thisChild.equals(thatChild);
@@ -422,17 +327,17 @@ public class Template {
             }
         }
 
-        if (hasNoChildNodes()) {
-            if (!beforeTemplate.hasNoChildNodes()) {
-                for (ChildNodeEntry entry :
-                        beforeTemplate.getChildNodeEntries(beforeSegment, beforeId)) {
+        if (childName == ZERO_CHILD_NODES) {
+            if (beforeTemplate.childName != ZERO_CHILD_NODES) {
+                for (ChildNodeEntry entry : beforeTemplate.getChildNodeEntries(
+                        beforeSegment, beforeId)) {
                     if (!diff.childNodeDeleted(
                             entry.getName(), entry.getNodeState())) {
                         return false;
                     }
                 }
             }
-        } else if (hasOneChildNode()) {
+        } else if (childName != MANY_CHILD_NODES) {
             NodeState afterNode = getChildNode(childName, afterSegment, afterId);
             NodeState beforeNode = beforeTemplate.getChildNode(
                     childName, beforeSegment, beforeId);
@@ -445,8 +350,9 @@ public class Template {
                     return false;
                 }
             }
-            if ((beforeTemplate.hasOneChildNode() && !beforeNode.exists())
-                    || beforeTemplate.hasManyChildNodes()) {
+            if (beforeTemplate.childName == MANY_CHILD_NODES
+                    || (beforeTemplate.childName != ZERO_CHILD_NODES
+                        && !beforeNode.exists())) {
                 for (ChildNodeEntry entry :
                     beforeTemplate.getChildNodeEntries(beforeSegment, beforeId)) {
                     if (!childName.equals(entry.getName())) {
@@ -457,15 +363,15 @@ public class Template {
                     }
                 }
             }
-        } else if (beforeTemplate.hasNoChildNodes()) {
+        } else if (beforeTemplate.childName == ZERO_CHILD_NODES) {
             for (ChildNodeEntry entry : getChildNodeEntries(afterSegment, afterId)) {
                 if (!diff.childNodeAdded(
                         entry.getName(), entry.getNodeState())) {
                     return false;
                 }
             }
-        } else if (beforeTemplate.hasOneChildNode()) {
-            String name = beforeTemplate.getChildName();
+        } else if (beforeTemplate.childName != MANY_CHILD_NODES) {
+            String name = beforeTemplate.childName;
             for (ChildNodeEntry entry : getChildNodeEntries(afterSegment, afterId)) {
                 String childName = entry.getName();
                 NodeState afterChild = entry.getNodeState();
@@ -637,9 +543,9 @@ public class Template {
             builder.append(properties[i]);
             builder.append(" = ?, ");
         }
-        if (hasNoChildNodes()) {
+        if (childName == ZERO_CHILD_NODES) {
             builder.append("<no children>");
-        } else if (hasManyChildNodes()) {
+        } else if (childName == MANY_CHILD_NODES) {
             builder.append("<many children>");
         } else {
             builder.append(childName + " = <node>");

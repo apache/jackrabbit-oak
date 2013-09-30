@@ -643,12 +643,13 @@ public class SegmentWriter {
                 }
 
                 RecordId childNameId = null;
-                if (template.hasNoChildNodes()) {
+                String childName = template.getChildName();
+                if (childName == Template.ZERO_CHILD_NODES) {
                     head |= 1 << 29;
-                } else if (template.hasManyChildNodes()) {
+                } else if (childName == Template.MANY_CHILD_NODES) {
                     head |= 1 << 28;
                 } else {
-                    childNameId = writeString(template.getChildName());
+                    childNameId = writeString(childName);
                     ids.add(childNameId);
                 }
 
@@ -720,7 +721,8 @@ public class SegmentWriter {
         List<RecordId> ids = Lists.newArrayList();
         ids.add(templateId);
 
-        if (template.hasManyChildNodes()) {
+        String childName = template.getChildName();
+        if (childName == Template.MANY_CHILD_NODES) {
             MapRecord base;
             final Map<String, RecordId> childNodes = Maps.newHashMap();
             if (before != null
@@ -754,7 +756,7 @@ public class SegmentWriter {
                 }
             }
             ids.add(writeMap(base, childNodes).getRecordId());
-        } else if (!template.hasNoChildNodes()) {
+        } else if (childName != Template.ZERO_CHILD_NODES) {
             ids.add(writeNode(state.getChildNode(template.getChildName())).getRecordId());
         }
 
