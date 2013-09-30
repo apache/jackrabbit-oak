@@ -160,12 +160,8 @@ public class Template {
         return childName == MANY_CHILD_NODES;
     }
 
-    public String getChildName() {
-        if (hasOneChildNode()) {
-            return childName;
-        } else {
-            return null;
-        }
+    String getChildName() {
+        return childName;
     }
 
     public int getPropertyCount() {
@@ -263,35 +259,12 @@ public class Template {
         return list;
     }
 
-    public long getChildNodeCount(Segment segment, RecordId recordId) {
-        if (hasNoChildNodes()) {
-            return 0;
-        } else if (hasManyChildNodes()) {
-            MapRecord map = getChildNodeMap(segment, recordId);
-            return map.size();
-        } else {
-            return 1;
-        }
-    }
-
     MapRecord getChildNodeMap(Segment segment, RecordId recordId) {
         checkState(hasManyChildNodes());
         segment = segment.getSegment(recordId);
         int offset = recordId.getOffset() + RECORD_ID_BYTES;
         RecordId childNodesId = segment.readRecordId(offset);
         return segment.readMap(childNodesId);
-    }
-
-    public boolean hasChildNode(
-            String name, Segment segment, RecordId recordId) {
-        if (hasNoChildNodes()) {
-            return false;
-        } else if (hasManyChildNodes()) {
-            MapRecord map = getChildNodeMap(segment, recordId);
-            return map.getEntry(name) != null;
-        } else {
-            return name.equals(childName);
-        }
     }
 
     public NodeState getChildNode(
@@ -313,17 +286,6 @@ public class Template {
             return new SegmentNodeState(segment, childNodeId);
         } else {
             return MISSING_NODE;
-        }
-    }
-
-    Iterable<String> getChildNodeNames(Segment segment, RecordId recordId) {
-        if (hasNoChildNodes()) {
-            return Collections.emptyList();
-        } else if (hasManyChildNodes()) {
-            MapRecord map = getChildNodeMap(segment, recordId);
-            return map.getKeys();
-        } else {
-            return Collections.singletonList(childName);
         }
     }
 
