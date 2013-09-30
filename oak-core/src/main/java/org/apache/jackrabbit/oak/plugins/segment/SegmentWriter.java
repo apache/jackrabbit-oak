@@ -25,6 +25,8 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 
@@ -620,17 +622,19 @@ public class SegmentWriter {
                 int head = 0;
 
                 RecordId primaryId = null;
-                if (template.hasPrimaryType()) {
+                PropertyState primaryType = template.getPrimaryType();
+                if (primaryType != null) {
                     head |= 1 << 31;
-                    primaryId = writeString(template.getPrimaryType());
+                    primaryId = writeString(primaryType.getValue(NAME));
                     ids.add(primaryId);
                 }
 
                 List<RecordId> mixinIds = null;
-                if (template.hasMixinTypes()) {
+                PropertyState mixinTypes = template.getMixinTypes();
+                if (mixinTypes != null) {
                     head |= 1 << 30;
                     mixinIds = Lists.newArrayList();
-                    for (String mixin : template.getMixinTypes()) {
+                    for (String mixin : mixinTypes.getValue(NAMES)) {
                         mixinIds.add(writeString(mixin));
                     }
                     ids.addAll(mixinIds);

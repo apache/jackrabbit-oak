@@ -316,7 +316,7 @@ public class Segment {
             offset += Segment.RECORD_ID_BYTES;
             byte type = readByte(offset++);
             properties[i] = new PropertyTemplate(
-                    readString(propertyNameId),
+                    i, readString(propertyNameId),
                     Type.fromTag(Math.abs(type), type < 0));
         }
 
