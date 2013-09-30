@@ -25,7 +25,7 @@ import com.google.common.cache.Cache;
 public abstract class AbstractStore implements SegmentStore {
 
     private final Cache<RecordId, Object> records =
-            CacheLIRS.newBuilder().maximumSize(10000).build();
+            CacheLIRS.newBuilder().maximumSize(1000).build();
 
     @Override
     public <T> T getRecord(RecordId id, Callable<T> loader) {
