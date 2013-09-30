@@ -16,24 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.jcr.observation;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterators.emptyIterator;
-import static com.google.common.collect.Iterators.singletonIterator;
-import static com.google.common.collect.Iterators.transform;
-import static javax.jcr.observation.Event.NODE_ADDED;
-import static javax.jcr.observation.Event.NODE_REMOVED;
-import static javax.jcr.observation.Event.PROPERTY_ADDED;
-import static javax.jcr.observation.Event.PROPERTY_REMOVED;
-import static org.apache.jackrabbit.oak.core.IdentifierManager.getIdentifier;
+package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.annotation.Nonnull;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
@@ -53,8 +41,6 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
-import org.apache.jackrabbit.oak.plugins.observation.Observable;
-import org.apache.jackrabbit.oak.plugins.observation.SecureNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.VisibleDiff;
@@ -64,6 +50,17 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterators.emptyIterator;
+import static com.google.common.collect.Iterators.singletonIterator;
+import static com.google.common.collect.Iterators.transform;
+import static javax.jcr.observation.Event.NODE_ADDED;
+import static javax.jcr.observation.Event.NODE_REMOVED;
+import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
+
 /**
  * A {@code ChangeProcessor} generates observation {@link javax.jcr.observation.Event}s
  * based on a {@link EventFilter} and delivers them to an {@link javax.jcr.observation.EventListener}.
@@ -72,7 +69,7 @@ import org.slf4j.LoggerFactory;
  * {@link #run()} methods to be regularly executed and stopped in order to not
  * execute its run method anymore.
  */
-class ChangeProcessor implements Runnable {
+public class ChangeProcessor implements Runnable {
 
     private static final Logger log =
             LoggerFactory.getLogger(ChangeProcessor.class);

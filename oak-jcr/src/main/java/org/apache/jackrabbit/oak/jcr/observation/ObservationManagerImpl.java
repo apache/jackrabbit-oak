@@ -18,12 +18,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static com.google.common.collect.Lists.newArrayList;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -40,12 +37,16 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeProcessor;
+import org.apache.jackrabbit.oak.plugins.observation.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 public class ObservationManagerImpl implements ObservationManager {
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.jcr.observation;
+package org.apache.jackrabbit.oak.plugins.observation;
 
 import java.util.Collections;
 import java.util.Map;
@@ -29,7 +29,7 @@ import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 /**
  * TODO document
  */
-public class EventImpl implements JackrabbitEvent {
+class EventImpl implements JackrabbitEvent {
 
     private final int type;
     private final String jcrPath;
@@ -40,7 +40,7 @@ public class EventImpl implements JackrabbitEvent {
     private final String userData;
     private final boolean external;
 
-    public EventImpl(
+    EventImpl(
             int type, String jcrPath, String userID, String identifier,
             Map<?, ?> info, long date, String userData, boolean external) {
         this.type = type;

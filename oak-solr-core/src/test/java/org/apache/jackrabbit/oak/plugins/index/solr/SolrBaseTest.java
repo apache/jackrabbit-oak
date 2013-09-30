@@ -16,21 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
-import javax.annotation.Nonnull;
-import javax.security.auth.Subject;
+import javax.jcr.NoSuchWorkspaceException;
+import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.core.AbstractRoot;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
 import org.junit.Before;
@@ -41,22 +41,28 @@ import org.junit.Before;
 public abstract class SolrBaseTest {
 
     protected KernelNodeStore store;
-    protected NodeState state;
     protected TestUtils provider;
     protected SolrServer server;
     protected OakSolrConfiguration configuration;
     protected EditorHook hook;
+    private ContentRepository repository;
 
     @Before
     public void setUp() throws Exception {
         MicroKernel microKernel = new MicroKernelImpl();
         store = new KernelNodeStore(microKernel);
-        state = createInitialState(microKernel);
         provider = new TestUtils();
         server = provider.getSolrServer();
         configuration = provider.getConfiguration();
         hook = new EditorHook(new IndexUpdateProvider(
                 new SolrIndexEditorProvider(provider, provider)));
+        Oak oak = new Oak().with(new InitialContent())
+                .with(new OpenSecurityProvider())
+                .with(new SolrIndexInitializer())
+                .with(new SolrQueryIndexProvider(provider, provider))
+                .with(new SolrIndexEditorProvider(provider, provider));
+        repository = oak
+                .createContentRepository();
     }
 
     @After
@@ -68,22 +74,8 @@ public abstract class SolrBaseTest {
         }
     }
 
-    protected AbstractRoot createRoot() {
-        return new AbstractRoot(store, hook, PostCommitHook.EMPTY, "solr-query-engine-it", new Subject(),
-                new OpenSecurityProvider(), new CompositeQueryIndexProvider()) {
-            @Nonnull
-            @Override
-            public ContentSession getContentSession() {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
-    protected NodeState createInitialState(MicroKernel microKernel) {
-        String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{} +\"y\":{} +\"z\":{} " +
-                "+\"oak:index\":{\"solr\":{\"type\":\"solr\"}}";
-        microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
-        return store.getRoot();
+    protected Root createRoot() throws LoginException, NoSuchWorkspaceException {
+        return repository.login(null, null).getLatestRoot();
     }
 
 }

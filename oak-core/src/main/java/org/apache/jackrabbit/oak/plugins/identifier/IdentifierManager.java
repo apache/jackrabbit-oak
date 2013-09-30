@@ -14,17 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.core;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
+package org.apache.jackrabbit.oak.plugins.identifier;
 
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -50,6 +46,9 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * TODO document
@@ -94,10 +93,14 @@ public class IdentifierManager {
      */
     @Nonnull
     public static String getIdentifier(Tree tree) {
-        if (tree instanceof AbstractTree) {
-            return ((AbstractTree) tree).getIdentifier();
+        PropertyState property = tree.getProperty(JcrConstants.JCR_UUID);
+        if (property != null) {
+            return property.getValue(STRING);
+        } else if (tree.isRoot()) {
+            return "/";
         } else {
-            return tree.getPath();
+            String parentId = getIdentifier(tree.getParent());
+            return PathUtils.concat(parentId, tree.getName());
         }
     }
 

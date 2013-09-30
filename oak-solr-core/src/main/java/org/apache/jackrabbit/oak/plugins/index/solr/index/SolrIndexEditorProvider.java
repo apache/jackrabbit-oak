@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
-import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
@@ -31,6 +28,9 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
+import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
 
 /**
  * Service that provides Lucene based {@link IndexEditor}s
