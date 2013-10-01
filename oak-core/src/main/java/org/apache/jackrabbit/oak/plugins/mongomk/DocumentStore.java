@@ -112,6 +112,19 @@ public interface DocumentStore {
      * @return true if this worked (if none of the documents already existed)
      */
     <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps);
+
+    /**
+     * Update documents with the given keys. Only existing documents are
+     * updated.
+     *
+     * @param <T> the document type.
+     * @param collection the collection.
+     * @param keys the keys of the documents to update.
+     * @param updateOp the update operation to apply to each of the documents.
+     */
+    <T extends Document> void update(Collection<T> collection,
+                                     List<String> keys,
+                                     UpdateOp updateOp);
     
     /**
      * Create or update a document. For MongoDb, this is using "findAndModify" with

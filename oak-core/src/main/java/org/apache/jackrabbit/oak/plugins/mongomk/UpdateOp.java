@@ -29,14 +29,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * A MongoDB "update" operation for one document.
  */
-public class UpdateOp {
+public final class UpdateOp {
 
     final String id;
     
-    final boolean isNew;
-    boolean isDelete;
+    private boolean isNew;
+    private boolean isDelete;
     
-    final Map<Key, Operation> changes = new HashMap<Key, Operation>();
+    private Map<Key, Operation> changes = new HashMap<Key, Operation>();
     
     /**
      * Create an update operation for the document with the given id. The commit
@@ -49,6 +49,21 @@ public class UpdateOp {
         this.id = id;
         this.isNew = isNew;
     }
+
+    /**
+     * Creates an update operation for the document with the given id. The
+     * changes are shared with the other update operation.
+     *
+     * @param id the primary key.
+     * @param other the other update operation.
+     */
+    UpdateOp(String id, UpdateOp other) {
+        this.id = id;
+        this.changes = other.changes;
+        this.isNew = other.isNew;
+        this.isDelete = other.isDelete;
+
+    }
     
     public String getId() {
         return id;
@@ -60,6 +75,14 @@ public class UpdateOp {
     
     void setDelete(boolean isDelete) {
         this.isDelete = isDelete;
+    }
+
+    boolean isDelete() {
+        return isDelete;
+    }
+
+    Map<Key, Operation> getChanges() {
+        return changes;
     }
     
     /**

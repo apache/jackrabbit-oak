@@ -451,7 +451,11 @@ public class MongoMK implements MicroKernel, RevisionContext {
         });
         
         long now = Revision.getCurrentTimestamp();
-        for (String p : paths) {
+        UpdateOp updateOp = null;
+        Revision lastRev = null;
+        List<String> ids = new ArrayList<String>();
+        for (int i = 0; i < paths.size(); i++) {
+            String p = paths.get(i);
             Revision r = unsavedLastRevisions.get(p);
             if (r == null) {
                 continue;
@@ -462,10 +466,29 @@ public class MongoMK implements MicroKernel, RevisionContext {
             if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
                 continue;
             }
-            Commit commit = new Commit(this, null, r);
-            commit.touchNode(p);
-            store.createOrUpdate(Collection.NODES, commit.getUpdateOperationForNode(p));
-            unsavedLastRevisions.remove(p);
+            int size = ids.size();
+            if (updateOp == null) {
+                // create UpdateOp
+                Commit commit = new Commit(this, null, r);
+                commit.touchNode(p);
+                updateOp = commit.getUpdateOperationForNode(p);
+                lastRev = r;
+                ids.add(Utils.getIdFromPath(p));
+            } else if (r.equals(lastRev)) {
+                // use multi update when possible
+                ids.add(Utils.getIdFromPath(p));
+            }
+            // update if this is the last path or
+            // revision is not equal to last revision
+            if (i + 1 >= paths.size() || size == ids.size()) {
+                store.update(Collection.NODES, ids, updateOp);
+                for (String id : ids) {
+                    unsavedLastRevisions.remove(Utils.getPathFromId(id));
+                }
+                ids.clear();
+                updateOp = null;
+                lastRev = null;
+            }
         }
     }
 

@@ -205,7 +205,7 @@ public class Commit {
                 // branch commits only become visible on merge
                 NodeDocument.setLastRev(op, revision);
             }
-            if (op.isNew) {
+            if (op.isNew()) {
                 NodeDocument.setDeleted(op, revision, false);
             }
             if (op == commitRoot) {
@@ -219,7 +219,7 @@ public class Commit {
                 }
             }
         }
-        if (changedNodes.size() == 0 && commitRoot.isNew) {
+        if (changedNodes.size() == 0 && commitRoot.isNew()) {
             // no updates and root of commit is also new. that is,
             // it is the root of a subtree added in a commit.
             // so we try to add the root like all other nodes
@@ -256,7 +256,7 @@ public class Commit {
             // with added nodes (the commit root might be written twice,
             // first to check if there was a conflict, and only then to commit
             // the revision, with the revision property set)
-            if (changedNodes.size() > 0 || !commitRoot.isNew) {
+            if (changedNodes.size() > 0 || !commitRoot.isNew()) {
                 NodeDocument.setRevision(commitRoot, revision, commitValue);
                 opLog.add(commitRoot);
                 createOrUpdateNode(store, commitRoot);
@@ -307,17 +307,17 @@ public class Commit {
             }
             String conflictMessage = null;
             if (newestRev == null) {
-                if (op.isDelete || !op.isNew) {
+                if (op.isDelete() || !op.isNew()) {
                     conflictMessage = "The node " + 
                             op.getId() + " does not exist or is already deleted";
                 }
             } else {
-                if (op.isNew) {
+                if (op.isNew()) {
                     conflictMessage = "The node " + 
                             op.getId() + " was already added in revision\n" +
                             newestRev;
                 } else if (mk.isRevisionNewer(newestRev, baseRevision)
-                        && (op.isDelete || isConflicting(doc, op))) {
+                        && (op.isDelete() || isConflicting(doc, op))) {
                     conflictMessage = "The node " + 
                             op.getId() + " was changed in revision\n" + newestRev +
                             ", which was applied after the base revision\n" + 
@@ -401,9 +401,9 @@ public class Commit {
                 }
             }
             UpdateOp op = operations.get(path);
-            boolean isNew = op != null && op.isNew;
+            boolean isNew = op != null && op.isNew();
             boolean isWritten = op != null;
-            boolean isDelete = op != null && op.isDelete;
+            boolean isDelete = op != null && op.isDelete();
             mk.applyChanges(revision, path, 
                     isNew, isDelete, isWritten, isBranchCommit,
                     added, removed);
