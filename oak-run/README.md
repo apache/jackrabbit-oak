@@ -45,7 +45,7 @@ the benchmarked codebase.
 
 Some system properties are also used to control the benchmarks. For example:
 
-    -Dwarmup=5         - number of warmup iterations
+    -Dwarmup=5         - warmup time (in seconds)
     -Druntime=60       - how long a single benchmark should run (in seconds)
 
 The test case names like `ReadPropertyTest`, `SmallFileReadTest` and
@@ -74,8 +74,8 @@ Once started, the benchmark runner will execute each listed test case
 against all the listed repository fixtures. After starting up the
 repository and preparing the test environment, the test case is first
 executed a few times to warm up caches before measurements are
-started. Then the test case is run repeatedly for one minute (or at
-least 10 times) and the number of milliseconds used by each execution
+started. Then the test case is run repeatedly for one minute 
+and the number of milliseconds used by each execution
 is recorded. Once done, the following statistics are computed and
 reported:
 
