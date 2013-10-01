@@ -401,11 +401,10 @@ public class ObservationTest extends AbstractRepositoryTest {
         private volatile Exception failed;
 
         public Expectation expect(Expectation expectation) {
-            if (failed == null) {
-                expected.add(expectation);
-            } else {
+            if (failed != null) {
                 expectation.fail(failed);
             }
+            expected.add(expectation);
             return expectation;
         }
 
