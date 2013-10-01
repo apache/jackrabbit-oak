@@ -141,7 +141,7 @@ public class MeasureMemory {
         if (TRACE) {
             System.out.println(message);
         }
-        if (estimation < 80 || estimation > 120) {
+        if (estimation < 80 || estimation > 160) {
             fail(message);
         }
         // need to keep the reference until here, otherwise
