@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.CheckForNull;
@@ -49,7 +50,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     private final Map<String, Count> counts = new HashMap<String, Count>();
     private long lastLogTime;
     private long totalLogTime;
-    private final HashMap<String, Integer> commonCalls = new HashMap<String, Integer>();
+    private final Map<String, Integer> slowCalls = new ConcurrentHashMap<String, Integer>();
     
     private int callCount;
 
@@ -285,12 +286,12 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         }
     }
     
-    private synchronized void logCommonCall(long start, String key) {
+    private void logCommonCall(long start, String key) {
         int time = (int) (System.currentTimeMillis() - start);
         if (time <= 0) {
             return;
         }
-        HashMap<String, Integer> map = commonCalls;
+        Map<String, Integer> map = slowCalls;
         Integer oldCount = map.get(key);
         if (oldCount == null) {
             map.put(key, time);
@@ -385,7 +386,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             log("all count " + totalCount + " time " + totalTime + " " + 
                     (100 * totalTime / totalLogTime) + "%");
 
-            HashMap<String, Integer> map = commonCalls;
+            Map<String, Integer> map = slowCalls;
             int top = 10;
             int max = Integer.MAX_VALUE;
             for (int i = 0; i < top;) {
@@ -397,16 +398,19 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
                 }
                 for (Entry<String, Integer> e : map.entrySet()) {
                     if (e.getValue() >= best && e.getValue() < max) {
-                        log("common call " + e.getValue() + " " + e.getKey());
+                        log("slow call " + e.getValue() + " millis: " + e.getKey());
                         i++;
                         if (i >= top) {
                             break;
                         }
                     }
                 }
+                if (i >= map.size()) {
+                    break;
+                }
                 max = best;
             }
-            commonCalls.clear();
+            slowCalls.clear();
             
             log("------");
             
