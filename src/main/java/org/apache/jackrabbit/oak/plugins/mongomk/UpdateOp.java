@@ -50,7 +50,7 @@ public class UpdateOp {
         this.isNew = isNew;
     }
     
-    String getId() {
+    public String getId() {
         return id;
     }
     
