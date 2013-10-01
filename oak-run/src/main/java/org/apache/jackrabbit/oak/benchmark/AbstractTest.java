@@ -37,7 +37,7 @@ abstract class AbstractTest extends Benchmark {
 
     private static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
 
-    private static final int WARMUP = Integer.getInteger("warmup", 5);
+    private static final long WARMUP = TimeUnit.SECONDS.toMillis(Long.getLong("warmup", 5));
 
     private static final long RUNTIME = TimeUnit.SECONDS.toMillis(Long.getLong("runtime", 60));
 
@@ -114,16 +114,16 @@ abstract class AbstractTest extends Benchmark {
 
         setUp(repository, CREDENTIALS);
         try {
+            
             // Run a few iterations to warm up the system
-            for (int i = 0; i < WARMUP; i++) {
+            long warmupEnd = System.currentTimeMillis() + WARMUP;
+            while (System.currentTimeMillis() < warmupEnd) {
                 execute();
             }
 
             // Run test iterations, and capture the execution times
-            int iterations = 0;
             long runtimeEnd = System.currentTimeMillis() + RUNTIME;
-            while (iterations++ < 10
-                    || System.currentTimeMillis() < runtimeEnd) {
+            while (System.currentTimeMillis() < runtimeEnd) {
                 statistics.addValue(execute());
             }
         } finally {
