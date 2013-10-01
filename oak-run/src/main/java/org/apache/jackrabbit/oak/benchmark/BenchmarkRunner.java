@@ -83,6 +83,7 @@ public class BenchmarkRunner {
             new ReadPropertyTest(),
             GetNodeTest.withAdmin(),
             GetNodeTest.withAnonymous(),
+            new GetDeepNodeTest(),
             new SetPropertyTest(),
             new SmallFileReadTest(),
             new SmallFileWriteTest(),
