@@ -40,8 +40,8 @@ final class Range {
         this.low = checkNotNull(low);
         checkArgument(high.getClusterId() == low.getClusterId(),
                 "Revisions from have the same clusterId");
-        checkArgument(high.compareRevisionTime(low) > 0,
-                "High Revision must be later than low Revision");
+        checkArgument(high.compareRevisionTime(low) >= 0,
+                "High Revision must be later than low Revision, high=" + high + " low=" + low);
     }
 
     /**
