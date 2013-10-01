@@ -40,6 +40,7 @@ The basic MongoDB document of a node in Oak looks like this:
             "r0-0-1" : "r13f3875b5d1-0-1"
         },
         "_modified" : NumberLong(274208361),
+        "_modCount" : NumberLong(1),
         "_revisions" : {
             "r13f3875b5d1-0-1" : "c"
         }
@@ -67,9 +68,10 @@ only information actually used by MongoMK is the clusterId. The `_lastRev`
 sub-document is only updated for non-branch commits or on merge, when changes
 become visible to all readers.
 
-The `_modified` field contains a low-resolution timestamp when the node was last
-modified. The time resolution is five seconds. This field is also updated when
+The `_modified` field contains an indexed low-resolution timestamp when the node was last modified. The time resolution is five seconds. This field is also updated when
 a branch commit modifies a node.
+
+The `_modCount` field contains a modification counter, which is incremented with every change to the document. This field allows MongoMK to perform conditional updates without requesting the whole document.
 
 Finally, the `_revisions` sub-document contains commit information about changes
 marked with a revision. E.g. the single entry in the above document tells us
@@ -90,6 +92,7 @@ result in the following document:
             "r0-0-1" : "r13f38818ab6-0-1"
         },
         "_modified" : NumberLong(274208516),
+        "_modCount" : NumberLong(2),
         "_revisions" : {
             "r13f3875b5d1-0-1" : "c",
             "r13f38818ab6-0-1" : "c"
@@ -117,6 +120,7 @@ After the node is deleted the document looks like this:
             "r0-0-1" : "r13f38835063-2-1"
         },
         "_modified" : NumberLong(274208539),
+        "_modCount" : NumberLong(3),
         "_revisions" : {
             "r13f3875b5d1-0-1" : "c",
             "r13f38818ab6-0-1" : "c",
@@ -169,6 +173,7 @@ A root node may look like this:
             "r0-0-1" : "r13fcda91720-0-1"
         },
         "_modified" : NumberLong(274708995),
+        "_modCount" : NumberLong(2),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
             "r13fcda91720-0-1" : "c"
@@ -194,6 +199,7 @@ the root node looks like this:
             "r0-0-1" : "r13fcda91720-0-1"
         },
         "_modified" : NumberLong(274708995),
+        "_modCount" : NumberLong(3),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
             "r13fcda91720-0-1" : "c",
@@ -222,6 +228,7 @@ When the branch is later merged, the root node will look like this:
             "r0-0-1" : "r13fcda91b12-0-1"
         },
         "_modified" : NumberLong(274708995),
+        "_modCount" : NumberLong(4),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
             "r13fcda91720-0-1" : "c",
@@ -257,6 +264,7 @@ is moved when there are 1000 commits to be moved or the document is bigger than
             "r0-0-1" : "r13fcda91b12-0-1"
         },
         "_modified" : NumberLong(274708995),
+        "_modCount" : NumberLong(1004),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
             "r13fcda91720-0-1" : "c",
@@ -281,6 +289,7 @@ is `1:p/r13fcda88ae0-0-1` and may looks like this:
 
     {
         "_id" : "1:p/r13fcda88ae0-0-1",
+        "_modCount" : NumberLong(1),
         "_revisions" : {
             "r13fcda88ae0-0-1" : "c",
             "r13fcda88af0-0-1" : "c",
