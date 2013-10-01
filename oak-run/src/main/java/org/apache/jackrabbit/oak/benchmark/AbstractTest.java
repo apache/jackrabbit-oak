@@ -28,6 +28,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
+import org.apache.jackrabbit.oak.benchmark.util.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 /**
@@ -40,6 +41,8 @@ abstract class AbstractTest extends Benchmark {
     private static final long WARMUP = TimeUnit.SECONDS.toMillis(Long.getLong("warmup", 5));
 
     private static final long RUNTIME = TimeUnit.SECONDS.toMillis(Long.getLong("runtime", 60));
+    
+    private static final boolean PROFILE = Boolean.getBoolean("profile");
 
     private Repository repository;
 
@@ -50,6 +53,8 @@ abstract class AbstractTest extends Benchmark {
     private List<Thread> threads;
 
     private volatile boolean running;
+    
+    private Profiler profiler;
 
     protected static int getScale(int def) {
         int scale = Integer.getInteger("scale", 0);
@@ -76,6 +81,9 @@ abstract class AbstractTest extends Benchmark {
         this.running = true;
 
         beforeSuite();
+        if (PROFILE) {
+            profiler = new Profiler().startCollecting();
+        }
     }
 
     @Override
@@ -160,6 +168,11 @@ abstract class AbstractTest extends Benchmark {
         this.running = false;
         for (Thread thread : threads) {
             thread.join();
+        }
+        
+        if (profiler != null) {
+            System.out.println(profiler.stopCollecting().getTop(5));
+            profiler = null;
         }
 
         afterSuite();
