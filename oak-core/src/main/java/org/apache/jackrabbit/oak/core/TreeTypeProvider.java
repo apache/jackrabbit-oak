@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
  */
 public interface TreeTypeProvider {
 
+    int TYPE_NONE = 0;
+
     // regular trees
     int TYPE_DEFAULT = 1;
     // version store(s) content
