@@ -241,7 +241,7 @@ public class SegmentWriter {
             RecordId id = prepare(4 + size * 4, ids);
             writeInt((level << MapRecord.SIZE_BITS) | size);
             for (MapEntry entry : array) {
-                writeInt(entry.getName().hashCode());
+                writeInt(entry.getHash());
             }
             for (MapEntry entry : array) {
                 writeRecordId(entry.getKey());

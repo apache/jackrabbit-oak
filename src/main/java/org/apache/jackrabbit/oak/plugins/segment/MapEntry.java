@@ -40,13 +40,17 @@ class MapEntry extends AbstractChildNodeEntry
 
     private final RecordId key;
 
-    private RecordId value;
+    private final RecordId value;
 
     MapEntry(Segment segment, String name, RecordId key, RecordId value) {
         this.segment = checkNotNull(segment);
         this.name = checkNotNull(name);
         this.key = checkNotNull(key);
         this.value = value;
+    }
+
+    public int getHash() {
+        return name.hashCode();
     }
 
     //----------------------------------------------------< ChildNodeEntry >--
@@ -76,9 +80,7 @@ class MapEntry extends AbstractChildNodeEntry
 
     @Override
     public RecordId setValue(RecordId value) {
-        RecordId old = this.value;
-        this.value = value;
-        return old;
+        throw new UnsupportedOperationException();
     }
 
     //--------------------------------------------------------< Comparable >--
