@@ -509,7 +509,7 @@ public class NodeDocument extends Document {
             }
         }
 
-        for (Map.Entry<Key, Operation> entry : op.changes.entrySet()) {
+        for (Map.Entry<Key, Operation> entry : op.getChanges().entrySet()) {
             if (entry.getValue().type != Operation.Type.SET_MAP_ENTRY) {
                 continue;
             }

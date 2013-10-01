@@ -179,7 +179,7 @@ public class MemoryDocumentStore implements DocumentStore {
 
             T doc = collection.newDocument(this);
             if (oldDoc == null) {
-                if (!update.isNew) {
+                if (!update.isNew()) {
                     throw new MicroKernelException("Document does not exist: " + update.id);
                 }
             } else {
@@ -200,7 +200,7 @@ public class MemoryDocumentStore implements DocumentStore {
 
     private static boolean checkConditions(Document doc,
                                            UpdateOp update) {
-        for (Map.Entry<Key, Operation> change : update.changes.entrySet()) {
+        for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
             Operation op = change.getValue();
             if (op.type == Operation.Type.CONTAINS_MAP_ENTRY) {
                 Key k = change.getKey();
@@ -246,7 +246,7 @@ public class MemoryDocumentStore implements DocumentStore {
     public static void applyChanges(@Nonnull Document doc,
                                     @Nonnull UpdateOp update,
                                     @Nonnull Comparator<Revision> comparator) {
-        for (Entry<Key, Operation> e : checkNotNull(update).changes.entrySet()) {
+        for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
             Operation op = e.getValue();
             switch (op.type) {
@@ -306,6 +306,25 @@ public class MemoryDocumentStore implements DocumentStore {
                 internalCreateOrUpdate(collection, op, false);
             }
             return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public <T extends Document> void update(Collection<T> collection,
+                                            List<String> keys,
+                                            UpdateOp updateOp) {
+        Lock lock = rwLock.writeLock();
+        lock.lock();
+        try {
+            ConcurrentSkipListMap<String, T> map = getMap(collection);
+            for (String key : keys) {
+                if (!map.containsKey(key)) {
+                    continue;
+                }
+                internalCreateOrUpdate(collection, new UpdateOp(key, updateOp), true);
+            }
         } finally {
             lock.unlock();
         }
