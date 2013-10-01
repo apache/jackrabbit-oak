@@ -25,6 +25,7 @@ public class XmlImportTest extends AbstractTest {
 
     private Session adminSession;
     private Node testRoot;
+    private int counter;
 
     @Override
     protected void runTest() throws Exception {
@@ -36,7 +37,7 @@ public class XmlImportTest extends AbstractTest {
     @Override
     protected void beforeTest() throws Exception {
         adminSession = loginWriter();
-        String name = getClass().getSimpleName();
+        String name = getClass().getSimpleName() + counter++;
         testRoot = adminSession.getRootNode().addNode(name, "nt:unstructured");
         adminSession.save();
     }
