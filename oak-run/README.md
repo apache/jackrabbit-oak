@@ -47,6 +47,7 @@ Some system properties are also used to control the benchmarks. For example:
 
     -Dwarmup=5         - warmup time (in seconds)
     -Druntime=60       - how long a single benchmark should run (in seconds)
+    -Dprofile=true     - to collect and print profiling data
 
 The test case names like `ReadPropertyTest`, `SmallFileReadTest` and
 `SmallFileWriteTest` indicate the specific test case being run. You can
