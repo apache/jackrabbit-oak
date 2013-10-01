@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.mongomk.util;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import javax.annotation.Nonnull;
 
@@ -45,10 +46,16 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> T find(Collection<T> collection, String key) {
+    public <T extends Document> T find(final Collection<T> collection,
+                                       final String key) {
         try {
             logMethod("find", collection, key);
-            return logResult(store.find(collection, key));
+            return logResult(new Callable<T>() {
+                @Override
+                public T call() throws Exception {
+                    return store.find(collection, key);
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -56,10 +63,17 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
+    public <T extends Document> T find(final Collection<T> collection,
+                                       final String key,
+                                       final int maxCacheAge) {
         try {
             logMethod("find", collection, key, maxCacheAge);
-            return logResult(store.find(collection, key, maxCacheAge));
+            return logResult(new Callable<T>() {
+                @Override
+                public T call() throws Exception {
+                    return store.find(collection, key, maxCacheAge);
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -68,13 +82,18 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Nonnull
     @Override
-    public <T extends Document> List<T> query(Collection<T> collection,
-                                String fromKey,
-                                String toKey,
-                                int limit) {
+    public <T extends Document> List<T> query(final Collection<T> collection,
+                                final String fromKey,
+                                final String toKey,
+                                final int limit) {
         try {
             logMethod("query", collection, fromKey, toKey, limit);
-            return logResult(store.query(collection, fromKey, toKey, limit));
+            return logResult(new Callable<List<T>>() {
+                @Override
+                public List<T> call() throws Exception {
+                    return store.query(collection, fromKey, toKey, limit);
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -83,15 +102,20 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     
     @Override
     @Nonnull
-    public <T extends Document> List<T> query(Collection<T> collection,
-                                String fromKey,
-                                String toKey,
-                                String indexedProperty,
-                                long startValue,
-                                int limit) {
+    public <T extends Document> List<T> query(final Collection<T> collection,
+                                final String fromKey,
+                                final String toKey,
+                                final String indexedProperty,
+                                final long startValue,
+                                final int limit) {
         try {
             logMethod("query", collection, fromKey, toKey, indexedProperty, startValue, limit);
-            return logResult(store.query(collection, fromKey, toKey, indexedProperty, startValue, limit));
+            return logResult(new Callable<List<T>>() {
+                @Override
+                public List<T> call() throws Exception {
+                    return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -110,10 +134,16 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
+    public <T extends Document> boolean create(final Collection<T> collection,
+                                               final List<UpdateOp> updateOps) {
         try {
             logMethod("create", collection, updateOps);
-            return logResult(store.create(collection, updateOps));
+            return logResult(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                    return store.create(collection, updateOps);
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -122,11 +152,17 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Nonnull
     @Override
-    public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
+    public <T extends Document> T createOrUpdate(final Collection<T> collection,
+                                                 final UpdateOp update)
             throws MicroKernelException {
         try {
             logMethod("createOrUpdate", collection, update);
-            return logResult(store.createOrUpdate(collection, update));
+            return logResult(new Callable<T>() {
+                @Override
+                public T call() throws Exception {
+                    return store.createOrUpdate(collection, update);
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -134,11 +170,17 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update)
+    public <T extends Document> T findAndUpdate(final Collection<T> collection,
+                                                final UpdateOp update)
             throws MicroKernelException {
         try {
             logMethod("findAndUpdate", collection, update);
-            return logResult(store.findAndUpdate(collection, update));
+            return logResult(new Callable<T>() {
+                @Override
+                public T call() throws Exception {
+                    return store.findAndUpdate(collection, update);
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -179,10 +221,16 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> boolean isCached(Collection<T> collection, String key) {
+    public <T extends Document> boolean isCached(final Collection<T> collection,
+                                                 final String key) {
         try {
             logMethod("isCached", collection, key);
-            return logResult(store.isCached(collection, key));
+            return logResult(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                    return store.isCached(collection, key);
+                }
+            });
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -223,8 +271,11 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         log("// exception: " + e.toString());
     }
 
-    private static <T> T logResult(T result) {
-        log("// " + quote(result));
+    private static <T> T logResult(Callable<T> callable) throws Exception {
+        long time = System.nanoTime();
+        T result = callable.call();
+        time = System.nanoTime() - time;
+        log("// " + (time / 1000) + " us\t" + quote(result));
         return result;
     }
 
