@@ -165,6 +165,14 @@ abstract class ReadManyTest extends AbstractTest {
 
     @Override
     protected void afterSuite() throws Exception {
+        for (int i = 0; i < scale; i++) {
+            Node top = root.getNode("node" + i);
+            for (int j = 0; j < 1000; j++) {
+                top.getNode("node" + j).remove();
+                // save once every 1k leaf entries (OAK-1056)
+                session.save();
+            }
+        }
         root.remove();
         session.save();
         session.logout();
