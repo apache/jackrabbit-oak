@@ -98,6 +98,7 @@ public final class ImmutableTree extends AbstractTree {
     private final TreeTypeProvider typeProvider;
 
     private String path;
+    private int type = TreeTypeProvider.TYPE_NONE;
 
     public ImmutableTree(@Nonnull NodeState rootState) {
         this(ParentProvider.ROOT_PROVIDER, "", rootState, TreeTypeProvider.EMPTY);
@@ -249,7 +250,10 @@ public final class ImmutableTree extends AbstractTree {
     //------------------------------------------------------------< internal >---
 
     int getType() {
-        return typeProvider.getType(this);
+        if (type == TreeTypeProvider.TYPE_NONE) {
+            type = typeProvider.getType(this);
+        }
+        return type;
     }
 
     // TODO
