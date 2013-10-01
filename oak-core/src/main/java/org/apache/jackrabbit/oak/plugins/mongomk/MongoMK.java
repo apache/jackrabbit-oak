@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.Node.Children;
 import org.apache.jackrabbit.oak.plugins.mongomk.Revision.RevisionComparator;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.mongomk.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.slf4j.Logger;
@@ -247,6 +248,9 @@ public class MongoMK implements MicroKernel, RevisionContext {
         DocumentStore s = builder.getDocumentStore();
         if (builder.getTiming()) {
             s = new TimingDocumentStoreWrapper(s);
+        }
+        if (builder.getLogging()) {
+            s = new LoggingDocumentStoreWrapper(s);
         }
         this.store = s;
         this.blobStore = builder.getBlobStore();
@@ -1458,6 +1462,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
         private int clusterId  = Integer.getInteger("oak.mongoMK.clusterId", 0);
         private int asyncDelay = 1000;
         private boolean timing;
+        private boolean logging;
         private Weigher<String, CacheValue> weigher = new EmpiricalWeigher();
         private long nodeCacheSize;
         private long childrenCacheSize;
@@ -1498,6 +1503,15 @@ public class MongoMK implements MicroKernel, RevisionContext {
         
         public boolean getTiming() {
             return timing;
+        }
+
+        public Builder setLogging(boolean logging) {
+            this.logging = logging;
+            return this;
+        }
+
+        public boolean getLogging() {
+            return logging;
         }
 
         /**
