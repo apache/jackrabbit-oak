@@ -97,23 +97,16 @@ public class ChangeDispatcher {
         internalChange(checkNotNull(after), contentSession);
     }
 
-    private void externalChange(NodeState root) {
+    private synchronized void externalChange(NodeState root) {
         if (!root.equals(previousRoot)) {
             add(ChangeSet.external(previousRoot, root));
             previousRoot = root;
         }
     }
 
-    private void internalChange(NodeState root, ContentSession contentSession) {
+    private synchronized void internalChange(NodeState root, ContentSession contentSession) {
         add(ChangeSet.local(previousRoot, root, contentSession));
         previousRoot = root;
-    }
-
-    private void externalChange() {
-        NodeState root = store.getRoot();
-        synchronized (this) {
-            externalChange(root);
-        }
     }
 
     private void register(Listener listener) {
@@ -184,9 +177,6 @@ public class ChangeDispatcher {
          */
         @CheckForNull
         public ChangeSet getChanges() {
-            if (changeSets.isEmpty()) {
-                externalChange();
-            }
             return changeSets.isEmpty() ? null : changeSets.remove();
         }
 
