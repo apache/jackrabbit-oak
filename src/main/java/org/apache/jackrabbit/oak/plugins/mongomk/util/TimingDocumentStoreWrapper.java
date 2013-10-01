@@ -124,7 +124,13 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         try {
             long start = now();
             List<T> result = base.query(collection, fromKey, toKey, limit);
-            updateAndLogTimes("query", start, 0, size(result));
+            if (result.size() == 0) {
+                updateAndLogTimes("query, result=0", start, 0, size(result));
+            } else if (result.size() == 1) {
+                updateAndLogTimes("query, result=1", start, 0, size(result));
+            } else {
+                updateAndLogTimes("query, result>1", start, 0, size(result));
+            }
             if (logCommonCall()) {
                 logCommonCall(start, "query " + collection + " " + fromKey + " " + toKey + " " + limit);
             }
