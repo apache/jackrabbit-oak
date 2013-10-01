@@ -269,65 +269,18 @@ public class MongoDocumentStore implements DocumentStore {
                                                  boolean upsert,
                                                  boolean checkConditions) {
         DBCollection dbCollection = getDBCollection(collection);
-
-        BasicDBObject setUpdates = new BasicDBObject();
-        BasicDBObject incUpdates = new BasicDBObject();
-        BasicDBObject unsetUpdates = new BasicDBObject();
-
-        // always increment modCount
-        updateOp.increment(Document.MOD_COUNT, 1);
-
-        // other updates
-        for (Entry<Key, Operation> entry : updateOp.changes.entrySet()) {
-            Key k = entry.getKey();
-            if (k.getName().equals(Document.ID)) {
-                // avoid exception "Mod on _id not allowed"
-                continue;
-            }
-            Operation op = entry.getValue();
-            switch (op.type) {
-                case SET: {
-                    setUpdates.append(k.toString(), op.value);
-                    break;
-                }
-                case INCREMENT: {
-                    incUpdates.append(k.toString(), op.value);
-                    break;
-                }
-                case SET_MAP_ENTRY: {
-                    setUpdates.append(k.toString(), op.value);
-                    break;
-                }
-                case REMOVE_MAP_ENTRY: {
-                    unsetUpdates.append(k.toString(), "1");
-                    break;
-                }
-            }
-        }
-
-        BasicDBObject update = new BasicDBObject();
-        if (!setUpdates.isEmpty()) {
-            update.append("$set", setUpdates);
-        }
-        if (!incUpdates.isEmpty()) {
-            update.append("$inc", incUpdates);
-        }
-        if (!unsetUpdates.isEmpty()) {
-            update.append("$unset", unsetUpdates);
-        }
-
-        // dbCollection.update(query, update, true /*upsert*/, false /*multi*/,
-        //         WriteConcern.SAFE);
-        // return null;
+        DBObject update = createUpdate(updateOp);
 
         // get modCount of cached document
         Number modCount = null;
-        @SuppressWarnings("unchecked")
-        T cachedDoc = (T) nodesCache.getIfPresent(updateOp.getId());
-        if (cachedDoc != null) {
-            modCount = cachedDoc.getModCount();
+        T cachedDoc = null;
+        if (collection == Collection.NODES) {
+            //noinspection unchecked
+            cachedDoc = (T) nodesCache.getIfPresent(updateOp.getId());
+            if (cachedDoc != null) {
+                modCount = cachedDoc.getModCount();
+            }
         }
-
 
         long start = start();
         try {
@@ -345,7 +298,6 @@ public class MongoDocumentStore implements DocumentStore {
                         false /*upsert*/);
                 if (oldNode != null) {
                     // success, update cached document
-                    // FIXME: ensure consistent cache update
                     applyToCache(collection, cachedDoc, updateOp);
                     // return previously cached document
                     return cachedDoc;
@@ -403,7 +355,7 @@ public class MongoDocumentStore implements DocumentStore {
             T target = collection.newDocument(this);
             MemoryDocumentStore.applyChanges(target, update, comparator);
             docs.add(target);
-            for (Entry<Key, Operation> entry : update.changes.entrySet()) {
+            for (Entry<Key, Operation> entry : update.getChanges().entrySet()) {
                 Key k = entry.getKey();
                 Operation op = entry.getValue();
                 switch (op.type) {
@@ -454,6 +406,39 @@ public class MongoDocumentStore implements DocumentStore {
         } finally {
             end("create", start);
         }        
+    }
+
+    @Override
+    public <T extends Document> void update(Collection<T> collection,
+                                            List<String> keys,
+                                            UpdateOp updateOp) {
+        DBCollection dbCollection = getDBCollection(collection);
+        QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
+        DBObject update = createUpdate(updateOp);
+        long start = start();
+        try {
+            try {
+
+                WriteResult writeResult = dbCollection.updateMulti(query.get(), update);
+                if (writeResult.getError() != null) {
+                    throw new MicroKernelException("Update failed: " + writeResult.getError());
+                }
+                if (collection == Collection.NODES) {
+                    // update cache
+                    for (String key : keys) {
+                        @SuppressWarnings("unchecked")
+                        T doc = (T) nodesCache.getIfPresent(key);
+                        if (doc != null) {
+                            applyToCache(collection, doc, new UpdateOp(key, updateOp));
+                        }
+                    }
+                }
+            } catch (MongoException e) {
+                throw new MicroKernelException(e);
+            }
+        } finally {
+            end("update", start);
+        }
     }
 
     @CheckForNull
@@ -531,6 +516,17 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
 
+    /**
+     * Applies an update to the nodes cache.
+     * <p>
+     * FIXME: ensure consistent cache update.
+     *
+     * @param <T> the document type.
+     * @param collection the document collection.
+     * @param oldDoc the old document or <code>null</code> if the update is for
+     *               a new document (insert).
+     * @param updateOp the update operation.
+     */
     private <T extends Document> void applyToCache(@Nonnull Collection<T> collection,
                                                    @Nullable T oldDoc,
                                                    @Nonnull UpdateOp updateOp) {
@@ -553,7 +549,7 @@ public class MongoDocumentStore implements DocumentStore {
                                               boolean checkConditions) {
         QueryBuilder query = getByKeyQuery(updateOp.id);
 
-        for (Entry<Key, Operation> entry : updateOp.changes.entrySet()) {
+        for (Entry<Key, Operation> entry : updateOp.getChanges().entrySet()) {
             Key k = entry.getKey();
             Operation op = entry.getValue();
             switch (op.type) {
@@ -568,4 +564,60 @@ public class MongoDocumentStore implements DocumentStore {
         return query;
     }
 
+    /**
+     * Creates a MongoDB update object from the given UpdateOp.
+     *
+     * @param updateOp the update op.
+     * @return the DBObject.
+     */
+    @Nonnull
+    private DBObject createUpdate(UpdateOp updateOp) {
+        BasicDBObject setUpdates = new BasicDBObject();
+        BasicDBObject incUpdates = new BasicDBObject();
+        BasicDBObject unsetUpdates = new BasicDBObject();
+
+        // always increment modCount
+        updateOp.increment(Document.MOD_COUNT, 1);
+
+        // other updates
+        for (Entry<Key, Operation> entry : updateOp.getChanges().entrySet()) {
+            Key k = entry.getKey();
+            if (k.getName().equals(Document.ID)) {
+                // avoid exception "Mod on _id not allowed"
+                continue;
+            }
+            Operation op = entry.getValue();
+            switch (op.type) {
+                case SET: {
+                    setUpdates.append(k.toString(), op.value);
+                    break;
+                }
+                case INCREMENT: {
+                    incUpdates.append(k.toString(), op.value);
+                    break;
+                }
+                case SET_MAP_ENTRY: {
+                    setUpdates.append(k.toString(), op.value);
+                    break;
+                }
+                case REMOVE_MAP_ENTRY: {
+                    unsetUpdates.append(k.toString(), "1");
+                    break;
+                }
+            }
+        }
+
+        BasicDBObject update = new BasicDBObject();
+        if (!setUpdates.isEmpty()) {
+            update.append("$set", setUpdates);
+        }
+        if (!incUpdates.isEmpty()) {
+            update.append("$inc", incUpdates);
+        }
+        if (!unsetUpdates.isEmpty()) {
+            update.append("$unset", unsetUpdates);
+        }
+
+        return update;
+    }
 }
