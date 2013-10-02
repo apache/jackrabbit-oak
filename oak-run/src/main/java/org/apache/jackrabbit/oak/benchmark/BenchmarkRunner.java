@@ -43,6 +43,10 @@ public class BenchmarkRunner {
                 .withRequiredArg().defaultsTo("localhost");
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
+        OptionSpec<String> dbName = parser.accepts("db", "MongoDB database")
+                .withRequiredArg();
+        OptionSpec<Boolean> dropDBAfterTest = parser.accepts("dropDBAfterTest", "Whether to drop the MongoDB database after the test")
+                .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
         OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
@@ -70,7 +74,9 @@ public class BenchmarkRunner {
                 OakRepositoryFixture.getDefault(
                         base.value(options), cacheSize * MB),
                 OakRepositoryFixture.getMongo(
-                        host.value(options), port.value(options), cacheSize * MB),
+                        host.value(options), port.value(options),
+                        dbName.value(options), dropDBAfterTest.value(options),
+                        cacheSize * MB),
                 OakRepositoryFixture.getSegment(
                         host.value(options), port.value(options), cacheSize * MB),
                 OakRepositoryFixture.getTar(
