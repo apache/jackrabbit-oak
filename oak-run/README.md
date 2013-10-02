@@ -16,15 +16,17 @@ It can be invoked like this:
 
 The following benchmark options (with default values) are currently supported:
 
-    --host localhost   - MongoDB host
-    --port 27101       - MongoDB port
-    --mmap <64bit?>    - TarMK memory mapping (the default on 64 bit JVMs)
-    --cache 100        - cache size (in MB)
-    --wikipedia <file> - Wikipedia dump
-    --runAsAdmin false - Run test as admin session
-    --itemsToRead 1000 - Number of items to read
-    --bgReaders 20     - Number of background readers
-    --report false     - Whether to output intermediate results
+    --host localhost       - MongoDB host
+    --port 27101           - MongoDB port
+    --db <name>            - MongoDB database (default is a generated name)
+    --dropDBAfterTest true - Whether to drop the MongoDB database after the test
+    --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
+    --cache 100            - cache size (in MB)
+    --wikipedia <file>     - Wikipedia dump
+    --runAsAdmin false     - Run test as admin session
+    --itemsToRead 1000     - Number of items to read
+    --bgReaders 20         - Number of background readers
+    --report false         - Whether to output intermediate results
 
 These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the
