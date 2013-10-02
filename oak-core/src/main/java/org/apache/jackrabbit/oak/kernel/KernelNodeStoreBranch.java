@@ -31,17 +31,17 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * {@code NodeStoreBranch} based on {@link MicroKernel} branching and merging.
  * This implementation keeps changes in memory up to a certain limit and writes
  * them back to the Microkernel branch when the limit is exceeded.
  */
-class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
+class KernelNodeStoreBranch implements NodeStoreBranch {
 
     /** The underlying store to which this branch belongs */
     private final KernelNodeStore store;

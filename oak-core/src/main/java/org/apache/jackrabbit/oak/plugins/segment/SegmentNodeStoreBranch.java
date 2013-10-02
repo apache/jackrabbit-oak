@@ -29,12 +29,12 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
-class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
+class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     private static final Random RANDOM = new Random();
 
@@ -286,4 +286,8 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         return true;
     }
 
+    @Override
+    public String toString() {
+        return getHead().toString();
+    }
 }

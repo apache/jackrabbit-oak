@@ -32,7 +32,7 @@ public interface NodeStoreBranch {
     /**
      * Returns the base state of this branch.
      * The base state is the state of the tree as it was at the time
-     * {@link NodeStore#branch()} was used to obtain this instance.
+     * this branch was created.
      *
      * @return root node state
      */
