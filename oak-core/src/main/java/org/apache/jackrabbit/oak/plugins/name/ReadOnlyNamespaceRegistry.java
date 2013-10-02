@@ -81,7 +81,6 @@ public abstract class ReadOnlyNamespaceRegistry
             Tree root = getReadTree();
             Map<String, String> map = Namespaces.getNamespaceMap(root);
             String[] uris = map.values().toArray(new String[map.size()]);
-            Arrays.sort(uris);
             return uris;
         } catch (RuntimeException e) {
             throw new RepositoryException(
