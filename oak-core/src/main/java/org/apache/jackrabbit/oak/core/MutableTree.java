@@ -79,37 +79,11 @@ public class MutableTree extends AbstractTree {
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
+    //-----------------------------------------------------< AbstractTree >---
+
     @Override
     protected MutableTree createChild(String name) {
         return new MutableTree(root, this, name, pendingMoves);
-    }
-
-    //------------------------------------------------------------< Tree >---
-
-    @Override
-    public String getName() {
-        enter();
-        return name;
-    }
-
-    @Override
-    public String getPath() {
-        enter();
-        return super.getPath();
-    }
-
-    @Override
-    public Status getStatus() {
-        checkExists();
-        return super.getStatus();
-    }
-
-    private NodeState getBase() {
-        if (parent == null) {
-            return root.getBaseState();
-        } else {
-            return parent.getBase().getChildNode(name);
-        }
     }
 
     @Override
@@ -156,44 +130,60 @@ public class MutableTree extends AbstractTree {
         return false;
     }
 
+    //------------------------------------------------------------< Tree >---
+
+    @Override
+    public String getName() {
+        beforeRead();
+        return name;
+    }
+
+    @Override
+    public String getPath() {
+        beforeRead();
+        return super.getPath();
+    }
+
+    @Override
+    public Status getStatus() {
+        beforeRead();
+        return super.getStatus();
+    }
+
     @Override
     public boolean exists() {
-        enter();
-        if (isHidden(name)) {
-            return false;
-        } else {
-            return nodeBuilder.exists();
-        }
+        beforeRead();
+        return isVisible();
     }
 
     @Override
     public MutableTree getParent() {
-        enter();
+        beforeRead();
         checkState(parent != null, "root tree does not have a parent");
         return parent;
     }
 
     @Override
     public PropertyState getProperty(String name) {
-        enter();
+        beforeRead();
         return super.getProperty(name);
     }
 
     @Override
     public boolean hasProperty(String name) {
-        enter();
+        beforeRead();
         return super.hasProperty(name);
     }
 
     @Override
     public long getPropertyCount() {
-        enter();
+        beforeRead();
         return super.getPropertyCount();
     }
 
     @Override
     public Status getPropertyStatus(String name) {
-        enter();
+        beforeRead();
 
         // make sure we don't expose information about a non-accessible property
         if (!hasProperty(name)) {
@@ -222,37 +212,37 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        enter();
+        beforeRead();
         return super.getProperties();
     }
 
     @Override
     public Tree getChild(String name) {
-        enter();
+        beforeRead();
         return createChild(name);
     }
 
     @Override
     public boolean hasChild(String name) {
-        enter();
+        beforeRead();
         return super.hasChild(name);
     }
 
     @Override
     public long getChildrenCount(long max) {
-        enter();
+        beforeRead();
         return super.getChildrenCount(max);
     }
 
     @Override
     public Iterable<Tree> getChildren() {
-        enter();
+        beforeRead();
         return super.getChildren();
     }
 
     @Override
     public boolean remove() {
-        checkExists();
+        beforeWrite();
         if (parent != null && parent.hasChild(name)) {
             nodeBuilder.remove();
             if (parent.hasOrderableChildren()) {
@@ -272,7 +262,7 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public Tree addChild(String name) {
-        checkExists();
+        beforeWrite();
         if (!super.hasChild(name)) {
             nodeBuilder.setChildNode(name);
             if (hasOrderableChildren()) {
@@ -288,7 +278,7 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public void setOrderableChildren(boolean enable) {
-        checkExists();
+        beforeWrite();
         if (enable) {
             ensureChildOrderProperty();
         } else {
@@ -298,7 +288,7 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public boolean orderBefore(final String name) {
-        checkExists();
+        beforeWrite();
         if (parent == null) {
             // root does not have siblings
             return false;
@@ -347,38 +337,48 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public void setProperty(PropertyState property) {
-        checkExists();
+        beforeWrite();
         nodeBuilder.setProperty(property);
         root.updated();
     }
 
     @Override
     public <T> void setProperty(String name, T value) {
-        checkExists();
+        beforeWrite();
         nodeBuilder.setProperty(name, value);
         root.updated();
     }
 
     @Override
     public <T> void setProperty(String name, T value, Type<T> type) {
-        checkExists();
+        beforeWrite();
         nodeBuilder.setProperty(name, value, type);
         root.updated();
     }
 
     @Override
     public void removeProperty(String name) {
-        checkExists();
+        beforeWrite();
         nodeBuilder.removeProperty(name);
         root.updated();
     }
+
+    //-----------------------------------------------------------< Object >---
 
     @Override
     public String toString() {
         return getPathInternal() + ": " + getNodeState();
     }
 
-    //-----------------------------------------------------------< internal >---
+    //---------------------------------------------------------< internal >---
+
+    private NodeState getBase() {
+        if (parent == null) {
+            return root.getBaseState();
+        } else {
+            return parent.getBase().getChildNode(name);
+        }
+    }
 
     /**
      * Set the parent and name of this tree.
@@ -420,7 +420,7 @@ public class MutableTree extends AbstractTree {
     @CheckForNull
     MutableTree getTree(@Nonnull String path) {
         checkArgument(isAbsolute(checkNotNull(path)));
-        enter();
+        beforeRead();
         MutableTree child = this;
         for (String name : elements(path)) {
             child = new MutableTree(root, child, name, pendingMoves);
@@ -471,22 +471,55 @@ public class MutableTree extends AbstractTree {
 
     //------------------------------------------------------------< private >---
 
-    private boolean reconnect() {
-        if (parent != null && parent.reconnect()) {
+    private void reconnect() {
+        if (parent != null) {
+            parent.reconnect();
             nodeBuilder = parent.nodeBuilder.getChildNode(name);
         }
-        return nodeBuilder.exists();
     }
 
-    private void checkExists() {
-        checkState(exists(), "This tree does not exist");
-    }
-
-    private void enter() {
+    /**
+     * Verifies that this session is still alive and applies any pending
+     * moves that might affect this node. This method needs to be called
+     * at the beginning of all public read-only {@link Tree} methods to
+     * guarantee a consistent view of the tree. See {@link #beforeWrite()}
+     * for the equivalent method for write operations.
+     *
+     * @throws IllegalStateException if this session is closed
+     */
+    private void beforeRead() throws IllegalStateException {
         root.checkLive();
         if (applyPendingMoves()) {
             reconnect();
         }
+    }
+
+    /**
+     * Like {@link #beforeRead()} but also checks that (after any pending
+     * moves have been applied) the current node exists and is visible.
+     * This method needs to be called at the beginning of all public
+     * {@link Tree} methods that modify this node to guarantee a consistent
+     * view of the tree and to throw an exception whenever there's an
+     * attempt to modify a missing node.
+     *
+     * @throws IllegalStateException if this node does not exist or
+     *                               if this session is closed
+     */
+    private void beforeWrite() throws IllegalStateException {
+        beforeRead();
+        if (!isVisible()) {
+            throw new IllegalStateException("This tree does not exist");
+        }
+    }
+
+    /**
+     * Internal method for checking whether this node exists and is visible
+     * (i.e. not hidden).
+     *
+     * @return {@true} if the node is visible, {@code false} if not
+     */
+    private boolean isVisible() {
+        return !isHidden(name) && nodeBuilder.exists();
     }
 
     /**
