@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -59,8 +60,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 class PropertyIndexEditor implements IndexEditor {
 
     /** Index storage strategy */
-    private static final IndexStoreStrategy STORE =
+    private static final IndexStoreStrategy MIRROR =
             new ContentMirrorStoreStrategy();
+
+    /** Index storage strategy */
+    private static final IndexStoreStrategy UNIQUE =
+            new UniqueEntryStoreStrategy();
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final PropertyIndexEditor parent;
@@ -79,6 +84,8 @@ class PropertyIndexEditor implements IndexEditor {
     private final Set<String> primaryTypes;
 
     private final Set<String> mixinTypes;
+    
+    private final boolean unique;
 
     private final Set<String> keysToCheckForUniqueness;
 
@@ -133,8 +140,10 @@ class PropertyIndexEditor implements IndexEditor {
 
         // keep track of modified keys for uniqueness checks
         if (definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME)) {
+            unique = true;
             this.keysToCheckForUniqueness = newHashSet();
         } else {
+            unique = false;
             this.keysToCheckForUniqueness = null;
         }
     }
@@ -147,6 +156,7 @@ class PropertyIndexEditor implements IndexEditor {
         this.propertyNames = parent.propertyNames;
         this.primaryTypes = parent.primaryTypes;
         this.mixinTypes = parent.mixinTypes;
+        this.unique = parent.unique;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
     }
 
@@ -205,6 +215,10 @@ class PropertyIndexEditor implements IndexEditor {
         }
     }
 
+    private static IndexStoreStrategy getStrategy(boolean unique) {
+        return unique ? UNIQUE : MIRROR;
+    }
+
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
@@ -217,9 +231,9 @@ class PropertyIndexEditor implements IndexEditor {
 
             if (!beforeKeys.isEmpty() || !afterKeys.isEmpty()) {
                 NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
-                STORE.update(index, getPath(), beforeKeys, afterKeys);
 
-                if (keysToCheckForUniqueness != null) {
+                getStrategy(unique).update(index, getPath(), beforeKeys, afterKeys);
+                if (unique) {
                     keysToCheckForUniqueness.addAll(afterKeys);
                 }
             }
@@ -230,11 +244,11 @@ class PropertyIndexEditor implements IndexEditor {
             definition.child(INDEX_CONTENT_NODE_NAME);
 
             // check uniqueness constraints when leaving the root
-            if (keysToCheckForUniqueness != null
-                    && !keysToCheckForUniqueness.isEmpty()) {
+            if (unique && !keysToCheckForUniqueness.isEmpty()) {
                 NodeState indexMeta = definition.getNodeState();
+                IndexStoreStrategy s = getStrategy(unique);
                 for (String key : keysToCheckForUniqueness) {
-                    if (STORE.count(indexMeta, singleton(key), 2) > 1) {
+                    if (s.count(indexMeta, singleton(key), 2) > 1) {
                         throw new CommitFailedException(
                                 CONSTRAINT, 30,
                                 "Uniqueness constraint violated for key " + key);
