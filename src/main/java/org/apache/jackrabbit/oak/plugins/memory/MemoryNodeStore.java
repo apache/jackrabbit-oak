@@ -34,7 +34,6 @@ import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -164,7 +163,7 @@ public class MemoryNodeStore implements NodeStore {
 
     //------------------------------------------------------------< private >---
 
-    private static class MemoryNodeStoreBranch extends AbstractNodeStoreBranch {
+    private static class MemoryNodeStoreBranch implements NodeStoreBranch {
 
         /** The underlying store to which this branch belongs */
         private final MemoryNodeStore store;
@@ -226,6 +225,14 @@ public class MemoryNodeStore implements NodeStore {
         public void rebase() {
             throw new UnsupportedOperationException();
         }
+
+        //------------------------------------------------------------< Object >---
+
+        @Override
+        public String toString() {
+            return root.toString();
+        }
+
 
         // ----------------------------------------------------< private >---
 
