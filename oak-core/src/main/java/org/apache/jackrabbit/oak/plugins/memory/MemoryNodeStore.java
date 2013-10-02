@@ -203,9 +203,12 @@ public class MemoryNodeStore implements NodeStore {
             // TODO: rebase();
             checkNotMerged();
             NodeState merged = ModifiedNodeState.squeeze(checkNotNull(hook).processCommit(base, root));
-            store.root.set(merged);
-            root = null; // Mark as merged
-            committed.contentChanged(base, merged);
+            synchronized (this) {
+                // FIXME temporarily synchronized to work around the race described in OAK-1055
+                store.root.set(merged);
+                root = null; // Mark as merged
+                committed.contentChanged(base, merged);
+            }
             return merged;
         }
 

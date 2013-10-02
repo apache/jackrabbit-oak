@@ -223,7 +223,6 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
 
         @Override
         NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
-            committed.contentChanged(base, base);
             branchState = new Merged(base);
             return base;
         }
