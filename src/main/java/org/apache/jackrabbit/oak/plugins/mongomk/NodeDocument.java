@@ -65,18 +65,18 @@ public class NodeDocument extends Document {
      * A size threshold after which to consider a document a split candidate.
      * TODO: check which value is the best one
      */
-    static final int SPLIT_CANDIDATE_THRESHOLD = 32 * 1024;
+    static final int SPLIT_CANDIDATE_THRESHOLD = 8 * 1024;
 
     /**
      * A document size threshold after which a split is forced even if
      * {@link #REVISIONS_SPLIT_OFF_SIZE} is not reached.
      */
-    static final int FORCE_SPLIT_THRESHOLD = 1024 * 1024;
+    static final int FORCE_SPLIT_THRESHOLD = 16 * 1024;
 
     /**
      * Only split off at least this number of revisions.
      */
-    static final int REVISIONS_SPLIT_OFF_SIZE = 1000;
+    static final int REVISIONS_SPLIT_OFF_SIZE = 100;
 
     /**
      * Revision collision markers set by commits with modifications, which
