@@ -84,7 +84,14 @@ abstract class MapRecord extends Record {
 
     abstract Iterable<MapEntry> getEntries();
 
-    abstract boolean compareAgainstEmptyMap(MapDiff diff);
+    boolean compareAgainstEmptyMap(MapDiff diff) {
+        for (MapEntry entry : getEntries()) {
+            if (!diff.entryAdded(entry.getName(), entry.getValue())) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     interface MapDiff {
         boolean entryAdded(String key, RecordId after);
