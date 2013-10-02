@@ -27,20 +27,16 @@ import com.google.common.collect.Maps;
 
 class MapLeaf extends MapRecord {
 
-    private final String[] keys;
-
     MapLeaf(Segment segment, int offset, int size, int level) {
         super(segment, offset, size, level);
         checkArgument(size != 0 || level == 0);
         checkArgument(size <= BUCKETS_PER_LEVEL || level == MAX_NUMBER_OF_LEVELS);
-        this.keys = new String[size];
     }
 
     MapLeaf(Segment segment, RecordId id, int size, int level) {
         super(segment, id, size, level);
         checkArgument(size != 0 || level == 0);
         checkArgument(size <= BUCKETS_PER_LEVEL || level == MAX_NUMBER_OF_LEVELS);
-        this.keys = new String[size];
     }
 
     Map<String, MapEntry> getMapEntries() {
@@ -59,7 +55,7 @@ class MapLeaf extends MapRecord {
 
         Map<String, MapEntry> entries = Maps.newHashMapWithExpectedSize(size);
         for (int i = 0; i < size; i++) {
-            String name = getKey(segment, i, keys[i]);
+            String name = segment.readString(keys[i]);
             entries.put(name, new MapEntry(segment, name, keys[i], values[i]));
         }
         return entries;
@@ -170,7 +166,7 @@ class MapLeaf extends MapRecord {
         for (int i = 0; i < size; i++) {
             RecordId key = segment.readRecordId(getOffset(4 + size * 4, i));
             RecordId value = segment.readRecordId(getOffset(4 + size * 4, size + i));
-            if (!diff.entryAdded(getKey(segment, i, key), value)) {
+            if (!diff.entryAdded(segment.readString(key), value)) {
                 return false;
             }
         }
@@ -208,21 +204,10 @@ class MapLeaf extends MapRecord {
         return checkNotNull(segment).readInt(getOffset() + 4 + index * 4);
     }
 
-    private synchronized String getKey(Segment segment, int index) {
+    private String getKey(Segment segment, int index) {
         checkNotNull(segment);
-        if (keys[index] == null) {
-            int offset = getOffset(4 + size * 4, index);
-            keys[index] = segment.readString(segment.readRecordId(offset));
-        }
-        return keys[index];
-    }
-
-    private synchronized String getKey(Segment segment, int index, RecordId id) {
-        checkNotNull(segment);
-        if (keys[index] == null) {
-            keys[index] = segment.readString(id);
-        }
-        return keys[index];
+        int offset = getOffset(4 + size * 4, index);
+        return segment.readString(segment.readRecordId(offset));
     }
 
     private RecordId getValue(Segment segment, int index) {
