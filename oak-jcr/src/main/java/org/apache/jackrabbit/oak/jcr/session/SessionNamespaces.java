@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,8 +34,6 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.util.XMLChar;
 
 import com.google.common.collect.Maps;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <code>SessionNamespaces</code> implements namespace handling on the JCR
@@ -53,9 +53,16 @@ class SessionNamespaces {
 
     /**
      * A snapshot of the namespace registry when these SessionNamespaces
-     * are first accessed.
+     * are first accessed. Key: prefix, value: uri
      */
-    private Map<String, String> snapshot;
+    private Map<String, String> snapshotPrefixUri;
+    
+    /**
+     * A snapshot of the namespace registry when these SessionNamespaces
+     * are first accessed. Key: uri, value: prefix
+     */
+    private Map<String, String> snapshotUriPrefix;
+
 
     private final SessionContext sessionContext;
 
@@ -107,10 +114,10 @@ class SessionNamespaces {
             namespaces.put(prefix, uri);
         }
 
-        if (snapshot.containsKey(prefix)) {
+        if (snapshotPrefixUri.containsKey(prefix)) {
             // make sure we have a prefix in case an existing
             // namespace uri is re-mapped
-            getNamespacePrefix(snapshot.get(prefix));
+            getNamespacePrefix(snapshotPrefixUri.get(prefix));
         }
     }
 
@@ -121,12 +128,12 @@ class SessionNamespaces {
         init();
         synchronized (namespaces) {
             if (namespaces.isEmpty()) {
-                Set<String> prefixes = snapshot.keySet();
+                Set<String> prefixes = snapshotPrefixUri.keySet();
                 return prefixes.toArray(new String[prefixes.size()]);
             }
         }
         Set<String> uris = new HashSet<String>();
-        uris.addAll(snapshot.values());
+        uris.addAll(snapshotPrefixUri.values());
         synchronized (namespaces) {
             // Add namespace uris only visible to session
             uris.addAll(namespaces.values());
@@ -148,7 +155,7 @@ class SessionNamespaces {
 
             if (uri == null) {
                 // Not in local mappings, try snapshot ones
-                uri = snapshot.get(prefix);
+                uri = snapshotPrefixUri.get(prefix);
                 if (uri == null) {
                     // Not in snapshot mappings, try the global ones
                     uri = getNamespaceRegistry().getURI(prefix);
@@ -170,22 +177,22 @@ class SessionNamespaces {
     String getNamespacePrefix(String uri) throws RepositoryException {
         init();
         synchronized (namespaces) {
-            for (Map.Entry<String, String> entry : namespaces.entrySet()) {
-                if (entry.getValue().equals(uri)) {
-                    return entry.getKey();
+            if (namespaces.size() > 0) {
+                for (Map.Entry<String, String> entry : namespaces.entrySet()) {
+                    if (entry.getValue().equals(uri)) {
+                        return entry.getKey();
+                    }
                 }
             }
 
             // try snapshot
-            for (Map.Entry<String, String> entry : snapshot.entrySet()) {
-                if (entry.getValue().equals(uri)
-                        && !namespaces.containsKey(entry.getKey())) {
-                    return entry.getKey();
-                }
+            String prefix = snapshotUriPrefix.get(uri);
+            if (prefix != null && !namespaces.containsKey(prefix)) {
+                return prefix;
             }
 
             // The following throws an exception if the URI is not found, that's OK
-            String prefix = getNamespaceRegistry().getPrefix(uri);
+            prefix = getNamespaceRegistry().getPrefix(uri);
 
             // Generate a new prefix if the global mapping is already taken
             String base = prefix;
@@ -207,9 +214,8 @@ class SessionNamespaces {
         synchronized (namespaces) {
             if (namespaces.isEmpty()) {
                 return Collections.emptyMap();
-            } else {
-                return new HashMap<String, String>(namespaces);
             }
+            return new HashMap<String, String>(namespaces);
         }
     }
 
@@ -222,19 +228,22 @@ class SessionNamespaces {
         }
     }
 
-    private NamespaceRegistry getNamespaceRegistry()
-            throws RepositoryException {
+    private NamespaceRegistry getNamespaceRegistry() {
         return sessionContext.getWorkspace().getNamespaceRegistry();
     }
 
     private void init() throws RepositoryException {
-        if (snapshot == null) {
+        if (snapshotPrefixUri == null) {
             NamespaceRegistry registry = getNamespaceRegistry();
-            Map<String, String> map = new HashMap<String, String>();
+            Map<String, String> prefixUri = new HashMap<String, String>();
+            Map<String, String> uriPrefix = new HashMap<String, String>();
             for (String prefix : registry.getPrefixes()) {
-                map.put(prefix, registry.getURI(prefix));
+                String uri = registry.getURI(prefix);
+                prefixUri.put(prefix, uri);
+                uriPrefix.put(uri, prefix);
             }
-            snapshot = map;
+            snapshotPrefixUri = prefixUri;
+            snapshotUriPrefix = uriPrefix;
         }
     }
 }
