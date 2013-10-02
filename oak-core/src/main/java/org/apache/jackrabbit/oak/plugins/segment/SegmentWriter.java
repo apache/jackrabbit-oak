@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -304,7 +305,10 @@ public class SegmentWriter {
             // FIXME: messy code with lots of duplication
             MapRecord base = dummySegment.readMap(baseId);
             if (base instanceof MapLeaf) {
-                Map<String, MapEntry> map = ((MapLeaf) base).getMapEntries();
+                Map<String, MapEntry> map = newHashMap();
+                for (MapEntry entry : base.getEntries()) {
+                    map.put(entry.getName(), entry);
+                }
                 for (MapEntry entry : entries) {
                     if (entry.getValue() != null) {
                         map.put(entry.getName(), entry);
