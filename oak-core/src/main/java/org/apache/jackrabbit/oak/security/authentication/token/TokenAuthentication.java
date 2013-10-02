@@ -87,12 +87,12 @@ class TokenAuthentication implements Authentication {
         if (tokenInfo.isExpired(loginTime)) {
             // token is expired
             log.debug("Token is expired");
-            tokenProvider.removeToken(tokenInfo);
+            tokenInfo.remove();
             return false;
         }
 
         if (tokenInfo.matches(tokenCredentials)) {
-            tokenProvider.resetTokenExpiration(tokenInfo, loginTime);
+            tokenInfo.resetExpiration(loginTime);
             return true;
         }
 

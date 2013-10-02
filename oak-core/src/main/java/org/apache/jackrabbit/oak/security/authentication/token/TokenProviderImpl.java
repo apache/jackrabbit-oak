@@ -279,50 +279,6 @@ public class TokenProviderImpl implements TokenProvider {
         }
     }
 
-    @Override
-    public boolean removeToken(TokenInfo tokenInfo) {
-        Tree tokenTree = getTokenTree(tokenInfo);
-        if (tokenTree != null && tokenTree.exists()) {
-            try {
-                if (tokenTree.remove()) {
-                    root.commit();
-                    return true;
-                }
-            } catch (CommitFailedException e) {
-                log.debug("Error while removing expired token", e.getMessage());
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean resetTokenExpiration(TokenInfo tokenInfo, long loginTime) {
-        Tree tokenTree = getTokenTree(tokenInfo);
-        if (tokenTree != null && tokenTree.exists()) {
-            NodeUtil tokenNode = new NodeUtil(tokenTree);
-            long expTime = getExpirationTime(tokenNode, 0);
-            if (tokenInfo.isExpired(loginTime)) {
-                log.debug("Attempt to reset an expired token.");
-                return false;
-            }
-
-            long expiration = tokenNode.getLong(PARAM_TOKEN_EXPIRATION, tokenExpiration);
-            if (expTime - loginTime <= expiration / 2) {
-                long expirationTime = createExpirationTime(loginTime, expiration);
-                try {
-                    tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
-                    root.commit();
-                    log.debug("Successfully reset token expiration time.");
-                    return true;
-                } catch (CommitFailedException e) {
-                    log.warn("Error while resetting token expiration", e.getMessage());
-                }
-            }
-        }
-        return false;
-    }
-
-
     //--------------------------------------------------------------------------
     private static long createExpirationTime(long creationTime, long tokenExpiration) {
         return creationTime + tokenExpiration;
@@ -429,7 +385,7 @@ public class TokenProviderImpl implements TokenProvider {
     /**
      * TokenInfo
      */
-    private static final class TokenInfoImpl implements TokenInfo {
+    private final class TokenInfoImpl implements TokenInfo {
 
         private final String token;
         private final String tokenPath;
@@ -485,6 +441,49 @@ public class TokenProviderImpl implements TokenProvider {
         }
 
         @Override
+        public boolean resetExpiration(long loginTime) {
+            Tree tokenTree = getTokenTree(this);
+            if (tokenTree != null && tokenTree.exists()) {
+                NodeUtil tokenNode = new NodeUtil(tokenTree);
+                long expTime = getExpirationTime(tokenNode, 0);
+                if (isExpired(loginTime)) {
+                    log.debug("Attempt to reset an expired token.");
+                    return false;
+                }
+
+                long expiration = tokenNode.getLong(PARAM_TOKEN_EXPIRATION, tokenExpiration);
+                if (expTime - loginTime <= expiration / 2) {
+                    long expirationTime = createExpirationTime(loginTime, expiration);
+                    try {
+                        tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
+                        root.commit();
+                        log.debug("Successfully reset token expiration time.");
+                        return true;
+                    } catch (CommitFailedException e) {
+                        log.warn("Error while resetting token expiration", e.getMessage());
+                    }
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public boolean remove() {
+            Tree tokenTree = getTokenTree(this);
+            if (tokenTree != null && tokenTree.exists()) {
+                try {
+                    if (tokenTree.remove()) {
+                        root.commit();
+                        return true;
+                    }
+                } catch (CommitFailedException e) {
+                    log.debug("Error while removing expired token", e.getMessage());
+                }
+            }
+            return false;
+        }
+
+        @Override
         public boolean matches(TokenCredentials tokenCredentials) {
             String tk = tokenCredentials.getToken();
             int pos = tk.lastIndexOf(DELIM);
@@ -532,7 +531,7 @@ public class TokenProviderImpl implements TokenProvider {
          * @return {@code true} if the specified {@code attributeName}
          *         starts with or equals {@link #TOKEN_ATTRIBUTE}.
          */
-        private static boolean isMandatoryAttribute(String attributeName) {
+        private boolean isMandatoryAttribute(String attributeName) {
             return attributeName != null && attributeName.startsWith(TOKEN_ATTRIBUTE);
         }
 
@@ -546,7 +545,7 @@ public class TokenProviderImpl implements TokenProvider {
          * @return {@code true} if the specified property name doesn't seem
          *         to represent repository internal information.
          */
-        private static boolean isInfoAttribute(String attributeName) {
+        private boolean isInfoAttribute(String attributeName) {
             String prefix = Text.getNamespacePrefix(attributeName);
             return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
         }
