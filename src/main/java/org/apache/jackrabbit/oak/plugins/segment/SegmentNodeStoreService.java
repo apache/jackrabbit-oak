@@ -119,8 +119,7 @@ public class SegmentNodeStoreService implements NodeStore {
             int cache = Integer.parseInt(String.valueOf(properties.get(CACHE)));
 
             mongo = new Mongo(host, port);
-            SegmentCache sc = SegmentCache.create(cache * MB);
-            store = new MongoStore(mongo.getDB(db), sc);
+            store = new MongoStore(mongo.getDB(db), cache * MB);
         }
 
         delegate = new SegmentNodeStore(store);

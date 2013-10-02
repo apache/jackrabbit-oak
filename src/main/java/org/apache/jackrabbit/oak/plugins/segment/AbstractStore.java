@@ -27,6 +27,13 @@ public abstract class AbstractStore implements SegmentStore {
     private final Cache<RecordId, Object> records =
             CacheLIRS.newBuilder().maximumSize(1000).build();
 
+    private final SegmentWriter writer = new SegmentWriter(this);
+
+    @Override
+    public SegmentWriter getWriter() {
+        return writer;
+    }
+
     @Override
     public <T> T getRecord(RecordId id, Callable<T> loader) {
         @SuppressWarnings("unchecked")
