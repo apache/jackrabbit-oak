@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS;
  */
 public class SegmentCache {
 
-    private static final int DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
-
     protected final int maximumSize;
     
     protected int currentSize;
@@ -57,10 +55,6 @@ public class SegmentCache {
 
     protected SegmentCache(int maximumSize) {
         this.maximumSize = maximumSize;
-    }
-
-    public static SegmentCache create() {
-        return create(DEFAULT_MEMORY_CACHE_SIZE);
     }
 
     public static SegmentCache create(int maximumSize) {

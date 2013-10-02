@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
@@ -24,14 +25,46 @@ import com.google.common.cache.Cache;
 
 public abstract class AbstractStore implements SegmentStore {
 
+    private final SegmentCache cache;
+
     private final Cache<RecordId, Object> records =
             CacheLIRS.newBuilder().maximumSize(1000).build();
 
     private final SegmentWriter writer = new SegmentWriter(this);
 
+    protected AbstractStore(int cacheSize) {
+        this.cache = SegmentCache.create(cacheSize);
+    }
+
+    protected abstract Segment loadSegment(UUID id) throws Exception;
+
     @Override
     public SegmentWriter getWriter() {
         return writer;
+    }
+
+    @Override
+    public Segment readSegment(final UUID id) {
+        try {
+            Segment segment = getWriter().getCurrentSegment(id);
+            if (segment == null) {
+                segment = cache.getSegment(id, new Callable<Segment>() {
+                    @Override
+                    public Segment call() throws Exception {
+                        return loadSegment(id);
+                    }
+                });
+            }
+            return segment;
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void deleteSegment(UUID segmentId) {
     }
 
     @Override
@@ -48,6 +81,11 @@ public abstract class AbstractStore implements SegmentStore {
             }
         }
         return record;
+    }
+
+    @Override
+    public void close() {
+        records.invalidateAll();
     }
 
 }

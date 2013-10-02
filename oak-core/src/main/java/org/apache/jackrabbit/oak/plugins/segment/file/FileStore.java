@@ -30,18 +30,18 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 public class FileStore extends AbstractStore {
+
+    private static final int DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
 
     private static final long SEGMENT_MAGIC = 0x4f616b0a527845ddL;
 
@@ -61,10 +61,9 @@ public class FileStore extends AbstractStore {
 
     private final Map<String, Journal> journals = newHashMap();
 
-    private final SegmentCache cache = SegmentCache.create();
-
     public FileStore(File directory, int maxFileSize, boolean memoryMapping)
             throws IOException {
+        super(DEFAULT_MEMORY_CACHE_SIZE);
         checkNotNull(directory).mkdirs();
         this.directory = directory;
         this.maxFileSize = maxFileSize;
@@ -109,11 +108,11 @@ public class FileStore extends AbstractStore {
     @Override
     public synchronized void close() {
         try {
+            super.close();
             for (TarFile file : files) {
                 file.close();
             }
             files.clear();
-            cache.clear();
             System.gc(); // for any memory-mappings that are no longer used
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -131,26 +130,7 @@ public class FileStore extends AbstractStore {
     }
 
     @Override
-    public Segment readSegment(final UUID id) {
-        try {
-            Segment segment = getWriter().getCurrentSegment(id);
-            if (segment == null) {
-                segment = cache.getSegment(id, new Callable<Segment>() {
-                    @Override
-                    public Segment call() throws Exception {
-                        return loadSegment(id);
-                    }
-                });
-            }
-            return segment;
-        } catch (IllegalStateException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private Segment loadSegment(UUID id) throws Exception {
+    protected Segment loadSegment(UUID id) throws Exception {
         for (TarFile file : files) {
             ByteBuffer buffer = file.readEntry(id);
             if (buffer != null) {
@@ -221,11 +201,7 @@ public class FileStore extends AbstractStore {
     @Override
     public void deleteSegment(UUID segmentId) {
         // TODO: implement
-        try {
-            cache.removeSegment(segmentId);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        super.deleteSegment(segmentId);
     }
 
     synchronized void writeJournals() throws IOException {
