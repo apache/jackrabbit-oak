@@ -150,6 +150,11 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     @Override
+    public boolean hasChild(String name) {
+        return state.hasChildNode(name);
+    }
+
+    @Override
     public Status getStatus() {
         return Status.EXISTING;
     }
