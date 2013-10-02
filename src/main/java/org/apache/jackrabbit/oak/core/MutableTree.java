@@ -157,7 +157,14 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public boolean exists() {
-        return enter();
+        root.checkLive();
+        if (isHidden(name)) {
+            return false;
+        } else if (applyPendingMoves()) {
+            return reconnect();
+        } else {
+            return nodeBuilder.exists();
+        }
     }
 
     @Override
@@ -458,17 +465,13 @@ public class MutableTree extends AbstractTree {
     }
 
     private void checkExists() {
-        checkState(enter(), "This tree does not exist");
+        checkState(exists(), "This tree does not exist");
     }
 
-    private boolean enter() {
+    private void enter() {
         root.checkLive();
-        if (isHidden(name)) {
-            return false;
-        } else if (applyPendingMoves()) {
-            return reconnect();
-        } else {
-            return nodeBuilder.exists();
+        if (applyPendingMoves()) {
+            reconnect();
         }
     }
 
