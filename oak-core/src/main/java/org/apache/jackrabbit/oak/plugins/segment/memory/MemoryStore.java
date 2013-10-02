@@ -41,6 +41,7 @@ public class MemoryStore extends AbstractStore {
             Maps.newConcurrentMap();
 
     public MemoryStore(NodeState root) {
+        super(1024 * 1024);
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("root", root);
         journals.put("root", new MemoryJournal(this, builder.getNodeState()));
@@ -65,11 +66,8 @@ public class MemoryStore extends AbstractStore {
     }
 
     @Override
-    public Segment readSegment(UUID id) {
-        Segment segment = getWriter().getCurrentSegment(id);
-        if (segment == null) {
-            segment = segments.get(id);
-        }
+    protected Segment loadSegment(UUID id) {
+        Segment segment = segments.get(id);
         if (segment != null) {
             return segment;
         } else {
