@@ -16,16 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.collect.Sets.newHashSet;
+
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 
 import com.google.common.cache.Cache;
+import com.google.common.cache.Weigher;
 
 public abstract class AbstractStore implements SegmentStore {
 
-    private final SegmentCache cache;
+    private final Cache<UUID, Segment> segments;
+
+    /**
+     * Identifiers of the segments that are currently being loaded.
+     */
+    private final Set<UUID> currentlyLoading = newHashSet();
 
     private final Cache<RecordId, Object> records =
             CacheLIRS.newBuilder().maximumSize(1000).build();
@@ -33,7 +42,15 @@ public abstract class AbstractStore implements SegmentStore {
     private final SegmentWriter writer = new SegmentWriter(this);
 
     protected AbstractStore(int cacheSize) {
-        this.cache = SegmentCache.create(cacheSize);
+        this.segments = CacheLIRS.newBuilder()
+                .weigher(new Weigher<UUID, Segment>() {
+                    @Override
+                    public int weigh(UUID key, Segment value) {
+                        return value.size();
+                    }
+                })
+                .maximumWeight(cacheSize)
+                .build();
     }
 
     protected abstract Segment loadSegment(UUID id) throws Exception;
@@ -44,27 +61,63 @@ public abstract class AbstractStore implements SegmentStore {
     }
 
     @Override
-    public Segment readSegment(final UUID id) {
-        try {
-            Segment segment = getWriter().getCurrentSegment(id);
-            if (segment == null) {
-                segment = cache.getSegment(id, new Callable<Segment>() {
-                    @Override
-                    public Segment call() throws Exception {
-                        return loadSegment(id);
-                    }
-                });
-            }
+    public Segment readSegment(UUID id) {
+        Segment segment = segments.getIfPresent(id);
+        if (segment != null) {
             return segment;
-        } catch (IllegalStateException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
+
+        segment = getWriter().getCurrentSegment(id);
+        if (segment != null) {
+            return segment;
+        }
+
+        synchronized (this) {
+            segment = segments.getIfPresent(id);
+            while (segment == null && currentlyLoading.contains(id)) {
+                try {
+                    wait(); // for another thread to load the segment
+                } catch (InterruptedException e) {
+                    throw new RuntimeException("Interrupted", e);
+                }
+                segment = segments.getIfPresent(id);
+            }
+            if (segment != null) {
+                return segment;
+            }
+            currentlyLoading.add(id);
+        }
+
+        try {
+            segment = loadSegment(id);
+            if (segment == null) {
+                throw new IllegalStateException("Unable to find segment " + id);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load segment " + id, e);
+        } finally {
+            synchronized (this) {
+                if (segment != null) {
+                    segments.put(id, segment);
+                }
+                currentlyLoading.remove(id);
+                notifyAll();
+            }
+        }
+
+        return segment;
     }
 
     @Override
-    public void deleteSegment(UUID segmentId) {
+    public synchronized void deleteSegment(UUID segmentId) {
+        while (currentlyLoading.contains(segmentId)) {
+            try {
+                wait(); // for another thread to finish loading the segment
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Interrupted", e);
+            }
+        }
+        segments.invalidate(segmentId);
     }
 
     @Override
@@ -84,8 +137,16 @@ public abstract class AbstractStore implements SegmentStore {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
+        while (!currentlyLoading.isEmpty()) {
+            try {
+                wait(); // for other threads to finish loading segments
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Interrupted", e);
+            }
+        }
         records.invalidateAll();
+        segments.invalidateAll();
     }
 
 }
