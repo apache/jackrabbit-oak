@@ -27,12 +27,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.collect.Lists;
@@ -54,12 +52,10 @@ public class MongoStore extends AbstractStore {
 
     private final Map<String, Journal> journals = Maps.newHashMap();
 
-    private final SegmentCache cache;
-
     public MongoStore(DB db, int cacheSize) {
+        super(cacheSize);
         this.db = checkNotNull(db);
         this.segments = db.getCollection("segments");
-        this.cache = SegmentCache.create(cacheSize);
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("root");
         journals.put("root", new MongoJournal(
@@ -87,24 +83,6 @@ public class MongoStore extends AbstractStore {
     }
 
     @Override
-    public Segment readSegment(final UUID segmentId) {
-        try {
-            Segment segment = getWriter().getCurrentSegment(segmentId);
-            if (segment == null) {
-                segment = cache.getSegment(segmentId, new Callable<Segment>() {
-                    @Override
-                    public Segment call() throws Exception {
-                        return findSegment(segmentId);
-                    }
-                });
-            }
-            return segment;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
     public void writeSegment(
             UUID segmentId, byte[] data, int offset, int length,
             List<UUID> referencedSegmentIds) {
@@ -113,7 +91,8 @@ public class MongoStore extends AbstractStore {
         insertSegment(segmentId, d, referencedSegmentIds);
     }
 
-    private Segment findSegment(UUID segmentId) {
+    @Override
+    protected Segment loadSegment(UUID segmentId) {
         DBObject id = new BasicDBObject("_id", segmentId.toString());
         DBObject fields = new BasicDBObject(of("data", 1, "uuids", 1));
 
@@ -152,11 +131,7 @@ public class MongoStore extends AbstractStore {
     @Override
     public void deleteSegment(UUID segmentId) {
         segments.remove(new BasicDBObject("_id", segmentId.toString()));
-        try {
-            cache.removeSegment(segmentId);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        super.deleteSegment(segmentId);;
     }
 
 }
