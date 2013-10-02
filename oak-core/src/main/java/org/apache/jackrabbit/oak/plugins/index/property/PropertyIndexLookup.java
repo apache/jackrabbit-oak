@@ -34,10 +34,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
-import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -62,13 +60,7 @@ public class PropertyIndexLookup {
 
     private static final int MAX_COST = 100;
 
-    /** Index storage strategy */
-    private static final IndexStoreStrategy MIRROR =
-            new ContentMirrorStoreStrategy();
-
-    /** Index storage strategy */
-    private static final IndexStoreStrategy UNIQUE =
-            new UniqueEntryStoreStrategy();
+    private final IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
     private final NodeState root;
 
@@ -107,14 +99,7 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
-        return getStrategy(indexMeta).query(filter, propertyName, indexMeta, encode(value));
-    }
-        
-    private static IndexStoreStrategy getStrategy(NodeState indexMeta) {
-        if (indexMeta.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME)) {
-            return UNIQUE;
-        }
-        return MIRROR;
+        return store.query(filter, propertyName, indexMeta, encode(value));
     }
 
     public double getCost(Filter filter, String propertyName, PropertyValue value) {
@@ -122,7 +107,7 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
-        return getStrategy(indexMeta).count(indexMeta, encode(value), MAX_COST);
+        return store.count(indexMeta, encode(value), MAX_COST);
     }
 
     /**
