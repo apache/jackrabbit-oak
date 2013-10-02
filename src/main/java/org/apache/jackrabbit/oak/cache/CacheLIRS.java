@@ -29,8 +29,9 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
-import com.google.common.cache.Cache;
+import com.google.common.cache.CacheLoader;
 import com.google.common.cache.CacheStats;
+import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.collect.ImmutableMap;
 
@@ -63,7 +64,7 @@ import com.google.common.collect.ImmutableMap;
  * @param <K> the key type
  * @param <V> the value type
  */
-public class CacheLIRS<K, V> implements Cache<K, V> {
+public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
     /**
      * The maximum memory this cache should use.
@@ -84,6 +85,8 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
     
     private final Weigher<K, V> weigher;
     
+    private final CacheLoader<K, V> loader;
+    
     /**
      * Create a new cache with the given number of entries, and the default
      * settings (an average size of 1 per entry, 16 segments, and stack move
@@ -92,7 +95,7 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
      * @param maxEntries the maximum number of entries
      */
     public CacheLIRS(int maxEntries) {
-        this(null, maxEntries, 1, 16, maxEntries / 100);
+        this(null, maxEntries, 1, 16, maxEntries / 100, null);
     }
 
     /**
@@ -105,7 +108,8 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
      *        of the stack before the current item is moved
      */
     @SuppressWarnings("unchecked")
-    CacheLIRS(Weigher<K, V> weigher, long maxMemory, int averageMemory, int segmentCount, int stackMoveDistance) {
+    CacheLIRS(Weigher<K, V> weigher, long maxMemory, int averageMemory, 
+            int segmentCount, int stackMoveDistance, final CacheLoader<K, V> loader) {
         this.weigher = weigher;
         setMaxMemory(maxMemory);
         setAverageMemory(averageMemory);
@@ -118,6 +122,7 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
         segments = new Segment[segmentCount];
         invalidateAll();
         this.segmentShift = Integer.numberOfTrailingZeros(segments[0].entries.length);
+        this.loader = loader;
     }
 
     /**
@@ -203,6 +208,27 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
         int hash = getHash(key);
         return getSegment(hash).get(key, hash, valueLoader);
     }
+    
+    @Override
+    public V get(K key) throws ExecutionException {
+        int hash = getHash(key);
+        return getSegment(hash).get(key, hash, loader);
+    }
+    
+    /**
+     * Get the value for the given key if the entry is cached. This method
+     * adjusts the internal state of the cache sometimes, to ensure commonly
+     * used entries stay in the cache.
+     *
+     * @param key the key (may not be null)
+     * @return the value, or null if there is no resident entry
+     */
+    @Override
+    @Nullable
+    public V getIfPresent(Object key) {
+        int hash = getHash(key);
+        return getSegment(hash).get(key, hash);
+    }
 
     /**
      * Get the size of the given value. The default implementation returns the
@@ -248,19 +274,6 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
     public int getMemory(K key) {
         int hash = getHash(key);
         return getSegment(hash).getMemory(key, hash);
-    }
-
-    /**
-     * Get the value for the given key if the entry is cached. This method
-     * adjusts the internal state of the cache sometimes, to ensure commonly
-     * used entries stay in the cache.
-     *
-     * @param key the key (may not be null)
-     * @return the value, or null if there is no resident entry
-     */
-    public V get(Object key) {
-        int hash = getHash(key);
-        return getSegment(hash).get(key, hash);
     }
 
     private Segment<K, V> getSegment(int hash) {
@@ -722,6 +735,25 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
             }
             return value;
         }
+        
+        synchronized V get(K key, int hash, CacheLoader<K, V> loader) throws ExecutionException {
+            V value = get(key, hash);
+            if (value == null) {
+                long start = System.nanoTime();
+                try {
+                    value = loader.load(key);
+                    loadSuccessCount++;
+                } catch (Exception e) {
+                    loadExceptionCount++;
+                    throw new ExecutionException(e);
+                } finally {
+                    long time = System.nanoTime() - start;
+                    totalLoadTime += time;
+                }
+                put(key, hash, value, cache.sizeOf(key, value));
+            }
+            return value;
+        }
 
         /**
          * Add an entry to the cache. The entry may or may not exist in the
@@ -1109,16 +1141,21 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
             return this;
         }
 
-        public <K, V> CacheLIRS<K, V> build() {
-            @SuppressWarnings("unchecked")
-            Weigher<K, V> w = (Weigher<K, V>) weigher;
-            return new CacheLIRS<K, V>(w, maxWeight, averageWeight, 16, 16);
-        }
-
         public Builder maximumSize(int maxSize) {
             this.maxWeight = maxSize;
             this.averageWeight = 1;
             return this;
+        }
+
+        public <K, V> CacheLIRS<K, V> build() {
+            return build(null);
+        }
+        
+        public <K, V> CacheLIRS<K, V> build(
+                CacheLoader<K, V> cacheLoader) {
+            @SuppressWarnings("unchecked")
+            Weigher<K, V> w = (Weigher<K, V>) weigher;
+            return new CacheLIRS<K, V>(w, maxWeight, averageWeight, 16, 16, cacheLoader);
         }
         
     }
@@ -1130,13 +1167,6 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
      */
     public static Builder newBuilder() {
         return new Builder();
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    @Nullable
-    public V getIfPresent(Object key) {
-        return get((K) key);
     }
 
     @Override
@@ -1166,6 +1196,31 @@ public class CacheLIRS<K, V> implements Cache<K, V> {
         for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
             put(e.getKey(), e.getValue());
         }
+    }
+
+    @Override
+    public V getUnchecked(K key) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public ImmutableMap<K, V> getAll(Iterable<? extends K> keys)
+            throws ExecutionException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public V apply(K key) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void refresh(K key) {
+        // TODO Auto-generated method stub
+        
     }
 
 }
