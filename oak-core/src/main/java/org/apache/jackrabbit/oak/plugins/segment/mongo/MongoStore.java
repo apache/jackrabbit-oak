@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.collect.Lists;
@@ -57,12 +56,10 @@ public class MongoStore extends AbstractStore {
 
     private final SegmentCache cache;
 
-    private final SegmentWriter writer = new SegmentWriter(this);
-
-    public MongoStore(DB db, SegmentCache cache) {
+    public MongoStore(DB db, int cacheSize) {
         this.db = checkNotNull(db);
         this.segments = db.getCollection("segments");
-        this.cache = cache;
+        this.cache = SegmentCache.create(cacheSize);
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("root");
         journals.put("root", new MongoJournal(
@@ -70,18 +67,8 @@ public class MongoStore extends AbstractStore {
                 concern, builder.getNodeState()));
     }
 
-    public MongoStore(DB db, int cacheSize) {
-        this(db, SegmentCache.create(cacheSize));
-    }
-
-
     public MongoStore(Mongo mongo, int cacheSize) {
         this(mongo.getDB("Oak"), cacheSize);
-    }
-
-    @Override
-    public SegmentWriter getWriter() {
-        return writer;
     }
 
     @Override
@@ -102,7 +89,7 @@ public class MongoStore extends AbstractStore {
     @Override
     public Segment readSegment(final UUID segmentId) {
         try {
-            Segment segment = writer.getCurrentSegment(segmentId);
+            Segment segment = getWriter().getCurrentSegment(segmentId);
             if (segment == null) {
                 segment = cache.getSegment(segmentId, new Callable<Segment>() {
                     @Override

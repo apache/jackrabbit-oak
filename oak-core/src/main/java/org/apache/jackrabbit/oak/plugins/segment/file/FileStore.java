@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentCache;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 public class FileStore extends AbstractStore {
@@ -64,8 +63,6 @@ public class FileStore extends AbstractStore {
 
     private final SegmentCache cache = SegmentCache.create();
 
-    private final SegmentWriter writer = new SegmentWriter(this);
-
     public FileStore(File directory, int maxFileSize, boolean memoryMapping)
             throws IOException {
         checkNotNull(directory).mkdirs();
@@ -83,7 +80,7 @@ public class FileStore extends AbstractStore {
             }
         }
 
-        Segment segment = writer.getDummySegment();
+        Segment segment = getWriter().getDummySegment();
         for (TarFile tar : files) {
             ByteBuffer buffer = tar.readEntry(JOURNALS_UUID);
             if (buffer != null) {
@@ -107,11 +104,6 @@ public class FileStore extends AbstractStore {
             builder.setChildNode("root", EMPTY_NODE);
             journals.put("root", new FileJournal(this, builder.getNodeState()));
         }
-    }
-
-    @Override
-    public SegmentWriter getWriter() {
-        return writer;
     }
 
     @Override
@@ -141,7 +133,7 @@ public class FileStore extends AbstractStore {
     @Override
     public Segment readSegment(final UUID id) {
         try {
-            Segment segment = writer.getCurrentSegment(id);
+            Segment segment = getWriter().getCurrentSegment(id);
             if (segment == null) {
                 segment = cache.getSegment(id, new Callable<Segment>() {
                     @Override
