@@ -37,21 +37,23 @@ class MapLeaf extends MapRecord {
 
     @Override
     RecordId getEntry(String key) {
-        checkNotNull(key);
+        if (size == 0) {
+            return null;
+        }
 
-        if (size > 0) {
-            int hash = key.hashCode();
-            Segment segment = getSegment();
+        Segment segment = getSegment();
+        int hash = checkNotNull(key).hashCode();
 
-            int index = 0;
-            while (index < size && getHash(segment, index) < hash) {
-                index++;
+        for (int i = 0; i < size; i++) {
+            int d = Integer.compare(segment.readInt(getOffset(4 + i * 4)), hash);
+            if (d == 0) {
+                RecordId id = segment.readRecordId(getOffset(4 + size * 4, i));
+                d = segment.readString(id).compareTo(key);
             }
-            while (index < size && getHash(segment, index) == hash) {
-                if (key.equals(getKey(segment, index))) {
-                    return getValue(segment, index);
-                }
-                index++;
+            if (d == 0) {
+                return segment.readRecordId(getOffset(4 + size * 4, size + i));
+            } else if (d > 0) {
+                return null;
             }
         }
 
@@ -151,21 +153,6 @@ class MapLeaf extends MapRecord {
                 return false;
             }
             bi++;
-        }
-
-        return true;
-    }
-
-    @Override
-    public boolean compareAgainstEmptyMap(MapDiff diff) {
-        Segment segment = getSegment();
-
-        for (int i = 0; i < size; i++) {
-            RecordId key = segment.readRecordId(getOffset(4 + size * 4, i));
-            RecordId value = segment.readRecordId(getOffset(4 + size * 4, size + i));
-            if (!diff.entryAdded(segment.readString(key), value)) {
-                return false;
-            }
         }
 
         return true;
