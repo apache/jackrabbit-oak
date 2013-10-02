@@ -37,6 +37,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
@@ -88,7 +89,7 @@ public class KernelNodeStore implements NodeStore {
                 return state.getMemory();
             }
         };
-        this.cache = CacheBuilder.newBuilder()
+        this.cache = CacheLIRS.newBuilder()
                 .maximumWeight(cacheSize)
                 .recordStats()
                 .weigher(weigher)
@@ -138,6 +139,7 @@ public class KernelNodeStore implements NodeStore {
     /**
      * Returns a string representation the head state of this node store.
      */
+    @Override
     public String toString() {
         return getRoot().toString();
     }
@@ -222,7 +224,7 @@ public class KernelNodeStore implements NodeStore {
         }
     }
 
-    public CacheStats getCacheStats(){
+    public CacheStats getCacheStats() {
         return cacheStats;
     }
 
