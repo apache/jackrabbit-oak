@@ -36,7 +36,7 @@ class MapLeaf extends MapRecord {
     }
 
     @Override
-    RecordId getEntry(String key) {
+    MapEntry getEntry(String key) {
         if (size == 0) {
             return null;
         }
@@ -44,16 +44,18 @@ class MapLeaf extends MapRecord {
         Segment segment = getSegment();
         int hash = checkNotNull(key).hashCode();
 
-        for (int i = 0; i < size; i++) {
-            int d = Integer.compare(segment.readInt(getOffset(4 + i * 4)), hash);
+        int d = -1;
+        for (int i = 0; i < size && d < 0; i++) {
+            d = Integer.compare(segment.readInt(getOffset(4 + i * 4)), hash);
             if (d == 0) {
-                RecordId id = segment.readRecordId(getOffset(4 + size * 4, i));
-                d = segment.readString(id).compareTo(key);
-            }
-            if (d == 0) {
-                return segment.readRecordId(getOffset(4 + size * 4, size + i));
-            } else if (d > 0) {
-                return null;
+                RecordId keyId = segment.readRecordId(
+                        getOffset(4 + size * 4, i));
+                d = segment.readString(keyId).compareTo(key);
+                if (d == 0) {
+                    RecordId valueId = segment.readRecordId(
+                            getOffset(4 + size * 4, size + i));
+                    return new MapEntry(segment, key, keyId, valueId);
+                }
             }
         }
 

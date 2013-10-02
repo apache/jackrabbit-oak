@@ -188,9 +188,9 @@ public class Template {
             return MISSING_NODE;
         } else if (childName == MANY_CHILD_NODES) {
             MapRecord map = getChildNodeMap(segment, recordId);
-            RecordId childNodeId = map.getEntry(name);
-            if (childNodeId != null) {
-                return new SegmentNodeState(segment, childNodeId);
+            MapEntry child = map.getEntry(name);
+            if (child != null) {
+                return child.getNodeState();
             } else {
                 return MISSING_NODE;
             }
@@ -253,13 +253,10 @@ public class Template {
                 // TODO: can this be optimized?
                 for (MapEntry entry : thisMap.getEntries()) {
                     String name = entry.getName();
-                    RecordId thisChild = entry.getValue();
-                    RecordId thatChild = thatMap.getEntry(name);
-                    if (thatChild == null) {
+                    MapEntry thatEntry = thatMap.getEntry(name);
+                    if (thatEntry == null) {
                         return false;
-                    } else if (!thisChild.equals(thatChild)
-                            && !new SegmentNodeState(thisSegment, thisChild).equals(
-                                    new SegmentNodeState(thatSegment, thatChild))) {
+                    } else if (!entry.getNodeState().equals(thatEntry.getNodeState())) {
                         return false;
                     }
                 }

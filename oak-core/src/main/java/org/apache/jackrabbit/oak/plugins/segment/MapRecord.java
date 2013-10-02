@@ -78,7 +78,7 @@ abstract class MapRecord extends Record {
         return size;
     }
 
-    abstract RecordId getEntry(String key);
+    abstract MapEntry getEntry(String key);
 
     abstract Iterable<String> getKeys();
 
@@ -103,14 +103,13 @@ abstract class MapRecord extends Record {
         Set<String> keys = newHashSet();
         for (MapEntry entry : getEntries()) {
             String name = entry.getName();
-            RecordId thisId = entry.getValue();
-            RecordId thatId = that.getEntry(name);
-            if (thatId == null) {
-                if (!diff.entryAdded(name, thisId)) {
+            MapEntry thatEntry = that.getEntry(name);
+            if (thatEntry == null) {
+                if (!diff.entryAdded(name, entry.getValue())) {
                     return false;
                 }
-            } else if (!thisId.equals(thatId)) {
-                if (!diff.entryChanged(name, thatId, thisId)) {
+            } else if (!entry.getValue().equals(thatEntry.getValue())) {
+                if (!diff.entryChanged(name, thatEntry.getValue(), entry.getValue())) {
                     return false;
                 }
             }

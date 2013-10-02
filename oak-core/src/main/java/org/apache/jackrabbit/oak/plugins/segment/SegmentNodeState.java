@@ -222,9 +222,9 @@ public class SegmentNodeState extends Record implements NodeState {
         if (childName == Template.ZERO_CHILD_NODES) {
             return MISSING_NODE;
         } else if (childName == Template.MANY_CHILD_NODES) {
-            RecordId childNodeId = getChildNodeMap().getEntry(name);
-            if (childNodeId != null) {
-                return new SegmentNodeState(getSegment(), childNodeId);
+            MapEntry child = getChildNodeMap().getEntry(name);
+            if (child != null) {
+                return child.getNodeState();
             } else {
                 return MISSING_NODE;
             }

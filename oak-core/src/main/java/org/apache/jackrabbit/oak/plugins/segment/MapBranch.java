@@ -64,7 +64,7 @@ class MapBranch extends MapRecord {
     }
 
     @Override
-    RecordId getEntry(String key) {
+    MapEntry getEntry(String key) {
         checkNotNull(key);
 
         int mask = BUCKETS_PER_LEVEL - 1;
