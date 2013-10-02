@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.junit.Before;
 import org.junit.Test;
@@ -140,5 +141,49 @@ public class TokenInfoTest extends AbstractTokenTest {
             assertFalse("reserved attribute "+key,privAttr.containsKey(key));
             assertFalse("reserved attribute "+key,pubAttr.containsKey(key));
         }
+    }
+
+    @Test
+    public void testRemoveToken() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        assertTrue(info.remove());
+    }
+
+    @Test
+    public void testRemoveToken2() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        assertTrue(info.remove());
+    }
+
+    @Test
+    public void testRemoveTokenRemovesNode() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+
+        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree tokens = userTree.getChild(".tokens");
+        String tokenNodePath = tokens.getChildren().iterator().next().getPath();
+
+        info.remove();
+        assertFalse(root.getTree(tokenNodePath).exists());
+    }
+
+    @Test
+    public void testResetTokenExpirationExpiredToken() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+
+        long expiredTime = new Date().getTime() + 7200001;
+        assertTrue(info.isExpired(expiredTime));
+        assertFalse(info.resetExpiration(expiredTime));
+    }
+
+    @Test
+    public void testResetTokenExpiration() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+
+        assertFalse(info.resetExpiration(new Date().getTime()));
+
+        long loginTime = new Date().getTime() + 3600000;
+        assertFalse(info.isExpired(loginTime));
+        assertTrue(info.resetExpiration(loginTime));
     }
 }

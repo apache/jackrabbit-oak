@@ -53,6 +53,27 @@ public interface TokenInfo {
     boolean isExpired(long loginTime);
 
     /**
+     * Resets the expiration time of the login token associated with the given
+     * {@code TokenInfo}. Whether and when the expiration time of a given login
+     * token is being reset is an implementation detail. Implementations that
+     * don't allow for resetting the token's expiration time at all will always
+     * return {@code false}.
+     *
+     * @param loginTime The current login time.
+     * @return {@code true} if the expiration time has been reset, false otherwise.
+     */
+    boolean resetExpiration(long loginTime);
+
+    /**
+     * Tries to remove the login token and all related information. This method
+     * returns {@code true} if the removal was successful.
+     *
+     *
+     * @return {@code true} if the removal was successful, {@code false} otherwise.
+     */
+    boolean remove();
+
+    /**
      * Returns {@code true} if the specified credentials can be successfully
      * validated against the information stored in this instance.
      *
