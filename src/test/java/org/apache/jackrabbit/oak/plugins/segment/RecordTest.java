@@ -190,7 +190,7 @@ public class RecordTest {
         assertFalse(iterator.hasNext());
 
         assertEquals(1, one.size());
-        assertEquals(blockId, one.getEntry("one"));
+        assertEquals(blockId, one.getEntry("one").getValue());
         assertNull(one.getEntry("two"));
         iterator = one.getEntries().iterator();
         assertTrue(iterator.hasNext());
@@ -198,8 +198,8 @@ public class RecordTest {
         assertFalse(iterator.hasNext());
 
         assertEquals(2, two.size());
-        assertEquals(blockId, two.getEntry("one"));
-        assertEquals(blockId, two.getEntry("two"));
+        assertEquals(blockId, two.getEntry("one").getValue());
+        assertEquals(blockId, two.getEntry("two").getValue());
         assertNull(two.getEntry("three"));
         iterator = two.getEntries().iterator();
         assertTrue(iterator.hasNext());
@@ -213,7 +213,7 @@ public class RecordTest {
         for (int i = 0; i < 1000; i++) {
             assertTrue(iterator.hasNext());
             assertEquals(blockId, iterator.next().getValue());
-            assertEquals(blockId, many.getEntry("key" + i));
+            assertEquals(blockId, many.getEntry("key" + i).getValue());
         }
         assertFalse(iterator.hasNext());
         assertNull(many.getEntry("foo"));
@@ -227,7 +227,7 @@ public class RecordTest {
         for (int i = 1; i <= 1000; i++) {
             assertTrue(iterator.hasNext());
             assertEquals(blockId, iterator.next().getValue());
-            assertEquals(blockId, modified.getEntry("key" + i));
+            assertEquals(blockId, modified.getEntry("key" + i).getValue());
         }
         assertFalse(iterator.hasNext());
         assertNull(many.getEntry("foo"));
