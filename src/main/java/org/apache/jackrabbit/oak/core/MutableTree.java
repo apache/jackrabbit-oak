@@ -40,6 +40,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -157,11 +158,9 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public boolean exists() {
-        root.checkLive();
+        enter();
         if (isHidden(name)) {
             return false;
-        } else if (applyPendingMoves()) {
-            return reconnect();
         } else {
             return nodeBuilder.exists();
         }
@@ -169,8 +168,8 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public MutableTree getParent() {
+        enter();
         checkState(parent != null, "root tree does not have a parent");
-        root.checkLive();
         return parent;
     }
 
@@ -194,10 +193,13 @@ public class MutableTree extends AbstractTree {
 
     @Override
     public Status getPropertyStatus(String name) {
+        enter();
+
         // make sure we don't expose information about a non-accessible property
         if (!hasProperty(name)) {
             return null;
         }
+
         // get status of this tree without checking for it's existence
         Status nodeStatus = super.getStatus();
         if (nodeStatus == NEW) {
@@ -209,7 +211,6 @@ public class MutableTree extends AbstractTree {
         }
 
         PropertyState base = getSecureBase().getProperty(name);
-
         if (base == null) {
             return NEW;
         } else if (head.equals(base)) {
@@ -452,7 +453,20 @@ public class MutableTree extends AbstractTree {
     }
 
     String getPathInternal() {
-        return super.getPath();
+        if (parent == null) {
+            return "/";
+        } else {
+            StringBuilder sb = new StringBuilder();
+            buildPath(sb);
+            return sb.toString();
+        }
+    }
+
+    private void buildPath(StringBuilder sb) {
+        if (parent != null) {
+            parent.buildPath(sb);
+            sb.append('/').append(name);
+        }
     }
 
     //------------------------------------------------------------< private >---
