@@ -1145,13 +1145,9 @@ public class MongoMK implements MicroKernel, RevisionContext {
         commit.removeNode(path);
 
         if (subTreeAlso) {
-
             // recurse down the tree
             // TODO causes issue with large number of children
             Node n = getNode(path, rev);
-
-            // remove from the cache
-            nodeCache.invalidate(path + "@" + rev);
 
             if (n != null) {
                 Node.Children c = getChildren(path, rev, Integer.MAX_VALUE);
@@ -1161,9 +1157,6 @@ public class MongoMK implements MicroKernel, RevisionContext {
                 nodeChildrenCache.invalidate(n.getId());
             }
         }
-
-        // Remove the node from the cache
-        nodeCache.invalidate(path + "@" + rev);
     }
 
     public static void parseAddNode(Commit commit, JsopReader t, String path) {
