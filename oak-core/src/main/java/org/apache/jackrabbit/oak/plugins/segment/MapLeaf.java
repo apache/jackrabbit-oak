@@ -19,11 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-
-import com.google.common.collect.Maps;
+import java.util.Arrays;
 
 class MapLeaf extends MapRecord {
 
@@ -37,28 +33,6 @@ class MapLeaf extends MapRecord {
         super(segment, id, size, level);
         checkArgument(size != 0 || level == 0);
         checkArgument(size <= BUCKETS_PER_LEVEL || level == MAX_NUMBER_OF_LEVELS);
-    }
-
-    Map<String, MapEntry> getMapEntries() {
-        RecordId[] keys = new RecordId[size];
-        RecordId[] values = new RecordId[size];
-
-        Segment segment = getSegment();
-        int bytes = 4 + size * 4;
-        int ids = 0;
-        for (int i = 0; i < size; i++) {
-            keys[i] = segment.readRecordId(getOffset(bytes, ids++));
-        }
-        for (int i = 0; i < size; i++) {
-            values[i] = segment.readRecordId(getOffset(bytes, ids++));
-        }
-
-        Map<String, MapEntry> entries = Maps.newHashMapWithExpectedSize(size);
-        for (int i = 0; i < size; i++) {
-            String name = segment.readString(keys[i]);
-            entries.put(name, new MapEntry(segment, name, keys[i], values[i]));
-        }
-        return entries;
     }
 
     @Override
@@ -86,17 +60,40 @@ class MapLeaf extends MapRecord {
 
     @Override
     Iterable<String> getKeys() {
-        return new Iterable<String>() {
-            @Override
-            public Iterator<String> iterator() {
-                return getKeyIterator();
-            }
-        };
+        Segment segment = getSegment();
+
+        RecordId[] ids = new RecordId[size];
+        for (int i = 0; i < size; i++) {
+            ids[i] = segment.readRecordId(getOffset(4 + size * 4, i));
+        }
+
+        String[] keys = new String[size];
+        for (int i = 0; i < size; i++) {
+            keys[i] = segment.readString(ids[i]);
+        }
+        return Arrays.asList(keys);
     }
 
     @Override
     Iterable<MapEntry> getEntries() {
-        return getMapEntries().values();
+        Segment segment = getSegment();
+
+        RecordId[] keys = new RecordId[size];
+        for (int i = 0; i < size; i++) {
+            keys[i] = segment.readRecordId(getOffset(4 + size * 4, i));
+        }
+
+        RecordId[] values = new RecordId[size];
+        for (int i = 0; i < size; i++) {
+            values[i] = segment.readRecordId(getOffset(4 + size * 4, size + i));
+        }
+
+        MapEntry[] entries = new MapEntry[size];
+        for (int i = 0; i < size; i++) {
+            String name = segment.readString(keys[i]);
+            entries[i] = new MapEntry(segment, name, keys[i], values[i]);
+        }
+        return Arrays.asList(entries);
     }
 
     @Override
@@ -175,30 +172,6 @@ class MapLeaf extends MapRecord {
     }
 
     //-----------------------------------------------------------< private >--
-
-    private Iterator<String> getKeyIterator() {
-        return new Iterator<String>() {
-            private final Segment segment = getSegment();
-            private int index = 0;
-            @Override
-            public boolean hasNext() {
-                return index < size;
-            }
-            @Override
-            public String next() {
-                int i = index++;
-                if (i < size) {
-                    return getKey(segment, i);
-                } else {
-                    throw new NoSuchElementException();
-                }
-            }
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
 
     private int getHash(Segment segment, int index) {
         return checkNotNull(segment).readInt(getOffset() + 4 + index * 4);
