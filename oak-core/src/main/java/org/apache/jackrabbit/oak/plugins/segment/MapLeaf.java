@@ -46,7 +46,8 @@ class MapLeaf extends MapRecord {
 
         int d = -1;
         for (int i = 0; i < size && d < 0; i++) {
-            d = Integer.compare(segment.readInt(getOffset(4 + i * 4)), hash);
+            d = Integer.valueOf(segment.readInt(getOffset(4 + i * 4)))
+                    .compareTo(Integer.valueOf(hash));
             if (d == 0) {
                 RecordId keyId = segment.readRecordId(
                         getOffset(4 + size * 4, i));
