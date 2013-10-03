@@ -17,17 +17,17 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,25 +38,20 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.util.Text;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
-import com.google.common.primitives.Longs;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * The Permission store reads the principal based access control permissions. One store is currently used to handle
  * 1 set of principal trees (so the compiled permissions use 2 stores, one for the user principals and one for the
  * group principals)
+ * <p/>
+ * TODO: implement caching
  */
 class PermissionStore implements PermissionConstants {
 
     private final Map<String, Tree> principalTrees;
 
     private final RestrictionProvider restrictionProvider;
-
-    private final Map<String, Collection<PermissionEntry>> cache = new HashMap<String, Collection<PermissionEntry>>();
 
     PermissionStore(Map<String, Tree> principalTrees, RestrictionProvider restrictionProvider) {
         this.principalTrees = principalTrees;
@@ -65,32 +60,28 @@ class PermissionStore implements PermissionConstants {
 
     @Nonnull
     private Collection<PermissionEntry> getEntries(String path) {
-        Collection<PermissionEntry> ret = cache.get(path);
-        if (ret == null) {
-            ret = new TreeSet<PermissionEntry>();
-            String name = PermissionUtil.getEntryName(path);
-            for (Map.Entry<String, Tree> principalRoot : principalTrees.entrySet()) {
-                Tree child = principalRoot.getValue().getChild(name);
-                if (child.exists()) {
-                    if (PermissionUtil.checkACLPath(child, path)) {
-                        loadPermissionsFromNode(path, ret, child);
-                    } else {
-                        // check for child node
-                        for (Tree node: child.getChildren()) {
-                            if (PermissionUtil.checkACLPath(node, path)) {
-                                loadPermissionsFromNode(path, ret, node);
-                            }
+        Collection<PermissionEntry> ret = new TreeSet<PermissionEntry>();
+        String name = PermissionUtil.getEntryName(path);
+        for (Map.Entry<String, Tree> principalRoot : principalTrees.entrySet()) {
+            Tree child = principalRoot.getValue().getChild(name);
+            if (child.exists()) {
+                if (PermissionUtil.checkACLPath(child, path)) {
+                    loadPermissionsFromNode(path, ret, child);
+                } else {
+                    // check for child node
+                    for (Tree node : child.getChildren()) {
+                        if (PermissionUtil.checkACLPath(node, path)) {
+                            loadPermissionsFromNode(path, ret, node);
                         }
                     }
                 }
             }
-            //cache.put(path, ret);
         }
         return ret;
     }
 
     private void loadPermissionsFromNode(String path, Collection<PermissionEntry> ret, Tree node) {
-        for (Tree ace: node.getChildren()) {
+        for (Tree ace : node.getChildren()) {
             if (ace.getName().charAt(0) != 'c') {
                 ret.add(new PermissionEntry(path, ace, restrictionProvider));
             }
@@ -105,7 +96,7 @@ class PermissionStore implements PermissionConstants {
     }
 
     public void flush() {
-        cache.clear();
+        // TODO clear cache
     }
 
     private class EntryIterator implements Iterator<PermissionEntry> {
@@ -156,7 +147,7 @@ class PermissionStore implements PermissionConstants {
 
         @CheckForNull
         private void seekNext() {
-            for (next = null; next == null;) {
+            for (next = null; next == null; ) {
                 if (nextEntries.hasNext()) {
                     PermissionEntry pe = nextEntries.next();
                     if (predicate.apply(pe)) {
@@ -211,7 +202,6 @@ class PermissionStore implements PermissionConstants {
             }
         }
     }
-
 
     public static final class PermissionEntry implements Comparable<PermissionEntry> {
 
@@ -273,19 +263,19 @@ class PermissionStore implements PermissionConstants {
         public int compareTo(PermissionEntry o) {
             final int anotherVal = o.index;
             // reverse order
-            return (index<anotherVal ? 1 : (index==anotherVal ? 0 : -1));
+            return (index < anotherVal ? 1 : (index == anotherVal ? 0 : -1));
         }
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             PermissionEntry that = (PermissionEntry) o;
-
-            if (index != that.index) return false;
-
-            return true;
+            return index == that.index;
         }
 
         @Override
@@ -293,13 +283,4 @@ class PermissionStore implements PermissionConstants {
             return index;
         }
     }
-
-    private static final class EntryComparator implements Comparator<PermissionEntry> {
-        @Override
-        public int compare(@Nonnull PermissionEntry entry,
-                           @Nonnull PermissionEntry otherEntry) {
-            return Longs.compare(otherEntry.index, entry.index);
-        }
-    }
-
 }
