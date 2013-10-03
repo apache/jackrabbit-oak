@@ -574,10 +574,31 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
         simple.put(provider.getBits(REP_READ_NODES), Permissions.READ_NODE);
         simple.put(provider.getBits(REP_READ_PROPERTIES), Permissions.READ_PROPERTY);
         simple.put(provider.getBits(REP_USER_MANAGEMENT), Permissions.USER_MANAGEMENT);
+        simple.put(provider.getBits(JCR_MODIFY_PROPERTIES), Permissions.SET_PROPERTY);
+        simple.put(provider.getBits(REP_ADD_PROPERTIES), Permissions.ADD_PROPERTY);
+        simple.put(provider.getBits(REP_ALTER_PROPERTIES), Permissions.MODIFY_PROPERTY);
+        simple.put(provider.getBits(REP_REMOVE_PROPERTIES), Permissions.REMOVE_PROPERTY);
         for (PrivilegeBits pb : simple.keySet()) {
             long expected = simple.get(pb).longValue();
             assertTrue(expected == PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true));
+            assertTrue(expected == PrivilegeBits.calculatePermissions(pb, pb, true));
         }
+
+        // jcr:modifyProperty aggregate
+        PrivilegeBits add_change = provider.getBits(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES);
+        long permissions = (Permissions.ADD_PROPERTY | Permissions.MODIFY_PROPERTY);
+        assertTrue(permissions == PrivilegeBits.calculatePermissions(add_change, PrivilegeBits.EMPTY, true));
+        assertTrue(permissions == PrivilegeBits.calculatePermissions(add_change, add_change, true));
+
+        PrivilegeBits add_rm = provider.getBits(REP_ADD_PROPERTIES, REP_REMOVE_PROPERTIES);
+        permissions = (Permissions.ADD_PROPERTY | Permissions.REMOVE_PROPERTY);
+        assertTrue(permissions == PrivilegeBits.calculatePermissions(add_rm, PrivilegeBits.EMPTY, true));
+        assertTrue(permissions == PrivilegeBits.calculatePermissions(add_rm, add_rm, true));
+
+        PrivilegeBits ch_rm = provider.getBits(REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
+        permissions = (Permissions.MODIFY_PROPERTY | Permissions.REMOVE_PROPERTY);
+        assertTrue(permissions == PrivilegeBits.calculatePermissions(ch_rm, PrivilegeBits.EMPTY, true));
+        assertTrue(permissions == PrivilegeBits.calculatePermissions(ch_rm, add_rm, true));
 
         // jcr:add aggregate
         PrivilegeBits all = provider.getBits(JCR_ALL);
