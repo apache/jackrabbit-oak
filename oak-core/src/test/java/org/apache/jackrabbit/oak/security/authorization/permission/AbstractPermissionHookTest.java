@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
@@ -39,7 +40,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -108,24 +108,12 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
 
     protected Tree getEntry(String principalName, String accessControlledPath, long index) throws Exception {
         Tree principalRoot = getPrincipalRoot(principalName);
-        return traverse(principalRoot, accessControlledPath, index);
-    }
-
-    protected Tree traverse(Tree parent, String accessControlledPath, long index) throws Exception {
-        for (Tree entry : parent.getChildren()) {
-            String path = entry.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING);
-            long entryIndex = entry.getProperty(REP_INDEX).getValue(Type.LONG);
-            if (accessControlledPath.equals(path)) {
-                if (index == entryIndex) {
-                    return entry;
-                } else if (index > entryIndex) {
-                    return traverse(entry, accessControlledPath, index);
-                }
-            } else if (Text.isDescendant(path, accessControlledPath)) {
-                return traverse(entry, accessControlledPath, index);
-            }
+        Tree parent = principalRoot.getChild(PermissionUtil.getEntryName(accessControlledPath));
+        Tree entry = parent.getChild(String.valueOf(index));
+        if (!entry.exists()) {
+            throw new RepositoryException("no such entry");
         }
-        throw new RepositoryException("no such entry");
+        return entry;
     }
 
     protected long cntEntries(Tree parent) {
@@ -159,8 +147,9 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         root.commit();
 
         Tree principalRoot = getPrincipalRoot(testPrincipalName);
-        assertEquals(1, cntEntries(principalRoot));
-        assertEquals("*", principalRoot.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
+        assertEquals(2, cntEntries(principalRoot));
+        Tree parent = principalRoot.getChildren().iterator().next();
+        assertEquals("*", parent.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
 
         // modify the restrictions node
         Tree restrictionsNode = root.getTree(restrictionsPath);
@@ -168,16 +157,18 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         root.commit();
 
         principalRoot = getPrincipalRoot(testPrincipalName);
-        assertEquals(1, cntEntries(principalRoot));
-        assertEquals("/*/jcr:content/*", principalRoot.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
+        assertEquals(2, cntEntries(principalRoot));
+        parent = principalRoot.getChildren().iterator().next();
+        assertEquals("/*/jcr:content/*", parent.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
 
         // remove the restriction again
         root.getTree(restrictionsPath).remove();
         root.commit();
 
         principalRoot = getPrincipalRoot(testPrincipalName);
-        assertEquals(1, cntEntries(principalRoot));
-        assertNull(principalRoot.getChildren().iterator().next().getProperty(REP_GLOB));
+        assertEquals(2, cntEntries(principalRoot));
+        parent = principalRoot.getChildren().iterator().next();
+        assertNull(parent.getChildren().iterator().next().getProperty(REP_GLOB));
     }
 
     @Test
@@ -332,7 +323,7 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         assertTrue(root.getTree(childPath + "/rep:policy").exists());
 
         Tree principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
-        assertEquals(2, cntEntries(principalRoot));
+        assertEquals(4, cntEntries(principalRoot));
 
         ContentSession testSession = createTestSession();
         Root testRoot = testSession.getLatestRoot();
@@ -350,6 +341,6 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         // aces must be removed in the permission store even if the editing
         // session wasn't able to access them.
         principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
-        assertEquals(1, cntEntries(principalRoot));
+        assertEquals(2, cntEntries(principalRoot));
     }
 }
