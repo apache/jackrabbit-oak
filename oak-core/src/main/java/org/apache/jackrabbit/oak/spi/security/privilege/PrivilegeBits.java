@@ -230,12 +230,13 @@ public final class PrivilegeBits implements PrivilegeConstants {
         if ((privs & MODIFY_PROPERTIES) == MODIFY_PROPERTIES) {
             perm |= Permissions.SET_PROPERTY;
         } else {
-            // todo: what about add+alter (but not remove?)
             if ((privs & ADD_PROPERTIES) == ADD_PROPERTIES) {
                 perm |= Permissions.ADD_PROPERTY;
-            } else if ((privs & ALTER_PROPERTIES) == ALTER_PROPERTIES) {
+            }
+            if ((privs & ALTER_PROPERTIES) == ALTER_PROPERTIES) {
                 perm |= Permissions.MODIFY_PROPERTY;
-            } else if ((privs & REMOVE_PROPERTIES) == REMOVE_PROPERTIES) {
+            }
+            if ((privs & REMOVE_PROPERTIES) == REMOVE_PROPERTIES) {
                 perm |= Permissions.REMOVE_PROPERTY;
             }
         }
