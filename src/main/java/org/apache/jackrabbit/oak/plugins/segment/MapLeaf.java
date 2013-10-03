@@ -127,8 +127,7 @@ class MapLeaf extends MapRecord {
                     && (before.getHash(bs, bi) < afterHash
                         || (before.getHash(bs, bi) == afterHash
                             && before.getKey(bs, bi).compareTo(afterKey) < 0))) {
-                if (!diff.entryDeleted(
-                        before.getKey(bs, bi), before.getValue(bs, bi))) {
+                if (!diff.entryDeleted(before.getEntry(bs, bi))) {
                     return false;
                 }
                 bi++;
@@ -139,11 +138,13 @@ class MapLeaf extends MapRecord {
                     && before.getKey(bs, bi).equals(afterKey)) {
                 RecordId beforeValue = before.getValue(bs, bi);
                 if (!afterValue.equals(beforeValue)
-                        && !diff.entryChanged(afterKey, beforeValue, afterValue)) {
+                        && !diff.entryChanged(
+                                before.getEntry(bs, bi),
+                                after.getEntry(as, ai))) {
                     return false;
                 }
                 bi++;
-            } else if (!diff.entryAdded(afterKey, afterValue)) {
+            } else if (!diff.entryAdded(after.getEntry(as, ai))) {
                 return false;
             }
 
@@ -151,8 +152,7 @@ class MapLeaf extends MapRecord {
         }
 
         while (bi < before.size) {
-            if (!diff.entryDeleted(
-                    before.getKey(bs, bi), before.getValue(bs, bi))) {
+            if (!diff.entryDeleted(before.getEntry(bs, bi))) {
                 return false;
             }
             bi++;
@@ -162,6 +162,15 @@ class MapLeaf extends MapRecord {
     }
 
     //-----------------------------------------------------------< private >--
+
+    private MapEntry getEntry(Segment segment, int index) {
+        checkNotNull(segment);
+        RecordId key =
+                segment.readRecordId(getOffset(4 + size * 4, index));
+        RecordId value =
+                segment.readRecordId(getOffset(4 + size * 4, size + index));
+        return new MapEntry(segment, segment.readString(key), key, value);
+    }
 
     private int getHash(Segment segment, int index) {
         return checkNotNull(segment).readInt(getOffset() + 4 + index * 4);

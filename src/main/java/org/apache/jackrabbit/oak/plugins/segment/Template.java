@@ -396,21 +396,21 @@ public class Template {
             MapRecord beforeMap = beforeTemplate.getChildNodeMap(beforeSegment, beforeId);
             return afterMap.compare(beforeMap, new MapDiff() {
                 @Override
-                public boolean entryAdded(String key, RecordId after) {
+                public boolean entryAdded(MapEntry after) {
                     return diff.childNodeAdded(
-                            key, new SegmentNodeState(afterSegment, after));
+                            after.getName(), after.getNodeState());
                 }
                 @Override
-                public boolean entryChanged(
-                        String key, RecordId before, RecordId after) {
-                    SegmentNodeState b = new SegmentNodeState(beforeSegment, before);
-                    SegmentNodeState a = new SegmentNodeState(afterSegment, after);
-                    return fastEquals(a, b) || diff.childNodeChanged(key, b, a);
+                public boolean entryChanged(MapEntry before, MapEntry after) {
+                    SegmentNodeState b = before.getNodeState();
+                    SegmentNodeState a = after.getNodeState();
+                    return fastEquals(a, b)
+                            || diff.childNodeChanged(before.getName(), b, a);
                 }
                 @Override
-                public boolean entryDeleted(String key, RecordId before) {
+                public boolean entryDeleted(MapEntry before) {
                     return diff.childNodeDeleted(
-                            key, new SegmentNodeState(beforeSegment, before));
+                            before.getName(), before.getNodeState());
                 }
             });
         }
@@ -441,17 +441,16 @@ public class Template {
             final Segment s = segment;
             children.compareAgainstEmptyMap(new MapDiff() {
                 @Override
-                public boolean entryAdded(String key, RecordId after) {
+                public boolean entryAdded(MapEntry after) {
                     return diff.childNodeAdded(
-                            key, new SegmentNodeState(s, after));
+                            after.getName(), after.getNodeState());
                 }
                 @Override
-                public boolean entryChanged(
-                        String key, RecordId before, RecordId after) {
+                public boolean entryChanged(MapEntry before, MapEntry after) {
                     throw new IllegalStateException();
                 }
                 @Override
-                public boolean entryDeleted(String key, RecordId before) {
+                public boolean entryDeleted(MapEntry before) {
                     throw new IllegalStateException();
                 }
             });

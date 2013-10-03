@@ -24,7 +24,6 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ComparisonChain;
 
@@ -61,7 +60,7 @@ class MapEntry extends AbstractChildNodeEntry
     }
 
     @Override @Nonnull
-    public NodeState getNodeState() {
+    public SegmentNodeState getNodeState() {
         checkState(value != null);
         return new SegmentNodeState(segment, value);
     }
