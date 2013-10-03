@@ -64,7 +64,7 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
         }
         assertTrue(set.isEmpty());
     }
-
+    
     @Test
     public void testGetPrivilege() throws RepositoryException {
         Set<String> aggregatedPrivilegeNames = ImmutableSet.of("jcr:read",
@@ -144,6 +144,16 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
         } catch (AccessControlException e) {
             // OK
         }
+    }
+
+    @Test
+    public void testGetPrivilegesFromInvalidName2() throws RepositoryException {
+    	String nonExistingPrivilegeName = "{http://www.nonexisting.com/1.0}nonexisting";
+    	try{
+    		privilegeManager.getPrivilege(nonExistingPrivilegeName);
+    	} catch(AccessControlException e){
+    		//expected
+    	}
     }
 
     @Test
