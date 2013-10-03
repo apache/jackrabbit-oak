@@ -669,7 +669,6 @@
  * @since oak 1.0
  */
 [rep:PermissionStore]
-  orderable
   + * (rep:PermissionStore) = rep:PermissionStore protected IGNORE
   + * (rep:Permissions) = rep:Permissions protected IGNORE
 
@@ -712,8 +711,7 @@
 [rep:Members]
   orderable
   + * (rep:Members) = rep:Members protected multiple /* FIXME: SNS definition */
-  - * (WEAKREFERENCE) protected < 'rep:Authorizable' /* Deprecated since oak 1.0 */
-  - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable' /* @since oak 1.0 */
+  - * (WEAKREFERENCE) protected < 'rep:Authorizable' /* FIXME: OAK-482 */
 
 // -----------------------------------------------------------------------------
 // Privilege Management
