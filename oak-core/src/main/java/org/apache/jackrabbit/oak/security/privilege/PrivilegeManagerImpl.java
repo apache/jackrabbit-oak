@@ -116,7 +116,11 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         if (jcrName == null) {
             throw new AccessControlException("Invalid privilege name 'null'");
         }
-        return namePathMapper.getOakName(jcrName);
+        String oakName = namePathMapper.getOakNameOrNull(jcrName);
+        if (oakName == null) {
+        	throw new AccessControlException("Cannot resolve privilege name " + jcrName);
+        }
+        return oakName;
     }
 
     @Nonnull
