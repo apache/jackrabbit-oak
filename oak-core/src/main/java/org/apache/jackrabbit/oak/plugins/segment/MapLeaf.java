@@ -20,6 +20,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Arrays;
+import java.util.Iterator;
+
+import com.google.common.collect.ComparisonChain;
 
 class MapLeaf extends MapRecord {
 
@@ -104,87 +107,68 @@ class MapLeaf extends MapRecord {
     @Override
     boolean compare(MapRecord base, MapDiff diff) {
         if (base instanceof MapLeaf) {
-            return compare((MapLeaf) base, diff);
+            return compare((MapLeaf) base, this, diff);
         } else {
             return super.compare(base, diff);
         }
     }
 
-    private boolean compare(MapLeaf before, MapDiff diff) {
-        Segment bs = before.getSegment();
-        int bi = 0;
+    //-----------------------------------------------------------< private >--
 
-        MapLeaf after = this;
-        Segment as = after.getSegment();
-        int ai = 0;
+    private static boolean compare(
+            MapLeaf before, MapLeaf after, MapDiff diff) {
+        Iterator<MapEntry> beforeEntries = before.getEntries().iterator();
+        Iterator<MapEntry> afterEntries = after.getEntries().iterator();
 
-        while (ai < after.size) {
-            int afterHash = after.getHash(as, ai);
-            String afterKey = after.getKey(as, ai);
-            RecordId afterValue = after.getValue(as, ai);
-
-            while (bi < before.size
-                    && (before.getHash(bs, bi) < afterHash
-                        || (before.getHash(bs, bi) == afterHash
-                            && before.getKey(bs, bi).compareTo(afterKey) < 0))) {
-                if (!diff.entryDeleted(before.getEntry(bs, bi))) {
+        MapEntry beforeEntry = nextOrNull(beforeEntries);
+        MapEntry afterEntry = nextOrNull(afterEntries);
+        while (beforeEntry != null || afterEntry != null) {
+            int d = compare(beforeEntry, afterEntry);
+            if (d < 0) {
+                if (!diff.entryDeleted(beforeEntry)) {
                     return false;
                 }
-                bi++;
-            }
-
-            if (bi < before.size
-                    && before.getHash(bs, bi) == afterHash
-                    && before.getKey(bs, bi).equals(afterKey)) {
-                RecordId beforeValue = before.getValue(bs, bi);
-                if (!afterValue.equals(beforeValue)
-                        && !diff.entryChanged(
-                                before.getEntry(bs, bi),
-                                after.getEntry(as, ai))) {
+                beforeEntry = nextOrNull(beforeEntries);
+            } else if (d == 0) {
+                if (!diff.entryChanged(beforeEntry, afterEntry)) {
                     return false;
                 }
-                bi++;
-            } else if (!diff.entryAdded(after.getEntry(as, ai))) {
-                return false;
+                beforeEntry = nextOrNull(beforeEntries);
+                afterEntry = nextOrNull(afterEntries);
+            } else {
+                if (!diff.entryAdded(afterEntry)) {
+                    return false;
+                }
+                afterEntry = nextOrNull(afterEntries);
             }
-
-            ai++;
-        }
-
-        while (bi < before.size) {
-            if (!diff.entryDeleted(before.getEntry(bs, bi))) {
-                return false;
-            }
-            bi++;
         }
 
         return true;
     }
 
-    //-----------------------------------------------------------< private >--
-
-    private MapEntry getEntry(Segment segment, int index) {
-        checkNotNull(segment);
-        RecordId key =
-                segment.readRecordId(getOffset(4 + size * 4, index));
-        RecordId value =
-                segment.readRecordId(getOffset(4 + size * 4, size + index));
-        return new MapEntry(segment, segment.readString(key), key, value);
+    private static int compare(MapEntry before, MapEntry after) {
+        if (before == null) {
+            // A null value signifies the end of the list of entries,
+            // which is why the return value here is a bit counter-intuitive
+            // (null > non-null). The idea is to make a virtual end-of-list
+            // sentinel value appear greater than any normal value.
+            return 1;
+        } else if (after == null) {
+            return -1;  // see above
+        } else {
+            return ComparisonChain.start()
+                    .compare(before.getHash(), after.getHash())
+                    .compare(before.getName(), after.getName())
+                    .result();
+        }
     }
 
-    private int getHash(Segment segment, int index) {
-        return checkNotNull(segment).readInt(getOffset() + 4 + index * 4);
-    }
-
-    private String getKey(Segment segment, int index) {
-        checkNotNull(segment);
-        int offset = getOffset(4 + size * 4, index);
-        return segment.readString(segment.readRecordId(offset));
-    }
-
-    private RecordId getValue(Segment segment, int index) {
-        int offset = getOffset(4 + size * 4, size + index);
-        return checkNotNull(segment).readRecordId(offset);
+    private static MapEntry nextOrNull(Iterator<MapEntry> iterator) {
+        if (iterator.hasNext()) {
+            return iterator.next();
+        } else {
+            return null;
+        }
     }
 
 }
