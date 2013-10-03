@@ -48,7 +48,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants {
 
     private final Set<Principal> principals;
-    private final RestrictionProvider restrictionProvider;
 
     private final Map<String, Tree> userTrees;
     private final Map<String, Tree> groupTrees;
@@ -67,13 +66,12 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                            @Nonnull Set<String> readPaths) {
         checkArgument(!principals.isEmpty());
         this.principals = principals;
-        this.restrictionProvider = restrictionProvider;
         this.bitsProvider = bitsProvider;
         readPathsCheckList = new String[readPaths.size() * 2];
-        int i=0;
-        for (String p: readPaths) {
+        int i = 0;
+        for (String p : readPaths) {
             readPathsCheckList[i++] = p;
-            readPathsCheckList[i++] = p + "/";
+            readPathsCheckList[i++] = p + '/';
         }
 
         userTrees = new HashMap<String, Tree>(principals.size());
@@ -97,7 +95,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     //------------------------------------------------< CompiledPermissions >---
     @Override
     public void refresh(@Nonnull ImmutableTree permissionsTree,
-                 @Nonnull PrivilegeBitsProvider bitsProvider) {
+                        @Nonnull PrivilegeBitsProvider bitsProvider) {
         this.bitsProvider = bitsProvider;
         // test if a permission has been added for those principals that didn't have one before
         for (Principal principal : principals) {
@@ -183,8 +181,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
         boolean respectParent = (tree != null || path != null) &&
                 (Permissions.includes(permissions, Permissions.ADD_NODE) ||
-                Permissions.includes(permissions, Permissions.REMOVE_NODE) ||
-                Permissions.includes(permissions, Permissions.MODIFY_CHILD_NODE_COLLECTION));
+                        Permissions.includes(permissions, Permissions.REMOVE_NODE) ||
+                        Permissions.includes(permissions, Permissions.MODIFY_CHILD_NODE_COLLECTION));
 
         long allows = (isReadable) ? Permissions.READ : Permissions.NO_PERMISSION;
         long denies = Permissions.NO_PERMISSION;
@@ -278,7 +276,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         if (readPathsCheckList.length > 0) {
             String targetPath = (tree != null) ? tree.getPath() : treePath;
             if (targetPath != null) {
-                for (int i=0; i<readPathsCheckList.length; i++) {
+                for (int i = 0; i < readPathsCheckList.length; i++) {
                     if (targetPath.equals(readPathsCheckList[i++])) {
                         return true;
                     }
