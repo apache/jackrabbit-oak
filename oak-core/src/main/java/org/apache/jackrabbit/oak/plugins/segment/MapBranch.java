@@ -139,7 +139,7 @@ class MapBranch extends MapRecord {
                 if (beforeBuckets[i] != null) {
                     MapRecord map = beforeSegment.readMap(beforeBuckets[i]);
                     for (MapEntry entry : map.getEntries()) {
-                        if (!diff.entryDeleted(entry.getName(), entry.getValue())) {
+                        if (!diff.entryDeleted(entry)) {
                             return false;
                         }
                     }
@@ -147,7 +147,7 @@ class MapBranch extends MapRecord {
             } else if (beforeBuckets[i] == null) {
                 MapRecord map = afterSegment.readMap(afterBuckets[i]);
                 for (MapEntry entry : map.getEntries()) {
-                    if (!diff.entryAdded(entry.getName(), entry.getValue())) {
+                    if (!diff.entryAdded(entry)) {
                         return false;
                     }
                 }
