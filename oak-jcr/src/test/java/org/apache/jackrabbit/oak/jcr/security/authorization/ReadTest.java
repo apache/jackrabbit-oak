@@ -514,7 +514,9 @@ public class ReadTest extends AbstractEvaluationTest {
         TraversingItemVisitor v = new TraversingItemVisitor.Default(true, -1) {
             @Override
             protected void entering(Node node, int level) throws RepositoryException {
-                if (node.isNodeType("rep:Permissions") && path.equals(node.getProperty("rep:accessControlledPath").getString())) {
+                if (node.isNodeType("rep:Permissions")
+                        && node.hasProperty("rep:accessControlledPath")
+                        && path.equals(node.getProperty("rep:accessControlledPath").getString())) {
                     assertEquals(index, node.getProperty("rep:index").getLong());
                     assertEquals(isAllow, node.getProperty("rep:isAllow").getBoolean());
                 }

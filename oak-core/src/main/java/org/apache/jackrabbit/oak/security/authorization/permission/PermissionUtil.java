@@ -20,25 +20,48 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+
 import com.google.common.base.Strings;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.util.Text;
 
 /**
  * PermissionUtil... TODO
  */
-public final class PermissionUtil {
+public final class PermissionUtil implements PermissionConstants {
 
     private PermissionUtil() {}
 
     @CheckForNull
-    public static String getParentPathOrNull(@Nonnull String path) {
-        return (PathUtils.denotesRoot(path) || path.isEmpty()) ? null : Text.getRelativeParent(path, 1);
+    public static String getParentPathOrNull(@Nonnull final String path) {
+        if (path.length() <= 1) {
+            return null;
+        } else {
+            int idx = path.lastIndexOf('/');
+            if (idx == 0) {
+                return "/";
+            } else {
+                return path.substring(0, idx);
+            }
+        }
     }
 
     @Nonnull
     public static String getEntryName(@Nullable String accessControlledPath) {
         String path = Strings.nullToEmpty(accessControlledPath);
         return String.valueOf(path.hashCode());
+    }
+
+    public static boolean checkACLPath(NodeBuilder node, String path) {
+        PropertyState property = node.getProperty(REP_ACCESS_CONTROLLED_PATH);
+        return property != null && path.equals(property.getValue(Type.STRING));
+    }
+
+    public static boolean checkACLPath(Tree node, String path) {
+        PropertyState property = node.getProperty(REP_ACCESS_CONTROLLED_PATH);
+        return property != null && path.equals(property.getValue(Type.STRING));
     }
 }
