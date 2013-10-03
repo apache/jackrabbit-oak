@@ -175,6 +175,25 @@ public abstract class AbstractNodeState implements NodeState {
         return true;
     }
 
+    public static String toString(NodeState state) {
+        if (!state.exists()) {
+            return "{N/A}";
+        }
+        StringBuilder builder = new StringBuilder("{");
+        String separator = " ";
+        for (PropertyState property : state.getProperties()) {
+            builder.append(separator);
+            separator = ", ";
+            builder.append(property);
+        }
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            builder.append(separator);
+            separator = ", ";
+            builder.append(entry);
+        }
+        builder.append(" }");
+        return builder.toString();
+    }
 
     @Override
     public boolean hasProperty(String name) {
@@ -268,23 +287,7 @@ public abstract class AbstractNodeState implements NodeState {
      * @return string representation
      */
     public String toString() {
-        if (!exists()) {
-            return "{N/A}";
-        }
-        StringBuilder builder = new StringBuilder("{");
-        String separator = " ";
-        for (PropertyState property : getProperties()) {
-            builder.append(separator);
-            separator = ", ";
-            builder.append(property);
-        }
-        for (ChildNodeEntry entry : getChildNodeEntries()) {
-            builder.append(separator);
-            separator = ", ";
-            builder.append(entry);
-        }
-        builder.append(" }");
-        return builder.toString();
+        return toString(this);
     }
 
     /**
@@ -301,24 +304,24 @@ public abstract class AbstractNodeState implements NodeState {
     public boolean equals(Object that) {
         if (this == that) {
             return true;
-        } else if (that == null || !(that instanceof NodeState)) {
+        } else if (that instanceof NodeState) {
+            return equals(this, (NodeState) that);
+        } else {
             return false;
         }
+    }
 
-        NodeState other = (NodeState) that;
-
-        if (exists() != other.exists()) {
-            return false;
+    public static boolean equals(NodeState a, NodeState b) {
+        if (a.exists() != b.exists()
+                || a.getPropertyCount() != b.getPropertyCount()) {
+            return false; // shortcut
         }
 
-        if (getPropertyCount() != other.getPropertyCount()) {
-            return false;
-        }
         // if one of the objects has few entries,
         // then compare the number of entries with the other one
         long max = 20;
-        long c1 = getChildNodeCount(max);
-        long c2 = other.getChildNodeCount(max);
+        long c1 = a.getChildNodeCount(max);
+        long c2 = b.getChildNodeCount(max);
         if (c1 <= max || c2 <= max) {
             // one has less than max entries
             if (c1 != c2) {
@@ -331,8 +334,8 @@ public abstract class AbstractNodeState implements NodeState {
             }
         }
 
-        for (PropertyState property : getProperties()) {
-            if (!property.equals(other.getProperty(property.getName()))) {
+        for (PropertyState property : a.getProperties()) {
+            if (!property.equals(b.getProperty(property.getName()))) {
                 return false;
             }
         }
@@ -341,17 +344,16 @@ public abstract class AbstractNodeState implements NodeState {
 
         // compare the exact child node count
         // (before, we only compared up to 20 entries)
-        c1 = getChildNodeCount(Long.MAX_VALUE);
-        c2 = other.getChildNodeCount(Long.MAX_VALUE);
+        c1 = a.getChildNodeCount(Long.MAX_VALUE);
+        c2 = b.getChildNodeCount(Long.MAX_VALUE);
         if (c1 != c2) {
             return false;
         }
-        
+
         // compare all child nodes recursively (this is potentially very slow,
         // as it recursively calls equals)
-        for (ChildNodeEntry entry : getChildNodeEntries()) {
-            if (!entry.getNodeState().equals(
-                    other.getChildNode(entry.getName()))) {
+        for (ChildNodeEntry entry : a.getChildNodeEntries()) {
+            if (!entry.getNodeState().equals(b.getChildNode(entry.getName()))) {
                 return false;
             }
         }

@@ -49,7 +49,7 @@ class MapEntry extends AbstractChildNodeEntry
     }
 
     public int getHash() {
-        return name.hashCode();
+        return MapRecord.getHash(name);
     }
 
     //----------------------------------------------------< ChildNodeEntry >--
@@ -87,7 +87,7 @@ class MapEntry extends AbstractChildNodeEntry
     @Override
     public int compareTo(MapEntry that) {
         return ComparisonChain.start()
-                .compare(name.hashCode(), that.name.hashCode())
+                .compare(getHash(), that.getHash())
                 .compare(name, that.name)
                 .compare(value, that.value)
                 .result();

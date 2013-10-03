@@ -219,7 +219,7 @@ public class SegmentWriter {
         writeInt((int) value);
     }
 
-    private MapLeaf writeMapLeaf(
+    private MapRecord writeMapLeaf(
             int level, Collection<MapEntry> entries) {
         checkNotNull(entries);
 
@@ -250,7 +250,7 @@ public class SegmentWriter {
             for (MapEntry entry : array) {
                 writeRecordId(entry.getValue());
             }
-            return new MapLeaf(dummySegment, id, size, level);
+            return new MapRecord(dummySegment, id);
         }
     }
 
@@ -271,7 +271,7 @@ public class SegmentWriter {
             for (RecordId id : ids) {
                 writeRecordId(id);
             }
-            return new MapBranch(dummySegment, mapId, size, level, bitmap);
+            return new MapRecord(dummySegment, mapId);
         }
     }
 
@@ -287,7 +287,7 @@ public class SegmentWriter {
     private synchronized MapRecord writeMapBucket(
             RecordId baseId, Collection<MapEntry> entries, int level) {
         int mask = MapRecord.BUCKETS_PER_LEVEL - 1;
-        int shift = level * MapRecord.LEVEL_BITS;
+        int shift = 32 - (level + 1) * MapRecord.LEVEL_BITS;
 
         if (entries == null || entries.isEmpty()) {
             if (baseId != null) {
@@ -296,7 +296,7 @@ public class SegmentWriter {
                 synchronized (this) {
                     RecordId id = prepare(4);
                     writeInt(0);
-                    return new MapLeaf(dummySegment, id, 0, 0);
+                    return new MapRecord(dummySegment, id);
                 }
             } else {
                 return null;
@@ -304,7 +304,7 @@ public class SegmentWriter {
         } else if (baseId != null) {
             // FIXME: messy code with lots of duplication
             MapRecord base = dummySegment.readMap(baseId);
-            if (base instanceof MapLeaf) {
+            if (base.isLeaf()) {
                 Map<String, MapEntry> map = newHashMap();
                 for (MapEntry entry : base.getEntries()) {
                     map.put(entry.getName(), entry);
@@ -327,7 +327,7 @@ public class SegmentWriter {
                 buckets.addAll(Collections.nCopies(
                         BUCKETS_PER_LEVEL, (Collection<MapEntry>) null));
                 for (MapEntry entry : entries) {
-                    int bucketIndex = (entry.hashCode() >> shift) & mask;
+                    int bucketIndex = (entry.getHash() >> shift) & mask;
                     Collection<MapEntry> bucket = buckets.get(bucketIndex);
                     if (bucket == null) {
                         bucket = Lists.newArrayList();
@@ -338,7 +338,7 @@ public class SegmentWriter {
 
                 int newSize = 0;
                 List<MapRecord> newBuckets = Lists.newArrayList();
-                RecordId[] bucketIds = ((MapBranch) base).getBuckets();
+                RecordId[] bucketIds = base.getBuckets();
                 for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
                     MapRecord newBucket = writeMapBucket(
                             bucketIds[i], buckets.get(i), level + 1);
@@ -359,7 +359,7 @@ public class SegmentWriter {
                         synchronized (this) {
                             RecordId id = prepare(4);
                             writeInt(0);
-                            return new MapLeaf(dummySegment, id, 0, 0);
+                            return new MapRecord(dummySegment, id);
                         }
                     } else {
                         return null;
@@ -367,8 +367,6 @@ public class SegmentWriter {
                 } else if (newBuckets.size() == 1) {
                     return newBuckets.iterator().next();
                 } else {
-                    // FIXME: ugly hack, flush() shouldn't be needed here
-                    flush();
                     List<MapEntry> list = Lists.newArrayList();
                     for (MapRecord record : newBuckets) {
                         Iterables.addAll(list, record.getEntries());
@@ -382,7 +380,7 @@ public class SegmentWriter {
         } else {
             List<MapEntry>[] lists = new List[MapRecord.BUCKETS_PER_LEVEL];
             for (MapEntry entry : entries) {
-                int bucketIndex = (entry.hashCode() >> shift) & mask;
+                int bucketIndex = (entry.getHash() >> shift) & mask;
                 if (lists[bucketIndex] == null) {
                     lists[bucketIndex] = Lists.newArrayList();
                 }
