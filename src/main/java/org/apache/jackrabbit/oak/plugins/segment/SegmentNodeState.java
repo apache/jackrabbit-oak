@@ -307,9 +307,16 @@ public class SegmentNodeState extends Record implements NodeState {
                                 getSegment(), getRecordId(),
                                 that.getSegment(), that.getRecordId());
             }
+        } else if (object instanceof NodeState){
+            return AbstractNodeState.equals(this, (NodeState) object); // TODO
         } else {
-            return super.equals(object); // TODO
+            return false;
         }
+    }
+
+    @Override
+    public String toString() {
+        return AbstractNodeState.toString(this);
     }
 
 }
