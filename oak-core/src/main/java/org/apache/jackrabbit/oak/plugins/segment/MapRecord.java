@@ -86,7 +86,7 @@ abstract class MapRecord extends Record {
 
     boolean compareAgainstEmptyMap(MapDiff diff) {
         for (MapEntry entry : getEntries()) {
-            if (!diff.entryAdded(entry.getName(), entry.getValue())) {
+            if (!diff.entryAdded(entry)) {
                 return false;
             }
         }
@@ -94,9 +94,9 @@ abstract class MapRecord extends Record {
     }
 
     interface MapDiff {
-        boolean entryAdded(String key, RecordId after);
-        boolean entryChanged(String key, RecordId before, RecordId after);
-        boolean entryDeleted(String key, RecordId before);
+        boolean entryAdded(MapEntry after);
+        boolean entryChanged(MapEntry before, MapEntry after);
+        boolean entryDeleted(MapEntry before);
     }
 
     boolean compare(MapRecord that, MapDiff diff) {
@@ -105,11 +105,11 @@ abstract class MapRecord extends Record {
             String name = entry.getName();
             MapEntry thatEntry = that.getEntry(name);
             if (thatEntry == null) {
-                if (!diff.entryAdded(name, entry.getValue())) {
+                if (!diff.entryAdded(entry)) {
                     return false;
                 }
             } else if (!entry.getValue().equals(thatEntry.getValue())) {
-                if (!diff.entryChanged(name, thatEntry.getValue(), entry.getValue())) {
+                if (!diff.entryChanged(thatEntry, entry)) {
                     return false;
                 }
             }
@@ -118,7 +118,7 @@ abstract class MapRecord extends Record {
         for (MapEntry entry : that.getEntries()) {
             String name = entry.getName();
             if (!keys.contains(name)) {
-                if (!diff.entryDeleted(name, entry.getValue())) {
+                if (!diff.entryDeleted(entry)) {
                     return false;
                 }
             }
