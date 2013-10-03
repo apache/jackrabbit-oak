@@ -41,7 +41,7 @@ public class SmallFileReadTest extends AbstractTest {
         session = getRepository().login(getCredentials());
 
         root = session.getRootNode().addNode(
-                "SmallFileReadTest", "nt:folder");
+                getClass().getSimpleName() + TEST_ID, "nt:folder");
         for (int i = 0; i < FILE_COUNT; i++) {
             Node file = root.addNode("file" + i, "nt:file");
             Node content = file.addNode("jcr:content", "nt:resource");

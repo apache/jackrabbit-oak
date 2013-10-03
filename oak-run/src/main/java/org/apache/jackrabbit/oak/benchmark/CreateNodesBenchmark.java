@@ -57,7 +57,8 @@ public class CreateNodesBenchmark extends Benchmark {
                 new SimpleCredentials("admin", "admin".toCharArray()));
         AtomicInteger count = new AtomicInteger();
         long time = System.currentTimeMillis();
-        createNodes(session.getRootNode(), 10, 5, count);
+        Node testRoot = session.getRootNode().addNode("r" + AbstractTest.TEST_ID);
+        createNodes(testRoot, 10, 5, count);
         time = System.currentTimeMillis() - time;
         System.out.format(
                 "Created %d nodes in %d seconds (%.2fms/node)%n",

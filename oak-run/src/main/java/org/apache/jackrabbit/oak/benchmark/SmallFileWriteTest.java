@@ -45,7 +45,7 @@ public class SmallFileWriteTest extends AbstractTest {
     @Override
     public void beforeTest() throws RepositoryException {
         root = session.getRootNode().addNode(
-                "SmallFileWriteTest" + iteration++, "nt:folder");
+                "SmallFileWrite" + TEST_ID + iteration++, "nt:folder");
         session.save();
     }
 

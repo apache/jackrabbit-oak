@@ -150,7 +150,7 @@ abstract class ReadManyTest extends AbstractTest {
     @Override
     protected void beforeSuite() throws Exception {
         session = getRepository().login(getCredentials());
-        root = session.getRootNode().addNode("content");
+        root = session.getRootNode().addNode("c" + TEST_ID);
         for (int i = 0; i < scale; i++) {
             Node top = root.addNode("node" + i);
             for (int j = 0; j < 1000; j++) {

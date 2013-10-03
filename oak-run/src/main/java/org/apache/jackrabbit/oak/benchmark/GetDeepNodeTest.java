@@ -35,7 +35,8 @@ public class GetDeepNodeTest extends AbstractTest {
     @Override
     protected void beforeSuite() throws Exception {
         session = loginWriter();
-        testRoot = session.getRootNode().addNode(GetNodeTest.class.getSimpleName(), "nt:unstructured");
+        testRoot = session.getRootNode().addNode(
+                getClass().getSimpleName() + TEST_ID, "nt:unstructured");
         Node node = testRoot;
         testPath = "";
         for (int k = 0; k < DEPTH; k++) {
