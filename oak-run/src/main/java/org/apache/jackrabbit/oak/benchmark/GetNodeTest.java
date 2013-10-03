@@ -68,7 +68,8 @@ public abstract class GetNodeTest extends AbstractTest {
     @Override
     protected void beforeSuite() throws Exception {
         Session session = loginWriter();
-        testRoot = session.getRootNode().addNode(GetNodeTest.class.getSimpleName(), "nt:unstructured");
+        testRoot = session.getRootNode().addNode(
+                getClass().getSimpleName() + TEST_ID, "nt:unstructured");
         testRoot.addNode("node1").addNode("node2");
 
         addAccessControlEntry(session, testRoot.getPath(), EveryonePrincipal.getInstance(),

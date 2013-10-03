@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
@@ -36,6 +37,15 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
  */
 abstract class AbstractTest extends Benchmark {
 
+    /**
+     * A random string to guarantee concurrently running tests don't overwrite
+     * each others changes (for example in a cluster).
+     * <p>
+     * The probability of duplicates, for 50 concurrent processes, is less than
+     * 1 in 1 million.
+     */
+    static final String TEST_ID = Integer.toHexString(new Random().nextInt());
+    
     private static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
 
     private static final long WARMUP = TimeUnit.SECONDS.toMillis(Long.getLong("warmup", 5));
@@ -43,7 +53,7 @@ abstract class AbstractTest extends Benchmark {
     private static final long RUNTIME = TimeUnit.SECONDS.toMillis(Long.getLong("runtime", 60));
     
     private static final boolean PROFILE = Boolean.getBoolean("profile");
-
+    
     private Repository repository;
 
     private Credentials credentials;

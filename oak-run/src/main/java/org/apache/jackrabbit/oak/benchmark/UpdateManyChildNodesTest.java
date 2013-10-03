@@ -25,6 +25,8 @@ import javax.jcr.Session;
  * node with {@value #CHILD_COUNT} existing child nodes.
  */
 public class UpdateManyChildNodesTest extends AbstractTest {
+    
+    protected static final String ROOT_NODE_NAME = "update" + TEST_ID;
 
     private static final int CHILD_COUNT = 10 * 1000;
 
@@ -35,7 +37,7 @@ public class UpdateManyChildNodesTest extends AbstractTest {
     @Override
     public void beforeSuite() throws RepositoryException {
         session = getRepository().login(getCredentials());
-        node = session.getRootNode().addNode("testnode", "nt:unstructured");
+        node = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:unstructured");
         for (int i = 0; i < CHILD_COUNT; i++) {
             node.addNode("node" + i, "nt:unstructured");
         }
@@ -59,7 +61,7 @@ public class UpdateManyChildNodesTest extends AbstractTest {
 
     @Override
     public void afterSuite() throws RepositoryException {
-        session.getRootNode().getNode("testnode").remove();
+        session.getRootNode().getNode(ROOT_NODE_NAME).remove();
         session.save();
         session.logout();
     }

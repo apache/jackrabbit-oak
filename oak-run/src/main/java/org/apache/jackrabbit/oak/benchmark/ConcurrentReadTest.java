@@ -30,6 +30,8 @@ import javax.jcr.Session;
 public class ConcurrentReadTest extends AbstractTest {
 
     protected static final int NODE_COUNT = 100;
+    
+    protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
 
     private final int backgroundReaderCount;
 
@@ -54,7 +56,7 @@ public class ConcurrentReadTest extends AbstractTest {
     @Override
     public void beforeSuite() throws Exception {
         Session session = loginWriter();
-        Node root = session.getRootNode().addNode("testroot", "nt:unstructured");
+        Node root = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:unstructured");
         for (int i = 0; i < NODE_COUNT; i++) {
             Node node = root.addNode("node" + i, "nt:unstructured");
             for (int j = 0; j < NODE_COUNT; j++) {
@@ -89,7 +91,7 @@ public class ConcurrentReadTest extends AbstractTest {
                 for (int i = 0; i < 10000; i++) {
                     int a = random.nextInt(NODE_COUNT);
                     int b = random.nextInt(NODE_COUNT);
-                    session.getRootNode().getNode("testroot/node" + a + "/node" + b);
+                    session.getRootNode().getNode(ROOT_NODE_NAME + "/node" + a + "/node" + b);
                 }
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
@@ -113,7 +115,7 @@ public class ConcurrentReadTest extends AbstractTest {
                     int a = random.nextInt(NODE_COUNT);
                     int b = random.nextInt(NODE_COUNT);
                     Node node = session.getRootNode().getNode(
-                            "testroot/node" + a + "/node" + b);
+                            ROOT_NODE_NAME + "/node" + a + "/node" + b);
                     boolean done = false;
                     while (!done) {
                         try {
@@ -141,7 +143,7 @@ public class ConcurrentReadTest extends AbstractTest {
     @Override
     public void afterSuite() throws Exception {
         Session session = loginWriter();
-        Node root = session.getRootNode().getNode("testroot");
+        Node root = session.getRootNode().getNode(ROOT_NODE_NAME);
         for (int i = 0; i < NODE_COUNT; i++) {
             root.getNode("node" + i).remove();
             session.save();

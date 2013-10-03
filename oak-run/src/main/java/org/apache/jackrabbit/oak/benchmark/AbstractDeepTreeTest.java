@@ -51,7 +51,7 @@ public abstract class AbstractDeepTreeTest extends AbstractTest {
     @Override
     protected void beforeSuite() throws Exception {
         adminSession = getRepository().login(getCredentials());
-        String name = getClass().getSimpleName();
+        String name = getClass().getSimpleName() + TEST_ID;
         Node rn = adminSession.getRootNode();
 
         long start = System.currentTimeMillis();

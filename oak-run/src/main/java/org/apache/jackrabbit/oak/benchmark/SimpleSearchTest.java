@@ -47,7 +47,7 @@ public class SimpleSearchTest extends AbstractTest {
     public void beforeSuite() throws RepositoryException {
         session = getRepository().login(getCredentials());
 
-        root = session.getRootNode().addNode("testroot", "nt:unstructured");
+        root = session.getRootNode().addNode("testroot" + TEST_ID, "nt:unstructured");
         for (int i = 0; i < NODE_COUNT; i++) {
             Node node = root.addNode("node" + i, "nt:unstructured");
             for (int j = 0; j < NODE_COUNT; j++) {
