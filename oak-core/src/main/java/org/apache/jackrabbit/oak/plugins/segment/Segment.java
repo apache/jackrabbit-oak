@@ -239,13 +239,8 @@ public class Segment {
         }
     }
 
-    MapRecord readMap(final RecordId id) {
-        return store.getRecord(id, new Callable<MapRecord>() {
-            @Override
-            public MapRecord call() {
-                return getSegment(id).readMap(id.getOffset());
-            }
-        });
+    MapRecord readMap(RecordId id) {
+        return getSegment(id).readMap(id.getOffset());
     }
 
     MapRecord readMap(int offset) {
