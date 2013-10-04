@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.benchmark;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -35,7 +34,8 @@ import org.apache.jackrabbit.util.Text;
  * Concurrently reads random items from the deep tree where every 10th node is
  * access controlled.
  */
-public class ConcurrentReadAccessControlledTreeTest extends AbstractDeepTreeTest {
+public class ConcurrentReadAccessControlledTreeTest
+        extends ConcurrentReadDeepTreeTest {
 
     public ConcurrentReadAccessControlledTreeTest(
             boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
@@ -90,34 +90,6 @@ public class ConcurrentReadAccessControlledTreeTest extends AbstractDeepTreeTest
         };
 
         visitor.visit(testRoot);
-
-        for (int i = 0; i < bgReaders; i++) {
-            addBackgroundJob(new RandomRead(getTestSession()));
-        }
     }
 
-    @Override
-    protected void runTest() throws Exception {
-        Session testSession = getTestSession();
-        RandomRead randomRead = new RandomRead(testSession);
-        randomRead.run();
-        testSession.logout();
-    }
-
-    private class RandomRead implements Runnable {
-
-        private final Session testSession;
-
-        private RandomRead(Session testSession) {
-            this.testSession = testSession;
-        }
-
-        public void run() {
-            try {
-                randomRead(testSession, allPaths, itemsToRead);
-            } catch (RepositoryException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 }

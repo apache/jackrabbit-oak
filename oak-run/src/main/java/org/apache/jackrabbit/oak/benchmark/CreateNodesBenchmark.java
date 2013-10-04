@@ -56,30 +56,34 @@ public class CreateNodesBenchmark extends Benchmark {
         Session session = repository.login(
                 new SimpleCredentials("admin", "admin".toCharArray()));
         AtomicInteger count = new AtomicInteger();
-        long time = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         Node testRoot = session.getRootNode().addNode("r" + AbstractTest.TEST_ID);
-        createNodes(testRoot, 10, 5, count);
-        time = System.currentTimeMillis() - time;
+        createNodes(testRoot, 20, 6, count, startTime);
+        long duration = System.currentTimeMillis() - startTime;
         System.out.format(
                 "Created %d nodes in %d seconds (%.2fms/node)%n",
-                count.get(), time / 1000, (double) time / count.get());
+                count.get(), duration / 1000, (double) duration / count.get());
     }
 
     private void createNodes(Node n, int nodesPerLevel,
-                            int levels, AtomicInteger count)
+                            int levels, AtomicInteger count, long startTime)
             throws RepositoryException {
         levels--;
         List<Node> nodes = new ArrayList<Node>();
         for (int i = 0; i < nodesPerLevel; i++) {
             nodes.add(n.addNode("folder-" + i, "nt:folder"));
             if (count.incrementAndGet() % 1000 == 0) {
-                System.out.format("Created %d nodes so far...%n", count.get());
+                long duration = System.currentTimeMillis() - startTime;
+                System.out.format(
+                        "Created %d nodes in %d seconds (%.2fms/node)...%n",
+                        count.get(), duration / 1000,
+                        (double) duration / count.get());
             }
         }
         n.getSession().save();
         if (levels > 0) {
             for (Node child : nodes) {
-                createNodes(child, nodesPerLevel, levels, count);
+                createNodes(child, nodesPerLevel, levels, count, startTime);
             }
         }
     }

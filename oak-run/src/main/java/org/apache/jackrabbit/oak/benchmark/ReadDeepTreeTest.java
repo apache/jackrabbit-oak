@@ -16,27 +16,145 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.jcr.ImportUUIDBehavior;
+import javax.jcr.Item;
+import javax.jcr.ItemVisitor;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.util.TraversingItemVisitor;
 
 /**
  * Randomly read 1000 items from the deep tree.
  */
-public class ReadDeepTreeTest extends AbstractDeepTreeTest {
+public class ReadDeepTreeTest extends AbstractTest {
+
+    protected final boolean runAsAdmin;
+    protected final int itemsToRead;
+    protected final int bgReaders;
+    protected final boolean doReport;
+
+    protected Session adminSession;
+    protected Node testRoot;
+
+    private Session testSession;
+
+    protected List<String> allPaths;
+
+    protected ReadDeepTreeTest(
+            boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
+        this.runAsAdmin = runAsAdmin;
+        this.itemsToRead = itemsToRead;
+        this.bgReaders = bgReaders;
+        this.doReport = doReport;
+    }
 
     public ReadDeepTreeTest(
             boolean runAsAdmin, int itemsToRead, boolean doReport) {
-        super(runAsAdmin, itemsToRead, 0, doReport);
+        this(runAsAdmin, itemsToRead, 0, doReport);
     }
 
     @Override
     protected void beforeSuite() throws Exception {
-        super.beforeSuite();
+        adminSession = loginWriter();
+        String name = getClass().getSimpleName() + TEST_ID;
+        Node rn = adminSession.getRootNode();
+
+        long start = System.currentTimeMillis();
+        if (!rn.hasNode(name)) {
+            testRoot = adminSession.getRootNode().addNode(name, "nt:unstructured");
+            InputStream in = getClass().getClassLoader().getResourceAsStream("deepTree.xml");
+            adminSession.importXML(testRoot.getPath(), in, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            adminSession.save();
+        } else {
+            testRoot = rn.getNode(name);
+        }
+        System.out.println("Import deep tree: " + (System.currentTimeMillis()-start));
+
+        final List<String> paths = new ArrayList<String>();
+        ItemVisitor v = new TraversingItemVisitor.Default() {
+            @Override
+            protected void entering(Node node, int i) throws RepositoryException {
+                paths.add(node.getPath());
+                super.entering(node, i);
+            }
+            @Override
+            protected void entering(Property prop, int i) throws RepositoryException {
+                paths.add(prop.getPath());
+                super.entering(prop, i);
+            }
+        };
+        v.visit(testRoot);
+        allPaths = paths;
+
+        System.out.println("All paths: " + allPaths.size());
+
+        for (int i = 0; i < bgReaders; i++) {
+            final Session session = getTestSession();
+            addBackgroundJob(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        randomRead(session, allPaths, itemsToRead);
+                    } catch (RepositoryException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+        }
+
+        testSession = getTestSession();
+    }
+
+    @Override
+    protected void afterSuite() throws Exception {
+        testRoot.remove();
+        adminSession.save();
     }
 
     @Override
     protected void runTest() throws Exception {
-        Session testSession = getTestSession();
         randomRead(testSession, allPaths, itemsToRead);
-        testSession.logout();
     }
+
+    protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
+        int nodeCnt = 0;
+        int propertyCnt = 0;
+        int noAccess = 0;
+        int size = allPaths.size();
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < cnt; i++) {
+            double rand = size * Math.random();
+            int index = (int) Math.floor(rand);
+            String path = allPaths.get(index);
+            if (testSession.itemExists(path)) {
+                Item item = testSession.getItem(path);
+                if (item.isNode()) {
+                    nodeCnt++;
+                } else {
+                    propertyCnt++;
+                }
+            } else {
+                noAccess++;
+            }
+        }
+        long end = System.currentTimeMillis();
+        if (doReport) {
+            System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-noAccess) + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+") completed in " + (end - start));
+        }
+    }
+
+    protected Session getTestSession() {
+        if (runAsAdmin) {
+            return loginWriter();
+        } else {
+            return loginAnonymous();
+        }
+    }
+
 }
