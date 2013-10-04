@@ -16,50 +16,14 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
 /**
  * Concurrently reads random items from the deep tree.
  */
-public class ConcurrentReadDeepTreeTest extends AbstractDeepTreeTest {
+public class ConcurrentReadDeepTreeTest extends ReadDeepTreeTest {
 
     public ConcurrentReadDeepTreeTest(
             boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
         super(runAsAdmin, itemsToRead, bgReaders, doReport);
     }
 
-    @Override
-    protected void beforeSuite() throws Exception {
-        super.beforeSuite();
-
-        for (int i = 0; i < bgReaders; i++) {
-            addBackgroundJob(new RandomRead(getTestSession()));
-        }
-    }
-
-    @Override
-    protected void runTest() throws Exception {
-        Session testSession = getTestSession();
-        RandomRead randomRead = new RandomRead(testSession);
-        randomRead.run();
-        testSession.logout();
-    }
-
-    private class RandomRead implements Runnable {
-
-        private final Session testSession;
-
-        private RandomRead(Session testSession) {
-            this.testSession = testSession;
-        }
-
-        public void run() {
-            try {
-                randomRead(testSession, allPaths, itemsToRead);
-            } catch (RepositoryException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 }
