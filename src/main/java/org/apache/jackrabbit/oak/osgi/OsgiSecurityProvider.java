@@ -78,7 +78,7 @@ public class OsgiSecurityProvider extends AbstractServiceTracker<SecurityConfigu
         ConfigurationParameters params = config.getConfigValue(name, ConfigurationParameters.EMPTY);
         SecurityConfiguration sc = serviceMap.get(name);
         if (sc != null) {
-            return ConfigurationParameters.newInstance(params, sc.getParameters());
+            return ConfigurationParameters.of(params, sc.getParameters());
         } else {
             return params;
         }

@@ -71,7 +71,7 @@ public class SyncMode {
         return fromInt(mode);
     }
 
-    public static SyncMode fromStrings(String[] names) {
+    public static SyncMode fromStrings(String ... names) {
         int mode = MODE_NO_SYNC;
         for (String name : names) {
             mode |= fromString(name.trim()).mode;
