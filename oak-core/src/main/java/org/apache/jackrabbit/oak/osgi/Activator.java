@@ -197,9 +197,9 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
                 AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
         );
 
-        ConfigurationParameters securityConfig = new ConfigurationParameters(ImmutableMap.of(
-                UserConfiguration.NAME, new ConfigurationParameters(userMap),
-                AuthorizationConfiguration.NAME, new ConfigurationParameters(authorizMap)
+        ConfigurationParameters securityConfig = ConfigurationParameters.of(ImmutableMap.of(
+                UserConfiguration.NAME, ConfigurationParameters.of(userMap),
+                AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)
         ));
         return securityConfig;
     }

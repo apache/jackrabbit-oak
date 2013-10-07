@@ -135,7 +135,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     @Nonnull
     @Override
     public TokenProvider getTokenProvider(Root root) {
-        ConfigurationParameters tokenOptions = getParameters().getConfigValue(PARAM_TOKEN_OPTIONS, new ConfigurationParameters());
+        ConfigurationParameters tokenOptions = getParameters().getConfigValue(PARAM_TOKEN_OPTIONS, ConfigurationParameters.EMPTY);
         UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
         return new TokenProviderImpl(root, tokenOptions, uc);
     }

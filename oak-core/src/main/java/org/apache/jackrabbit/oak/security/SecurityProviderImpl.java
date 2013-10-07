@@ -39,7 +39,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     private final ConfigurationParameters configuration;
 
     public SecurityProviderImpl() {
-        this(new ConfigurationParameters());
+        this(ConfigurationParameters.EMPTY);
     }
 
     public SecurityProviderImpl(ConfigurationParameters configuration) {

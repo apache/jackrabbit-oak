@@ -84,6 +84,6 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     //----------------------------------------------------< SCR Integration >---
     @Activate
     protected void activate(ComponentContext context) {
-        config = ConfigurationParameters.newInstance(context.getProperties());
+        config = ConfigurationParameters.of(context.getProperties());
     }
 }
