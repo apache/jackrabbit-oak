@@ -887,7 +887,7 @@ public class MongoMK implements MicroKernel, RevisionContext {
     }
 
     @Override
-    public synchronized String getNodes(String path, String revisionId, int depth,
+    public String getNodes(String path, String revisionId, int depth,
             long offset, int maxChildNodes, String filter)
             throws MicroKernelException {
         if (depth != 0) {
