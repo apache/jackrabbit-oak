@@ -171,7 +171,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         this.subject = subject;
         this.callbackHandler = callbackHandler;
         this.sharedState = sharedState;
-        this.options = new ConfigurationParameters(options);
+        this.options = ConfigurationParameters.of(options);
     }
 
     @Override

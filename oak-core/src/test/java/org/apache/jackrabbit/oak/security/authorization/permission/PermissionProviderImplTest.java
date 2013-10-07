@@ -87,9 +87,9 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(PermissionConstants.PARAM_READ_PATHS, READ_PATHS);
         map.put(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, new String[] {ADMINISTRATOR_GROUP});
-        ConfigurationParameters acConfig = new ConfigurationParameters(map);
+        ConfigurationParameters acConfig = ConfigurationParameters.of(map);
 
-        return new ConfigurationParameters(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
+        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
     }
 
     @Test

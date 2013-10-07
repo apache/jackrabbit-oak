@@ -62,6 +62,6 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
     //----------------------------------------------------< SCR Integration >---
     @Activate
     protected void activate(ComponentContext context) {
-        config = ConfigurationParameters.newInstance(context.getProperties());
+        config = ConfigurationParameters.of(context.getProperties());
     }
 }

@@ -62,7 +62,7 @@ public class UserProviderTest {
                 .with(new PropertyIndexEditorProvider())
                 .createRoot();
 
-        defaultConfig = new ConfigurationParameters();
+        defaultConfig = ConfigurationParameters.EMPTY;
         defaultUserPath = defaultConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
         defaultGroupPath = defaultConfig.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
 
@@ -83,7 +83,7 @@ public class UserProviderTest {
     private UserProvider createUserProvider(int defaultDepth) {
         Map<String, Object> options = new HashMap<String, Object>(customOptions);
         options.put(UserConstants.PARAM_DEFAULT_DEPTH, defaultDepth);
-        return new UserProvider(root, new ConfigurationParameters(options));
+        return new UserProvider(root, ConfigurationParameters.of(options));
     }
 
     @Test

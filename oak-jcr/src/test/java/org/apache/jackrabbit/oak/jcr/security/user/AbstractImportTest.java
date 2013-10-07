@@ -70,7 +70,7 @@ public abstract class AbstractImportTest {
         if (importBehavior != null) {
             Map<String, String> userParams = new HashMap();
             userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
-            ConfigurationParameters config = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
+            ConfigurationParameters config = ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
 
             securityProvider = new SecurityProviderImpl(config);
         } else {

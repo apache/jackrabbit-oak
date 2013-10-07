@@ -61,7 +61,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         user = (User) getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID());
 
         testAction.reset();
-        pwAction.init(getSecurityProvider(), new ConfigurationParameters(
+        pwAction.init(getSecurityProvider(), ConfigurationParameters.of(
                 Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*")));
 
     }
@@ -143,7 +143,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         testUser = getUserManager(root).createUser("testuser", "testPw123456");
         root.commit();
         try {
-            pwAction.init(getSecurityProvider(), new ConfigurationParameters(Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "abc")));
+            pwAction.init(getSecurityProvider(), ConfigurationParameters.of(Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "abc")));
 
             String hashed = PasswordUtil.buildPasswordHash("abc");
             testUser.changePassword(hashed);
@@ -197,7 +197,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
                     @Override
                     public ConfigurationParameters getParameters() {
                         Map<String, AuthorizableActionProvider> m = Collections.singletonMap(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
-                        return ConfigurationParameters.newInstance(super.getParameters(), new ConfigurationParameters(m));
+                        return ConfigurationParameters.of(super.getParameters(), ConfigurationParameters.of(m));
                     }
                 };
             } else {

@@ -148,7 +148,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         userParams.put(UserConstants.PARAM_ADMIN_ID, "admin");
         userParams.put(UserConstants.PARAM_OMIT_ADMIN_PW, true);
 
-        ConfigurationParameters params = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
+        ConfigurationParameters params = ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
         SecurityProvider sp = new SecurityProviderImpl(params);
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
@@ -199,7 +199,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         Map<String,Object> userParams = new HashMap();
         userParams.put(UserConstants.PARAM_ANONYMOUS_ID, "");
 
-        ConfigurationParameters params = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.NAME, new ConfigurationParameters(userParams)));
+        ConfigurationParameters params = ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
         SecurityProvider sp = new SecurityProviderImpl(params);
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
