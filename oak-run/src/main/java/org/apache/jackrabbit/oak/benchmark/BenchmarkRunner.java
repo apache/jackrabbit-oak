@@ -86,6 +86,7 @@ public class BenchmarkRunner {
             new LoginTest(),
             new LoginLogoutTest(),
             new NamespaceTest(),
+            new NamespaceRegistryTest(),
             new ReadPropertyTest(),
             GetNodeTest.withAdmin(),
             GetNodeTest.withAnonymous(),
