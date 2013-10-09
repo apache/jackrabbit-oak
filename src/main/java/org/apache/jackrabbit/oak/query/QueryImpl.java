@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.query.ast.NotImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyExistenceImpl;
+import org.apache.jackrabbit.oak.query.ast.PropertyInexistenceImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
 import org.apache.jackrabbit.oak.query.ast.SameNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.SameNodeJoinConditionImpl;
@@ -203,6 +204,13 @@ public class QueryImpl implements Query {
 
             @Override
             public boolean visit(PropertyExistenceImpl node) {
+                node.setQuery(query);
+                node.bindSelector(source);
+                return true;
+            }
+            
+            @Override
+            public boolean visit(PropertyInexistenceImpl node) {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return true;
