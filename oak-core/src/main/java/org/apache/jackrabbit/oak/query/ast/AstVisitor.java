@@ -67,6 +67,8 @@ public interface AstVisitor {
 
     boolean visit(PropertyExistenceImpl node);
 
+    boolean visit(PropertyInexistenceImpl node);
+
     boolean visit(PropertyValueImpl node);
 
     boolean visit(SameNodeImpl node);
