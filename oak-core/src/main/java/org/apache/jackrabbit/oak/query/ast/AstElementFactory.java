@@ -114,6 +114,10 @@ public class AstElementFactory {
     public PropertyExistenceImpl propertyExistence(String selectorName, String propertyName) {
         return new PropertyExistenceImpl(selectorName, propertyName);
     }
+    
+    public PropertyInexistenceImpl propertyInexistence(String selectorName, String propertyName) {
+        return new PropertyInexistenceImpl(selectorName, propertyName);
+    }
 
     public PropertyValueImpl propertyValue(String selectorName, String propertyName) {
         return new PropertyValueImpl(selectorName, propertyName);

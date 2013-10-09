@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyExistenceImpl;
+import org.apache.jackrabbit.oak.query.ast.PropertyInexistenceImpl;
 import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
@@ -399,9 +400,10 @@ public class SQL2Parser {
                 throw getSyntaxError("propertyName (NOT NULL is only supported for properties)");
             }
             PropertyValueImpl p = (PropertyValueImpl) left;
-            c = getPropertyExistence(p);
-            if (!not) {
-                c = factory.not(c);
+            if (not) {
+                c = getPropertyExistence(p);
+            } else {
+                c = getPropertyInexistence(p);
             }
         } else if (readIf("NOT")) {
             if (readIf("IS")) {
@@ -426,6 +428,10 @@ public class SQL2Parser {
 
     private PropertyExistenceImpl getPropertyExistence(PropertyValueImpl p) throws ParseException {
         return factory.propertyExistence(p.getSelectorName(), p.getPropertyName());
+    }
+    
+    private PropertyInexistenceImpl getPropertyInexistence(PropertyValueImpl p) throws ParseException {
+        return factory.propertyInexistence(p.getSelectorName(), p.getPropertyName());
     }
 
     private ConstraintImpl parseConditionFunctionIf(String functionName) throws ParseException {

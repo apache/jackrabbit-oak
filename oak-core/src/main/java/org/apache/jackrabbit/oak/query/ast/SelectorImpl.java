@@ -315,21 +315,18 @@ public class SelectorImpl extends SourceImpl {
     public String currentPath() {
         return cursor == null ? null : currentRow.getPath();
     }
-
-    public PropertyValue currentProperty(String propertyName) {
-        boolean relative = propertyName.indexOf('/') >= 0;
-        if (cursor == null) {
-            return null;
-        }
-        IndexRow r = currentRow;
-        if (r == null) {
-            return null;
-        }
-        String path = r.getPath();
+    
+    public Tree currentTree() {
+        String path = currentPath();
         if (path == null) {
             return null;
         }
-        Tree t = getTree(path);
+        return getTree(path);
+    }
+
+    public PropertyValue currentProperty(String propertyName) {
+        boolean relative = propertyName.indexOf('/') >= 0;
+        Tree t = currentTree();
         if (relative) {
             for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
                 if (t == null) {
@@ -349,6 +346,7 @@ public class SelectorImpl extends SourceImpl {
             return null;
         }
         if (propertyName.equals(QueryImpl.JCR_PATH)) {
+            String path = currentPath();
             String local = getLocalPath(path);
             if (local == null) {
                 // not a local path
