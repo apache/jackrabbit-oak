@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -89,7 +91,7 @@ public class ReadTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testDeniedReadOnSubTree() throws Exception, InterruptedException {
+    public void testDeniedReadOnSubTree() throws Exception {
         // withdraw READ privilege to 'testUser' at 'path'
         deny(childNPath, readPrivileges);
         /*
@@ -410,7 +412,7 @@ public class ReadTest extends AbstractEvaluationTest {
             allow(path, group2.getPrincipal(), readPrivs);
             deny(path, group3.getPrincipal(), readPrivs);
 
-            Set<Principal> principals = new HashSet();
+            Set<Principal> principals = new HashSet<Principal>();
             principals.add(getTestGroup().getPrincipal());
             principals.add(group2.getPrincipal());
             principals.add(group3.getPrincipal());
@@ -437,7 +439,7 @@ public class ReadTest extends AbstractEvaluationTest {
             deny(path, group3.getPrincipal(), readPrivs);
             modify(path, getTestGroup().getPrincipal(), readPrivs, true, createGlobRestriction("/*"));
 
-            Set<Principal> principals = new HashSet();
+            Set<Principal> principals = new HashSet<Principal>();
             principals.add(getTestGroup().getPrincipal());
             principals.add(group2.getPrincipal());
             principals.add(group3.getPrincipal());
@@ -503,6 +505,25 @@ public class ReadTest extends AbstractEvaluationTest {
         assertEntry(0, false);
 
         allow(path, testUser.getPrincipal(), readPrivileges);
+    }
+
+    @Test
+    public void testChildNodesWithAccessCheck() throws Exception {
+        Node nodeToDeny = superuser.getNode(path).addNode("nodeToDeny");
+        superuser.save();
+
+        //Deny access to one of the child node
+        deny(nodeToDeny.getPath(), privilegesFromName(PrivilegeConstants.JCR_READ));
+
+        NodeIterator it = testSession.getNode(path).getNodes();
+        Set<String> childNodeNames = new HashSet<String>();
+        while (it.hasNext()) {
+            Node n = it.nextNode();
+            childNodeNames.add(n.getName());
+        }
+
+        //Denied node should not show up in the child node names list
+        assertFalse(childNodeNames.contains("nodeToDeny"));
     }
 
     private void assertEntry(final int index, final boolean isAllow) throws RepositoryException {

@@ -338,7 +338,7 @@ public class NodeDelegate extends ItemDelegate {
                 filter(iterator, new Predicate<Tree>() {
                     @Override
                     public boolean apply(Tree tree) {
-                        return !tree.getName().startsWith(":");
+                        return tree.exists();
                     }
                 }),
                 new Function<Tree, NodeDelegate>() {
@@ -447,7 +447,6 @@ public class NodeDelegate extends ItemDelegate {
     /**
      * Set a property
      *
-     * @param propertyState
      * @return the set property
      */
     @Nonnull
@@ -824,7 +823,7 @@ public class NodeDelegate extends ItemDelegate {
     @Nonnull // FIXME this should be package private. OAK-672
     public Tree getTree() throws InvalidItemStateException {
         if (!tree.exists()) {
-            throw new InvalidItemStateException("Item is stale");
+            throw new InvalidItemStateException("Item is stale " + tree.getPath());
         }
         return tree;
     }
