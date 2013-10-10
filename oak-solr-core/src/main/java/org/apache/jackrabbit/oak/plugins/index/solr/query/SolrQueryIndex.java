@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.query;
 import java.util.Collection;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -73,18 +73,11 @@ public class SolrQueryIndex implements QueryIndex {
     private SolrQuery getQuery(Filter filter) {
 
         SolrQuery solrQuery = new SolrQuery();
-        solrQuery.setParam("q.op", "AND");
-
-        // TODO : change this to be not hard coded
-        solrQuery.setParam("df", "catch_all");
-
-        // TODO : can we handle this better?
-        solrQuery.setParam("rows", String.valueOf(Integer.MAX_VALUE));
+        setDefaults(solrQuery);
 
         StringBuilder queryBuilder = new StringBuilder();
 
         // TODO : handle node type restriction
-
         Filter.PathRestriction pathRestriction = filter.getPathRestriction();
         if (pathRestriction != null) {
             String path = purgePath(filter);
@@ -106,7 +99,7 @@ public class SolrQueryIndex implements QueryIndex {
         Collection<Filter.PropertyRestriction> propertyRestrictions = filter.getPropertyRestrictions();
         if (propertyRestrictions != null && !propertyRestrictions.isEmpty()) {
             for (Filter.PropertyRestriction pr : propertyRestrictions) {
-            	if (pr.propertyName.contains("/")) {
+                if (pr.propertyName.contains("/")) {
                     // lucene cannot handle child-level property restrictions
                     continue;
                 }
@@ -126,7 +119,7 @@ public class SolrQueryIndex implements QueryIndex {
                     queryBuilder.append(configuration.getPathField());
                     queryBuilder.append(':');
                     queryBuilder.append(first);
-                    if (!first.equals("\\/")) {
+                    if (first!= null && !"\\/".equals(first)) {
                         queryBuilder.append("\\/");
                     }
                 } else {
@@ -165,6 +158,16 @@ public class SolrQueryIndex implements QueryIndex {
         }
 
         return solrQuery;
+    }
+
+    private void setDefaults(SolrQuery solrQuery) {
+        solrQuery.setParam("q.op", "AND");
+
+        // TODO : change this to be not hard coded
+        solrQuery.setParam("df", "catch_all");
+
+        // TODO : can we handle this better?
+        solrQuery.setParam("rows", String.valueOf(Integer.MAX_VALUE));
     }
 
     private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {

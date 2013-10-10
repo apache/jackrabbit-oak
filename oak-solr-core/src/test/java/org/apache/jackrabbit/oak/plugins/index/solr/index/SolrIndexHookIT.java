@@ -16,22 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-import java.util.Set;
-
-import org.apache.jackrabbit.oak.query.ast.Operator;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
-import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
-import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.solr.client.solrj.SolrQuery;
-import org.junit.Test;
-
 import static com.google.common.collect.Sets.newHashSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
@@ -39,6 +23,21 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
+import java.util.Set;
+
+import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
+import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
+import org.apache.jackrabbit.oak.query.ast.Operator;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Test;
 
 public class SolrIndexHookIT extends SolrBaseTest {
 

@@ -22,20 +22,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrUtils;
-import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.core.CoreContainer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of {@link SolrServerProvider} which uses an
  * {@link EmbeddedSolrServer} configured as per passed {@link SolrServerConfiguration}.
  */
 public class EmbeddedSolrServerProvider implements SolrServerProvider {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final SolrServerConfiguration solrServerConfiguration;
 
@@ -44,6 +50,13 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     }
 
     private SolrServer solrServer;
+
+    @Deactivate
+    protected void deactivate() throws Exception {
+        if (solrServer != null) {
+            solrServer.shutdown();
+        }
+    }
 
     private SolrServer createSolrServer() throws Exception {
 
@@ -56,26 +69,51 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         if (solrConfigPath != null && solrHomePath != null && coreName != null) {
             checkSolrConfiguration(solrHomePath, solrConfigPath, coreName);
             if (httpConfiguration != null) {
+                if (log.isInfoEnabled()) {
+                    log.info("starting embedded Solr server with http bindings");
+                }
                 ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(JettySolrRunner.class.getClassLoader());
 
                 Integer httpPort = httpConfiguration.getHttpPort();
                 String context = httpConfiguration.getContext();
+                JettySolrRunner jettySolrRunner = null;
                 try {
-                    JettySolrRunner jettySolrRunner = new JettySolrRunner(solrHomePath, context, httpPort, "solrconfig.xml", "schema.xml", true);
+                    jettySolrRunner = new JettySolrRunner(solrHomePath, context, httpPort, "solrconfig.xml", "schema.xml", true);
+                    if (log.isInfoEnabled()) {
+                        log.info("Jetty runner instantiated");
+                    }
                     jettySolrRunner.start(true);
+                    if (log.isInfoEnabled()) {
+                        log.info("Jetty runner started");
+                    }
+                } catch (Exception t) {
+                    if (log.isErrorEnabled()) {
+                        log.error("an error has occurred while starting Solr Jetty", t);
+                    }
                 } finally {
+                    if (jettySolrRunner != null && !jettySolrRunner.isRunning()) {
+                        try {
+                            jettySolrRunner.stop();
+                            if (log.isInfoEnabled()) {
+                                log.info("Jetty runner stopped");
+                            }
+                        } catch (Exception e) {
+                            if (log.isErrorEnabled()) {
+                                log.error("error while stopping the Jetty runner", e);
+                            }
+                        }
+                    }
                     Thread.currentThread().setContextClassLoader(classLoader);
                 }
-                HttpSolrServer httpSolrServer = new HttpSolrServer(new StringBuilder(SolrServerConfigurationDefaults.LOCAL_BASE_URL)
-                        .append(':').append(httpPort).append(coreName).toString());
-                if (OakSolrUtils.checkServerAlive(httpSolrServer)) {
-                    return httpSolrServer;
-                } else {
-                    throw new IOException("the spawn HTTP Solr server is not alive");
+                if (log.isInfoEnabled()) {
+                    log.info("starting HTTP Solr server");
                 }
-
-
+                HttpSolrServer httpSolrServer = new HttpSolrServer(new StringBuilder(
+                        SolrServerConfigurationDefaults.LOCAL_BASE_URL).append(':')
+                        .append(httpPort).append(context).append('/').append(coreName)
+                        .toString());
+                return httpSolrServer;
             } else {
                 ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
@@ -88,7 +126,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 }
 
                 EmbeddedSolrServer server = new EmbeddedSolrServer(coreContainer, coreName);
-                if (OakSolrUtils.checkServerAlive(server)) {
+                if (server.ping().getStatus() == 0) {
                     return server;
                 } else {
                     throw new IOException("the embedded Solr server is not alive");
@@ -110,32 +148,34 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 // copy all the needed files to the just created directory
                 copy("/solr/solr.xml", solrHomePath);
                 copy("/solr/zoo.cfg", solrHomePath);
-                if (!new File(solrHomePath + "/oak/conf").mkdirs()) {
+                if (!new File(solrHomePath + "/" + coreName + "/conf").mkdirs()) {
                     throw new IOException("could not create nested core directory in solrHomePath");
                 }
-                String coreDir = solrHomePath + "/oak/conf/";
+                String coreDir = solrHomePath + "/" + coreName + "/conf/";
                 copy("/solr/oak/conf/currency.xml", coreDir);
                 copy("/solr/oak/conf/schema.xml", coreDir);
                 copy("/solr/oak/conf/solrconfig.xml", coreDir);
             }
         } else if (!solrHomePathFile.isDirectory()) {
-            throw new IOException("a non directory file with the specified name already exists for the given solrHomePath");
+            throw new IOException("a non directory file with the specified name already exists for the given solrHomePath '"+solrHomePath);
         }
 
-        File solrConfigPathFile = new File(solrConfigPath);
+        // TODO : improve this check
         // check if solrConfigPath exists
-        if (!solrConfigPathFile.exists()) {
-            if (solrConfigPathFile.createNewFile()) {
-                copy("/solr/solr.xml", solrConfigPathFile.getAbsolutePath());
-            }
-        }
+//        File solrConfigPathFile = new File(solrConfigPath);
+//        if (!solrConfigPathFile.exists()) {
+//            if (solrConfigPathFile.createNewFile()) {
+//                copy("/solr/solr.xml", solrConfigPathFile.getAbsolutePath());
+//            }
+//        }
 
         // check if the a core with the given coreName exists
         // TODO : improve this check
         String[] files = new File(solrHomePath).list();
         Arrays.sort(files);
         if (Arrays.binarySearch(files, coreName) < 0) {
-            throw new IOException("could not find a directory with the given coreName in the solrHomePath");
+            throw new IOException("could not find a directory with the coreName '" + coreName
+                    + "' in the solrHomePath '" + solrHomePath + "'");
         }
 
 
@@ -173,8 +213,10 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     @Override
     public SolrServer getSolrServer() throws Exception {
-        if (solrServer == null) {
-            solrServer = createSolrServer();
+        synchronized (this) {
+            if (solrServer == null) {
+                solrServer = createSolrServer();
+            }
         }
         return solrServer;
     }

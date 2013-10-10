@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,9 +29,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * Testcase for {@link UpToDateNodeStateConfiguration}
+ * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.FixedNodeStateConfiguration}
  */
-public class UpToDateNodeStateConfigurationTest {
+public class FixedNodeStateConfigurationTest {
 
     private NodeStore store;
 
@@ -45,27 +46,28 @@ public class UpToDateNodeStateConfigurationTest {
 
     @Test
     public void testExistingPath() throws Exception {
-        String path = "oak:index/solrIdx";
-        UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        SolrServerConfiguration solrServerConfiguration = upToDateNodeStateConfiguration.getSolrServerConfiguration();
+        NodeState idxDef = store.getRoot().getChildNode("oak:index").getChildNode("solrIdx");
+        FixedNodeStateConfiguration fixedNodeStateConfiguration = new FixedNodeStateConfiguration(idxDef);
+        SolrServerConfiguration solrServerConfiguration = fixedNodeStateConfiguration.getSolrServerConfiguration();
         assertNotNull(solrServerConfiguration);
         assertEquals("sh", solrServerConfiguration.getSolrHomePath()); // property defined in the node state
         assertEquals("cn", solrServerConfiguration.getCoreName()); // property defined in the node state
         assertEquals("sc", solrServerConfiguration.getSolrConfigPath()); // property defined in the node state
-        assertEquals("path_exact", upToDateNodeStateConfiguration.getPathField()); // using default as this property not defined in the node state
+        assertEquals("path_exact", fixedNodeStateConfiguration.getPathField()); // using default as this property is not defined in the node state
     }
 
     @Test
     public void testNonExistingPath() throws Exception {
-        String path = "some/path/to/oak:index/solrIdx";
-        UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        assertNotNull(upToDateNodeStateConfiguration.getSolrServerConfiguration());
+        NodeState idxDef = store.getRoot().getChildNode("oak:index").getChildNode("a");
+        FixedNodeStateConfiguration fixedNodeStateConfiguration = new FixedNodeStateConfiguration(idxDef);
+        assertNotNull(fixedNodeStateConfiguration.getSolrServerConfiguration());
     }
 
     @Test
-    public void testNodeStateNotFound() throws Exception {
-        String path = "some/path/to/somewhere/unknown";
-        UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        assertFalse(upToDateNodeStateConfiguration.getConfigurationNodeState().exists());
+    public void testWrongNodeState() throws Exception {
+        NodeState idxDef = store.getRoot().getChildNode("a");
+        FixedNodeStateConfiguration fixedNodeStateConfiguration = new FixedNodeStateConfiguration(idxDef);
+        assertFalse(fixedNodeStateConfiguration.getConfigurationNodeState().exists());
+        assertNotNull(fixedNodeStateConfiguration.getSolrServerConfiguration()); // defaults are used
     }
 }

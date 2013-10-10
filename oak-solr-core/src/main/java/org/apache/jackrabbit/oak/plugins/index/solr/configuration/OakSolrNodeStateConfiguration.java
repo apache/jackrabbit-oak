@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.solr.CommitPolicy;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * An {@link org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration} specified via a given {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
+ * An {@link OakSolrConfiguration} specified via a given {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
  * For each of the supported properties a default is provided if either the
  * property doesn't exist in the node or if the value is <code>null</code> or
  * empty <code>String</code>.
@@ -32,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Subclasses of this should at least provide the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which holds
  * the configuration.
  */
-public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfiguration implements OakSolrConfiguration, SolrServerConfigurationProvider {
+public abstract class OakSolrNodeStateConfiguration implements OakSolrConfiguration, SolrServerConfigurationProvider {
 
     /**
      * get the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which contains the properties for the Oak -
@@ -41,6 +39,20 @@ public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfigur
      * @return a (possibly non-existent) node state for the Solr configuration
      */
     protected abstract NodeState getConfigurationNodeState();
+
+    @Override
+    public String getFieldNameFor(Type<?> propertyType) {
+        if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
+            // TODO : use Tika / SolrCell here
+            return propertyType.toString() + "_bin";
+        }
+        return null;
+    }
+
+    @Override
+    public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
+        return null;
+    }
 
     @Override
     public String getPathField() {
@@ -67,6 +79,10 @@ public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfigur
                 fieldName = getStringValueFor(Properties.PARENT_FIELD, SolrServerConfigurationDefaults.ANC_FIELD_NAME);
                 break;
             }
+            case NO_RESTRICTION:
+                break;
+            default:
+                break;
 
         }
         return fieldName;

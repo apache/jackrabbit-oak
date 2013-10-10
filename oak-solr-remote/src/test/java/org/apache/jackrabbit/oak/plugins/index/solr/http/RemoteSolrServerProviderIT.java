@@ -43,7 +43,6 @@ public class RemoteSolrServerProviderIT {
         req.setParam("collection.configName", "myconf");
         CloudSolrServer cloudSolrServer = new CloudSolrServer(host);
         NamedList<Object> request = cloudSolrServer.request(req);
-//        cloudSolrServer.shutdown();
         return request != null && request.get("success") != null;
     }
 

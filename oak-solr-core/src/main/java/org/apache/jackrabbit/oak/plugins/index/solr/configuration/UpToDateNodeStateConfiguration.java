@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * A {@link OakSolrNodeStateConfiguration} whose {@link org.apache.jackrabbit.oak.spi.state.NodeState} is retrieved
+ * A {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrNodeStateConfiguration} whose {@link org.apache.jackrabbit.oak.spi.state.NodeState} is retrieved
  * via the {@link org.apache.jackrabbit.oak.spi.state.NodeStore} and a given <code>String</code> path.
  */
 public class UpToDateNodeStateConfiguration extends OakSolrNodeStateConfiguration {

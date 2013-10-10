@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -26,10 +26,10 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 public interface OakSolrConfiguration {
 
     /**
-     * Provide a field name to be used for indexing / searching a certain {@link Type}
+     * Provide a field name to be used for indexing / searching a certain {@link org.apache.jackrabbit.oak.api.Type}
      *
-     * @param propertyType the {@link Type} to be indexed / searched
-     * @return a <code>String</code> representing the Solr field to be used for the given {@link Type}.
+     * @param propertyType the {@link org.apache.jackrabbit.oak.api.Type} to be indexed / searched
+     * @return a <code>String</code> representing the Solr field to be used for the given {@link org.apache.jackrabbit.oak.api.Type}.
      */
     public String getFieldNameFor(Type<?> propertyType);
 
@@ -41,17 +41,17 @@ public interface OakSolrConfiguration {
     public String getPathField();
 
     /**
-     * Provide a field name to search over for the given {@link Filter.PathRestriction}
+     * Provide a field name to search over for the given {@link org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction}
      *
-     * @param pathRestriction the {@link Filter.PathRestriction} used for filtering search results
+     * @param pathRestriction the {@link org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction} used for filtering search results
      * @return the field name as a <code>String</code> to be used by Solr for the given restriction
      */
     public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction);
 
     /**
-     * Provide a field name to search over for the given {@link Filter.PropertyRestriction}
+     * Provide a field name to search over for the given {@link org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction}
      *
-     * @param propertyRestriction the {@link Filter.PropertyRestriction} used for filtering search results
+     * @param propertyRestriction the {@link org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction} used for filtering search results
      * @return the field name as a <code>String</code> to be used by Solr for the given restriction
      */
     public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction);
@@ -59,7 +59,7 @@ public interface OakSolrConfiguration {
     /**
      * Provide the commit policy to be used with the underlying Solr instance
      *
-     * @return a {@link CommitPolicy}
+     * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy}
      */
     public CommitPolicy getCommitPolicy();
 

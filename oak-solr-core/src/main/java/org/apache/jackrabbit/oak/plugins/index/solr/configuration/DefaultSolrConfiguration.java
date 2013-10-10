@@ -14,18 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
 /**
- * An {@link OakSolrConfiguration} for the embedded Solr server
+ * An {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration} for the embedded Solr server
  */
-public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
+public class DefaultSolrConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getFieldNameFor(Type<?> propertyType) {

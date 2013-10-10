@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 /**
  * Configuration parameters for starting a {@link org.apache.solr.client.solrj.SolrServer}
@@ -68,16 +68,16 @@ public class SolrServerConfiguration {
     }
 
     /**
-     * get the {@link HttpConfiguration} holding parameters for enabling Solr
+     * get the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration.HttpConfiguration} holding parameters for enabling Solr
      * server with HTTP bindings
      *
-     * @return a {@link HttpConfiguration} or <code>null</code> if not set
+     * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration.HttpConfiguration} or <code>null</code> if not set
      */
     public HttpConfiguration getHttpConfiguration() {
         return httpConfiguration;
     }
 
-    class HttpConfiguration {
+    public class HttpConfiguration {
         private String context;
         private Integer httpPort;
 

@@ -21,14 +21,13 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.felix.scr.annotations.Services;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.UpToDateNodeStateConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.embedded.EmbeddedSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.embedded.EmbeddedSolrServerProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.embedded.SolrServerConfigurationProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.embedded.UpToDateNodeStateConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.solr.client.solrj.SolrServer;
 import org.osgi.service.component.ComponentContext;
@@ -36,17 +35,12 @@ import org.osgi.service.component.ComponentContext;
 /**
  * OSGi service for the embedded Solr server module.
  */
-@Component(metatype = true,
-        label = "Embedded SolrServer provider")
-@Services({
-        @Service(value = SolrServerProvider.class),
-        @Service(value = OakSolrConfigurationProvider.class)
-})
-public class EmbeddedSolrProviderService implements SolrServerProvider, OakSolrConfigurationProvider {
+@Component(metatype = true, label = "Embedded SolrServer provider")
+@Service(value = { SolrServerProvider.class, OakSolrConfigurationProvider.class })
+public class EmbeddedSolrProviderService implements SolrServerProvider,
+        OakSolrConfigurationProvider {
 
-
-    @Property(value = "/oak:index/solrIdx", name = "configuration path",
-            description = "path to node holding Solr configuration")
+    @Property(value = "/oak:index/solrIdx", name = "configuration path", description = "path to node holding Solr configuration")
     private static final String CONFIGURATION_PATH = "solr.configuration.node.path";
 
     @Reference
@@ -63,13 +57,17 @@ public class EmbeddedSolrProviderService implements SolrServerProvider, OakSolrC
     public void activate(ComponentContext context) throws Exception {
         try {
             // try reading configuration from the configured repository path
-            UpToDateNodeStateConfiguration nodeStateConfiguration = new UpToDateNodeStateConfiguration(nodeStore, String.valueOf(
-                    context.getProperties().get(CONFIGURATION_PATH)));
-            solrServerProvider = new EmbeddedSolrServerProvider(nodeStateConfiguration.getSolrServerConfiguration());
-            oakSolrConfigurationProvider = new EmbeddedSolrConfigurationProvider(nodeStateConfiguration);
+            UpToDateNodeStateConfiguration nodeStateConfiguration = new UpToDateNodeStateConfiguration(
+                    nodeStore, String.valueOf(context.getProperties().get(
+                    CONFIGURATION_PATH)));
+            solrServerProvider = new EmbeddedSolrServerProvider(
+                    nodeStateConfiguration.getSolrServerConfiguration());
+            oakSolrConfigurationProvider = new EmbeddedSolrConfigurationProvider(
+                    nodeStateConfiguration);
         } catch (Exception e) {
             // use the default config and the OSGi based server configuration
-            solrServerProvider = new EmbeddedSolrServerProvider(solrServerConfigurationProvider.getSolrServerConfiguration());
+            solrServerProvider = new EmbeddedSolrServerProvider(
+                    solrServerConfigurationProvider.getSolrServerConfiguration());
             oakSolrConfigurationProvider = new EmbeddedSolrConfigurationProvider();
         }
     }

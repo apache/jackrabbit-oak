@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 
 /**
  * An {@link OakSolrConfigurationProvider} for the embedded Solr server

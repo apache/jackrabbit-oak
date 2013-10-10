@@ -14,22 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
+
 
 /**
- * Enum for describing Solr commit policy used in a certain instance
+ * The default {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
  */
-public enum CommitPolicy {
-    /**
-     * for default Solr commit
-     */
-    HARD,
-    /**
-     * for Solr soft commit
-     */
-    SOFT,
-    /**
-     * if no commits should be sent (relying on auto(soft)commit on the instance itself)
-     */
-    AUTO
+public class DefaultSolrConfigurationProvider implements OakSolrConfigurationProvider {
+
+    private final OakSolrConfiguration defaultConfiguration;
+
+    public DefaultSolrConfigurationProvider() {
+        defaultConfiguration = new DefaultSolrConfiguration();
+    }
+
+    public DefaultSolrConfigurationProvider(OakSolrConfiguration configuration) {
+        this.defaultConfiguration = configuration;
+    }
+
+    @Override
+    public OakSolrConfiguration getConfiguration() {
+        return defaultConfiguration;
+    }
 }

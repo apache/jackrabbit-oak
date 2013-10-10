@@ -14,20 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr;
-
-import org.apache.solr.client.solrj.SolrServer;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 /**
- * Provider of {@link SolrServer}s instances
+ * Defaults for Solr server configurations.
  */
-public interface SolrServerProvider {
+public class SolrServerConfigurationDefaults {
 
-    /**
-     * provides an already initialized {@link SolrServer} to be used from within Oak
-     *
-     * @return a {@link SolrServer} instance
-     * @throws Exception if anything goes wrong while providing the {@link SolrServer}
-     */
-    public SolrServer getSolrServer() throws Exception;
+    public static final String SOLR_HOME_PATH = "solr";
+    public static final String SOLR_CONFIG_PATH = "solr.xml";
+    public static final String CORE_NAME = "oak";
+
+    public static final String HTTP_PORT = "8983";
+    public static final String LOCAL_BASE_URL = "http://127.0.0.1";
+    public static final String CONTEXT = "/solr";
+
+    public static final String PATH_FIELD_NAME = "path_exact";
+    public static final String CHILD_FIELD_NAME = "path_child";
+    public static final String DESC_FIELD_NAME = "path_desc";
+    public static final String ANC_FIELD_NAME = "path_anc";
+
 }
