@@ -14,17 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr;
+package org.apache.jackrabbit.oak.plugins.index.solr.server;
+
+import org.apache.solr.client.solrj.SolrServer;
 
 /**
- * A provider for {@link OakSolrConfiguration}s
+ * Provider of {@link org.apache.solr.client.solrj.SolrServer}s instances
  */
-public interface OakSolrConfigurationProvider {
+public interface SolrServerProvider {
 
     /**
-     * Provides a Solr configuration for Oak
+     * provides an already initialized {@link org.apache.solr.client.solrj.SolrServer} to be used from within Oak
      *
-     * @return a {@link OakSolrConfiguration}
+     * @return a {@link org.apache.solr.client.solrj.SolrServer} instance
+     * @throws Exception if anything goes wrong while providing the {@link org.apache.solr.client.solrj.SolrServer}
      */
-    public OakSolrConfiguration getConfiguration();
+    public SolrServer getSolrServer() throws Exception;
 }

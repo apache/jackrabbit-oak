@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.Test;
 

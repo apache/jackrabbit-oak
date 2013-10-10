@@ -14,24 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
-
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 /**
- * A {@link OakSolrNodeStateConfiguration} whose {@link org.apache.jackrabbit.oak.spi.state.NodeState} is given once
- * and never updated so that the configuration is fixed.
+ * {@link org.apache.solr.client.solrj.SolrServer} configuration provider.
  */
-public class FixedNodeStateConfiguration extends OakSolrNodeStateConfiguration {
+public interface SolrServerConfigurationProvider {
 
-    private final NodeState configurationNodeState;
-
-    public FixedNodeStateConfiguration(NodeState configurationNodeState) {
-        this.configurationNodeState = configurationNodeState;
-    }
-
-    @Override
-    protected NodeState getConfigurationNodeState() {
-        return configurationNodeState;
-    }
+    /**
+     * Provide a {@lin SolrServerConfiguration} to be used to initialize a specific
+     * {@link org.apache.solr.client.solrj.SolrServer} implementation.
+     *
+     * @return the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration} holding the configuration parameters
+     */
+    public SolrServerConfiguration getSolrServerConfiguration();
 }

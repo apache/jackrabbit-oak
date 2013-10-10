@@ -14,24 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 /**
- * Defaults for embedded Solr server configurations.
+ * A provider for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}s
  */
-public class SolrServerConfigurationDefaults {
+public interface OakSolrConfigurationProvider {
 
-    public static final String SOLR_HOME_PATH = "./";
-    public static final String SOLR_CONFIG_PATH = "./solr.xml";
-    public static final String CORE_NAME = "oak";
-
-    public static final String HTTP_PORT = "8983";
-    public static final String LOCAL_BASE_URL = "http://127.0.0.1";
-    public static final String CONTEXT = "/solr";
-
-    public static final String PATH_FIELD_NAME = "path_exact";
-    public static final String CHILD_FIELD_NAME = "path_child";
-    public static final String DESC_FIELD_NAME = "path_desc";
-    public static final String ANC_FIELD_NAME = "path_anc";
-
+    /**
+     * Provides a Solr configuration for Oak
+     *
+     * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}
+     */
+    public OakSolrConfiguration getConfiguration();
 }

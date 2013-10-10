@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-import static org.junit.Assert.assertTrue;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Integration test for {@link org.apache.jackrabbit.oak.plugins.index.solr.index.SolrCommitHook}

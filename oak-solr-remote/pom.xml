@@ -44,6 +44,7 @@
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.index.solr.http
             </Export-Package>
+            <Embed-Dependency>solr-solrj</Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>

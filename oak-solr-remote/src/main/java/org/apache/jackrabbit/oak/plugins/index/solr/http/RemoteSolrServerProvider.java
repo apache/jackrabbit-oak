@@ -24,8 +24,8 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrUtils;
-import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.util.OakSolrUtils;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
@@ -175,7 +175,9 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
             } catch (Exception e) {
                 // wait a bit
                 try {
-                    log.warn("wait a bit", e);
+                    if (log.isWarnEnabled()) {
+                        log.warn("wait a bit", e);
+                    }
                     Thread.sleep(3000);
                 } catch (InterruptedException e1) {
                     // do nothing

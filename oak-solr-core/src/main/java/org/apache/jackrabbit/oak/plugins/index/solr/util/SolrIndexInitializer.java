@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr;
+package org.apache.jackrabbit.oak.plugins.index.solr.util;
 
 import javax.annotation.Nonnull;
 
@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
- * A {@link RepositoryInitializer} for Solr index
+ * A {@link org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer} for Solr index
  */
 public class SolrIndexInitializer implements RepositoryInitializer {
 
