@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.util.TreeLocation;
@@ -41,8 +43,13 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
     }
 
     @Override
+    public boolean definesContextRoot(@Nonnull Tree tree) {
+        return REP_PRIVILEGES.equals(tree.getName());
+    }
+
+    @Override
     public boolean definesTree(Tree tree) {
-        return NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(tree));
+        return PRIVILEGE_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override
@@ -50,10 +57,4 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
         return location.getPath().startsWith(PRIVILEGES_PATH);
     }
 
-    @Override
-    public boolean hasChildItems(Tree parent) {
-        return parent.hasChild(REP_PRIVILEGES)
-                || NT_REP_PRIVILEGES.equals(TreeUtil.getPrimaryTypeName(parent))
-                || NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(parent));
-    }
 }

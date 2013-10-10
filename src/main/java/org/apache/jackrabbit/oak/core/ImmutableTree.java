@@ -27,8 +27,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Immutable implementation of the {@code Tree} interface in order to provide
  * the much feature rich API functionality for a given {@code NodeState}.
@@ -120,8 +118,8 @@ public final class ImmutableTree extends AbstractTree {
                          @Nonnull NodeState state, @Nonnull TreeTypeProvider typeProvider) {
         super(name, new ReadOnlyBuilder(state));
         this.state = state;
-        this.parentProvider = checkNotNull(parentProvider);
-        this.typeProvider = checkNotNull(typeProvider);
+        this.parentProvider = parentProvider;
+        this.typeProvider = typeProvider;
     }
 
     public static ImmutableTree createFromRoot(@Nonnull Root root, @Nonnull TreeTypeProvider typeProvider) {
@@ -295,8 +293,8 @@ public final class ImmutableTree extends AbstractTree {
     public static final class DefaultParentProvider implements ParentProvider {
         private final ImmutableTree parent;
 
-        DefaultParentProvider(ImmutableTree parent) {
-            this.parent = checkNotNull(parent);
+        DefaultParentProvider(@Nonnull ImmutableTree parent) {
+            this.parent = parent;
         }
 
         @Override

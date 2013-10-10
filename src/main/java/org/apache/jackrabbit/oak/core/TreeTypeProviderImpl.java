@@ -55,10 +55,9 @@ public final class TreeTypeProviderImpl implements TreeTypeProvider {
                 String name = tree.getName();
                 if (NodeStateUtils.isHidden(name)) {
                     type = TYPE_HIDDEN;
-                } else if (VersionConstants.VERSION_NODE_NAMES.contains(name) ||
-                        VersionConstants.VERSION_NODE_TYPE_NAMES.contains(NodeStateUtils.getPrimaryTypeName(tree.state))) {
+                } else if (VersionConstants.VERSION_STORE_ROOT_NAMES.contains(name)) {
                     type = TYPE_VERSION;
-                } else if (contextInfo.definesTree(tree)) {
+                } else if (contextInfo.definesContextRoot(tree)) {
                     type = TYPE_AC;
                 } else {
                     type = TYPE_DEFAULT;

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.util.TreeLocation;
@@ -25,33 +27,34 @@ import org.apache.jackrabbit.oak.util.TreeLocation;
  */
 public interface Context {
 
-    boolean definesProperty(Tree parent, PropertyState property);
+    boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property);
 
-    boolean definesTree(Tree tree);
+    boolean definesContextRoot(@Nonnull Tree tree);
 
-    boolean definesLocation(TreeLocation location);
+    boolean definesTree(@Nonnull Tree tree);
 
-    boolean hasChildItems(Tree parent);
+    boolean definesLocation(@Nonnull TreeLocation location);
 
     class Default implements Context {
         @Override
-        public boolean definesProperty(Tree parent, PropertyState property) {
+        public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
             return false;
         }
 
         @Override
-        public boolean definesTree(Tree tree) {
+        public boolean definesContextRoot(@Nonnull Tree tree) {
             return false;
         }
 
         @Override
-        public boolean definesLocation(TreeLocation location) {
+        public boolean definesTree(@Nonnull Tree tree) {
             return false;
         }
 
         @Override
-        public boolean hasChildItems(Tree parent) {
+        public boolean definesLocation(@Nonnull TreeLocation location) {
             return false;
         }
+
     }
 }

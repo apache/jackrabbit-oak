@@ -62,11 +62,6 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private static final Logger log = LoggerFactory.getLogger(PermissionProviderImpl.class);
 
-    private static final Set<String> V_ROOT_NAMES = ImmutableSet.of(
-            JcrConstants.JCR_VERSIONSTORAGE,
-            VersionConstants.JCR_CONFIGURATIONS,
-            VersionConstants.JCR_ACTIVITIES);
-
     private final Root root;
 
     private final String workspaceName;
@@ -249,7 +244,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         String propName = (property == null) ? "" : property.getName();
         String versionablePath = null;
         Tree t = versionStoreTree;
-        while (t.exists() && !t.isRoot() && !V_ROOT_NAMES.contains(t.getName())) {
+        while (t.exists() && !t.isRoot() && !VersionConstants.VERSION_STORE_ROOT_NAMES.contains(t.getName())) {
             String ntName = checkNotNull(TreeUtil.getPrimaryTypeName(t));
             if (VersionConstants.JCR_FROZENNODE.equals(t.getName()) && t != versionStoreTree) {
                 relPath = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
