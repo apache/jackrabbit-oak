@@ -21,17 +21,13 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -42,20 +38,13 @@ import org.slf4j.LoggerFactory;
 /**
  * {@link QueryIndexProvider} for {@link SolrQueryIndex}
  */
-@Component
-@Service(QueryIndexProvider.class)
 public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private final Logger log = LoggerFactory.getLogger(SolrQueryIndexProvider.class);
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
     private SolrServerProvider solrServerProvider;
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
-
-    public SolrQueryIndexProvider() {
-    }
 
     public SolrQueryIndexProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
@@ -65,6 +54,7 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
     @Nonnull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
+
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
         if (solrServerProvider == null || oakSolrConfigurationProvider == null) {
             return tempIndexes;
@@ -75,7 +65,9 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
             PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
             if (type != null
                     && SolrQueryIndex.TYPE.equals(type.getValue(Type.STRING))) {
-                log.debug("found a Solr index definition {}", entry.getName());
+                if (log.isDebugEnabled()) {
+                    log.debug("found a Solr index definition {}", entry.getName());
+                }
             }
             try {
                 tempIndexes.add(new SolrQueryIndex(
@@ -83,10 +75,13 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
                         solrServerProvider.getSolrServer(),
                         oakSolrConfigurationProvider.getConfiguration()));
             } catch (Exception e) {
-                log.error("unable to create Solr query index at " + entry.getName(), e);
+                if (log.isErrorEnabled()) {
+                    log.error("unable to create Solr query index at " + entry.getName(), e);
+                }
             }
-            
+
         }
         return tempIndexes;
     }
+
 }
