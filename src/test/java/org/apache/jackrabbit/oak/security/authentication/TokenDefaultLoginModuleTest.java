@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
+import java.security.Principal;
 import java.util.Collections;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -28,7 +29,9 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
@@ -163,6 +166,29 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
             SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
             sc.setAttribute(".token", "");
             cs = login(sc);
+
+            Object token = sc.getAttribute(".token").toString();
+            assertNotNull(token);
+            TokenCredentials tc = new TokenCredentials(token.toString());
+
+            cs.close();
+            cs = login(tc);
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testTokenCreationAndImpersonation() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
+            sc.setAttribute(".token", "");
+
+            ImpersonationCredentials ic = new ImpersonationCredentials(sc, new AuthInfoImpl(((SimpleCredentials) getAdminCredentials()).getUserID(), Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet()));
+            cs = login(ic);
 
             Object token = sc.getAttribute(".token").toString();
             assertNotNull(token);
