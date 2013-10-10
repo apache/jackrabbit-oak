@@ -16,18 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Map;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.getNamespaceURI;
+
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Writable namespace registry. Mainly for use to implement the full JCR API.
@@ -56,42 +53,22 @@ public abstract class ReadWriteNamespaceRegistry
         // do nothing
     }
 
-    private static Tree getOrCreate(Root root, String... path) {
-        Tree tree = root.getTree("/");
-        assert tree.exists();
-        for (String name : path) {
-            Tree child = tree.getChild(name);
-            if (!child.exists()) {
-                child = tree.addChild(name);
-            }
-            tree = child;
-        }
-        return tree;
-    }
-
     //--------------------------------------------------< NamespaceRegistry >---
 
     @Override
     public void registerNamespace(String prefix, String uri)
             throws RepositoryException {
-        Map<String, String> map = Namespaces.getNamespaceMap(getReadTree());
-        if (uri.equals(map.get(prefix))) {
+        if (uri.equals(getNamespaceURI(getReadTree(), prefix))) {
             return; // Namespace already registered, so we do nothing
         }
-
         try {
             Root root = getWriteRoot();
-            Tree namespaces =
-                    getOrCreate(root, JcrConstants.JCR_SYSTEM, REP_NAMESPACES);
-            if (!namespaces.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
-                namespaces.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                        JcrConstants.NT_UNSTRUCTURED, NAME);
-            }
+            Tree namespaces = root.getTree(NAMESPACES_PATH);
+
             // remove existing mapping to given uri
-            for (PropertyState p : namespaces.getProperties()) {
-                if (!p.isArray() && p.getValue(STRING).equals(uri)) {
-                    namespaces.removeProperty(p.getName());
-                }
+            String ns = Namespaces.getNamespacePrefix(namespaces, uri);
+            if (ns != null) {
+                namespaces.removeProperty(ns);
             }
             namespaces.setProperty(prefix, uri);
             root.commit();
