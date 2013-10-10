@@ -115,12 +115,17 @@ public class BenchmarkRunner {
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
                     report.value(options)),
+            new ConcurrentReadDeepTreeTest(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    bgReaders.value(options),
+                    report.value(options)),
             new ConcurrentReadAccessControlledTreeTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
                     bgReaders.value(options),
                     report.value(options)),
-            new ConcurrentReadDeepTreeTest(
+            new ConcurrentReadAccessControlledTreeTest2(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
                     bgReaders.value(options),
