@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Arrays;
-import java.util.Map;
-
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
@@ -63,11 +60,7 @@ public abstract class ReadOnlyNamespaceRegistry
     @Nonnull
     public String[] getPrefixes() throws RepositoryException {
         try {
-            Tree root = getReadTree();
-            Map<String, String> map = Namespaces.getNamespaceMap(root);
-            String[] prefixes = map.keySet().toArray(new String[map.size()]);
-            Arrays.sort(prefixes);
-            return prefixes;
+            return Namespaces.getNamespacePrefixes(getReadTree());
         } catch (RuntimeException e) {
             throw new RepositoryException(
                     "Failed to retrieve registered namespace prefixes", e);
@@ -78,10 +71,7 @@ public abstract class ReadOnlyNamespaceRegistry
     @Nonnull
     public String[] getURIs() throws RepositoryException {
         try {
-            Tree root = getReadTree();
-            Map<String, String> map = Namespaces.getNamespaceMap(root);
-            String[] uris = map.values().toArray(new String[map.size()]);
-            return uris;
+            return Namespaces.getNamespaceURIs(getReadTree());
         } catch (RuntimeException e) {
             throw new RepositoryException(
                     "Failed to retrieve registered namespace URIs", e);
@@ -92,9 +82,7 @@ public abstract class ReadOnlyNamespaceRegistry
     @Nonnull
     public String getURI(String prefix) throws RepositoryException {
         try {
-            Tree root = getReadTree();
-            Map<String, String> map = Namespaces.getNamespaceMap(root);
-            String uri = map.get(prefix);
+            String uri = Namespaces.getNamespaceURI(getReadTree(), prefix);
             if (uri == null) {
                 throw new NamespaceException(
                         "No namespace registered for prefix " + prefix);
@@ -111,15 +99,12 @@ public abstract class ReadOnlyNamespaceRegistry
     @Nonnull
     public String getPrefix(String uri) throws RepositoryException {
         try {
-            Tree root = getReadTree();
-            Map<String, String> map = Namespaces.getNamespaceMap(root);
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                if (entry.getValue().equals(uri)) {
-                    return entry.getKey();
-                }
-            }
-            throw new NamespaceException(
+            String prefix = Namespaces.getNamespacePrefix(getReadTree(), uri);
+            if (prefix == null) {
+                throw new NamespaceException(
                         "No namespace prefix registered for URI " + uri);
+            }
+            return prefix;
         } catch (RuntimeException e) {
             throw new RepositoryException(
                     "Failed to retrieve the namespace prefix for URI "

@@ -28,9 +28,12 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
@@ -68,6 +71,8 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_NODE_TYPES, Type.NAME);
             system.child(VersionConstants.JCR_ACTIVITIES)
                     .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_ACTIVITIES, Type.NAME);
+
+            Namespaces.setupNamespaces(system);
         }
 
         if (!builder.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
@@ -84,8 +89,9 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
 
         NodeState base = builder.getNodeState();
         NodeStore store = new MemoryNodeStore(base);
-        BuiltInNodeTypes.register(new SystemRoot(
-                store, new EditorHook(new RegistrationEditorProvider())));
+        BuiltInNodeTypes.register(new SystemRoot(store, new EditorHook(
+                new CompositeEditorProvider(new NamespaceValidatorProvider(),
+                        new RegistrationEditorProvider()))));
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }

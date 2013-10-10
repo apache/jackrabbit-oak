@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.name;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -35,8 +34,7 @@ public class NameValidatorProvider extends ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new NameValidator(
-                Namespaces.getNamespaceMap(new ImmutableTree(after)).keySet());
+        return new NameValidator(after);
     }
 
 }

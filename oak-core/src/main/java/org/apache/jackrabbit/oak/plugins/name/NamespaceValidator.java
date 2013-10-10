@@ -16,40 +16,70 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static javax.jcr.NamespaceRegistry.PREFIX_JCR;
+import static javax.jcr.NamespaceRegistry.PREFIX_MIX;
+import static javax.jcr.NamespaceRegistry.PREFIX_NT;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA_PREFIXES;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA_URIS;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAMESPACES;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.escapePropertyKey;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.safeGet;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.unescapePropertyKey;
+
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * TODO document
  */
-class NamespaceValidator extends DefaultValidator {
+class NamespaceValidator extends DefaultEditor {
 
-    private final Map<String, String> map;
+    private final NodeBuilder builder;
 
-    public NamespaceValidator(Map<String, String> map) {
-        this.map = map;
+    private boolean modified = false;
+
+    private final NodeState namespaces;
+
+    public NamespaceValidator(NodeState root, NodeBuilder builder) {
+        this.namespaces = root.getChildNode(JCR_SYSTEM).getChildNode(
+                REP_NAMESPACES);
+        this.builder = builder;
     }
 
-    //----------------------------------------------------------< Validator >---
     @Override
-    public void propertyAdded(PropertyState after)
-            throws CommitFailedException {
+    public void propertyAdded(PropertyState after) throws CommitFailedException {
         String prefix = after.getName();
         // ignore jcr:primaryType
-        if (prefix.equals("jcr:primaryType")) {
+        if (JCR_PRIMARYTYPE.equals(prefix)) {
             return;
         }
-        if (map.containsKey(prefix)) {
-            throw new CommitFailedException(
-                    CommitFailedException.NAMESPACE, 1,
+
+        if (namespaces.hasProperty(prefix)) {
+            throw new CommitFailedException(CommitFailedException.NAMESPACE, 1,
                     "Namespace mapping already registered: " + prefix);
-        } else if (Namespaces.isValidPrefix(prefix)) {
+        } else if (isValidPrefix(prefix)) {
             if (after.isArray() || !STRING.equals(after.getType())) {
                 throw new CommitFailedException(
                         CommitFailedException.NAMESPACE, 2,
@@ -58,36 +88,90 @@ class NamespaceValidator extends DefaultValidator {
                 throw new CommitFailedException(
                         CommitFailedException.NAMESPACE, 3,
                         "XML prefixes are reserved: " + prefix);
-            } else if (map.containsValue(after.getValue(STRING))) {
+            } else if (containsValue(namespaces, after.getValue(STRING))) {
                 throw modificationNotAllowed(prefix);
             }
         } else {
-            throw new CommitFailedException(
-                    CommitFailedException.NAMESPACE, 4,
+            throw new CommitFailedException(CommitFailedException.NAMESPACE, 4,
                     "Not a valid namespace prefix: " + prefix);
         }
+        modified = true;
+    }
+
+    private static boolean containsValue(NodeState namespaces, String value) {
+        return safeGet(new ImmutableTree(namespaces.getChildNode(NSDATA)),
+                NSDATA_URIS).contains(value);
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
-        if (map.containsKey(after.getName())) {
-            throw modificationNotAllowed(after.getName());
-        }
+        // TODO allow changes if there is no content referencing the mappings
+        throw modificationNotAllowed(after.getName());
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
-        if (map.containsKey(before.getName())) {
-            // TODO: Check whether this namespace is still used in content
+
+        // FIXME Desired Behavior: if we enable it, there are a few generic
+        // #unregister tests that fail
+        // TODO allow changes if there is no content referencing the mappings
+        // throw modificationNotAllowed(before.getName());
+
+        // FIXME Best effort backwards compatible:
+        if (jcrSystemNS.contains(before.getName())) {
+            throw modificationNotAllowed(before.getName());
+        }
+        modified = true;
+    }
+
+    private static Set<String> jcrSystemNS = ImmutableSet.of(PREFIX_JCR,
+            PREFIX_NT, PREFIX_MIX, NamespaceConstants.PREFIX_SV);
+
+    private static CommitFailedException modificationNotAllowed(String prefix) {
+        return new CommitFailedException(CommitFailedException.NAMESPACE, 5,
+                "Namespace modification not allowed: " + prefix);
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        if (!modified) {
+            return;
+        }
+
+        Set<String> prefixes = new HashSet<String>();
+        Set<String> uris = new HashSet<String>();
+        Map<String, String> reverse = new HashMap<String, String>();
+
+        NodeBuilder namespaces = builder.child(JCR_SYSTEM)
+                .child(REP_NAMESPACES);
+        for (PropertyState property : namespaces.getProperties()) {
+            String prefix = unescapePropertyKey(property.getName());
+            if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
+                prefixes.add(prefix);
+                String uri = property.getValue(STRING);
+                uris.add(uri);
+                reverse.put(escapePropertyKey(uri), prefix);
+            }
+        }
+
+        NodeBuilder data = namespaces.setChildNode(NSDATA);
+        data.setProperty(NSDATA_PREFIXES, prefixes, Type.STRINGS);
+        data.setProperty(NSDATA_URIS, uris, Type.STRINGS);
+        for (Entry<String, String> e : reverse.entrySet()) {
+            data.setProperty(encodeUri(e.getKey()), e.getValue());
         }
     }
 
-    private static CommitFailedException modificationNotAllowed(String prefix) {
-        return new CommitFailedException(
-                CommitFailedException.NAMESPACE, 5,
-                "Namespace modification not allowed: " + prefix);
+    @Override
+    public Editor childNodeChanged(String name, NodeState before,
+            NodeState after) throws CommitFailedException {
+        if (NSDATA.equals(name) && !before.equals(after)) {
+            throw modificationNotAllowed(name);
+        }
+        return null;
     }
 
 }
