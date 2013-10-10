@@ -152,6 +152,8 @@ public class OakServlet extends HttpServlet {
             if (node.isObject()) {
                 post(node, tree);
                 root.commit();
+                request.setAttribute("path", "");
+                request.setAttribute("tree", tree);
                 doGet(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
