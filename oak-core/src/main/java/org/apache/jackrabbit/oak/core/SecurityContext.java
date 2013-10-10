@@ -69,7 +69,7 @@ class SecurityContext {
         this.permissionProvider = parent.permissionProvider;
         this.acContext = parent.acContext;
         if (base.getType() == parent.base.getType()) {
-            readStatus = ReadStatus.getChildStatus(parent.readStatus, acContext.hasChildItems(parent.base));
+            readStatus = ReadStatus.getChildStatus(parent.readStatus);
         } else {
             readStatus = null;
         }

@@ -69,6 +69,11 @@ public interface PrivilegeConstants {
     String NT_REP_PRIVILEGE = "rep:Privilege";
 
     /**
+     * Node type names associated with privilege content
+     */
+    Set<String> PRIVILEGE_NODETYPE_NAMES = ImmutableSet.of(NT_REP_PRIVILEGES, NT_REP_PRIVILEGE);
+
+    /**
      * Name of the privilege definition property that stores the internal representation
      * of this privilege.
      */

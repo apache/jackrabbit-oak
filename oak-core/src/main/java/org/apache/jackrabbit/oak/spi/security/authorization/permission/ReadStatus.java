@@ -78,8 +78,7 @@ public class ReadStatus {
     }
 
     @CheckForNull
-    public static ReadStatus getChildStatus(@Nullable ReadStatus parentStatus,
-                                            boolean hasAcChildren) {
+    public static ReadStatus getChildStatus(@Nullable ReadStatus parentStatus) {
         if (parentStatus == null) {
             return null;
         }
@@ -89,22 +88,14 @@ public class ReadStatus {
                 return null; // recalculate for child items
             case STATUS_CHILDREN:
             case STATUS_NODES:
-                if (hasAcChildren) {
-                    return null;
-                } else {
-                    return (parentStatus.isAllow) ? ALLOW_NODES : DENY_NODES;
-                }
+                return null;
             case STATUS_PROPERTIES:
             case STATUS_THIS_PROPERTIES:
                 // TODO
                 return null; // recalculate for properties of child node
             case STATUS_CHILDITEMS:
             case STATUS_ALL_REGULAR:
-                if (hasAcChildren) {
-                    return null;
-                } else {
-                    return (parentStatus.isAllow) ? ALLOW_ALL_REGULAR : DENY_ALL_REGULAR;
-                }
+                return null;
             case STATUS_ACCESS_CONTROL:
                 // TODO
                 return null; // recalculate

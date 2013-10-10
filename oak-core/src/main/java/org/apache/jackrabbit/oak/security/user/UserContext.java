@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.util.TreeLocation;
@@ -50,6 +52,11 @@ final class UserContext implements Context, UserConstants {
     }
 
     @Override
+    public boolean definesContextRoot(@Nonnull Tree tree) {
+        return definesTree(tree);
+    }
+
+    @Override
     public boolean definesTree(Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
         return NT_REP_GROUP.equals(ntName) || NT_REP_USER.equals(ntName) || NT_REP_MEMBERS.equals(ntName);
@@ -75,18 +82,4 @@ final class UserContext implements Context, UserConstants {
         }
     }
 
-    @Override
-    public boolean hasChildItems(Tree parent) {
-        if (NODE_TYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(parent))) {
-            // covers all properties
-            return true;
-        }
-        for (Tree child : parent.getChildren()) {
-            String ntName = TreeUtil.getPrimaryTypeName(child);
-            if (NODE_TYPE_NAMES.contains(ntName)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }
