@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -43,6 +45,12 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
     }
 
     @Override
+    public boolean definesContextRoot(@Nonnull Tree tree) {
+        String name = tree.getName();
+        return POLICY_NODE_NAMES.contains(name) || REP_PERMISSION_STORE.equals(name);
+    }
+
+    @Override
     public boolean definesTree(Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
         return AC_NODETYPE_NAMES.contains(ntName) || PERMISSION_NODETYPE_NAMES.contains(ntName);
@@ -61,14 +69,4 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
         }
     }
 
-    @Override
-    public boolean hasChildItems(Tree parent) {
-        for (String name : POLICY_NODE_NAMES) {
-            if (parent.hasChild(name)) {
-                return true;
-            }
-        }
-        String ntName = TreeUtil.getPrimaryTypeName(parent);
-        return AC_NODETYPE_NAMES.contains(ntName) || PERMISSION_NODETYPE_NAMES.contains(ntName);
-    }
 }
