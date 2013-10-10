@@ -71,7 +71,7 @@ public class NodeDocument extends Document {
      * A document size threshold after which a split is forced even if
      * {@link #REVISIONS_SPLIT_OFF_SIZE} is not reached.
      */
-    static final int FORCE_SPLIT_THRESHOLD = 16 * 1024;
+    static final int FORCE_SPLIT_THRESHOLD = 256 * 1024;
 
     /**
      * Only split off at least this number of revisions.
