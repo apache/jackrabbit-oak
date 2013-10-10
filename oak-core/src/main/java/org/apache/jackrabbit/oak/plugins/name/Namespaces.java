@@ -16,16 +16,34 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static javax.jcr.NamespaceRegistry.NAMESPACE_EMPTY;
+import static javax.jcr.NamespaceRegistry.NAMESPACE_JCR;
+import static javax.jcr.NamespaceRegistry.NAMESPACE_MIX;
+import static javax.jcr.NamespaceRegistry.NAMESPACE_NT;
+import static javax.jcr.NamespaceRegistry.NAMESPACE_XML;
+import static javax.jcr.NamespaceRegistry.PREFIX_EMPTY;
+import static javax.jcr.NamespaceRegistry.PREFIX_JCR;
+import static javax.jcr.NamespaceRegistry.PREFIX_MIX;
+import static javax.jcr.NamespaceRegistry.PREFIX_NT;
+import static javax.jcr.NamespaceRegistry.PREFIX_XML;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.jcr.NamespaceRegistry;
+import java.util.Set;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.util.Text;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 /**
  * Internal static utility class for managing the persisted namespace registry.
@@ -35,40 +53,150 @@ public class Namespaces implements NamespaceConstants {
     private Namespaces() {
     }
 
-    private static final Map<String, String> DEFAULTS = new HashMap<String, String>();
-    static {
+    public static void setupNamespaces(NodeBuilder system) {
+        if (system.hasChildNode(REP_NAMESPACES)) {
+            return;
+        }
+
+        NodeBuilder namespaces = system.child(REP_NAMESPACES);
+        namespaces.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                JcrConstants.NT_UNSTRUCTURED, NAME);
+
         // Standard namespace specified by JCR (default one not included)
-        DEFAULTS.put(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.NAMESPACE_EMPTY);
-        DEFAULTS.put(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR);
-        DEFAULTS.put(NamespaceRegistry.PREFIX_NT,  NamespaceRegistry.NAMESPACE_NT);
-        DEFAULTS.put(NamespaceRegistry.PREFIX_MIX, NamespaceRegistry.NAMESPACE_MIX);
-        DEFAULTS.put(NamespaceRegistry.PREFIX_XML, NamespaceRegistry.NAMESPACE_XML);
+        namespaces.setProperty(escapePropertyKey(PREFIX_EMPTY), NAMESPACE_EMPTY);
+        namespaces.setProperty(PREFIX_JCR, NAMESPACE_JCR);
+        namespaces.setProperty(PREFIX_NT,  NAMESPACE_NT);
+        namespaces.setProperty(PREFIX_MIX, NAMESPACE_MIX);
+        namespaces.setProperty(PREFIX_XML, NAMESPACE_XML);
 
         // Namespace included in Jackrabbit 2.x
-        DEFAULTS.put(PREFIX_SV, NAMESPACE_SV);
-        DEFAULTS.put(PREFIX_REP, NAMESPACE_REP);
+        namespaces.setProperty(PREFIX_SV, NAMESPACE_SV);
+        namespaces.setProperty(PREFIX_REP, NAMESPACE_REP);
+
+        // index node for faster lookup
+        NodeBuilder data = namespaces.child(NSDATA);
+        data.setProperty(NSDATA_PREFIXES, ImmutableList.of(PREFIX_EMPTY, PREFIX_JCR, PREFIX_NT, PREFIX_MIX, PREFIX_XML, PREFIX_SV, PREFIX_REP), STRINGS);
+        data.setProperty(NSDATA_URIS, ImmutableList.of(NAMESPACE_EMPTY, NAMESPACE_JCR, NAMESPACE_NT, NAMESPACE_MIX, NAMESPACE_XML, NAMESPACE_SV, NAMESPACE_REP), STRINGS);
+
+        data.setProperty(encodeUri(escapePropertyKey(NAMESPACE_EMPTY)), PREFIX_EMPTY);
+        data.setProperty(encodeUri(NAMESPACE_JCR), PREFIX_JCR);
+        data.setProperty(encodeUri(NAMESPACE_NT), PREFIX_NT);
+        data.setProperty(encodeUri(NAMESPACE_MIX), PREFIX_MIX);
+        data.setProperty(encodeUri(NAMESPACE_XML), PREFIX_XML);
+        data.setProperty(encodeUri(NAMESPACE_SV), PREFIX_SV);
+        data.setProperty(encodeUri(NAMESPACE_REP), PREFIX_REP);
+    }
+
+    private static Tree getNamespaceTree(Tree root) {
+        return root.getChild(JcrConstants.JCR_SYSTEM).getChild(REP_NAMESPACES);
     }
 
     public static Map<String, String> getNamespaceMap(Tree root) {
-        Map<String, String> map = new HashMap<String, String>(DEFAULTS);
+        Map<String, String> map = new HashMap<String, String>();
 
-        Tree namespaces = root.getChild(JcrConstants.JCR_SYSTEM).getChild(REP_NAMESPACES);
+        Tree namespaces = getNamespaceTree(root);
         for (PropertyState property : namespaces.getProperties()) {
             String prefix = property.getName();
-            if (!property.isArray() && isValidPrefix(prefix)) {
-                String value = property.getValue(STRING);
-                if (STRING.equals(property.getType())) {
-                    map.put(prefix, value);
-                }
+            if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
+                map.put(unescapePropertyKey(prefix), property.getValue(STRING));
             }
         }
 
         return map;
     }
 
+    static String[] getNamespacePrefixes(Tree root) {
+        Set<String> prefSet = getNamespacePrefixesAsSet(root);
+        String[] prefixes = prefSet.toArray(new String[prefSet.size()]);
+        Arrays.sort(prefixes);
+        return prefixes;
+    }
+
+    static Set<String> getNamespacePrefixesAsSet(Tree root) {
+        return safeGet(getNamespaceTree(root).getChild(NSDATA), NSDATA_PREFIXES);
+    }
+
+    static String getNamespacePrefix(Tree root, String uri) {
+        Tree namespaces = getNamespaceTree(root);
+        PropertyState ps = namespaces.getChild(NSDATA)
+                .getProperty(encodeUri(escapePropertyKey(uri)));
+        if (ps != null) {
+            return ps.getValue(STRING);
+        }
+        return null;
+    }
+
+    static String[] getNamespaceURIs(Tree root) {
+        Set<String> uris = safeGet(getNamespaceTree(root).getChild(NSDATA), NSDATA_URIS);
+        return uris.toArray(new String[uris.size()]);
+    }
+
+    static String getNamespaceURI(Tree root, String prefix) {
+        if (isValidPrefix(prefix)) {
+            PropertyState property = getNamespaceTree(root).getProperty(
+                    escapePropertyKey(prefix));
+            if (property != null && STRING.equals(property.getType())) {
+                return property.getValue(STRING);
+            }
+        }
+        return null;
+    }
+
+    // utils
+
+    /**
+     * Replaces an empty string with the special {@link #EMPTY_KEY} value.
+     *
+     * @see #unescapePropertyKey(String)
+     * @param key property key
+     * @return escaped property key
+     */
+    static String escapePropertyKey(String key) {
+        if (key.equals("")) {
+            return EMPTY_KEY;
+        } else {
+            return key;
+        }
+    }
+
+    /**
+     * Converts the special {@link #EMPTY_KEY} value back to an empty string.
+     *
+     * @see #escapePropertyKey(String)
+     * @param key property key
+     * @return escaped property key
+     */
+    static String unescapePropertyKey(String key) {
+        if (key.equals(EMPTY_KEY)) {
+            return "";
+        } else {
+            return key;
+        }
+    }
+
+    /**
+     * encodes the uri value to be used as a property
+     * 
+     * @param uri
+     * @return encoded uri
+     */
+    static String encodeUri(String uri) {
+        return Text.escapeIllegalJcrChars(uri);
+    }
+
+    static Set<String> safeGet(Tree tree, String name) {
+        PropertyState ps = tree.getProperty(name);
+        if (ps == null) {
+            return Sets.newHashSet();
+        }
+        return Sets.newHashSet(ps.getValue(Type.STRINGS));
+    }
+
+    // validation
+
     public static boolean isValidPrefix(String prefix) {
         // TODO: Other prefix rules?
-        return !prefix.isEmpty() && prefix.indexOf(':') == -1;
+        return prefix.indexOf(':') == -1;
     }
 
     public static boolean isValidLocalName(String local) {

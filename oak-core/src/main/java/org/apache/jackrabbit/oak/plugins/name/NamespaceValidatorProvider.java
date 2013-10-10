@@ -21,11 +21,11 @@ import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAME
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -35,13 +35,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 @Component
 @Service(EditorProvider.class)
-public class NamespaceValidatorProvider extends ValidatorProvider {
+public class NamespaceValidatorProvider implements EditorProvider {
 
     @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
-        Validator validator = new NamespaceValidator(
-                Namespaces.getNamespaceMap(new ImmutableTree(before)));
-        return new SubtreeValidator(validator, JCR_SYSTEM, REP_NAMESPACES);
+    public Editor getRootEditor(NodeState before, NodeState after,
+            NodeBuilder builder) throws CommitFailedException {
+        return new SubtreeEditor(new NamespaceValidator(before, builder), JCR_SYSTEM, REP_NAMESPACES);
     }
 
 }
