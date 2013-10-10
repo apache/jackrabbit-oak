@@ -149,7 +149,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean commit() {
+    public boolean commit() throws LoginException {
         if (tokenCredentials != null) {
             if (!subject.isReadOnly()) {
                 subject.getPublicCredentials().add(tokenCredentials);
@@ -174,11 +174,14 @@ public final class TokenLoginModule extends AbstractLoginModule {
                         tc.setAttribute(name, attributes.get(name));
                     }
                     subject.getPublicCredentials().add(tc);
+                } else {
+                    // failed to create token -> fail commit()
+                    log.debug("TokenProvider failed to create a login token for user " + userId);
+                    throw new LoginException("Failed to create login token for user " + userId);
                 }
             }
         }
         // the login attempt on this module did not succeed: clear state
-        // and check if another successful login asks for a new token to be created.
         clearState();
 
         return false;
