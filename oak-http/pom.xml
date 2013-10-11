@@ -54,7 +54,9 @@
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
-            <excludes />
+            <excludes>
+              <exclude>README.md</exclude>
+            </excludes>
           </configuration>
         </plugin>
       </plugins>
