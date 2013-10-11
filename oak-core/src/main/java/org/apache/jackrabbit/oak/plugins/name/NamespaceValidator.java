@@ -19,30 +19,20 @@ package org.apache.jackrabbit.oak.plugins.name;
 import static javax.jcr.NamespaceRegistry.PREFIX_JCR;
 import static javax.jcr.NamespaceRegistry.PREFIX_MIX;
 import static javax.jcr.NamespaceRegistry.PREFIX_NT;
-
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA_PREFIXES;
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA_URIS;
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAMESPACES;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.escapePropertyKey;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.safeGet;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.unescapePropertyKey;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -140,29 +130,8 @@ class NamespaceValidator extends DefaultEditor {
         if (!modified) {
             return;
         }
-
-        Set<String> prefixes = new HashSet<String>();
-        Set<String> uris = new HashSet<String>();
-        Map<String, String> reverse = new HashMap<String, String>();
-
-        NodeBuilder namespaces = builder.child(JCR_SYSTEM)
-                .child(REP_NAMESPACES);
-        for (PropertyState property : namespaces.getProperties()) {
-            String prefix = unescapePropertyKey(property.getName());
-            if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
-                prefixes.add(prefix);
-                String uri = property.getValue(STRING);
-                uris.add(uri);
-                reverse.put(escapePropertyKey(uri), prefix);
-            }
-        }
-
-        NodeBuilder data = namespaces.setChildNode(NSDATA);
-        data.setProperty(NSDATA_PREFIXES, prefixes, Type.STRINGS);
-        data.setProperty(NSDATA_URIS, uris, Type.STRINGS);
-        for (Entry<String, String> e : reverse.entrySet()) {
-            data.setProperty(encodeUri(e.getKey()), e.getValue());
-        }
+        Namespaces.buildIndexNode(builder.child(JCR_SYSTEM).child(
+                REP_NAMESPACES));
     }
 
     @Override
