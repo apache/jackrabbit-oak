@@ -26,23 +26,27 @@ import static javax.jcr.NamespaceRegistry.PREFIX_JCR;
 import static javax.jcr.NamespaceRegistry.PREFIX_MIX;
 import static javax.jcr.NamespaceRegistry.PREFIX_NT;
 import static javax.jcr.NamespaceRegistry.PREFIX_XML;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.Text;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 /**
@@ -59,8 +63,7 @@ public class Namespaces implements NamespaceConstants {
         }
 
         NodeBuilder namespaces = system.child(REP_NAMESPACES);
-        namespaces.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                JcrConstants.NT_UNSTRUCTURED, NAME);
+        namespaces.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
 
         // Standard namespace specified by JCR (default one not included)
         namespaces.setProperty(escapePropertyKey(PREFIX_EMPTY), NAMESPACE_EMPTY);
@@ -74,21 +77,34 @@ public class Namespaces implements NamespaceConstants {
         namespaces.setProperty(PREFIX_REP, NAMESPACE_REP);
 
         // index node for faster lookup
-        NodeBuilder data = namespaces.child(NSDATA);
-        data.setProperty(NSDATA_PREFIXES, ImmutableList.of(PREFIX_EMPTY, PREFIX_JCR, PREFIX_NT, PREFIX_MIX, PREFIX_XML, PREFIX_SV, PREFIX_REP), STRINGS);
-        data.setProperty(NSDATA_URIS, ImmutableList.of(NAMESPACE_EMPTY, NAMESPACE_JCR, NAMESPACE_NT, NAMESPACE_MIX, NAMESPACE_XML, NAMESPACE_SV, NAMESPACE_REP), STRINGS);
+        buildIndexNode(namespaces);
+    }
 
-        data.setProperty(encodeUri(escapePropertyKey(NAMESPACE_EMPTY)), PREFIX_EMPTY);
-        data.setProperty(encodeUri(NAMESPACE_JCR), PREFIX_JCR);
-        data.setProperty(encodeUri(NAMESPACE_NT), PREFIX_NT);
-        data.setProperty(encodeUri(NAMESPACE_MIX), PREFIX_MIX);
-        data.setProperty(encodeUri(NAMESPACE_XML), PREFIX_XML);
-        data.setProperty(encodeUri(NAMESPACE_SV), PREFIX_SV);
-        data.setProperty(encodeUri(NAMESPACE_REP), PREFIX_REP);
+    static void buildIndexNode(NodeBuilder namespaces) {
+        Set<String> prefixes = new HashSet<String>();
+        Set<String> uris = new HashSet<String>();
+        Map<String, String> reverse = new HashMap<String, String>();
+
+        for (PropertyState property : namespaces.getProperties()) {
+            String prefix = unescapePropertyKey(property.getName());
+            if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
+                prefixes.add(prefix);
+                String uri = property.getValue(STRING);
+                uris.add(uri);
+                reverse.put(escapePropertyKey(uri), prefix);
+            }
+        }
+
+        NodeBuilder data = namespaces.setChildNode(NSDATA);
+        data.setProperty(NSDATA_PREFIXES, prefixes, Type.STRINGS);
+        data.setProperty(NSDATA_URIS, uris, Type.STRINGS);
+        for (Entry<String, String> e : reverse.entrySet()) {
+            data.setProperty(encodeUri(e.getKey()), e.getValue());
+        }
     }
 
     private static Tree getNamespaceTree(Tree root) {
-        return root.getChild(JcrConstants.JCR_SYSTEM).getChild(REP_NAMESPACES);
+        return root.getChild(JCR_SYSTEM).getChild(REP_NAMESPACES);
     }
 
     public static Map<String, String> getNamespaceMap(Tree root) {
@@ -116,7 +132,7 @@ public class Namespaces implements NamespaceConstants {
         return safeGet(getNamespaceTree(root).getChild(NSDATA), NSDATA_PREFIXES);
     }
 
-    static String getNamespacePrefix(Tree root, String uri) {
+    public static String getNamespacePrefix(Tree root, String uri) {
         Tree namespaces = getNamespaceTree(root);
         PropertyState ps = namespaces.getChild(NSDATA)
                 .getProperty(encodeUri(escapePropertyKey(uri)));
@@ -131,7 +147,7 @@ public class Namespaces implements NamespaceConstants {
         return uris.toArray(new String[uris.size()]);
     }
 
-    static String getNamespaceURI(Tree root, String prefix) {
+    public static String getNamespaceURI(Tree root, String prefix) {
         if (isValidPrefix(prefix)) {
             PropertyState property = getNamespaceTree(root).getProperty(
                     escapePropertyKey(prefix));
@@ -213,6 +229,20 @@ public class Namespaces implements NamespaceConstants {
 
         // TODO: Other name rules?
         return true;
+    }
+
+    // testing
+
+    public static Tree setupTestNamespaces(Map<String, String> global) {
+        NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
+        NodeBuilder namespaces = root.child(JCR_SYSTEM).child(REP_NAMESPACES);
+        namespaces.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
+        for (Entry<String, String> entry : global.entrySet()) {
+            namespaces.setProperty(escapePropertyKey(entry.getKey()),
+                    entry.getValue());
+        }
+        buildIndexNode(namespaces);
+        return new ImmutableTree(root.getNodeState());
     }
 
 }
