@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
 
-import org.apache.jackrabbit.commons.NamespaceHelper;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
@@ -63,11 +62,10 @@ class SysViewImportHandler extends TargetImportHandler {
      * Constructs a new {@code SysViewImportHandler}.
      *
      * @param importer     the underlying importer
-     * @param valueFactory the value factory
-     * @param helper the namespace helper
+     * @param sessionContext the session context
      */
-    SysViewImportHandler(Importer importer, ValueFactory valueFactory, NamespaceHelper helper) {
-        super(importer, valueFactory, helper);
+    SysViewImportHandler(Importer importer, SessionContext sessionContext) {
+        super(importer, sessionContext);
     }
 
     private void processNode(ImportState state, boolean start, boolean end)
@@ -168,7 +166,7 @@ class SysViewImportHandler extends TargetImportHandler {
             }
         } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "value".equals(localName)) {
             // sv:value element
-            currentPropValue = new BufferedStringValue(valueFactory, currentNamePathMapper());
+            currentPropValue = new BufferedStringValue(sessionContext.getValueFactory(), currentNamePathMapper());
             String xsiType = atts.getValue("xsi:type");
             currentPropValue.setBase64("xs:base64Binary".equals(xsiType));
         } else {

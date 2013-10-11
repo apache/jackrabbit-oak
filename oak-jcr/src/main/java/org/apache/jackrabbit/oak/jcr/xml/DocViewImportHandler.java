@@ -22,15 +22,14 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.commons.NamespaceHelper;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
@@ -42,6 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
+
+import com.google.common.collect.Lists;
 
 /**
  * {@code DocViewImportHandler} processes Document View XML SAX events
@@ -64,11 +65,10 @@ class DocViewImportHandler extends TargetImportHandler {
      * Constructs a new {@code DocViewImportHandler}.
      *
      * @param importer     the importer
-     * @param valueFactory a value factory
-     * @param helper The namespace helper
+     * @param sessionContext the session context
      */
-    DocViewImportHandler(Importer importer, ValueFactory valueFactory, NamespaceHelper helper) {
-        super(importer, valueFactory, helper);
+    DocViewImportHandler(Importer importer, SessionContext sessionContext) {
+        super(importer, sessionContext);
     }
 
     /**
@@ -108,7 +108,7 @@ class DocViewImportHandler extends TargetImportHandler {
     private void appendCharacters(char[] ch, int start, int length)
             throws SAXException {
         if (textHandler == null) {
-            textHandler = new BufferedStringValue(valueFactory, currentNamePathMapper());
+            textHandler = new BufferedStringValue(sessionContext.getValueFactory(), currentNamePathMapper());
         }
         try {
             textHandler.append(ch, start, length);
@@ -158,11 +158,11 @@ class DocViewImportHandler extends TargetImportHandler {
                 }
 
                 NodeInfo node =
-                        new NodeInfo(helper.getJcrName(NamespaceRegistry.NAMESPACE_JCR, "xmltext"), null, null, null);
+                        new NodeInfo(getJcrName(NamespaceRegistry.NAMESPACE_JCR, "xmltext"), null, null, null);
                 TextValue[] values =
                         new TextValue[]{textHandler};
                 ArrayList<PropInfo> props = new ArrayList<PropInfo>();
-                props.add(new PropInfo(helper.getJcrName(NamespaceRegistry.NAMESPACE_JCR, "xmlcharacters"),
+                props.add(new PropInfo(getJcrName(NamespaceRegistry.NAMESPACE_JCR, "xmlcharacters"),
                         PropertyType.STRING, values));
                 // call Importer
                 importer.startNode(node, props);
@@ -179,6 +179,11 @@ class DocViewImportHandler extends TargetImportHandler {
         } catch (RepositoryException re) {
             throw new SAXException(re);
         }
+    }
+
+    private String getJcrName(String uri, String name)
+            throws RepositoryException {
+        return sessionContext.getSession().getNamespacePrefix(uri) + ":" + name;
     }
 
     /**
@@ -250,7 +255,7 @@ class DocViewImportHandler extends TargetImportHandler {
                 // see also DocViewSAXEventGenerator#leavingProperties(Node, int)
                 // TODO proper multi-value serialization support
                 propValues = new TextValue[1];
-                propValues[0] = new StringValue(attrValue, valueFactory, currentNamePathMapper());
+                propValues[0] = new StringValue(attrValue, sessionContext.getValueFactory(), currentNamePathMapper());
 
                 if (NamespaceRegistry.NAMESPACE_JCR.equals(propNameInfo.getNamespaceUri())
                         && "primaryType".equals(propNameInfo.getLocalName())) {

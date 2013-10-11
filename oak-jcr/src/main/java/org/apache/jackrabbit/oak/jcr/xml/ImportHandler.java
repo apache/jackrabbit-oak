@@ -18,14 +18,14 @@ package org.apache.jackrabbit.oak.jcr.xml;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.slf4j.Logger;
@@ -61,7 +61,6 @@ public class ImportHandler extends DefaultHandler {
 
     private final SessionContext sessionContext;
     private final Importer importer;
-    private final NamespaceHelper helper;
     private final boolean isWorkspaceImport;
 
     protected Locator locator;
@@ -76,7 +75,6 @@ public class ImportHandler extends DefaultHandler {
         SessionDelegate sd = sessionContext.getSessionDelegate();
         initialRoot = sd.getContentSession().getLatestRoot();
         root = (isWorkspaceImport) ? sd.getContentSession().getLatestRoot() : sd.getRoot();
-        helper = new NamespaceHelper(sessionContext.getSession());
         importer = new ImporterImpl(absPath, sessionContext, root, initialRoot, uuidBehavior, isWorkspaceImport);
     }
 
@@ -143,7 +141,8 @@ public class ImportHandler extends DefaultHandler {
     public void startPrefixMapping(String prefix, String uri)
             throws SAXException {
         try {
-            helper.registerNamespace(prefix, uri);
+            new NamespaceHelper(sessionContext.getSession()).registerNamespace(
+                    prefix, uri);
             if (targetHandler != null) {
                 targetHandler.startPrefixMapping(prefix, uri);
             } else {
@@ -169,11 +168,10 @@ public class ImportHandler extends DefaultHandler {
         if (targetHandler == null) {
             // the namespace of the first element determines the type of XML
             // (system view/document view)
-            ValueFactory vf = sessionContext.getValueFactory();
             if (NamespaceConstants.NAMESPACE_SV.equals(namespaceURI)) {
-                targetHandler = new SysViewImportHandler(importer, vf, helper);
+                targetHandler = new SysViewImportHandler(importer, sessionContext);
             } else {
-                targetHandler = new DocViewImportHandler(importer, vf, helper);
+                targetHandler = new DocViewImportHandler(importer, sessionContext);
             }
 
             targetHandler.startDocument();
