@@ -30,17 +30,18 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.TestGlobalNameMapper;
 import org.apache.jackrabbit.oak.TestNameMapper;
-import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -107,12 +108,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
 
     @Test
     public void testGetPath() {
-        NameMapper nameMapper = new GlobalNameMapper() {
-            @Override
-            protected Map<String, String> getNamespaceMap() {
-                return Collections.singletonMap("jr", "http://jackrabbit.apache.org");
-            }
-        };
+        NameMapper nameMapper = new TestGlobalNameMapper(Collections.singletonMap("jr", "http://jackrabbit.apache.org"));
         NamePathMapper npMapper = new NamePathMapperImpl(nameMapper);
 
         // map of jcr-path to standard jcr-path
