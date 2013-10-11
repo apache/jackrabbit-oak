@@ -1,16 +1,55 @@
 Oak Runnable Jar
 ================
 
-Standalone server mode
-----------------------
+This jar contains everything you need for a simple Oak installation.
+The following three runmodes are available:
 
-TODO
+    * Oak server
+    * MicroKernel server
+    * benchmark
+
+See the subsections below for more details on how to use these modes.
+
+Oak server mode
+---------------
+
+The Oak server mode starts a full Oak instance with the standard JCR plugins
+and makes it available over a simple HTTP mapping defined in the `oak-http`
+component. To start this mode, use:
+
+    $ java -jar oak-run-*.jar [/path/to/mk...]
+
+If no arguments are specified, the command starts an in-memory repository
+and makes it available at http://localhost:8080/. Possible path arguments
+specify the locations of on-disk MicroKernel backends that are each opened
+and mapped to URLs under http://localhost:8080/.
+
+See the documentation in the `oak-http` component for details about the
+available functionality.
+
+MicroKernel server mode
+-----------------------
+
+The MicroKernel server mode starts a MicroKernel instance and makes it
+available over HTTP mapping defined in the `oak-mk-remote` component.
+To start this mode, use:
+
+    $ java -jar oak-run-*.jar mk /path/to/mk [port] [bindaddr]
+
+The given path specific the directory that contains the MicroKernel backend.
+The optional `port` and `bindaddr` arguments can be used to control the
+address of the HTTP mapping.
+
+The resulting web interface at http://localhost:8080/ (with default
+`bindaddr` and `port` values) maps simple HTTP forms to the respective
+MicroKernel methods. See the javadocs of the MicroKernel interface for
+more details.
 
 Benchmark mode
 --------------
 
-The oak-run jar has a "benchmark" mode for executing various micro-benchmarks.
-It can be invoked like this:
+The benchmark mode is used for executing various micro-benchmarks. It can
+be invoked like this:
 
     $ java -jar oak-run-*.jar benchmark [options] [testcases] [fixtures]
 
