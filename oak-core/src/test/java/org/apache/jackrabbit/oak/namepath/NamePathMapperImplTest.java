@@ -28,6 +28,9 @@ import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
+
+import org.apache.jackrabbit.oak.TestGlobalNameMapper;
+import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.junit.Test;
 
@@ -47,17 +50,7 @@ public class NamePathMapperImplTest {
             "foo", "http://www.example.com/foo",
             "quu", "http://www.example.com/quu");
 
-    private final NameMapper mapper = new LocalNameMapper() {
-        @Override
-        protected Map<String, String> getNamespaceMap() {
-            return GLOBAL;
-        }
-
-        @Override
-        protected Map<String, String> getSessionLocalMappings() {
-            return LOCAL;
-        }
-    };
+    private final NameMapper mapper = new TestNameMapper(GLOBAL, LOCAL);
 
     private NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
@@ -136,12 +129,7 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testJcrToOakKeepIndexNoRemap() {
-        NameMapper mapper = new GlobalNameMapper() {
-            @Override
-            protected Map<String, String> getNamespaceMap() {
-                return GLOBAL;
-            }
-        };
+        NameMapper mapper = new TestGlobalNameMapper(GLOBAL);
         NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
         assertEquals("/", npMapper.getOakPathKeepIndex("/"));

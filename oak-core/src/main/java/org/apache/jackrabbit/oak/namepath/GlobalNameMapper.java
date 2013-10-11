@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.oak.api.Tree;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.getNamespacePrefix;
 
 /**
  * Name mapper with no local prefix remappings. URI to prefix mappings
@@ -37,7 +39,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * consistency check can be used if needed to locate and fix any Oak names
  * with invalid namespace prefixes.
  */
-public abstract class GlobalNameMapper implements NameMapper {
+public class GlobalNameMapper implements NameMapper {
+
+    protected final Tree tree;
+
+    public GlobalNameMapper(Tree tree) {
+        this.tree = tree;
+    }
 
     @Override @Nonnull
     public String getJcrName(@Nonnull String oakName) {
@@ -96,17 +104,9 @@ public abstract class GlobalNameMapper implements NameMapper {
         return expandedName; // not an expanded name
     }
 
-    protected abstract Map<String, String> getNamespaceMap();
-
     @CheckForNull
     protected String getOakPrefixOrNull(String uri) {
-        Map<String, String> namespaces = getNamespaceMap();
-        for (Map.Entry<String, String> entry : namespaces.entrySet()) {
-            if (uri.equals(entry.getValue())) {
-                return entry.getKey();
-            }
-        }
-        return null;
+        return getNamespacePrefix(tree, uri);
     }
 
 }

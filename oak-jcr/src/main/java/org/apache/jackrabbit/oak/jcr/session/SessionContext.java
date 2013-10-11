@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
@@ -120,11 +119,7 @@ public class SessionContext implements NamePathMapper {
         this.delegate = checkNotNull(delegate);
 
         this.namespaces = new SessionNamespaces(this);
-        LocalNameMapper nameMapper = new LocalNameMapper() {
-            @Override
-            protected Map<String, String> getNamespaceMap() {
-                return Namespaces.getNamespaceMap(delegate.getRoot().getTree("/"));
-            }
+        LocalNameMapper nameMapper = new LocalNameMapper(delegate.getRoot().getTree("/")) {
 
             @Override
             protected Map<String, String> getSessionLocalMappings() {

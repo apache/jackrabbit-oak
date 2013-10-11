@@ -22,18 +22,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import org.apache.jackrabbit.commons.NamespaceHelper;
+import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 
 /**
  * {@code TargetImportHandler} serves as the base class for the concrete
@@ -43,15 +46,13 @@ import org.xml.sax.helpers.DefaultHandler;
 public abstract class TargetImportHandler extends DefaultHandler {
 
     protected final Importer importer;
-    protected final ValueFactory valueFactory;
-    protected final NamespaceHelper helper;
+    protected final SessionContext sessionContext;
     private final ListMultimap<String, String> documentContext = ArrayListMultimap.create();
     private Map<String, String> documentPrefixMap = Collections.emptyMap();
 
-    protected TargetImportHandler(Importer importer, ValueFactory valueFactory, NamespaceHelper helper) {
+    protected TargetImportHandler(Importer importer, SessionContext sessionContext) {
         this.importer = importer;
-        this.valueFactory = valueFactory;
-        this.helper = helper;
+        this.sessionContext = sessionContext;
     }
 
     //--------------------------------------------------------< ImportHandler >
@@ -107,21 +108,17 @@ public abstract class TargetImportHandler extends DefaultHandler {
     //--------------------------------------------------------
 
     public NamePathMapper currentNamePathMapper() {
-        return new NamePathMapperImpl(new LocalNameMapper() {
-            @Override
-            protected Map<String, String> getNamespaceMap() {
-                try {
-                    return helper.getNamespaces();
-                } catch (RepositoryException e) {
-                    return Collections.emptyMap();
-                }
-            }
+        return new NamePathMapperImpl(new LocalNameMapper(getNSReadTree()) {
 
             @Override
             protected Map<String, String> getSessionLocalMappings() {
                 return documentPrefixMap;
             }
         });
+    }
+
+    private Tree getNSReadTree() {
+        return sessionContext.getSessionDelegate().getRoot().getTree("/");
     }
 
     private Map<String, String> createCurrentPrefixMap() {
@@ -171,11 +168,11 @@ public abstract class TargetImportHandler extends DefaultHandler {
             } else {
                 List<String> uris = documentContext.get(docPrefix);
                 if (uris.isEmpty()) {
-                    namespaceUri = helper.getURI(docPrefix);
+                    namespaceUri = Namespaces.getNamespaceURI(getNSReadTree(), docPrefix);
                     repoPrefix = docPrefix;
                 } else {
                     namespaceUri = uris.get(uris.size() - 1);
-                    repoPrefix = helper.getPrefix(namespaceUri);
+                    repoPrefix = Namespaces.getNamespacePrefix(getNSReadTree(), namespaceUri);
                 }
             }
         }

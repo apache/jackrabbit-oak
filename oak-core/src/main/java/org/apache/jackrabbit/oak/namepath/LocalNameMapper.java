@@ -18,15 +18,22 @@ package org.apache.jackrabbit.oak.namepath;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.getNamespaceURI;
 
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
 
+import org.apache.jackrabbit.oak.api.Tree;
+
 /**
  * Name mapper with local namespace mappings.
  */
 public abstract class LocalNameMapper extends GlobalNameMapper {
+
+    public LocalNameMapper(Tree tree) {
+        super(tree);
+    }
 
     private static boolean isExpandedName(String name) {
         if (name.startsWith("{")) {
@@ -47,7 +54,7 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
             int colon = oakName.indexOf(':');
             if (colon > 0) {
                 String oakPrefix = oakName.substring(0, colon);
-                String uri = getNamespaceMap().get(oakPrefix);
+                String uri = getNamespaceURI(tree, oakPrefix);
                 if (uri == null) {
                     throw new IllegalStateException(
                             "No namespace mapping found for " + oakName);
@@ -107,7 +114,7 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
                 }
 
                 // Check that a global mapping is present and not remapped
-                uri = getNamespaceMap().get(jcrPrefix);
+                uri = getNamespaceURI(tree, jcrPrefix);
                 if (uri == null || local.values().contains(uri)) {
                     return null;
                 }
