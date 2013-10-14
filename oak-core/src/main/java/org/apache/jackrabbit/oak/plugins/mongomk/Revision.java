@@ -380,7 +380,7 @@ public class Revision {
                         return;
                     }
                     if (last.revision.compareRevisionTime(r) > 0) {
-                        throw new IllegalArgumentException("Can not add an earlier revision");
+                        throw new IllegalArgumentException("Can not add an earlier revision: " + last.revision + " > " + r);
                     }
                     newList = new ArrayList<RevisionRange>(list);
                 }
