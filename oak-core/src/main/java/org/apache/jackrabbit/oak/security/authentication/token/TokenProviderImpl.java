@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -272,7 +273,7 @@ public class TokenProviderImpl implements TokenProvider {
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
         Tree tokenTree = identifierManager.getTree(nodeId);
         String userId = getUserId(tokenTree);
-        if (tokenTree == null || !tokenTree.exists() || userId == null) {
+        if (userId == null || !isValidTokenTree(tokenTree)) {
             return null;
         } else {
             return new TokenInfoImpl(new NodeUtil(tokenTree), token, userId);
@@ -317,6 +318,15 @@ public class TokenProviderImpl implements TokenProvider {
             res.append(Text.hexTable[b & 15]);
         }
         return res.toString();
+    }
+
+    private static boolean isValidTokenTree(Tree tokenTree) {
+        if (tokenTree == null || !tokenTree.exists()) {
+            return false;
+        } else {
+            return TOKENS_NODE_NAME.equals(tokenTree.getParent().getName()) &&
+                    TOKEN_NT_NAME.equals(TreeUtil.getPrimaryTypeName(tokenTree));
+        }
     }
 
     @CheckForNull
