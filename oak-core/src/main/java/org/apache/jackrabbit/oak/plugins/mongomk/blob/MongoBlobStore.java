@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk.blob;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.util.StringUtils;
 import org.slf4j.Logger;
@@ -71,6 +73,11 @@ public class MongoBlobStore extends AbstractBlobStore {
     protected byte[] readBlockFromBackend(BlockId blockId) throws Exception {
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
         MongoBlob blobMongo = getBlob(id, 0);
+        if (blobMongo == null) {
+            String message = "Did not find block " + id;
+            LOG.error(message);
+            throw new IOException(message);
+        }
         byte[] data = blobMongo.getData();
 
         if (blockId.getPos() == 0) {
