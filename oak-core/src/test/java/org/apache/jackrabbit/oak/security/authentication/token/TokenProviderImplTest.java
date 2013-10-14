@@ -23,10 +23,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -35,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -185,6 +188,68 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
+    public void testGetTokenInfoFromInvalidLocation() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        Tree tokenTree = getTokenTree(info);
+
+        assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
+
+        NodeUtil node = new NodeUtil(root.getTree("/")).addChild("testNode", "nt:unstructured");
+        try {
+            createTokenTree(info, node, "rep:Token");
+            tokenTree.remove();
+            root.commit();
+
+            assertNull(tokenProvider.getTokenInfo(info.getToken()));
+        } finally {
+            node.getTree().remove();
+            root.commit();
+        }
+    }
+
+    @Test
+    public void testGetTokenInfoFromInvalidLocation2() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        Tree tokenTree = getTokenTree(info);
+
+        assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
+
+        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        NodeUtil node = new NodeUtil(userTree).addChild("testNode", "nt:unstructured");
+        try {
+            createTokenTree(info, node, "rep:Token");
+            tokenTree.remove();
+            root.commit();
+
+            assertNull(tokenProvider.getTokenInfo(info.getToken()));
+        } finally {
+            node.getTree().remove();
+            root.commit();
+        }
+    }
+
+    @Test
+    public void testGetTokenInfoFromInvalidLocation3() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        Tree tokenTree = getTokenTree(info);
+
+        assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
+
+        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        NodeUtil node = new NodeUtil(userTree.getChild(".tokens"));
+        try {
+            createTokenTree(info, node, "nt:unstructured");
+            tokenTree.remove();
+            root.commit();
+
+            assertNull(tokenProvider.getTokenInfo(info.getToken()));
+        } finally {
+            node.getTree().remove();
+            root.commit();
+        }
+    }
+
+    @Test
     public void testGetTokenInfo() throws Exception {
         String token = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap()).getToken();
         TokenInfo info = tokenProvider.getTokenInfo(token);
@@ -232,5 +297,13 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         int pos = token.indexOf('_');
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
         return new IdentifierManager(root).getTree(nodeId);
+    }
+
+    private void createTokenTree(TokenInfo base, NodeUtil parent, String ntName) throws AccessDeniedException {
+        Tree tokenTree = getTokenTree(base);
+        Tree tree = parent.addChild("token", ntName).getTree();
+        tree.setProperty(tokenTree.getProperty(JcrConstants.JCR_UUID));
+        tree.setProperty(tokenTree.getProperty("rep:token.key"));
+        tree.setProperty(tokenTree.getProperty("rep:token.exp"));
     }
 }
