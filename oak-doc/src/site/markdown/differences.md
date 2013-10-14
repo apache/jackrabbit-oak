@@ -197,14 +197,10 @@ Changes with respect to Jackrabbit-core are collected in [OAK-14]
 * Workspace Operations:
     * Cross workspace operations are not implemented yet
       See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
-    * `Workspace#importXml()` not implemented yet
-      See [OAK-773](https://issues.apache.org/jira/browse/OAK-773)
     * Workspace Management (creating/deleting workspaces) is not implemented yet
       See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
     * `Workspace#copy()` is not properly implemented
       See [OAK-917](https://issues.apache.org/jira/browse/OAK-917) and sub tasks
-        * copy of referenceable nodes does not work
-          See [OAK-915](https://issues.apache.org/jira/browse/OAK-915)
         * copy of versionable nodes does not create new version history
           See [OAK-918](https://issues.apache.org/jira/browse/OAK-918)
         * copy of locked nodes does not remove the lock
