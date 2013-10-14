@@ -350,4 +350,12 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         history = vMgr.getVersionHistory(testNode.getPath());
         history.addVersionLabel(v.getName(), "testLabel", true);
     }
+
+    public void testVersionablePath() throws Exception {
+        Node n = createVersionableNode(superuser.getNode(path));
+
+        VersionHistory vh = n.getVersionHistory();
+        Property versionablePath = vh.getProperty(superuser.getWorkspace().getName());
+        assertEquals(n.getPath(), versionablePath.getString());
+    }
 }
