@@ -29,11 +29,13 @@ public class SetPropertyTest extends AbstractTest {
     private Session session;
 
     private Node node;
+    
+    String testNodeName = "test" + TEST_ID;
 
     @Override
     public void beforeSuite() throws RepositoryException {
         session = getRepository().login(getCredentials());
-        node = session.getRootNode().addNode("testnode", "nt:unstructured");
+        node = session.getRootNode().addNode(testNodeName, "nt:unstructured");
         session.save();
     }
 
@@ -57,7 +59,7 @@ public class SetPropertyTest extends AbstractTest {
 
     @Override
     public void afterSuite() throws RepositoryException {
-        session.getRootNode().getNode("testnode").remove();
+        session.getRootNode().getNode(testNodeName).remove();
         session.save();
         session.logout();
     }
