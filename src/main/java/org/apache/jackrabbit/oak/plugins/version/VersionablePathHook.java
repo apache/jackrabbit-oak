@@ -102,7 +102,7 @@ public class VersionablePathHook implements CommitHook {
                 }
 
                 String versionablePath = nodeAfter.path;
-                vhBuilder.setProperty(workspaceName, versionablePath);
+                vhBuilder.setProperty(workspaceName, versionablePath, Type.PATH);
             }
             return true;
         }
