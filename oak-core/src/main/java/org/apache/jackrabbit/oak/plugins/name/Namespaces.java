@@ -16,6 +16,7 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static com.google.common.base.Preconditions.checkState;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_EMPTY;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_JCR;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_MIX;
@@ -58,11 +59,16 @@ public class Namespaces implements NamespaceConstants {
     }
 
     public static void setupNamespaces(NodeBuilder system) {
-        if (system.hasChildNode(REP_NAMESPACES)) {
-            return;
+        if (!system.hasChildNode(REP_NAMESPACES)) {
+            NodeBuilder namespaces = createStandardMappings(system);
+            buildIndexNode(namespaces); // index node for faster lookup
         }
+    }
 
-        NodeBuilder namespaces = system.child(REP_NAMESPACES);
+    public static NodeBuilder createStandardMappings(NodeBuilder system) {
+        checkState(!system.hasChildNode(REP_NAMESPACES));
+
+        NodeBuilder namespaces = system.setChildNode(REP_NAMESPACES);
         namespaces.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
 
         // Standard namespace specified by JCR (default one not included)
@@ -76,11 +82,35 @@ public class Namespaces implements NamespaceConstants {
         namespaces.setProperty(PREFIX_SV, NAMESPACE_SV);
         namespaces.setProperty(PREFIX_REP, NAMESPACE_REP);
 
-        // index node for faster lookup
-        buildIndexNode(namespaces);
+        return namespaces;
     }
 
-    static void buildIndexNode(NodeBuilder namespaces) {
+    public static String addCustomMapping(
+            NodeBuilder namespaces, String uri, String prefixHint) {
+        // first look for an existing mapping for the given URI
+        for (PropertyState property : namespaces.getProperties()) {
+            if (property.getType() == STRING) {
+                String prefix = unescapePropertyKey(property.getName());
+                if (isValidPrefix(prefix)
+                        && uri.equals(property.getValue(STRING))) {
+                    return prefix;
+                }
+            }
+        }
+
+        // no existing mapping found for the URI, make sure prefix is unique
+        String prefix = prefixHint;
+        int iteration = 1;
+        while (namespaces.hasProperty(escapePropertyKey(prefix))) {
+            prefix = prefixHint + ++iteration;
+        }
+
+        // add the new mapping with its unique prefix
+        namespaces.setProperty(escapePropertyKey(prefix), uri);
+        return prefix;
+    }
+
+    public static void buildIndexNode(NodeBuilder namespaces) {
         Set<String> prefixes = new HashSet<String>();
         Set<String> uris = new HashSet<String>();
         Map<String, String> reverse = new HashMap<String, String>();
