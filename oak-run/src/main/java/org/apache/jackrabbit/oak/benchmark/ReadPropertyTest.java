@@ -34,7 +34,7 @@ public class ReadPropertyTest extends AbstractTest {
     protected void beforeSuite() throws Exception {
         session = getRepository().login(getCredentials());
         root = session.getRootNode().addNode(
-                getClass().getSimpleName(), "nt:unstructured");
+                getClass().getSimpleName() + TEST_ID, "nt:unstructured");
         root.setProperty("property", "value");
         session.save();
     }
