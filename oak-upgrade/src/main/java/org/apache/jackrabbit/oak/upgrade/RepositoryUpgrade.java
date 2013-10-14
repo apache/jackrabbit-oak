@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
@@ -55,26 +57,28 @@ import static org.apache.jackrabbit.spi.commons.name.NameConstants.ANY_NAME;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.Properties;
 
 import javax.jcr.NamespaceException;
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
+import org.apache.jackrabbit.core.fs.FileSystem;
+import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QItemDefinition;
 import org.apache.jackrabbit.spi.QNodeDefinition;
@@ -84,8 +88,6 @@ import org.apache.jackrabbit.spi.QValue;
 import org.apache.jackrabbit.spi.QValueConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableSet;
 
 public class RepositoryUpgrade {
 
@@ -170,10 +172,10 @@ public class RepositoryUpgrade {
         try {
             NodeBuilder builder = target.getRoot().builder();
 
-            copyNamespaces(builder);
+            Map<Integer, String> idxToPrefix = copyNamespaces(builder);
             copyNodeTypes(builder);
-            copyVersionStore(builder);
-            copyWorkspaces(builder);
+            copyVersionStore(builder, idxToPrefix);
+            copyWorkspaces(builder, idxToPrefix);
 
             target.merge(builder, new EditorHook(new RegistrationEditorProvider()), PostCommitHook.EMPTY); // TODO: default hooks?
         } catch (Exception e) {
@@ -191,25 +193,79 @@ public class RepositoryUpgrade {
         }
     }
 
-    private void copyNamespaces(NodeBuilder root) throws RepositoryException {
-        NamespaceRegistry sourceRegistry = source.getNamespaceRegistry();
-        NodeBuilder system = root.child(JCR_SYSTEM);
-        NodeBuilder namespaces = system.child("rep:namespaces");
+    /**
+     * Copies the registered namespaces to the target repository, and returns
+     * the internal namespace index mapping used in bundle serialization.
+     *
+     * @param root root builder
+     * @return index to prefix mapping
+     * @throws RepositoryException
+     */
+    private Map<Integer, String> copyNamespaces(NodeBuilder root)
+            throws RepositoryException {
+        Map<Integer, String> idxToPrefix = newHashMap();
 
-        Set<String> defaults = ImmutableSet.of(
-                NamespaceRegistry.NAMESPACE_EMPTY,
-                NamespaceRegistry.NAMESPACE_JCR,
-                NamespaceRegistry.NAMESPACE_MIX,
-                NamespaceRegistry.NAMESPACE_NT,
-                NamespaceRegistry.NAMESPACE_XML,
-                NamespaceConstants.NAMESPACE_SV,
-                NamespaceConstants.NAMESPACE_REP);
-        logger.info("Copying registered namespaces");
-        for (String uri : sourceRegistry.getURIs()) {
-            if (!defaults.contains(uri)) {
-                namespaces.setProperty(sourceRegistry.getPrefix(uri), uri);
+        NodeBuilder system = root.child(JCR_SYSTEM);
+        NodeBuilder namespaces = Namespaces.createStandardMappings(system);
+
+        Properties registry = loadProperties("/namespaces/ns_reg.properties");
+        Properties indexes  = loadProperties("/namespaces/ns_idx.properties");
+
+        for (String prefixHint : registry.stringPropertyNames()) {
+            String uri = registry.getProperty(prefixHint);
+            if (".empty.key".equals(prefixHint)) {
+                prefixHint = "";
             }
+
+            String prefix =
+                    Namespaces.addCustomMapping(namespaces, uri, prefixHint);
+
+            String index = null;
+            if (uri.isEmpty()) {
+                index = indexes.getProperty(".empty.key");
+            }
+            if (index == null) {
+                index = indexes.getProperty(uri);
+            }
+
+            Integer idx;
+            if (index != null) {
+                idx = Integer.decode(index);
+            } else {
+                int i = 0;
+                do {
+                    idx = (uri.hashCode() + i++) & 0x00ffffff;
+                } while (idxToPrefix.containsKey(idx));
+            }
+
+            checkState(idxToPrefix.put(idx, prefix) == null);
         }
+
+        Namespaces.buildIndexNode(namespaces);
+
+        return idxToPrefix;
+    }
+
+    private Properties loadProperties(String path) throws RepositoryException {
+        Properties properties = new Properties();
+
+        FileSystem filesystem = source.getFileSystem();
+        try {
+            if (filesystem.exists(path)) {
+                InputStream stream = filesystem.getInputStream(path);
+                try {
+                    properties.load(stream);
+                } finally {
+                    stream.close();
+                }
+            }
+        } catch (FileSystemException e) {
+            throw new RepositoryException(e);
+        } catch (IOException e) {
+            throw new RepositoryException(e);
+        }
+
+        return properties;
     }
 
     private void copyNodeTypes(NodeBuilder root) throws RepositoryException {
@@ -354,7 +410,8 @@ public class RepositoryUpgrade {
         builder.setProperty(JCR_PROTECTED, def.isProtected());
     }
 
-    private void copyVersionStore(NodeBuilder root)
+    private void copyVersionStore(
+            NodeBuilder root, Map<Integer, String> idxToPrefix)
             throws RepositoryException, IOException {
         logger.info("Copying version histories");
         NodeBuilder system = root.child(JCR_SYSTEM);
@@ -368,7 +425,8 @@ public class RepositoryUpgrade {
         copier.copy(RepositoryImpl.ACTIVITIES_NODE_ID, activities);
     }   
 
-    private void copyWorkspaces(NodeBuilder root)
+    private void copyWorkspaces(
+            NodeBuilder root, Map<Integer, String> idxToPrefix)
             throws RepositoryException, IOException {
         logger.info("Copying default workspace");
 
