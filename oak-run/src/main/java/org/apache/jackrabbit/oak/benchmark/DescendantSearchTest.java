@@ -35,19 +35,21 @@ public class DescendantSearchTest extends AbstractTest {
     private Session session;
 
     private Node root;
+    
+    String testNodeName = "test" + TEST_ID;
 
     protected Query createQuery(QueryManager manager, int i)
             throws RepositoryException {
         @SuppressWarnings("deprecation")
         String xpath = Query.XPATH;
-        return manager.createQuery("/jcr:root/testroot//element(*,nt:base)[@testcount=" + i + "]", xpath);
+        return manager.createQuery("/jcr:root/" + testNodeName + "//element(*,nt:base)[@testcount=" + i + "]", xpath);
     }
 
     @Override
     public void beforeSuite() throws RepositoryException {
         session = getRepository().login(getCredentials());
 
-        root = session.getRootNode().addNode("testroot", "nt:unstructured");
+        root = session.getRootNode().addNode(testNodeName, "nt:unstructured");
         for (int i = 0; i < NODE_COUNT; i++) {
             Node node = root.addNode("node" + i, "nt:unstructured");
             for (int j = 0; j < NODE_COUNT; j++) {
