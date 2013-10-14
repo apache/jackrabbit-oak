@@ -25,6 +25,10 @@ import javax.jcr.query.Row;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+
+import com.google.common.base.Joiner;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -96,9 +100,20 @@ public class RowImpl implements Row {
         int len = values.length;
         Value[] v2 = new Value[values.length];
         for (int i = 0; i < len; i++) {
-            v2[i] = result.createValue(values[i]);
+            if(values[i].isArray()){
+                v2[i] = result.createValue(mvpToString(values[i]));
+            }else{
+                v2[i] = result.createValue(values[i]);
+            }
         }
         return v2;
+    }
+
+    private static PropertyValue mvpToString(PropertyValue pv) {
+        String v = Joiner.on(' ')
+                .appendTo(new StringBuilder(), pv.getValue(Type.STRINGS))
+                .toString();
+        return PropertyValues.newString(v);
     }
 
 }
