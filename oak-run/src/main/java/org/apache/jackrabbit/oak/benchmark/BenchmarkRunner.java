@@ -141,6 +141,8 @@ public class BenchmarkRunner {
             ReadManyTest.uniform("UniformReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.uniform("UniformReadFiles", 1, ReadManyTest.FILES),
             ReadManyTest.uniform("UniformReadNodes", 1, ReadManyTest.NODES),
+            new ConcurrentCreateNodesTest(),
+            new SequentialCreateNodesTest(),
         };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
