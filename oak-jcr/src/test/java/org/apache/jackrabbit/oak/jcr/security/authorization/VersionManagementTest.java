@@ -351,11 +351,64 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         history.addVersionLabel(v.getName(), "testLabel", true);
     }
 
+    /**
+     * @since oak
+     */
+    @Test
     public void testVersionablePath() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
 
         VersionHistory vh = n.getVersionHistory();
         Property versionablePath = vh.getProperty(superuser.getWorkspace().getName());
         assertEquals(n.getPath(), versionablePath.getString());
+    }
+
+    @Test
+    public void testAddNewVersionableNode() throws Exception {
+        modify(path, REP_WRITE, true);
+        modify(path, Privilege.JCR_VERSION_MANAGEMENT, true);
+
+        Node testNode = testSession.getNode(path);
+        Node newNode = testNode.addNode("versionable");
+        newNode.addMixin("mix:versionable");
+        testSession.save();
+    }
+
+    /**
+     * @since oak
+     */
+    @Test
+    public void testVersionableChildNode() throws Exception {
+        Node testNode = superuser.getNode(path).addNode("n1").addNode("n2").addNode("n3").addNode("jcr:content");
+        superuser.save();
+
+        testNode.addMixin("mix:versionable");
+        superuser.save();
+
+        assertTrue(testNode.isNodeType("mix:versionable"));
+        VersionHistory vh = testNode.getVersionHistory();
+        Property versionablePath = vh.getProperty(superuser.getWorkspace().getName());
+        assertEquals(testNode.getPath(), versionablePath.getString());
+    }
+
+    /**
+     * @since oak
+     */
+    @Test
+    public void testVersionableChildNode2() throws Exception {
+        Node testNode = superuser.getNode(path).addNode("n1").addNode("n2").addNode("n3").addNode("jcr:content");
+        testNode.addMixin("mix:versionable");
+        superuser.save();
+
+
+        testNode.remove();
+        testNode = superuser.getNode(path).getNode("n1").getNode("n2").getNode("n3").addNode("jcr:content");
+        testNode.addMixin("mix:versionable");
+        superuser.save();
+
+        assertTrue(testNode.isNodeType("mix:versionable"));
+        VersionHistory vh = testNode.getVersionHistory();
+        Property versionablePath = vh.getProperty(superuser.getWorkspace().getName());
+        assertEquals(testNode.getPath(), versionablePath.getString());
     }
 }
