@@ -24,6 +24,9 @@ import javax.annotation.Nonnull;
 /**
  * Extension point for plugging in different kinds of validation rules
  * for content changes.
+ *
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_validators"
+ *         >Commit validators</a>
  */
 public abstract class ValidatorProvider implements EditorProvider {
 

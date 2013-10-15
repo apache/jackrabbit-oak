@@ -33,6 +33,8 @@ import javax.annotation.CheckForNull;
  * after state.
  *
  * @since Oak 0.7
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_editors"
+ *         >Commit editors</a>
  */
 public interface Editor {
 
