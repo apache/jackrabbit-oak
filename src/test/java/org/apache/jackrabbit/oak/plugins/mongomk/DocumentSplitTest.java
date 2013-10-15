@@ -60,7 +60,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             assertTrue(doc.isCommitted(rev));
         }
         // check if document is still there
-        assertNotNull(doc.getNodeAtRevision(mk, Revision.fromString(head)));
+        assertNotNull(mk.getNode("/", Revision.fromString(head)));
         mk.commit("/", "+\"baz\":{}", null, null);
         mk.setAsyncDelay(0);
         mk.backgroundWrite();
@@ -94,7 +94,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             assertTrue(doc.containsRevision(rev));
             assertTrue(doc.isCommitted(rev));
         }
-        Node node = doc.getNodeAtRevision(mk, Revision.fromString(head));
+        Node node = mk.getNode("/foo", Revision.fromString(head));
         // check status of node
         if (create) {
             assertNull(node);
