@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -45,7 +46,7 @@ public interface Query {
 
     void bindValue(String key, PropertyValue value);
 
-    void setQueryEngine(QueryEngineImpl queryEngineImpl);
+    void setIndexProvider(QueryIndexProvider indexProvider);
 
     void prepare();
 
