@@ -200,7 +200,7 @@ public class IndexUpdateTest {
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
         NodeState type = types.getChildNode(NT_BASE);
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
-        Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", null);
+        Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]");
         return Sets.newHashSet(lookup.query(filter, name,
                 PropertyValues.newString(value)));
     }

@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A "select" or "union" query.
@@ -34,9 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public interface Query {
 
-    void setRootTree(Tree rootTree);
-
-    void setRootState(NodeState rootState);
+    void setExecutionContext(ExecutionContext context);
 
     void setNamePathMapper(NamePathMapper namePathMapper);
 

@@ -103,8 +103,7 @@ public class QueryImpl implements Query {
     private long offset;
     private long size = -1;
     private boolean prepared;
-    private Tree rootTree;
-    private NodeState rootState;
+    private ExecutionContext context;
     private NamePathMapper namePathMapper;
 
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint, ColumnImpl[] columns) {
@@ -375,7 +374,7 @@ public class QueryImpl implements Query {
             LOG.debug("query execute {} ", statement);
             LOG.debug("query plan {}", getPlan());
         }
-        RowIterator rowIt = new RowIterator(rootState);
+        RowIterator rowIt = new RowIterator(context.getRootState());
         Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
         Iterator<ResultRowImpl> it = 
                 FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy);
@@ -414,7 +413,7 @@ public class QueryImpl implements Query {
     
     @Override
     public String getPlan() {
-        return source.getPlan(rootState);
+        return source.getPlan(context.getRootState());
     }
 
     @Override
@@ -577,23 +576,15 @@ public class QueryImpl implements Query {
     }
 
     public QueryIndex getBestIndex(Filter filter) {
-        return QueryEngineImpl.getBestIndex(this, rootState, filter, indexProvider);
+        return QueryEngineImpl.getBestIndex(context.getRootState(), filter,
+                indexProvider);
     }
 
     @Override
-    public void setRootTree(Tree rootTree) {
-        this.rootTree = rootTree;
+    public void setExecutionContext(ExecutionContext context) {
+        this.context = context;
     }
-    
-    public Tree getRootTree() {
-        return rootTree;
-    }
-    
-    @Override
-    public void setRootState(NodeState rootState) {
-        this.rootState = rootState;
-    }
-    
+
     @Override
     public void setOrderings(OrderingImpl[] orderings) {
         this.orderings = orderings;
@@ -610,7 +601,7 @@ public class QueryImpl implements Query {
 
     @Override
     public Tree getTree(String path) {
-        return TreeUtil.getTree(rootTree, PathUtils.isAbsolute(path) ? path.substring(1) : path);
+        return TreeUtil.getTree(context.getRootTree(), PathUtils.isAbsolute(path) ? path.substring(1) : path);
     }
 
     /**

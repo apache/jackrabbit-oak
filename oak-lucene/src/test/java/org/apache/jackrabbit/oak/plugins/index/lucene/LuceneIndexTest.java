@@ -145,8 +145,7 @@ public class LuceneIndexTest {
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
         NodeState type = types.getChildNode(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]",
-                null);
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]");
     }
 
     @Test
