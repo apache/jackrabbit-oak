@@ -44,55 +44,24 @@ public class ReadDeepTreeTest extends AbstractTest {
 
     private Session testSession;
 
-    protected List<String> allPaths;
+    protected List<String> allPaths = new ArrayList();
 
-    protected ReadDeepTreeTest(
-            boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
+    protected ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
         this.runAsAdmin = runAsAdmin;
         this.itemsToRead = itemsToRead;
         this.bgReaders = bgReaders;
         this.doReport = doReport;
     }
 
-    public ReadDeepTreeTest(
-            boolean runAsAdmin, int itemsToRead, boolean doReport) {
+    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
         this(runAsAdmin, itemsToRead, 0, doReport);
     }
 
     @Override
     protected void beforeSuite() throws Exception {
         adminSession = loginWriter();
-        String name = getClass().getSimpleName() + TEST_ID;
-        Node rn = adminSession.getRootNode();
 
-        long start = System.currentTimeMillis();
-        if (!rn.hasNode(name)) {
-            testRoot = adminSession.getRootNode().addNode(name, "nt:unstructured");
-            InputStream in = getClass().getClassLoader().getResourceAsStream("deepTree.xml");
-            adminSession.importXML(testRoot.getPath(), in, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
-            adminSession.save();
-        } else {
-            testRoot = rn.getNode(name);
-        }
-        System.out.println("Import deep tree: " + (System.currentTimeMillis()-start));
-
-        final List<String> paths = new ArrayList<String>();
-        ItemVisitor v = new TraversingItemVisitor.Default() {
-            @Override
-            protected void entering(Node node, int i) throws RepositoryException {
-                paths.add(node.getPath());
-                super.entering(node, i);
-            }
-            @Override
-            protected void entering(Property prop, int i) throws RepositoryException {
-                paths.add(prop.getPath());
-                super.entering(prop, i);
-            }
-        };
-        v.visit(testRoot);
-        allPaths = paths;
-
-        System.out.println("All paths: " + allPaths.size());
+        createDeepTree();
 
         for (int i = 0; i < bgReaders; i++) {
             final Session session = getTestSession();
@@ -107,8 +76,48 @@ public class ReadDeepTreeTest extends AbstractTest {
                 }
             });
         }
+        System.out.println("Threads started: " + bgReaders);
 
         testSession = getTestSession();
+    }
+
+    protected void createDeepTree() throws Exception {
+        Node rn = adminSession.getRootNode();
+
+        String testNodeName = getClass().getSimpleName() + TEST_ID;
+        long start = System.currentTimeMillis();
+        if (!rn.hasNode(testNodeName)) {
+            testRoot = adminSession.getRootNode().addNode(testNodeName, "nt:unstructured");
+            InputStream in = getClass().getClassLoader().getResourceAsStream("deepTree.xml");
+            adminSession.importXML(testRoot.getPath(), in, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            adminSession.save();
+        } else {
+            testRoot = rn.getNode(testNodeName);
+        }
+        System.out.println("Import deep tree: " + (System.currentTimeMillis()-start));
+
+        ItemVisitor v = new TraversingItemVisitor.Default() {
+            @Override
+            protected void entering(Node node, int i) throws RepositoryException {
+                visitingNode(node, i);
+                super.entering(node, i);
+            }
+            @Override
+            protected void entering(Property prop, int i) throws RepositoryException {
+                visitingProperty(prop, i);
+                super.entering(prop, i);
+            }
+        };
+        v.visit(testRoot);
+        System.out.println("All paths: " + allPaths.size());
+    }
+
+    protected void visitingNode(Node node, int i) throws RepositoryException {
+        allPaths.add(node.getPath());
+    }
+
+    protected void visitingProperty(Property property, int i) throws RepositoryException {
+        allPaths.add(property.getPath());
     }
 
     @Override

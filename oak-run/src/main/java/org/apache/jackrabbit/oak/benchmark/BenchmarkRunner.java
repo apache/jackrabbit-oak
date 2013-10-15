@@ -120,6 +120,11 @@ public class BenchmarkRunner {
                     itemsToRead.value(options),
                     bgReaders.value(options),
                     report.value(options)),
+            new ConcurrentReadSinglePolicyTreeTest(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    bgReaders.value(options),
+                    report.value(options)),
             new ConcurrentReadAccessControlledTreeTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
