@@ -19,19 +19,16 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
-import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-import javax.jcr.util.TraversingItemVisitor;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.util.Text;
 
@@ -42,17 +39,15 @@ import org.apache.jackrabbit.util.Text;
  */
 public class ConcurrentReadAccessControlledTreeTest2 extends ConcurrentReadDeepTreeTest {
 
-    List<Principal> principals = new ArrayList();
+    int counter = 0;
+    final List<Principal> principals = new ArrayList();
 
-    public ConcurrentReadAccessControlledTreeTest2(
-            boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
+    public ConcurrentReadAccessControlledTreeTest2(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
         super(runAsAdmin, itemsToRead, bgReaders, doReport);
     }
 
     @Override
-    protected void beforeSuite() throws Exception {
-        super.beforeSuite();
-
+    protected void createDeepTree() throws Exception {
         UserManager uMgr = ((JackrabbitSession) adminSession).getUserManager();
         for (int i = 0; i < 100; i++) {
             Authorizable a = uMgr.getAuthorizable("group" + i);
@@ -61,52 +56,43 @@ public class ConcurrentReadAccessControlledTreeTest2 extends ConcurrentReadDeepT
                 principals.add(a.getPrincipal());
             }
         }
-
-        ItemVisitor visitor = new TraversingItemVisitor.Default() {
-            int counter = 0;
-            @Override
-            protected void entering(Node node, int level) throws RepositoryException {
-                if (++counter == 100) {
-                    addPolicy(node);
-                    counter = 0;
-                }
-                super.entering(node, level);
-            }
-
-            private void addPolicy(Node node) throws RepositoryException {
-                AccessControlManager acMgr = node.getSession().getAccessControlManager();
-                String path = node.getPath();
-                int level = 0;
-                if (node.isNodeType(AccessControlConstants.NT_REP_POLICY)) {
-                    level = 1;
-                } else if (node.isNodeType(AccessControlConstants.NT_REP_ACE)) {
-                    level = 2;
-                } else if (node.isNodeType(AccessControlConstants.NT_REP_RESTRICTIONS)) {
-                    level = 3;
-                }
-                if (level > 0) {
-                    path = Text.getRelativeParent(path, level);
-                }
-                AccessControlPolicyIterator acIterator = acMgr.getApplicablePolicies(path);
-                if (acIterator.hasNext()) {
-                    AccessControlPolicy policy = acIterator.nextAccessControlPolicy();
-                    if (policy instanceof AccessControlList) {
-                        AccessControlList acl = (AccessControlList) policy;
-                        Privilege[] privileges = new Privilege[] {
-                                acMgr.privilegeFromName(Privilege.JCR_READ),
-                                acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
-                        };
-                        for (Principal principal : principals) {
-                            acl.addAccessControlEntry(principal, privileges);
-                        }
-                        acMgr.setPolicy(path, acl);
-                        adminSession.save();
-                    }
-                }
-            }
-        };
-
-        visitor.visit(testRoot);
+        super.createDeepTree();
     }
 
+    @Override
+    protected void visitingNode(Node node, int i) throws RepositoryException {
+        if (++counter == 100) {
+            addPolicy(node);
+            counter = 0;
+        }
+        super.visitingNode(node, i);
+    }
+
+    private void addPolicy(Node node) throws RepositoryException {
+        AccessControlManager acMgr = node.getSession().getAccessControlManager();
+        String path = node.getPath();
+        int level = 0;
+        if (node.isNodeType(AccessControlConstants.NT_REP_POLICY)) {
+            level = 1;
+        } else if (node.isNodeType(AccessControlConstants.NT_REP_ACE)) {
+            level = 2;
+        } else if (node.isNodeType(AccessControlConstants.NT_REP_RESTRICTIONS)) {
+            level = 3;
+        }
+        if (level > 0) {
+            path = Text.getRelativeParent(path, level);
+        }
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(node.getSession(), path);
+        if (acl != null) {
+            Privilege[] privileges = new Privilege[] {
+                    acMgr.privilegeFromName(Privilege.JCR_READ),
+                    acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
+            };
+            for (Principal principal : principals) {
+                acl.addAccessControlEntry(principal, privileges);
+            }
+            acMgr.setPolicy(path, acl);
+            adminSession.save();
+        }
+    }
 }
