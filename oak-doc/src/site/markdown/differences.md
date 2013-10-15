@@ -100,6 +100,9 @@ Regarding observation listeners:
   property (i.e. setting a property to its current value). Oak keeps closer to the specification and
   [omits such events](https://issues.apache.org/jira/browse/OAK-948).
 
+* `Event.NODE_MOVED` is not supported. Instead `Event.NODE_ADDED` and `Event.Node_REMOVED` events are
+  reported as long as they don't cancel each other (e.g. in case of reordering of nodes).
+
 Same name siblings
 ------------------
 
