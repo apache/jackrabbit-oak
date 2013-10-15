@@ -519,21 +519,30 @@ public class MongoMK implements MicroKernel, RevisionContext {
      * Get the node for the given path and revision. The returned object might
      * not be modified directly.
      *
-     * @param path
-     * @param rev
-     * @return the node
+     * @param path the path of the node.
+     * @param rev the read revision.
+     * @return the node or <code>null</code> if the node does not exist at the
+     *          given revision.
      */
-    Node getNode(@Nonnull String path, @Nonnull Revision rev) {
+    @CheckForNull
+    Node getNode(final @Nonnull String path, final @Nonnull Revision rev) {
         checkRevisionAge(checkNotNull(rev), checkNotNull(path));
-        String key = path + "@" + rev;
-        Node node = nodeCache.getIfPresent(key);
-        if (node == null) {
-            node = readNode(path, rev);
-            if (node != null) {
-                nodeCache.put(key, node);
-            }
+        try {
+            String key = path + "@" + rev;
+            Node node = nodeCache.get(key, new Callable<Node>() {
+                @Override
+                public Node call() throws Exception {
+                    Node n = readNode(path, rev);
+                    if (n == null) {
+                        n = Node.MISSING;
+                    }
+                    return n;
+                }
+            });
+            return node == Node.MISSING ? null : node;
+        } catch (ExecutionException e) {
+            throw new MicroKernelException(e);
         }
-        return node;
     }
 
     /**
@@ -682,11 +691,12 @@ public class MongoMK implements MicroKernel, RevisionContext {
     @CheckForNull
     private Node readNode(String path, Revision readRevision) {
         String id = Utils.getIdFromPath(path);
+        Revision lastRevision = getPendingModifications().get(path);
         NodeDocument doc = store.find(Collection.NODES, id);
         if (doc == null) {
             return null;
         }
-        return doc.getNodeAtRevision(this, readRevision);
+        return doc.getNodeAtRevision(this, readRevision, lastRevision);
     }
     
     @Override
@@ -1154,7 +1164,6 @@ public class MongoMK implements MicroKernel, RevisionContext {
                 for (String childPath : c.children) {
                     markAsDeleted(childPath, commit, true);
                 }
-                nodeChildrenCache.invalidate(n.getId());
             }
         }
     }
@@ -1330,9 +1339,9 @@ public class MongoMK implements MicroKernel, RevisionContext {
             // we no longer need to update it in a background process
             unsaved.remove(path);
         }
-        Children c = nodeChildrenCache.getIfPresent(path + "@" + rev);
+        String key = path + "@" + rev;
+        Children c = nodeChildrenCache.getIfPresent(key);
         if (isNew || (!isDelete && c != null)) {
-            String key = path + "@" + rev;
             Children c2 = new Children();
             TreeSet<String> set = new TreeSet<String>();
             if (c != null) {
