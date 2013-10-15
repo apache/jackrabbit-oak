@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Set;
 
@@ -25,6 +26,8 @@ import com.google.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -64,6 +67,8 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> report = parser.accepts("report", "Whether to output intermediate results")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
+        OptionSpec<File> csvFile = parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
+                .withOptionalArg().ofType(File.class);
 
         OptionSet options = parser.parse(args);
         int cacheSize = cache.value(options);
@@ -161,8 +166,15 @@ public class BenchmarkRunner {
         }
 
         if (argset.isEmpty()) {
+            PrintStream out = null;
+            if (options.has(csvFile)) {
+                out = new PrintStream(FileUtils.openOutputStream(csvFile.value(options), true));
+            }
             for (Benchmark benchmark : benchmarks) {
-                benchmark.run(fixtures);
+                benchmark.run(fixtures, out);
+            }
+            if (out != null) {
+                out.close();
             }
         } else {
             System.err.println("Unknown arguments: " + argset);
