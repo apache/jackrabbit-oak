@@ -27,9 +27,9 @@ import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
+import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -104,15 +104,10 @@ public final class ImmutableRoot implements Root {
     @Nonnull
     @Override
     public QueryEngine getQueryEngine() {
-        return new QueryEngineImpl(new PropertyIndexProvider()) {
+        return new QueryEngineImpl() {
             @Override
-            protected NodeState getRootState() {
-                return rootTree.state;
-            }
-
-            @Override
-            protected Tree getRootTree() {
-                return rootTree;
+            protected ExecutionContext getExecutionContext() {
+                return new ExecutionContext(rootTree.state, rootTree, new PropertyIndexProvider());
             }
         };
     }

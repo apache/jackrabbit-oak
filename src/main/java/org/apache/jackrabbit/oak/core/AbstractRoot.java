@@ -38,9 +38,9 @@ import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
+import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -304,18 +304,19 @@ public abstract class AbstractRoot implements Root {
     @Override
     public QueryEngine getQueryEngine() {
         checkLive();
-        return new QueryEngineImpl(getIndexProvider()) {
-
+        return new QueryEngineImpl() {
             @Override
-            protected NodeState getRootState() {
-                return AbstractRoot.this.getRootState();
+            protected ExecutionContext getExecutionContext() {
+                NodeState rootState = AbstractRoot.this.getRootState();
+                return new ExecutionContext(rootState, rootTree, getIndexProvider(rootState));
             }
 
-            @Override
-            protected Tree getRootTree() {
-                return rootTree;
+            private QueryIndexProvider getIndexProvider(NodeState rootState) {
+                if (hasPendingChanges()) {
+                    return new UUIDDiffIndexProviderWrapper(indexProvider, getBaseState(), rootState);
+                }
+                return indexProvider;
             }
-
         };
     }
 
@@ -331,15 +332,6 @@ public abstract class AbstractRoot implements Root {
                 return store.createBlob(inputStream);
             }
         };
-    }
-
-    @Nonnull
-    private QueryIndexProvider getIndexProvider() {
-        if (hasPendingChanges()) {
-            return new UUIDDiffIndexProviderWrapper(indexProvider,
-                    getBaseState(), getRootState());
-        }
-        return indexProvider;
     }
 
     //-----------------------------------------------------------< internal >---
