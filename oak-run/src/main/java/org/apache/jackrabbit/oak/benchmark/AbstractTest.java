@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -66,6 +67,8 @@ abstract class AbstractTest extends Benchmark {
     
     private Profiler profiler;
 
+    private int concurrency;
+
     protected static int getScale(int def) {
         int scale = Integer.getInteger("scale", 0);
         if (scale == 0) {
@@ -97,10 +100,15 @@ abstract class AbstractTest extends Benchmark {
     }
 
     @Override
-    public void run(Iterable<RepositoryFixture> fixtures) {
+    public void run(Iterable<RepositoryFixture> fixtures, PrintStream out) {
         System.out.format(
-                "# %-26.26s     min     10%%     50%%     90%%     max       N%n",
+                "# %-26.26s       C     min     10%%     50%%     90%%     max       N%n",
                 toString());
+        if (out != null) {
+            out.format(
+                    "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    max,      N%n",
+                    toString());
+        }
         for (RepositoryFixture fixture : fixtures) {
             try {
                 Repository[] cluster = fixture.setUpCluster(1);
@@ -109,14 +117,27 @@ abstract class AbstractTest extends Benchmark {
                     DescriptiveStatistics statistics = runTest(cluster[0]);
                     if (statistics.getN() > 0) {
                         System.out.format(
-                                "%-28.28s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                                "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
                                 fixture.toString(),
+                                concurrency,
                                 statistics.getMin(),
                                 statistics.getPercentile(10.0),
                                 statistics.getPercentile(50.0),
                                 statistics.getPercentile(90.0),
                                 statistics.getMax(),
                                 statistics.getN());
+                        if (out != null) {
+                            out.format(
+                                    "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d%n",
+                                    fixture.toString(),
+                                    concurrency,
+                                    statistics.getMin(),
+                                    statistics.getPercentile(10.0),
+                                    statistics.getPercentile(50.0),
+                                    statistics.getPercentile(90.0),
+                                    statistics.getMax(),
+                                    statistics.getN());
+                        }
                     }
                 } finally {
                     fixture.tearDownCluster();
@@ -193,6 +214,7 @@ abstract class AbstractTest extends Benchmark {
             }
         }
 
+        concurrency = this.threads.size();
         this.threads = null;
         this.sessions = null;
         this.credentials = null;

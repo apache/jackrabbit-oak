@@ -15,17 +15,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-AS_ADMIN=false
+USERS="false true"
 RUNTIME=20
 BENCH=ConcurrentReadAccessControlledTreeTest
-for fix in Oak-Tar Jackrabbit 
+FIXS="Oak-Tar" # Jackrabbit"
+THREADS="1 2 4 8 10 12 14 16 18 20"
+
+
+LOG="bench_$(date +'%Y%m%d_%H%M%S').csv"
+echo "Benchmarks: $BENCH" > $LOG
+echo "Fixtures: $FIXS" >> $LOG
+echo "Users: $USERS" >> $LOG
+echo "Runtime: $RUNTIME" >> $LOG
+echo "Concurrency: $THREADS" >> $LOG
+echo "--------------------------------------" >> $LOG
+for user in $USERS
     do
-    for i in 1 2 4 8 10 12 14 16 18 20 
-    do
-	echo "Executing benchmark with $i threads on $fix"
-        rm -rf target/jackrabbit-*
-	cmd="java -Xmx2048m -Druntime=$RUNTIME -jar target/oak-run-0.10-SNAPSHOT.jar benchmark --bgReaders $i --runAsAdmin $AS_ADMIN --report false $BENCH $fix"
-	echo $cmd
-	$cmd
+    echo "Executing benchmarks as admin: $user" | tee -a $LOG
+    echo "-----------------------------------------------------------" | tee -a $LOG
+    for i in $THREADS
+        do
+        rm -rf target/Jackrabbit-* target/Oak-Tar-*
+        cmd="java -Xmx2048m -Druntime=$RUNTIME -jar target/oak-run-*-SNAPSHOT.jar benchmark --csvFile $LOG --bgReaders $i --runAsAdmin $user --report false $BENCH $FIXS"
+        echo $cmd
+        $cmd 
     done
 done
+echo "-----------------------------------------"
+echo "Benchmark completed. see $LOG for details:"
+cat $LOG

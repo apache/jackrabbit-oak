@@ -66,6 +66,7 @@ The following benchmark options (with default values) are currently supported:
     --itemsToRead 1000     - Number of items to read
     --bgReaders 20         - Number of background readers
     --report false         - Whether to output intermediate results
+    --csvFile <file>       - Optional csv file to report the benchmark results
 
 These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the
@@ -123,6 +124,7 @@ reported:
 
 | Column      | Description                                           |
 |-------------|-------------------------------------------------------|
+| C           | concurrency level (only some tests)                   |
 | min         | minimum time (in ms) taken by a test run              |
 | 10%         | time (in ms) in which the fastest 10% of test runs    |
 | 50%         | time (in ms) taken by the median test run             |

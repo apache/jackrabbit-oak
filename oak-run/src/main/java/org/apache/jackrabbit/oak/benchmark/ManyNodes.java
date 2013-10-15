@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.io.PrintStream;
+
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -27,7 +29,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 public class ManyNodes extends Benchmark {
 
     @Override
-    public void run(Iterable<RepositoryFixture> fixtures) {
+    public void run(Iterable<RepositoryFixture> fixtures, PrintStream out) {
         for (RepositoryFixture fixture : fixtures) {
             System.out.println("ManyNodes test: " + fixture);
             if (fixture.isAvailable(1)) {
