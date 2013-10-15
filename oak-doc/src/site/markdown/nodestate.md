@@ -17,8 +17,8 @@
 
 # Understanding the node state model
 
-This article describes the node state model that is the core design
-abstraction inside the oak-core component. Understanding the node state
+This article describes the _node state model_ that is the core design
+abstraction inside the `oak-core` component. Understanding the node state
 model is essential to working with Oak internals and to building custom
 Oak extensions.
 
@@ -73,7 +73,7 @@ synchronization to ensure thread-safety.
 ## The NodeState interface
 
 The above design principles are reflected in the `NodeState` interface
-in the `org.apache.jackrabbit.oak.spi.state` package of oak-core. The
+in the `org.apache.jackrabbit.oak.spi.state` package of `oak-core`. The
 interface consists of three sets of methods:
 
   * Methods for accessing properties
@@ -218,9 +218,9 @@ changes between the two states. The fallback strategy for comparing two
 completely unrelated node states can be much more expensive.
 
 An important detail of the `NodeStateDiff` mechanism is the `childNodeChanged`
-method that will get called if there are _any_ changes in the subtree starting
-at the named child node. The comparison method should thus be able to
-efficiently detect differences at any depth below the given nodes. On the
+method that will get called if there can be _any_ changes in the subtree
+starting at the named child node. The comparison method should thus be able
+to efficiently detect differences at any depth below the given nodes. On the
 other hand the `childNodeChanged` method is called only for the direct child
 node, and the diff implementation should explicitly recurse down the tree
 if it wants to know what exactly did change under that subtree. The code
@@ -231,136 +231,115 @@ for such recursion typically looks something like this:
         after.compareAgainstBaseState(before, ...);
     }
 
+Note that for performance reasons it's possible for the `childNodeChanged`
+method to be called in some cases even if there actually are no changes
+within that subtree. The only hard guarantee is that if that method is *not*
+called for a subtree, then that subtree definitely has not changed, but in
+most common cases the `compareAgainstBaseState` implementation can detect
+such cases and thus avoid extra `childNodeChanged` calls. However it's
+important that diff handlers are prepared to deal with such events.
+
 ## The commit hook mechanism
 
-TODO
+A repository typically has various constraints to control what kind of content
+is allowed. It often also wants to annotate content changes with additional
+modifications like adding auto-created content or updating in-content indices.
+The _commit hook mechanism_ is designed for these purposes. An Oak instance
+has a list of commit hooks that it applies to all commits. A commit hook is
+in full control of what to do with the commit: it can reject the commit,
+pass it through as-is, or modify it in any way.
 
-## Commit validation
+All commit hooks implement the `CommitHook` interface that contains just
+a single `processCommit` method:
 
-TODO
+    NodeState processCommit(NodeState before, NodeState after)
+        throws CommitFailedException;
 
-TODO: Basic validator class
+The `before` state is the original revision on which the content changes
+being committed are based, and the `after` state contains all those changes.
+A `after.compareAgainstBaseState(before, ...)` call can be used to find out
+the exact set of changes being committed.
 
-    class DenyContentWithName extends DefaultValidator {
+If, based on the content diff or some other inspection of the commit, a
+hook decides to reject the commit for example due to a constraint violation,
+it can do so by throwing a `CommitFailedException` with an appropriate error
+code as outlined in http://wiki.apache.org/jackrabbit/OakErrorCodes.
 
-        private final String name;
+If the commit is acceptable, the hook can return the after state as-is or
+it can make some additional modifications and return the resulting node state.
+The returned state is then passed as the after state to the next hook
+until all the hooks have had a chance to process the commit. The resulting
+final node state is then persisted as a new revision and made available to
+other Oak clients.
 
-        public DenyContentWithName(String name) {
-            this.name = name;
-        }
+## Commit editors
 
-        @Override
-        public void propertyAdded(PropertyState after)
-                throws CommitFailedException {
-            if (name.equals(after.getName())) {
-                throw new CommitFailedException(
-                        "Properties named " + name + " are not allowed");
-            }
-        }
+In practice most commit hooks are interested in the content diff as returned
+by the `compareAgainstBaseState` call mentioned above. This call can be
+somewhat expensive especially for large commits, so it's not a good idea for
+multiple commit hooks to each do a separate diff. A more efficient approach
+is to do the diff just once and have multiple hooks process it in parallel.
+The _commit editor mechanism_ is used for this purpose. An editor is
+essentially a commit hook optimized for processing content diffs.
 
+Instead of a list of separate hooks, the editors are all handled by a single
+`EditorHook` instance. This hook handles the details of performing the
+content diff and notifying all available editors about the detected content
+changes. The editors are provided by a list of `EditorProvider` instances
+that implement the following method:
 
-    }
+    Editor getRootEditor(
+        NodeState before, NodeState after, NodeBuilder builder)
+        throws CommitFailedException;
 
-TODO: Example of how the validator works
+Instead of comparing the given before and after states directly, the provider
+is expected to return an `Editor` instance to be used for the comparison.
+The before and after states are passed to this method so that the provider
+can collect generic information like node type definitions that is needed
+to construct the returned editor.
 
-    Repository repository = new Jcr()
-        .with(new DenyContentWithName("bar"))
-        .createRepository();
+The given `NodeBuilder` instance can be used by the returned editor to make
+modifications based on the detected content changes. The builder is based
+on the after state, but it is shared by multiple editors so during the diff
+processing it might no longer exactly match the after state. Editors within
+a single editor hook should generally not attempt to make conflicting changes.
 
-    Session session = repository.login();
-    Node root = session.getRootNode();
-    root.setProperty("foo", "abc");
-    session.save();
-    root.setProperty("bar", "def");
-    session.save(); // will throw an exception
+The `Editor` interface is much like the `NodeStateDiff` interface described
+earlier. The main differences are that all the editor methods are allowed to
+throw `CommitFailedExceptions` and that the child node modification methods
+all return a further `Editor` instance.
 
-TODO: Extended example that also works below root and covers also node names
+The idea is that each editor _instance_ is normally used for observing the
+changes to just a single node. When there are changes to a subtree below
+that node, the relevant child node modification method is expected to
+return a new editor instance for observing changes in that subtree. The
+editor hook keeps track of these returned "sub-editors" and recursively
+notifies them of changes in the relevant subtrees.
 
-    class DenyContentWithName extends DefaultValidator {
+If an editor is not interested in changes inside a particular subtree it can
+return `null` to notify the editor hook that there's no need to recurse down
+that subtree. And if the effect of an editor isn't tied to the location of
+the changes within the content tree, it can just return itself. A good example
+is a name validator that simply checks the validity of all names regardless
+of where they're stored. If the location is relevant, for example when you
+need to keep track of the path of the changed node, you can store that
+information as internal state of the returned editor instance.
 
-        private final String name;
+## Commit validators
 
-        public DenyContentWithName(String name) {
-            this.name = name;
-        }
+As mentioned, a common use for commit hooks is to verify that all content
+changes preserve the applicable constraints. For example the repository
+may want to enforce the integrity of reference properties, the constraints
+defined in node types, or simply the well-formedness of the names used.
+Such validation is typically based on the content diff of a commit, so
+the editor mechanism is a natural match. Additionally, since validation
+doesn't imply any further content modifications, the editor mechanism can
+be further restricted for this particular case.
 
-        private void testName(String addedName) throws CommitFailedException {
-            if (name.equals(addedName)) {
-                throw new CommitFailedException(
-                        "Content named " + name + " is not allowed");
-            }
-        }
-
-        @Override
-        public void propertyAdded(PropertyState after)
-                throws CommitFailedException {
-            testName(after.getName());
-        }
-
-        @Override
-        public Validator childNodeAdded(String name, NodeState after)
-                throws CommitFailedException {
-            testName(name);
-            return this;
-        }
-
-        @Override
-        public Validator childNodeChanged(
-                String name, NodeState before, NodeState after)
-                throws CommitFailedException {
-            return this;
-        }
-
-    }
-
-## Commit modification
-
-TODO
-
-TODO: Basic commit hook example
-
-    class RenameContentHook implements CommitHook {
-
-        private final String name;
-
-        private final String rename;
-
-        public RenameContentHook(String name, String rename) {
-            this.name = name;
-            this.rename = rename;
-        }
-
-        @Override @Nonnull
-        public NodeState processCommit(NodeState before, NodeState after)
-                throws CommitFailedException {
-            PropertyState property = after.getProperty(name);
-            if (property != null) {
-                NodeBuilder builder = after.builder();
-                builder.removeProperty(name);
-                if (property.isArray()) {
-                    builder.setProperty(rename, property.getValues());
-                } else {
-                    builder.setProperty(rename, property.getValue());
-                }
-                return builder.getNodeState();
-            }
-            return after;
-        }
-
-    }
-
-TODO: Using the commit hook to avoid the exception from a validator
-
-    Repository repository = new Jcr()
-        .with(new RenameContentHook("bar", "foo"))
-        .with(new DenyContentWithName("bar"))
-        .createRepository();
-
-    Session session = repository.login();
-    Node root = session.getRootNode();
-    root.setProperty("foo", "abc");
-    session.save();
-    root.setProperty("bar", "def");
-    session.save(); // will not throw an exception!
-    System.out.println(root.getProperty("foo").getString()); // Prints "def"!
-
+The abstract `ValidatorProvider` class and the related `Validator` interface
+are based on the respective editor interfaces. The main difference is that
+the validator provider drops the `NodeBuilder` argument to make it impossible
+for any validators to even accidentally modify the commit being processed.
+Thus, even though there's no performance benefit to using the `Validator`
+interface instead of `Editor`, it's a good idea to do so whenever possible
+to make the intention of your code clearer.
