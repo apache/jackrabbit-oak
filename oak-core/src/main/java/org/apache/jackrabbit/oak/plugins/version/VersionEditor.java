@@ -51,13 +51,13 @@ class VersionEditor implements Editor {
     private boolean wasReadOnly;
 
     public VersionEditor(@Nonnull NodeBuilder versionStore,
-            @Nonnull NodeBuilder workspaceRoot) {
+                         @Nonnull NodeBuilder workspaceRoot) {
         this(null, new ReadWriteVersionManager(checkNotNull(versionStore),
                 checkNotNull(workspaceRoot)), workspaceRoot);
     }
 
     VersionEditor(@Nullable VersionEditor parent,
-            @Nonnull ReadWriteVersionManager vMgr, @Nonnull NodeBuilder node) {
+                  @Nonnull ReadWriteVersionManager vMgr, @Nonnull NodeBuilder node) {
         this.parent = parent;
         this.vMgr = checkNotNull(vMgr);
         this.node = checkNotNull(node);
