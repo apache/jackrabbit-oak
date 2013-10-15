@@ -135,8 +135,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         ExecutionContext context = getExecutionContext();
         Query q = parseQuery(statement, language, context);
-        q.setRootTree(context.getRootTree());
-        q.setRootState(context.getRootState());
+        q.setExecutionContext(context);
         q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
         q.setOffset(offset);
@@ -171,7 +170,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         this.traversalFallback = traversal;
     }
 
-    public static QueryIndex getBestIndex(QueryImpl query, NodeState rootState, Filter filter,
+    public static QueryIndex getBestIndex(NodeState rootState, Filter filter,
             QueryIndexProvider indexProvider) {
         QueryIndex best = null;
         if (LOG.isDebugEnabled()) {

@@ -31,7 +31,6 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
@@ -87,23 +86,16 @@ public class FilterImpl implements Filter {
      * Set during the prepare phase of a query.
      */
     private boolean preparing;
-    
-    private Tree rootTree;
 
     // TODO support "order by"
     
     public FilterImpl() {
-        this(null, null, null);
+        this(null, null);
     }
 
     public FilterImpl(SelectorImpl selector, String queryStatement) {
-        this(selector, queryStatement, null);
-    }
-
-    public FilterImpl(SelectorImpl selector, String queryStatement, Tree rootTree) {
         this.selector = selector;
         this.queryStatement = queryStatement;
-        this.rootTree = rootTree;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
                 : false;
     }
@@ -118,7 +110,6 @@ public class FilterImpl implements Filter {
         this.pathRestriction = impl.pathRestriction;
         this.propertyRestrictions.putAll(impl.propertyRestrictions);
         this.queryStatement = impl.queryStatement;
-        this.rootTree = impl.rootTree;
         this.selector = impl.selector;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
                 : false;
@@ -157,11 +148,6 @@ public class FilterImpl implements Filter {
 
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
-    }
-    
-    @Override
-    public Tree getRootTree() {
-        return rootTree;
     }
 
     public void setAlwaysFalse() {
