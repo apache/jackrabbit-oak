@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
@@ -93,7 +94,7 @@ public class QueryImpl implements Query {
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
     ConstraintImpl constraint;
     
-    private QueryEngineImpl queryEngine;
+    private QueryIndexProvider indexProvider;
     private OrderingImpl[] orderings;
     private ColumnImpl[] columns;
     private boolean explain, measure;
@@ -571,12 +572,12 @@ public class QueryImpl implements Query {
     }
 
     @Override
-    public void setQueryEngine(QueryEngineImpl queryEngine) {
-        this.queryEngine = queryEngine;
+    public void setIndexProvider(QueryIndexProvider indexProvider) {
+        this.indexProvider = indexProvider;
     }
 
     public QueryIndex getBestIndex(Filter filter) {
-        return queryEngine.getBestIndex(this, rootState, filter);
+        return QueryEngineImpl.getBestIndex(this, rootState, filter, indexProvider);
     }
 
     @Override

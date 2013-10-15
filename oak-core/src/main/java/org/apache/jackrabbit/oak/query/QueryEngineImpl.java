@@ -24,13 +24,14 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -60,8 +61,6 @@ public abstract class QueryEngineImpl implements QueryEngine {
             XPATH, XPATH + NO_LITERALS,
             JQOM);
 
-    private final QueryIndexProvider indexProvider;
-    
     /**
      * Whether fallback to the traversing index is supported if no other index
      * is available. This is enabled by default and can be disabled for testing
@@ -69,23 +68,10 @@ public abstract class QueryEngineImpl implements QueryEngine {
      */
     private boolean traversalFallback = true;
 
-    public QueryEngineImpl(QueryIndexProvider indexProvider) {
-        this.indexProvider = indexProvider;
-    }
-
     /**
-     * Get the current root node state, to run the query against.
-     * 
-     * @return the node state
+     * @return Execution context for a single query execution.
      */
-    protected abstract NodeState getRootState();
-
-    /**
-     * Get the current root tree, to run the query against.
-     * 
-     * @return the node state
-     */
-    protected abstract Tree getRootTree();
+    protected abstract ExecutionContext getExecutionContext();
 
     @Override
     public Set<String> getSupportedQueryLanguages() {
@@ -102,13 +88,13 @@ public abstract class QueryEngineImpl implements QueryEngine {
      */
     @Override
     public List<String> getBindVariableNames(String statement, String language) throws ParseException {
-        Query q = parseQuery(statement, language);
+        Query q = parseQuery(statement, language, getExecutionContext());
         return q.getBindVariableNames();
     }
 
-    private Query parseQuery(String statement, String language) throws ParseException {
+    private static Query parseQuery(String statement, String language, ExecutionContext context) throws ParseException {
         LOG.debug("Parsing {} statement: {}", language, statement);
-        NodeState root = getRootState();
+        NodeState root = context.getRootState();
         NodeState system = root.getChildNode(JCR_SYSTEM);
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
         SQL2Parser parser = new SQL2Parser(types);
@@ -146,9 +132,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
         if (offset < 0) {
             throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
         }
-        Query q = parseQuery(statement, language);
-        q.setRootTree(getRootTree());
-        q.setRootState(getRootState());
+
+        ExecutionContext context = getExecutionContext();
+        Query q = parseQuery(statement, language, context);
+        q.setRootTree(context.getRootTree());
+        q.setRootState(context.getRootState());
         q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
         q.setOffset(offset);
@@ -157,28 +145,41 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 q.bindValue(e.getKey(), e.getValue());
             }
         }
-        q.setQueryEngine(this);
+        q.setIndexProvider(getIndexProvider(context.getIndexProvider(), traversalFallback));
         q.prepare();
         return q.executeQuery();
     }
 
-    protected void setTravesalFallback(boolean traversal) {
+    private static QueryIndexProvider getIndexProvider(final QueryIndexProvider indexProvider,
+            boolean traversalFallback) {
+        if (traversalFallback) {
+            return new QueryIndexProvider() {
+                @Nonnull
+                @Override
+                public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
+                    List<QueryIndex> indexes = new ArrayList<QueryIndex>(indexProvider.getQueryIndexes(nodeState));
+                    indexes.add(new TraversingIndex());
+                    return indexes;
+                }
+            };
+        } else {
+            return indexProvider;
+        }
+    }
+
+    protected void setTraversalFallback(boolean traversal) {
         this.traversalFallback = traversal;
     }
 
-    public QueryIndex getBestIndex(QueryImpl query, NodeState rootState, Filter filter) {
+    public static QueryIndex getBestIndex(QueryImpl query, NodeState rootState, Filter filter,
+            QueryIndexProvider indexProvider) {
         QueryIndex best = null;
         if (LOG.isDebugEnabled()) {
             LOG.debug("cost using filter " + filter);
         }
-        List<QueryIndex> indexes = new ArrayList<QueryIndex>(
-                indexProvider.getQueryIndexes(rootState));
-        if (traversalFallback) {
-            indexes.add(new TraversingIndex());
-        }
 
         double bestCost = Double.POSITIVE_INFINITY;
-        for (QueryIndex index : indexes) {
+        for (QueryIndex index : indexProvider.getQueryIndexes(rootState)) {
             double cost = index.getCost(filter, rootState);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("cost for " + index.getIndexName() + " is " + cost);

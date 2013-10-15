@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,11 +28,10 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterators;
 
 /**
  * Represents a union query.
@@ -110,9 +110,9 @@ public class UnionQueryImpl implements Query {
     }
 
     @Override
-    public void setQueryEngine(QueryEngineImpl queryEngineImpl) {
-        left.setQueryEngine(queryEngineImpl);
-        right.setQueryEngine(queryEngineImpl);
+    public void setIndexProvider(QueryIndexProvider indexProvider) {
+        left.setIndexProvider(indexProvider);
+        right.setIndexProvider(indexProvider);
     }
 
     @Override
