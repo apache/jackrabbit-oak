@@ -43,6 +43,8 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
@@ -66,6 +68,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
+    private static final String TEST_TYPE = "mix:test";
 
     private Session observingSession;
     private ObservationManager observationManager;
@@ -77,7 +80,16 @@ public class ObservationTest extends AbstractRepositoryTest {
     @Before
     public void setup() throws RepositoryException {
         Session session = getAdminSession();
-        session.getRootNode().addNode(TEST_NODE);
+
+        NodeTypeManager ntMgr = session.getWorkspace().getNodeTypeManager();
+        NodeTypeTemplate mixTest = ntMgr.createNodeTypeTemplate();
+        mixTest.setName(TEST_TYPE);
+        mixTest.setMixin(true);
+        ntMgr.registerNodeType(mixTest, false);
+
+        Node n = session.getRootNode().addNode(TEST_NODE);
+        n.addMixin("mix:test");
+
         session.save();
 
         observingSession = createAdminSession();
@@ -142,6 +154,44 @@ public class ObservationTest extends AbstractRepositoryTest {
 
             listener.expectAdd(n.addNode("n2"));
             listener.expectRemove(n.getNode("n1")).remove();
+            getAdminSession().save();
+
+            missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        }
+        finally {
+            observationManager.removeEventListener(listener);
+        }
+    }
+
+    @Test
+    public void typeFilter() throws RepositoryException, InterruptedException, ExecutionException {
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null,
+                new String[]{TEST_TYPE}, false);
+
+        try {
+            Node n = getNode(TEST_PATH);
+            Property p = n.setProperty("p", "v");
+            listener.expectAdd(p);
+            getAdminSession().save();
+
+            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            List<Event> unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+            listener.expectChange(p).setValue("v2");
+            getAdminSession().save();
+
+            missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+            listener.expectRemove(p).remove();
             getAdminSession().save();
 
             missing = listener.getMissing(2, TimeUnit.SECONDS);
