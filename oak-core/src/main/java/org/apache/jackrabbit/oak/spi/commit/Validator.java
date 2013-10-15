@@ -25,6 +25,9 @@ import javax.annotation.CheckForNull;
 /**
  * Content change validator. An instance of this interface is used to
  * validate changes against a specific {@link NodeState}.
+ *
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_validators"
+ *         >Commit validators</a>
  */
 public interface Validator extends Editor {
 

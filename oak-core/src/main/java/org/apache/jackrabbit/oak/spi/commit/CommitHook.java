@@ -33,6 +33,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Note that instead of implementing this interface directly, most commit
  * editors and validators are better expressed as implementations of the
  * more specific extension interfaces defined in this package.
+ *
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#The_commit_hook_mechanism"
+ *         >The commit hook mechanism</a>
  */
 public interface CommitHook {
 
