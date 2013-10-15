@@ -558,16 +558,22 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         /**
          * The stack of recently referenced elements. This includes all hot entries,
          * the recently referenced cold entries, and all non-resident cold entries.
+         * <p>
+         * There is always at least one entry: the head entry.
          */
         private Entry<K, V> stack;
 
         /**
          * The queue of resident cold entries.
+         * <p>
+         * There is always at least one entry: the head entry.
          */
         private Entry<K, V> queue;
 
         /**
          * The queue of non-resident cold entries.
+         * <p>
+         * There is always at least one entry: the head entry.
          */
         private Entry<K, V> queue2;
 
@@ -575,7 +581,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * The number of times any item was moved to the top of the stack.
          */
         private int stackMoveCounter;
-        
+
         /**
          * Create a new cache.
          *
@@ -693,7 +699,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                         removeFromStack(e);
                         if (wasEnd) {
                             // if moving the last entry, the last entry
-                            // could not be cold, which is not allowed
+                            // could now be cold, which is not allowed
                             pruneStack();
                         }
                         addToStack(e);
@@ -706,6 +712,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                     // if they are on the stack
                     removeFromStack(e);
                     // which means a hot entry needs to become cold
+                    // (this entry is cold, that means there is at least one
+                    // more entry in the stack, which must be hot)
                     convertOldestHotToCold();
                 } else {
                     // cold entries that are not on the stack
@@ -851,10 +859,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * @param newCold a new cold entry
          */
         private void evict(Entry<K, V> newCold) {
-            // ensure there are not too many hot entries:
-            // left shift of 5 is multiplication by 32, that means if there are less
-            // than 1/32 (3.125%) cold entries, a new hot entry needs to become cold
-            while ((queueSize << 5) < mapSize) {
+            // ensure there are not too many hot entries: right shift of 5 is
+            // division by 32, that means if there are only 1/32 (3.125%) or
+            // less cold entries, a hot entry needs to become cold
+            while (queueSize <= (mapSize >>> 5) && stackSize > 0) {
                 convertOldestHotToCold();
             }
             if (stackSize > 0) {
@@ -883,6 +891,11 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private void convertOldestHotToCold() {
             // the last entry of the stack is known to be hot
             Entry<K, V> last = stack.stackPrev;
+            if (last == stack) {
+                // never remove the stack head itself (this would mean the
+                // internal structure of the cache is corrupt)
+                throw new IllegalStateException();
+            }
             // remove from stack - which is done anyway in the stack pruning, but we
             // can do it here as well
             removeFromStack(last);
@@ -897,7 +910,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private void pruneStack() {
             while (true) {
                 Entry<K, V> last = stack.stackPrev;
-                if (last == stack || last.isHot()) {
+                // must stop at a hot entry or the stack head,
+                // but the stack head itself is also hot, so we
+                // don't have to test it
+                if (last.isHot()) {
                     break;
                 }
                 // the cold entry is still in the queue
