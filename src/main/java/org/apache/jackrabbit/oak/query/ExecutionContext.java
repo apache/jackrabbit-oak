@@ -44,6 +44,10 @@ public class ExecutionContext {
     }
 
     /**
+     * 
+     * Used to evaluate the query (ie. read the existing node types, index
+     * definitions), doesn't need to be a secured version of a node state
+     * 
      * @return Root node state of the content tree against which the query runs.
      */
     @Nonnull
@@ -52,6 +56,10 @@ public class ExecutionContext {
     }
 
     /**
+     * 
+     * Used to create the actual query results from the indexed paths, needs to
+     * be a secured version of a tree to take into account ACLs
+     * 
      * @return Root tree of the content tree against which the query runs.
      */
     @Nonnull
