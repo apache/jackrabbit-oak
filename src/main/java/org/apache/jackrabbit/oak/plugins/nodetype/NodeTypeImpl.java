@@ -31,6 +31,8 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -49,6 +51,7 @@ import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.PropertyDefinition;
 
@@ -57,6 +60,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefWriter;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -96,6 +101,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private static final NodeType[] NO_NODE_TYPES = new NodeType[0];
 
     private static final String[] NO_NAMES = new String[0];
+
+    private String cnd;
 
     NodeTypeImpl(Tree type, NamePathMapper mapper) {
         super(type, mapper);
@@ -405,13 +412,68 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         return internalCanRemoveItem(propertyName, Arrays.asList(getPropertyDefinitions()));
     }
 
+    /**
+     * Returns the namespace neutral CND of the given node type definition.
+     * @param def the node type definition
+     * @return the CND
+     * @throws IOException if an error occurs.
+     */
+    private static String getCnd(NodeTypeDefinition def) throws IOException {
+        StringWriter out = new StringWriter();
+        CompactNodeTypeDefWriter cndWriter = new CompactNodeTypeDefWriter(out, new CompactNodeTypeDefWriter.NamespaceMapping(){
+            @Override
+            public String getNamespaceURI(String s) {
+                return s;
+            }
+        }, false);
+        cndWriter.write(def);
+        return out.toString();
+    }
+
+    /**
+     * Returns the namespace neutral CND of the this node type definition.
+     * @return the CND
+     */
+    private String getCnd() {
+        if (cnd == null) {
+            try {
+                cnd = getCnd(this);
+            } catch (IOException e) {
+                log.error("Internal error while writing CND for {}", this);
+                cnd = getName();
+            }
+        }
+        return cnd;
+    }
+
     //-------------------------------------------------------------< Object >---
     @Override
     public String toString() {
         return getName();
     }
 
-    //-----------------------------------------------------------< internal >---
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o instanceof NodeTypeImpl) {
+            return getCnd().equals(((NodeTypeImpl) o).getCnd());
+        } else if (o instanceof NodeType) {
+            try {
+                return getCnd().equals(getCnd((NodeType) o));
+            } catch (IOException e) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return getCnd().hashCode();
+    }
+
+//-----------------------------------------------------------< internal >---
 
     private boolean internalCanRemoveItem(String itemName,
                                           Iterable<? extends ItemDefinition> definitions) {
