@@ -36,8 +36,31 @@ import javax.annotation.CheckForNull;
  */
 public interface Editor {
 
+    /**
+     * Called before the given before and after states are compared.
+     * The implementation can use this method to initialize any internal
+     * state needed for processing the results of the comparison. For example
+     * an implementation could look up the effective node type of the after
+     * state to know what constraints to apply to on the content changes.
+     *
+     * @param before before state, non-existent if this node was added
+     * @param after after state, non-existent if this node was removed
+     * @throws CommitFailedException if this commit should be rejected
+     */
     void enter(NodeState before, NodeState after) throws CommitFailedException;
 
+    /**
+     * Called after the given before and after states are compared.
+     * The implementation can use this method to post-process information
+     * collected during the content diff. For example an implementation that
+     * during the diff just recorded the fact that this node was modified
+     * in some way could then use this method to trigger an index update
+     * based on that modification flag.
+     *
+     * @param before before state, non-existent if this node was added
+     * @param after after state, non-existent if this node was removed
+     * @throws CommitFailedException if this commit should be rejected
+     */
     void leave(NodeState before, NodeState after) throws CommitFailedException;
 
     /**
