@@ -30,6 +30,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * passed to the constructor.
  *
  * @since Oak 0.7
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/nodestate.html#Commit_editors"
+ *         >Commit editors</a>
  */
 public class EditorHook implements CommitHook {
 
