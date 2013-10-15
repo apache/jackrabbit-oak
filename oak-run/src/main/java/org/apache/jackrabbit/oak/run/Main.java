@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Properties;
 
 import javax.jcr.Repository;
 
+import org.apache.jackrabbit.core.RepositoryContext;
+import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
@@ -29,7 +32,10 @@ import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
@@ -61,10 +67,26 @@ public class Main {
             BenchmarkRunner.main(args);
         } else if ("server".equals(command)){
             new HttpServer(URI, args);
+        } else if ("upgrade".equals(command)) {
+            if (args.length == 2) {
+                upgrade(args[0], args[1]);
+            } else {
+                System.err.println("usage: upgrade <olddir> <newdir>");
+                System.exit(1);
+            }
         } else {
             System.err.println("Unknown command: " + command);
             System.exit(1);
         }
+    }
+
+    private static void upgrade(String olddir, String newdir) throws Exception {
+        RepositoryContext source = RepositoryContext.create(
+                RepositoryConfig.create(new File(olddir)));
+        NodeStore target = new SegmentNodeStore(new FileStore(
+                new File(newdir), 256 * 1024 * 1024, false));
+        new RepositoryUpgrade(source, target).copy();
+        source.getRepository().shutdown();
     }
 
     private static void printProductInfo() {
