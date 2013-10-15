@@ -373,11 +373,17 @@ public class NodeDocument extends Document {
      *
      * @param context      the revision context.
      * @param readRevision the read revision.
+     * @param lastModified the revision when this node was last modified, but
+     *                     the value is potentially not yet reflected in this
+     *                     document.
+     *                     See {@link RevisionContext#getPendingModifications()}.
      * @return the node or <code>null</code> if the node doesn't exist at the
      *         given read revision.
      */
     @CheckForNull
-    public Node getNodeAtRevision(RevisionContext context, Revision readRevision) {
+    public Node getNodeAtRevision(@Nonnull RevisionContext context,
+                                  @Nonnull Revision readRevision,
+                                  @Nullable Revision lastModified) {
         Set<Revision> validRevisions = new HashSet<Revision>();
         Revision min = getLiveRevision(context, readRevision, validRevisions);
         if (min == null) {
@@ -408,7 +414,6 @@ public class NodeDocument extends Document {
         Revision lastRevision = null;
         Map<Integer, Revision> lastRevs = Maps.newHashMap(getLastRev());
         // overlay with unsaved last modified from this instance
-        Revision lastModified = context.getPendingModifications().get(path);
         if (lastModified != null) {
             lastRevs.put(context.getClusterId(), lastModified);
         }
@@ -717,8 +722,7 @@ public class NodeDocument extends Document {
     }
 
     /**
-     * Returns the local value map for the given key. Returns <code>null</code>
-     * if no such value map exists.
+     * Returns the local value map for the given key.
      *
      * @param key the key.
      * @return local value map.

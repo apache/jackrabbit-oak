@@ -20,18 +20,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.common.collect.Maps;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNull;
 
 /**
  * Tests {@code MongoDocumentStore} with concurrent updates.
  */
-@Ignore
 public class MongoMKDocumentStoreIT extends AbstractMongoConnectionTest {
 
     private static final int NUM_THREADS = 3;
@@ -58,11 +60,50 @@ public class MongoMKDocumentStoreIT extends AbstractMongoConnectionTest {
                 }
             }));
         }
+        final List<Exception> exceptions = new ArrayList<Exception>();
+        final AtomicBoolean running = new AtomicBoolean(true);
+        Thread reader = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Map<Revision, Integer> previous = Maps.newHashMap();
+                    while (running.get()) {
+                        NodeDocument doc = docStore.find(Collection.NODES, id);
+                        if (doc == null) {
+                            throw new Exception("document is null");
+                        }
+                        Map<Revision, String> values = doc.getValueMap("prop");
+                        for (Map.Entry<Revision, String> entry : values.entrySet()) {
+                            Revision r = entry.getKey();
+                            Integer previousValue = previous.get(r);
+                            Integer currentValue = Integer.parseInt(entry.getValue());
+                            if (previousValue != null &&
+                                    previousValue > currentValue) {
+                                throw new Exception("inconsistent read for " +
+                                        r + ". previous value: " + previousValue +
+                                        ", now: " + entry.getValue());
+                            }
+                            // remember for next round
+                            previous.put(r, currentValue);
+                        }
+                        Thread.yield();
+                    }
+                } catch (Exception e) {
+                    exceptions.add(e);
+                }
+            }
+        });
+        reader.start();
         for (Thread t : threads) {
             t.start();
         }
         for (Thread t : threads) {
             t.join();
+        }
+        running.set(false);
+        reader.join();
+        for (Exception e : exceptions) {
+            throw e;
         }
         NodeDocument doc = docStore.find(Collection.NODES, id);
         assertNotNull(doc);
@@ -82,5 +123,14 @@ public class MongoMKDocumentStoreIT extends AbstractMongoConnectionTest {
             tearDownConnection();
             setUpConnection();
         }
+    }
+
+    @Test
+    public void negativeCache() throws Exception {
+        String id = Utils.getIdFromPath("/test");
+        DocumentStore docStore = mk.getDocumentStore();
+        assertNull(docStore.find(Collection.NODES, id));
+        mk.commit("/", "+\"test\":{}", null, null);
+        assertNotNull(docStore.find(Collection.NODES, id));
     }
 }

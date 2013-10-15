@@ -30,6 +30,16 @@ import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
  */
 public class Node implements CacheValue {
 
+    /**
+     * A node, which does not exist at a given revision.
+     */
+    static final Node MISSING = new Node(null, null) {
+        @Override
+        public int getMemory() {
+            return 8;
+        }
+    };
+
     final String path;
     final Revision rev;
     final Map<String, String> properties = Utils.newMap();
