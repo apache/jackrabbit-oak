@@ -36,7 +36,7 @@ You can add or modify content by posting JSON:
 The `jcr:primaryType` property needs to currently be included to avoid
 JCR constraint violations. The intention is to automatically infer the
 value if not explicitly included. Note also how the first colon needs to
-be escaped on the command line to prevent httpie from interpreting te
+be escaped on the command line to prevent httpie from interpreting the
 argument as an extra HTTP header.
 
 The posted content is stored in the repository and is now accessible:
