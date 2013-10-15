@@ -18,11 +18,9 @@ package org.apache.jackrabbit.oak.plugins.version;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -36,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * Commit hook which is responsible for storing the path of the versionable
@@ -83,8 +81,29 @@ public class VersionablePathHook implements CommitHook {
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            if (VersionConstants.JCR_VERSIONHISTORY.equals(after.getName())
-                    && nodeAfter.isVersionable(versionManager)) {
+            return setVersionablePath(after);
+        }
+
+        @Override
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
+            return setVersionablePath(after);
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            return childNodeChanged(name, EMPTY_NODE, after);
+        }
+
+        @Override
+        public boolean childNodeChanged(
+                String name, NodeState before, NodeState after) {
+            Node node = new Node(nodeAfter, name);
+            return after.compareAgainstBaseState(
+                    before, new Diff(versionManager, node, exceptions));
+        }
+
+        private boolean setVersionablePath(PropertyState after) {
+            if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(versionManager)) {
                 NodeBuilder vhBuilder;
                 try {
                     vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder);
@@ -105,19 +124,6 @@ public class VersionablePathHook implements CommitHook {
                 vhBuilder.setProperty(workspaceName, versionablePath, Type.PATH);
             }
             return true;
-        }
-
-        @Override
-        public boolean childNodeAdded(String name, NodeState after) {
-            return childNodeChanged(name, EMPTY_NODE, after);
-        }
-
-        @Override
-        public boolean childNodeChanged(
-                String name, NodeState before, NodeState after) {
-            Node node = new Node(nodeAfter, name);
-            return after.compareAgainstBaseState(
-                    before, new Diff(versionManager, node, exceptions));
         }
     }
 
