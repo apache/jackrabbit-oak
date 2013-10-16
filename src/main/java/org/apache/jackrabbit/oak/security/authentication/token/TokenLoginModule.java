@@ -215,7 +215,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
         SecurityProvider securityProvider = getSecurityProvider();
         Root root = getRoot();
         if (root != null && securityProvider != null) {
-            AuthenticationConfiguration authConfig = getSecurityProvider().getConfiguration(AuthenticationConfiguration.class);
+            AuthenticationConfiguration authConfig = securityProvider.getConfiguration(AuthenticationConfiguration.class);
             provider = authConfig.getTokenProvider(root);
         }
         if (provider == null && callbackHandler != null) {

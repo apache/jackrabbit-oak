@@ -372,10 +372,10 @@ public abstract class AbstractLoginModule implements LoginModule {
     protected UserManager getUserManager() {
         UserManager userManager = null;
         SecurityProvider sp = getSecurityProvider();
-        Root root = getRoot();
-        if (root != null && sp != null) {
+        Root r = getRoot();
+        if (r != null && sp != null) {
             UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
-            userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
+            userManager = uc.getUserManager(r, NamePathMapper.DEFAULT);
         }
 
         if (userManager == null && callbackHandler != null) {
@@ -404,10 +404,10 @@ public abstract class AbstractLoginModule implements LoginModule {
     protected PrincipalProvider getPrincipalProvider() {
         PrincipalProvider principalProvider = null;
         SecurityProvider sp = getSecurityProvider();
-        Root root = getRoot();
-        if (root != null && sp != null) {
+        Root r = getRoot();
+        if (r != null && sp != null) {
             PrincipalConfiguration pc = sp.getConfiguration(PrincipalConfiguration.class);
-            principalProvider = pc.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+            principalProvider = pc.getPrincipalProvider(r, NamePathMapper.DEFAULT);
         }
 
         if (principalProvider == null && callbackHandler != null) {
