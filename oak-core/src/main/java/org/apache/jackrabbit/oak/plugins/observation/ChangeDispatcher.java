@@ -250,7 +250,7 @@ public class ChangeDispatcher {
         }
 
         public boolean isLocal(String sessionId) {
-            return Objects.equal(getSessionId(), sessionId);
+            return !isExternal && Objects.equal(getSessionId(), sessionId);
         }
 
         @CheckForNull
