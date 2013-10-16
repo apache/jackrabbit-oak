@@ -117,6 +117,7 @@ public class ImporterImpl implements Importer {
      * @param sessionContext The context of the editing session
      * @param root The write {@code Root}, which in case of a workspace import
      * is different from the {@code Root} associated with the editing session.
+     * @param initialRoot
      * @param uuidBehavior The uuid behavior
      * @param isWorkspaceImport {@code true} if this is a workspace import,
      * {@code false} otherwise.
