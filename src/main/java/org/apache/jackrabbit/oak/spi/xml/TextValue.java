@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.xml;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
 
 /**
  * {@code TextValue} represents a serialized property value read
@@ -28,7 +27,7 @@ public interface TextValue {
 
     String getString();
 
-    Value getValue(int targetType) throws ValueFormatException, RepositoryException;
+    Value getValue(int targetType) throws RepositoryException;
 
     /**
      * Dispose this value, i.e. free all bound resources. Once a value has

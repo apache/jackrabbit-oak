@@ -16,14 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -54,6 +51,8 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@link ProtectedNodeImporter} implementation that handles access control lists,
@@ -247,7 +246,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             }
         }
 
-        private void setPrivilegeNames(TextValue[] txtValues) throws RepositoryException {
+        private void setPrivilegeNames(List<? extends TextValue> txtValues) throws RepositoryException {
             privileges = new ArrayList<Privilege>();
             for (TextValue value : txtValues) {
                 Value privilegeName = value.getValue(PropertyType.NAME);
