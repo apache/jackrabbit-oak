@@ -26,20 +26,18 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Objects;
 
 public class AsyncIndexUpdate implements Runnable {
 
@@ -119,7 +117,7 @@ public class AsyncIndexUpdate implements Runnable {
                             throw CONCURRENT_UPDATE;
                         }
                     }
-                }, PostCommitHook.EMPTY);
+                });
             } catch (CommitFailedException e) {
                 if (e != CONCURRENT_UPDATE) {
                     exception = e;
@@ -144,7 +142,7 @@ public class AsyncIndexUpdate implements Runnable {
         NodeBuilder builder = store.getRoot().builder();
         preAsyncRunStatus(builder);
         try {
-            store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+            store.merge(builder, EmptyHook.INSTANCE);
         } catch (CommitFailedException e) {
             log.warn("Index status update {} failed", name, e);
         }

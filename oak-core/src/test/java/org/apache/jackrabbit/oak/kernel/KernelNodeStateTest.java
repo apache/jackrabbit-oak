@@ -33,7 +33,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -58,7 +57,8 @@ public class KernelNodeStateTest {
         builder.child("y");
         builder.child("z");
 
-        state = store.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        state = store.merge(builder, EmptyHook.INSTANCE);
+        state = store.merge(builder, EmptyHook.INSTANCE);
     }
 
     @After

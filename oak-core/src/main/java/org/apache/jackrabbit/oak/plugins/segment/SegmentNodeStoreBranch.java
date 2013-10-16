@@ -28,7 +28,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -88,7 +87,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         }
     }
 
-    private synchronized long optimisticMerge(CommitHook hook, PostCommitHook committed)
+    private synchronized long optimisticMerge(CommitHook hook)
             throws CommitFailedException, InterruptedException {
         long timeout = 1;
 
@@ -111,10 +110,8 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
                 // someone else has a pessimistic lock on the journal,
                 // so we should not try to commit anything
             } else if (store.setHead(base, newHead)) {
-                NodeState previousBase = base;
                 base = newHead;
                 head = newHead;
-                committed.contentChanged(previousBase.getChildNode(ROOT), newHead.getChildNode(ROOT));
                 return -1;
             }
 
@@ -136,7 +133,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         return MILLISECONDS.convert(timeout, NANOSECONDS);
     }
 
-    private synchronized void pessimisticMerge(CommitHook hook, PostCommitHook committed, long timeout)
+    private synchronized void pessimisticMerge(CommitHook hook, long timeout)
             throws CommitFailedException {
         while (true) {
             SegmentNodeState before = store.getHead();
@@ -168,10 +165,8 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
                     SegmentNodeState newHead =
                             writer.writeNode(builder.getNodeState());
                     if (store.setHead(after, newHead)) {
-                        NodeState previousBase = base;
                         base = newHead;
                         head = newHead;
-                        committed.contentChanged(previousBase.getChildNode(ROOT), newHead.getChildNode(ROOT));
                         return;
                     } else {
                         // something else happened, perhaps a timeout, so
@@ -185,13 +180,13 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override @Nonnull
-    public synchronized NodeState merge(CommitHook hook, PostCommitHook committed)
+    public synchronized NodeState merge(CommitHook hook)
             throws CommitFailedException {
         if (base != head) {
             try {
-                long timeout = optimisticMerge(hook, committed);
+                long timeout = optimisticMerge(hook);
                 if (timeout >= 0) {
-                    pessimisticMerge(hook, committed, timeout);
+                    pessimisticMerge(hook, timeout);
                 }
             } catch (InterruptedException e) {
                 throw new CommitFailedException(
