@@ -23,14 +23,15 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 
 /**
  * An {@code Observable} supports attaching {@link Listener} instances for
- * listening to changes in a {@code ContentSession}.
+ * listening to content changes.
+ *
  * @see ChangeDispatcher
  */
 public interface Observable {
 
     /**
      * Register a new {@code Listener}. Clients need to call
-     * {@link ChangeDispatcher.Listener#dispose()} when to free
+     * {@link ChangeDispatcher.Listener#dispose()} to free
      * up any resources associated with the listener when done.
      * @return a fresh {@code Listener} instance.
      */

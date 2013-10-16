@@ -38,10 +38,12 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -50,7 +52,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
  */
-public class KernelNodeStore implements NodeStore {
+public class KernelNodeStore implements NodeStore, Observable {
 
     private static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
 
@@ -73,6 +75,8 @@ public class KernelNodeStore implements NodeStore {
      * Lock passed to branches for coordinating merges
      */
     private final Lock mergeLock = new ReentrantLock();
+
+    private final ChangeDispatcher changeDispatcher;
 
     /**
      * State of the current root node.
@@ -120,6 +124,7 @@ public class KernelNodeStore implements NodeStore {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        changeDispatcher = new ChangeDispatcher(this);
     }
 
     public KernelNodeStore(MicroKernel kernel) {
@@ -143,6 +148,13 @@ public class KernelNodeStore implements NodeStore {
         return getRoot().toString();
     }
 
+    //------------------------------------------------------------< Observable >---
+
+    @Override
+    public Listener newListener() {
+        return changeDispatcher.newListener();
+    }
+
     //----------------------------------------------------------< NodeStore >---
 
     @Override
@@ -157,15 +169,15 @@ public class KernelNodeStore implements NodeStore {
     }
 
     /**
-     * This implementation delegates to {@link KernelRootBuilder#merge(CommitHook, PostCommitHook)}
+     * This implementation delegates to {@link KernelRootBuilder#merge(CommitHook)}
      * if {@code builder} is a {@link KernelNodeBuilder} instance. Otherwise it throws
      * an {@code IllegalArgumentException}.
      */
     @Override
-    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            PostCommitHook committed) throws CommitFailedException {
+    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook)
+            throws CommitFailedException {
         checkArgument(builder instanceof KernelRootBuilder);
-        return ((KernelRootBuilder) builder).merge(commitHook, committed);
+        return ((KernelRootBuilder) builder).merge(commitHook);
     }
 
     /**
@@ -263,6 +275,18 @@ public class KernelNodeStore implements NodeStore {
 
     NodeState merge(KernelNodeState branchHead) {
         return getRootState(kernel.merge(branchHead.getRevision(), null));
+    }
+
+    void beforeCommit(NodeState root) {
+        changeDispatcher.beforeCommit(root);
+    }
+
+    void localCommit(NodeState root) {
+        changeDispatcher.localCommit(root);
+    }
+
+    void afterCommit(NodeState root) {
+        changeDispatcher.afterCommit(root);
     }
 
 }

@@ -33,7 +33,6 @@ import javax.annotation.Nonnull;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -75,21 +74,20 @@ public class MemoryNodeStore implements NodeStore {
      * new branch and immediately merging it back.
      * @param builder  the builder whose changes to apply
      * @param commitHook the commit hook to apply while merging changes
-     * @param committed  the pos commit hook
      * @return the node state resulting from the merge.
      * @throws CommitFailedException
      * @throws IllegalArgumentException if the builder is not acquired from a root state of
      *                                  this store
      */
     @Override
-    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            PostCommitHook committed) throws CommitFailedException {
+    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook)
+            throws CommitFailedException {
         checkArgument(builder instanceof MemoryNodeBuilder);
         checkNotNull(commitHook);
         rebase(checkNotNull(builder));
         NodeStoreBranch branch = new MemoryNodeStoreBranch(this, getRoot());
         branch.setRoot(builder.getNodeState());
-        NodeState merged = branch.merge(commitHook, committed);
+        NodeState merged = branch.merge(commitHook);
         ((MemoryNodeBuilder) builder).reset(merged);
         return merged;
     }
@@ -198,16 +196,12 @@ public class MemoryNodeStore implements NodeStore {
         }
 
         @Override
-        public NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
+        public NodeState merge(CommitHook hook) throws CommitFailedException {
             // TODO: rebase();
             checkNotMerged();
             NodeState merged = ModifiedNodeState.squeeze(checkNotNull(hook).processCommit(base, root));
-            synchronized (this) {
-                // FIXME temporarily synchronized to work around the race described in OAK-1055
-                store.root.set(merged);
-                root = null; // Mark as merged
-                committed.contentChanged(base, merged);
-            }
+            store.root.set(merged);
+            root = null; // Mark as merged
             return merged;
         }
 

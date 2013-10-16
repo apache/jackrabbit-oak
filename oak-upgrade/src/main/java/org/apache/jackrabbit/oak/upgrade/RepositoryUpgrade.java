@@ -76,7 +76,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.spi.Name;
@@ -177,7 +176,7 @@ public class RepositoryUpgrade {
             copyVersionStore(builder, idxToPrefix);
             copyWorkspaces(builder, idxToPrefix);
 
-            target.merge(builder, new EditorHook(new RegistrationEditorProvider()), PostCommitHook.EMPTY); // TODO: default hooks?
+            target.merge(builder, new EditorHook(new RegistrationEditorProvider())); // TODO: default hooks?
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
