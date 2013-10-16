@@ -472,7 +472,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     private void checkPermissions(@Nullable Tree tree, long permissions) throws AccessDeniedException {
         boolean isGranted;
         if (tree == null) {
-            isGranted = getPermissionProvider().isGranted(permissions);
+            isGranted = getPermissionProvider().getRepositoryPermission().isGranted(permissions);
         } else {
             isGranted = getPermissionProvider().isGranted(tree, null, permissions);
         }
@@ -633,16 +633,6 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             permissionProvider.refresh();
         }
         return permissionProvider;
-    }
-
-    @Nonnull
-    private Set<Privilege> getPrivileges(@Nonnull Tree aceTree) throws RepositoryException {
-        Iterable<String> privNames = checkNotNull(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
-        Set<Privilege> privileges = new HashSet<Privilege>();
-        for (String name : privNames) {
-            privileges.add(privilegeManager.getPrivilege(name));
-        }
-        return privileges;
     }
 
     @Nonnull

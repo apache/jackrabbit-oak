@@ -49,30 +49,9 @@ public interface PermissionProvider {
      */
     boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames);
 
-    /**
-     *
-     * @param tree
-     * @param property
-     * @return
-     */
-    ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property);
+    RepositoryPermission getRepositoryPermission();
 
-    /**
-     * Returns {@code true} if the specified repository level permissions are
-     * {@code granted}; false otherwise.
-     *
-     * @param repositoryPermissions Any valid repository level permission such as
-     * for example:
-     * <ul>
-     *     <li>{@link Permissions#NAMESPACE_MANAGEMENT}</li>
-     *     <li>{@link Permissions#NODE_TYPE_DEFINITION_MANAGEMENT}</li>
-     *     <li>{@link Permissions#PRIVILEGE_MANAGEMENT}</li>
-     *     <li>{@link Permissions#WORKSPACE_MANAGEMENT}</li>
-     * </ul>
-     * @return {@code true} if the specified repository level permissions are
-     * {@code granted}; false otherwise.
-     */
-    boolean isGranted(long repositoryPermissions);
+    TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission);
 
     /**
      *
