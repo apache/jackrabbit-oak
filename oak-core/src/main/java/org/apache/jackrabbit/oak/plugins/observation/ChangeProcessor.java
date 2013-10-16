@@ -191,7 +191,7 @@ public class ChangeProcessor implements Runnable {
             while (!stopping && changes != null) {
                 EventFilter filter = filterRef.get();
                 // FIXME don't rely on toString for session id
-                // FIXME make cluster node id part of session id
+                // FIXME make cluster node id part of session id to make session id unique across all cluster nodes
                 if (!(filter.excludeLocal() && changes.isLocal(contentSession.toString()))) {
                     String path = namePathMapper.getOakPath(filter.getPath());
                     ImmutableTree beforeTree = getTree(changes.getBeforeState(), path);
