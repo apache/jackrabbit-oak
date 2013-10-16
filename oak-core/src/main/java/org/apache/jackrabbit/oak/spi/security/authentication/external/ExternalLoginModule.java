@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Collections;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
@@ -56,6 +58,7 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
      *
      * @return
      */
+    @Nonnull
     protected abstract ExternalUser getExternalUser();
 
     /**
@@ -64,6 +67,7 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
      * @return
      * @throws SyncException
      */
+    @Nonnull
     protected SyncHandler getSyncHandler() throws SyncException {
         Object syncHandler = options.getConfigValue(PARAM_SYNC_HANDLER, null, null);
         if (syncHandler == null) {
@@ -117,6 +121,10 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
         try {
             SyncHandler handler = getSyncHandler();
             Root root = getRoot();
+            UserManager userManager = getUserManager();
+            if (root == null || userManager == null) {
+                throw new LoginException("Cannot synchronize user.");
+            }
             Object smValue = options.getConfigValue(PARAM_SYNC_MODE, null, null);
             SyncMode syncMode;
             if (smValue == null) {
@@ -124,7 +132,7 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
             } else {
                 syncMode = SyncMode.fromObject(smValue);
             }
-            if (handler.initialize(getUserManager(), root, syncMode, options)) {
+            if (handler.initialize(userManager, root, syncMode, options)) {
                 handler.sync(getExternalUser());
                 root.commit();
                 return true;
