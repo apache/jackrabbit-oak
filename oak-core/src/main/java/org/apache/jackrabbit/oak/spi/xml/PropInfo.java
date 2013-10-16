@@ -18,11 +18,14 @@ package org.apache.jackrabbit.oak.spi.xml;
 
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 
@@ -51,7 +54,7 @@ public class PropInfo {
     /**
      * Value(s) of the property being imported.
      */
-    private final TextValue[] values;
+    private final List<? extends TextValue> values;
 
     /**
      * Hint indicating whether the property is multi- or single-value
@@ -64,13 +67,21 @@ public class PropInfo {
      *
      * @param name name of the property being imported
      * @param type type of the property being imported
+     * @param value value of the property being imported
+     */
+    public PropInfo(@Nullable String name, int type, @Nonnull TextValue value) {
+        this(name, type, ImmutableList.of(value), MultipleStatus.UNKNOWN);
+    }
+
+    /**
+     * Creates a property information instance.
+     *
+     * @param name name of the property being imported
+     * @param type type of the property being imported
      * @param values value(s) of the property being imported
      */
-    public PropInfo(String name, int type, TextValue[] values) {
-        this.name = name;
-        this.type = type;
-        this.values = values;
-        multipleStatus = (values.length == 1) ? MultipleStatus.UNKNOWN : MultipleStatus.MULTIPLE;
+    public PropInfo(@Nullable String name, int type, @Nonnull List<? extends TextValue> values) {
+        this(name, type, values, ((values.size() == 1) ? MultipleStatus.UNKNOWN : MultipleStatus.MULTIPLE));
     }
 
     /**
@@ -81,11 +92,12 @@ public class PropInfo {
      * @param values value(s) of the property being imported
      * @param multipleStatus Hint indicating whether the property is
      */
-    public PropInfo(String name, int type, TextValue[] values,
-                    MultipleStatus multipleStatus) {
+    public PropInfo(@Nullable String name, int type,
+                    @Nonnull List<? extends TextValue> values,
+                    @Nonnull MultipleStatus multipleStatus) {
         this.name = name;
         this.type = type;
-        this.values = values;
+        this.values = ImmutableList.copyOf(values);
         this.multipleStatus = multipleStatus;
     }
 
@@ -121,10 +133,10 @@ public class PropInfo {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
             throw new RepositoryException("TODO");
         }
-        return values[0];
+        return values.get(0);
     }
 
-    public TextValue[] getTextValues() {
+    public List<? extends TextValue> getTextValues() {
         return values;
     }
 
@@ -132,14 +144,14 @@ public class PropInfo {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
             throw new RepositoryException("TODO");
         }
-        return values[0].getValue(targetType);
+        return values.get(0).getValue(targetType);
     }
 
     public List<Value> getValues(int targetType) throws RepositoryException {
-        if (values.length == 0) {
+        if (values.isEmpty()) {
             return Collections.emptyList();
         } else {
-            List<Value> vs = Lists.newArrayListWithCapacity(values.length);
+            List<Value> vs = Lists.newArrayListWithCapacity(values.size());
             for (TextValue value : values) {
                 vs.add(value.getValue(targetType));
             }

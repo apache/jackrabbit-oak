@@ -301,8 +301,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             // since impersonators may be imported later on, postpone processing
             // to the end.
             // see -> process References
-            TextValue[] tvs = propInfo.getTextValues();
-            referenceTracker.processedReference(new Impersonators(a.getID(), tvs));
+            referenceTracker.processedReference(new Impersonators(a.getID(), propInfo.getTextValues()));
             return true;
 
         } else if (REP_DISABLED.equals(propName)) {
@@ -477,7 +476,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             members.add(new Member(name, id));
         }
 
-        void addMembers(TextValue[] tvs) {
+        void addMembers(List<? extends TextValue> tvs) {
             for (TextValue tv : tvs) {
                 addMember(null, tv.getString());
             }
@@ -573,7 +572,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         private final String userId;
         private final Set<String> principalNames = new HashSet<String>();
 
-        private Impersonators(String userId, TextValue[] values) {
+        private Impersonators(String userId, List<? extends TextValue> values) {
             this.userId = userId;
             for (TextValue v : values) {
                 principalNames.add(v.getString());

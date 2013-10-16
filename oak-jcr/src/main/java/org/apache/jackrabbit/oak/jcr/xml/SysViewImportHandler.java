@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
-
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
-import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
@@ -275,8 +273,7 @@ class SysViewImportHandler extends TargetImportHandler {
                 PropInfo prop = new PropInfo(
                         currentPropName == null ? null : currentPropName.getRepoQualifiedName(),
                         currentPropType,
-                        currentPropValues.toArray(new TextValue[currentPropValues.size()]),
-                        currentPropMultipleStatus);
+                        currentPropValues);
                 state.props.add(prop);
             }
             // reset temp fields
