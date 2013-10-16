@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.CheckForNull;
@@ -41,7 +42,7 @@ class UnmergedBranches {
     /**
      * Map of branches with the head of the branch as key.
      */
-    private final List<Branch> branches = new ArrayList<Branch>();
+    private final List<Branch> branches = new CopyOnWriteArrayList<Branch>();
 
     /**
      * Set to <code>true</code> once initialized.
@@ -103,9 +104,7 @@ class UnmergedBranches {
         SortedSet<Revision> commits = new TreeSet<Revision>(comparator);
         commits.add(initial);
         Branch b = new Branch(commits, base);
-        synchronized (branches) {
-            branches.add(b);
-        }
+        branches.add(b);
         return b;
     }
 
@@ -118,11 +117,9 @@ class UnmergedBranches {
      */
     @CheckForNull
     Branch getBranch(@Nonnull Revision r) {
-        synchronized (branches) {
-            for (Branch b : branches) {
-                if (b.containsCommit(r)) {
-                    return b;
-                }
+        for (Branch b : branches) {
+            if (b.containsCommit(r)) {
+                return b;
             }
         }
         return null;
@@ -133,13 +130,6 @@ class UnmergedBranches {
      * @param b the branch to remove.
      */
     void remove(Branch b) {
-        synchronized (branches) {
-            for (int i = 0; i < branches.size(); i++) {
-                if (branches.get(i) == b) {
-                    branches.remove(i);
-                    return;
-                }
-            }
-        }
+        branches.remove(b);
     }
 }
