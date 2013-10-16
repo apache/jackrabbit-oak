@@ -105,12 +105,12 @@ class PermissionStore implements PermissionConstants {
             if (parent.hasChild(name)) {
                 Tree child = parent.getChild(name);
                 if (PermissionUtil.checkACLPath(child, path)) {
-                    loadPermissionsFromTree(path, ret, child, restrictionProvider);
+                    loadPermissionEntries(path, ret, child, restrictionProvider);
                 } else {
                     // check for child node
                     for (Tree node : child.getChildren()) {
                         if (PermissionUtil.checkACLPath(node, path)) {
-                            loadPermissionsFromTree(path, ret, node, restrictionProvider);
+                            loadPermissionEntries(path, ret, node, restrictionProvider);
                         }
                     }
                 }
@@ -148,10 +148,10 @@ class PermissionStore implements PermissionConstants {
         }
     }
 
-    private static void loadPermissionsFromTree(@Nonnull String path,
-                                                @Nonnull Collection<PermissionEntry> ret,
-                                                @Nonnull Tree tree,
-                                                @Nonnull RestrictionProvider restrictionProvider) {
+    private static void loadPermissionEntries(@Nonnull String path,
+                                              @Nonnull Collection<PermissionEntry> ret,
+                                              @Nonnull Tree tree,
+                                              @Nonnull RestrictionProvider restrictionProvider) {
         for (Tree ace : tree.getChildren()) {
             if (ace.getName().charAt(0) != 'c') {
                 ret.add(new PermissionEntry(path, ace, restrictionProvider));
