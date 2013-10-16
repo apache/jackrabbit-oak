@@ -56,13 +56,13 @@ public final class OpenPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public ReadStatus getReadStatus(@Nonnull Tree tree, PropertyState property) {
-        return ReadStatus.ALLOW_ALL;
+    public RepositoryPermission getRepositoryPermission() {
+        return RepositoryPermission.ALL;
     }
 
     @Override
-    public boolean isGranted(long repositoryPermissions) {
-        return true;
+    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+        return TreePermission.ALL;
     }
 
     @Override

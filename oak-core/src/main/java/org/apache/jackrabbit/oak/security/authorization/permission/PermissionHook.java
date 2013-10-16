@@ -262,7 +262,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
     }
 
-    private class Acl {
+    private final class Acl {
 
         private final String accessControlledPath;
 
@@ -373,7 +373,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                             idx++;
                         }
                         while (child == null) {
-                            String name = "c" + String.valueOf(idx++);
+                            String name = 'c' + String.valueOf(idx++);
                             child = parent.getChildNode(name);
                             if (child.exists()) {
                                 child = null;
@@ -413,7 +413,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
     }
 
-    private class AcEntry {
+    private final class AcEntry {
 
         private final String accessControlledPath;
         private final String principalName;

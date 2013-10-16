@@ -21,10 +21,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * The security context encapsulates all the information needed to make
@@ -47,64 +45,41 @@ class SecurityContext {
 
     private final Context acContext;
 
-    private ReadStatus readStatus;
+    private TreePermission treePermission;
 
-    SecurityContext(
-            @Nonnull NodeState rootState,
-            @Nonnull PermissionProvider permissionProvider,
-            @Nonnull Context acContext) {
-        this.root = checkNotNull(rootState);
-        this.base = new ImmutableTree(rootState, new TreeTypeProviderImpl(acContext));
+    SecurityContext(@Nonnull NodeState rootState,
+                    @Nonnull PermissionProvider permissionProvider,
+                    @Nonnull Context acContext) {
+        root = rootState;
+        base = new ImmutableTree(rootState, new TreeTypeProviderImpl(acContext));
         this.permissionProvider = permissionProvider;
         this.acContext = acContext;
-        // calculate the readstatus for the root
-        this.readStatus = permissionProvider.getReadStatus(base, null);
+        treePermission = permissionProvider.getTreePermission(base, TreePermission.EMPTY);
     }
 
-    private SecurityContext(
-            @Nonnull SecurityContext parent,
-            @Nonnull String name, @Nonnull NodeState nodeState) {
-        this.root = checkNotNull(parent).root;
-        this.base = new ImmutableTree(parent.base, name, nodeState);
-        this.permissionProvider = parent.permissionProvider;
-        this.acContext = parent.acContext;
-        if (base.getType() == parent.base.getType()) {
-            readStatus = ReadStatus.getChildStatus(parent.readStatus);
-        } else {
-            readStatus = null;
-        }
-    }
-
-    private synchronized ReadStatus getReadStatus() {
-        if (readStatus == null) {
-            readStatus = permissionProvider.getReadStatus(base, null);
-        }
-        return readStatus;
+    private SecurityContext(@Nonnull SecurityContext parent,
+                            @Nonnull String name, @Nonnull NodeState nodeState) {
+        root = parent.root;
+        base = new ImmutableTree(parent.base, name, nodeState);
+        permissionProvider = parent.permissionProvider;
+        acContext = parent.acContext;
+        treePermission = permissionProvider.getTreePermission(base, parent.treePermission);
     }
 
     boolean canReadThisNode() {
-        return getReadStatus().includes(ReadStatus.ALLOW_THIS);
+        return treePermission.canRead();
     }
 
     boolean canReadAllProperties() {
-        ReadStatus rs = getReadStatus();
-        return rs.includes(ReadStatus.ALLOW_PROPERTIES);
+        return treePermission.canReadProperties();
     }
 
     boolean canReadProperty(PropertyState property) {
-        ReadStatus rs = getReadStatus();
-        if (rs.includes(ReadStatus.ALLOW_PROPERTIES)) {
-            return true;
-        } else if (rs.appliesToThis()) {
-            rs = permissionProvider.getReadStatus(base, property);
-            return rs.isAllow();
-        } else {
-            return false;
-        }
+        return treePermission.canRead(property);
     }
 
     boolean canReadAll() {
-        return readStatus != null && readStatus.includes(ReadStatus.ALLOW_ALL);
+        return treePermission.canReadAll();
     }
 
     SecurityContext getChildContext(String name, NodeState state) {
@@ -134,5 +109,4 @@ class SecurityContext {
     public int hashCode() {
         return 0;
     }
-
 }

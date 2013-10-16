@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.security.Principal;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -23,15 +24,24 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.base.Strings;
+import org.apache.jackrabbit.oak.util.TreeLocation;
+import org.apache.jackrabbit.util.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * PermissionUtil... TODO
  */
 public final class PermissionUtil implements PermissionConstants {
+
+    private static final Logger log = LoggerFactory.getLogger(PermissionUtil.class);
 
     private PermissionUtil() {}
 
@@ -55,13 +65,48 @@ public final class PermissionUtil implements PermissionConstants {
         return String.valueOf(path.hashCode());
     }
 
-    public static boolean checkACLPath(NodeBuilder node, String path) {
+    public static boolean checkACLPath(@Nonnull NodeBuilder node, @Nonnull String path) {
         PropertyState property = node.getProperty(REP_ACCESS_CONTROLLED_PATH);
         return property != null && path.equals(property.getValue(Type.STRING));
     }
 
-    public static boolean checkACLPath(Tree node, String path) {
+    public static boolean checkACLPath(@Nonnull Tree node, @Nonnull String path) {
         PropertyState property = node.getProperty(REP_ACCESS_CONTROLLED_PATH);
         return property != null && path.equals(property.getValue(Type.STRING));
+    }
+
+    @Nonnull
+    public static ImmutableTree getPermissionsRoot(ImmutableRoot immutableRoot, String workspaceName) {
+        return immutableRoot.getTree(PERMISSIONS_STORE_PATH + '/' + workspaceName);
+    }
+
+    @Nonnull
+    public static Tree getPrincipalRoot(Tree permissionsTree, Principal principal) {
+        return permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
+    }
+
+    public static int getType(@Nonnull Tree tree, @Nullable PropertyState property) {
+        // TODO: OAK-753 decide on where to filter out hidden items.
+        // TODO: deal with hidden properties
+        return ImmutableTree.getType(tree);
+    }
+
+    @CheckForNull
+    public static TreeLocation createLocation(@Nonnull ImmutableRoot immutableRoot, @Nullable String oakPath) {
+        if (oakPath != null && PathUtils.isAbsolute(oakPath)) {
+            return TreeLocation.create(immutableRoot, oakPath);
+        } else {
+            log.debug("Unable to create location for path " + oakPath);
+            return null;
+        }
+    }
+
+    @Nonnull
+    public static TreeLocation createLocation(@Nonnull Tree tree, @Nullable PropertyState property) {
+        if (property == null) {
+            return TreeLocation.create(tree);
+        } else {
+            return TreeLocation.create(tree, property);
+        }
     }
 }

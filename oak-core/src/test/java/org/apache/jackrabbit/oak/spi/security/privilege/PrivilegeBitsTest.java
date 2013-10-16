@@ -151,34 +151,6 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
     }
 
     @Test
-    public void testIncludesRead() {
-        // empty
-        assertFalse(PrivilegeBits.EMPTY.includesRead(Permissions.READ));
-
-        // other privilege bits
-        PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
-        assertTrue(pb.includesRead(Permissions.READ_NODE));
-        assertFalse(pb.includesRead(Permissions.READ_PROPERTY));
-        assertFalse(pb.includesRead(Permissions.READ));
-
-        assertTrue(PrivilegeBits.getInstance(pb).includesRead(Permissions.READ_NODE));
-
-        PrivilegeBits mod = PrivilegeBits.getInstance();
-        for (int i = 0; i < 100; i++) {
-            mod.add(pb);
-            assertTrue(mod.includesRead(Permissions.READ_NODE));
-
-            pb = pb.nextBits();
-            assertFalse(pb.toString(), pb.includesRead(Permissions.READ_NODE));
-            assertFalse(PrivilegeBits.getInstance(pb).includesRead(Permissions.READ_NODE));
-
-            PrivilegeBits modifiable = PrivilegeBits.getInstance(pb);
-            modifiable.add(READ_NODES_PRIVILEGE_BITS);
-            assertTrue(modifiable.includesRead(Permissions.READ_NODE));
-        }
-    }
-
-    @Test
     public void testIncludes() {
         // empty
         assertTrue(PrivilegeBits.EMPTY.includes(PrivilegeBits.EMPTY));
@@ -280,21 +252,18 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
             assertTrue(tmp.includes(pb));
             assertFalse(tmp.includes(nxt));
             if (READ_NODES_PRIVILEGE_BITS.equals(pb)) {
-                assertTrue(tmp.includesRead(Permissions.READ_NODE));
+                assertTrue(tmp.includes(PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES)));
             } else {
-                assertFalse(tmp.includesRead(Permissions.READ_NODE));
+                assertFalse(tmp.includes(PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES)));
             }
             tmp.add(nxt);
             assertTrue(tmp.includes(pb) && tmp.includes(nxt));
             if (READ_NODES_PRIVILEGE_BITS.equals(pb)) {
-                assertTrue(tmp.includesRead(Permissions.READ_NODE));
                 assertTrue(tmp.includes(READ_NODES_PRIVILEGE_BITS));
             } else {
-                assertFalse(tmp.toString(), tmp.includesRead(Permissions.READ_NODE));
                 assertFalse(tmp.includes(READ_NODES_PRIVILEGE_BITS));
             }
             tmp.add(READ_NODES_PRIVILEGE_BITS);
-            assertTrue(tmp.includesRead(Permissions.READ_NODE));
             assertTrue(tmp.includes(READ_NODES_PRIVILEGE_BITS));
 
             pb = nxt;

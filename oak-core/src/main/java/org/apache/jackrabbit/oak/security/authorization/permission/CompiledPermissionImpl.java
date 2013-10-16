@@ -18,55 +18,84 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.util.Text;
+import org.apache.jackrabbit.oak.util.TreeLocation;
+import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterators.concat;
 
 /**
  * TODO: WIP
+ * FIXME: decide on where to filter out hidden items (OAK-753)
  */
 class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants {
 
+    private static final Logger log = LoggerFactory.getLogger(CompiledPermissionImpl.class);
+
+    private static final Map<Long, PrivilegeBits> READ_BITS = ImmutableMap.of(
+            Permissions.READ_NODE, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES),
+            Permissions.READ_PROPERTY, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_PROPERTIES),
+            Permissions.READ_ACCESS_CONTROL, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+
     private final Set<Principal> principals;
+    private ImmutableRoot root;
+    private final String workspaceName;
 
     private final Map<String, Tree> userTrees;
     private final Map<String, Tree> groupTrees;
 
     private final String[] readPathsCheckList;
 
-    private PrivilegeBitsProvider bitsProvider;
-
     private final PermissionStore userStore;
     private final PermissionStore groupStore;
 
-    CompiledPermissionImpl(@Nonnull Set<Principal> principals,
-                           @Nonnull ImmutableTree permissionsTree,
-                           @Nonnull PrivilegeBitsProvider bitsProvider,
-                           @Nonnull RestrictionProvider restrictionProvider,
-                           @Nonnull Set<String> readPaths) {
-        checkArgument(!principals.isEmpty());
+    private PrivilegeBitsProvider bitsProvider;
+
+    private CompiledPermissionImpl(@Nonnull Set<Principal> principals,
+                                   @Nonnull ImmutableRoot root, @Nonnull String workspaceName,
+                                   @Nonnull ImmutableTree permissionsTree,
+                                   @Nonnull RestrictionProvider restrictionProvider,
+                                   @Nonnull Set<String> readPaths) {
         this.principals = principals;
-        this.bitsProvider = bitsProvider;
+        this.root = root;
+        this.workspaceName = workspaceName;
+
+        bitsProvider = new PrivilegeBitsProvider(root);
         readPathsCheckList = new String[readPaths.size() * 2];
         int i = 0;
         for (String p : readPaths) {
@@ -78,8 +107,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         groupTrees = new HashMap<String, Tree>(principals.size());
         if (permissionsTree.exists()) {
             for (Principal principal : principals) {
-                Tree t = getPrincipalRoot(permissionsTree, principal);
-                Map<String, Tree> target = getTargetMap(principal);
+                Tree t = PermissionUtil.getPrincipalRoot(permissionsTree, principal);
+                Map<String, Tree> target = (principal instanceof Group) ? groupTrees : userTrees;
                 if (t.exists()) {
                     target.put(principal.getName(), t);
                 } else {
@@ -88,65 +117,156 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
             }
         }
 
-        userStore = new PermissionStore(userTrees, restrictionProvider);
-        groupStore = new PermissionStore(groupTrees, restrictionProvider);
+        userStore = PermissionStore.create(userTrees, restrictionProvider);
+        groupStore = PermissionStore.create(groupTrees, restrictionProvider);
+    }
+
+    static CompiledPermissions create(@Nonnull ImmutableRoot root, @Nonnull String workspaceName,
+                                      @Nonnull Set<Principal> principals,
+                                      @Nonnull AuthorizationConfiguration acConfig) {
+        ImmutableTree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
+        if (!permissionsTree.exists() || principals.isEmpty()) {
+            return NoPermissions.getInstance();
+        } else {
+            String[] readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
+            return new CompiledPermissionImpl(principals, root, workspaceName,
+                    permissionsTree, acConfig.getRestrictionProvider(),
+                    ImmutableSet.copyOf(readPaths));
+        }
     }
 
     //------------------------------------------------< CompiledPermissions >---
     @Override
-    public void refresh(@Nonnull ImmutableTree permissionsTree,
-                        @Nonnull PrivilegeBitsProvider bitsProvider) {
-        this.bitsProvider = bitsProvider;
+    public void refresh(@Nonnull ImmutableRoot root, @Nonnull String workspaceName) {
+        this.root = root;
+        this.bitsProvider = new PrivilegeBitsProvider(root);
         // test if a permission has been added for those principals that didn't have one before
+
+        ImmutableTree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
+        boolean flushUserStore = false;
+        boolean flushGroupStore = false;
         for (Principal principal : principals) {
-            Map<String, Tree> target = getTargetMap(principal);
-            Tree principalRoot = getPrincipalRoot(permissionsTree, principal);
+            boolean isGroup = (principal instanceof Group);
+            Map<String, Tree> target = isGroup ? groupTrees : userTrees;
+            Tree principalRoot = PermissionUtil.getPrincipalRoot(permissionsTree, principal);
             String pName = principal.getName();
+
             if (principalRoot.exists()) {
                 if (!target.containsKey(pName) || !principalRoot.equals(target.get(pName))) {
                     target.put(pName, principalRoot);
+                    if (isGroup) {
+                        flushGroupStore = true;
+                    } else {
+                        flushUserStore = true;
+                    }
                 }
-            } else {
-                target.remove(pName);
+            } else if (target.remove(pName) != null) {
+                if (isGroup) {
+                    flushGroupStore = true;
+                } else {
+                    flushUserStore = true;
+                }
             }
         }
-        // todo, improve flush stores
-        userStore.flush();
-        groupStore.flush();
+        if (flushUserStore) {
+            userStore.flush();
+        }
+        if (flushGroupStore) {
+            groupStore.flush();
+        }
     }
 
     @Override
-    public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
-        if (isReadablePath(tree, null)) {
-            return ReadStatus.ALLOW_ALL_REGULAR;
-        }
-        long permission = (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY;
-        Iterator<PermissionStore.PermissionEntry> it = getEntryIterator(new PermissionStore.EntryPredicate(tree, property));
-        while (it.hasNext()) {
-            PermissionStore.PermissionEntry entry = it.next();
-            if (entry.readStatus != null) {
-                return entry.readStatus;
-            } else if (entry.privilegeBits.includesRead(permission)) {
-                return (entry.isAllow) ? ReadStatus.ALLOW_THIS : ReadStatus.DENY_THIS;
+    public RepositoryPermission getRepositoryPermission() {
+        return new RepositoryPermission() {
+            @Override
+            public boolean isGranted(long repositoryPermissions) {
+                return hasPermissions(getEntryIterator(new EntryPredicate()), repositoryPermissions, null, null);
             }
-        }
-        return ReadStatus.DENY_THIS;
+        };
     }
 
     @Override
-    public boolean isGranted(long permissions) {
-        return hasPermissions(getEntryIterator(new PermissionStore.EntryPredicate()), permissions, null, null);
+    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+        if (tree.isRoot()) {
+            return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_DEFAULT, TreePermission.EMPTY);
+        }
+        int type = PermissionUtil.getType(tree, null);
+        switch (type) {
+            case TreeTypeProvider.TYPE_HIDDEN:
+                // TODO: OAK-753 decide on where to filter out hidden items.
+                return TreePermission.ALL;
+            case TreeTypeProvider.TYPE_VERSION:
+                String ntName = checkNotNull(TreeUtil.getPrimaryTypeName(tree));
+                if (VersionConstants.VERSION_STORE_NT_NAMES.contains(ntName) || VersionConstants.NT_ACTIVITY.equals(ntName)) {
+                    return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_VERSION, parentPermission);
+                } else {
+                    TreeLocation tl = getLocation(tree, null);
+                    if (tl == null) {
+                        return TreePermission.EMPTY;
+                    } else {
+                        // TODO: may return wrong results in case of restrictions
+                        // TODO that would match the path of the versionable node
+                        // TODO (or item in the subtree) but that item no longer exists
+                        // TODO -> evaluation by path would be more accurate (-> see #isGranted)
+                        while (!tl.exists()) {
+                            tl = tl.getParent();
+                        }
+                        Tree versionableTree = tl.getTree();
+                        TreePermission pp = getParentPermission(versionableTree);
+                        return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
+                    }
+                }
+            default:
+                return new TreePermissionImpl(tree, type, parentPermission);
+        }
+    }
+
+    @Nonnull
+    private TreePermission getParentPermission(@Nonnull Tree tree) {
+        List<Tree> trees = new ArrayList();
+        while (!tree.isRoot()) {
+            tree = tree.getParent();
+            if (tree.exists()) {
+                trees.add(0, tree);
+            }
+        }
+        TreePermission pp = TreePermission.EMPTY;
+        for (Tree tr : trees) {
+            pp = new TreePermissionImpl(tr, PermissionUtil.getType(tree, null), pp);
+        }
+        return pp;
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        Iterator<PermissionStore.PermissionEntry> it = getEntryIterator(new PermissionStore.EntryPredicate(tree, property));
-        return hasPermissions(it, permissions, tree, null);
+        int type = PermissionUtil.getType(tree, property);
+        switch (type) {
+            case TreeTypeProvider.TYPE_HIDDEN:
+                // TODO: OAK-753 decide on where to filter out hidden items.
+                return true;
+            case TreeTypeProvider.TYPE_VERSION:
+                TreeLocation location = getLocation(tree, property);
+                if (location == null) {
+                    // unable to determine the location of the versionable item -> deny access.
+                    return false;
+                }
+                Tree versionableTree = (property == null) ? location.getTree() : location.getParent().getTree();
+                if (versionableTree != null) {
+                    return internalIsGranted(versionableTree, property, permissions);
+                } else {
+                    // versionable node does not exist (anymore) in this workspace;
+                    // use best effort calculation based on the item path.
+                    return isGranted(location.getPath(), permissions);
+                }
+            default:
+                return internalIsGranted(tree, property, permissions);
+        }
     }
 
     @Override
     public boolean isGranted(@Nonnull String path, long permissions) {
-        Iterator<PermissionStore.PermissionEntry> it = getEntryIterator(new PermissionStore.EntryPredicate(path));
+        Iterator<PermissionEntry> it = getEntryIterator(new EntryPredicate(path));
         return hasPermissions(it, permissions, null, path);
     }
 
@@ -161,20 +281,16 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
-    private static Tree getPrincipalRoot(Tree permissionsTree, Principal principal) {
-        return permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
+
+    private boolean internalIsGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+        Iterator<PermissionEntry> it = getEntryIterator(new EntryPredicate(tree, property));
+        return hasPermissions(it, permissions, tree, null);
     }
 
-    @Nonnull
-    private Map<String, Tree> getTargetMap(Principal principal) {
-        return (principal instanceof Group) ? groupTrees : userTrees;
-    }
-
-    private boolean hasPermissions(@Nonnull Iterator<PermissionStore.PermissionEntry> entries,
+    private boolean hasPermissions(@Nonnull Iterator<PermissionEntry> entries,
                                    long permissions, @Nullable Tree tree, @Nullable String path) {
         // calculate readable paths if the given permissions includes any read permission.
-        boolean isReadable = Permissions.diff(Permissions.READ, permissions) != Permissions.READ && isReadablePath(tree, path);
+        boolean isReadable = Permissions.diff(Permissions.READ, permissions) != Permissions.READ && isReadablePath(tree, path, false);
         if (!entries.hasNext() && !isReadable) {
             return false;
         }
@@ -207,7 +323,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         }
 
         while (entries.hasNext()) {
-            PermissionStore.PermissionEntry entry = entries.next();
+            PermissionEntry entry = entries.next();
             if (respectParent && (parentPath != null)) {
                 boolean matchesParent = entry.matchesParent(parentPath);
                 if (matchesParent) {
@@ -241,16 +357,16 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     @Nonnull
     private PrivilegeBits getPrivilegeBits(@Nullable Tree tree) {
-        PermissionStore.EntryPredicate pred = (tree == null)
-                ? new PermissionStore.EntryPredicate()
-                : new PermissionStore.EntryPredicate(tree, null);
-        Iterator<PermissionStore.PermissionEntry> entries = getEntryIterator(pred);
+        EntryPredicate pred = (tree == null)
+                ? new EntryPredicate()
+                : new EntryPredicate(tree, null);
+        Iterator<PermissionEntry> entries = getEntryIterator(pred);
 
         PrivilegeBits allowBits = PrivilegeBits.getInstance();
         PrivilegeBits denyBits = PrivilegeBits.getInstance();
 
         while (entries.hasNext()) {
-            PermissionStore.PermissionEntry entry = entries.next();
+            PermissionEntry entry = entries.next();
             if (entry.isAllow) {
                 allowBits.addDifference(entry.privilegeBits, denyBits);
             } else {
@@ -259,20 +375,20 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         }
 
         // special handling for paths that are always readable
-        if (isReadablePath(tree, null)) {
+        if (isReadablePath(tree, null, false)) {
             allowBits.add(bitsProvider.getBits(PrivilegeConstants.JCR_READ));
         }
         return allowBits;
     }
 
     @Nonnull
-    private Iterator<PermissionStore.PermissionEntry> getEntryIterator(@Nonnull PermissionStore.EntryPredicate predicate) {
-        Iterator<PermissionStore.PermissionEntry> userEntries = userStore.getEntryIterator(predicate);
-        Iterator<PermissionStore.PermissionEntry> groupEntries = groupStore.getEntryIterator(predicate);
-        return Iterators.concat(userEntries, groupEntries);
+    private Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
+        Iterator<PermissionEntry> userEntries = userStore.getEntryIterator(predicate);
+        Iterator<PermissionEntry> groupEntries = groupStore.getEntryIterator(predicate);
+        return concat(userEntries, groupEntries);
     }
 
-    private boolean isReadablePath(@Nullable Tree tree, @Nullable String treePath) {
+    private boolean isReadablePath(@Nullable Tree tree, @Nullable String treePath, boolean exactMatch) {
         if (readPathsCheckList.length > 0) {
             String targetPath = (tree != null) ? tree.getPath() : treePath;
             if (targetPath != null) {
@@ -280,7 +396,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                     if (targetPath.equals(readPathsCheckList[i++])) {
                         return true;
                     }
-                    if (targetPath.startsWith(readPathsCheckList[i])) {
+                    if (!exactMatch && targetPath.startsWith(readPathsCheckList[i])) {
                         return true;
                     }
                 }
@@ -289,5 +405,167 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         return false;
     }
 
+    @CheckForNull
+    private TreeLocation getLocation(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
+        String relPath = "";
+        String propName = (property == null) ? "" : property.getName();
+        String versionablePath = null;
+        Tree t = versionStoreTree;
+        while (t.exists() && !t.isRoot() && !VersionConstants.VERSION_STORE_ROOT_NAMES.contains(t.getName())) {
+            String ntName = checkNotNull(TreeUtil.getPrimaryTypeName(t));
+            if (VersionConstants.JCR_FROZENNODE.equals(t.getName()) && t != versionStoreTree) {
+                relPath = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
+            } else if (JcrConstants.NT_VERSIONHISTORY.equals(ntName)) {
+                PropertyState prop = t.getProperty(workspaceName);
+                if (prop != null) {
+                    versionablePath = PathUtils.concat(prop.getValue(Type.PATH), relPath, propName);
+                }
+                return PermissionUtil.createLocation(root, versionablePath);
+            } else if (VersionConstants.NT_CONFIGURATION.equals(ntName)) {
+                String rootId = TreeUtil.getString(t, VersionConstants.JCR_ROOT);
+                if (rootId != null) {
+                    versionablePath = new IdentifierManager(root).getPath(rootId);
+                    return PermissionUtil.createLocation(root, versionablePath);
+                } else {
+                    log.error("Missing mandatory property jcr:root with configuration node.");
+                    return null;
+                }
+            } else if (VersionConstants.NT_ACTIVITY.equals(ntName)) {
+                return PermissionUtil.createLocation(versionStoreTree, property);
+            }
+            t = t.getParent();
+        }
 
+        // intermediate node in the version, configuration or activity store that
+        // matches none of the special conditions checked above -> regular permission eval.
+        return PermissionUtil.createLocation(versionStoreTree, property);
+    }
+
+    private final class TreePermissionImpl implements TreePermission {
+
+        private final Tree tree;
+        private final TreePermissionImpl parent;
+
+        private final boolean isAcTree;
+        private final boolean readableTree;
+
+        private Collection<PermissionEntry> userEntries;
+        private Collection<PermissionEntry> groupEntries;
+
+        // FIXME: use proper readstatus
+        private Boolean canReadThis;
+
+        private TreePermissionImpl(Tree tree, int treeType, TreePermission parentPermission) {
+            this.tree = tree;
+            if (parentPermission instanceof TreePermissionImpl) {
+                parent = (TreePermissionImpl) parentPermission;
+            } else {
+                parent = null;
+            }
+            isAcTree = (treeType == TreeTypeProvider.TYPE_AC);
+            readableTree = (parent != null && parent.readableTree) || isReadablePath(tree, null, true);
+        }
+
+        @Override
+        public boolean canRead() {
+            if (!isAcTree && readableTree) {
+                return true;
+            }
+            if (canReadThis == null) {
+                canReadThis = false;
+                long permission = (isAcTree) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_NODE;
+                Iterator<PermissionEntry> it = getIterator(null);
+                while (it.hasNext()) {
+                    PermissionEntry entry = it.next();
+                    if (entry.privilegeBits.includes(READ_BITS.get(permission))) {
+                        canReadThis = (entry.isAllow);
+                        break;
+                    }
+                }
+            }
+            return canReadThis;
+        }
+
+        @Override
+        public boolean canRead(@Nonnull PropertyState property) {
+            if (!isAcTree && readableTree) {
+                return true;
+            }
+            long permission = (isAcTree) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_PROPERTY;
+            Iterator<PermissionEntry> it = getIterator(property);
+            while (it.hasNext()) {
+                PermissionEntry entry = it.next();
+                if (entry.privilegeBits.includes(READ_BITS.get(permission))) {
+                    return (entry.isAllow);
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public boolean canReadAll() {
+            return false;  // TODO: best effort approach to detect full read-access within a given tree.
+        }
+
+        @Override
+        public boolean canReadProperties() {
+            return false;  // TODO: best effort approach to detect full read-property permission
+        }
+
+        @Override
+        public boolean isGranted(long permissions) {
+            return hasPermissions(getIterator(null), permissions, tree, null);
+        }
+
+        @Override
+        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+            return hasPermissions(getIterator(property), permissions, tree, null);
+        }
+
+        private Iterator<PermissionEntry> getIterator(@Nullable PropertyState property) {
+            return Iterators.filter(
+                    concat(new LazyIterator(this, true), new LazyIterator(this, false)),
+                    new EntryPredicate(tree, property));
+        }
+
+        private Iterator<PermissionEntry> getUserEntries() {
+            if (userEntries == null) {
+                userEntries = userStore.getEntries(tree);
+            }
+            return userEntries.iterator();
+        }
+
+        private Iterator<PermissionEntry> getGroupEntries() {
+            if (groupEntries == null) {
+                groupEntries = groupStore.getEntries(tree);
+            }
+            return groupEntries.iterator();
+        }
+    }
+
+    private static final class LazyIterator extends AbstractEntryIterator {
+
+        private boolean isUser;
+        private TreePermissionImpl tp;
+
+        private LazyIterator(@Nonnull TreePermissionImpl tp, boolean isUser) {
+            this.tp = tp;
+            this.isUser = isUser;
+        }
+
+        @CheckForNull
+        protected void seekNext() {
+            for (next = null; next == null; ) {
+                if (nextEntries.hasNext()) {
+                    next = nextEntries.next();
+                } else {
+                    if (tp == null) {
+                        break;
+                    }
+                    nextEntries = (isUser) ? tp.getUserEntries() : tp.getGroupEntries();
+                    tp = tp.parent;
+                }
+            }
+        }
+    }
 }
