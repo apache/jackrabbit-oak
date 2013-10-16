@@ -359,22 +359,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Returns {@code true} if this instance includes the jcr:read
-     * privilege. Shortcut for calling {@link PrivilegeBits#includes(PrivilegeBits)}
-     * where the other bits represented the jcr:read privilege.
-     *
-     * @return {@code true} if this instance includes the jcr:read
-     *         privilege; {@code false} otherwise.
-     */
-    public boolean includesRead(long readPermission) {
-        if (this == EMPTY) {
-            return false;
-        } else {
-            return d.includes(readPermission);
-        }
-    }
-
-    /**
      * Adds the other privilege bits to this instance.
      *
      * @param other The other privilege bits to be added.

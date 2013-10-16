@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.ChildOrderDiff;
@@ -48,6 +49,7 @@ class PermissionValidator extends DefaultValidator {
 
     private final Tree parentBefore;
     private final Tree parentAfter;
+    private final TreePermission parentPermission;
     private final PermissionProvider permissionProvider;
     private final PermissionValidatorProvider provider;
 
@@ -56,10 +58,13 @@ class PermissionValidator extends DefaultValidator {
     PermissionValidator(Tree parentBefore, Tree parentAfter,
                         PermissionProvider permissionProvider,
                         PermissionValidatorProvider provider) {
-        this(parentBefore, parentAfter, permissionProvider, provider, Permissions.NO_PERMISSION);
+        this(parentBefore, parentAfter,
+                permissionProvider.getTreePermission(parentBefore, TreePermission.EMPTY),
+                permissionProvider, provider, Permissions.NO_PERMISSION);
     }
 
-    PermissionValidator(Tree parentBefore, Tree parentAfter,
+    private PermissionValidator(Tree parentBefore, Tree parentAfter,
+                        @Nullable TreePermission parentPermission,
                         PermissionProvider permissionProvider,
                         PermissionValidatorProvider provider,
                         long permission) {
@@ -67,6 +72,7 @@ class PermissionValidator extends DefaultValidator {
         this.provider = provider;
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
+        this.parentPermission = parentPermission;
         if (Permissions.NO_PERMISSION == permission) {
             this.permission = Permissions.getPermission(getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
         } else {
@@ -116,7 +122,7 @@ class PermissionValidator extends DefaultValidator {
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         Tree childBefore = parentBefore.getChild(name);
         Tree childAfter = parentAfter.getChild(name);
-        return nextValidator(childBefore, childAfter);
+        return nextValidator(childBefore, childAfter, permissionProvider.getTreePermission(childBefore, parentPermission));
     }
 
     @Override
@@ -130,8 +136,8 @@ class PermissionValidator extends DefaultValidator {
     }
 
     //------------------------------------------------------------< private >---
-    private Validator nextValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
-        Validator validator = new PermissionValidator(parentBefore, parentAfter, permissionProvider, provider, permission);
+    private Validator nextValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter, @Nonnull TreePermission treePermission) {
+        Validator validator = new PermissionValidator(parentBefore, parentAfter, treePermission, permissionProvider, provider, permission);
         return new VisibleValidator(validator, true, false);
     }
 
@@ -139,20 +145,21 @@ class PermissionValidator extends DefaultValidator {
                                        long defaultPermission) throws CommitFailedException {
         long toTest = getPermission(tree, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
-            if (!permissionProvider.isGranted(toTest)) {
+            if (!permissionProvider.getRepositoryPermission().isGranted(toTest)) {
                 throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
             return null; // no need for further validation down the subtree
         } else {
-            if (!permissionProvider.isGranted(tree, null, toTest)) {
+            TreePermission tp = permissionProvider.getTreePermission(tree, parentPermission);
+            if (!tp.isGranted(toTest)) {
                 throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
             if (noTraverse(toTest, defaultPermission)) {
                 return null;
             } else {
                 return (isBefore) ?
-                    nextValidator(tree, null) :
-                    nextValidator(null, tree);
+                    nextValidator(tree, null, tp) :
+                    nextValidator(null, tree, tp);
             }
         }
     }
@@ -166,10 +173,10 @@ class PermissionValidator extends DefaultValidator {
         }
         long toTest = getPermission(parent, property, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
-            if (!permissionProvider.isGranted(toTest)) {
+            if (!permissionProvider.getRepositoryPermission().isGranted(toTest)) {
                 throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
-        } else if (!permissionProvider.isGranted(parent, property, toTest)) {
+        } else if (!parentPermission.isGranted(toTest, property)) {
             throw new CommitFailedException(ACCESS, 0, "Access denied");
         }
     }
