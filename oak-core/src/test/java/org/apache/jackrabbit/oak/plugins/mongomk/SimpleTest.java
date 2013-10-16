@@ -78,8 +78,9 @@ public class SimpleTest {
         // mark as commit root
         NodeDocument.setRevision(op, rev, "c");
         DocumentStore s = mk.getDocumentStore();
+        MongoNodeStore ns = mk.getNodeStore();
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
-        Node n2 = mk.getNode("/test", rev);
+        Node n2 = ns.getNode("/test", rev);
         assertEquals("Hello", n2.getProperty("name"));
         mk.dispose();
     }
@@ -234,6 +235,7 @@ public class SimpleTest {
     @Test
     public void commit() {
         MongoMK mk = createMK();
+        MongoNodeStore ns = mk.getNodeStore();
         
         String rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
@@ -243,9 +245,9 @@ public class SimpleTest {
         String r1 = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
         test = mk.getNodes("/test", r0, 0, 0, Integer.MAX_VALUE, null);
         Children c;
-        c = mk.getChildren("/", Revision.fromString(r0), Integer.MAX_VALUE);
+        c = ns.getChildren("/", Revision.fromString(r0), Integer.MAX_VALUE);
         assertEquals("[/test]", c.toString());
-        c = mk.getChildren("/test", Revision.fromString(r1), Integer.MAX_VALUE);
+        c = ns.getChildren("/test", Revision.fromString(r1), Integer.MAX_VALUE);
         assertEquals("[/test/a, /test/b]", c.toString());
 
         rev = mk.commit("", "^\"/test\":1", null, null);
@@ -259,23 +261,24 @@ public class SimpleTest {
     @Test
     public void delete() {
         MongoMK mk = createMK();
+        MongoNodeStore ns = mk.getNodeStore();
 
         mk.commit("/", "+\"testDel\":{\"name\": \"Hello\"}", null, null);
         mk.commit("/testDel", "+\"a\":{\"name\": \"World\"}", null, null);
         mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
         String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
 
-        Children c = mk.getChildren("/testDel", Revision.fromString(r1),
+        Children c = ns.getChildren("/testDel", Revision.fromString(r1),
                 Integer.MAX_VALUE);
         assertEquals(3, c.children.size());
 
         String r2 = mk.commit("/testDel", "-\"c\"", null, null);
-        c = mk.getChildren("/testDel", Revision.fromString(r2),
+        c = ns.getChildren("/testDel", Revision.fromString(r2),
                 Integer.MAX_VALUE);
         assertEquals(2, c.children.size());
 
         String r3 = mk.commit("/", "-\"testDel\"", null, null);
-        Node n = mk.getNode("/testDel", Revision.fromString(r3));
+        Node n = ns.getNode("/testDel", Revision.fromString(r3));
         assertNull(n);
     }
     

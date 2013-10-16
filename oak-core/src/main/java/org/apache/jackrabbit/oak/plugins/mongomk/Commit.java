@@ -43,7 +43,7 @@ public class Commit {
 
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
-    private final MongoMK mk;
+    private final MongoNodeStore nodeStore;
     private final Revision baseRevision;
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new HashMap<String, UpdateOp>();
@@ -58,10 +58,10 @@ public class Commit {
     private HashSet<String> addedNodes = new HashSet<String>();
     private HashSet<String> removedNodes = new HashSet<String>();
     
-    Commit(MongoMK mk, Revision baseRevision, Revision revision) {
+    Commit(MongoNodeStore nodeStore, Revision baseRevision, Revision revision) {
         this.baseRevision = baseRevision;
         this.revision = revision;
-        this.mk = mk;
+        this.nodeStore = nodeStore;
     }
 
     UpdateOp getUpdateOperationForNode(String path) {
@@ -169,7 +169,7 @@ public class Commit {
         // other readers. branch commits use the base revision to indicate
         // the visibility of the commit
         String commitValue = baseBranchRevision != null ? baseBranchRevision.toString() : "c";
-        DocumentStore store = mk.getDocumentStore();
+        DocumentStore store = nodeStore.getDocumentStore();
         String commitRootPath = null;
         if (baseBranchRevision != null) {
             // branch commits always use root node as commit root
@@ -271,7 +271,7 @@ public class Commit {
     }
     
     private void rollback(ArrayList<UpdateOp> newDocuments, ArrayList<UpdateOp> changed) {
-        DocumentStore store = mk.getDocumentStore();
+        DocumentStore store = nodeStore.getDocumentStore();
         for (UpdateOp op : changed) {
             UpdateOp reverse = op.getReverseOperation();
             store.createOrUpdate(Collection.NODES, reverse);
@@ -294,7 +294,7 @@ public class Commit {
             final AtomicReference<List<Revision>> collisions = new AtomicReference<List<Revision>>();
             Revision newestRev = null;
             if (doc != null) {
-                newestRev = doc.getNewestRevision(mk, revision,
+                newestRev = doc.getNewestRevision(nodeStore, revision,
                         new CollisionHandler() {
                             @Override
                             void concurrentModification(Revision other) {
@@ -316,7 +316,7 @@ public class Commit {
                     conflictMessage = "The node " + 
                             op.getId() + " was already added in revision\n" +
                             newestRev;
-                } else if (mk.isRevisionNewer(newestRev, baseRevision)
+                } else if (nodeStore.isRevisionNewer(newestRev, baseRevision)
                         && (op.isDelete() || isConflicting(doc, op))) {
                     conflictMessage = "The node " + 
                             op.getId() + " was changed in revision\n" + newestRev +
@@ -327,7 +327,7 @@ public class Commit {
             if (conflictMessage != null) {
                 conflictMessage += ", before\n" + revision + 
                         "; document:\n" + (doc == null ? "" : doc.format()) +
-                        ",\nrevision order:\n" + mk.getRevisionComparator();
+                        ",\nrevision order:\n" + nodeStore.getRevisionComparator();
                 throw new MicroKernelException(conflictMessage);
             }
             // if we get here the modification was successful
@@ -336,13 +336,13 @@ public class Commit {
             if (collisions.get() != null && isConflicting(doc, op)) {
                 for (Revision r : collisions.get()) {
                     // mark collisions on commit root
-                    new Collision(doc, r, op, revision, mk).mark(store);
+                    new Collision(doc, r, op, revision, nodeStore).mark(store);
                 }
             }
         }
 
         if (doc != null && doc.getMemory() > SPLIT_CANDIDATE_THRESHOLD) {
-            mk.addSplitCandidate(doc.getId());
+            nodeStore.addSplitCandidate(doc.getId());
         }
     }
 
@@ -365,7 +365,7 @@ public class Commit {
             // or document did not exist before
             return false;
         }
-        return doc.isConflicting(op, baseRevision, mk);
+        return doc.isConflicting(op, baseRevision, nodeStore);
     }
 
     /**
@@ -404,9 +404,7 @@ public class Commit {
             boolean isNew = op != null && op.isNew();
             boolean isWritten = op != null;
             boolean isDelete = op != null && op.isDelete();
-            mk.applyChanges(revision, path, 
-                    isNew, isDelete, isWritten, isBranchCommit,
-                    added, removed);
+            nodeStore.applyChanges(revision, path, isNew, isDelete, isWritten, isBranchCommit, added, removed);
         }
     }
 
