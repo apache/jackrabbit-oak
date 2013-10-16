@@ -38,6 +38,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     @Test
     public void splitRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
+        MongoNodeStore ns = mk.getNodeStore();
         Set<Revision> revisions = Sets.newHashSet();
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
@@ -48,7 +49,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             revisions.add(Revision.fromString(mk.commit("/", "+\"foo/node-" + revisions.size() + "\":{}" +
                     "+\"bar/node-" + revisions.size() + "\":{}", null, null)));
         }
-        mk.runBackgroundOperations();
+        ns.runBackgroundOperations();
         String head = mk.getHeadRevision();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
@@ -60,15 +61,16 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             assertTrue(doc.isCommitted(rev));
         }
         // check if document is still there
-        assertNotNull(mk.getNode("/", Revision.fromString(head)));
+        assertNotNull(ns.getNode("/", Revision.fromString(head)));
         mk.commit("/", "+\"baz\":{}", null, null);
-        mk.setAsyncDelay(0);
+        ns.setAsyncDelay(0);
         mk.backgroundWrite();
     }
 
     @Test
     public void splitDeleted() throws Exception {
         DocumentStore store = mk.getDocumentStore();
+        MongoNodeStore ns = mk.getNodeStore();
         Set<Revision> revisions = Sets.newHashSet();
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
@@ -83,7 +85,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             }
             create = !create;
         }
-        mk.runBackgroundOperations();
+        ns.runBackgroundOperations();
         String head = mk.getHeadRevision();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -94,7 +96,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             assertTrue(doc.containsRevision(rev));
             assertTrue(doc.isCommitted(rev));
         }
-        Node node = mk.getNode("/foo", Revision.fromString(head));
+        Node node = ns.getNode("/foo", Revision.fromString(head));
         // check status of node
         if (create) {
             assertNull(node);
@@ -106,6 +108,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     @Test
     public void splitCommitRoot() throws Exception {
         DocumentStore store = mk.getDocumentStore();
+        MongoNodeStore ns = mk.getNodeStore();
         mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -116,7 +119,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             commitRoots.add(Revision.fromString(mk.commit("/", "^\"foo/prop\":" +
                     commitRoots.size() + "^\"bar/prop\":" + commitRoots.size(), null, null)));
         }
-        mk.runBackgroundOperations();
+        ns.runBackgroundOperations();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         Map<Revision, String> commits = doc.getLocalCommitRoot();
@@ -130,6 +133,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     @Test
     public void splitPropertyRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
+        MongoNodeStore ns = mk.getNodeStore();
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -139,7 +143,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             revisions.add(Revision.fromString(mk.commit("/", "^\"foo/prop\":" +
                     revisions.size(), null, null)));
         }
-        mk.runBackgroundOperations();
+        ns.runBackgroundOperations();
         doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         Map<Revision, String> localRevs = doc.getLocalRevisions();
@@ -165,6 +169,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         builder = new MongoMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         MongoMK mk1 = builder.setClusterId(1).open();
+        MongoNodeStore ns1 = mk1.getNodeStore();
 
         mk1.commit("/", "+\"test\":{\"prop1\":0}", null, null);
         // make sure the new node is visible to other MongoMK instances
@@ -173,9 +178,11 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         builder = new MongoMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         MongoMK mk2 = builder.setClusterId(2).open();
+        MongoNodeStore ns2 = mk2.getNodeStore();
         builder = new MongoMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         MongoMK mk3 = builder.setClusterId(3).open();
+        MongoNodeStore ns3 = mk3.getNodeStore();
 
         for (int i = 0; i < NodeDocument.REVISIONS_SPLIT_OFF_SIZE; i++) {
             mk1.commit("/", "^\"test/prop1\":" + i, null, null);
@@ -183,9 +190,9 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             mk3.commit("/", "^\"test/prop3\":" + i, null, null);
         }
 
-        mk1.runBackgroundOperations();
-        mk2.runBackgroundOperations();
-        mk3.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+        ns3.runBackgroundOperations();
 
         NodeDocument doc = ds.find(Collection.NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
