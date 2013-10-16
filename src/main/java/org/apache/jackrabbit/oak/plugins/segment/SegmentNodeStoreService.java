@@ -24,6 +24,7 @@ import java.util.Dictionary;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Preconditions;
 import com.mongodb.Mongo;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -33,10 +34,11 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -44,7 +46,7 @@ import org.osgi.service.component.ComponentContext;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(NodeStore.class)
-public class SegmentNodeStoreService implements NodeStore {
+public class SegmentNodeStoreService implements NodeStore, Observable {
 
     @Property(description="The unique name of this instance")
     public static final String NAME = "name";
@@ -145,6 +147,15 @@ public class SegmentNodeStoreService implements NodeStore {
         }
     }
 
+    //------------------------------------------------------------< Observable >---
+
+    @Override
+    public Listener newListener() {
+        Preconditions.checkState(delegate instanceof Observable);
+        return ((Observable) getDelegate()).newListener();
+    }
+
+
     //---------------------------------------------------------< NodeStore >--
 
     @Override @Nonnull
@@ -154,9 +165,9 @@ public class SegmentNodeStoreService implements NodeStore {
 
     @Nonnull
     @Override
-    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            PostCommitHook committed) throws CommitFailedException {
-        return getDelegate().merge(builder, commitHook, committed);
+    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook)
+            throws CommitFailedException {
+        return getDelegate().merge(builder, commitHook);
     }
 
     @Override

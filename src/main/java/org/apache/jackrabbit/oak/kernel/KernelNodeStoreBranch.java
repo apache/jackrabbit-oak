@@ -30,7 +30,6 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -132,8 +131,8 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     @Nonnull
     @Override
-    public NodeState merge(@Nonnull CommitHook hook, PostCommitHook committed) throws CommitFailedException {
-        return branchState.merge(checkNotNull(hook), checkNotNull(committed));
+    public NodeState merge(@Nonnull CommitHook hook) throws CommitFailedException {
+        return branchState.merge(checkNotNull(hook));
     }
 
     @Override
@@ -181,7 +180,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         abstract void rebase();
 
         @Nonnull
-        abstract NodeState merge(@Nonnull CommitHook hook, PostCommitHook committed) throws CommitFailedException;
+        abstract NodeState merge(@Nonnull CommitHook hook) throws CommitFailedException;
     }
 
     /**
@@ -191,7 +190,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
      * <ul>
      *     <li>{@link InMemory} on {@link #setRoot(NodeState)} if the new root differs
      *         from the current base</li>.
-     *     <li>{@link Merged} on {@link #merge(CommitHook, PostCommitHook)}</li>
+     *     <li>{@link Merged} on {@link #merge(CommitHook)}</li>
      * </ul>
      */
     private class Unmodified extends BranchState {
@@ -222,7 +221,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
+        NodeState merge(CommitHook hook) throws CommitFailedException {
             branchState = new Merged(base);
             return base;
         }
@@ -237,7 +236,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
      *     <li>{@link Unmodified} on {@link #setRoot(NodeState)} if the new root is the same
      *         as the base of this branch or
      *     <li>{@link Persisted} otherwise.
-     *     <li>{@link Merged} on {@link #merge(CommitHook, PostCommitHook)}</li>
+     *     <li>{@link Merged} on {@link #merge(CommitHook)}</li>
      * </ul>
      */
     private class InMemory extends BranchState {
@@ -279,15 +278,16 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
+        NodeState merge(CommitHook hook) throws CommitFailedException {
             mergeLock.lock();
             try {
                 rebase();
+                store.beforeCommit(base);
                 NodeState toCommit = checkNotNull(hook).processCommit(base, head);
                 JsopDiff diff = new JsopDiff(store);
                 toCommit.compareAgainstBaseState(base, diff);
                 NodeState newHead = store.commit(diff.toString(), base);
-                committed.contentChanged(base, newHead);
+                store.localCommit(newHead);
                 branchState = new Merged(base);
                 return newHead;
             } catch (MicroKernelException e) {
@@ -295,6 +295,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                         "Kernel", 1,
                         "Failed to merge changes to the underlying MicroKernel", e);
             } finally {
+                store.afterCommit(store.getRoot());
                 mergeLock.unlock();
             }
         }
@@ -308,7 +309,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
      * <ul>
      *     <li>{@link Unmodified} on {@link #setRoot(NodeState)} if the new root is the same
      *         as the base of this branch.
-     *     <li>{@link Merged} on {@link #merge(CommitHook, PostCommitHook)}</li>
+     *     <li>{@link Merged} on {@link #merge(CommitHook)}</li>
      * </ul>
      */
     private class Persisted extends BranchState {
@@ -361,13 +362,13 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
+        NodeState merge(CommitHook hook) throws CommitFailedException {
             mergeLock.lock();
             try {
                 rebase();
+                store.beforeCommit(base);
                 NodeState toCommit = checkNotNull(hook).processCommit(base, head);
                 if (toCommit.equals(base)) {
-                    committed.contentChanged(base, base);
                     branchState = new Merged(base);
                     return base;
                 } else {
@@ -375,7 +376,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                     toCommit.compareAgainstBaseState(head, diff);
                     commit(diff.toString());
                     NodeState newRoot = store.merge(head);
-                    committed.contentChanged(base, newRoot);
+                    store.localCommit(newRoot);
                     branchState = new Merged(base);
                     return newRoot;
                 }
@@ -384,6 +385,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                         "Kernel", 1,
                         "Failed to merge changes to the underlying MicroKernel", e);
             } finally {
+                store.afterCommit(store.getRoot());
                 mergeLock.unlock();
             }
         }
@@ -429,7 +431,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        NodeState merge(CommitHook hook, PostCommitHook committed) throws CommitFailedException {
+        NodeState merge(CommitHook hook) throws CommitFailedException {
             throw new IllegalStateException("Branch has already been merged");
         }
     }

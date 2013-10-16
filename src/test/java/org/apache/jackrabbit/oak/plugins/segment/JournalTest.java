@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -47,7 +46,7 @@ public class JournalTest {
         builder.setProperty("foo", "bar");
         NodeState newState = builder.getNodeState();
 
-        root.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        root.merge(builder, EmptyHook.INSTANCE);
 
         assertEquals(newState, root.getRoot());
         assertEquals(oldState, left.getRoot());
@@ -74,7 +73,7 @@ public class JournalTest {
         builder.setProperty("foo", "bar");
         NodeState newState = builder.getNodeState();
 
-        left.merge(builder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        left.merge(builder, EmptyHook.INSTANCE);
 
         assertEquals(oldState, root.getRoot());
         assertEquals(newState, left.getRoot());
@@ -101,7 +100,7 @@ public class JournalTest {
         leftBuilder.setProperty("foo", "bar");
         NodeState leftState = leftBuilder.getNodeState();
 
-        left.merge(leftBuilder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        left.merge(leftBuilder, EmptyHook.INSTANCE);
 
         assertEquals(oldState, root.getRoot());
         assertEquals(leftState, left.getRoot());
@@ -115,7 +114,7 @@ public class JournalTest {
         NodeBuilder rightBuilder = oldState.builder();
         rightBuilder.setProperty("bar", "foo");
 
-        right.merge(rightBuilder, EmptyHook.INSTANCE, PostCommitHook.EMPTY);
+        right.merge(rightBuilder, EmptyHook.INSTANCE);
 
         store.getJournal("right").merge();
         NodeState newState = root.getRoot();

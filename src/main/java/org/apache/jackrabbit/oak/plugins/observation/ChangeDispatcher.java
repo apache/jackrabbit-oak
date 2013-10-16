@@ -20,18 +20,21 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.observation.ObservationConstants.OAK_UNKNOWN;
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -39,19 +42,27 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * A {@code ChangeDispatcher} instance records changes to a {@link NodeStore}
  * and dispatches them to interested parties.
  * <p>
- * The {@link #newHook(ContentSession)} method registers a hook for
- * reporting changes. Actual changes are reported by calling
- * {@link Hook#contentChanged(NodeState, NodeState)}. Such changes are considered
- * to have occurred on the local cluster node and are recorded as such. Changes
- * that occurred in-between calls to any hook registered with a change processor
- * are considered to have occurred on a different cluster node and are recorded as such.
+ * Actual changes are reported by calling {@link #beforeCommit(NodeState)},
+ * {@link #localCommit(NodeState)} and {@link #afterCommit(NodeState)} in that order:
+ * <pre>
+      NodeState root = store.getRoot();
+      branch.rebase();
+      changeDispatcher.beforeCommit(root);
+      try {
+          NodeState head = branch.getHead();
+          branch.merge();
+          changeDispatcher.localCommit(head);
+      } finally {
+          changeDispatcher.afterCommit(store.getRoot());
+      }
+ * </pre>
  * <p>
- * The {@link #newListener()} registers a listener for receiving changes reported
- * into a change dispatcher by any of its hooks.
+ * The {@link #newListener()} method registers a listener for receiving changes reported
+ * into a change dispatcher.
  */
 public class ChangeDispatcher {
-    private final NodeStore store;
     private final Set<Listener> listeners = Sets.newHashSet();
+    private final NodeStore store;
 
     private NodeState previousRoot;
 
@@ -62,20 +73,6 @@ public class ChangeDispatcher {
     public ChangeDispatcher(@Nonnull NodeStore store) {
         this.store = store;
         previousRoot = checkNotNull(store.getRoot());
-    }
-
-    /**
-     * Create a new {@link Hook} for reporting changes occurring in the
-     * passed {@code contentSession}. The content session is used to
-     * determine the user associated with the changes recorded through this
-     * hook and to determine the originating session of changes.
-     * @param contentSession  session which will be associated with any changes reported
-     *                        through this hook.
-     * @return a new {@code Hook} instance
-     */
-    @Nonnull
-    public Hook newHook(ContentSession contentSession) {
-        return new Hook(contentSession);
     }
 
     /**
@@ -91,21 +88,83 @@ public class ChangeDispatcher {
         return listener;
     }
 
-    private synchronized void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after,
-            ContentSession contentSession) {
-        externalChange(checkNotNull(before));
-        internalChange(checkNotNull(after), contentSession);
+    private final AtomicLong changeCount = new AtomicLong(0);
+
+    private boolean inLocalCommit() {
+        return changeCount.get() % 2 == 1;
+    }
+
+    /**
+     * Call with the latest persisted root node state right before persisting further changes.
+     * Calling this method marks this instance to be inside a local commit.
+     * <p>
+     * The differences from the root node state passed to the last call to
+     * {@link #afterCommit(NodeState)} to {@code root} are reported as cluster external
+     * changes to any listener.
+     *
+     * @param root  latest persisted root node state.
+     * @throws IllegalStateException  if inside a local commit
+     */
+    public synchronized void beforeCommit(@Nonnull NodeState root) {
+        checkState(!inLocalCommit());
+        changeCount.incrementAndGet();
+        externalChange(checkNotNull(root));
+    }
+
+    /**
+     * Call right after changes have been successfully persisted passing the new root
+     * node state resulting from the persist operation.
+     * <p>
+     * The differences from the root node state passed to the last call to
+     * {@link #beforeCommit(NodeState)} to {@code root} are reported as cluster local
+     * changes to any listener.
+
+     * @param root  root node state just persisted
+     * @throws IllegalStateException  if not inside a local commit
+     */
+    public synchronized void localCommit(@Nonnull NodeState root) {
+        checkState(inLocalCommit());
+        internalChange(checkNotNull(root));
+    }
+
+    /**
+     * Call to mark the end of a persist operation passing the latest persisted root node state.
+     * Calling this method marks this instance to not be inside a local commit.
+     * <p>
+     * The difference from the root node state passed to the las call to
+     * {@link #localCommit(NodeState)} to {@code root} are reported as cluster external
+     * changes to any listener.
+
+     * @param root  latest persisted root node state.
+     * @throws IllegalStateException  if not inside a local commit
+     */
+    public synchronized void afterCommit(@Nonnull NodeState root) {
+        checkState(inLocalCommit());
+        externalChange(checkNotNull(root));
+        changeCount.incrementAndGet();
+    }
+
+    private void externalChange() {
+        if (!inLocalCommit()) {
+            long c = changeCount.get();
+            NodeState root = store.getRoot();  // Need to get root outside sync. See OAK-959
+            synchronized (this) {
+                if (c == changeCount.get() && !inLocalCommit()) {
+                    externalChange(root);
+                }
+            }
+        }
     }
 
     private synchronized void externalChange(NodeState root) {
         if (!root.equals(previousRoot)) {
-            add(ChangeSet.external(previousRoot, root));
+            add(new ChangeSet(previousRoot, root, true));
             previousRoot = root;
         }
     }
 
-    private synchronized void internalChange(NodeState root, ContentSession contentSession) {
-        add(ChangeSet.local(previousRoot, root, contentSession));
+    private synchronized void internalChange(NodeState root) {
+        add(new ChangeSet(previousRoot, root, false));
         previousRoot = root;
     }
 
@@ -133,28 +192,6 @@ public class ChangeDispatcher {
         }
     }
 
-    //------------------------------------------------------------< Sink >---
-
-    /**
-     * Hook for reporting changes. Actual changes are reported by calling
-     * {@link Hook#contentChanged(NodeState, NodeState)}. Such changes are considered
-     * to have occurred on the local cluster node and are recorded as such. Changes
-     * that occurred in-between calls to any hook registered with a change processor
-     * are considered to have occurred on a different cluster node and are recorded as such.
-     */
-    public class Hook implements PostCommitHook {
-        private final ContentSession contentSession;
-
-        private Hook(ContentSession contentSession) {
-            this.contentSession = contentSession;
-        }
-
-        @Override
-        public void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after) {
-            ChangeDispatcher.this.contentChanged(before, after, contentSession);
-        }
-    }
-
     //------------------------------------------------------------< Listener >---
 
     /**
@@ -177,6 +214,10 @@ public class ChangeDispatcher {
          */
         @CheckForNull
         public ChangeSet getChanges() {
+            if (changeSets.isEmpty()) {
+                externalChange();
+            }
+
             return changeSets.isEmpty() ? null : changeSets.remove();
         }
 
@@ -193,55 +234,45 @@ public class ChangeDispatcher {
      * on the local cluster node, the user causing the changes and the date the changes
      * where persisted.
      */
-    public abstract static class ChangeSet {
+    public static class ChangeSet {
         private final NodeState before;
         private final NodeState after;
+        private final boolean isExternal;
 
-        static ChangeSet local(NodeState base, NodeState head, ContentSession contentSession) {
-            return new InternalChangeSet(base, head, contentSession, System.currentTimeMillis());
-        }
-
-        static ChangeSet external(NodeState base, NodeState head) {
-            return new ExternalChangeSet(base, head);
-        }
-
-        protected ChangeSet(NodeState before, NodeState after) {
+        ChangeSet(NodeState before, NodeState after, boolean isExternal) {
             this.before = before;
             this.after = after;
+            this.isExternal = isExternal;
         }
 
-        /**
-         * Determine whether these changes originate from the local cluster node
-         * or an external cluster node.
-         * @return  {@code true} iff the changes originate from a remote cluster node.
-         */
-        public abstract boolean isExternal();
+        public boolean isExternal() {
+            return isExternal;
+        }
 
-        /**
-         * Determine whether these changes where caused by the passed content
-         * session.
-         * @param contentSession  content session to test for
-         * @return  {@code true} iff these changes where cause by the passed content session.
-         *          Always {@code false} if {@link #isExternal()} is {@code true}.
-         */
-        public abstract boolean isLocal(ContentSession contentSession);
+        public boolean isLocal(String sessionId) {
+            return Objects.equal(getSessionId(), sessionId);
+        }
 
-        /**
-         * Determine the user associated with these changes.
-         * @return  user id or {@link ObservationConstants#OAK_UNKNOWN} if {@link #isExternal()} is {@code true}.
-         */
-        public abstract String getUserId();
+        @CheckForNull
+        public String getSessionId() {
+            return getStringOrNull(getCommitInfo(after), CommitInfoEditorProvider.SESSION_ID);
+        }
 
-        /**
-         * Determine the date when these changes where persisted.
-         * @return  date or {@code 0} if {@link #isExternal()} is {@code true}.
-         */
-        public abstract long getDate();
+        @CheckForNull
+        public String getUserId() {
+            return getStringOrNull(getCommitInfo(after), CommitInfoEditorProvider.USER_ID);
+        }
+
+        public long getDate() {
+            PropertyState property = getCommitInfo(after).getProperty(CommitInfoEditorProvider.TIME_STAMP);
+            return property == null ? 0 : property.getValue(LONG);
+        }
 
         /**
          * State before the change
          * @return  before state
          */
+        @Nonnull
         public NodeState getBeforeState() {
             return before;
         }
@@ -250,6 +281,7 @@ public class ChangeDispatcher {
          * State after the change
          * @return  after state
          */
+        @Nonnull
         public NodeState getAfterState() {
             return after;
         }
@@ -259,8 +291,10 @@ public class ChangeDispatcher {
             return toStringHelper(this)
                 .add("base", before)
                 .add("head", after)
-                .add("userId", getUserId())
-                .add("date", getDate())
+                .add(CommitInfoEditorProvider.USER_ID, getUserId())
+                .add(CommitInfoEditorProvider.TIME_STAMP, getDate())
+                .add(CommitInfoEditorProvider.SESSION_ID, getSessionId())
+                .add("external", isExternal)
                 .toString();
         }
 
@@ -274,7 +308,8 @@ public class ChangeDispatcher {
             }
 
             ChangeSet that = (ChangeSet) other;
-            return before.equals(that.before) && after.equals(that.after);
+            return before.equals(that.before) && after.equals(that.after) &&
+                    isExternal == that.isExternal;
         }
 
         @Override
@@ -282,73 +317,13 @@ public class ChangeDispatcher {
             return 31 * before.hashCode() + after.hashCode();
         }
 
-        private static class InternalChangeSet extends ChangeSet {
-            private final ContentSession contentSession;
-            private final String userId;
-            private final long date;
-
-            InternalChangeSet(NodeState base, NodeState head, ContentSession contentSession, long date) {
-                super(base, head);
-                this.contentSession = contentSession;
-                this.userId = contentSession.getAuthInfo().getUserID();
-                this.date = date;
-            }
-
-            @Override
-            public boolean isExternal() {
-                return false;
-            }
-
-            @Override
-            public boolean isLocal(ContentSession contentSession) {
-                return this.contentSession == contentSession;
-            }
-
-            @Override
-            public String getUserId() {
-                return userId;
-            }
-
-            @Override
-            public long getDate() {
-                return date;
-            }
-
-            @Override
-            public boolean equals(Object other) {
-                if (!super.equals(other)) {
-                    return false;
-                }
-
-                InternalChangeSet that = (InternalChangeSet) other;
-                return date == that.date && contentSession == that.contentSession;
-            }
+        private static String getStringOrNull(NodeState commitInfo, String name) {
+            PropertyState property = commitInfo.getProperty(name);
+            return property == null ? null : property.getValue(STRING);
         }
 
-        private static class ExternalChangeSet extends ChangeSet {
-            ExternalChangeSet(NodeState base, NodeState head) {
-                super(base, head);
-            }
-
-            @Override
-            public boolean isExternal() {
-                return true;
-            }
-
-            @Override
-            public boolean isLocal(ContentSession contentSession) {
-                return false;
-            }
-
-            @Override
-            public String getUserId() {
-                return OAK_UNKNOWN;
-            }
-
-            @Override
-            public long getDate() {
-                return 0;
-            }
+        private static NodeState getCommitInfo(NodeState after) {
+            return after.getChildNode(CommitInfoEditorProvider.COMMIT_INFO);
         }
 
     }

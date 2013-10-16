@@ -47,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -69,8 +68,6 @@ public abstract class AbstractRoot implements Root {
     private final NodeStore store;
 
     private final CommitHook hook;
-
-    private final PostCommitHook postHook;
 
     private final String workspaceName;
 
@@ -129,14 +126,12 @@ public abstract class AbstractRoot implements Root {
      */
     protected AbstractRoot(NodeStore store,
             CommitHook hook,
-            PostCommitHook postHook,
             String workspaceName,
             Subject subject,
             SecurityProvider securityProvider,
             QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
         this.hook = checkNotNull(hook);
-        this.postHook = postHook;
         this.workspaceName = checkNotNull(workspaceName);
         this.subject = checkNotNull(subject);
         this.securityProvider = checkNotNull(securityProvider);
@@ -245,7 +240,7 @@ public abstract class AbstractRoot implements Root {
     @Override
     public void commit(final CommitHook... hooks) throws CommitFailedException {
         checkLive();
-        base = store.merge(builder, getCommitHook(hooks), postHook);
+        base = store.merge(builder, getCommitHook(hooks));
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {

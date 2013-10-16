@@ -19,18 +19,6 @@
 
 package org.apache.jackrabbit.oak.core;
 
-import java.util.Iterator;
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
@@ -40,6 +28,20 @@ import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
+
+import java.util.Iterator;
+
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.observation.CommitInfoEditorProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * {@code AbstractTree} provides default implementations for most
@@ -55,7 +57,9 @@ public abstract class AbstractTree implements Tree {
     public static final String OAK_CHILD_ORDER = ":childOrder";
 
     // TODO: make this configurable
-    private static final String[] INTERNAL_NODE_NAMES = {IndexConstants.INDEX_CONTENT_NODE_NAME, MicroKernel.CONFLICT_NAME};
+    private static final String[] INTERNAL_NODE_NAMES = {
+            IndexConstants.INDEX_CONTENT_NODE_NAME,
+            MicroKernel.CONFLICT_NAME, CommitInfoEditorProvider.COMMIT_INFO};
 
     /**
      * Name of this tree

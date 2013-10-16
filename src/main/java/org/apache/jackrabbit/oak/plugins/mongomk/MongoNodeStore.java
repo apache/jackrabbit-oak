@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -37,6 +40,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Function;
+import com.google.common.cache.Cache;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -46,20 +53,11 @@ import org.apache.jackrabbit.oak.plugins.mongomk.util.LoggingDocumentStoreWrappe
 import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Function;
-import com.google.common.cache.Cache;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Implementation of a NodeStore on MongoDB.
@@ -664,8 +662,7 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
     @Nonnull
     @Override
     public NodeState merge(@Nonnull NodeBuilder builder,
-                           @Nonnull CommitHook commitHook,
-                           PostCommitHook committed)
+                           @Nonnull CommitHook commitHook)
             throws CommitFailedException {
         // TODO: implement
         return null;

@@ -29,16 +29,18 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-public class SegmentNodeStore implements NodeStore {
+public class SegmentNodeStore implements NodeStore, Observable {
 
     static final String ROOT = "root";
 
@@ -47,6 +49,8 @@ public class SegmentNodeStore implements NodeStore {
     private final Journal journal;
 
     private final Observer observer;
+
+    private final ChangeDispatcher changeDispatcher;
 
     private SegmentNodeState head;
 
@@ -58,6 +62,7 @@ public class SegmentNodeStore implements NodeStore {
         this.observer = EmptyObserver.INSTANCE;
         this.head = new SegmentNodeState(
                 store.getWriter().getDummySegment(), this.journal.getHead());
+        this.changeDispatcher = new ChangeDispatcher(this);
     }
 
     public SegmentNodeStore(SegmentStore store) {
@@ -78,7 +83,22 @@ public class SegmentNodeStore implements NodeStore {
     }
 
     boolean setHead(SegmentNodeState base, SegmentNodeState head) {
-        return journal.setHead(base.getRecordId(), head.getRecordId());
+        changeDispatcher.beforeCommit(base.getChildNode(ROOT));
+        try {
+            if (journal.setHead(base.getRecordId(), head.getRecordId())) {
+                changeDispatcher.localCommit(head.getChildNode(ROOT));
+                return true;
+            } else {
+                return false;
+            }
+        } finally {
+            changeDispatcher.afterCommit(getRoot());
+        }
+    }
+
+    @Override
+    public Listener newListener() {
+        return changeDispatcher.newListener();
     }
 
     @Override @Nonnull
@@ -89,7 +109,7 @@ public class SegmentNodeStore implements NodeStore {
     @Override
     public synchronized NodeState merge(
             @Nonnull NodeBuilder builder,
-            @Nonnull CommitHook commitHook, PostCommitHook committed)
+            @Nonnull CommitHook commitHook)
             throws CommitFailedException {
         checkArgument(builder instanceof SegmentNodeBuilder);
         checkNotNull(commitHook);
@@ -98,7 +118,7 @@ public class SegmentNodeStore implements NodeStore {
         SegmentNodeStoreBranch branch = new SegmentNodeStoreBranch(
                 this, store.getWriter(), head, maximumBackoff);
         branch.setRoot(builder.getNodeState());
-        NodeState merged = branch.merge(commitHook, committed);
+        NodeState merged = branch.merge(commitHook);
         ((SegmentNodeBuilder) builder).reset(merged);
         return merged;
     }
@@ -147,5 +167,4 @@ public class SegmentNodeStore implements NodeStore {
                 new SegmentNodeState(store.getWriter().getDummySegment(), id);
         return root.getChildNode(ROOT);
     }
-
 }

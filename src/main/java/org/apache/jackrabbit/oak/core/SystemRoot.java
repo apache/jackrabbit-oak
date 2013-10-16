@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.PostCommitHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -41,8 +40,7 @@ public class SystemRoot extends AbstractRoot {
     public SystemRoot(final NodeStore store, final CommitHook hook, final String workspaceName,
             final SecurityProvider securityProvider, final QueryIndexProvider indexProvider) {
 
-        super(store, hook, PostCommitHook.EMPTY, workspaceName,
-                SystemSubject.INSTANCE, securityProvider, indexProvider);
+        super(store, hook, workspaceName, SystemSubject.INSTANCE, securityProvider, indexProvider);
 
         contentSession = new ContentSession() {
             private final AuthInfoImpl authInfo = new AuthInfoImpl(

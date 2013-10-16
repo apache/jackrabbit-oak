@@ -26,7 +26,6 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -47,7 +46,6 @@ public class ContentRepositoryImpl implements ContentRepository {
     private final String defaultWorkspaceName;
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
-    private final ChangeDispatcher changeDispatcher;
 
     /**
      * Creates an content repository instance based on the given, already
@@ -69,7 +67,6 @@ public class ContentRepositoryImpl implements ContentRepository {
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
         this.securityProvider = checkNotNull(securityProvider);
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
-        this.changeDispatcher = new ChangeDispatcher(nodeStore);
     }
 
     @Nonnull
@@ -89,8 +86,8 @@ public class ContentRepositoryImpl implements ContentRepository {
         LoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
-        return new ContentSessionImpl(loginContext, securityProvider, workspaceName,
-                nodeStore, commitHook, changeDispatcher, indexProvider);
+        return new ContentSessionImpl(loginContext, securityProvider, workspaceName, nodeStore,
+                commitHook, indexProvider);
     }
 
     public NodeStore getNodeStore() {

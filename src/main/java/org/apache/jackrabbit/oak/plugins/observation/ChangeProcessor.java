@@ -18,10 +18,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterators.emptyIterator;
+import static com.google.common.collect.Iterators.singletonIterator;
+import static com.google.common.collect.Iterators.transform;
+import static javax.jcr.observation.Event.NODE_ADDED;
+import static javax.jcr.observation.Event.NODE_REMOVED;
+import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+
 import javax.annotation.Nonnull;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
@@ -49,17 +61,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterators.emptyIterator;
-import static com.google.common.collect.Iterators.singletonIterator;
-import static com.google.common.collect.Iterators.transform;
-import static javax.jcr.observation.Event.NODE_ADDED;
-import static javax.jcr.observation.Event.NODE_REMOVED;
-import static javax.jcr.observation.Event.PROPERTY_ADDED;
-import static javax.jcr.observation.Event.PROPERTY_REMOVED;
-import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
 /**
  * A {@code ChangeProcessor} generates observation {@link javax.jcr.observation.Event}s
@@ -189,7 +190,9 @@ public class ChangeProcessor implements Runnable {
             ChangeSet changes = changeListener.getChanges();
             while (!stopping && changes != null) {
                 EventFilter filter = filterRef.get();
-                if (!(filter.excludeLocal() && changes.isLocal(contentSession))) {
+                // FIXME don't rely on toString for session id
+                // FIXME make cluster node id part of session id
+                if (!(filter.excludeLocal() && changes.isLocal(contentSession.toString()))) {
                     String path = namePathMapper.getOakPath(filter.getPath());
                     ImmutableTree beforeTree = getTree(changes.getBeforeState(), path);
                     ImmutableTree afterTree = getTree(changes.getAfterState(), path);
