@@ -25,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -64,10 +65,11 @@ class UserImpl extends AuthorizableImpl implements User {
     public Principal getPrincipal() throws RepositoryException {
         Tree userTree = getTree();
         String principalName = getPrincipalName();
+        NamePathMapper npMapper = getUserManager().getNamePathMapper();
         if (isAdmin()) {
-            return new AdminPrincipalImpl(principalName, userTree, getUserManager().getNamePathMapper());
+            return new AdminPrincipalImpl(principalName, userTree, npMapper);
         } else {
-            return new TreeBasedPrincipal(principalName, userTree, getUserManager().getNamePathMapper());
+            return new TreeBasedPrincipal(principalName, userTree, npMapper);
         }
     }
 

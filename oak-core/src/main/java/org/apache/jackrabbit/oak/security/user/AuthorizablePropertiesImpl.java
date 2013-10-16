@@ -54,25 +54,26 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     private static final Logger log = LoggerFactory.getLogger(AuthorizablePropertiesImpl.class);
 
     private final AuthorizableImpl authorizable;
+    private final NamePathMapper namePathMapper;
 
-    AuthorizablePropertiesImpl(AuthorizableImpl authorizable) {
+    AuthorizablePropertiesImpl(AuthorizableImpl authorizable, NamePathMapper namePathMapper) {
         this.authorizable = authorizable;
+        this.namePathMapper = namePathMapper;
     }
 
     //---------------------------------------------< AuthorizableProperties >---
     @Override
     public Iterator<String> getNames(String relPath) throws RepositoryException {
-        checkRelativePath(relPath);
-
+        String oakPath = getOakPath(relPath);
         Tree tree = getTree();
-        TreeLocation location = getLocation(tree, relPath);
+        TreeLocation location = getLocation(tree, oakPath);
         Tree parent = location.getTree();
         if (parent != null && Text.isDescendantOrEqual(tree.getPath(), parent.getPath())) {
             List<String> l = new ArrayList<String>();
             for (PropertyState property : parent.getProperties()) {
                 String propName = property.getName();
                 if (isAuthorizableProperty(tree, location.getChild(propName), false)) {
-                    l.add(propName);
+                    l.add(namePathMapper.getJcrName(propName));
                 }
             }
             return l.iterator();
@@ -86,9 +87,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      */
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
-        checkRelativePath(relPath);
-
-        return isAuthorizableProperty(getTree(), getLocation(getTree(), relPath), true);
+        String oakPath = getOakPath(relPath);
+        return isAuthorizableProperty(getTree(), getLocation(getTree(), oakPath), true);
     }
 
     /**
@@ -96,18 +96,16 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      */
     @Override
     public Value[] getProperty(String relPath) throws RepositoryException {
-        checkRelativePath(relPath);
-
+        String oakPath = getOakPath(relPath);
         Tree tree = getTree();
         Value[] values = null;
-        PropertyState property = getAuthorizableProperty(tree, getLocation(tree, relPath), true);
+        PropertyState property = getAuthorizableProperty(tree, getLocation(tree, oakPath), true);
         if (property != null) {
-            NamePathMapper npMapper = authorizable.getUserManager().getNamePathMapper();
             if (property.isArray()) {
-                List<Value> vs = ValueFactoryImpl.createValues(property, npMapper);
+                List<Value> vs = ValueFactoryImpl.createValues(property, namePathMapper);
                 values = vs.toArray(new Value[vs.size()]);
             } else {
-                values = new Value[]{ValueFactoryImpl.createValue(property, npMapper)};
+                values = new Value[]{ValueFactoryImpl.createValue(property, namePathMapper)};
             }
         }
         return values;
@@ -121,13 +119,11 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         if (value == null) {
             removeProperty(relPath);
         } else {
-            checkRelativePath(relPath);
+            String oakPath = getOakPath(relPath);
+            String name = Text.getName(oakPath);
+            PropertyState propertyState = PropertyStates.createProperty(name, value);
 
-            String name = Text.getName(relPath);
-            PropertyState propertyState =
-                    PropertyStates.createProperty(name, value);
-
-            String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
+            String intermediate = (oakPath.equals(name)) ? null : Text.getRelativeParent(oakPath, 1);
             Tree parent = getOrCreateTargetTree(intermediate);
             checkProtectedProperty(parent, propertyState);
 
@@ -143,13 +139,12 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         if (values == null) {
             removeProperty(relPath);
         } else {
-            checkRelativePath(relPath);
-
-            String name = Text.getName(relPath);
+            String oakPath = getOakPath(relPath);
+            String name = Text.getName(oakPath);
             PropertyState propertyState =
                     PropertyStates.createProperty(name, Arrays.asList(values));
 
-            String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
+            String intermediate = (oakPath.equals(name)) ? null : Text.getRelativeParent(oakPath, 1);
             Tree parent = getOrCreateTargetTree(intermediate);
             checkProtectedProperty(parent, propertyState);
 
@@ -162,10 +157,9 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      */
     @Override
     public boolean removeProperty(String relPath) throws RepositoryException {
-        checkRelativePath(relPath);
-
+        String oakPath = getOakPath(relPath);
         Tree node = getTree();
-        TreeLocation propertyLocation = getLocation(node, relPath);
+        TreeLocation propertyLocation = getLocation(node, oakPath);
         if (propertyLocation.getProperty() != null) {
             if (isAuthorizableProperty(node, propertyLocation, true)) {
                 return propertyLocation.remove();
@@ -304,9 +298,14 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         return loc;
     }
 
-    private static void checkRelativePath(String relativePath) throws RepositoryException {
-        if (relativePath == null || relativePath.isEmpty() || relativePath.charAt(0) == '/') {
-            throw new RepositoryException("Relative path expected. Found " + relativePath);
+    private String getOakPath(String relPath) throws RepositoryException {
+        if (relPath == null || relPath.isEmpty() || relPath.charAt(0) == '/') {
+            throw new RepositoryException("Relative path expected. Found " + relPath);
         }
+        String oakPath = namePathMapper.getOakPathKeepIndex(relPath);
+        if (oakPath == null) {
+            throw new RepositoryException("Failed to resolve relative path: " + relPath);
+        }
+        return oakPath;
     }
 }
