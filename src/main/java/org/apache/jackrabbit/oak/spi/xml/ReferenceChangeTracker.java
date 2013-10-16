@@ -40,7 +40,7 @@ public class ReferenceChangeTracker {
     /**
      * list of processed reference properties that might need correcting
      */
-    private final ArrayList<Object> references = new ArrayList<Object>();
+    private final List<Object> references = new ArrayList<Object>();
 
     /**
      * Returns the new node id to which {@code oldUUID} has been mapped
