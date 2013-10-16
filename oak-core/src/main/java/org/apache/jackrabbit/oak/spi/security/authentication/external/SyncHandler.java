@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -25,8 +27,9 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
  */
 public interface SyncHandler {
 
-    boolean initialize(UserManager userManager, Root root, SyncMode mode,
-                       ConfigurationParameters options) throws SyncException;
+    boolean initialize(@Nonnull UserManager userManager, @Nonnull Root root,
+                       @Nonnull SyncMode mode,
+                       @Nonnull ConfigurationParameters options) throws SyncException;
 
-    boolean sync(ExternalUser externalUser) throws SyncException;
+    boolean sync(@Nonnull ExternalUser externalUser) throws SyncException;
 }
