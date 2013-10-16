@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.NavigableMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -34,7 +36,7 @@ class Branch {
     /**
      * The commits to the branch
      */
-    private final TreeMap<Revision, BranchCommit> commits;
+    private final ConcurrentSkipListMap<Revision, BranchCommit> commits;
 
     /**
      * The initial base revision of this branch.
@@ -53,7 +55,7 @@ class Branch {
            @Nonnull Revision base) {
         checkArgument(!checkNotNull(base).isBranch(), "base is not a trunk revision: %s", base);
         this.base = base;
-        this.commits = new TreeMap<Revision, BranchCommit>(commits.comparator());
+        this.commits = new ConcurrentSkipListMap<Revision, BranchCommit>(commits.comparator());
         for (Revision r : commits) {
             this.commits.put(r.asBranchRevision(), new BranchCommit(base));
         }
@@ -76,7 +78,7 @@ class Branch {
      *                                  this branch.
      */
     @Nonnull
-    synchronized Revision getBase(@Nonnull Revision r) {
+    Revision getBase(@Nonnull Revision r) {
         BranchCommit c = commits.get(checkNotNull(r).asBranchRevision());
         if (c == null) {
             throw new IllegalArgumentException(
@@ -93,7 +95,7 @@ class Branch {
      * @throws IllegalArgumentException if head is a trunk revision or base is a
      *                                  branch revision.
      */
-    synchronized void rebase(@Nonnull Revision head, @Nonnull Revision base) {
+    void rebase(@Nonnull Revision head, @Nonnull Revision base) {
         checkArgument(checkNotNull(head).isBranch(), "Not a branch revision: %s", head);
         checkArgument(!checkNotNull(base).isBranch(), "Not a trunk revision: %s", base);
         Revision last = commits.lastKey();
@@ -107,7 +109,7 @@ class Branch {
      * @param r the revision of the branch commit to add.
      * @throws IllegalArgumentException if r is not a branch revision.
      */
-    synchronized void addCommit(@Nonnull Revision r) {
+    void addCommit(@Nonnull Revision r) {
         checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(r, last) > 0);
@@ -117,17 +119,15 @@ class Branch {
     /**
      * @return the commits to this branch.
      */
-    synchronized SortedSet<Revision> getCommits() {
-        SortedSet<Revision> revisions = new TreeSet<Revision>(commits.comparator());
-        revisions.addAll(commits.keySet());
-        return revisions;
+    SortedSet<Revision> getCommits() {
+        return commits.keySet();
     }
 
     /**
      * @return <code>true</code> if this branch contains any commits;
      *         <code>false</code> otherwise.
      */
-    synchronized boolean hasCommits() {
+    boolean hasCommits() {
         return !commits.isEmpty();
     }
 
@@ -138,7 +138,7 @@ class Branch {
      * @return <code>true</code> if this branch contains a commit with the given
      *         revision; <code>false</code> otherwise.
      */
-    synchronized boolean containsCommit(@Nonnull Revision r) {
+    boolean containsCommit(@Nonnull Revision r) {
         return commits.containsKey(checkNotNull(r).asBranchRevision());
     }
 
@@ -149,7 +149,7 @@ class Branch {
      * @param r the revision of the commit to remove.
      * @throws IllegalArgumentException if r is not a branch revision.
      */
-    public synchronized void removeCommit(@Nonnull Revision r) {
+    public void removeCommit(@Nonnull Revision r) {
         checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
         commits.remove(r);
     }
@@ -163,7 +163,7 @@ class Branch {
      *                                  is no commit with the given revision.
      */
     @Nonnull
-    public synchronized UnsavedModifications getModifications(@Nonnull Revision r) {
+    public UnsavedModifications getModifications(@Nonnull Revision r) {
         checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
         BranchCommit c = commits.get(r);
         if (c == null) {
@@ -180,7 +180,7 @@ class Branch {
      * @param trunk the unsaved trunk modifications.
      * @param mergeCommit the revision of the merge commit.
      */
-    public synchronized void applyTo(@Nonnull UnsavedModifications trunk,
+    public void applyTo(@Nonnull UnsavedModifications trunk,
                                      @Nonnull Revision mergeCommit) {
         checkNotNull(trunk);
         for (BranchCommit c : commits.values()) {
@@ -198,7 +198,7 @@ class Branch {
      *         there is none in this branch.
      */
     @CheckForNull
-    public synchronized Revision getUnsavedLastRevision(String path,
+    public Revision getUnsavedLastRevision(String path,
                                                         Revision readRevision) {
         readRevision = readRevision.asBranchRevision();
         for (Revision r : commits.descendingKeySet()) {
