@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.transform;
-import static java.util.Collections.emptyList;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -35,6 +30,11 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
+import static java.util.Collections.emptyList;
 
 /**
  * SecureNodeState...
@@ -195,7 +195,7 @@ class SecureNodeState extends AbstractNodeState {
     /**
      * Predicate for testing whether the node state in a child node entry is iterable.
      */
-    private class IterableNodePredicate implements Predicate<ChildNodeEntry> {
+    private static class IterableNodePredicate implements Predicate<ChildNodeEntry> {
         @Override
         public boolean apply(@Nonnull ChildNodeEntry input) {
             return input.getNodeState().exists();
