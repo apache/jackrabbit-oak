@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 /**
  * Abstract base class for individual performance benchmarks.
  */
-abstract class AbstractTest extends Benchmark {
+abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
 
     /**
      * A random string to guarantee concurrently running tests don't overwrite
@@ -69,6 +69,13 @@ abstract class AbstractTest extends Benchmark {
 
     private int concurrency;
 
+    private PrintStream out;
+
+    @Override
+    public void setPrintStream(PrintStream out) {
+        this.out = out;
+    }
+
     protected static int getScale(int def) {
         int scale = Integer.getInteger("scale", 0);
         if (scale == 0) {
@@ -100,7 +107,7 @@ abstract class AbstractTest extends Benchmark {
     }
 
     @Override
-    public void run(Iterable<RepositoryFixture> fixtures, PrintStream out) {
+    public void run(Iterable<RepositoryFixture> fixtures) {
         System.out.format(
                 "# %-26.26s       C     min     10%%     50%%     90%%     max       N%n",
                 toString());

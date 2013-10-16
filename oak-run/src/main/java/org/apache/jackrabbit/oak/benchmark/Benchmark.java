@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import java.io.PrintStream;
-
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 public abstract class Benchmark {
@@ -28,7 +26,7 @@ public abstract class Benchmark {
      *
      * @param fixtures repository fixtures
      */
-    public abstract void run(Iterable<RepositoryFixture> fixtures, PrintStream out);
+    public abstract void run(Iterable<RepositoryFixture> fixtures);
 
     public String toString() {
         String name = getClass().getName();

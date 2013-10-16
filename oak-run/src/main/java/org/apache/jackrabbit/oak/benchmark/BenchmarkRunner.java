@@ -171,7 +171,10 @@ public class BenchmarkRunner {
                 out = new PrintStream(FileUtils.openOutputStream(csvFile.value(options), true));
             }
             for (Benchmark benchmark : benchmarks) {
-                benchmark.run(fixtures, out);
+                if (benchmark instanceof CSVResultGenerator) {
+                    ((CSVResultGenerator) benchmark).setPrintStream(out);
+                }
+                benchmark.run(fixtures);
             }
             if (out != null) {
                 out.close();
