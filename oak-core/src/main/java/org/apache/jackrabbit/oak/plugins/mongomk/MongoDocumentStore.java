@@ -477,8 +477,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             try {
-
-                WriteResult writeResult = dbCollection.updateMulti(query.get(), update);
+                WriteResult writeResult = dbCollection.update(query.get(), update, false, true, WriteConcern.SAFE);
                 if (writeResult.getError() != null) {
                     throw new MicroKernelException("Update failed: " + writeResult.getError());
                 }
