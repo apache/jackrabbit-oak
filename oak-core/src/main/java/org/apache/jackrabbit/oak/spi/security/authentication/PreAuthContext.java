@@ -18,19 +18,11 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import javax.security.auth.Subject;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * LoginContext for pre-authenticated subjects that don't require further
  * validation nor additional login/logout steps.
  */
 public final class PreAuthContext implements LoginContext {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(PreAuthContext.class);
 
     private final Subject subject;
 
