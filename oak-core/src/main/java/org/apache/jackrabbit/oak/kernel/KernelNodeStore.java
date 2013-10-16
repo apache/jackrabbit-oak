@@ -16,15 +16,11 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -48,6 +44,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
@@ -129,11 +128,6 @@ public class KernelNodeStore implements NodeStore, Observable {
 
     public KernelNodeStore(MicroKernel kernel) {
         this(kernel, DEFAULT_CACHE_SIZE);
-    }
-
-    @Nonnull
-    public Observer getObserver() {
-        return observer;
     }
 
     public void setObserver(@Nonnull Observer observer) {
