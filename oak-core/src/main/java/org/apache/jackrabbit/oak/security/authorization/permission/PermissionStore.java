@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
  */
 class PermissionStore implements PermissionConstants {
 
-    private static final long MAX_SIZE = 250;
+    private static final long MAX_SIZE = 250; // TODO define size or make configurable
 
     private final Map<String, Tree> principalTrees;
     private final RestrictionProvider restrictionProvider;
