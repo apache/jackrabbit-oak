@@ -20,7 +20,7 @@ RUNTIME=20
 BENCH=ConcurrentReadAccessControlledTreeTest
 FIXS="Oak-Tar" # Jackrabbit"
 THREADS="1 2 4 8 10 12 14 16 18 20"
-
+PROFILE=false
 
 LOG="bench_$(date +'%Y%m%d_%H%M%S').csv"
 echo "Benchmarks: $BENCH" > $LOG
@@ -28,6 +28,7 @@ echo "Fixtures: $FIXS" >> $LOG
 echo "Users: $USERS" >> $LOG
 echo "Runtime: $RUNTIME" >> $LOG
 echo "Concurrency: $THREADS" >> $LOG
+echo "Profiling: $PROFILE" >> $LOG
 echo "--------------------------------------" >> $LOG
 for user in $USERS
     do
@@ -36,7 +37,7 @@ for user in $USERS
     for i in $THREADS
         do
         rm -rf target/Jackrabbit-* target/Oak-Tar-*
-        cmd="java -Xmx2048m -Druntime=$RUNTIME -jar target/oak-run-*-SNAPSHOT.jar benchmark --csvFile $LOG --bgReaders $i --runAsAdmin $user --report false $BENCH $FIXS"
+        cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -jar target/oak-run-*-SNAPSHOT.jar benchmark --csvFile $LOG --bgReaders $i --runAsAdmin $user --report false $BENCH $FIXS"
         echo $cmd
         $cmd 
     done
