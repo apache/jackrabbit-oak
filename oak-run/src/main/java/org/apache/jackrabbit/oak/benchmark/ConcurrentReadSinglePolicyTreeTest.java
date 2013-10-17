@@ -39,15 +39,16 @@ public class ConcurrentReadSinglePolicyTreeTest extends ConcurrentReadDeepTreeTe
 
     @Override
     protected void visitingNode(Node node, int i) throws RepositoryException {
+        super.visitingNode(node, i);
         String path = node.getPath();
         AccessControlManager acMgr = node.getSession().getAccessControlManager();
-        if ("/".equals(path)) {
+        if (testRoot.getPath().equals(path)) {
             JackrabbitAccessControlList policy = AccessControlUtils.getAccessControlList(acMgr, path);
             if (policy != null) {
                 policy.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ), true);
             }
             acMgr.setPolicy(path, policy);
-        } else {
+        } else if (!path.contains("rep:policy")) {
             for (AccessControlPolicy policy : acMgr.getPolicies(path)) {
                 if (policy instanceof JackrabbitAccessControlList) {
                     acMgr.removePolicy(path, policy);
@@ -55,6 +56,5 @@ public class ConcurrentReadSinglePolicyTreeTest extends ConcurrentReadDeepTreeTe
             }
         }
         node.getSession().save();
-        super.visitingNode(node, i);
     }
 }
