@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -60,7 +61,7 @@ public class KernelNodeStoreCacheTest {
         b.child("c");
         b.child("d");
         b.child("e");
-        store.merge(builder, EmptyHook.INSTANCE);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     /**
@@ -137,7 +138,7 @@ public class KernelNodeStoreCacheTest {
     private void modifyContent() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a").setProperty("foo", "bar");
-        store.merge(builder, EmptyHook.INSTANCE);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private void readTree(NodeState root) {
