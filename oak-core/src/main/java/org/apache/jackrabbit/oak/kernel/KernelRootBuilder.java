@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -131,9 +132,9 @@ class KernelRootBuilder extends MemoryNodeBuilder implements FastCopyMove {
     /**
      * Merge all changes tracked in this builder into the underlying store.
      */
-    NodeState merge(CommitHook hook) throws CommitFailedException {
+    NodeState merge(CommitHook hook, CommitInfo info) throws CommitFailedException {
         purge();
-        branch.merge(hook);
+        branch.merge(hook, info);
         return reset();
     }
 

@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.api.Type.LONG;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.Queue;
 import java.util.Set;
@@ -34,7 +32,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Objects;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -43,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * and dispatches them to interested parties.
  * <p>
  * Actual changes are reported by calling {@link #beforeCommit(NodeState)},
- * {@link #localCommit(NodeState)} and {@link #afterCommit(NodeState)} in that order:
+ * {@link #localCommit(NodeState, CommitInfo)} and {@link #afterCommit(NodeState)} in that order:
  * <pre>
       NodeState root = store.getRoot();
       branch.rebase();
@@ -122,9 +120,9 @@ public class ChangeDispatcher {
      * @param root  root node state just persisted
      * @throws IllegalStateException  if not inside a local commit
      */
-    public synchronized void localCommit(@Nonnull NodeState root) {
+    public synchronized void localCommit(@Nonnull NodeState root, @Nonnull CommitInfo info) {
         checkState(inLocalCommit());
-        internalChange(checkNotNull(root));
+        internalChange(checkNotNull(root), checkNotNull(info));
     }
 
     /**
@@ -132,7 +130,7 @@ public class ChangeDispatcher {
      * Calling this method marks this instance to not be inside a local commit.
      * <p>
      * The difference from the root node state passed to the las call to
-     * {@link #localCommit(NodeState)} to {@code root} are reported as cluster external
+     * {@link #localCommit(NodeState, CommitInfo)} to {@code root} are reported as cluster external
      * changes to any listener.
 
      * @param root  latest persisted root node state.
@@ -158,13 +156,13 @@ public class ChangeDispatcher {
 
     private synchronized void externalChange(NodeState root) {
         if (!root.equals(previousRoot)) {
-            add(new ChangeSet(previousRoot, root, true));
+            add(new ChangeSet(previousRoot, root, true, CommitInfo.EMPTY));
             previousRoot = root;
         }
     }
 
-    private synchronized void internalChange(NodeState root) {
-        add(new ChangeSet(previousRoot, root, false));
+    private synchronized void internalChange(NodeState root, CommitInfo info) {
+        add(new ChangeSet(previousRoot, root, false, info));
         previousRoot = root;
     }
 
@@ -238,11 +236,14 @@ public class ChangeDispatcher {
         private final NodeState before;
         private final NodeState after;
         private final boolean isExternal;
+        private final CommitInfo commitInfo;
 
-        ChangeSet(NodeState before, NodeState after, boolean isExternal) {
-            this.before = before;
-            this.after = after;
+        ChangeSet(@Nonnull NodeState before, @Nonnull NodeState after, boolean isExternal,
+                @Nonnull CommitInfo commitInfo) {
+            this.before = checkNotNull(before);
+            this.after = checkNotNull(after);
             this.isExternal = isExternal;
+            this.commitInfo = checkNotNull(commitInfo);
         }
 
         public boolean isExternal() {
@@ -253,19 +254,18 @@ public class ChangeDispatcher {
             return !isExternal && Objects.equal(getSessionId(), sessionId);
         }
 
-        @CheckForNull
+        @Nonnull
         public String getSessionId() {
-            return getStringOrNull(getCommitInfo(after), CommitInfoEditorProvider.SESSION_ID);
+            return commitInfo.getSessionId();
         }
 
-        @CheckForNull
+        @Nonnull
         public String getUserId() {
-            return getStringOrNull(getCommitInfo(after), CommitInfoEditorProvider.USER_ID);
+            return commitInfo.getUserId();
         }
 
         public long getDate() {
-            PropertyState property = getCommitInfo(after).getProperty(CommitInfoEditorProvider.TIME_STAMP);
-            return property == null ? 0 : property.getValue(LONG);
+            return commitInfo.getDate();
         }
 
         /**
@@ -291,10 +291,8 @@ public class ChangeDispatcher {
             return toStringHelper(this)
                 .add("base", before)
                 .add("head", after)
-                .add(CommitInfoEditorProvider.USER_ID, getUserId())
-                .add(CommitInfoEditorProvider.TIME_STAMP, getDate())
-                .add(CommitInfoEditorProvider.SESSION_ID, getSessionId())
                 .add("external", isExternal)
+                .add("commit info", commitInfo)
                 .toString();
         }
 
@@ -303,28 +301,23 @@ public class ChangeDispatcher {
             if (this == other) {
                 return true;
             }
-            if (other.getClass() != this.getClass()) {
+            if (other == null || other.getClass() != this.getClass()) {
                 return false;
             }
 
             ChangeSet that = (ChangeSet) other;
-            return before.equals(that.before) && after.equals(that.after) &&
-                    isExternal == that.isExternal;
+            return isExternal == that.isExternal
+                    && commitInfo.equals(that.commitInfo)
+                    && before.equals(that.before)
+                    && after.equals(that.after);
         }
 
         @Override
         public int hashCode() {
-            return 31 * before.hashCode() + after.hashCode();
+            int hash = before.hashCode();
+            hash = 31 * hash + after.hashCode();
+            hash = 31 * hash + (isExternal ? 1 : 0);
+            return 31 * hash + commitInfo.hashCode();
         }
-
-        private static String getStringOrNull(NodeState commitInfo, String name) {
-            PropertyState property = commitInfo.getProperty(name);
-            return property == null ? null : property.getValue(STRING);
-        }
-
-        private static NodeState getCommitInfo(NodeState after) {
-            return after.getChildNode(CommitInfoEditorProvider.COMMIT_INFO);
-        }
-
     }
 }

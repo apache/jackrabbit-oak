@@ -33,6 +33,7 @@ import javax.annotation.Nonnull;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -80,14 +81,15 @@ public class MemoryNodeStore implements NodeStore {
      *                                  this store
      */
     @Override
-    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook)
-            throws CommitFailedException {
+    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            @Nonnull CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MemoryNodeBuilder);
         checkNotNull(commitHook);
-        rebase(checkNotNull(builder));
+        checkNotNull(info);
+        rebase(builder);
         NodeStoreBranch branch = new MemoryNodeStoreBranch(this, getRoot());
         branch.setRoot(builder.getNodeState());
-        NodeState merged = branch.merge(commitHook);
+        NodeState merged = branch.merge(commitHook, info);
         ((MemoryNodeBuilder) builder).reset(merged);
         return merged;
     }
@@ -196,7 +198,8 @@ public class MemoryNodeStore implements NodeStore {
         }
 
         @Override
-        public NodeState merge(CommitHook hook) throws CommitFailedException {
+        public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+                throws CommitFailedException {
             // TODO: rebase();
             checkNotMerged();
             NodeState merged = ModifiedNodeState.squeeze(checkNotNull(hook).processCommit(base, root));

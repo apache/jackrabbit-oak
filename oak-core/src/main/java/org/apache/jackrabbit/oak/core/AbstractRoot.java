@@ -36,6 +36,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWr
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -240,7 +242,12 @@ public abstract class AbstractRoot implements Root {
     @Override
     public void commit(final CommitHook... hooks) throws CommitFailedException {
         checkLive();
-        base = store.merge(builder, getCommitHook(hooks));
+        ContentSession session = getContentSession();
+        CommitInfo info = CommitInfo.create(
+                session.toString(),
+                session.getAuthInfo().getUserID(),
+                System.currentTimeMillis());
+        base = store.merge(builder, getCommitHook(hooks), info);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {

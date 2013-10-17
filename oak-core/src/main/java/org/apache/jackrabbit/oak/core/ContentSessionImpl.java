@@ -30,11 +30,8 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
-import org.apache.jackrabbit.oak.plugins.observation.CommitInfoEditorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
@@ -106,12 +103,8 @@ class ContentSessionImpl implements ContentSession, Observable {
     @Override
     public Root getLatestRoot() {
         checkLive();
-
-        EditorHook commitInfoEditor = new EditorHook(
-                new CommitInfoEditorProvider(sessionName, getAuthInfo().getUserID()));
-
-        return new AbstractRoot(store, new CompositeHook(hook, commitInfoEditor),
-                workspaceName, loginContext.getSubject(), securityProvider, indexProvider) {
+        return new AbstractRoot(store, hook, workspaceName, loginContext.getSubject(),
+                securityProvider, indexProvider) {
             @Override
             protected void checkLive() {
                 ContentSessionImpl.this.checkLive();
