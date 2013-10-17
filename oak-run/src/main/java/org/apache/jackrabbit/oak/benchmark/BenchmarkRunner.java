@@ -108,6 +108,7 @@ public class BenchmarkRunner {
             new DescendantSearchTest(),
             new SQL2DescendantSearchTest(),
             new CreateManyChildNodesTest(),
+            new CreateManyNodesTest(),
             new UpdateManyChildNodesTest(),
             new TransientManyChildNodesTest(),
             new WikipediaImport(wikipedia.value(options)),

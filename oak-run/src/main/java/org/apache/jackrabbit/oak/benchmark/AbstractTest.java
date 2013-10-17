@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -46,6 +47,15 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
      * 1 in 1 million.
      */
     static final String TEST_ID = Integer.toHexString(new Random().nextInt());
+    
+    static AtomicInteger counter = new AtomicInteger();
+    
+    /**
+     * A node name that is guarantee to be unique within the current JVM.
+     */
+    static String nextNodeName() {
+        return "n" + Integer.toHexString(counter.getAndIncrement());
+    }
     
     private static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
 
