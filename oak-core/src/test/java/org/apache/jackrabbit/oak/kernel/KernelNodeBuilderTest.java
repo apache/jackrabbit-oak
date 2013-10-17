@@ -25,6 +25,7 @@ import static junit.framework.Assert.assertTrue;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -49,7 +50,7 @@ public class KernelNodeBuilderTest {
     private static void init(NodeStore store) throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("x").child("y").child("z");
-        store.merge(builder, EmptyHook.INSTANCE);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static void run(NodeStore store) throws CommitFailedException {
@@ -71,7 +72,7 @@ public class KernelNodeBuilderTest {
         assertFalse("child node x/y/z not should not be present", builder
                 .child("x").child("y").hasChildNode("z"));
 
-        store.merge(builder, EmptyHook.INSTANCE);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
 }

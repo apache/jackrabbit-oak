@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.mongomk.util.LoggingDocumentStoreWrappe
 import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -662,7 +663,8 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
     @Nonnull
     @Override
     public NodeState merge(@Nonnull NodeBuilder builder,
-                           @Nonnull CommitHook commitHook)
+                           @Nonnull CommitHook commitHook,
+                           @Nonnull CommitInfo info)
             throws CommitFailedException {
         // TODO: implement
         return null;

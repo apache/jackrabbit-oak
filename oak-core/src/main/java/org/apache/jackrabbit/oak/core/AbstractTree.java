@@ -39,7 +39,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.observation.CommitInfoEditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -59,7 +58,7 @@ public abstract class AbstractTree implements Tree {
     // TODO: make this configurable
     private static final String[] INTERNAL_NODE_NAMES = {
             IndexConstants.INDEX_CONTENT_NODE_NAME,
-            MicroKernel.CONFLICT_NAME, CommitInfoEditorProvider.COMMIT_INFO};
+            MicroKernel.CONFLICT_NAME};
 
     /**
      * Name of this tree

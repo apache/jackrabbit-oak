@@ -25,6 +25,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
 /**
  * Storage abstraction for trees. At any given point in time the stored
@@ -50,14 +51,15 @@ public interface NodeStore {
      *
      * @param builder  the builder whose changes to apply
      * @param commitHook the commit hook to apply while merging changes
+     * @param info commit info associated with this merge operation
      * @return the node state resulting from the merge.
      * @throws CommitFailedException if the merge failed
      * @throws IllegalArgumentException if the builder is not acquired
      *                                  from a root state of this store
      */
     @Nonnull
-    NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook)
-            throws CommitFailedException;
+    NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            @Nonnull CommitInfo info) throws CommitFailedException;
 
     /**
      * Rebase the changes in the passed {@code builder} on top of the current root state.

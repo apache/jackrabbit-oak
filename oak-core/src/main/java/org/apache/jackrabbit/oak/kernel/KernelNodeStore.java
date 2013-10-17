@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -38,15 +42,13 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
@@ -163,15 +165,15 @@ public class KernelNodeStore implements NodeStore, Observable {
     }
 
     /**
-     * This implementation delegates to {@link KernelRootBuilder#merge(CommitHook)}
+     * This implementation delegates to {@link KernelRootBuilder#merge(CommitHook, CommitInfo)}
      * if {@code builder} is a {@link KernelNodeBuilder} instance. Otherwise it throws
      * an {@code IllegalArgumentException}.
      */
     @Override
-    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook)
-            throws CommitFailedException {
+    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            @Nonnull CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof KernelRootBuilder);
-        return ((KernelRootBuilder) builder).merge(commitHook);
+        return ((KernelRootBuilder) builder).merge(checkNotNull(commitHook), checkNotNull(info));
     }
 
     /**
@@ -275,8 +277,8 @@ public class KernelNodeStore implements NodeStore, Observable {
         changeDispatcher.beforeCommit(root);
     }
 
-    void localCommit(NodeState root) {
-        changeDispatcher.localCommit(root);
+    void localCommit(NodeState root, CommitInfo info) {
+        changeDispatcher.localCommit(root, info);
     }
 
     void afterCommit(NodeState root) {

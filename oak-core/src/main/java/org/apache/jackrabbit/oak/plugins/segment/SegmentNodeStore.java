@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
@@ -82,11 +83,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return head;
     }
 
-    boolean setHead(SegmentNodeState base, SegmentNodeState head) {
+    boolean setHead(SegmentNodeState base, SegmentNodeState head, CommitInfo info) {
         changeDispatcher.beforeCommit(base.getChildNode(ROOT));
         try {
             if (journal.setHead(base.getRecordId(), head.getRecordId())) {
-                changeDispatcher.localCommit(head.getChildNode(ROOT));
+                changeDispatcher.localCommit(head.getChildNode(ROOT), info);
                 return true;
             } else {
                 return false;
@@ -109,16 +110,18 @@ public class SegmentNodeStore implements NodeStore, Observable {
     @Override
     public synchronized NodeState merge(
             @Nonnull NodeBuilder builder,
-            @Nonnull CommitHook commitHook)
+            @Nonnull CommitHook commitHook,
+            @Nonnull CommitInfo info)
             throws CommitFailedException {
         checkArgument(builder instanceof SegmentNodeBuilder);
         checkNotNull(commitHook);
+        checkNotNull(info);
         SegmentNodeState head = getHead();
         rebase(builder, head.getChildNode(ROOT)); // TODO: can we avoid this?
         SegmentNodeStoreBranch branch = new SegmentNodeStoreBranch(
                 this, store.getWriter(), head, maximumBackoff);
         branch.setRoot(builder.getNodeState());
-        NodeState merged = branch.merge(commitHook);
+        NodeState merged = branch.merge(commitHook, info);
         ((SegmentNodeBuilder) builder).reset(merged);
         return merged;
     }
