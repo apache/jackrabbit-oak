@@ -19,10 +19,10 @@ USERS="false true"
 RUNTIME=20
 BENCH=ConcurrentReadAccessControlledTreeTest
 FIXS="Oak-Tar" # Jackrabbit"
-THREADS="1 2 4 8 10 12 14 16 18 20"
+THREADS="1 2 4 8 12 16 20"
 PROFILE=false
 
-LOG="bench_$(date +'%Y%m%d_%H%M%S').csv"
+LOG=$BENCH"_$(date +'%Y%m%d_%H%M%S').csv"
 echo "Benchmarks: $BENCH" > $LOG
 echo "Fixtures: $FIXS" >> $LOG
 echo "Users: $USERS" >> $LOG
