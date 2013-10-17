@@ -42,16 +42,18 @@ public class ConcurrentReadAccessControlledTreeTest extends ConcurrentReadDeepTr
 
     @Override
     protected void visitingNode(Node node, int i) throws RepositoryException {
-        if (++counter == 10) {
-            addPolicy(node);
-            counter = 0;
-        }
         super.visitingNode(node, i);
+        String path = node.getPath();
+        if (!path.contains("rep:policy")) {
+            if (++counter == 10) {
+                addPolicy(path, node);
+                counter = 0;
+            }
+        }
     }
 
-    private void addPolicy(Node node) throws RepositoryException {
+    private void addPolicy(String path, Node node) throws RepositoryException {
         AccessControlManager acMgr = node.getSession().getAccessControlManager();
-        String path = node.getPath();
         int level = 0;
         if (node.isNodeType(AccessControlConstants.NT_REP_POLICY)) {
             level = 1;

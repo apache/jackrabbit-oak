@@ -61,11 +61,13 @@ public class ConcurrentReadAccessControlledTreeTest2 extends ConcurrentReadDeepT
 
     @Override
     protected void visitingNode(Node node, int i) throws RepositoryException {
-        if (++counter == 100) {
-            addPolicy(node);
-            counter = 0;
-        }
         super.visitingNode(node, i);
+        if (!node.getPath().contains("rep:policy")) {
+            if (++counter == 100) {
+                addPolicy(node);
+                counter = 0;
+            }
+        }
     }
 
     private void addPolicy(Node node) throws RepositoryException {
