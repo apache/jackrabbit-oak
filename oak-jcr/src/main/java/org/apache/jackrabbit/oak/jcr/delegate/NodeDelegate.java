@@ -710,17 +710,36 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public NodeDelegate getLock() {
-        return getLock(false);
+        Tree lock = findLock(tree, false);
+        if (lock != null) {
+            NodeDelegate delegate = new NodeDelegate(sessionDelegate, lock);
+            if (delegate.isNodeType(MIX_LOCKABLE)) {
+                return delegate;
+            } else if (lock.isRoot()) {
+                return null;
+            } else {
+                lock = findLock(lock.getParent(), true);
+            }
+        }
+        return null;
     }
 
-    private NodeDelegate getLock(boolean deep) {
-        if (holdsLock(deep)) {
-            return this;
+    private Tree findLock(Tree tree, boolean deep) {
+        if (holdsLock(tree, deep)) {
+            return tree;
         } else if (tree.isRoot()) {
             return null;
         } else {
-            return getParent().getLock(true);
+            return findLock(tree.getParent(), true);
         }
+    }
+
+    private boolean holdsLock(Tree tree, boolean deep) {
+        // FIXME: access to locking status should not depend on access rights
+        PropertyState property = tree.getProperty(JCR_LOCKISDEEP);
+        return property != null
+                && property.getType() == Type.BOOLEAN
+                && (!deep || property.getValue(BOOLEAN));
     }
 
     /**
@@ -729,13 +748,8 @@ public class NodeDelegate extends ItemDelegate {
      * @param deep if {@code true}, only check for deep locks
      * @return whether this node holds a lock
      */
-    // FIXME: access to locking status should not depend on access rights
     public boolean holdsLock(boolean deep) {
-        PropertyState property = tree.getProperty(JCR_LOCKISDEEP);
-        return property != null
-                && property.getType() == Type.BOOLEAN
-                && (!deep || property.getValue(BOOLEAN))
-                && isNodeType(MIX_LOCKABLE);
+        return holdsLock(tree, deep) && isNodeType(MIX_LOCKABLE);
     }
 
     public String getLockOwner() {
