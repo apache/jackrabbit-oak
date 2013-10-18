@@ -75,10 +75,6 @@ class JsonSerializer {
                 includeChildNodeCount, blobs);
     }
 
-    protected String getBlobId(Blob blob) {
-        return AbstractBlob.calculateSha256(blob).toString();
-    }
-
     void serialize(NodeState node) {
         json.object();
 
@@ -141,7 +137,7 @@ class JsonSerializer {
             json.value(property.getValue(LONG, index).longValue());
         } else if (type == BINARY) {
             Blob blob = property.getValue(BINARY, index);
-            json.value(TypeCodes.encode(type.tag(), getBlobId(blob)));
+            json.value(TypeCodes.encode(type.tag(), blobs.serialize(blob)));
         } else  {
             String value = property.getValue(STRING, index);
             if (type != STRING || TypeCodes.split(value) != -1) {
