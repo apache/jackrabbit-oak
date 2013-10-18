@@ -31,21 +31,29 @@ public class JsopDiff implements NodeStateDiff {
 
     private final BlobSerializer blobs;
 
-    protected final String path;
+    private final String path;
 
-    private JsopDiff(JsopBuilder jsop, String path, BlobSerializer blobs) {
+    private final int depth;
+
+    private JsopDiff(
+            JsopBuilder jsop, BlobSerializer blobs, String path, int depth) {
         this.jsop = jsop;
-        this.path = path;
         this.blobs = blobs;
+        this.path = path;
+        this.depth = depth;
     }
 
 
     JsopDiff(BlobSerializer blobs) {
-        this(new JsopBuilder(), "/", blobs);
+        this(new JsopBuilder(), blobs, "/", Integer.MAX_VALUE);
+    }
+
+    JsopDiff(String path, int depth) {
+        this(new JsopBuilder(), new BlobSerializer(), path, depth);
     }
 
     JsopDiff() {
-        this(new BlobSerializer());
+        this("/", Integer.MAX_VALUE);
     }
 
     /**
@@ -103,8 +111,15 @@ public class JsopDiff implements NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-        after.compareAgainstBaseState(
-                before, new JsopDiff(jsop, buildPath(name), blobs));
+        if (depth > 0) {
+            after.compareAgainstBaseState(before, new JsopDiff(
+                    jsop, blobs, buildPath(name), depth - 1));
+        } else {
+            jsop.tag('^');
+            jsop.key(buildPath(name));
+            jsop.object();
+            jsop.endObject();
+        }
         return true;
     }
 
