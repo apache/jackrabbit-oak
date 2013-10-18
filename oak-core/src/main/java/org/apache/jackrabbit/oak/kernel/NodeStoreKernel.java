@@ -308,13 +308,26 @@ public class NodeStoreKernel implements MicroKernel {
     }
 
     @Override
-    public synchronized String diff(
+    public String diff(
             String fromRevisionId, String toRevisionId, String path, int depth)
             throws MicroKernelException {
         NodeState before = getRoot(fromRevisionId);
         NodeState after = getRoot(toRevisionId);
 
-        JsopDiff diff = new JsopDiff();
+        if (path != null) {
+            for (String element : PathUtils.elements(path)) {
+                before = before.getChildNode(element);
+                after = after.getChildNode(element);
+            }
+        } else {
+            path = "/";
+        }
+
+        if (depth < 0) {
+            depth = Integer.MAX_VALUE;
+        }
+
+        JsopDiff diff = new JsopDiff(path, depth);
         after.compareAgainstBaseState(before, diff);
         return diff.toString();
     }
