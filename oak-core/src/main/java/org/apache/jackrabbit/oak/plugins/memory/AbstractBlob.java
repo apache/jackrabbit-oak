@@ -52,16 +52,23 @@ public abstract class AbstractBlob implements Blob {
         }
     }
 
-    public static HashCode calculateSha256(Blob blob) {
+    public static HashCode calculateSha256(final Blob blob) {
+        AbstractBlob ab;
         if (blob instanceof AbstractBlob) {
-            return ((AbstractBlob) blob).getSha256();
+            ab = ((AbstractBlob) blob);
         } else {
-            try {
-                return ByteStreams.hash(supplier(blob), Hashing.sha256());
-            } catch (IOException e) {
-                throw new IllegalStateException("Hash calculation failed", e);
-            }
+            ab = new AbstractBlob() {
+                @Override
+                public long length() {
+                    return blob.length();
+                }
+                @Override
+                public InputStream getNewStream() {
+                    return blob.getNewStream();
+                }
+            };
         }
+        return ab.getSha256();
     }
 
     private HashCode hashCode; // synchronized access
@@ -77,7 +84,11 @@ public abstract class AbstractBlob implements Blob {
     private synchronized HashCode getSha256() {
         // Blobs are immutable so we can safely cache the hash
         if (hashCode == null) {
-            hashCode = calculateSha256(this);
+            try {
+                hashCode = ByteStreams.hash(supplier(this), Hashing.sha256());
+            } catch (IOException e) {
+                throw new IllegalStateException("Hash calculation failed", e);
+            }
         }
         return hashCode;
     }
