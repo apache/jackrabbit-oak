@@ -85,10 +85,10 @@ public final class PermissionUtil implements PermissionConstants {
         return permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
     }
 
-    public static int getType(@Nonnull Tree tree, @Nullable PropertyState property) {
+    public static int getType(@Nonnull ImmutableTree tree, @Nullable PropertyState property) {
         // TODO: OAK-753 decide on where to filter out hidden items.
         // TODO: deal with hidden properties
-        return ImmutableTree.getType(tree);
+        return tree.getType();
     }
 
     @CheckForNull

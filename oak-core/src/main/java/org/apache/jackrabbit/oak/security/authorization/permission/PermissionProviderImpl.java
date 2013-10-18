@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -81,12 +82,12 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        return compiledPermissions.getPrivileges(tree);
+        return compiledPermissions.getPrivileges(getImmutableTree(tree));
     }
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
-        return compiledPermissions.hasPrivileges(tree, privilegeNames);
+        return compiledPermissions.hasPrivileges(getImmutableTree(tree), privilegeNames);
     }
 
     @Override
@@ -96,12 +97,12 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-        return compiledPermissions.getTreePermission(tree, parentPermission);
+        return compiledPermissions.getTreePermission(getImmutableTree(tree), parentPermission);
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        return compiledPermissions.isGranted(tree, property, permissions);
+        return compiledPermissions.isGranted(getImmutableTree(tree), property, permissions);
     }
 
     @Override
@@ -133,7 +134,15 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return false;
     }
 
-    private static ImmutableRoot getImmutableRoot(Root base, SecurityConfiguration acConfig) {
+    private ImmutableTree getImmutableTree(@Nullable Tree tree) {
+        if (tree instanceof ImmutableTree) {
+            return (ImmutableTree) tree;
+        } else {
+            return (tree == null) ? null : immutableRoot.getTree(tree.getPath());
+        }
+    }
+
+    private static ImmutableRoot getImmutableRoot(@Nonnull Root base, @Nonnull SecurityConfiguration acConfig) {
         if (base instanceof ImmutableRoot) {
             return (ImmutableRoot) base;
         } else {

@@ -21,8 +21,8 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -53,12 +53,12 @@ public final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@Nonnull ImmutableTree tree, @Nonnull TreePermission parentPermission) {
         return TreePermission.ALL;
     }
 
     @Override
-    public boolean isGranted(Tree parent, PropertyState property, long permissions) {
+    public boolean isGranted(ImmutableTree parent, PropertyState property, long permissions) {
         return true;
     }
 
@@ -68,12 +68,12 @@ public final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
-    public Set<String> getPrivileges(Tree tree) {
+    public Set<String> getPrivileges(ImmutableTree tree) {
         return Collections.singleton(PrivilegeConstants.JCR_ALL);
     }
 
     @Override
-    public boolean hasPrivileges(Tree tree, String... privilegeNames) {
+    public boolean hasPrivileges(ImmutableTree tree, String... privilegeNames) {
         return true;
     }
 }

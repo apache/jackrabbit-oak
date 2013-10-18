@@ -187,11 +187,11 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     }
 
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@Nonnull ImmutableTree tree, @Nonnull TreePermission parentPermission) {
         if (tree.isRoot()) {
             return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_DEFAULT, TreePermission.EMPTY);
         }
-        int type = PermissionUtil.getType(tree, null);
+        int type = tree.getType();
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
                 // TODO: OAK-753 decide on where to filter out hidden items.
@@ -213,17 +213,19 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                             tl = tl.getParent();
                         }
                         Tree versionableTree = tl.getTree();
-                        TreePermission pp = getParentPermission(versionableTree);
+                        TreePermission pp = getParentPermission(versionableTree, TreeTypeProvider.TYPE_VERSION);
                         return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
                     }
                 }
+            case TreeTypeProvider.TYPE_PERMISSION_STORE:
+                return TreePermission.EMPTY;
             default:
                 return new TreePermissionImpl(tree, type, parentPermission);
         }
     }
 
     @Nonnull
-    private TreePermission getParentPermission(@Nonnull Tree tree) {
+    private TreePermission getParentPermission(@Nonnull Tree tree, int type) {
         List<Tree> trees = new ArrayList();
         while (!tree.isRoot()) {
             tree = tree.getParent();
@@ -233,13 +235,13 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         }
         TreePermission pp = TreePermission.EMPTY;
         for (Tree tr : trees) {
-            pp = new TreePermissionImpl(tr, PermissionUtil.getType(tree, null), pp);
+            pp = new TreePermissionImpl(tr, type, pp);
         }
         return pp;
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@Nonnull ImmutableTree tree, @Nullable PropertyState property, long permissions) {
         int type = PermissionUtil.getType(tree, property);
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
@@ -259,6 +261,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                     // use best effort calculation based on the item path.
                     return isGranted(location.getPath(), permissions);
                 }
+            case TreeTypeProvider.TYPE_PERMISSION_STORE:
+                return false;
             default:
                 return internalIsGranted(tree, property, permissions);
         }
@@ -271,13 +275,13 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     }
 
     @Override
-    public Set<String> getPrivileges(@Nullable Tree tree) {
-        return bitsProvider.getPrivilegeNames(getPrivilegeBits(tree));
+    public Set<String> getPrivileges(@Nullable ImmutableTree tree) {
+        return bitsProvider.getPrivilegeNames(internalGetPrivileges(tree));
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
-        return getPrivilegeBits(tree).includes(bitsProvider.getBits(privilegeNames));
+    public boolean hasPrivileges(@Nullable ImmutableTree tree, String... privilegeNames) {
+        return internalGetPrivileges(tree).includes(bitsProvider.getBits(privilegeNames));
     }
 
     //------------------------------------------------------------< private >---
@@ -353,6 +357,31 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         }
 
         return (allows | ~permissions) == -1;
+    }
+
+    @Nonnull PrivilegeBits internalGetPrivileges(@Nullable ImmutableTree tree) {
+        int type = (tree == null) ? TreeTypeProvider.TYPE_DEFAULT : tree.getType();
+        switch (type) {
+            case TreeTypeProvider.TYPE_HIDDEN:
+                return PrivilegeBits.EMPTY;
+            case TreeTypeProvider.TYPE_VERSION:
+                TreeLocation location = getLocation(tree, null);
+                if (location == null) {
+                    // unable to determine the location of the versionable item -> deny access.
+                    return PrivilegeBits.EMPTY;
+                }
+                Tree versionableTree = location.getTree();
+                if (versionableTree != null) {
+                    return getPrivilegeBits(tree);
+                } else {
+                    // TODO : add proper handling for cases where the versionable node does not exist (anymore)
+                    return PrivilegeBits.EMPTY;
+                }
+            case TreeTypeProvider.TYPE_PERMISSION_STORE:
+                return PrivilegeBits.EMPTY;
+            default:
+                return getPrivilegeBits(tree);
+        }
     }
 
     @Nonnull

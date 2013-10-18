@@ -252,20 +252,11 @@ public final class ImmutableTree extends AbstractTree {
 
     //------------------------------------------------------------< internal >---
 
-    int getType() {
+    public int getType() {
         if (type == TreeTypeProvider.TYPE_NONE) {
             type = typeProvider.getType(this);
         }
         return type;
-    }
-
-    // TODO
-    public static int getType(Tree tree) {
-        if (tree instanceof ImmutableTree) {
-            return ((ImmutableTree) tree).getType();
-        } else {
-            return TreeTypeProvider.TYPE_DEFAULT;
-        }
     }
 
     //--------------------------------------------------------------------------
