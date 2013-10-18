@@ -39,12 +39,14 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteStreams;
@@ -61,6 +63,15 @@ public class NodeStoreKernel implements MicroKernel {
     private final Map<String, NodeBuilder> branches = newLinkedHashMap();
 
     private final Map<String, Blob> blobs = newConcurrentMap();
+
+    private final BlobSerializer blobSerializer = new BlobSerializer() {
+        @Override
+        public String serialize(Blob blob) {
+            String id = AbstractBlob.calculateSha256(blob).toString();
+            blobs.put(id, blob);
+            return id;
+        }
+    };
 
     private String head;
 
@@ -303,7 +314,7 @@ public class NodeStoreKernel implements MicroKernel {
         NodeState before = getRoot(fromRevisionId);
         NodeState after = getRoot(toRevisionId);
 
-        JsopDiff diff = new JsopDiff(null);
+        JsopDiff diff = new JsopDiff();
         after.compareAgainstBaseState(before, diff);
         return diff.toString();
     }
@@ -340,8 +351,8 @@ public class NodeStoreKernel implements MicroKernel {
             if (maxChildNodes < 0) {
                 maxChildNodes = Integer.MAX_VALUE;
             }
-            JsonSerializer json =
-                    new JsonSerializer(depth, offset, maxChildNodes);
+            JsonSerializer json = new JsonSerializer(
+                    depth, offset, maxChildNodes, blobSerializer);
             json.serialize(node);
             return json.toString();
         } else {
@@ -464,26 +475,43 @@ public class NodeStoreKernel implements MicroKernel {
     public String write(InputStream in) throws MicroKernelException {
         try {
             final Hasher hasher = Hashing.sha256().newHasher();
-            Blob blob = store.createBlob(new CheckedInputStream(in, new Checksum() {
-                @Override
-                public void update(byte[] b, int off, int len) {
-                    hasher.putBytes(b, off, len);
-                }
-                @Override
-                public void update(int b) {
-                    hasher.putByte((byte) b);
-                }
-                @Override
-                public void reset() {
-                    throw new UnsupportedOperationException();
-                }
-                @Override
-                public long getValue() {
-                    throw new UnsupportedOperationException();
-                }
-            }));
+            Blob blob = store.createBlob(
+                    new CheckedInputStream(in, new Checksum() {
+                        @Override
+                        public void update(byte[] b, int off, int len) {
+                            hasher.putBytes(b, off, len);
+                        }
+                        @Override
+                        public void update(int b) {
+                            hasher.putByte((byte) b);
+                        }
+                        @Override
+                        public void reset() {
+                            throw new UnsupportedOperationException();
+                        }
+                        @Override
+                        public long getValue() {
+                            throw new UnsupportedOperationException();
+                        }
+                    }));
+            HashCode hash = hasher.hash();
 
-            String id = hasher.hash().toString();
+            // wrap into AbstractBlob for the SHA-256 memorization feature
+            if (!(blob instanceof AbstractBlob)) {
+                final Blob b = blob;
+                blob = new AbstractBlob(hash) {
+                    @Override
+                    public long length() {
+                        return b.length();
+                    }
+                    @Override
+                    public InputStream getNewStream() {
+                        return b.getNewStream();
+                    }
+                };
+            }
+
+            String id = hash.toString();
             blobs.put(id, blob);
             return id;
         } catch (IOException e) {

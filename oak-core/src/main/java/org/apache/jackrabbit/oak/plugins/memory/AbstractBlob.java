@@ -64,7 +64,15 @@ public abstract class AbstractBlob implements Blob {
         }
     }
 
-    private HashCode hashCode = null; // synchronized access
+    private HashCode hashCode; // synchronized access
+
+    protected AbstractBlob(HashCode hashCode) {
+        this.hashCode = hashCode;
+    }
+
+    protected AbstractBlob() {
+        this(null);
+    }
 
     private synchronized HashCode getSha256() {
         // Blobs are immutable so we can safely cache the hash

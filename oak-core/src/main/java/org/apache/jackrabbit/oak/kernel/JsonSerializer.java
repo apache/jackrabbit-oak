@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.kernel;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -48,27 +47,32 @@ class JsonSerializer {
 
     private final boolean includeChildNodeCount;
 
+    private final BlobSerializer blobs;
+
     private JsonSerializer(
             JsopBuilder json, int depth, long offset, int maxChildNodes,
-            boolean includeChildNodeCount) {
+            boolean includeChildNodeCount, BlobSerializer blobs) {
         this.json = checkNotNull(json);
         this.depth = depth;
         this.offset = offset;
         this.maxChildNodes = maxChildNodes;
         this.includeChildNodeCount = includeChildNodeCount;
+        this.blobs = checkNotNull(blobs);
     }
 
-    JsonSerializer(int depth, long offset, int maxChildNodes) {
-        this(new JsopBuilder(), depth, offset, maxChildNodes, true);
+    JsonSerializer(
+            int depth, long offset, int maxChildNodes, BlobSerializer blobs) {
+        this(new JsopBuilder(), depth, offset, maxChildNodes, true, blobs);
     }
 
-    JsonSerializer(JsopBuilder json) {
-        this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE, false);
+    JsonSerializer(JsopBuilder json, BlobSerializer blobs) {
+        this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE, false, blobs);
     }
 
     protected JsonSerializer getChildSerializer() {
         return new JsonSerializer(
-                json, depth - 1, 0, maxChildNodes, includeChildNodeCount);
+                json, depth - 1, 0, maxChildNodes,
+                includeChildNodeCount, blobs);
     }
 
     protected String getBlobId(Blob blob) {
