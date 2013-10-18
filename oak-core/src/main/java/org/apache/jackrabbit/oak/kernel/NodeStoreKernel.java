@@ -47,6 +47,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.ByteStreams;
 
+/**
+ * This is a simple {@link NodeStore}-based {@link MicroKernel} implementation.
+ */
 public class NodeStoreKernel implements MicroKernel {
 
     private final NodeStore store;
@@ -153,9 +156,19 @@ public class NodeStoreKernel implements MicroKernel {
                 }
                 break;
             case '>':
-                throw new UnsupportedOperationException();
+                tokenizer.read(':');
+                String moveTarget = tokenizer.readString();
+                getNode(builder, path).moveTo(
+                        getNode(builder, getParentPath(moveTarget)),
+                        getName(moveTarget));
+                break;
             case '*':
-                throw new UnsupportedOperationException();
+                tokenizer.read(':');
+                String copyTarget = tokenizer.readString();
+                getNode(builder, path).copyTo(
+                        getNode(builder, getParentPath(copyTarget)),
+                        getName(copyTarget));
+                break;
             default:
                 throw new MicroKernelException(
                         "Unexpected token: " + tokenizer.getEscapedToken());
