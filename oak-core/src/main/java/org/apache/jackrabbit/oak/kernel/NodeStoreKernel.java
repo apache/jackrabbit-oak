@@ -27,6 +27,8 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.zip.CheckedInputStream;
+import java.util.zip.Checksum;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -45,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import com.google.common.io.ByteStreams;
 
 /**
@@ -351,8 +355,19 @@ public class NodeStoreKernel implements MicroKernel {
             json.key(property.getName());
             Type<?> type = property.getType();
             if (type.isArray()) {
+                type = type.getBaseType();
                 json.array();
-                // FIXME
+                for (int i = 0; i < property.size(); i++) {
+                    if (type == Type.BOOLEAN) {
+                        json.value(property.getValue(Type.BOOLEAN, i).booleanValue());
+                    } else if (type == Type.LONG) {
+                        json.value(property.getValue(Type.LONG, i).longValue());
+                    } else if (type == Type.DOUBLE) {
+                        json.encodedValue(property.getValue(Type.DOUBLE, i).toString());
+                    } else {
+                        json.value(property.getValue(Type.STRING, i));
+                    }
+                }
                 json.endArray();
             } else if (type == Type.BOOLEAN) {
                 json.value(property.getValue(Type.BOOLEAN).booleanValue());
@@ -505,9 +520,29 @@ public class NodeStoreKernel implements MicroKernel {
     @Override
     public String write(InputStream in) throws MicroKernelException {
         try {
-            String uuid = UUID.randomUUID().toString();
-            blobs.put(uuid, store.createBlob(in));
-            return uuid;
+            final Hasher hasher = Hashing.sha256().newHasher();
+            Blob blob = store.createBlob(new CheckedInputStream(in, new Checksum() {
+                @Override
+                public void update(byte[] b, int off, int len) {
+                    hasher.putBytes(b, off, len);
+                }
+                @Override
+                public void update(int b) {
+                    hasher.putByte((byte) b);
+                }
+                @Override
+                public void reset() {
+                    throw new UnsupportedOperationException();
+                }
+                @Override
+                public long getValue() {
+                    throw new UnsupportedOperationException();
+                }
+            }));
+
+            String id = hasher.hash().toString();
+            blobs.put(id, blob);
+            return id;
         } catch (IOException e) {
             throw new MicroKernelException("Failed to create a blob", e);
         }
