@@ -35,34 +35,32 @@ import org.apache.jackrabbit.oak.api.Blob;
  */
 public abstract class AbstractBlob implements Blob {
 
-    private static class BlobSupplier implements InputSupplier<InputStream> {
-
-        private final Blob blob;
-
-        private BlobSupplier(Blob blob) {
-            this.blob = blob;
-        }
-
-        @Override
-        public InputStream getInput() throws IOException {
-            return blob.getNewStream();
-        }
-
+    private static InputSupplier<InputStream> supplier(final Blob blob) {
+        return new InputSupplier<InputStream>() {
+            @Override
+            public InputStream getInput() throws IOException {
+                return blob.getNewStream();
+            }
+        };
     }
 
     public static boolean equal(Blob a, Blob b) {
         try {
-            return ByteStreams.equal(new BlobSupplier(a), new BlobSupplier(b));
+            return ByteStreams.equal(supplier(a), supplier(b));
         } catch (IOException e) {
-            throw new RuntimeException("Blob equality check failed", e);
+            throw new IllegalStateException("Blob equality check failed", e);
         }
     }
 
-    private static HashCode calculateSha256(final Blob blob) {
-        try {
-            return ByteStreams.hash(new BlobSupplier(blob), Hashing.sha256());
-        } catch (IOException e) {
-            throw new RuntimeException("Blob hash calculation failed", e);
+    public static HashCode calculateSha256(Blob blob) {
+        if (blob instanceof AbstractBlob) {
+            return ((AbstractBlob) blob).getSha256();
+        } else {
+            try {
+                return ByteStreams.hash(supplier(blob), Hashing.sha256());
+            } catch (IOException e) {
+                throw new IllegalStateException("Hash calculation failed", e);
+            }
         }
     }
 
