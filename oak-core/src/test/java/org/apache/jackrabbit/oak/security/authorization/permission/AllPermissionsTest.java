@@ -22,6 +22,9 @@ import java.util.List;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -61,12 +64,12 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     @Test
     public void testGetTreePermission() {
         for (String path : paths) {
-            Tree tree = root.getTree(path);
+            ImmutableTree tree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTree(path);
             assertTrue(tree.exists());
 
             assertSame(TreePermission.ALL, all.getTreePermission(tree, TreePermission.EMPTY));
             for (Tree child : tree.getChildren()) {
-                assertSame(TreePermission.ALL, all.getTreePermission(child, TreePermission.EMPTY));
+                assertSame(TreePermission.ALL, all.getTreePermission((ImmutableTree) child, TreePermission.EMPTY));
             }
         }
     }
@@ -74,7 +77,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     @Test
     public void testIsGranted() {
         for (String path : paths) {
-            Tree tree = root.getTree(path);
+            ImmutableTree tree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTree(path);
             assertTrue(tree.exists());
 
             assertTrue(all.isGranted(tree, null, Permissions.ALL));
@@ -82,7 +85,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
                 assertTrue(all.isGranted(tree, prop, Permissions.ALL));
             }
             for (Tree child : tree.getChildren()) {
-                assertTrue(all.isGranted(child, null, Permissions.ALL));
+                assertTrue(all.isGranted((ImmutableTree) child, null, Permissions.ALL));
             }
         }
     }
