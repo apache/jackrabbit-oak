@@ -37,12 +37,10 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -162,16 +160,20 @@ public class NodeStoreKernel implements MicroKernel {
             case '>':
                 tokenizer.read(':');
                 String moveTarget = tokenizer.readString();
-                getNode(builder, path).moveTo(
+                if (!getNode(builder, path).moveTo(
                         getNode(builder, getParentPath(moveTarget)),
-                        getName(moveTarget));
+                        getName(moveTarget))) {
+                    throw new MicroKernelException("Move failed");
+                }
                 break;
             case '*':
                 tokenizer.read(':');
                 String copyTarget = tokenizer.readString();
-                getNode(builder, path).copyTo(
+                if (!getNode(builder, path).copyTo(
                         getNode(builder, getParentPath(copyTarget)),
-                        getName(copyTarget));
+                        getName(copyTarget))) {
+                    throw new MicroKernelException("Copy failed");
+                }
                 break;
             default:
                 throw new MicroKernelException(
@@ -335,75 +337,16 @@ public class NodeStoreKernel implements MicroKernel {
         }
 
         if (node.exists()) {
-            JsopBuilder json = new JsopBuilder();
             if (maxChildNodes < 0) {
                 maxChildNodes = Integer.MAX_VALUE;
             }
-            serialize(getNode(revisionId, path), json, depth, offset, maxChildNodes);
+            JsonSerializer json =
+                    new JsonSerializer(depth, offset, maxChildNodes);
+            json.serialize(node);
             return json.toString();
         } else {
             return null;
         }
-    }
-
-    private void serialize(
-            NodeState state, JsopBuilder json,
-            int depth, long offset, int maxChildNodes) {
-        json.object();
-
-        for (PropertyState property : state.getProperties()) {
-            json.key(property.getName());
-            Type<?> type = property.getType();
-            if (type.isArray()) {
-                type = type.getBaseType();
-                json.array();
-                for (int i = 0; i < property.size(); i++) {
-                    if (type == Type.BOOLEAN) {
-                        json.value(property.getValue(Type.BOOLEAN, i).booleanValue());
-                    } else if (type == Type.LONG) {
-                        json.value(property.getValue(Type.LONG, i).longValue());
-                    } else if (type == Type.DOUBLE) {
-                        json.encodedValue(property.getValue(Type.DOUBLE, i).toString());
-                    } else {
-                        json.value(property.getValue(Type.STRING, i));
-                    }
-                }
-                json.endArray();
-            } else if (type == Type.BOOLEAN) {
-                json.value(property.getValue(Type.BOOLEAN).booleanValue());
-            } else if (type == Type.LONG) {
-                json.value(property.getValue(Type.LONG).longValue());
-            } else if (type == Type.DOUBLE) {
-                json.encodedValue(property.getValue(Type.DOUBLE).toString());
-            } else {
-                json.value(property.getValue(Type.STRING));
-            }
-        }
-
-        json.key(":childNodeCount");
-        json.value(state.getChildNodeCount(Long.MAX_VALUE));
-
-        long index = 0;
-        int count = 0;
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            if (index++ >= offset) {
-                if (count++ >= maxChildNodes) {
-                    break;
-                }
-
-                json.key(entry.getName());
-                if (depth > 0) {
-                    serialize(
-                            entry.getNodeState(), json,
-                            depth - 1, 0, maxChildNodes);
-                } else {
-                    json.object();
-                    json.endObject();
-                }
-            }
-        }
-
-        json.endObject();
     }
 
     @Override

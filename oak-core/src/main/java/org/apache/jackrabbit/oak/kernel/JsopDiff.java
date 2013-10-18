@@ -16,21 +16,12 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
-import static org.apache.jackrabbit.oak.api.Type.LONGS;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-
 import java.io.IOException;
-
-import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
@@ -41,7 +32,7 @@ public class JsopDiff implements NodeStateDiff {
 
     private final KernelNodeStore store;
 
-    protected final JsopBuilder jsop;
+    private final JsopBuilder jsop;
 
     protected final String path;
 
@@ -109,7 +100,6 @@ public class JsopDiff implements NodeStateDiff {
         return diff.toString();
     }
 
-
     protected JsopDiff createChildDiff(JsopBuilder jsop, String path) {
         return new JsopDiff(store, jsop, path);
     }
@@ -119,14 +109,14 @@ public class JsopDiff implements NodeStateDiff {
     @Override
     public boolean propertyAdded(PropertyState after) {
         jsop.tag('^').key(buildPath(after.getName()));
-        toJson(after, jsop);
+        new DiffJsonSerializer().serialize(after);
         return true;
     }
 
     @Override
     public boolean propertyChanged(PropertyState before, PropertyState after) {
         jsop.tag('^').key(buildPath(after.getName()));
-        toJson(after, jsop);
+        new DiffJsonSerializer().serialize(after);
         return true;
     }
 
@@ -139,7 +129,7 @@ public class JsopDiff implements NodeStateDiff {
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
         jsop.tag('+').key(buildPath(name));
-        toJson(after, jsop);
+        new DiffJsonSerializer().serialize(after);
         return true;
     }
 
@@ -169,67 +159,10 @@ public class JsopDiff implements NodeStateDiff {
         return PathUtils.concat(path, name);
     }
 
-    private void toJson(NodeState nodeState, JsopBuilder jsop) {
-        jsop.object();
-        for (PropertyState property : nodeState.getProperties()) {
-            jsop.key(property.getName());
-            toJson(property, jsop);
-        }
-        for (ChildNodeEntry child : nodeState.getChildNodeEntries()) {
-            jsop.key(child.getName());
-            toJson(child.getNodeState(), jsop);
-        }
-        jsop.endObject();
-    }
-
-    private void toJson(PropertyState propertyState, JsopBuilder jsop) {
-        if (propertyState.isArray()) {
-            Type<?> type = propertyState.getType();
-            if (type == STRINGS || propertyState.count() > 0) {
-                jsop.array();
-                toJsonValue(propertyState, jsop);
-                jsop.endArray();
-            } else {
-                jsop.value(TypeCodes.EMPTY_ARRAY
-                        + PropertyType.nameFromValue(type.tag()));
-            }
-        } else {
-            toJsonValue(propertyState, jsop);
-        }
-    }
-
-    private void toJsonValue(PropertyState property, JsopBuilder jsop) {
-        int type = property.getType().tag();
-        switch (type) {
-            case PropertyType.BOOLEAN:
-                for (boolean value : property.getValue(BOOLEANS)) {
-                    jsop.value(value);
-                }
-                break;
-            case PropertyType.LONG:
-                for (long value : property.getValue(LONGS)) {
-                    jsop.value(value);
-                }
-                break;
-            case PropertyType.BINARY:
-                for (Blob value : property.getValue(BINARIES)) {
-                    String binId = writeBlob(value);
-                    jsop.value(TypeCodes.encode(type, binId));
-                }
-                break;
-            default:
-                for (String value : property.getValue(STRINGS)) {
-                    if (PropertyType.STRING != type || TypeCodes.split(value) != -1) {
-                        value = TypeCodes.encode(type, value);
-                    }
-                    jsop.value(value);
-                }
-                break;
-        }
-    }
-
     /**
-     * Make sure {@code blob} is persisted and return the id of the persisted blob.
+     * Make sure {@code blob} is persisted and return the id of
+     * the persisted blob.
+     *
      * @param blob  blob to persist
      * @return  id of the persisted blob
      */
@@ -245,6 +178,31 @@ public class JsopDiff implements NodeStateDiff {
             }
         }
         return kernelBlob.getBinaryID();
+    }
+
+    private class DiffJsonSerializer extends JsonSerializer {
+
+        DiffJsonSerializer() {
+            super(jsop);
+        }
+
+        @Override
+        protected JsonSerializer getChildSerializer() {
+            return new DiffJsonSerializer();
+        }
+
+        /**
+         * Make sure {@code blob} is persisted and return the id of
+         * the persisted blob.
+         *
+         * @param blob  blob to persist
+         * @return  id of the persisted blob
+         */
+        @Override
+        protected String getBlobId(Blob blob) {
+            return writeBlob(blob);
+        }
+
     }
 
 }
