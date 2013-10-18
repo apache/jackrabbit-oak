@@ -35,23 +35,23 @@ public class JsopDiffTest {
         JsopDiff diff;
         PropertyState before = StringPropertyState.stringProperty("foo", "bar");
 
-        diff = new JsopDiff(null);
+        diff = new JsopDiff();
         diff.propertyAdded(before);
         assertEquals("^\"/foo\":\"bar\"", diff.toString());
 
-        diff = new JsopDiff(null);
+        diff = new JsopDiff();
         diff.propertyChanged(before, LongPropertyState.createLongProperty("foo", 123L));
         assertEquals("^\"/foo\":123", diff.toString());
 
-        diff = new JsopDiff(null);
+        diff = new JsopDiff();
         diff.propertyChanged(before, DoublePropertyState.doubleProperty("foo", 1.23));
         assertEquals("^\"/foo\":\"dou:1.23\"", diff.toString()); // TODO: 1.23?
 
-        diff = new JsopDiff(null);
+        diff = new JsopDiff();
         diff.propertyChanged(before, BooleanPropertyState.booleanProperty("foo", true));
         assertEquals("^\"/foo\":true", diff.toString());
 
-        diff = new JsopDiff(null);
+        diff = new JsopDiff();
         diff.propertyDeleted(before);
         assertEquals("^\"/foo\":null", diff.toString());
     }
@@ -65,15 +65,15 @@ public class JsopDiffTest {
         builder.child("x");
         NodeState after = builder.getNodeState();
 
-        diff = new JsopDiff(null);
+        diff = new JsopDiff();
         diff.childNodeAdded("test", before);
         assertEquals("+\"/test\":{}", diff.toString());
 
-        diff = new JsopDiff(null);
+        diff = new JsopDiff();
         diff.childNodeChanged("test", before, after);
         assertEquals("^\"/test/a\":1+\"/test/x\":{}", diff.toString());
 
-        diff = new JsopDiff(null);
+        diff = new JsopDiff();
         diff.childNodeDeleted("test", after);
         assertEquals("-\"/test\"", diff.toString());
     }

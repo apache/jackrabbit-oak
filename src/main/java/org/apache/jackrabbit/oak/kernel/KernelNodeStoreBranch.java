@@ -21,12 +21,14 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
+import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -55,6 +57,23 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
      * @see BranchState
      */
     private BranchState branchState;
+
+    private final BlobSerializer blobs = new BlobSerializer() {
+        @Override
+        public String serialize(Blob blob) {
+            KernelBlob kernelBlob;
+            if (blob instanceof KernelBlob) {
+                kernelBlob = (KernelBlob) blob;
+            } else {
+                try {
+                    kernelBlob = store.createBlob(blob.getNewStream());
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+            return kernelBlob.getBinaryID();
+        }
+    };
 
     public KernelNodeStoreBranch(KernelNodeStore kernelNodeStore, Lock mergeLock,
             KernelNodeState base) {
@@ -287,7 +306,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                 rebase();
                 store.beforeCommit(base);
                 NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-                JsopDiff diff = new JsopDiff(store);
+                JsopDiff diff = new JsopDiff(blobs);
                 toCommit.compareAgainstBaseState(base, diff);
                 NodeState newHead = store.commit(diff.toString(), base);
                 store.localCommit(newHead, info);
@@ -375,7 +394,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                     branchState = new Merged(base);
                     return base;
                 } else {
-                    JsopDiff diff = new JsopDiff(store);
+                    JsopDiff diff = new JsopDiff(blobs);
                     toCommit.compareAgainstBaseState(head, diff);
                     commit(diff.toString());
                     NodeState newRoot = store.merge(head);
@@ -395,7 +414,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
         private void persistTransientHead(NodeState newHead) {
             if (!newHead.equals(head)) {
-                JsopDiff diff = new JsopDiff(store);
+                JsopDiff diff = new JsopDiff(blobs);
                 newHead.compareAgainstBaseState(head, diff);
                 head = store.commit(diff.toString(), head);
             }
@@ -438,4 +457,5 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             throw new IllegalStateException("Branch has already been merged");
         }
     }
+
 }
