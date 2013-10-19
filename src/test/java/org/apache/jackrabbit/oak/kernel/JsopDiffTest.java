@@ -45,7 +45,7 @@ public class JsopDiffTest {
 
         diff = new JsopDiff();
         diff.propertyChanged(before, DoublePropertyState.doubleProperty("foo", 1.23));
-        assertEquals("^\"/foo\":\"dou:1.23\"", diff.toString()); // TODO: 1.23?
+        assertEquals("^\"/foo\":1.23", diff.toString());
 
         diff = new JsopDiff();
         diff.propertyChanged(before, BooleanPropertyState.booleanProperty("foo", true));
