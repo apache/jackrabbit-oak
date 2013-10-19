@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
@@ -24,11 +25,15 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -40,8 +45,12 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -56,11 +65,35 @@ import com.google.common.io.ByteStreams;
  */
 public class NodeStoreKernel implements MicroKernel {
 
+    private static final CommitHook CONFLICT_HOOK =
+            new EditorHook(new ValidatorProvider() {
+                @Override
+                protected Validator getRootValidator(
+                        NodeState before, NodeState after) {
+                    return new DefaultValidator() {
+                        @Override
+                        public Validator childNodeAdded(
+                                String name, NodeState after)
+                                throws CommitFailedException {
+                            if (name.equals(":conflict")) {
+                                throw new CommitFailedException(
+                                        CommitFailedException.STATE, 0, "Conflict");
+                            }
+                            return null;
+                        }
+                        @Override
+                        public Validator childNodeChanged(
+                                String name, NodeState before, NodeState after)
+                                throws CommitFailedException {
+                            return this;
+                        }
+                    };
+                }
+            });
+
     private final NodeStore store;
 
     private final Map<String, Revision> revisions = newLinkedHashMap();
-
-    private final Map<String, NodeBuilder> branches = newLinkedHashMap();
 
     private final Map<String, Blob> blobs = newConcurrentMap();
 
@@ -73,37 +106,39 @@ public class NodeStoreKernel implements MicroKernel {
         }
     };
 
-    private String head;
+    private Revision head;
 
     public NodeStoreKernel(NodeStore store) {
         this.store = store;
-        this.head = UUID.randomUUID().toString();
-        revisions.put(head, new Revision(store.getRoot()));
+        this.head = new Revision(store.getRoot());
+        revisions.put(head.id, head);
     }
 
-    private synchronized NodeState getRoot(String revision)
+    @Nonnull
+    private synchronized Revision getRevision(@CheckForNull String id) {
+        if (id == null) {
+            return head;
+        } else {
+            Revision revision = revisions.get(id);
+            if (revision != null) {
+                return revision;
+            } else {
+                throw new MicroKernelException("Revision not found: " + id);
+            }
+        }
+    }
+
+    private NodeState getRoot(String id) throws MicroKernelException {
+        return getRevision(id).root;
+    }
+
+    private NodeState getNode(String revision, String path)
             throws MicroKernelException {
-        if (revision == null) {
-            revision = head;
-        }
-
-        Revision r = revisions.get(revision);
-        if (r != null) {
-            return r.root;
-        }
-
-        NodeBuilder builder = branches.get(revision);
-        if (builder != null) {
-            return builder.getNodeState();
-        }
-
-        throw new MicroKernelException("Revision not found: " + revision);
-    }
-
-    private NodeState getNode(String revision, String path) {
         NodeState node = getRoot(revision);
-        for (String element : PathUtils.elements(path)) {
-            node = node.getChildNode(element);
+        if (path != null) {
+            for (String element : PathUtils.elements(path)) {
+                node = node.getChildNode(element);
+            }
         }
         return node;
     }
@@ -170,10 +205,15 @@ public class NodeStoreKernel implements MicroKernel {
                 break;
             case '>':
                 tokenizer.read(':');
-                String moveTarget = tokenizer.readString();
-                if (!getNode(builder, path).moveTo(
-                        getNode(builder, getParentPath(moveTarget)),
-                        getName(moveTarget))) {
+                String targetPath = tokenizer.readString();
+                NodeBuilder targetParent =
+                        getNode(builder, getParentPath(targetPath));
+                String targetName = getName(targetPath);
+                if (targetParent.hasChildNode(targetName)) {
+                    throw new MicroKernelException(
+                            "Target node exists: " + targetPath);
+                } else if (!getNode(builder, path).moveTo(
+                        targetParent, targetName)) {
                     throw new MicroKernelException("Move failed");
                 }
                 break;
@@ -256,12 +296,12 @@ public class NodeStoreKernel implements MicroKernel {
     @Override
     public synchronized String getHeadRevision() {
         NodeState root = store.getRoot();
-        if (!root.equals(revisions.get(head).root)) {
-            head = UUID.randomUUID().toString();
-            revisions.put(head, new Revision(root, "external"));
+        if (!root.equals(head.root)) {
+            head = new Revision(head, root, "external");
+            revisions.put(head.id, head);
             notifyAll();
         }
-        return head;
+        return head.id;
     }
 
     @Override
@@ -270,50 +310,38 @@ public class NodeStoreKernel implements MicroKernel {
     }
 
     @Override
-    public synchronized String getRevisionHistory(
+    public String getRevisionHistory(
             long since, int maxEntries, String path)
             throws MicroKernelException {
         if (maxEntries < 0) {
             maxEntries = Integer.MAX_VALUE;
         }
 
+        LinkedList<Revision> list = newLinkedList();
+        Revision revision = getRevision(null);
+        while (revision != null && revision.base != null
+                && revision.timestamp >= since) {
+            list.addFirst(revision);
+            revision = revision.base;
+        }
+
         JsopBuilder json = new JsopBuilder();
         json.array();
         int count = 0;
-        NodeState before = null;
-        for (Map.Entry<String, Revision> entry : revisions.entrySet()) {
-            Revision rev = entry.getValue();
-            if (before != null && rev.timestamp >= since
-                    && !getPathChanges(before, rev.root, path).isEmpty()) {
+        for (Revision rev : list) {
+            if (!rev.hasPathChanged(path)) {
                 if (count++ > maxEntries) {
                     break;
                 }
                 json.object();
-                json.key("id").value(entry.getKey());
+                json.key("id").value(rev.id);
                 json.key("ts").value(rev.timestamp);
                 json.key("msg").value(rev.message);
                 json.endObject();
             }
-            before = rev.root;
         }
         json.endArray();
         return json.toString();
-    }
-
-    private String getPathChanges(
-            NodeState before, NodeState after, String path) {
-        if (path != null) {
-            for (String element : PathUtils.elements(path)) {
-                before = before.getChildNode(element);
-                after = after.getChildNode(element);
-            }
-        } else {
-            path = "/";
-        }
-
-        JsopDiff diff = new JsopDiff(blobSerializer, path);
-        after.compareAgainstBaseState(before, diff);
-        return diff.toString();
     }
 
     @Override
@@ -321,47 +349,46 @@ public class NodeStoreKernel implements MicroKernel {
             String oldHeadRevisionId, long timeout)
             throws MicroKernelException, InterruptedException {
         long stop = System.currentTimeMillis() + timeout;
-        while (head.equals(oldHeadRevisionId) && timeout > 0) {
+        while (head.id.equals(oldHeadRevisionId) && timeout > 0) {
             wait(timeout);
             timeout = stop - System.currentTimeMillis();
         }
-        return head;
+        return head.id;
     }
 
     @Override
-    public synchronized String getJournal(
+    public String getJournal(
             String fromRevisionId, String toRevisionId, String path)
             throws MicroKernelException {
-        if (!revisions.containsKey(fromRevisionId)) {
-            throw new  MicroKernelException(
-                    "Revision not found: " + fromRevisionId);
+        LinkedList<Revision> list = newLinkedList();
+        Revision revision = getRevision(toRevisionId);
+        while (revision != null) {
+            list.addFirst(revision);
+            if (revision.id.equals(fromRevisionId)) {
+                break;
+            } else if (revision.base == null) {
+                if (getRevision(fromRevisionId).branch != null) {
+                    throw new MicroKernelException();
+                }
+                list.clear();
+                break;
+            }
+            revision = revision.base;
         }
 
         JsopBuilder json = new JsopBuilder();
         json.array();
-        NodeState before = null;
-        boolean active = false;
-        for (Map.Entry<String, Revision> entry : revisions.entrySet()) {
-            String id = entry.getKey();
-            Revision rev = entry.getValue();
-            active = active || id.equals(fromRevisionId);
-            if (before != null && active) {
-                String jsop = getPathChanges(before, rev.root, path);
-                if (!jsop.isEmpty()) {
-                    json.object();
-                    json.key("id").value(id);
-                    json.key("ts").value(rev.timestamp);
-                    json.key("msg").value(rev.message);
-                    json.key("changes").value(jsop);
-                    json.endObject();
-                }
+        for (Revision rev : list) {
+            String jsop = rev.getPathChanges(path, blobSerializer);
+            if (!jsop.isEmpty()) {
+                json.object();
+                json.key("id").value(rev.id);
+                json.key("ts").value(rev.timestamp);
+                json.key("msg").value(rev.message);
+                json.key("changes").value(jsop);
+                json.endObject();
             }
-            if (id.equals(toRevisionId)) {
-                break;
-            }
-            before = rev.root;
         }
-
         json.endArray();
         return json.toString();
     }
@@ -370,21 +397,8 @@ public class NodeStoreKernel implements MicroKernel {
     public String diff(
             String fromRevisionId, String toRevisionId, String path, int depth)
             throws MicroKernelException {
-        NodeState before = getRoot(fromRevisionId);
-        NodeState after = getRoot(toRevisionId);
-
-        if (path != null) {
-            for (String element : PathUtils.elements(path)) {
-                before = before.getChildNode(element);
-                after = after.getChildNode(element);
-            }
-        } else {
-            path = "/";
-        }
-
-        if (depth < 0) {
-            depth = Integer.MAX_VALUE;
-        }
+        NodeState before = getNode(fromRevisionId, path);
+        NodeState after = getNode(toRevisionId, path);
 
         JsopDiff diff = new JsopDiff(path, depth);
         after.compareAgainstBaseState(before, diff);
@@ -414,11 +428,7 @@ public class NodeStoreKernel implements MicroKernel {
             String path, String revisionId, int depth,
             long offset, int maxChildNodes, String filter)
             throws MicroKernelException {
-        NodeState node = getRoot(revisionId);
-        for (String element : PathUtils.elements(path)) {
-            node = node.getChildNode(element);
-        }
-
+        NodeState node = getNode(revisionId, path);
         if (node.exists()) {
             if (maxChildNodes < 0) {
                 maxChildNodes = Integer.MAX_VALUE;
@@ -439,76 +449,67 @@ public class NodeStoreKernel implements MicroKernel {
     public synchronized String commit(
             String path, String jsonDiff, String revisionId, String message)
             throws MicroKernelException {
-        if (revisionId == null) {
-            revisionId = head;
+        Revision revision = getRevision(revisionId);
+
+        NodeBuilder builder = revision.branch;
+        if (builder == null) {
+            builder = revision.root.builder();
         }
 
-        Revision r = revisions.get(revisionId);
-        if (r != null) {
+        applyJsop(builder, path, jsonDiff);
+
+        if (revision.branch != null) {
+            revision = new Revision(revision, builder.getNodeState(), message);
+        } else {
             try {
-                NodeBuilder builder = r.root.builder();
-                applyJsop(builder, path, jsonDiff);
                 NodeState newRoot = store.merge(
-                        builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-                Revision old = revisions.get(head);
-                if (!newRoot.equals(old.root)) {
-                    String uuid = UUID.randomUUID().toString();
-                    revisions.put(uuid, new Revision(newRoot, message));
-                    head = uuid;
+                        builder, CONFLICT_HOOK, CommitInfo.EMPTY);
+                if (!newRoot.equals(head.root)) {
+                    revision = new Revision(head, newRoot, message);
+                    head = revision;
                     notifyAll();
+                } else {
+                    return head.id;
                 }
-
-                return head;
             } catch (CommitFailedException e) {
                 throw new MicroKernelException(e);
             }
         }
 
-        NodeBuilder builder = branches.remove(revisionId);
-        if (builder != null) {
-            applyJsop(builder, path, jsonDiff);
-            String uuid = UUID.randomUUID().toString();
-            branches.put(uuid, builder);
-            return uuid;
-        }
-
-        throw new MicroKernelException("Revision not found: " + revisionId);
+        revisions.put(revision.id, revision);
+        return revision.id;
     }
 
     @Override
     public synchronized String branch(String trunkRevisionId)
             throws MicroKernelException {
-        String uuid = UUID.randomUUID().toString();
-        branches.put(uuid, getRoot(trunkRevisionId).builder());
-        return uuid;
+        Revision branch = new Revision(getRevision(trunkRevisionId));
+        revisions.put(branch.id, branch);
+        return branch.id;
     }
 
     @Override
     public synchronized String merge(String branchRevisionId, String message)
             throws MicroKernelException {
-        NodeBuilder builder = branches.remove(branchRevisionId);
-        if (builder != null) {
-            try {
-                NodeState newRoot = store.merge(
-                        builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-                Revision old = revisions.get(head);
-                if (!newRoot.equals(old.root)) {
-                    String uuid = UUID.randomUUID().toString();
-                    revisions.put(uuid, new Revision(newRoot, message));
-                    head = uuid;
-                    notifyAll();
-                }
-
-                return head;
-            } catch (CommitFailedException e) {
-                throw new MicroKernelException(e);
-            }
-        } else {
+        Revision revision = getRevision(branchRevisionId);
+        if (revision.branch == null) {
             throw new MicroKernelException(
                     "Branch not found: " + branchRevisionId);
         }
+
+        try {
+            NodeState newRoot = store.merge(
+                    revision.branch, CONFLICT_HOOK, CommitInfo.EMPTY);
+            if (!newRoot.equals(head.root)) {
+                head = new Revision(head, newRoot, message);
+                revisions.put(head.id, head);
+                notifyAll();
+            }
+        } catch (CommitFailedException e) {
+            throw new MicroKernelException(e);
+        }
+
+        return head.id;
     }
 
     @Override
@@ -598,24 +599,65 @@ public class NodeStoreKernel implements MicroKernel {
 
     private static class Revision {
 
+        private final Revision base;
+
+        private final NodeBuilder branch;
+
+        private final String id = UUID.randomUUID().toString();
+
         private final NodeState root;
 
         private final String message;
 
         private final long timestamp;
 
-        Revision(NodeState root, String message) {
+        Revision(NodeState root) {
+            this.base = null;
+            this.branch = null;
+            this.root = root;
+            this.message = "start";
+            this.timestamp = 0;
+        }
+
+        Revision(Revision base) {
+            this.base = base;
+            this.branch = base.root.builder();
+            this.root = base.root;
+            this.message = "branch";
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        public Revision(Revision base, NodeState root, String message) {
+            this.base = base;
+            this.branch = base.branch;
             this.root = root;
             this.message = message;
             this.timestamp = System.currentTimeMillis();
         }
 
-        Revision(NodeState root) {
-            this.root = root;
-            this.message = "origin";
-            this.timestamp = -1;
+        boolean hasPathChanged(String path) {
+            return base != null
+                    && getNode(root, path).equals(getNode(base.root, path));
         }
 
+        String getPathChanges(String path, BlobSerializer blobs) {
+            JsopDiff diff = new JsopDiff(blobs, path);
+            if (base != null) {
+                getNode(root, path).compareAgainstBaseState(
+                        getNode(base.root, path), diff);
+            }
+            return diff.toString();
+        }
+
+    }
+
+    private static NodeState getNode(NodeState node, String path) {
+        if (path != null) {
+            for (String element : PathUtils.elements(path)) {
+                node = node.getChildNode(element);
+            }
+        }
+        return node;
     }
 
 }
