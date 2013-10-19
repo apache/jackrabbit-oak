@@ -39,10 +39,19 @@ public class JsopDiff implements NodeStateDiff {
             JsopBuilder jsop, BlobSerializer blobs, String path, int depth) {
         this.jsop = jsop;
         this.blobs = blobs;
-        this.path = path;
-        this.depth = depth;
-    }
 
+        if (path != null) {
+            this.path = path;
+        } else {
+            this.path = "/";
+        }
+
+        if (depth >= 0) {
+            this.depth = depth;
+        } else {
+            this.depth = Integer.MAX_VALUE;
+        }
+    }
 
     JsopDiff(BlobSerializer blobs, String path) {
         this(new JsopBuilder(), blobs, path, Integer.MAX_VALUE);
