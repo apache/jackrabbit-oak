@@ -58,7 +58,7 @@ public class NodeStoreKernel implements MicroKernel {
 
     private final NodeStore store;
 
-    private final Map<String, NodeState> revisions = newLinkedHashMap();
+    private final Map<String, Revision> revisions = newLinkedHashMap();
 
     private final Map<String, NodeBuilder> branches = newLinkedHashMap();
 
@@ -78,7 +78,7 @@ public class NodeStoreKernel implements MicroKernel {
     public NodeStoreKernel(NodeStore store) {
         this.store = store;
         this.head = UUID.randomUUID().toString();
-        revisions.put(head, store.getRoot());
+        revisions.put(head, new Revision(store.getRoot()));
     }
 
     private synchronized NodeState getRoot(String revision)
@@ -87,9 +87,9 @@ public class NodeStoreKernel implements MicroKernel {
             revision = head;
         }
 
-        NodeState root = revisions.get(revision);
-        if (root != null) {
-            return root;
+        Revision r = revisions.get(revision);
+        if (r != null) {
+            return r.root;
         }
 
         NodeBuilder builder = branches.get(revision);
@@ -256,9 +256,9 @@ public class NodeStoreKernel implements MicroKernel {
     @Override
     public synchronized String getHeadRevision() {
         NodeState root = store.getRoot();
-        if (!root.equals(revisions.get(head))) {
+        if (!root.equals(revisions.get(head).root)) {
             head = UUID.randomUUID().toString();
-            revisions.put(head, root);
+            revisions.put(head, new Revision(root, "external"));
             notifyAll();
         }
         return head;
@@ -273,19 +273,47 @@ public class NodeStoreKernel implements MicroKernel {
     public synchronized String getRevisionHistory(
             long since, int maxEntries, String path)
             throws MicroKernelException {
+        if (maxEntries < 0) {
+            maxEntries = Integer.MAX_VALUE;
+        }
+
         JsopBuilder json = new JsopBuilder();
         json.array();
         int count = 0;
-        for (String revision : revisions.keySet()) {
-            if (count++ > maxEntries) {
-                break;
+        NodeState before = null;
+        for (Map.Entry<String, Revision> entry : revisions.entrySet()) {
+            Revision rev = entry.getValue();
+            if (before != null && rev.timestamp >= since
+                    && !getPathChanges(before, rev.root, path).isEmpty()) {
+                if (count++ > maxEntries) {
+                    break;
+                }
+                json.object();
+                json.key("id").value(entry.getKey());
+                json.key("ts").value(rev.timestamp);
+                json.key("msg").value(rev.message);
+                json.endObject();
             }
-            json.object();
-            json.key("id").value(revision);
-            json.endObject();
+            before = rev.root;
         }
         json.endArray();
         return json.toString();
+    }
+
+    private String getPathChanges(
+            NodeState before, NodeState after, String path) {
+        if (path != null) {
+            for (String element : PathUtils.elements(path)) {
+                before = before.getChildNode(element);
+                after = after.getChildNode(element);
+            }
+        } else {
+            path = "/";
+        }
+
+        JsopDiff diff = new JsopDiff(blobSerializer, path);
+        after.compareAgainstBaseState(before, diff);
+        return diff.toString();
     }
 
     @Override
@@ -301,10 +329,41 @@ public class NodeStoreKernel implements MicroKernel {
     }
 
     @Override
-    public String getJournal(
+    public synchronized String getJournal(
             String fromRevisionId, String toRevisionId, String path)
             throws MicroKernelException {
-        throw new UnsupportedOperationException();
+        if (!revisions.containsKey(fromRevisionId)) {
+            throw new  MicroKernelException(
+                    "Revision not found: " + fromRevisionId);
+        }
+
+        JsopBuilder json = new JsopBuilder();
+        json.array();
+        NodeState before = null;
+        boolean active = false;
+        for (Map.Entry<String, Revision> entry : revisions.entrySet()) {
+            String id = entry.getKey();
+            Revision rev = entry.getValue();
+            active = active || id.equals(fromRevisionId);
+            if (before != null && active) {
+                String jsop = getPathChanges(before, rev.root, path);
+                if (!jsop.isEmpty()) {
+                    json.object();
+                    json.key("id").value(id);
+                    json.key("ts").value(rev.timestamp);
+                    json.key("msg").value(rev.message);
+                    json.key("changes").value(jsop);
+                    json.endObject();
+                }
+            }
+            if (id.equals(toRevisionId)) {
+                break;
+            }
+            before = rev.root;
+        }
+
+        json.endArray();
+        return json.toString();
     }
 
     @Override
@@ -364,8 +423,11 @@ public class NodeStoreKernel implements MicroKernel {
             if (maxChildNodes < 0) {
                 maxChildNodes = Integer.MAX_VALUE;
             }
+            if (filter == null) {
+                filter = "{}";
+            }
             JsonSerializer json = new JsonSerializer(
-                    depth, offset, maxChildNodes, blobSerializer);
+                    depth, offset, maxChildNodes, filter, blobSerializer);
             json.serialize(node);
             return json.toString();
         } else {
@@ -381,19 +443,20 @@ public class NodeStoreKernel implements MicroKernel {
             revisionId = head;
         }
 
-        NodeState root = revisions.get(revisionId);
-        if (root != null) {
+        Revision r = revisions.get(revisionId);
+        if (r != null) {
             try {
-                NodeBuilder builder = root.builder();
+                NodeBuilder builder = r.root.builder();
                 applyJsop(builder, path, jsonDiff);
                 NodeState newRoot = store.merge(
                         builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-                NodeState oldRoot = revisions.get(head);
-                if (!newRoot.equals(oldRoot)) {
+                Revision old = revisions.get(head);
+                if (!newRoot.equals(old.root)) {
                     String uuid = UUID.randomUUID().toString();
-                    revisions.put(uuid, newRoot);
+                    revisions.put(uuid, new Revision(newRoot, message));
                     head = uuid;
+                    notifyAll();
                 }
 
                 return head;
@@ -430,11 +493,12 @@ public class NodeStoreKernel implements MicroKernel {
                 NodeState newRoot = store.merge(
                         builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-                NodeState oldRoot = revisions.get(head);
-                if (!newRoot.equals(oldRoot)) {
+                Revision old = revisions.get(head);
+                if (!newRoot.equals(old.root)) {
                     String uuid = UUID.randomUUID().toString();
-                    revisions.put(uuid, newRoot);
+                    revisions.put(uuid, new Revision(newRoot, message));
                     head = uuid;
+                    notifyAll();
                 }
 
                 return head;
@@ -530,6 +594,28 @@ public class NodeStoreKernel implements MicroKernel {
         } catch (IOException e) {
             throw new MicroKernelException("Failed to create a blob", e);
         }
+    }
+
+    private static class Revision {
+
+        private final NodeState root;
+
+        private final String message;
+
+        private final long timestamp;
+
+        Revision(NodeState root, String message) {
+            this.root = root;
+            this.message = message;
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        Revision(NodeState root) {
+            this.root = root;
+            this.message = "origin";
+            this.timestamp = -1;
+        }
+
     }
 
 }
