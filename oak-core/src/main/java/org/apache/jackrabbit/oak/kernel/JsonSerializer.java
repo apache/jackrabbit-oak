@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.kernel;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -28,7 +29,6 @@ import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -45,45 +45,51 @@ class JsonSerializer {
 
     private final int maxChildNodes;
 
-    private final boolean includeChildNodeCount;
+    private final JsonFilter filter;
 
     private final BlobSerializer blobs;
 
     private JsonSerializer(
             JsopBuilder json, int depth, long offset, int maxChildNodes,
-            boolean includeChildNodeCount, BlobSerializer blobs) {
+            JsonFilter filter, BlobSerializer blobs) {
         this.json = checkNotNull(json);
         this.depth = depth;
         this.offset = offset;
         this.maxChildNodes = maxChildNodes;
-        this.includeChildNodeCount = includeChildNodeCount;
+        this.filter = checkNotNull(filter);
         this.blobs = checkNotNull(blobs);
     }
 
     JsonSerializer(
-            int depth, long offset, int maxChildNodes, BlobSerializer blobs) {
-        this(new JsopBuilder(), depth, offset, maxChildNodes, true, blobs);
+            int depth, long offset, int maxChildNodes,
+            String filter, BlobSerializer blobs) {
+        this(new JsopBuilder(), depth, offset, maxChildNodes,
+                new JsonFilter(filter), blobs);
     }
 
     JsonSerializer(JsopBuilder json, BlobSerializer blobs) {
-        this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE, false, blobs);
+        this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
+                new JsonFilter("{\"properties\":[\"*\", \"-:childNodeCount\"]}"),
+                blobs);
     }
 
     protected JsonSerializer getChildSerializer() {
         return new JsonSerializer(
-                json, depth - 1, 0, maxChildNodes,
-                includeChildNodeCount, blobs);
+                json, depth - 1, 0, maxChildNodes, filter, blobs);
     }
 
     void serialize(NodeState node) {
         json.object();
 
         for (PropertyState property : node.getProperties()) {
-            json.key(property.getName());
-            serialize(property);
+            String name = property.getName();
+            if (filter.includeProperty(name)) {
+                json.key(name);
+                serialize(property);
+            }
         }
 
-        if (includeChildNodeCount) {
+        if (filter.includeProperty(":childNodeCount")) {
             json.key(":childNodeCount");
             json.value(node.getChildNodeCount(Integer.MAX_VALUE));
         }
@@ -91,12 +97,13 @@ class JsonSerializer {
         int index = 0;
         int count = 0;
         for (ChildNodeEntry child : node.getChildNodeEntries()) {
-            if (index++ >= offset) {
+            String name = child.getName();
+            if (filter.includeNode(name) && index++ >= offset) {
                 if (count++ >= maxChildNodes) {
                     break;
                 }
 
-                json.key(child.getName());
+                json.key(name);
                 if (depth > 0) {
                     getChildSerializer().serialize(child.getNodeState());
                 } else {
@@ -135,6 +142,13 @@ class JsonSerializer {
             json.value(property.getValue(BOOLEAN, index).booleanValue());
         } else if (type == LONG) {
             json.value(property.getValue(LONG, index).longValue());
+        } else if (type == DOUBLE) {
+            Double value = property.getValue(DOUBLE, index);
+            if (value.isNaN() || value.isInfinite()) {
+                json.value(TypeCodes.encode(type.tag(), value.toString()));
+            } else {
+                json.encodedValue(value.toString());
+            }
         } else if (type == BINARY) {
             Blob blob = property.getValue(BINARY, index);
             json.value(TypeCodes.encode(type.tag(), blobs.serialize(blob)));

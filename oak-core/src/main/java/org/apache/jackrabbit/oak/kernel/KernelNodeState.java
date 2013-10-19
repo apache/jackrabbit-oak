@@ -42,6 +42,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -51,7 +52,9 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
@@ -751,7 +754,13 @@ public final class KernelNodeState extends AbstractNodeState {
     private PropertyState readProperty(String name, JsopReader reader) {
         if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
-            return createProperty(name, number, PropertyType.LONG);
+            try {
+                return new LongPropertyState(
+                        name, Long.parseLong(number), Type.LONG);
+            } catch (NumberFormatException e) {
+                return new DoublePropertyState(
+                        name, Double.parseDouble(number));
+            }
         } else if (reader.matches(JsopReader.TRUE)) {
             return BooleanPropertyState.booleanProperty(name, true);
         } else if (reader.matches(JsopReader.FALSE)) {
@@ -795,8 +804,13 @@ public final class KernelNodeState extends AbstractNodeState {
         while (!reader.matches(']')) {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();
-                type = PropertyType.LONG;
-                values.add(Conversions.convert(number).toLong());
+                try {
+                    type = PropertyType.LONG;
+                    values.add(Long.parseLong(number));
+                } catch (NumberFormatException e) {
+                    type = PropertyType.DOUBLE;
+                    values.add(Double.parseDouble(number));
+                }
             } else if (reader.matches(JsopReader.TRUE)) {
                 type = PropertyType.BOOLEAN;
                 values.add(true);
