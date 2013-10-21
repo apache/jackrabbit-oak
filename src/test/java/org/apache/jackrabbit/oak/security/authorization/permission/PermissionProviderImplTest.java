@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -52,12 +54,12 @@ import static org.junit.Assert.assertTrue;
 public class PermissionProviderImplTest extends AbstractSecurityTest implements AccessControlConstants {
 
     private static final String ADMINISTRATOR_GROUP = "administrators";
-    private static final String[] READ_PATHS = new String[] {
+    private static final Set<String> READ_PATHS = ImmutableSet.of(
             NamespaceConstants.NAMESPACES_PATH,
             NodeTypeConstants.NODE_TYPES_PATH,
             PrivilegeConstants.PRIVILEGES_PATH,
             "/test"
-    };
+    );
 
     private Group adminstrators;
 

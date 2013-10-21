@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
  * permissions use 2 stores, one for the user principals and one for the
  * group principals).
  */
-class PermissionStore implements PermissionConstants {
+final class PermissionStore implements PermissionConstants {
 
     private static final long MAX_SIZE = 250; // TODO define size or make configurable
 

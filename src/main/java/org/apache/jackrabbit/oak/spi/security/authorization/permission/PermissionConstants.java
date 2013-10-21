@@ -107,9 +107,9 @@ public interface PermissionConstants {
      *
      * @since OAK 1.0
      */
-    String[] DEFAULT_READ_PATHS = new String[] {
+    Set<String> DEFAULT_READ_PATHS = ImmutableSet.of(
             NamespaceConstants.NAMESPACES_PATH,
             NodeTypeConstants.NODE_TYPES_PATH,
             PrivilegeConstants.PRIVILEGES_PATH
-    };
+    );
 }
