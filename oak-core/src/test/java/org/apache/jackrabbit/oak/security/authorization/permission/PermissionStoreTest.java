@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -44,6 +45,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class PermissionStoreTest extends AbstractSecurityTest {
 
+    private AuthorizationConfiguration acConfig;
     private ContentSession testSession;
     private Root testRoot;
 
@@ -60,6 +62,7 @@ public class PermissionStoreTest extends AbstractSecurityTest {
         root.commit();
         testSession = createTestSession();
         testRoot = testSession.getLatestRoot();
+        acConfig = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
     }
 
     @Override
@@ -84,6 +87,10 @@ public class PermissionStoreTest extends AbstractSecurityTest {
         }
     }
 
+    private PermissionProviderImpl createPermissionProvider() {
+        return new PermissionProviderImpl(testRoot, testSession.getAuthInfo().getPrincipals(), acConfig);
+    }
+
     @Test
     public void testReadAccess() {
         Tree ps = testRoot.getTree(PermissionConstants.PERMISSIONS_STORE_PATH);
@@ -92,7 +99,7 @@ public class PermissionStoreTest extends AbstractSecurityTest {
 
     @Test
     public void testGetTreePermission() {
-        PermissionProvider pp = new PermissionProviderImpl(testRoot, testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+        PermissionProvider pp = createPermissionProvider();
 
         Tree t = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH);
         assertSame(TreePermission.EMPTY, pp.getTreePermission(t, TreePermission.ALL));
@@ -100,7 +107,7 @@ public class PermissionStoreTest extends AbstractSecurityTest {
 
     @Test
     public void testIsGranted() {
-        PermissionProvider pp = new PermissionProviderImpl(testRoot, testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+        PermissionProvider pp = createPermissionProvider();
 
         Tree t = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH);
 
@@ -110,7 +117,7 @@ public class PermissionStoreTest extends AbstractSecurityTest {
 
     @Test
     public void testIsGrantedAtPath() {
-        PermissionProvider pp = new PermissionProviderImpl(testRoot, testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+        PermissionProvider pp = createPermissionProvider();
 
         assertFalse(pp.isGranted(PermissionConstants.PERMISSIONS_STORE_PATH, Session.ACTION_READ));
         assertFalse(pp.isGranted(PermissionConstants.PERMISSIONS_STORE_PATH, Session.ACTION_ADD_NODE));
@@ -118,7 +125,7 @@ public class PermissionStoreTest extends AbstractSecurityTest {
 
     @Test
     public void testHasPrivilege() {
-        PermissionProvider pp = new PermissionProviderImpl(testRoot, testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+        PermissionProvider pp = createPermissionProvider();
 
         Tree t = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH);
         assertFalse(pp.hasPrivileges(t, PrivilegeConstants.JCR_READ));
@@ -126,7 +133,7 @@ public class PermissionStoreTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPrivilege() {
-        PermissionProvider pp = new PermissionProviderImpl(testRoot, testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+        PermissionProvider pp = createPermissionProvider();
 
         Tree t = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH);
         Set<String> privilegeNames = pp.getPrivileges(t);

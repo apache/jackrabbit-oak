@@ -252,7 +252,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private static void checkMixinTypes(Tree parentTree) throws CommitFailedException {
         Iterable<String> mixinNames = TreeUtil.getNames(parentTree, JcrConstants.JCR_MIXINTYPES);
-        if (mixinNames != null && Iterables.contains(mixinNames, MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
+        if (Iterables.contains(mixinNames, MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
             checkValidRepoAccessControlled(parentTree);
         }
     }

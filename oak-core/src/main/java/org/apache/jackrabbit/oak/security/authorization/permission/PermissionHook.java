@@ -24,6 +24,8 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Objects;
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -46,9 +48,6 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Objects;
-import com.google.common.base.Strings;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -90,7 +89,6 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private PrivilegeBitsProvider bitsProvider;
 
     private Map<String, Acl> modified = new HashMap<String, Acl>();
-
     private Map<String, Acl> deleted = new HashMap<String, Acl>();
 
     public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider) {
@@ -114,10 +112,10 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     }
 
     private void apply() {
-        for (Map.Entry<String, Acl> entry:deleted.entrySet()) {
+        for (Map.Entry<String, Acl> entry : deleted.entrySet()) {
             entry.getValue().remove();
         }
-        for (Map.Entry<String, Acl> entry:modified.entrySet()) {
+        for (Map.Entry<String, Acl> entry : modified.entrySet()) {
             entry.getValue().update();
         }
     }
@@ -154,7 +152,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 // ignore hidden nodes
                 return true;
             }
-            String path = parentPath + "/" + name;
+            String path = parentPath + '/' + name;
             Tree tree = getTree(name, after);
             if (isACL(tree)) {
                 Acl acl = new Acl(parentPath, name, new AfterNode(path, after));
@@ -171,7 +169,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 // ignore hidden nodes
                 return true;
             }
-            String path = parentPath + "/" + name;
+            String path = parentPath + '/' + name;
             Tree beforeTree = getTree(name, before);
             Tree afterTree = getTree(name, after);
             if (isACL(beforeTree)) {
@@ -205,7 +203,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 // ignore hidden nodes
                 return true;
             }
-            String path = parentPath + "/" + name;
+            String path = parentPath + '/' + name;
             Tree tree = getTree(name, before);
             if (isACL(tree)) {
                 Acl acl = new Acl(parentPath, name, new BeforeNode(path, before));

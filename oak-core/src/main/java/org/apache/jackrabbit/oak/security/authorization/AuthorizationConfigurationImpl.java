@@ -129,6 +129,6 @@ public class  AuthorizationConfigurationImpl extends ConfigurationBase implement
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
-        return new PermissionProviderImpl(root, principals, getSecurityProvider());
+        return new PermissionProviderImpl(root, principals, this);
     }
 }
