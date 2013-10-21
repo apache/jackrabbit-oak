@@ -106,8 +106,15 @@ public class JoinImpl extends SourceImpl {
         }
         left.setQueryConstraint(queryConstraint);
         right.setQueryConstraint(queryConstraint);
+        setParent(joinCondition);
         right.init(query);
         left.init(query);
+    }
+    
+    @Override
+    protected void setParent(JoinConditionImpl joinCondition) {
+        left.setParent(joinCondition);
+        right.setParent(joinCondition);
     }
 
     @Override
