@@ -48,13 +48,13 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
      */
     static final String TEST_ID = Integer.toHexString(new Random().nextInt());
     
-    static AtomicInteger counter = new AtomicInteger();
+    static AtomicInteger nodeNameCounter = new AtomicInteger();
     
     /**
      * A node name that is guarantee to be unique within the current JVM.
      */
     static String nextNodeName() {
-        return "n" + Integer.toHexString(counter.getAndIncrement());
+        return "n" + Integer.toHexString(nodeNameCounter.getAndIncrement());
     }
     
     private static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
