@@ -43,9 +43,9 @@ public class CreateManyChildNodesTest extends AbstractTest {
 
     @Override
     public void runTest() throws Exception {
-        Node node = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:unstructured");
+        Node node = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:folder");
         for (int i = 0; i < CHILD_COUNT; i++) {
-            node.addNode("node" + i, "nt:unstructured");
+            node.addNode("node" + i, "nt:folder");
         }
         session.save();
     }
