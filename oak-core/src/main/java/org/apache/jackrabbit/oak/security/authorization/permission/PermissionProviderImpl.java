@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -59,11 +58,11 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     private ImmutableRoot immutableRoot;
 
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
-                                  @Nonnull SecurityProvider securityProvider) {
+                                  @Nonnull AuthorizationConfiguration acConfig) {
         this.root = root;
         this.workspaceName = root.getContentSession().getWorkspaceName();
+        this.acConfig = acConfig;
 
-        acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
         immutableRoot = getImmutableRoot(root, acConfig);
 
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
