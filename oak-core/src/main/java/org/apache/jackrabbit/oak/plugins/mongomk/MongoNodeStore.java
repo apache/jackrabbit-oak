@@ -533,13 +533,18 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
             docChildrenCache.put(path, clone);
             c = clone;
         }
-        return Iterables.transform(c.childNames, new Function<String, NodeDocument>() {
+        Iterable<NodeDocument> it = Iterables.transform(c.childNames, 
+                new Function<String, NodeDocument>() {
             @Override
             public NodeDocument apply(String name) {
                 String p = PathUtils.concat(path, name);
                 return store.find(Collection.NODES, Utils.getIdFromPath(p));
             }
         });
+        if (c.childNames.size() > limit) {
+            it = Iterables.limit(it, limit);
+        }
+        return it;
     }
 
     @CheckForNull
