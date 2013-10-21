@@ -58,7 +58,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
  */
 @Component()
 @Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
-public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
+public class  AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
 
     public AuthorizationConfigurationImpl() {
         super();
