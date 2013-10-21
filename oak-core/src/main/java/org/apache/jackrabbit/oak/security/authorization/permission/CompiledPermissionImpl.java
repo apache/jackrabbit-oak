@@ -30,7 +30,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -79,7 +78,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     private final Map<String, Tree> userTrees;
     private final Map<String, Tree> groupTrees;
 
-    private final String[] readPathsCheckList;
+    private final ReadPolicy readPolicy;
 
     private final PermissionStore userStore;
     private final PermissionStore groupStore;
@@ -96,12 +95,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         this.workspaceName = workspaceName;
 
         bitsProvider = new PrivilegeBitsProvider(root);
-        readPathsCheckList = new String[readPaths.size() * 2];
-        int i = 0;
-        for (String p : readPaths) {
-            readPathsCheckList[i++] = p;
-            readPathsCheckList[i++] = p + '/';
-        }
+        readPolicy = (readPaths.isEmpty()) ? EmptyReadPolicy.INSTANCE : new DefaultReadPolicy(readPaths);
 
         userTrees = new HashMap<String, Tree>(principals.size());
         groupTrees = new HashMap<String, Tree>(principals.size());
@@ -128,10 +122,9 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         if (!permissionsTree.exists() || principals.isEmpty()) {
             return NoPermissions.getInstance();
         } else {
-            String[] readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
+            Set<String> readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
             return new CompiledPermissionImpl(principals, root, workspaceName,
-                    permissionsTree, acConfig.getRestrictionProvider(),
-                    ImmutableSet.copyOf(readPaths));
+                    permissionsTree, acConfig.getRestrictionProvider(), readPaths);
         }
     }
 
@@ -181,7 +174,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         return new RepositoryPermission() {
             @Override
             public boolean isGranted(long repositoryPermissions) {
-                return hasPermissions(getEntryIterator(new EntryPredicate()), repositoryPermissions, null, null);
+                return hasPermissions(getEntryIterator(new EntryPredicate()), repositoryPermissions, null);
             }
         };
     }
@@ -271,7 +264,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     @Override
     public boolean isGranted(@Nonnull String path, long permissions) {
         Iterator<PermissionEntry> it = getEntryIterator(new EntryPredicate(path));
-        return hasPermissions(it, permissions, null, path);
+        return hasPermissions(it, permissions, path);
     }
 
     @Override
@@ -288,18 +281,18 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     private boolean internalIsGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
         Iterator<PermissionEntry> it = getEntryIterator(new EntryPredicate(tree, property));
-        return hasPermissions(it, permissions, tree, null);
+        return hasPermissions(it, permissions, tree.getPath());
     }
 
     private boolean hasPermissions(@Nonnull Iterator<PermissionEntry> entries,
-                                   long permissions, @Nullable Tree tree, @Nullable String path) {
+                                   long permissions, @Nullable String path) {
         // calculate readable paths if the given permissions includes any read permission.
-        boolean isReadable = Permissions.diff(Permissions.READ, permissions) != Permissions.READ && isReadablePath(tree, path, false);
+        boolean isReadable = Permissions.diff(Permissions.READ, permissions) != Permissions.READ && readPolicy.isReadablePath(path, false);
         if (!entries.hasNext() && !isReadable) {
             return false;
         }
 
-        boolean respectParent = (tree != null || path != null) &&
+        boolean respectParent = (path != null) &&
                 (Permissions.includes(permissions, Permissions.ADD_NODE) ||
                         Permissions.includes(permissions, Permissions.REMOVE_NODE) ||
                         Permissions.includes(permissions, Permissions.MODIFY_CHILD_NODE_COLLECTION));
@@ -319,7 +312,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         if (respectParent) {
             parentAllowBits = PrivilegeBits.getInstance();
             parentDenyBits = PrivilegeBits.getInstance();
-            parentPath = PermissionUtil.getParentPathOrNull((path != null) ? path : tree.getPath());
+            parentPath = PermissionUtil.getParentPathOrNull(path);
         } else {
             parentAllowBits = PrivilegeBits.EMPTY;
             parentDenyBits = PrivilegeBits.EMPTY;
@@ -404,7 +397,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         }
 
         // special handling for paths that are always readable
-        if (isReadablePath(tree, null, false)) {
+        if (tree != null && readPolicy.isReadableTree(tree, false)) {
             allowBits.add(bitsProvider.getBits(PrivilegeConstants.JCR_READ));
         }
         return allowBits;
@@ -415,23 +408,6 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         Iterator<PermissionEntry> userEntries = userStore.getEntryIterator(predicate);
         Iterator<PermissionEntry> groupEntries = groupStore.getEntryIterator(predicate);
         return concat(userEntries, groupEntries);
-    }
-
-    private boolean isReadablePath(@Nullable Tree tree, @Nullable String treePath, boolean exactMatch) {
-        if (readPathsCheckList.length > 0) {
-            String targetPath = (tree != null) ? tree.getPath() : treePath;
-            if (targetPath != null) {
-                for (int i = 0; i < readPathsCheckList.length; i++) {
-                    if (targetPath.equals(readPathsCheckList[i++])) {
-                        return true;
-                    }
-                    if (!exactMatch && targetPath.startsWith(readPathsCheckList[i])) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     @CheckForNull
@@ -491,8 +467,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
             } else {
                 parent = null;
             }
+            readableTree = readPolicy.isReadableTree(tree, parent);
             isAcTree = (treeType == TreeTypeProvider.TYPE_AC);
-            readableTree = (parent != null && parent.readableTree) || isReadablePath(tree, null, true);
         }
 
         @Override
@@ -543,12 +519,12 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
         @Override
         public boolean isGranted(long permissions) {
-            return hasPermissions(getIterator(null), permissions, tree, null);
+            return hasPermissions(getIterator(null), permissions, tree.getPath());
         }
 
         @Override
         public boolean isGranted(long permissions, @Nonnull PropertyState property) {
-            return hasPermissions(getIterator(property), permissions, tree, null);
+            return hasPermissions(getIterator(property), permissions, tree.getPath());
         }
 
         private Iterator<PermissionEntry> getIterator(@Nullable PropertyState property) {
@@ -595,6 +571,102 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                     tp = tp.parent;
                 }
             }
+        }
+    }
+
+    private interface ReadPolicy {
+
+        boolean isReadableTree(@Nonnull Tree tree, @Nullable TreePermissionImpl parent);
+        boolean isReadableTree(@Nonnull Tree tree, boolean exactMatch);
+        boolean isReadablePath(@Nullable String treePath, boolean exactMatch);
+    }
+
+    private static final class EmptyReadPolicy implements ReadPolicy {
+
+        private static final ReadPolicy INSTANCE = new EmptyReadPolicy();
+
+        private EmptyReadPolicy() {}
+
+        @Override
+        public boolean isReadableTree(@Nonnull Tree tree, @Nullable TreePermissionImpl parent) {
+            return false;
+        }
+
+        public boolean isReadableTree(@Nonnull Tree tree, boolean exactMatch) {
+            return false;
+        }
+
+        @Override
+        public boolean isReadablePath(@Nullable String treePath, boolean exactMatch) {
+            return false;
+        }
+    }
+
+    private static final class DefaultReadPolicy implements ReadPolicy {
+
+        private final String[] readPaths;
+        private final String[] altReadPaths;
+        private final boolean isDefaultPaths;
+
+        private DefaultReadPolicy(Set<String> readPaths) {
+            this.readPaths = readPaths.toArray(new String[readPaths.size()]);
+            altReadPaths = new String[readPaths.size()];
+            int i = 0;
+            for (String p : this.readPaths) {
+                altReadPaths[i++] = p + '/';
+            }
+            // optimize evaluation for default setup where all readable paths
+            // are located underneath /jcr:system
+            isDefaultPaths = (readPaths.size() == DEFAULT_READ_PATHS.size()) && readPaths.containsAll(DEFAULT_READ_PATHS);
+        }
+
+        public boolean isReadableTree(@Nonnull Tree tree, @Nullable TreePermissionImpl parent) {
+            if (parent != null) {
+                if (parent.readableTree) {
+                    return true;
+                } else if (!isDefaultPaths || parent.tree.getName().equals(JcrConstants.JCR_SYSTEM)) {
+                    return isReadableTree(tree, true);
+                } else  {
+                    return false;
+                }
+            } else {
+                return isReadableTree(tree, true);
+            }
+        }
+
+        public boolean isReadableTree(@Nonnull Tree tree, boolean exactMatch) {
+            String targetPath = tree.getPath();
+            for (String path : readPaths) {
+                if (targetPath.equals(path)) {
+                    return true;
+                }
+            }
+            if (!exactMatch) {
+                for (String path : altReadPaths) {
+                    if (targetPath.startsWith(path)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public boolean isReadablePath(@Nullable String treePath, boolean exactMatch) {
+            if (treePath != null) {
+                for (String path : readPaths) {
+                    if (treePath.equals(path)) {
+                        return true;
+                    }
+                }
+                if (!exactMatch) {
+                    for (String path : altReadPaths) {
+                        if (treePath.startsWith(path)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
     }
 }

@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+import java.util.Set;
 import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +35,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ReadPolicyTest extends AbstractAccessControlTest {
 
-    private String[] readPaths;
+    private Set<String> readPaths;
 
     @Override
     @Before
