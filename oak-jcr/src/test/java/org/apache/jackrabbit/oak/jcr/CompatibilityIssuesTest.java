@@ -28,11 +28,14 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
@@ -40,6 +43,8 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
@@ -51,11 +56,21 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
 
 import junit.framework.Assert;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -325,6 +340,30 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         objectStream.writeObject(o);
         objectStream.flush();
         return out;
+    }
+
+    @Test
+    public void testSearchDescendentUsingXPath() throws Exception {
+        Session adminSession = getAdminSession();
+        String testNodePath = "/home/users/geometrixx-outdoors/emily.andrews@mailinator.com/social/relationships/following/aaron.mcdonald@mailinator.com";
+        Node testNode = JcrUtils.getOrCreateByPath(testNodePath, null, adminSession);
+        testNode.setProperty("id", "aaron.mcdonald@mailinator.com");
+
+        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        JackrabbitAccessControlList tmpl = AccessControlUtils.getAccessControlList(acMgr, "/home/users/geometrixx-outdoors");
+        ValueFactory vf = adminSession.getValueFactory();
+        Map<String, Value> restrictions = new HashMap<String, Value>();
+        restrictions.put("rep:glob", vf.createValue("*/social/relationships/following/*"));
+        tmpl.addEntry(EveryonePrincipal.getInstance(), new Privilege[]{acMgr.privilegeFromName(Privilege.JCR_READ)}, true, restrictions);
+        acMgr.setPolicy(tmpl.getPath(), tmpl);
+        adminSession.save();
+
+        Session anonymousSession = getRepository().login(new GuestCredentials());
+        QueryManager qm = anonymousSession.getWorkspace().getQueryManager();
+        Query q = qm.createQuery("/jcr:root/home//social/relationships/following//*[id='aaron.mcdonald@mailinator.com']", Query.XPATH);
+        QueryResult r = q.execute();
+        RowIterator it = r.getRows();
+        Assert.assertTrue(it.hasNext());
     }
 
 }

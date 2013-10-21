@@ -51,4 +51,14 @@ public abstract class JoinConditionImpl extends AstElement {
      */
     public abstract void restrictPushDown(SelectorImpl s);
 
+    /**
+     * Check whether the given source is the parent of the join condition, as
+     * selector "[b]" is the parent of the join condition
+     * "isdescendantnode([a], [b])".
+     * 
+     * @param source the source
+     * @return true if the source is the parent
+     */
+    public abstract boolean isParent(SourceImpl source);
+
 }

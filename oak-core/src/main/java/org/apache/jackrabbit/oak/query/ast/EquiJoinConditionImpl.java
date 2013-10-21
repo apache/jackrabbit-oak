@@ -142,5 +142,10 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
             s.restrictSelector(ex);
         }
     }
+    
+    @Override
+    public boolean isParent(SourceImpl source) {
+        return false;
+    }
 
 }

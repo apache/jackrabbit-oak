@@ -69,6 +69,13 @@ public abstract class SourceImpl extends AstElement {
     protected boolean outerJoinRightHandSide;
     
     /**
+     * Whether this selector is the parent of a descendent or parent-child join.
+     * Access rights don't need to be checked in such selectors (unless there
+     * are conditions on the selector).
+     */
+    protected boolean isParent;
+    
+    /**
      * Set the complete constraint of the query (the WHERE ... condition).
      *
      * @param queryConstraint the constraint
@@ -160,5 +167,7 @@ public abstract class SourceImpl extends AstElement {
      * @return true if there is a next row
      */
     public abstract boolean next();
+
+    abstract void setParent(JoinConditionImpl joinCondition);
 
 }

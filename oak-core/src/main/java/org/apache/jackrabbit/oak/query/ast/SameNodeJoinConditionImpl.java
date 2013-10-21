@@ -117,5 +117,10 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     public void restrictPushDown(SelectorImpl s) {
         // nothing to do
     }
+    
+    @Override
+    public boolean isParent(SourceImpl source) {
+        return false;
+    }
 
 }
