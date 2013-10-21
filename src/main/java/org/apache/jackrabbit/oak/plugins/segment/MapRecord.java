@@ -37,6 +37,7 @@ class MapRecord extends Record {
 
     private static final long M = 0x5DEECE66DL;
     private static final long A = 0xBL;
+    static final long HASH_MASK = 0xFFFFFFFFL;
 
     static int getHash(String name) {
         return (int) (((name.hashCode() ^ M) * M + A) >> 16);
@@ -153,7 +154,7 @@ class MapRecord extends Record {
             int bitmap = segment.readInt(getOffset(4));
             int mask = BUCKETS_PER_LEVEL - 1;
             int shift = 32 - (level + 1) * LEVEL_BITS;
-            int index = (hash >> shift) & mask;
+            int index = (int) (hash >> shift) & mask;
             int bit = 1 << index;
             if ((bitmap & bit) != 0) {
                 int ids = bitCount(bitmap & (bit - 1));
@@ -167,8 +168,8 @@ class MapRecord extends Record {
         // this is a leaf record; scan the list to find a matching entry
         int d = -1;
         for (int i = 0; i < size && d < 0; i++) {
-            d = Integer.valueOf(segment.readInt(getOffset(4 + i * 4)))
-                    .compareTo(Integer.valueOf(hash));
+            d = Long.valueOf(segment.readInt(getOffset(4 + i * 4)) & HASH_MASK)
+                    .compareTo(Long.valueOf(hash & HASH_MASK));
             if (d == 0) {
                 RecordId keyId = segment.readRecordId(
                         getOffset(4 + size * 4, i));
@@ -379,7 +380,7 @@ class MapRecord extends Record {
             return -1;  // see above
         } else {
             return ComparisonChain.start()
-                    .compare(before.getHash(), after.getHash())
+                    .compare(before.getHash() & HASH_MASK, after.getHash() & HASH_MASK)
                     .compare(before.getName(), after.getName())
                     .result();
         }

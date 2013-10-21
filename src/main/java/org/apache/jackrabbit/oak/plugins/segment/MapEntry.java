@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.HASH_MASK;
 
 import java.util.Map;
 
@@ -87,7 +88,7 @@ class MapEntry extends AbstractChildNodeEntry
     @Override
     public int compareTo(MapEntry that) {
         return ComparisonChain.start()
-                .compare(getHash(), that.getHash())
+                .compare(getHash() & HASH_MASK, that.getHash() & HASH_MASK)
                 .compare(name, that.name)
                 .compare(value, that.value)
                 .result();
