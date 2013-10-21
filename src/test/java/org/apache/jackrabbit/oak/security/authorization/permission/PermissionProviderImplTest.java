@@ -62,6 +62,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     );
 
     private Group adminstrators;
+    private AuthorizationConfiguration config;
 
     @Override
     public void before() throws Exception {
@@ -71,6 +72,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
         UserManager uMgr = getUserManager(root);
         adminstrators = uMgr.createGroup(ADMINISTRATOR_GROUP);
         root.commit();
+        config = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
     }
 
     @Override
@@ -99,12 +101,16 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
         return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
     }
 
+    private PermissionProvider createPermissionProvider(ContentSession session) {
+        return new PermissionProviderImpl(session.getLatestRoot(), session.getAuthInfo().getPrincipals(), config);
+    }
+
     @Test
     public void testReadPath() throws Exception {
         ContentSession testSession = createTestSession();
         try {
             Root r = testSession.getLatestRoot();
-            PermissionProvider pp = new PermissionProviderImpl(testSession.getLatestRoot(), testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+            PermissionProvider pp = createPermissionProvider(testSession);
 
             Tree tree = r.getTree("/");
             assertFalse(tree.exists());
@@ -124,7 +130,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     public void testIsGrantedForReadPaths() throws Exception {
         ContentSession testSession = createTestSession();
         try {
-            PermissionProvider pp = new PermissionProviderImpl(testSession.getLatestRoot(), testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+            PermissionProvider pp = createPermissionProvider(testSession) ;
             for (String path : READ_PATHS) {
                 assertTrue(pp.isGranted(path, Permissions.getString(Permissions.READ)));
                 assertTrue(pp.isGranted(path, Permissions.getString(Permissions.READ_NODE)));
@@ -154,7 +160,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     public void testGetPrivilegesForReadPaths() throws Exception {
         ContentSession testSession = createTestSession();
         try {
-            PermissionProvider pp = new PermissionProviderImpl(testSession.getLatestRoot(), testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+            PermissionProvider pp = createPermissionProvider(testSession) ;
             for (String path : READ_PATHS) {
                 Tree tree = root.getTree(path);
                 assertEquals(Collections.singleton(PrivilegeConstants.JCR_READ), pp.getPrivileges(tree));
@@ -169,7 +175,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     public void testHasPrivilegesForReadPaths() throws Exception {
         ContentSession testSession = createTestSession();
         try {
-            PermissionProvider pp = new PermissionProviderImpl(testSession.getLatestRoot(), testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
+            PermissionProvider pp = createPermissionProvider(testSession) ;
             for (String path : READ_PATHS) {
                 Tree tree = root.getTree(path);
                 assertTrue(pp.hasPrivileges(tree, PrivilegeConstants.JCR_READ));
@@ -193,8 +199,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
             Root r = testSession.getLatestRoot();
             Root immutableRoot = new ImmutableRoot(r, TreeTypeProvider.EMPTY);
 
-            PermissionProvider pp = new PermissionProviderImpl(testSession.getLatestRoot(), testSession.getAuthInfo().getPrincipals(), getSecurityProvider());
-
+            PermissionProvider pp = createPermissionProvider(testSession) ;
             assertTrue(r.getTree("/").exists());
             TreePermission tp = pp.getTreePermission(immutableRoot.getTree("/"), TreePermission.EMPTY);
             assertSame(TreePermission.ALL, tp);
