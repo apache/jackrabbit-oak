@@ -31,31 +31,36 @@ public class UpdateManyChildNodesTest extends AbstractTest {
     private static final int CHILD_COUNT = 10 * 1000;
 
     private Session session;
-
     private Node node;
+    private int count;
 
     @Override
     public void beforeSuite() throws RepositoryException {
         session = getRepository().login(getCredentials());
-        node = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:unstructured");
+        node = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:folder");
         for (int i = 0; i < CHILD_COUNT; i++) {
-            node.addNode("node" + i, "nt:unstructured");
+            node.addNode("node" + i, "nt:folder");
+            if (i % 1000 == 0) {
+                session.save();
+            }
         }
+        session.save();
     }
 
     @Override
     public void beforeTest() throws RepositoryException {
+        count++;
     }
 
     @Override
     public void runTest() throws Exception {
-        node.addNode("onemore", "nt:unstructured");
+        node.addNode("onemore" + count, "nt:folder");
         session.save();
     }
 
     @Override
     public void afterTest() throws RepositoryException {
-        node.getNode("onemore").remove();
+        node.getNode("onemore" + count).remove();
         session.save();
     }
 
