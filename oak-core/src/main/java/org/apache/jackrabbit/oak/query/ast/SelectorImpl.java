@@ -266,11 +266,32 @@ public class SelectorImpl extends SourceImpl {
         while (cursor != null && cursor.hasNext()) {
             scanCount++;
             currentRow = cursor.next();
-            Tree tree = getTree(currentRow.getPath());
-            if (tree == null || !tree.exists()) {
-                continue;
+            if (isParent) {
+                // we must not check whether the _parent_ is readable
+                // for joins of type
+                // "select [b].[jcr:primaryType]
+                // from [nt:base] as [a] 
+                // inner join [nt:base] as [b] 
+                // on isdescendantnode([b], [a]) 
+                // where [b].[jcr:path] = $path"
+                // because if we did, we would filter out
+                // correct results
+            } else {
+                // we must check whether the _child_ is readable
+                // (even if no properties are read) for joins of type
+                // "select [a].[jcr:primaryType]
+                // from [nt:base] as [a] 
+                // inner join [nt:base] as [b] 
+                // on isdescendantnode([b], [a]) 
+                // where [a].[jcr:path] = $path"
+                // because not checking would reveal existence
+                // of the child node
+                Tree tree = getTree(currentRow.getPath());
+                if (tree == null || !tree.exists()) {
+                    continue;
+                }
             }
-            if (!matchesAllTypes && !evaluateTypeMatch(tree)) {
+            if (!matchesAllTypes && !evaluateTypeMatch()) {
                 continue;
             }
             if (selectorCondition != null && !selectorCondition.evaluate()) {
@@ -286,7 +307,11 @@ public class SelectorImpl extends SourceImpl {
         return false;
     }
 
-    private boolean evaluateTypeMatch(Tree tree) {
+    private boolean evaluateTypeMatch() {
+        Tree tree = getTree(currentRow.getPath());
+        if (tree == null || !tree.exists()) {
+            return false;
+        }
         PropertyState primary = tree.getProperty(JCR_PRIMARYTYPE);
         if (primary != null && primary.getType() == NAME) {
             String name = primary.getValue(NAME);
@@ -399,6 +424,13 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public int hashCode() {
         return selectorName.hashCode();
+    }
+
+    @Override
+    protected void setParent(JoinConditionImpl joinCondition) {
+        if (joinCondition.isParent(this)) {
+            isParent = true;
+        }
     }
 
 }

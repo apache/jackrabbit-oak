@@ -93,4 +93,9 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
         // nothing to do
     }
 
+    @Override
+    public boolean isParent(SourceImpl source) {
+        return source == ancestorSelector;
+    }
+
 }

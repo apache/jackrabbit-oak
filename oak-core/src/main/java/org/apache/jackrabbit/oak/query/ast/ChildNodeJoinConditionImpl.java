@@ -93,4 +93,9 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
         // nothing to do
     }
 
+    @Override
+    public boolean isParent(SourceImpl source) {
+        return source == parentSelector;
+    }
+
 }
