@@ -670,6 +670,7 @@
  */
 [rep:PermissionStore]
   - rep:accessControlledPath (STRING) protected
+  - rep:numPermissions (LONG) protected
   + * (rep:PermissionStore) = rep:PermissionStore protected IGNORE
   + * (rep:Permissions) = rep:Permissions protected IGNORE
 

@@ -303,12 +303,15 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                         continue;
                     }
 
+                    long numEntries = PermissionUtil.getNumPermissions(principalRoot);
+
                     // check if the node is the correct one
                     if (PermissionUtil.checkACLPath(parent, accessControlledPath)) {
                         // remove and reconnect child nodes
                         NodeBuilder newParent = null;
                         for (String childName : parent.getChildNodeNames()) {
                             if (childName.charAt(0) != 'c') {
+                                numEntries--;
                                 continue;
                             }
                             NodeBuilder child = parent.getChildNode(childName);
@@ -332,10 +335,14 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                             NodeBuilder child = parent.getChildNode(childName);
                             if (PermissionUtil.checkACLPath(child, accessControlledPath)) {
                                 // remove child
+                                for (String n: child.getChildNodeNames()) {
+                                    numEntries--;
+                                }
                                 child.remove();
                             }
                         }
                     }
+                    principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries);
                 } else {
                     log.error("{} {}: Principal root missing.", msg, this);
                 }
@@ -387,15 +394,19 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                     // new parent
                     parent.setProperty(REP_ACCESS_CONTROLLED_PATH, accessControlledPath);
                 }
-                updateEntries(parent, entries.get(principalName));
+                long numEntries = PermissionUtil.getNumPermissions(principalRoot);
+                numEntries+= updateEntries(parent, entries.get(principalName));
+                principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries);
             }
         }
 
-        private void updateEntries(NodeBuilder parent, List<AcEntry> list) {
+        private long updateEntries(NodeBuilder parent, List<AcEntry> list) {
             // remove old entries
+            long numEntries = 0;
             for (String childName : parent.getChildNodeNames()) {
                 if (childName.charAt(0) != 'c') {
                     parent.getChildNode(childName).remove();
+                    numEntries--;
                 }
             }
             for (AcEntry ace: list) {
@@ -407,7 +418,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 for (Restriction restriction : ace.restrictions) {
                     n.setProperty(restriction.getProperty());
                 }
+                numEntries++;
             }
+            return numEntries;
         }
     }
 
