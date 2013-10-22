@@ -85,7 +85,7 @@ public class ChangeProcessor implements Runnable {
 
     private volatile Thread running = null;
     private volatile boolean stopping = false;
-    private Runnable deferredUnregister;
+    private volatile Runnable deferredUnregister;
 
     private Registration runnable;
     private Registration mbean;
