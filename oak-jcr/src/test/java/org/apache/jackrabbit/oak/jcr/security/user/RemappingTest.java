@@ -18,12 +18,14 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -40,16 +42,15 @@ public class RemappingTest extends AbstractUserTest {
 
     private List<String> unmappedPaths = ImmutableList.of("uTest:property", "uTest:node/uTest:property2");
     private List<String> mappedPaths = ImmutableList.of("my:property", "my:node/my:property2");
-    private Value value;
-    private Value value2;
+    private Value nameValue;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
 
         superuser.getWorkspace().getNamespaceRegistry().registerNamespace("uTest", "http://jackrabbit-oak.apache.org");
-        value = superuser.getValueFactory().createValue("uTest:value", PropertyType.NAME);
-        value2 = superuser.getValueFactory().createValue("uTest:value2", PropertyType.NAME);
+        Value value = superuser.getValueFactory().createValue("value");
+        nameValue = superuser.getValueFactory().createValue("uTest:value", PropertyType.NAME);
         for (String relPath : unmappedPaths) {
             user.setProperty(relPath, value);
         }
@@ -93,6 +94,38 @@ public class RemappingTest extends AbstractUserTest {
 
     @Test
     public void testFindAuthorizable() throws Exception {
+        user.setProperty("prop", superuser.getValueFactory().createValue(true));
+        superuser.save();
+        session.refresh(false);
+
+        Map<String, String> m = ImmutableMap.of("prop", "true", "my:property", "value", "my:node/my:property2", "value");
+        for (String relPath : m.keySet()) {
+            String value = m.get(relPath);
+            Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath, value);
+            assertTrue(result.hasNext());
+            assertEquals(user.getID(), result.next().getID());
+        }
+    }
+
+    @Test
+    public void testFindAuthorizable2() throws Exception {
+        for (String relPath : unmappedPaths) {
+            user.setProperty(relPath, nameValue);
+        }
+        superuser.save();
+        session.refresh(false);
+
+        Map<String, String> m = ImmutableMap.of("my:property", "my:value", "my:node/my:property2", "my:value");
+        for (String relPath : m.keySet()) {
+            String value = m.get(relPath);
+            Iterator<Authorizable> result = getUserManager(session).findAuthorizables(relPath, value);
+            assertTrue(result.hasNext());
+            assertEquals(user.getID(), result.next().getID());
+        }
+    }
+
+    @Test
+    public void testQuery() throws Exception {
         // TODO
     }
 
@@ -143,11 +176,22 @@ public class RemappingTest extends AbstractUserTest {
 
     @Test
     public void testGetProperty() throws Exception {
+        for (String relPath : unmappedPaths) {
+            user.setProperty(relPath, nameValue);
+            user.setProperty(relPath, new Value[] {nameValue});
+        }
+        superuser.save();
+        session.refresh(false);
+
         for (String relPath : mappedPaths) {
             Value[] values = authorizable.getProperty(relPath);
             assertNotNull(values);
             assertEquals(1, values.length);
-            assertEquals("my:value", values[0].getString());
+            if (PropertyType.STRING == values[0].getType()) {
+                assertEquals("value", values[0].getString());
+            } else {
+                assertEquals("my:value", values[0].getString());
+            }
         }
     }
 
@@ -166,8 +210,8 @@ public class RemappingTest extends AbstractUserTest {
     @Test
     public void testSetProperty() throws Exception {
         for (String relPath : mappedPaths) {
-            authorizable.setProperty(relPath, value2);
-            authorizable.setProperty(relPath, new Value[] {value2});
+            authorizable.setProperty(relPath, nameValue);
+            authorizable.setProperty(relPath, new Value[] {nameValue});
         }
     }
 
@@ -175,14 +219,14 @@ public class RemappingTest extends AbstractUserTest {
     public void testSetProperty2() throws Exception {
         for (String relPath : unmappedPaths) {
             try {
-                authorizable.setProperty(relPath, value2);
+                authorizable.setProperty(relPath, nameValue);
                 fail();
             } catch (RepositoryException e) {
                 // success
             }
 
             try {
-                authorizable.setProperty(relPath, new Value[] {value2});
+                authorizable.setProperty(relPath, new Value[] {nameValue});
                 fail();
             } catch (RepositoryException e) {
                 // success

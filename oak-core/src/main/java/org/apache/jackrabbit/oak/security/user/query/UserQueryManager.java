@@ -156,8 +156,9 @@ public class UserQueryManager {
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
     @Nonnull
-    public Iterator<Authorizable> findAuthorizables(String relPath, String value,
-                                                    AuthorizableType authorizableType) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@Nonnull String relPath,
+                                                    @Nullable String value,
+                                                    @Nonnull AuthorizableType authorizableType) throws RepositoryException {
         return findAuthorizables(relPath, value, authorizableType, true);
     }
 
@@ -180,17 +181,21 @@ public class UserQueryManager {
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
     @Nonnull
-    public Iterator<Authorizable> findAuthorizables(String relPath, String value,
-                                                    AuthorizableType authorizableType, boolean exact) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@Nonnull String relPath,
+                                                    @Nullable String value,
+                                                    @Nonnull AuthorizableType authorizableType,
+                                                    boolean exact) throws RepositoryException {
         String statement = buildXPathStatement(relPath, value, authorizableType, exact);
         return findAuthorizables(statement, Long.MAX_VALUE, 0, authorizableType);
     }
 
     //------------------------------------------------------------< private >---
     @Nonnull
-    private String buildXPathStatement(String relPath, String value, AuthorizableType type, boolean exact) {
+    private String buildXPathStatement(@Nonnull String relPath,
+                                       @Nullable String value,
+                                       @Nonnull AuthorizableType type, boolean exact) {
         StringBuilder stmt = new StringBuilder();
-        String searchRoot = QueryUtil.getSearchRoot(type, config);
+        String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(type, config));
         if (!"/".equals(searchRoot)) {
             stmt.append(searchRoot);
         }
@@ -216,7 +221,7 @@ public class UserQueryManager {
                 }
             }
             path = Strings.emptyToNull(sb.toString());
-            ntName = QueryUtil.getNodeTypeName(type);
+            ntName = namePathMapper.getJcrName(QueryUtil.getNodeTypeName(type));
         }
 
         stmt.append("//");
