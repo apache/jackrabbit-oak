@@ -141,6 +141,11 @@ public class BenchmarkRunner {
                     itemsToRead.value(options),
                     bgReaders.value(options),
                     report.value(options)),
+            new ManyUserReadTest(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    bgReaders.value(options),
+                    report.value(options)),
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
             ReadManyTest.linear("LinearReadNodes", 1, ReadManyTest.NODES),

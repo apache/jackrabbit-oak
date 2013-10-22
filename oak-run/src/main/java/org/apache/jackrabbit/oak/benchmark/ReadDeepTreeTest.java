@@ -88,7 +88,7 @@ public class ReadDeepTreeTest extends AbstractTest {
         long start = System.currentTimeMillis();
         if (!rn.hasNode(testNodeName)) {
             testRoot = adminSession.getRootNode().addNode(testNodeName, "nt:unstructured");
-            InputStream in = getClass().getClassLoader().getResourceAsStream("deepTree.xml");
+            InputStream in = getClass().getClassLoader().getResourceAsStream(getImportFileName());
             adminSession.importXML(testRoot.getPath(), in, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
             adminSession.save();
         } else {
@@ -110,6 +110,10 @@ public class ReadDeepTreeTest extends AbstractTest {
         };
         v.visit(testRoot);
         System.out.println("All paths: " + allPaths.size());
+    }
+
+    protected String getImportFileName() {
+        return "deepTree.xml";
     }
 
     protected void visitingNode(Node node, int i) throws RepositoryException {
