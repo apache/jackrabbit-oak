@@ -62,8 +62,7 @@ final class PermissionStore implements PermissionConstants {
         if (!principalTrees.isEmpty()) {
             Iterator<Tree> treeItr = principalTrees.values().iterator();
             while (treeItr.hasNext() && cnt < MAX_SIZE) {
-                Tree t = treeItr.next();
-                cnt += t.getChildrenCount(MAX_SIZE);
+                cnt += PermissionUtil.getNumPermissions(treeItr.next());
             }
         }
         return new PermissionStore(principalTrees, restrictionProvider, (cnt < MAX_SIZE));
