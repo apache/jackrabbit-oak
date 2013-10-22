@@ -541,8 +541,8 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
                 return store.find(Collection.NODES, Utils.getIdFromPath(p));
             }
         });
-        if (c.childNames.size() > limit) {
-            it = Iterables.limit(it, limit);
+        if (c.childNames.size() > limit * 2) {
+            it = Iterables.limit(it, limit * 2);
         }
         return it;
     }
