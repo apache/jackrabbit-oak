@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
@@ -224,7 +225,7 @@ public class UserProviderTest {
             root.commit();
 
             assertEquals(defaultUserPath + m.get(uid), user.getPath());
-            assertEquals(uid, userProvider.getAuthorizableId(user));
+            assertEquals(uid, UserUtil.getAuthorizableId(user));
 
             Tree ath = userProvider.getAuthorizable(uid);
             assertNotNull("Tree with id " + uid + " must exist.", ath);
@@ -272,11 +273,11 @@ public class UserProviderTest {
 
         String userID = "Amanda";
         Tree user = up.createUser(userID, null);
-        assertEquals(userID, up.getAuthorizableId(user));
+        assertEquals(userID, UserUtil.getAuthorizableId(user));
 
         String groupID = "visitors";
         Tree group = up.createGroup(groupID, null);
-        assertEquals(groupID, up.getAuthorizableId(group));
+        assertEquals(groupID, UserUtil.getAuthorizableId(group));
     }
 
     @Test

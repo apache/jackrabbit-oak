@@ -71,7 +71,10 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
                 type = UserUtil.getType(tree);
             }
             if (tree.exists() && (targetType == null || targetType == type)) {
-                authorizable = userManager.getAuthorizableByPath(tree.getPath());
+                String id = UserUtil.getAuthorizableId(tree);
+                if (id != null) {
+                    authorizable = userManager.getAuthorizable(id);
+                }
             }
         } catch (RepositoryException e) {
             log.debug("Failed to access authorizable " + resultPath);

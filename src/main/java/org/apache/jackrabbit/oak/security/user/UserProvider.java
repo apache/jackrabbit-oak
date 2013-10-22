@@ -28,7 +28,6 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
@@ -40,14 +39,12 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * User provider implementation and manager for group memberships with the
@@ -225,20 +222,6 @@ class UserProvider extends AuthorizableBaseProvider {
             log.error("Failed to retrieve authorizable by principal", ex);
         }
 
-        return null;
-    }
-
-    @CheckForNull
-    static String getAuthorizableId(@Nonnull Tree authorizableTree) {
-        checkNotNull(authorizableTree);
-        if (UserUtil.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
-            PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
-            if (idProp != null) {
-                return idProp.getValue(STRING);
-            } else {
-                return Text.unescapeIllegalJcrChars(authorizableTree.getName());
-            }
-        }
         return null;
     }
 
