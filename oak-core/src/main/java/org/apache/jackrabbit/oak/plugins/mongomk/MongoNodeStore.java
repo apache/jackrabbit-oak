@@ -36,9 +36,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.cache.Cache;
@@ -52,6 +56,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
+import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -63,7 +69,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Implementation of a NodeStore on MongoDB.
  */
-public final class MongoNodeStore implements NodeStore, RevisionContext {
+public final class MongoNodeStore
+        implements NodeStore, RevisionContext, Observable {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoNodeStore.class);
 
@@ -94,6 +101,16 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
      * The MongoDB store (might be used by multiple MongoMKs).
      */
     protected final DocumentStore store;
+
+    /**
+     * The commit queue to coordinate the commits.
+     */
+    protected final CommitQueue commitQueue;
+
+    /**
+     * The change dispatcher for this node store.
+     */
+    protected final ChangeDispatcher dispatcher;
 
     /**
      * Whether this instance is disposed.
@@ -166,6 +183,12 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
     private volatile Revision headRevision;
 
     private Thread backgroundThread;
+
+    /**
+     * Read/Write lock for background operations. Regular commits will acquire
+     * a shared lock, while a background write acquires an exclusive lock.
+     */
+    private final ReadWriteLock backgroundOperationLock = new ReentrantReadWriteLock();
 
     /**
      * Enable using simple revisions (just a counter). This feature is useful
@@ -245,6 +268,10 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
         backgroundRead();
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
         headRevision = newRevision();
+        dispatcher = new ChangeDispatcher(this);
+        commitQueue = new CommitQueue(this, dispatcher);
+
+        LOG.info("Initialized MongoNodeStore with clusterNodeId: {}", clusterId);
     }
 
     void init() {
@@ -262,7 +289,7 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
         }
         backgroundThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
-                "MongoMK background thread");
+                "MongoNodeStore background thread");
         backgroundThread.setDaemon(true);
         backgroundThread.start();
     }
@@ -286,12 +313,8 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
                 clusterNodeInfo.dispose();
             }
             store.dispose();
-            LOG.info("Disposed MongoMK with clusterNodeId: {}", clusterId);
+            LOG.info("Disposed MongoNodeStore with clusterNodeId: {}", clusterId);
         }
-    }
-
-    public void stopBackground() {
-        stopBackground = true;
     }
 
     @Nonnull
@@ -323,6 +346,34 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
         return Revision.newRevision(clusterId);
     }
 
+    /**
+     * Creates a new commit. The caller must acknowledge the commit either with
+     * {@link #done(Commit, boolean)} or {@link #canceled(Commit)}, depending
+     * on the result of the commit.
+     *
+     * @param base the base revision for the commit or <code>null</code> if the
+     *             commit should use the current head revision as base.
+     * @return a new commit.
+     */
+    @Nonnull
+    Commit newCommit(@Nullable Revision base) {
+        if (base == null) {
+            base = headRevision;
+        }
+        backgroundOperationLock.readLock().lock();
+        return commitQueue.createCommit(base);
+    }
+
+    void done(@Nonnull Commit c, boolean isBranch) {
+        backgroundOperationLock.readLock().unlock();
+        commitQueue.done(c, isBranch, CommitInfo.EMPTY);
+    }
+
+    void canceled(Commit c) {
+        backgroundOperationLock.readLock().unlock();
+        commitQueue.canceled(c);
+    }
+
     public void setAsyncDelay(int delay) {
         this.asyncDelay = delay;
     }
@@ -349,10 +400,6 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
 
     public int getPendingWriteCount() {
         return unsavedLastRevisions.getPaths().size();
-    }
-
-    public long getSplitDocumentAgeMillis() {
-        return this.splitDocumentAgeMillis;
     }
 
     /**
@@ -533,7 +580,7 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
             docChildrenCache.put(path, clone);
             c = clone;
         }
-        Iterable<NodeDocument> it = Iterables.transform(c.childNames, 
+        Iterable<NodeDocument> it = Iterables.transform(c.childNames,
                 new Function<String, NodeDocument>() {
             @Override
             public NodeDocument apply(String name) {
@@ -656,13 +703,30 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
         }
     }
 
+    /**
+     * Returns the root node state at the given revision.
+     *
+     * @param revision a revision.
+     * @return the root node state at the given revision.
+     */
+    @Nonnull
+    NodeState getRoot(@Nonnull Revision revision) {
+        return new MongoNodeState(this, "/", revision);
+    }
+
+    //------------------------< Observable >------------------------------------
+
+    @Override
+    public ChangeDispatcher.Listener newListener() {
+        return dispatcher.newListener();
+    }
+
     //-------------------------< NodeStore >------------------------------------
 
     @Nonnull
     @Override
     public NodeState getRoot() {
-        // TODO: implement
-        return null;
+        return getRoot(headRevision);
     }
 
     @Nonnull
@@ -865,61 +929,67 @@ public final class MongoNodeStore implements NodeStore, RevisionContext {
         if (unsavedLastRevisions.getPaths().size() == 0) {
             return;
         }
-        ArrayList<String> paths = new ArrayList<String>(unsavedLastRevisions.getPaths());
-        // sort by depth (high depth first), then path
-        Collections.sort(paths, new Comparator<String>() {
+        Lock writeLock = backgroundOperationLock.writeLock();
+        writeLock.lock();
+        try {
+            ArrayList<String> paths = new ArrayList<String>(unsavedLastRevisions.getPaths());
+            // sort by depth (high depth first), then path
+            Collections.sort(paths, new Comparator<String>() {
 
-            @Override
-            public int compare(String o1, String o2) {
-                int d1 = Utils.pathDepth(o1);
-                int d2 = Utils.pathDepth(o1);
-                if (d1 != d2) {
-                    return Integer.signum(d1 - d2);
+                @Override
+                public int compare(String o1, String o2) {
+                    int d1 = Utils.pathDepth(o1);
+                    int d2 = Utils.pathDepth(o1);
+                    if (d1 != d2) {
+                        return Integer.signum(d1 - d2);
+                    }
+                    return o1.compareTo(o2);
                 }
-                return o1.compareTo(o2);
-            }
 
-        });
+            });
 
-        long now = Revision.getCurrentTimestamp();
-        UpdateOp updateOp = null;
-        Revision lastRev = null;
-        List<String> ids = new ArrayList<String>();
-        for (int i = 0; i < paths.size(); i++) {
-            String p = paths.get(i);
-            Revision r = unsavedLastRevisions.get(p);
-            if (r == null) {
-                continue;
-            }
-            // FIXME: with below code fragment the root (and other nodes
-            // 'close' to the root) will not be updated in MongoDB when there
-            // are frequent changes.
-            if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
-                continue;
-            }
-            int size = ids.size();
-            if (updateOp == null) {
-                // create UpdateOp
-                Commit commit = new Commit(this, null, r);
-                commit.touchNode(p);
-                updateOp = commit.getUpdateOperationForNode(p);
-                lastRev = r;
-                ids.add(Utils.getIdFromPath(p));
-            } else if (r.equals(lastRev)) {
-                // use multi update when possible
-                ids.add(Utils.getIdFromPath(p));
-            }
-            // update if this is the last path or
-            // revision is not equal to last revision
-            if (i + 1 >= paths.size() || size == ids.size()) {
-                store.update(Collection.NODES, ids, updateOp);
-                for (String id : ids) {
-                    unsavedLastRevisions.remove(Utils.getPathFromId(id));
+            long now = Revision.getCurrentTimestamp();
+            UpdateOp updateOp = null;
+            Revision lastRev = null;
+            List<String> ids = new ArrayList<String>();
+            for (int i = 0; i < paths.size(); i++) {
+                String p = paths.get(i);
+                Revision r = unsavedLastRevisions.get(p);
+                if (r == null) {
+                    continue;
                 }
-                ids.clear();
-                updateOp = null;
-                lastRev = null;
+                // FIXME: with below code fragment the root (and other nodes
+                // 'close' to the root) will not be updated in MongoDB when there
+                // are frequent changes.
+                if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
+                    continue;
+                }
+                int size = ids.size();
+                if (updateOp == null) {
+                    // create UpdateOp
+                    Commit commit = new Commit(this, null, r);
+                    commit.touchNode(p);
+                    updateOp = commit.getUpdateOperationForNode(p);
+                    lastRev = r;
+                    ids.add(Utils.getIdFromPath(p));
+                } else if (r.equals(lastRev)) {
+                    // use multi update when possible
+                    ids.add(Utils.getIdFromPath(p));
+                }
+                // update if this is the last path or
+                // revision is not equal to last revision
+                if (i + 1 >= paths.size() || size == ids.size()) {
+                    store.update(Collection.NODES, ids, updateOp);
+                    for (String id : ids) {
+                        unsavedLastRevisions.remove(Utils.getPathFromId(id));
+                    }
+                    ids.clear();
+                    updateOp = null;
+                    lastRev = null;
+                }
             }
+        } finally {
+            writeLock.unlock();
         }
     }
 

@@ -42,8 +42,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.Node.Children;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -65,8 +63,6 @@ public class MongoMK implements MicroKernel {
      * Enable the LIRS cache.
      */
     static final boolean LIRS_CACHE = Boolean.parseBoolean(System.getProperty("oak.mongoMK.lirsCache", "false"));
-
-    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
     /**
      * Enable fast diff operations.
@@ -96,7 +92,6 @@ public class MongoMK implements MicroKernel {
     private final CacheStats diffCacheStats;
 
     MongoMK(Builder builder) {
-
         this.nodeStore = builder.getNodeStore();
         this.store = nodeStore.getDocumentStore();
         this.blobStore = builder.getBlobStore();
@@ -104,10 +99,7 @@ public class MongoMK implements MicroKernel {
         diffCache = builder.buildCache(builder.getDiffCacheSize());
         diffCacheStats = new CacheStats(diffCache, "MongoMk-DiffCache",
                 builder.getWeigher(), builder.getDiffCacheSize());
-
-        LOG.info("Initialized MongoMK with clusterNodeId: {}", nodeStore.getClusterId());
     }
-
 
     public void dispose() {
         nodeStore.dispose();
@@ -380,88 +372,18 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public String commit(String rootPath, String json, String baseRevId,
+    public String commit(String rootPath, String jsonDiff, String baseRevId,
             String message) throws MicroKernelException {
-        synchronized (nodeStore) {
-            Revision baseRev;
-            if (baseRevId == null) {
-                baseRev = nodeStore.getHeadRevision();
-                baseRevId = baseRev.toString();
-            } else {
-                baseRev = Revision.fromString(baseRevId);
-            }
-            JsopReader t = new JsopTokenizer(json);
-            Revision rev = nodeStore.newRevision();
-            Commit commit = new Commit(nodeStore, baseRev, rev);
-            while (true) {
-                int r = t.read();
-                if (r == JsopReader.END) {
-                    break;
-                }
-                String path = PathUtils.concat(rootPath, t.readString());
-                switch (r) {
-                    case '+':
-                        t.read(':');
-                        t.read('{');
-                        parseAddNode(commit, t, path);
-                        break;
-                    case '-':
-                        commit.removeNode(path);
-                        nodeStore.markAsDeleted(path, commit, true);
-                        commit.removeNodeDiff(path);
-                        break;
-                    case '^':
-                        t.read(':');
-                        String value;
-                        if (t.matches(JsopReader.NULL)) {
-                            value = null;
-                        } else {
-                            value = t.readRawValue().trim();
-                        }
-                        String p = PathUtils.getParentPath(path);
-                        String propertyName = PathUtils.getName(path);
-                        commit.updateProperty(p, propertyName, value);
-                        commit.updatePropertyDiff(p, propertyName, value);
-                        break;
-                    case '>': {
-                        // TODO support moving nodes that were modified within this commit
-                        t.read(':');
-                        String sourcePath = path;
-                        String targetPath = t.readString();
-                        if (!PathUtils.isAbsolute(targetPath)) {
-                            targetPath = PathUtils.concat(rootPath, targetPath);
-                        }
-                        if (!nodeExists(sourcePath, baseRevId)) {
-                            throw new MicroKernelException("Node not found: " + sourcePath + " in revision " + baseRevId);
-                        } else if (nodeExists(targetPath, baseRevId)) {
-                            throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
-                        }
-                        commit.moveNode(sourcePath, targetPath);
-                        nodeStore.moveNode(sourcePath, targetPath, commit);
-                        break;
-                    }
-                    case '*': {
-                        // TODO support copying nodes that were modified within this commit
-                        t.read(':');
-                        String sourcePath = path;
-                        String targetPath = t.readString();
-                        if (!PathUtils.isAbsolute(targetPath)) {
-                            targetPath = PathUtils.concat(rootPath, targetPath);
-                        }
-                        if (!nodeExists(sourcePath, baseRevId)) {
-                            throw new MicroKernelException("Node not found: " + sourcePath + " in revision " + baseRevId);
-                        } else if (nodeExists(targetPath, baseRevId)) {
-                            throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
-                        }
-                        commit.copyNode(sourcePath, targetPath);
-                        nodeStore.copyNode(sourcePath, targetPath, commit);
-                        break;
-                    }
-                    default:
-                        throw new MicroKernelException("token: " + (char) t.getTokenType());
-                }
-            }
-            if (baseRev.isBranch()) {
+        boolean success = false;
+        boolean isBranch = false;
+        Revision rev;
+        Commit commit = nodeStore.newCommit(baseRevId != null ? Revision.fromString(baseRevId) : null);
+        try {
+            Revision baseRev = commit.getBaseRevision();
+            isBranch = baseRev != null && baseRev.isBranch();
+            rev = commit.getRevision();
+            parseJsonDiff(commit, jsonDiff, rootPath);
+            if (isBranch) {
                 rev = rev.asBranchRevision();
                 // remember branch commit
                 Branch b = nodeStore.getBranches().getBranch(baseRev);
@@ -471,7 +393,6 @@ public class MongoMK implements MicroKernel {
                 } else {
                     b.addCommit(rev);
                 }
-                boolean success = false;
                 try {
                     // prepare commit
                     commit.prepare(baseRev);
@@ -484,34 +405,19 @@ public class MongoMK implements MicroKernel {
                         }
                     }
                 }
-
-                return rev.toString();
             } else {
                 commit.apply();
                 nodeStore.setHeadRevision(commit.getRevision());
-                return rev.toString();
+                success = true;
+            }
+        } finally {
+            if (!success) {
+                nodeStore.canceled(commit);
+            } else {
+                nodeStore.done(commit, isBranch);
             }
         }
-    }
-
-    public static void parseAddNode(Commit commit, JsopReader t, String path) {
-        Node n = new Node(path, commit.getRevision());
-        if (!t.matches('}')) {
-            do {
-                String key = t.readString();
-                t.read(':');
-                if (t.matches('{')) {
-                    String childPath = PathUtils.concat(path, key);
-                    parseAddNode(commit, t, childPath);
-                } else {
-                    String value = t.readRawValue().trim();
-                    n.setProperty(key, value);
-                }
-            } while (t.matches(','));
-            t.read('}');
-        }
-        commit.addNode(n);
-        commit.addNodeDiff(n);
+        return rev.toString();
     }
 
     @Override
@@ -526,27 +432,32 @@ public class MongoMK implements MicroKernel {
     @Override
     public String merge(String branchRevisionId, String message)
             throws MicroKernelException {
-        synchronized (nodeStore) {
-            // TODO improve implementation if needed
-            Revision revision = Revision.fromString(branchRevisionId);
-            if (!revision.isBranch()) {
-                throw new MicroKernelException("Not a branch: " + branchRevisionId);
-            }
-
+        // TODO improve implementation if needed
+        Revision revision = Revision.fromString(branchRevisionId);
+        if (!revision.isBranch()) {
+            throw new MicroKernelException("Not a branch: " + branchRevisionId);
+        }
+        Branch b = nodeStore.getBranches().getBranch(revision);
+        Revision base = revision;
+        if (b != null) {
+            base = b.getBase(revision);
+        }
+        boolean success = false;
+        Commit commit = nodeStore.newCommit(base);
+        try {
             // make branch commits visible
             UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
-            Branch b = nodeStore.getBranches().getBranch(revision);
-            Revision mergeCommit = nodeStore.newRevision();
-            NodeDocument.setModified(op, mergeCommit);
+            NodeDocument.setModified(op, commit.getRevision());
             if (b != null) {
+                String commitTag = "c-" + commit.getRevision().toString();
                 for (Revision rev : b.getCommits()) {
                     rev = rev.asTrunkRevision();
-                    NodeDocument.setRevision(op, rev, "c-" + mergeCommit.toString());
+                    NodeDocument.setRevision(op, rev, commitTag);
                     op.containsMapEntry(NodeDocument.COLLISIONS, rev, false);
                 }
                 if (store.findAndUpdate(Collection.NODES, op) != null) {
                     // remove from branchCommits map after successful update
-                    b.applyTo(nodeStore.getPendingModifications(), mergeCommit);
+                    b.applyTo(nodeStore.getPendingModifications(), commit.getRevision());
                     nodeStore.getBranches().remove(b);
                 } else {
                     throw new MicroKernelException("Conflicting concurrent change. Update operation failed: " + op);
@@ -554,9 +465,15 @@ public class MongoMK implements MicroKernel {
             } else {
                 // no commits in this branch -> do nothing
             }
-            nodeStore.setHeadRevision(mergeCommit);
-            return mergeCommit.toString();
+            success = true;
+        } finally {
+            if (!success) {
+                nodeStore.canceled(commit);
+            } else {
+                nodeStore.done(commit, false);
+            }
         }
+        return commit.getRevision().toString();
     }
 
     @Override
@@ -612,6 +529,8 @@ public class MongoMK implements MicroKernel {
         }
     }
 
+    //-------------------------< accessors >------------------------------------
+
     public DocumentStore getDocumentStore() {
         return store;
     }
@@ -635,7 +554,103 @@ public class MongoMK implements MicroKernel {
     public boolean isCached(String path) {
         return store.isCached(Collection.NODES, Utils.getIdFromPath(path));
     }
-    
+
+    //------------------------------< internal >--------------------------------
+
+    private void parseJsonDiff(Commit commit, String json, String rootPath) {
+        String baseRevId = commit.getBaseRevision() != null ?
+                commit.getBaseRevision().toString() : null;
+        JsopReader t = new JsopTokenizer(json);
+        while (true) {
+            int r = t.read();
+            if (r == JsopReader.END) {
+                break;
+            }
+            String path = PathUtils.concat(rootPath, t.readString());
+            switch (r) {
+                case '+':
+                    t.read(':');
+                    t.read('{');
+                    parseAddNode(commit, t, path);
+                    break;
+                case '-':
+                    commit.removeNode(path);
+                    nodeStore.markAsDeleted(path, commit, true);
+                    commit.removeNodeDiff(path);
+                    break;
+                case '^':
+                    t.read(':');
+                    String value;
+                    if (t.matches(JsopReader.NULL)) {
+                        value = null;
+                    } else {
+                        value = t.readRawValue().trim();
+                    }
+                    String p = PathUtils.getParentPath(path);
+                    String propertyName = PathUtils.getName(path);
+                    commit.updateProperty(p, propertyName, value);
+                    commit.updatePropertyDiff(p, propertyName, value);
+                    break;
+                case '>': {
+                    // TODO support moving nodes that were modified within this commit
+                    t.read(':');
+                    String sourcePath = path;
+                    String targetPath = t.readString();
+                    if (!PathUtils.isAbsolute(targetPath)) {
+                        targetPath = PathUtils.concat(rootPath, targetPath);
+                    }
+                    if (!nodeExists(sourcePath, baseRevId)) {
+                        throw new MicroKernelException("Node not found: " + sourcePath + " in revision " + baseRevId);
+                    } else if (nodeExists(targetPath, baseRevId)) {
+                        throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
+                    }
+                    commit.moveNode(sourcePath, targetPath);
+                    nodeStore.moveNode(sourcePath, targetPath, commit);
+                    break;
+                }
+                case '*': {
+                    // TODO support copying nodes that were modified within this commit
+                    t.read(':');
+                    String sourcePath = path;
+                    String targetPath = t.readString();
+                    if (!PathUtils.isAbsolute(targetPath)) {
+                        targetPath = PathUtils.concat(rootPath, targetPath);
+                    }
+                    if (!nodeExists(sourcePath, baseRevId)) {
+                        throw new MicroKernelException("Node not found: " + sourcePath + " in revision " + baseRevId);
+                    } else if (nodeExists(targetPath, baseRevId)) {
+                        throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
+                    }
+                    commit.copyNode(sourcePath, targetPath);
+                    nodeStore.copyNode(sourcePath, targetPath, commit);
+                    break;
+                }
+                default:
+                    throw new MicroKernelException("token: " + (char) t.getTokenType());
+            }
+        }
+    }
+
+    private static void parseAddNode(Commit commit, JsopReader t, String path) {
+        Node n = new Node(path, commit.getRevision());
+        if (!t.matches('}')) {
+            do {
+                String key = t.readString();
+                t.read(':');
+                if (t.matches('{')) {
+                    String childPath = PathUtils.concat(path, key);
+                    parseAddNode(commit, t, childPath);
+                } else {
+                    String value = t.readRawValue().trim();
+                    n.setProperty(key, value);
+                }
+            } while (t.matches(','));
+            t.read('}');
+        }
+        commit.addNode(n);
+        commit.addNodeDiff(n);
+    }
+
     /**
      * A (cached) result of the diff operation.
      */
@@ -653,6 +668,8 @@ public class MongoMK implements MicroKernel {
         }
 
     }
+
+    //----------------------------< Builder >-----------------------------------
 
     /**
      * A builder for a MongoMK instance.
