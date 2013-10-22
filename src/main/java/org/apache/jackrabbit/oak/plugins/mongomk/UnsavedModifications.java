@@ -33,9 +33,37 @@ class UnsavedModifications {
 
     private final ConcurrentHashMap<String, Revision> map = new ConcurrentHashMap<String, Revision>();
 
+    /**
+     * Puts a revision for the given path. The revision for the given path is
+     * only put if there is no modification present for the revision or if the
+     * current modification revision is older than the passed revision.
+     *
+     * @param path the path of the modified node.
+     * @param revision the revision of the modification.
+     * @return the previously set revision for the given path or null if there
+     *          was none or the current revision is newer.
+     */
     @CheckForNull
     public Revision put(@Nonnull String path, @Nonnull Revision revision) {
-        return map.put(checkNotNull(path), checkNotNull(revision));
+        checkNotNull(path);
+        checkNotNull(revision);
+        for (;;) {
+            Revision previous = map.get(path);
+            if (previous == null) {
+                if (map.putIfAbsent(path, revision) == null) {
+                    return null;
+                }
+            } else {
+                if (previous.compareRevisionTime(revision) < 0) {
+                    if (map.replace(path, previous, revision)) {
+                        return previous;
+                    }
+                } else {
+                    // revision is earlier, do not update
+                    return null;
+                }
+            }
+        }
     }
 
     @CheckForNull
@@ -64,12 +92,7 @@ class UnsavedModifications {
      */
     public void applyTo(UnsavedModifications other, Revision mergeCommit) {
         for (Map.Entry<String, Revision> entry : map.entrySet()) {
-            Revision r = other.map.putIfAbsent(entry.getKey(), mergeCommit);
-            if (r != null) {
-                if (r.compareRevisionTime(mergeCommit) < 0) {
-                    other.map.put(entry.getKey(), mergeCommit);
-                }
-            }
+            other.put(entry.getKey(), mergeCommit);
         }
     }
 }
