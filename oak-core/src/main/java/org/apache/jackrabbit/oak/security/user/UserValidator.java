@@ -166,7 +166,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     private boolean isAdminUser(@Nonnull Tree userTree) {
         if (userTree.exists() && isUser(userTree)) {
-            String id = UserProvider.getAuthorizableId(userTree);
+            String id = UserUtil.getAuthorizableId(userTree);
             return UserUtil.getAdminId(provider.getConfig()).equals(id);
         } else {
             return false;
@@ -178,7 +178,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
     }
 
     private static boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
-        String id = UserProvider.getAuthorizableId(parent);
+        String id = UserUtil.getAuthorizableId(parent);
         return id != null && uuid.equals(UserProvider.getContentID(id));
     }
 

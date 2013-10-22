@@ -288,7 +288,7 @@ public class UserManagerImpl implements UserManager {
         if (tree == null || !tree.exists()) {
             return null;
         }
-        return getAuthorizable(userProvider.getAuthorizableId(tree), tree);
+        return getAuthorizable(UserUtil.getAuthorizableId(tree), tree);
     }
 
     @Nonnull
@@ -325,9 +325,9 @@ public class UserManagerImpl implements UserManager {
             return null;
         }
         if (UserUtil.isType(tree, AuthorizableType.USER)) {
-            return new UserImpl(userProvider.getAuthorizableId(tree), tree, this);
+            return new UserImpl(UserUtil.getAuthorizableId(tree), tree, this);
         } else if (UserUtil.isType(tree, AuthorizableType.GROUP)) {
-            return new GroupImpl(userProvider.getAuthorizableId(tree), tree, this);
+            return new GroupImpl(UserUtil.getAuthorizableId(tree), tree, this);
         } else {
             throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
         }

@@ -20,12 +20,16 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Utility methods for user management.
@@ -93,5 +97,19 @@ public final class UserUtil implements UserConstants {
             }
         }
         return path;
+    }
+
+    @CheckForNull
+    public static String getAuthorizableId(@Nonnull Tree authorizableTree) {
+        checkNotNull(authorizableTree);
+        if (UserUtil.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
+            PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
+            if (idProp != null) {
+                return idProp.getValue(STRING);
+            } else {
+                return Text.unescapeIllegalJcrChars(authorizableTree.getName());
+            }
+        }
+        return null;
     }
 }
