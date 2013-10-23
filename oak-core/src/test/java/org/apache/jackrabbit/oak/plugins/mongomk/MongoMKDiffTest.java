@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.concurrent.TimeUnit;
+
 import org.json.simple.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -245,6 +247,24 @@ public class MongoMKDiffTest extends AbstractMongoConnectionTest {
         mk.commit("/level1", reverseDiff, null, null);
         obj = parseJSONObject(mk.getNodes("/level1", null, 0, 0, -1, null));
         assertPropertyValue(obj, "prop1", "value1");
+    }
+
+    @Test
+    @Ignore
+    public void diffForChangeBelowManyChildren() throws InterruptedException {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            sb.append("+\"node-").append(i).append("\":{}");
+        }
+        mk.commit("/", sb.toString(), null, null);
+        // wait a while, _modified has 5 seconds granularity
+        Thread.sleep(TimeUnit.SECONDS.toMillis(6));
+        // create a base commit for the diff
+        String base = mk.commit("/", "+\"foo\":{}", null, null);
+        // this is the commit we want to get the diff for
+        String rev = mk.commit("/node-0", "+\"foo\":{}", null, null);
+        String diff = mk.diff(base, rev, "/", 0);
+        assertTrue(diff, diff.contains("^\"/node-0\""));
     }
 
     @Test
