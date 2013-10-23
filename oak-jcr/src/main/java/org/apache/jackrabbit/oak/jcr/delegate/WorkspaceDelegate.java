@@ -85,7 +85,7 @@ public class WorkspaceDelegate {
 
         try {
             new WorkspaceCopy(root, srcPath, destPath).perform();
-            root.commit();
+            context.getSessionDelegate().commit(root);
             sessionDelegate.refresh(true);
         } catch (CommitFailedException e) {
             throw e.asRepositoryException();

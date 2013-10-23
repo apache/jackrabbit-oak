@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 
@@ -104,20 +105,38 @@ public interface Root {
     void refresh();
 
     /**
-     * Atomically persists all changes made to the tree contained in this root to the underlying
-     * store.
+     * Atomically persists all changes made to the tree attached to this root.
+     * Before any changes are actually persisted the passed commit hook is
+     * run and it fail the commit by throwing a {@code CommitFailedException}.
+     * The commit hook is invoked <em>before</em> any other commit hooks that
+     * might be present in this root.
      * <p>
-     * Before any changes are actually persisted the passed commit hooks are run and may fail the
-     * commit by throwing a {@code CommitFailedException}. The commit hooks are run in the order as
-     * passed and <em>before</em> any other commit hook that might be present in this root.
+     * The message string (if given) is passed to the underlying storage
+     * as a part of the internal commit information attached to this commit.
+     * The commit information will be made available to local observers but
+     * will not be visible to observers on other cluster nodes.
      * <p>
-     * After a successful operation the root is automatically {@link #refresh() refreshed}, such
-     * that trees obtained through {@link #getTree(String)} may become non existing.
+     * After a successful operation the root is automatically
+     * {@link #refresh() refreshed}, such that trees previously obtained
+     * through {@link #getTree(String)} may become non existing.
      *
-     * @param hooks  commit hooks to run before any changes are persisted.
-     * @throws CommitFailedException
+     * @param message custom message to be associated with this commit
+     * @param hook commit hook to run before any changes are persisted
+     * @throws CommitFailedException if the commit failed
      */
-    void commit(CommitHook... hooks) throws CommitFailedException;
+    void commit(@Nullable String message, @Nullable CommitHook hook)
+            throws CommitFailedException;
+
+    /**
+     * Atomically persists all changes made to the tree attached to this root.
+     * Calling this method is equivalent to calling the
+     * {@link #commit(String, CommitHook)} method with no user data and an
+     * empty commit hook.
+     *
+     * @throws CommitFailedException if the commit failed
+     */
+    void commit() throws CommitFailedException;
+
 
     /**
      * Determine whether there are changes on this tree
@@ -150,4 +169,5 @@ public interface Root {
      */
     @Nonnull
     ContentSession getContentSession();
+
 }

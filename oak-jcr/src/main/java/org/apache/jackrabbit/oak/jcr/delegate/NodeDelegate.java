@@ -781,7 +781,7 @@ public class NodeDelegate extends ItemDelegate {
             }
             tree.setProperty(JCR_LOCKISDEEP, isDeep);
             tree.setProperty(JCR_LOCKOWNER, owner);
-            root.commit();
+            sessionDelegate.commit(root);
         } catch (CommitFailedException e) {
             if (e.isAccessViolation()) {
                 throw new AccessControlException(
@@ -809,7 +809,7 @@ public class NodeDelegate extends ItemDelegate {
         try {
             tree.removeProperty(JCR_LOCKISDEEP);
             tree.removeProperty(JCR_LOCKOWNER);
-            root.commit();
+            sessionDelegate.commit(root);
         } catch (CommitFailedException e) {
             if (e.isAccessViolation()) {
                 throw new AccessControlException(

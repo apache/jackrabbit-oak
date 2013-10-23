@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -151,9 +152,9 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     @Nonnull
     @Override
-    public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+    public NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
             throws CommitFailedException {
-        return branchState.merge(checkNotNull(hook), checkNotNull(info));
+        return branchState.merge(checkNotNull(hook), info);
     }
 
     @Override
@@ -201,7 +202,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         abstract void rebase();
 
         @Nonnull
-        abstract NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        abstract NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
                 throws CommitFailedException;
     }
 

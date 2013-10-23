@@ -29,8 +29,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -81,11 +83,11 @@ public class MemoryNodeStore implements NodeStore {
      *                                  this store
      */
     @Override
-    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nonnull CommitInfo info) throws CommitFailedException {
+    public synchronized NodeState merge(
+            @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            @Nullable CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MemoryNodeBuilder);
         checkNotNull(commitHook);
-        checkNotNull(info);
         rebase(builder);
         NodeStoreBranch branch = new MemoryNodeStoreBranch(this, getRoot());
         branch.setRoot(builder.getNodeState());
@@ -198,7 +200,8 @@ public class MemoryNodeStore implements NodeStore {
         }
 
         @Override
-        public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        public NodeState merge(
+                @Nonnull CommitHook hook, @Nullable CommitInfo info)
                 throws CommitFailedException {
             // TODO: rebase();
             checkNotMerged();

@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
@@ -30,9 +31,9 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.security.auth.Subject;
 
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -153,7 +154,10 @@ public abstract class AbstractRoot implements Root {
      * the session has been logged out already).
      */
     protected void checkLive() {
+    }
 
+    protected String getUserData() {
+        return null;
     }
 
     //---------------------------------------------------------------< Root >---
@@ -240,14 +244,20 @@ public abstract class AbstractRoot implements Root {
     }
 
     @Override
-    public void commit(final CommitHook... hooks) throws CommitFailedException {
+    public void commit() throws CommitFailedException {
+        commit(null, null);
+    }
+
+    @Override
+    public void commit(@Nullable String message, @Nullable CommitHook hook)
+            throws CommitFailedException {
         checkLive();
         ContentSession session = getContentSession();
-        CommitInfo info = CommitInfo.create(
+        CommitInfo info = new CommitInfo(
                 session.toString(),
                 session.getAuthInfo().getUserID(),
-                System.currentTimeMillis());
-        base = store.merge(builder, getCommitHook(hooks), info);
+                message);
+        base = store.merge(builder, getCommitHook(hook), info);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
@@ -256,33 +266,42 @@ public abstract class AbstractRoot implements Root {
     }
 
     /**
-     * Combine the passed {@code hooks}, the globally defined commit hook(s) and the hooks and
-     * validators defined by the various security related configurations.
+     * Combine the passed {@code hook}, the globally defined commit hook(s)
+     * and the hooks and validators defined by the various security related
+     * configurations.
      *
+     * @param hook extra hook to be used for just this commit, or {@code null}
      * @return A commit hook combining repository global commit hook(s) with the pluggable hooks
      *         defined with the security modules and the padded {@code hooks}.
-     * @param hooks
      */
-    private CommitHook getCommitHook(CommitHook[] hooks) {
-        List<CommitHook> commitHooks = Lists.newArrayList(hooks);
-        commitHooks.add(hook);
+    private CommitHook getCommitHook(@Nullable CommitHook extraHook) {
+        List<CommitHook> hooks = newArrayList();
+
+        if (extraHook != null) {
+            hooks.add(extraHook);
+        }
+
+        hooks.add(hook);
+
         List<CommitHook> postValidationHooks = new ArrayList<CommitHook>();
         for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
             for (CommitHook ch : sc.getCommitHooks(workspaceName)) {
                 if (ch instanceof PostValidationHook) {
                     postValidationHooks.add(ch);
                 } else if (ch != EmptyHook.INSTANCE) {
-                    commitHooks.add(ch);
+                    hooks.add(ch);
                 }
             }
+
             List<? extends ValidatorProvider> validators =
                     sc.getValidators(workspaceName, getCommitSubject());
             if (!validators.isEmpty()) {
-                commitHooks.add(new EditorHook(CompositeEditorProvider.compose(validators)));
+                hooks.add(new EditorHook(CompositeEditorProvider.compose(validators)));
             }
         }
-        commitHooks.addAll(postValidationHooks);
-        return CompositeHook.compose(commitHooks);
+        hooks.addAll(postValidationHooks);
+
+        return CompositeHook.compose(hooks);
     }
 
     /**

@@ -32,6 +32,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Objects;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -110,19 +111,31 @@ public class ChangeDispatcher {
     }
 
     /**
-     * Call right after changes have been successfully persisted passing the new root
-     * node state resulting from the persist operation.
+     * Call right after changes have been successfully persisted passing
+     * the new root node state resulting from the persist operation.
      * <p>
      * The differences from the root node state passed to the last call to
-     * {@link #beforeCommit(NodeState)} to {@code root} are reported as cluster local
-     * changes to any listener.
-
-     * @param root  root node state just persisted
+     * {@link #beforeCommit(NodeState)} to {@code root} are reported as
+     * cluster local changes to any listener in case non-{@code null}
+     * commit information is provided. If no local commit information is
+     * given, then no local changes are reported and the committed changes
+     * will only show up as an aggregate with any concurrent external changes
+     * reported during the {@link #afterCommit(NodeState)} call.
+     *
+     * @param root root node state just persisted
+     * @param info commit information
      * @throws IllegalStateException  if not inside a local commit
      */
-    public synchronized void localCommit(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public synchronized void localCommit(
+            @Nonnull NodeState root, @Nonnull CommitInfo info) {
         checkState(inLocalCommit());
-        internalChange(checkNotNull(root), checkNotNull(info));
+        checkNotNull(root);
+        if (info != null) {
+            add(new ChangeSet(previousRoot, root, info));
+        } else {
+            add(new ChangeSet(previousRoot, root));
+        }
+        previousRoot = root;
     }
 
     /**
@@ -156,14 +169,9 @@ public class ChangeDispatcher {
 
     private synchronized void externalChange(NodeState root) {
         if (!root.equals(previousRoot)) {
-            add(new ChangeSet(previousRoot, root, true, CommitInfo.EMPTY));
+            add(new ChangeSet(previousRoot, root));
             previousRoot = root;
         }
-    }
-
-    private synchronized void internalChange(NodeState root, CommitInfo info) {
-        add(new ChangeSet(previousRoot, root, false, info));
-        previousRoot = root;
     }
 
     private void register(Listener listener) {
@@ -235,37 +243,39 @@ public class ChangeDispatcher {
     public static class ChangeSet {
         private final NodeState before;
         private final NodeState after;
-        private final boolean isExternal;
         private final CommitInfo commitInfo;
 
-        ChangeSet(@Nonnull NodeState before, @Nonnull NodeState after, boolean isExternal,
+        /**
+         * Creates an external change set
+         */
+        ChangeSet(@Nonnull NodeState before, @Nonnull NodeState after) {
+            this.before = checkNotNull(before);
+            this.after = checkNotNull(after);
+            this.commitInfo = null;
+        }
+
+        /**
+         * Creates a local change set
+         */
+        ChangeSet(@Nonnull NodeState before, @Nonnull NodeState after,
                 @Nonnull CommitInfo commitInfo) {
             this.before = checkNotNull(before);
             this.after = checkNotNull(after);
-            this.isExternal = isExternal;
             this.commitInfo = checkNotNull(commitInfo);
         }
 
         public boolean isExternal() {
-            return isExternal;
+            return commitInfo == null;
         }
 
         public boolean isLocal(String sessionId) {
-            return !isExternal && Objects.equal(getSessionId(), sessionId);
+            return commitInfo != null
+                    && Objects.equal(commitInfo.getSessionId(), sessionId);
         }
 
-        @Nonnull
-        public String getSessionId() {
-            return commitInfo.getSessionId();
-        }
-
-        @Nonnull
-        public String getUserId() {
-            return commitInfo.getUserId();
-        }
-
-        public long getDate() {
-            return commitInfo.getDate();
+        @CheckForNull
+        public CommitInfo getCommitInfo() {
+            return commitInfo;
         }
 
         /**
@@ -291,33 +301,10 @@ public class ChangeDispatcher {
             return toStringHelper(this)
                 .add("base", before)
                 .add("head", after)
-                .add("external", isExternal)
                 .add("commit info", commitInfo)
                 .toString();
         }
 
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
-            }
-            if (other == null || other.getClass() != this.getClass()) {
-                return false;
-            }
-
-            ChangeSet that = (ChangeSet) other;
-            return isExternal == that.isExternal
-                    && commitInfo.equals(that.commitInfo)
-                    && before.equals(that.before)
-                    && after.equals(that.after);
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = before.hashCode();
-            hash = 31 * hash + after.hashCode();
-            hash = 31 * hash + (isExternal ? 1 : 0);
-            return 31 * hash + commitInfo.hashCode();
-        }
     }
+
 }

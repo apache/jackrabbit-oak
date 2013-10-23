@@ -23,7 +23,6 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.junit.Test;
 
 /**
@@ -99,8 +98,7 @@ public class CommitQueueTest {
                                 queue.canceled(c);
                             } else {
                                 boolean isBranch = random.nextInt(5) == 0;
-                                queue.done(c, isBranch, CommitInfo.create(
-                                        null, null, System.currentTimeMillis()));
+                                queue.done(c, isBranch, null);
                             }
                         }
                     } catch (Exception e) {

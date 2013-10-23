@@ -147,10 +147,8 @@ public class ObservationManagerImpl implements ObservationManager {
     }
 
     @Override
-    public void setUserData(String userData) throws RepositoryException {
-        for (ChangeProcessor processor : processors.values()) {
-            processor.setUserData(userData);
-        }
+    public void setUserData(@Nullable String userData) {
+        sessionDelegate.setUserData(userData);
     }
 
     @Override

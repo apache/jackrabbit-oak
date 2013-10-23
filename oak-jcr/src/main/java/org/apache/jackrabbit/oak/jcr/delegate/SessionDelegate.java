@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -73,6 +74,8 @@ public class SessionDelegate {
     private boolean isAlive = true;
     private int sessionOpCount;
     private long updateCount = 0;
+
+    private String userData = null;
 
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
@@ -190,6 +193,37 @@ public class SessionDelegate {
         return updateCount;
     }
 
+    public void setUserData(String userData) {
+        this.userData = userData;
+    }
+
+    /**
+     * Commits the changes currently in the transient space.
+     * TODO: Consolidate with save().
+     *
+     * @throws CommitFailedException if the commit failed
+     */
+    public void commit() throws CommitFailedException {
+        commit(root);
+    }
+
+    /**
+     * Commits the changes applied to the given root. The user data (if any)
+     * currently attached to this session is passed as the commit message.
+     * Used both for normal save() calls and for the various
+     * direct-to-workspace operations.
+     *
+     * @throws CommitFailedException if the commit failed
+     */
+    public void commit(Root root) throws CommitFailedException {
+        commit(root, null);
+    }
+
+    private void commit(Root root, CommitHook hook)
+            throws CommitFailedException {
+        root.commit(userData, hook);
+    }
+
     public void checkProtectedNode(String path) throws RepositoryException {
         NodeDelegate node = getNode(path);
         if (node == null) {
@@ -295,7 +329,7 @@ public class SessionDelegate {
 
     public void save() throws RepositoryException {
         try {
-            root.commit();
+            commit();
         } catch (CommitFailedException e) {
             throw newRepositoryException(e);
         }
@@ -316,7 +350,7 @@ public class SessionDelegate {
             save();
         } else {
             try {
-                root.commit(new EditorHook(new EditorProvider() {
+                root.commit(null, new EditorHook(new EditorProvider() {
                     @Override
                     public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder) {
                         return new ItemSaveValidator(path);
@@ -381,7 +415,7 @@ public class SessionDelegate {
                 throw new RepositoryException("Cannot move node at " + srcPath + " to " + destPath);
             }
             if (!transientOp) {
-                moveRoot.commit();
+                commit(moveRoot);
                 refresh(true);
             }
         } catch (CommitFailedException e) {
@@ -482,4 +516,5 @@ public class SessionDelegate {
             return new ItemSaveValidator(validator, path);
         }
     }
+
 }
