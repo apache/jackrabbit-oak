@@ -74,17 +74,13 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
         }
         // TODO what is the expected result of an equi join for multi-valued properties?
         if (!p1.isArray() && p2.isArray()) {
-            if (p1.getType().tag() != p2.getType().tag()) {
-                p1 = PropertyValues.convert(p1, p2.getType().tag(), query.getNamePathMapper());
-            }
+            p1 = convertValueToType(p1, p2);
             if (p1 != null && PropertyValues.match(p1, p2)) {
                 return true;
             }
             return false;
         } else if (p1.isArray() && !p2.isArray()) {
-            if (p1.getType().tag() != p2.getType().tag()) {
-                p2 = PropertyValues.convert(p2, p1.getType().tag(), query.getNamePathMapper());
-            }
+            p2 = convertValueToType(p2, p1);
             if (p2 != null && PropertyValues.match(p1, p2)) {
                 return true;
             }
@@ -109,7 +105,8 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
                 }
             }
             // always set the condition, even if unkown ( -> is not null)
-            f.restrictProperty(property1Name, Operator.EQUAL, p2);
+            String p1n = normalizePropertyName(property1Name);
+            f.restrictProperty(p1n, Operator.EQUAL, p2);
         }
         if (f.getSelector() == selector2) {
             PropertyValue p1 = selector1.currentProperty(property1Name);
@@ -125,7 +122,8 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
                 }
             }
             // always set the condition, even if unkown ( -> is not null)
-            f.restrictProperty(property2Name, Operator.EQUAL, p1);
+            String p2n = normalizePropertyName(property2Name);
+            f.restrictProperty(p2n, Operator.EQUAL, p1);
         }
     }
 

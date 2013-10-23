@@ -68,6 +68,7 @@ public class LengthImpl extends DynamicOperandImpl {
         if (p == null) {
             return null;
         }
+        // TODO namespace remapping?
         if (!p.isArray()) {
             long length = p.size();
             return PropertyValues.newLong(length);

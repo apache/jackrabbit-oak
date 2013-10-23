@@ -63,7 +63,7 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        PropertyValue p = selector.currentProperty(QueryImpl.JCR_SCORE);
+        PropertyValue p = selector.currentOakProperty(QueryImpl.JCR_SCORE);
         if (p == null) {
             // TODO if score() is not supported by the index, use the value 0.0?
             return PropertyValues.newDouble(0.0);

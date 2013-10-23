@@ -51,16 +51,17 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
-        boolean relative = propertyName.indexOf('/') >= 0;
-        if (!relative) {
+        boolean isRelative = propertyName.indexOf('/') >= 0;
+        if (!isRelative) {
             return selector.currentProperty(propertyName) == null;
         }
         Tree t = selector.currentTree();
         if (t == null) {
             return true;
         }
-        String relativePath = PathUtils.getParentPath(propertyName);
-        String name = PathUtils.getName(propertyName);
+        String pn = normalizePath(propertyName);
+        String relativePath = PathUtils.getParentPath(pn);
+        String name = PathUtils.getName(pn);
         for (String p : PathUtils.elements(relativePath)) {
             if (t == null || !t.exists()) {
                 return false;
@@ -140,8 +141,9 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
     
     @Override
     public int hashCode() {
+        String pn = normalizePropertyName(propertyName);
         return ((selectorName == null) ? 0 : selectorName.hashCode()) * 31 +
-                ((propertyName == null) ? 0 : propertyName.hashCode());
+                ((pn == null) ? 0 : pn.hashCode());
     }
 
     @Override
@@ -152,8 +154,12 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
             return false;
         }
         PropertyInexistenceImpl other = (PropertyInexistenceImpl) obj;
-        return equalsStrings(selectorName, other.selectorName) &&
-                equalsStrings(propertyName, other.propertyName);
+        if (!equalsStrings(selectorName, other.selectorName)) {
+            return false;
+        }
+        String pn = normalizePropertyName(propertyName);
+        String pn2 = normalizePropertyName(other.propertyName);
+        return equalsStrings(pn, pn2);
     }
     
     private static boolean equalsStrings(String a, String b) {

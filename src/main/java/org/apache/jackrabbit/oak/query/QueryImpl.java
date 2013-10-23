@@ -605,14 +605,23 @@ public class QueryImpl implements Query {
     }
 
     /**
-     * Validate a path is syntactically correct.
+     * Validate the path is syntactically correct, and convert it to an Oak
+     * internal path (including namespace remapping if needed).
      * 
-     * @param path the path to validate
+     * @param path the path
+     * @return the the converted path
      */
-    public void validatePath(String path) {
+    public String getOakPath(String path) {
+        if (path == null) {
+            return null;
+        }
         if (!JcrPathParser.validate(path)) {
             throw new IllegalArgumentException("Invalid path: " + path);
         }
+        if (namePathMapper == null) {
+            return path;
+        }
+        return namePathMapper.getOakPath(path);
     }
 
     @Override

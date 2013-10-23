@@ -80,7 +80,7 @@ public abstract class DynamicOperandImpl extends AstElement {
     public int hashCode() {
         return toString().hashCode();
     }
-
+    
     public abstract DynamicOperandImpl createCopy();
 
 }

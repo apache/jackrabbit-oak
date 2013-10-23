@@ -41,8 +41,7 @@ public class SameNodeImpl extends ConstraintImpl {
 
     @Override
     public boolean evaluate() {
-        String p = validateAndNormalizePath(path);
-        // TODO normalize paths
+        String p = normalizePath(path);
         return selector.currentPath().equals(p);
     }
     
@@ -79,10 +78,9 @@ public class SameNodeImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         if (f.getSelector() == selector) {
-            String p = validateAndNormalizePath(path);
+            String p = normalizePath(path);
             f.restrictPath(p, Filter.PathRestriction.EXACT);
         }
-        // TODO validate absolute path
     }
 
     @Override
