@@ -361,17 +361,33 @@ public final class MongoNodeStore
             base = headRevision;
         }
         backgroundOperationLock.readLock().lock();
-        return commitQueue.createCommit(base);
+        boolean success = false;
+        Commit c;
+        try {
+            c = commitQueue.createCommit(base);
+            success = true;
+        } finally {
+            if (!success) {
+                backgroundOperationLock.readLock().unlock();
+            }
+        }
+        return c;
     }
 
     void done(@Nonnull Commit c, boolean isBranch) {
-        backgroundOperationLock.readLock().unlock();
-        commitQueue.done(c, isBranch, CommitInfo.EMPTY);
+        try {
+            commitQueue.done(c, isBranch, CommitInfo.EMPTY);
+        } finally {
+            backgroundOperationLock.readLock().unlock();
+        }
     }
 
     void canceled(Commit c) {
-        backgroundOperationLock.readLock().unlock();
-        commitQueue.canceled(c);
+        try {
+            commitQueue.canceled(c);
+        } finally {
+            backgroundOperationLock.readLock().unlock();
+        }
     }
 
     public void setAsyncDelay(int delay) {
@@ -761,15 +777,15 @@ public final class MongoNodeStore
     @Nonnull
     @Override
     public String checkpoint(long lifetime) {
-        // TODO: implement
-        return null;
+        // FIXME: need to signal to the garbage collector that this revision
+        // should not be collected until the requested lifetime is over
+        return getHeadRevision().toString();
     }
 
     @CheckForNull
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {
-        // TODO: implement
-        return null;
+        return getRoot(Revision.fromString(checkpoint));
     }
 
     //------------------------< RevisionContext >-------------------------------
