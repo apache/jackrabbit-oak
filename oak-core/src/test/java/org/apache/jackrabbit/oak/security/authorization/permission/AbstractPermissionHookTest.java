@@ -134,6 +134,10 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         }
     }
 
+    static protected void assertIndex(int expected, Tree entry) {
+        assertEquals(expected, Integer.parseInt(entry.getName()));
+    }
+
     @Test
     public void testModifyRestrictions() throws Exception {
         Tree testAce = root.getTree(testPath + "/rep:policy").getChildren().iterator().next();
@@ -174,7 +178,7 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
     @Test
     public void testReorderAce() throws Exception {
         Tree entry = getEntry(testPrincipalName, testPath, 0);
-        assertEquals(0, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(0, entry);
 
         Tree aclTree = root.getTree(testPath + "/rep:policy");
         aclTree.getChildren().iterator().next().orderBefore(null);
@@ -182,13 +186,13 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         root.commit();
 
         entry = getEntry(testPrincipalName, testPath, 1);
-        assertEquals(1, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(1, entry);
     }
 
     @Test
     public void testReorderAndAddAce() throws Exception {
         Tree entry = getEntry(testPrincipalName, testPath, 0);
-        assertEquals(0, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(0, entry);
 
         Tree aclTree = root.getTree(testPath + "/rep:policy");
         // reorder
@@ -201,13 +205,13 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         root.commit();
 
         entry = getEntry(testPrincipalName, testPath, 1);
-        assertEquals(1, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(1, entry);
     }
 
     @Test
     public void testReorderAddAndRemoveAces() throws Exception {
         Tree entry = getEntry(testPrincipalName, testPath, 0);
-        assertEquals(0, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(0, entry);
 
         Tree aclTree = root.getTree(testPath + "/rep:policy");
 
@@ -231,7 +235,7 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         root.commit();
 
         entry = getEntry(testPrincipalName, testPath, 1);
-        assertEquals(1, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(1, entry);
     }
 
     /**
@@ -261,10 +265,10 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         root.commit();
 
         Tree entry = getEntry(principals.get(2).getName(), testPath, 1);
-        assertEquals(1, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(1, entry);
 
         entry = getEntry(principals.get(1).getName(), testPath, 2);
-        assertEquals(2, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(2, entry);
     }
 
     /**
@@ -293,10 +297,10 @@ public abstract class AbstractPermissionHookTest extends AbstractAccessControlTe
         root.commit();
 
         Tree entry = getEntry(EveryonePrincipal.NAME, testPath, 1);
-        assertEquals(1, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(1, entry);
 
         entry = getEntry(principals.get(2).getName(), testPath, 3);
-        assertEquals(3, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
+        assertIndex(3, entry);
 
         for (String pName : new String[]{testPrincipalName, principals.get(0).getName()}) {
             try {
