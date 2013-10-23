@@ -17,11 +17,17 @@
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -93,6 +99,33 @@ class UnsavedModifications {
     public void applyTo(UnsavedModifications other, Revision mergeCommit) {
         for (Map.Entry<String, Revision> entry : map.entrySet()) {
             other.put(entry.getKey(), mergeCommit);
+        }
+    }
+
+    /**
+     * Returns all paths of nodes with modifications at the start revision
+     * (inclusive) or later.
+     *
+     * @param start the start revision (inclusive).
+     * @return matching paths with pending modifications.
+     */
+    @Nonnull
+    public Iterable<String> getPaths(@Nonnull final Revision start) {
+        if (map.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            return Iterables.transform(Iterables.filter(map.entrySet(),
+                    new Predicate<Map.Entry<String, Revision>>() {
+                @Override
+                public boolean apply(Map.Entry<String, Revision> input) {
+                    return start.compareRevisionTime(input.getValue()) < 1;
+                }
+            }), new Function<Map.Entry<String, Revision>, String>() {
+                @Override
+                public String apply(Map.Entry<String, Revision> input) {
+                    return input.getKey();
+                }
+            });
         }
     }
 }

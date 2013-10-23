@@ -250,14 +250,13 @@ public class MongoMKDiffTest extends AbstractMongoConnectionTest {
     }
 
     @Test
-    @Ignore
     public void diffForChangeBelowManyChildren() throws InterruptedException {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
             sb.append("+\"node-").append(i).append("\":{}");
         }
         mk.commit("/", sb.toString(), null, null);
-        // wait a while, _modified has 5 seconds granularity
+        // wait a while, _modified has 5 seconds resolution
         Thread.sleep(TimeUnit.SECONDS.toMillis(6));
         // create a base commit for the diff
         String base = mk.commit("/", "+\"foo\":{}", null, null);
