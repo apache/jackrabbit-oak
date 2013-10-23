@@ -266,12 +266,13 @@ public class Template {
     }
 
     public boolean compareAgainstBaseState(
-            final Segment segment, RecordId afterId,
-            Template beforeTemplate, RecordId beforeId,
+            Segment afterSegment, RecordId afterId,
+            Template beforeTemplate, Segment beforeSegment, RecordId beforeId,
             final NodeStateDiff diff) {
-        checkNotNull(segment);
+        checkNotNull(afterSegment);
         checkNotNull(afterId);
         checkNotNull(beforeTemplate);
+        checkNotNull(beforeSegment);
         checkNotNull(beforeId);
         checkNotNull(diff);
 
@@ -280,9 +281,6 @@ public class Template {
                 || !compareProperties(beforeTemplate.mixinTypes, mixinTypes, diff)) {
             return false;
         }
-
-        final Segment afterSegment = segment.getSegment(afterId);
-        final Segment beforeSegment = segment.getSegment(beforeId);
 
         // Compare other properties, leveraging the ordering
         int beforeIndex = 0;
@@ -438,7 +436,6 @@ public class Template {
         if (childName == MANY_CHILD_NODES) {
             RecordId childNodesId = segment.readRecordId(offset);
             MapRecord children = segment.readMap(childNodesId);
-            final Segment s = segment;
             children.compareAgainstEmptyMap(new MapDiff() {
                 @Override
                 public boolean entryAdded(MapEntry after) {
