@@ -410,14 +410,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 }
             }
             for (AcEntry ace: list) {
-                NodeBuilder n = parent.child(String.valueOf(ace.index))
-                        .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS, Type.NAME)
-                        .setProperty(REP_IS_ALLOW, ace.isAllow)
-                        .setProperty(REP_INDEX, ace.index)
-                        .setProperty(ace.privilegeBits.asPropertyState(REP_PRIVILEGE_BITS));
-                for (Restriction restriction : ace.restrictions) {
-                    n.setProperty(restriction.getProperty());
-                }
+                PermissionEntry.write(parent, ace.isAllow, ace.index, ace.privilegeBits, ace.restrictions);
                 numEntries++;
             }
             return numEntries;
@@ -431,16 +424,17 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         private final PrivilegeBits privilegeBits;
         private final boolean isAllow;
         private final Set<Restriction> restrictions;
-        private final long index;
+        private final int index;
         private int hashCode = -1;
 
-        private AcEntry(@Nonnull Tree aceTree, @Nonnull String accessControlledPath, long index) {
+        private AcEntry(@Nonnull Tree aceTree, @Nonnull String accessControlledPath, int index) {
             this.accessControlledPath = accessControlledPath;
+            this.index = index;
+
             principalName = Text.escapeIllegalJcrChars(checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME)));
             privilegeBits = bitsProvider.getBits(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
             isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
             restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), aceTree);
-            this.index = index;
         }
 
         @Override
