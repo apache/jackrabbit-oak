@@ -111,8 +111,7 @@ public class TokenProviderImpl implements TokenProvider {
     private static final int DEFAULT_KEY_SIZE = 8;
     private static final char DELIM = '_';
 
-    private static final Set<String> RESERVED_ATTRIBUTES = new HashSet(2);
-
+    private static final Set<String> RESERVED_ATTRIBUTES = new HashSet(3);
     static {
         RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE);
         RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE_EXPIRY);
@@ -219,7 +218,7 @@ public class TokenProviderImpl implements TokenProvider {
                 String nodeId = getIdentifier(tokenNode.getTree());
                 String token = new StringBuilder(nodeId).append(DELIM).append(key).toString();
 
-                String keyHash = PasswordUtil.buildPasswordHash(key);
+                String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, userId));
                 tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
 
                 long exp;
@@ -318,6 +317,11 @@ public class TokenProviderImpl implements TokenProvider {
             res.append(Text.hexTable[b & 15]);
         }
         return res.toString();
+    }
+
+    @Nonnull
+    private static String getKeyValue(String key, String userId) {
+        return key + userId;
     }
 
     private static boolean isValidTokenTree(Tree tokenTree) {
@@ -500,7 +504,7 @@ public class TokenProviderImpl implements TokenProvider {
             if (pos > -1) {
                 tk = tk.substring(pos + 1);
             }
-            if (key == null || !PasswordUtil.isSame(key, tk)) {
+            if (key == null || !PasswordUtil.isSame(key, getKeyValue(tk, userId))) {
                 return false;
             }
 
