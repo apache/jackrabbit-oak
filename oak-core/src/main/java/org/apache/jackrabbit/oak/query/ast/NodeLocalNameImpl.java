@@ -71,6 +71,7 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
         int colon = name.indexOf(':');
         // TODO LOCALNAME: evaluation of local name might not be correct
         String localName = colon < 0 ? name : name.substring(colon + 1);
+        // TODO reverse namespace remapping?
         return PropertyValues.newString(localName);
     }
 

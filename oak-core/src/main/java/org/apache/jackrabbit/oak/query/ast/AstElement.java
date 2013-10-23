@@ -18,8 +18,11 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * The base class for all abstract syntax tree nodes.
@@ -47,6 +50,40 @@ abstract class AstElement {
     public void setQuery(QueryImpl query) {
         this.query = query;
     }
+    
+    /**
+     * Normalize the property name (including namespace remapping).
+     *
+     * @param propertyName the property name to normalize
+     * @return the normalized property name
+     */
+    protected String normalizePropertyName(String propertyName) {
+        // TODO normalize the path (remove superfluous ".." and "." 
+        // where possible)
+        if (query == null) {
+            return propertyName;
+        }
+        if (propertyName == null) {
+            return null;
+        }
+        int slash = propertyName.indexOf('/');
+        if (slash < 0) {
+            return normalizeNonRelativePropertyName(propertyName);
+        }
+        // relative properties
+        String relativePath = PathUtils.getParentPath(propertyName);
+        relativePath = query.getOakPath(relativePath);
+        propertyName = PathUtils.getName(propertyName);
+        propertyName = normalizeNonRelativePropertyName(propertyName);
+        return PathUtils.concat(relativePath, propertyName);
+    }
+    
+    private String normalizeNonRelativePropertyName(String propertyName) {
+        if (propertyName.equals("*")) {
+            return propertyName;
+        }
+        return query.getOakPath(propertyName);
+    }
 
     /**
      * Validate and normalize the path.
@@ -54,12 +91,24 @@ abstract class AstElement {
      * @param path the path to validate
      * @return the validated and normalized path
      */
-    protected String validateAndNormalizePath(String path) {
-        // TODO normalize the path (remove superfluous ".." and "." where possible)
-        // possibly using
-        //  PropertyValues.getOakPath(name, query.getNamePathMapper());
-        query.validatePath(path);
-        return path;
+    protected String normalizePath(String path) {
+        // TODO normalize the path (remove superfluous ".." and "." 
+        // where possible)
+        if (query == null) {
+            return path;
+        }
+        return query.getOakPath(path);
+    }
+    
+    protected PropertyValue convertValueToType(PropertyValue v, PropertyValue targetType) {
+        if (targetType.count() == 0) {
+            return v;
+        }
+        int type = targetType.getType().tag();
+        if (v.getType().tag() == type) {
+            return v;
+        }
+        return PropertyValues.convert(v, type, query.getNamePathMapper());
     }
 
     /**

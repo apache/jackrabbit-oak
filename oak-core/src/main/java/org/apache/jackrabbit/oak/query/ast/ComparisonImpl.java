@@ -56,13 +56,6 @@ public class ComparisonImpl extends ConstraintImpl {
     public StaticOperandImpl getOperand2() {
         return operand2;
     }
-
-    public static int getType(PropertyValue p, int ifUnknown) {
-        if (p.count() > 0) {
-            return p.getType().tag();
-        }
-        return ifUnknown;
-    }
     
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
@@ -100,12 +93,9 @@ public class ComparisonImpl extends ConstraintImpl {
             // even for "null <> 'x'" (same as in SQL) 
             return false;
         }
-        int v1Type = getType(p1, p2.getType().tag());
-        if (v1Type != p2.getType().tag()) {
-            // "the value of operand2 is converted to the
-            // property type of the value of operand1"
-            p2 = PropertyValues.convert(p2, v1Type, query.getNamePathMapper());
-        }
+        // "the value of operand2 is converted to the
+        // property type of the value of operand1"
+        p2 = convertValueToType(p2, p1);
         return evaluate(p1, p2);
     }
 

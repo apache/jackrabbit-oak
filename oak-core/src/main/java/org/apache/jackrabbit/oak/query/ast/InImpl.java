@@ -87,12 +87,9 @@ public class InImpl extends ConstraintImpl {
                 // if the property doesn't exist, the result is false
                 continue;
             }
-            int v1Type = ComparisonImpl.getType(p1, p2.getType().tag());
-            if (v1Type != p2.getType().tag()) {
-                // "the value of operand2 is converted to the
-                // property type of the value of operand1"
-                p2 = PropertyValues.convert(p2, v1Type, query.getNamePathMapper());
-            }
+            // "the value of operand2 is converted to the
+            // property type of the value of operand1"
+            p2 = convertValueToType(p2, p1);
             if (PropertyValues.match(p1, p2)) {
                 return true;
             }
