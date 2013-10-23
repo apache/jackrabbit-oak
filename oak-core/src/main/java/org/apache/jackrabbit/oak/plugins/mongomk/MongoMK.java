@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.io.InputStream;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -250,11 +249,23 @@ public class MongoMK implements MicroKernel {
         long minValue = Commit.getModified(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
-        List<NodeDocument> list = store.query(Collection.NODES, fromKey, toKey,
-                NodeDocument.MODIFIED, minValue, Integer.MAX_VALUE);
-        for (NodeDocument doc : list) {
-            String id = doc.getId();
-            String p = Utils.getPathFromId(id);
+        Set<String> paths = new HashSet<String>();
+        for (NodeDocument doc : store.query(Collection.NODES, fromKey, toKey,
+                NodeDocument.MODIFIED, minValue, Integer.MAX_VALUE)) {
+            paths.add(Utils.getPathFromId(doc.getId()));
+        }
+        // also consider nodes with not yet stored modifications (OAK-1107)
+        Revision minRev = new Revision(minTimestamp, 0, nodeStore.getClusterId());
+        for (String p : nodeStore.getPendingModifications().getPaths(minRev)) {
+            if (PathUtils.denotesRoot(p)) {
+                continue;
+            }
+            String parent = PathUtils.getParentPath(p);
+            if (path.equals(parent)) {
+                paths.add(p);
+            }
+        }
+        for (String p : paths) {
             Node fromNode = nodeStore.getNode(p, fromRev);
             Node toNode = nodeStore.getNode(p, toRev);
             if (fromNode != null) {
