@@ -135,9 +135,7 @@ public class MongoMK implements MicroKernel {
 
     @Override @Nonnull
     public String checkpoint(long lifetime) throws MicroKernelException {
-        // FIXME: need to signal to the garbage collector that this revision
-        // should not be collected until the requested lifetime is over
-        return getHeadRevision();
+        return nodeStore.checkpoint(lifetime);
     }
 
     @Override
@@ -418,7 +416,6 @@ public class MongoMK implements MicroKernel {
                 }
             } else {
                 commit.apply();
-                nodeStore.setHeadRevision(commit.getRevision());
                 success = true;
             }
         } finally {
