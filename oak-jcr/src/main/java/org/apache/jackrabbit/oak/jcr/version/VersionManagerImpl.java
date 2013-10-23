@@ -121,7 +121,7 @@ public class VersionManagerImpl implements VersionManager {
                             version.getIdentifier());
                     versionManagerDelegate.restore(
                             parent, PathUtils.getName(oakPath), vd);
-                    sessionDelegate.getRoot().commit();
+                    sessionDelegate.commit();
                     success = true;
                 } catch (CommitFailedException e) {
                     throw e.asRepositoryException();
@@ -203,7 +203,7 @@ public class VersionManagerImpl implements VersionManager {
                             version.getIdentifier());
                     versionManagerDelegate.restore(
                             n.getParent(), n.getName(), vd);
-                    sessionDelegate.getRoot().commit();
+                    sessionDelegate.commit();
                     success = true;
                 } catch (CommitFailedException e) {
                     throw new RepositoryException(e);

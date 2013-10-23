@@ -30,12 +30,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.util.TreeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -50,14 +49,13 @@ import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REM
  */
 public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
-    private static final Logger log = LoggerFactory.getLogger(ReadWriteVersionManager.class);
-    private final VersionStorage versionStorage;
-    private final Root workspaceRoot;
+    private final SessionDelegate sessionDelegate;
 
-    public ReadWriteVersionManager(@Nonnull VersionStorage versionStorage,
-                                   @Nonnull Root workspaceRoot) {
-        this.versionStorage = checkNotNull(versionStorage);
-        this.workspaceRoot = checkNotNull(workspaceRoot);
+    private final VersionStorage versionStorage;
+
+    public ReadWriteVersionManager(@Nonnull SessionDelegate sessionDelegate) {
+        this.sessionDelegate = sessionDelegate;
+        this.versionStorage = new VersionStorage(sessionDelegate.getRoot());
     }
 
     /**
@@ -69,7 +67,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      * @throws RepositoryException if the session could not be refreshed
      */
     protected void refresh() throws RepositoryException {
-        // do nothing
+        sessionDelegate.refresh(true);
     }
 
     @Override
@@ -81,14 +79,14 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     @Override
     @Nonnull
     protected Root getWorkspaceRoot() {
-        return workspaceRoot;
+        return sessionDelegate.getRoot();
     }
 
     @Override
     @Nonnull
     protected ReadOnlyNodeTypeManager getNodeTypeManager() {
         return ReadOnlyNodeTypeManager.getInstance(
-                workspaceRoot, NamePathMapper.DEFAULT);
+                sessionDelegate.getRoot(), NamePathMapper.DEFAULT);
     }
 
     /**
@@ -109,7 +107,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     public Tree checkin(@Nonnull Tree versionable)
             throws RepositoryException, InvalidItemStateException,
             UnsupportedRepositoryOperationException {
-        if (workspaceRoot.hasPendingChanges()) {
+        if (sessionDelegate.hasPendingChanges()) {
             throw new InvalidItemStateException("Unable to perform checkin. " +
                     "Session has pending changes.");
         }
@@ -121,10 +119,10 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             versionable.setProperty(JCR_ISCHECKEDOUT,
                     Boolean.FALSE, Type.BOOLEAN);
             try {
-                getWorkspaceRoot().commit();
+                sessionDelegate.commit();
                 refresh();
             } catch (CommitFailedException e) {
-                getWorkspaceRoot().refresh();
+                sessionDelegate.refresh(true);
                 throw e.asRepositoryException();
             }
         }
@@ -193,7 +191,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         versionStorage.getTree().setProperty(REP_ADD_VERSION_LABELS,
                 Collections.singleton(labelPath), Type.PATHS);
         try {
-            checkNotNull(versionStorage).commit();
+            sessionDelegate.commit(versionStorage.getRoot());
             refresh();
         } catch (CommitFailedException e) {
             versionStorage.refresh();
@@ -217,7 +215,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         versionStorage.getTree().setProperty(REP_REMOVE_VERSION_LABELS,
                 Collections.singleton(labelPath), Type.PATHS);
         try {
-            checkNotNull(versionStorage).commit();
+            sessionDelegate.commit(versionStorage.getRoot());
             refresh();
         } catch (CommitFailedException e) {
             versionStorage.refresh();

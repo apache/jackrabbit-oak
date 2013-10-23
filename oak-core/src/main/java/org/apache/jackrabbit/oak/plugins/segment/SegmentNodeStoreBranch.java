@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -182,10 +183,10 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override @Nonnull
-    public synchronized NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+    public synchronized NodeState merge(
+            @Nonnull CommitHook hook, @Nullable CommitInfo info)
             throws CommitFailedException {
         checkNotNull(hook);
-        checkNotNull(info);
         if (base != head) {
             try {
                 long timeout = optimisticMerge(hook, info);

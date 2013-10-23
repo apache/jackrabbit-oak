@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -86,13 +87,15 @@ public interface NodeStoreBranch {
      * the current head revision followed by a fast forward merge.
      *
      * @param hook the commit hook to apply while merging changes
-     * @param info commit info associated with this merge operation
+     * @param info commit info associated with this merge operation,
+     *             or {@code null} if no local commit information is available
      * @return the node state resulting from the merge.
      * @throws CommitFailedException if the merge failed
      * @throws IllegalStateException if the branch is already merged
      */
     @Nonnull
-    NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info) throws CommitFailedException;
+    NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
+            throws CommitFailedException;
 
     /**
      * Rebase the changes from this branch on top of the current

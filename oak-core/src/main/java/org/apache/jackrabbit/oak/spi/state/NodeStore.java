@@ -21,6 +21,7 @@ import java.io.InputStream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -51,15 +52,17 @@ public interface NodeStore {
      *
      * @param builder  the builder whose changes to apply
      * @param commitHook the commit hook to apply while merging changes
-     * @param info commit info associated with this merge operation
+     * @param info commit info associated with this merge operation,
+     *             or {@code null} if no local commit information is available
      * @return the node state resulting from the merge.
      * @throws CommitFailedException if the merge failed
      * @throws IllegalArgumentException if the builder is not acquired
      *                                  from a root state of this store
      */
     @Nonnull
-    NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nonnull CommitInfo info) throws CommitFailedException;
+    NodeState merge(
+            @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            @Nullable CommitInfo info) throws CommitFailedException;
 
     /**
      * Rebase the changes in the passed {@code builder} on top of the current root state.

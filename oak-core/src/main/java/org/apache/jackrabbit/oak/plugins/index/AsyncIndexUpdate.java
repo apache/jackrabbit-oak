@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -118,7 +117,7 @@ public class AsyncIndexUpdate implements Runnable {
                             throw CONCURRENT_UPDATE;
                         }
                     }
-                }, CommitInfo.EMPTY);
+                }, null);
             } catch (CommitFailedException e) {
                 if (e != CONCURRENT_UPDATE) {
                     exception = e;
@@ -143,7 +142,7 @@ public class AsyncIndexUpdate implements Runnable {
         NodeBuilder builder = store.getRoot().builder();
         preAsyncRunStatus(builder);
         try {
-            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            store.merge(builder, EmptyHook.INSTANCE, null);
         } catch (CommitFailedException e) {
             log.warn("Index status update {} failed", name, e);
         }

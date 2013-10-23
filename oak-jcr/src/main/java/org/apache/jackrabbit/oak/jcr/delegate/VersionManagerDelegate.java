@@ -57,14 +57,7 @@ public class VersionManagerDelegate {
 
     private VersionManagerDelegate(SessionDelegate sessionDelegate) {
         this.sessionDelegate = sessionDelegate;
-        this.versionManager = new ReadWriteVersionManager(
-                new VersionStorage(sessionDelegate.getRoot()),
-                sessionDelegate.getRoot()) {
-            @Override
-            protected void refresh() {
-                VersionManagerDelegate.this.sessionDelegate.refresh(true);
-            }
-        };
+        this.versionManager = new ReadWriteVersionManager(sessionDelegate);
     }
 
     @Nonnull

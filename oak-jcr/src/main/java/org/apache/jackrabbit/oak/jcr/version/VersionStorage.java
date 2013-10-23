@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.version;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 
@@ -39,6 +38,10 @@ public class VersionStorage {
         this.root = versionStorageRoot;
     }
 
+    Root getRoot() {
+        return root;
+    }
+
     /**
      * The version storage tree. I.e. the tree at path
      * <code>/jcr:system/jcr:versionStorage</code>, though the returned
@@ -49,15 +52,6 @@ public class VersionStorage {
      */
     Tree getTree() {
         return getVersionStorageTree(root);
-    }
-
-    /**
-     * Commits changes made to the version storage tree.
-     *
-     * @throws CommitFailedException if the commit fails.
-     */
-    void commit() throws CommitFailedException {
-        root.commit();
     }
 
     /**
@@ -76,4 +70,5 @@ public class VersionStorage {
         // TODO: this assumes the version store is in the same workspace.
         return checkNotNull(workspaceRoot).getTree(VERSION_STORAGE_PATH);
     }
+
 }
