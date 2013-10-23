@@ -27,12 +27,14 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -170,10 +172,11 @@ public class KernelNodeStore implements NodeStore, Observable {
      * an {@code IllegalArgumentException}.
      */
     @Override
-    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nonnull CommitInfo info) throws CommitFailedException {
+    public NodeState merge(
+            @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            @Nullable CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof KernelRootBuilder);
-        return ((KernelRootBuilder) builder).merge(checkNotNull(commitHook), checkNotNull(info));
+        return ((KernelRootBuilder) builder).merge(checkNotNull(commitHook), info);
     }
 
     /**

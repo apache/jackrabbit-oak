@@ -20,40 +20,44 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Commit info instances associate some meta data with a commit.
  */
 public class CommitInfo {
+
     public static final String OAK_UNKNOWN = "oak:unknown";
-    public static final CommitInfo EMPTY = new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN, 0);
 
     private final String sessionId;
+
     private final String userId;
-    private final long date;
+
+    private final String message;
+
+    private final long date = System.currentTimeMillis();
 
     /**
-     * Factory method for creating a new {@code CommitInfo} instance.
-     * Both string arguments default to {@link #OAK_UNKNOWN} if {@code null}.
+     * Creates a commit info for the given session and user.
      *
-     * @param sessionId  id of the committing session
-     * @param userId  id of the committing user
-     * @param date  time stamp
-     * @return  a fresh {@code CommitInfo} instance
+     * @param sessionId session identifier
+     * @param userId user identifier, or {@code null} for an unknown user
+     * @param message message attached to this commit, or {@code null}
      */
-    public static CommitInfo create(String sessionId, String userId, long date) {
-        return new CommitInfo(
-                sessionId == null ? OAK_UNKNOWN : sessionId,
-                userId == null ? OAK_UNKNOWN : userId,
-                date);
-    }
-
-    private CommitInfo(@Nonnull String sessionId, @Nonnull String userId, long date) {
-        this.sessionId = sessionId;
-        this.userId = userId;
-        this.date = date;
+    public CommitInfo(
+            @Nonnull String sessionId, @Nullable String userId,
+            @Nullable String message) {
+        this.sessionId = checkNotNull(sessionId);
+        if (userId != null) {
+            this.userId = userId;
+        } else {
+            this.userId = OAK_UNKNOWN;
+        }
+        this.message = message;
     }
 
     /**
@@ -73,6 +77,14 @@ public class CommitInfo {
     }
 
     /**
+     * @return message attached to this commit
+     */
+    @CheckForNull
+    public String getMessage() {
+        return message;
+    }
+
+    /**
      * @return  time stamp
      */
     public long getDate() {
@@ -84,29 +96,9 @@ public class CommitInfo {
         return toStringHelper(this)
                 .add("sessionId", sessionId)
                 .add("userId", userId)
+                .add("userData", message)
                 .add("date", date)
                 .toString();
     }
 
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (other == null || other.getClass() != this.getClass()) {
-            return false;
-        }
-
-        CommitInfo that = (CommitInfo) other;
-        return date == that.date
-                && sessionId.equals(that.sessionId)
-                && userId.equals(that.userId);
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = sessionId.hashCode();
-        hash = 31 * hash + userId.hashCode();
-        return 31 * hash + (int) (date ^ (date >>> 32));
-    }
 }

@@ -26,6 +26,7 @@ import java.io.InputStream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -111,11 +112,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public synchronized NodeState merge(
             @Nonnull NodeBuilder builder,
             @Nonnull CommitHook commitHook,
-            @Nonnull CommitInfo info)
+            @Nullable CommitInfo info)
             throws CommitFailedException {
         checkArgument(builder instanceof SegmentNodeBuilder);
         checkNotNull(commitHook);
-        checkNotNull(info);
         SegmentNodeState head = getHead();
         rebase(builder, head.getChildNode(ROOT)); // TODO: can we avoid this?
         SegmentNodeStoreBranch branch = new SegmentNodeStoreBranch(

@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterators.emptyIterator;
 import static com.google.common.collect.Iterators.singletonIterator;
 import static com.google.common.collect.Iterators.transform;
+import static com.google.common.collect.Lists.newArrayList;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
@@ -40,7 +41,7 @@ import javax.jcr.observation.EventListener;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
@@ -53,6 +54,7 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.VisibleDiff;
@@ -195,7 +197,8 @@ public class ChangeProcessor implements Runnable {
                     String path = namePathMapper.getOakPath(filter.getPath());
                     ImmutableTree beforeTree = getTree(changes.getBeforeState(), path);
                     ImmutableTree afterTree = getTree(changes.getAfterState(), path);
-                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(changes, beforeTree, afterTree);
+                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
+                            changes.getCommitInfo(), beforeTree, afterTree);
                     SecureNodeStateDiff.compare(VisibleDiff.wrap(diff), beforeTree, afterTree);
                     if (!stopping) {
                         diff.sendEvents();
@@ -223,22 +226,46 @@ public class ChangeProcessor implements Runnable {
     private class EventGeneratingNodeStateDiff extends RecursingNodeStateDiff {
         public static final int EVENT_LIMIT = 8192;
 
-        private final ChangeSet changes;
+        private final String userId;
+        private final String message;
+        private final long timestamp;
+        private final boolean external;
+
         private final Tree beforeTree;
         private final Tree afterTree;
 
         private List<Iterator<Event>> events;
         private int eventCount;
 
-        EventGeneratingNodeStateDiff(ChangeSet changes, Tree beforeTree, Tree afterTree, List<Iterator<Event>> events) {
-            this.changes = changes;
+        EventGeneratingNodeStateDiff(
+                CommitInfo info, Tree beforeTree, Tree afterTree) {
+            if (info != null) {
+                this.userId = info.getUserId();
+                this.message = info.getMessage();
+                this.timestamp = info.getDate();
+                this.external = false;
+            } else {
+                this.userId = CommitInfo.OAK_UNKNOWN;
+                this.message = null;
+                // we can't tell exactly when external changes were committed,
+                // so we just use a rough estimate like this
+                this.timestamp = System.currentTimeMillis();
+                this.external = true;
+            }
             this.beforeTree = beforeTree;
             this.afterTree = afterTree;
-            this.events = events;
+            this.events = newArrayList();
         }
 
-        public EventGeneratingNodeStateDiff(ChangeSet changes, Tree beforeTree, Tree afterTree) {
-            this(changes, beforeTree, afterTree, Lists.<Iterator<Event>>newArrayList());
+        private EventGeneratingNodeStateDiff(
+                EventGeneratingNodeStateDiff parent, String name) {
+            this.userId = parent.userId;
+            this.message = parent.message;
+            this.timestamp = parent.timestamp;
+            this.external = parent.external;
+            this.beforeTree = parent.beforeTree.getChild(name);
+            this.afterTree = parent.afterTree.getChild(name);
+            this.events = parent.events;
         }
 
         public void sendEvents() {
@@ -318,8 +345,8 @@ public class ChangeProcessor implements Runnable {
         @Override
         public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
             if (filterRef.get().includeChildren(afterTree.getPath())) {
-                EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
-                        changes, beforeTree.getChild(name), afterTree.getChild(name), events);
+                EventGeneratingNodeStateDiff diff =
+                        new EventGeneratingNodeStateDiff(this, name);
                 return VisibleDiff.wrap(diff);
             } else {
                 return RecursingNodeStateDiff.EMPTY;
@@ -327,11 +354,9 @@ public class ChangeProcessor implements Runnable {
         }
 
         private EventImpl createEvent(int eventType, String path, String id) {
-            // TODO support info
             return new EventImpl(
-                    eventType, namePathMapper.getJcrPath(path), changes.getUserId(),
-                    id, null, changes.getDate(), userDataRef.get(),
-                    changes.isExternal());
+                    eventType, namePathMapper.getJcrPath(path), userId, id,
+                    null /* TODO: info map */, timestamp, message, external);
         }
 
         private Event generatePropertyEvent(int eventType, Tree parent, PropertyState property) {

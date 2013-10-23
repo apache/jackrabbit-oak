@@ -462,8 +462,7 @@ public class NodeStoreKernel implements MicroKernel {
             revision = new Revision(revision, builder.getNodeState(), message);
         } else {
             try {
-                NodeState newRoot = store.merge(
-                        builder, CONFLICT_HOOK, CommitInfo.EMPTY);
+                NodeState newRoot = store.merge(builder, CONFLICT_HOOK, null);
                 if (!newRoot.equals(head.root)) {
                     revision = new Revision(head, newRoot, message);
                     head = revision;
@@ -498,8 +497,8 @@ public class NodeStoreKernel implements MicroKernel {
         }
 
         try {
-            NodeState newRoot = store.merge(
-                    revision.branch, CONFLICT_HOOK, CommitInfo.EMPTY);
+            NodeState newRoot =
+                    store.merge(revision.branch, CONFLICT_HOOK, null);
             if (!newRoot.equals(head.root)) {
                 head = new Revision(head, newRoot, message);
                 revisions.put(head.id, head);

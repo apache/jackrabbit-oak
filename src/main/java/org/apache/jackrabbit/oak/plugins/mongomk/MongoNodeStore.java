@@ -376,7 +376,7 @@ public final class MongoNodeStore
 
     void done(@Nonnull Commit c, boolean isBranch) {
         try {
-            commitQueue.done(c, isBranch, CommitInfo.EMPTY);
+            commitQueue.done(c, isBranch, null);
         } finally {
             backgroundOperationLock.readLock().unlock();
         }
@@ -749,7 +749,7 @@ public final class MongoNodeStore
     @Override
     public NodeState merge(@Nonnull NodeBuilder builder,
                            @Nonnull CommitHook commitHook,
-                           @Nonnull CommitInfo info)
+                           @Nullable CommitInfo info)
             throws CommitFailedException {
         // TODO: implement
         return null;

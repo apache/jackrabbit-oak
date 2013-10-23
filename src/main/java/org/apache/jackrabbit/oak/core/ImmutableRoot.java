@@ -92,7 +92,12 @@ public final class ImmutableRoot implements Root {
     }
 
     @Override
-    public void commit(CommitHook... hooks) {
+    public void commit() {
+        commit(null, null);
+    }
+
+    @Override
+    public void commit(String message, CommitHook hooks) {
         throw new UnsupportedOperationException();
     }
 

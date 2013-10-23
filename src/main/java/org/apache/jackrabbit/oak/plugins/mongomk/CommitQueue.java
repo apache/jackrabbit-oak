@@ -65,7 +65,6 @@ class CommitQueue {
         if (isBranch) {
             removeCommit(c);
         } else {
-            checkArgument(info != null, "Trunk commit must have a CommitInfo");
             afterTrunkCommit(c, info);
         }
     }
