@@ -283,9 +283,8 @@ public class SegmentNodeState extends Record implements NodeState {
             SegmentNodeState that = (SegmentNodeState) base;
             return getRecordId().equals(that.getRecordId())
                 || getTemplate().compareAgainstBaseState(
-                        getSegment(), getRecordId(),
-                        that.getTemplate(), that.getRecordId(),
-                        diff);
+                        getSegment(), getRecordId(), that.getTemplate(),
+                        that.getSegment(), that.getRecordId(), diff);
         } else {
             // fallback
             return AbstractNodeState.compareAgainstBaseState(this, base, diff);
