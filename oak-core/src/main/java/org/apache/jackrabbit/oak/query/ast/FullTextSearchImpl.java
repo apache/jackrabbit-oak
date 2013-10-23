@@ -96,16 +96,14 @@ public class FullTextSearchImpl extends ConstraintImpl {
         builder.append("contains(");
         builder.append(quote(selectorName));
         builder.append('.');
-        String propertyName = this.propertyName;
-        if (propertyName == null) {
-            propertyName = "*";
+        String pn = propertyName;
+        if (pn == null) {
+            pn = "*";
         }
-        
         if (relativePath != null) {
-            propertyName = relativePath + "/" + propertyName;
+            pn = relativePath + "/" + pn;
         }
-        
-        builder.append(quote(propertyName));
+        builder.append(quote(pn));
         builder.append(", ");
         builder.append(getFullTextSearchExpression());
         builder.append(')');
@@ -140,7 +138,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 }
                 p = PathUtils.concat(relativePath, p);
             }
-            return FullTextParser.parse(p, v.getValue(Type.STRING));
+            String p2 = normalizePropertyName(p);
+            return FullTextParser.parse(p2, v.getValue(Type.STRING));
         } catch (ParseException e) {
             throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
         }
@@ -189,7 +188,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
                         PropertyValues.newString(PathUtils.getName(path)));
             }
             if (relativePath != null) {
-                path = PathUtils.concat(path, relativePath);
+                String rp = normalizePath(relativePath);
+                path = PathUtils.concat(path, rp);
             }
 
             Tree tree = getTree(path);
@@ -198,7 +198,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
             }
 
             if (propertyName != null) {
-                PropertyState p = tree.getProperty(propertyName);
+                String pn = normalizePropertyName(propertyName);
+                PropertyState p = tree.getProperty(pn);
                 if (p == null) {
                     return false;
                 }
@@ -230,7 +231,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
     public void restrict(FilterImpl f) {
         if (propertyName != null) {
             if (f.getSelector() == selector) {
-                f.restrictProperty(propertyName, Operator.NOT_EQUAL, null);
+                String pn = normalizePropertyName(propertyName);
+                f.restrictProperty(pn, Operator.NOT_EQUAL, null);
             }
         }
         f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getValue(Type.STRING));

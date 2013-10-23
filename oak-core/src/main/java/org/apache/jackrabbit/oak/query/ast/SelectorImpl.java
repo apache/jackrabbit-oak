@@ -74,17 +74,19 @@ public class SelectorImpl extends SourceImpl {
     private final boolean matchesAllTypes;
 
     /**
-     * all of the matching supertypes, or empty if the {@link #matchesAllTypes} flag is set
+     * All of the matching supertypes, or empty if the {@link #matchesAllTypes}
+     * flag is set
      */
     private final Set<String> supertypes;
 
     /**
-     * all of the matching primary subtypes, or empty if the {@link #matchesAllTypes} flag is set
+     * All of the matching primary subtypes, or empty if the
+     * {@link #matchesAllTypes} flag is set
      */
     private final Set<String> primaryTypes;
 
     /**
-     * all of the matching mixin types, or empty if the {@link #matchesAllTypes}
+     * All of the matching mixin types, or empty if the {@link #matchesAllTypes}
      * flag is set
      */
     private final Set<String> mixinTypes;
@@ -333,7 +335,7 @@ public class SelectorImpl extends SourceImpl {
     }
 
     /**
-     * Get the current absolute path (including workspace name)
+     * Get the current absolute Oak path (normalized).
      *
      * @return the path
      */
@@ -349,7 +351,18 @@ public class SelectorImpl extends SourceImpl {
         return getTree(path);
     }
 
+    /**
+     * The value for the given selector for the current node.
+     * 
+     * @param propertyName the JCR (not normalized) property name
+     * @return the property value
+     */
     public PropertyValue currentProperty(String propertyName) {
+        String pn = normalizePropertyName(propertyName);
+        return currentOakProperty(pn);
+    }
+    
+    public PropertyValue currentOakProperty(String propertyName) {
         boolean relative = propertyName.indexOf('/') >= 0;
         Tree t = currentTree();
         if (relative) {

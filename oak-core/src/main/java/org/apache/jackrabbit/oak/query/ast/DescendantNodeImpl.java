@@ -61,7 +61,7 @@ public class DescendantNodeImpl extends ConstraintImpl {
         if (p == null) {
             return false;
         }
-        String path = validateAndNormalizePath(ancestorPath);
+        String path = normalizePath(ancestorPath);
         if (path == null) {
             return false;
         }
@@ -86,7 +86,7 @@ public class DescendantNodeImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         if (f.getSelector() == selector) {
-            String path = validateAndNormalizePath(ancestorPath);
+            String path = normalizePath(ancestorPath);
             f.restrictPath(path, Filter.PathRestriction.ALL_CHILDREN);
         }
     }

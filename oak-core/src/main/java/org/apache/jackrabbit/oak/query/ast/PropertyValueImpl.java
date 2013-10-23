@@ -118,10 +118,11 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         }
         if (!asterisk) {
             String name = PathUtils.getName(propertyName);
-            if (!tree.hasProperty(name)) {
+            name = normalizePropertyName(name);
+            PropertyState p = tree.getProperty(name);
+            if (p == null) {
                 return null;
             }
-            PropertyState p = tree.getProperty(name);
             return matchesPropertyType(p) ? PropertyValues.create(p) : null;
         }
         // asterisk - create a multi-value property
@@ -171,9 +172,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
                 // not supported
                 return;
             }
-            f.restrictProperty(propertyName, operator, v);
+            String pn = normalizePropertyName(propertyName);            
+            f.restrictProperty(pn, operator, v);
             if (propertyType != PropertyType.UNDEFINED) {
-                f.restrictPropertyType(propertyName, operator, propertyType);
+                f.restrictPropertyType(pn, operator, propertyType);
             }
         }
     }
@@ -181,7 +183,8 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         if (f.getSelector() == selector) {
-            f.restrictPropertyAsList(propertyName, list);
+            String pn = normalizePropertyName(propertyName);            
+            f.restrictPropertyAsList(pn, list);
         }
     }
 
