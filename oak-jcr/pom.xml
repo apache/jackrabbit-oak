@@ -80,6 +80,7 @@
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved
       org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
+      org.apache.jackrabbit.test.api.observation.GetUserDataTest#testVersioning
 
       <!-- Versioning -->
       org.apache.jackrabbit.test.api.version.VersionTest#testUpdate
