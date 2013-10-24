@@ -22,11 +22,10 @@ import javax.annotation.Nullable;
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * EntryPredicate... TODO
+ * Predicate used to evaluation if a given {@code PermissionEntry} matches
+ * the specified tree, property or path.
  */
 final class EntryPredicate implements Predicate<PermissionEntry> {
 
