@@ -42,7 +42,7 @@ public class MoveDetectorTest {
         test.setProperty("c", 3);
         test.child("x");
         test.child("y");
-        test.child("z");
+        test.child("z").child("zz");
         root = rootBuilder.getNodeState();
     }
 
@@ -81,12 +81,64 @@ public class MoveDetectorTest {
         assertTrue(findSingleMove.found());
     }
 
+    /**
+     * Moving a transiently added node doesn't generate a move event
+     * @throws CommitFailedException
+     */
+    @Test
+    public void moveAddedNode() throws CommitFailedException {
+        NodeBuilder rootBuilder = root.builder();
+        rootBuilder.getChildNode("test").setChildNode("added");
+        NodeState moved = move(rootBuilder, "/test/added", "/test/y/added").getNodeState();
+        AssertNoMove assertNoMove = new AssertNoMove();
+        MoveDetector moveDetector = new MoveDetector(assertNoMove);
+        CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
+        if (exception != null) {
+            throw exception;
+        }
+    }
+
+    /**
+     * Moving a node from a moved subtree doesn't generate a move event.
+     * @throws CommitFailedException
+     */
+    @Test
+    public void moveFromMovedSubtree() throws CommitFailedException {
+        NodeBuilder rootBuilder = root.builder();
+        move(rootBuilder, "/test/z", "/test/y/z");
+        NodeState moved = move(rootBuilder, "/test/y/z/zz", "/test/x/zz").getNodeState();
+        FindSingleMove findSingleMove = new FindSingleMove("/test/z", "/test/y/z");
+        MoveDetector moveDetector = new MoveDetector(findSingleMove);
+        CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
+        if (exception != null) {
+            throw exception;
+        }
+        assertTrue(findSingleMove.found());
+    }
+
+    /**
+     * Moving a node forth and back again should not generate a move event.
+     * @throws CommitFailedException
+     */
+    @Test
+    public void moveForthAndBack() throws CommitFailedException {
+        NodeBuilder rootBuilder = root.builder();
+        move(rootBuilder, "/test/x", "/test/y/xx");
+        NodeState moved = move(rootBuilder, "/test/y/xx", "/test/x").getNodeState();
+        AssertNoMove assertNoMove = new AssertNoMove();
+        MoveDetector moveDetector = new MoveDetector(assertNoMove);
+        CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
+        if (exception != null) {
+            throw exception;
+        }
+    }
+
     //------------------------------------------------------------< private >---
 
     private static NodeBuilder move(NodeBuilder builder, String source, String dest) {
         NodeBuilder sourceBuilder = getBuilder(builder, source);
         NodeBuilder destParentBuilder = getBuilder(builder, PathUtils.getParentPath(dest));
-        sourceBuilder.moveTo(destParentBuilder, PathUtils.getName(dest));
+        assertTrue(sourceBuilder.moveTo(destParentBuilder, PathUtils.getName(dest)));
         return builder;
     }
 
@@ -156,6 +208,48 @@ public class MoveDetectorTest {
 
         public boolean found() {
             return found;
+        }
+    }
+
+    private static class AssertNoMove implements MoveValidator {
+        @Override
+        public void move(String sourcePath, String destPath, NodeState moved) throws CommitFailedException {
+            throw new CommitFailedException("Test", 0, "There should be no move operation");
+        }
+
+        @Override
+        public void enter(NodeState before, NodeState after) throws CommitFailedException {
+        }
+
+        @Override
+        public void leave(NodeState before, NodeState after) throws CommitFailedException {
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after) {
+        }
+
+        @Override
+        public void propertyChanged(PropertyState before, PropertyState after) {
+        }
+
+        @Override
+        public void propertyDeleted(PropertyState before) {
+        }
+
+        @Override
+        public MoveValidator childNodeAdded(String name, NodeState after) {
+            return null;
+        }
+
+        @Override
+        public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) {
+            return this;
+        }
+
+        @Override
+        public MoveValidator childNodeDeleted(String name, NodeState before) {
+            return null;
         }
     }
 
