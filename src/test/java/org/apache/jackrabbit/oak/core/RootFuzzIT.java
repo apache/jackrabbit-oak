@@ -26,7 +26,6 @@ import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveProperty
 import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
 import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,8 +39,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Rebase;
-import org.apache.jackrabbit.oak.kernel.JsopDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -129,11 +126,7 @@ public class RootFuzzIT {
             checkEqual(root1.getTree("/"), root2.getTree("/"));
             if (op instanceof Save) {
                 root2.commit();
-                NodeState tree1 = store1.getRoot();
-                NodeState tree2 = store2.getRoot();
-                if (!tree1.equals(tree2)) {
-                    fail("seed: " + SEED + ", " + JsopDiff.diffToJsop(tree1, tree2));
-                }
+                checkEqual(root1.getTree("/"), root2.getTree("/"));
             }
         }
     }
