@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.query.xpath;
 import java.util.ArrayList;
 
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
 
 /**
@@ -43,8 +44,35 @@ public class Statement {
      * All selectors.
      */
     private ArrayList<Selector> selectors;
+    
+    private Expression where;
 
     private ArrayList<Order> orderList = new ArrayList<Order>();
+    
+    public Statement optimize() {
+        if (explain || measure || orderList.size() > 0) {
+            return this;
+        }
+        if (where == null) {
+            return this;
+        }
+        if (where instanceof OrCondition) {
+            OrCondition or = (OrCondition) where;
+            Statement s1 = new Statement();
+            s1.columnSelector = columnSelector;
+            s1.selectors = selectors;
+            s1.columnList = columnList;
+            s1.where = or.left;
+            Statement s2 = new Statement();
+            s2.columnSelector = columnSelector;
+            s2.selectors = selectors;
+            s2.columnList = columnList;
+            s2.where = or.right;
+            s2.xpathQuery = xpathQuery;
+            return new UnionStatement(s1, s2);
+        }
+        return this;
+    }
     
     @Override
     public String toString() {
@@ -101,10 +129,6 @@ public class Statement {
         }
         
         // where ...
-        Expression where = null;
-        for (Selector s : selectors) {
-            where = Expression.and(where, s.condition);
-        }
         if (where != null) {
             buff.append(" where ").append(where.toString());
         }
@@ -121,9 +145,12 @@ public class Statement {
         }
 
         // leave original xpath string as a comment
-        buff.append(" /* xpath: ");
-        buff.append(xpathQuery);
-        buff.append(" */");
+        if (xpathQuery != null) {
+            buff.append(" /* xpath: ");
+            buff.append(xpathQuery);
+            buff.append(" */");
+        }
+        
         return buff.toString();        
     }
 
@@ -142,6 +169,10 @@ public class Statement {
     public void setSelectors(ArrayList<Selector> selectors) {
         this.selectors = selectors;
     }
+    
+    public void setWhere(Expression where) {
+        this.where = where;
+    }
 
     public void addOrderBy(Order order) {
         this.orderList.add(order);
@@ -153,6 +184,25 @@ public class Statement {
     
     public void setOriginalQuery(String xpathQuery) {
         this.xpathQuery = xpathQuery;
+    }
+    
+    /**
+     * A union statement.
+     */
+    static class UnionStatement extends Statement {
+        
+        private final Statement s1, s2;
+        
+        UnionStatement(Statement s1, Statement s2) {
+            this.s1 = s1;
+            this.s2 = s2;
+        }
+        
+        @Override
+        public String toString() {
+            return s1 + " union " + s2;
+        }
+        
     }
 
 }

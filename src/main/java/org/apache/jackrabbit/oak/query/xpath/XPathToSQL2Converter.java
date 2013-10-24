@@ -279,6 +279,14 @@ public class XPathToSQL2Converter {
         statement.setColumnSelector(currentSelector);
         statement.setSelectors(selectors);
         
+        Expression where = null;
+        for (Selector s : selectors) {
+            where = Expression.and(where, s.condition);
+        }
+        statement.setWhere(where);
+        
+        statement = statement.optimize();
+        
         return statement.toString();
 
     }
@@ -404,7 +412,7 @@ public class XPathToSQL2Converter {
     private Expression parseConstraint() throws ParseException {
         Expression a = parseAnd();
         while (readIf("or")) {
-            a = new Expression.Condition(a, "or", parseAnd(), Expression.PRECEDENCE_OR);
+            a = new Expression.OrCondition(a, parseAnd());
         }
         return a;
     }
@@ -412,7 +420,7 @@ public class XPathToSQL2Converter {
     private Expression parseAnd() throws ParseException {
         Expression a = parseCondition();
         while (readIf("and")) {
-            a = new Expression.Condition(a, "and", parseCondition(), Expression.PRECEDENCE_AND);
+            a = new Expression.AndCondition(a, parseCondition());
         }
         return a;
     }
