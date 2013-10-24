@@ -30,13 +30,14 @@ import java.io.InputStream;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Objects;
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.io.ByteStreams;
 
 /**
  * In-memory node state builder.
@@ -326,6 +327,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
             return false;
         } else {
             if (newParent.exists()) {
+                if (!isNew()) {
+                    annotateSourcePath(this, getPath());
+                }
                 NodeState nodeState = getNodeState();
                 newParent.setChildNode(newName, nodeState);
                 remove();
@@ -333,6 +337,16 @@ public class MemoryNodeBuilder implements NodeBuilder {
             } else {
                 // Move to descendant
                 return false;
+            }
+        }
+    }
+
+    protected static void annotateSourcePath(NodeBuilder builder, String path) {
+        PropertyState base = builder.getBaseState().getProperty(MoveDetector.SOURCE_PATH);
+        PropertyState head = builder.getNodeState().getProperty(MoveDetector.SOURCE_PATH);
+        if (Objects.equal(base, head)) {
+            if (!builder.hasProperty(MoveDetector.SOURCE_PATH)) {
+                builder.setProperty(MoveDetector.SOURCE_PATH, path);
             }
         }
     }

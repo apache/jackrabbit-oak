@@ -929,6 +929,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertFalse(mk.nodeExists("/test", null));
         assertTrue(mk.nodeExists("/moved", null));
         JSONObject obj1 = parseJSONObject(mk.getNodes("/moved", null, 99, 0, -1, null));
+        obj1.remove(":source-path");
         assertEquals(obj, obj1);
     }
 
