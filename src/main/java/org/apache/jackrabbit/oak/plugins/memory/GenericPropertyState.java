@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.PATH;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
@@ -44,6 +45,18 @@ public class GenericPropertyState extends SinglePropertyState<String> {
         this.value = checkNotNull(value);
         this.type = checkNotNull(type);
         checkArgument(!type.isArray());
+    }
+
+    /**
+     * Create a {@code PropertyState} from a date. No validation is performed
+     * on the string passed for {@code value}.
+     *
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#DATE}
+     */
+    public static PropertyState dateProperty(String name, String value) {
+        return new GenericPropertyState(name, value, DATE);
     }
 
     /**
@@ -108,7 +121,7 @@ public class GenericPropertyState extends SinglePropertyState<String> {
 
     @Override
     public Converter getConverter() {
-        return Conversions.convert(value);
+        return Conversions.convert(value, type);
     }
 
     @Override

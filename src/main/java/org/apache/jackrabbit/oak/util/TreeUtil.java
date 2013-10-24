@@ -57,6 +57,7 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -65,6 +66,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.util.ISO8601;
 
 /**
  * Utility providing common operations for the {@code Tree} that are not provided
@@ -285,14 +287,14 @@ public final class TreeUtil {
             String uuid = IdentifierManager.generateUUID();
             return PropertyStates.createProperty(name, uuid, STRING);
         } else if (JCR_CREATED.equals(name)) {
-            long now = Calendar.getInstance().getTime().getTime();
+            String now = ISO8601.format(Calendar.getInstance());
             return PropertyStates.createProperty(name, now, DATE);
         } else if (JCR_CREATEDBY.equals(name)) {
             if (userID != null) {
                 return PropertyStates.createProperty(name, userID, STRING);
             }
         } else if (JCR_LASTMODIFIED.equals(name)) {
-            long now = Calendar.getInstance().getTime().getTime();
+            String now = ISO8601.format(Calendar.getInstance());
             return PropertyStates.createProperty(name, now, DATE);
         } else if (JCR_LASTMODIFIEDBY.equals(name)) {
             if (userID != null) {

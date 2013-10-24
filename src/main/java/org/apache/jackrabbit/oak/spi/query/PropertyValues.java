@@ -100,8 +100,8 @@ public final class PropertyValues {
     }
 
     @Nonnull
-    public static PropertyValue newDate(Long value) {
-        return new PropertyStateValue(LongPropertyState.createDateProperty("", value));
+    public static PropertyValue newDate(String value) {
+        return new PropertyStateValue(GenericPropertyState.dateProperty("", value));
     }
 
     @Nonnull

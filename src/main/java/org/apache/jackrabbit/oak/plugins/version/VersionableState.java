@@ -221,7 +221,7 @@ class VersionableState {
             throws CommitFailedException {
         try {
             if (selector == null) {
-                long created = version.getProperty(JCR_CREATED).getValue(Type.DATE);
+                String created = version.getProperty(JCR_CREATED).getValue(Type.DATE);
                 selector = new DateVersionSelector(created);
             }
             restoreFrozen(frozenNode, versionable, selector);

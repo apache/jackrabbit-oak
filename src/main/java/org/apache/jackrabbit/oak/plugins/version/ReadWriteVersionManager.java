@@ -18,16 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -40,6 +43,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.util.ISO8601;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -326,8 +330,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         String versionUUID = IdentifierManager.generateUUID();
         version.setProperty(JCR_UUID, versionUUID, Type.STRING);
         version.setProperty(JCR_PRIMARYTYPE, NT_VERSION, Type.NAME);
-        long now = System.currentTimeMillis();
-        version.setProperty(JCR_CREATED, now, Type.DATE);
+        version.setProperty(JCR_CREATED, ISO8601.format(Calendar.getInstance()), Type.DATE);
         version.setProperty(JCR_PREDECESSORS, predecessors, Type.REFERENCES);
         version.setProperty(JCR_SUCCESSORS, Collections.<String>emptyList(), Type.REFERENCES);
 
@@ -483,4 +486,5 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         }
         return history.child(JCR_VERSIONLABELS);
     }
+
 }

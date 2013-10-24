@@ -23,6 +23,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
+
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -33,6 +34,7 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -47,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.memory.DecimalPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.util.ISO8601;
@@ -167,7 +170,7 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(Calendar value) {
-        return new ValueImpl(LongPropertyState.createDateProperty("", value), namePathMapper);
+        return new ValueImpl(PropertyStates.createProperty("", value), namePathMapper);
     }
 
     @Override
@@ -216,7 +219,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (ISO8601.parse(value) == null) {
                         throw new ValueFormatException("Invalid date " + value);
                     }
-                    return new ValueImpl(LongPropertyState.createDateProperty("", value), namePathMapper);
+                    return new ValueImpl(GenericPropertyState.dateProperty("", value), namePathMapper);
                 case PropertyType.BOOLEAN:
                     return createValue(Conversions.convert(value).toBoolean());
                 case PropertyType.NAME:

@@ -89,10 +89,10 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
                     }
                 });
             case PropertyType.DATE:
-                return (S) Iterables.transform(values, new Function<T, Long>() {
+                return (S) Iterables.transform(values, new Function<T, String>() {
                     @Override
-                    public Long apply(T value) {
-                        return getConverter(value).toDate();
+                    public String apply(T value) {
+                        return getConverter(value).toString();
                     }
                 });
             case PropertyType.BOOLEAN:
@@ -172,7 +172,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
             case PropertyType.BINARY: return (S) getConverter(values.get(index)).toBinary();
             case PropertyType.LONG: return (S) (Long) getConverter(values.get(index)).toLong();
             case PropertyType.DOUBLE: return (S) (Double) getConverter(values.get(index)).toDouble();
-            case PropertyType.DATE: return (S) getConverter(values.get(index)).toDate();
+            case PropertyType.DATE: return (S) getConverter(values.get(index)).toString();
             case PropertyType.BOOLEAN: return (S) (Boolean) getConverter(values.get(index)).toBoolean();
             case PropertyType.NAME: return (S) getConverter(values.get(index)).toString();
             case PropertyType.PATH: return (S) getConverter(values.get(index)).toString();

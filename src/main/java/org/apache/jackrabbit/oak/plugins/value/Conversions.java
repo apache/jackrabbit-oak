@@ -26,7 +26,9 @@ import java.util.TimeZone;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
 import org.apache.jackrabbit.util.ISO8601;
 
@@ -98,16 +100,6 @@ public final class Conversions {
                 throw new IllegalArgumentException("Not a date string: " + toString());
             }
             return date;
-        }
-
-        /**
-         * Convert to date. This default implementation delegates to {@link #toCalendar()}
-         * and returns the <code>getTimeInMillis</code> value of the calendar.
-         * @return  date representation of the converted value
-         * @throws IllegalArgumentException  if the string cannot be parsed into a date
-         */
-        public Long toDate() {
-            return toCalendar().getTimeInMillis();
         }
 
         /**
@@ -262,33 +254,39 @@ public final class Conversions {
      * @param value  The date to convert
      * @return  A converter for {@code value}
      */
-    public static Converter convert(final Calendar value) {
-        return new Converter() {
-            @Override
-            public String toString() {
-                return ISO8601.format(value);
-            }
-
-            @Override
-            public long toLong() {
-                return value.getTimeInMillis();
-            }
-
-            @Override
-            public double toDouble() {
-                return value.getTimeInMillis();
-            }
-
-            @Override
-            public Calendar toCalendar() {
-                return value;
-            }
-
-            @Override
-            public BigDecimal toDecimal() {
-                return new BigDecimal(value.getTimeInMillis());
-            }
-        };
+    public static Converter convert(final String value, Type<?> type) {
+        if (type == Type.DECIMAL) {
+            return convert(convert(value).toDecimal());
+        } else if (type == Type.DOUBLE) {
+            return convert(convert(value).toDouble());
+        } else if (type == Type.LONG) {
+            return convert(convert(value).toLong());
+        } else if (type != Type.DATE) {
+            return convert(value);
+        } else {
+            return new Converter() {
+                @Override
+                public String toString() {
+                    return value;
+                }
+                @Override
+                public Calendar toCalendar() {
+                    return ISO8601.parse(toString());
+                }
+                @Override
+                public long toLong() {
+                    return toCalendar().getTimeInMillis();
+                }
+                @Override
+                public double toDouble() {
+                    return toLong();
+                }
+                @Override
+                public BigDecimal toDecimal() {
+                    return new BigDecimal(toLong());
+                }
+            };
+        }
     }
 
     /**

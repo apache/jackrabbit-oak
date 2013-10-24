@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.util.ISO8601;
 
 /**
  * <i>Inspired by Jackrabbit 2.x</i>
@@ -58,8 +59,8 @@ public class DateVersionSelector implements VersionSelector {
      *
      * @param timestamp reference timestamp
      */
-    public DateVersionSelector(long timestamp) {
-        this.timestamp = timestamp;
+    public DateVersionSelector(String timestamp) {
+        this.timestamp = ISO8601.parse(timestamp).getTimeInMillis();
     }
 
     @Override
@@ -74,7 +75,7 @@ public class DateVersionSelector implements VersionSelector {
                 // ignore root version and labels node
                 continue;
             }
-            long c = v.getProperty(JcrConstants.JCR_CREATED).getValue(Type.DATE);
+            long c = ISO8601.parse(v.getProperty(JcrConstants.JCR_CREATED).getValue(Type.DATE)).getTimeInMillis();
             if (c > latestDate && c <= timestamp) {
                 latestDate = c;
                 latestVersion = v;

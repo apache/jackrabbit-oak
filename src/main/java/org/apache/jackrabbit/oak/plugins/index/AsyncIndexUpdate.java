@@ -22,11 +22,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,14 +154,19 @@ public class AsyncIndexUpdate implements Runnable {
     private static void preAsyncRunStatus(NodeBuilder builder) {
         builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
                 .setProperty("async-status", "running")
-                .setProperty("async-start", System.currentTimeMillis(),
-                        Type.DATE).removeProperty("async-done");
+                .setProperty("async-start", now(), Type.DATE)
+                .removeProperty("async-done");
     }
 
     private static void postAsyncRunStatus(NodeBuilder builder) {
         builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
                 .setProperty("async-status", "done")
-                .setProperty("async-done", System.currentTimeMillis(),
-                        Type.DATE).removeProperty("async-start");
+                .setProperty("async-done", now(), Type.DATE)
+                .removeProperty("async-start");
     }
+
+    private static String now() {
+        return ISO8601.format(Calendar.getInstance());
+    }
+
 }

@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.api.Type.DATES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.PATHS;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCES;
@@ -40,6 +41,17 @@ public class MultiGenericPropertyState extends MultiPropertyState<String> {
         super(name, values);
         checkArgument(type.isArray());
         this.type = type;
+    }
+
+    /**
+     * Create a multi valued {@code PropertyState} from a list of dates.
+     *
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#DATES}
+     */
+    public static PropertyState dateProperty(String name, Iterable<String> values) {
+        return new MultiGenericPropertyState(name, values, DATES);
     }
 
     /**
@@ -99,7 +111,7 @@ public class MultiGenericPropertyState extends MultiPropertyState<String> {
 
     @Override
     public Converter getConverter(String value) {
-        return Conversions.convert(value);
+        return Conversions.convert(value, type.getBaseType());
     }
 
     @Override
