@@ -82,8 +82,6 @@ See the [query overview page](query.html) for how to create a custom index.
 Observation
 -----------
 
-Regarding observation listeners:
-
 * `Event.getUserId()`, `Event.getUserData()`and `Event.getDate()` will only be available for locally
   generated events (i.e. on the same cluster node). To help identifying potential trouble spots,
   calling any of these methods without a previous call to `JackrabbitEvent#isExternal()` will write
@@ -96,12 +94,34 @@ Regarding observation listeners:
   (https://cwiki.apache.org/confluence/display/SLING/Observation+usage+patterns) of observation and
   recommendations on alternative solutions where applicable.
 
-* Touched properties: Jackrabbit 2 used to generate a `PROPERTY_CHANGED` event when touching a
-  property (i.e. setting a property to its current value). Oak keeps closer to the specification and
-  [omits such events](https://issues.apache.org/jira/browse/OAK-948).
+* Event generation is done by looking at the difference between two revisions of the persisted
+  content trees. Items not present in a previous revision but present in the current revision are
+  reported as `Event.NODE_ADDED` and `Event.PROPERTY_ADDED`, respectively. Items present in a
+  previous revision but not present in the current revision are reported as `Event.NODE_REMOVED` and
+  `Event.PROPERTY_REMOVED`, respectively. Properties that changed in between the previous revision
+  and the current revision are reported as `PROPERTY_CHANGED`. As a consequence operations that
+  cancelled each others in between the previous revision and the current revision are not reported.
+  Furthermore the order of the events depends on the underlying implementation and is not specified.
+  In particular there are some interesting consequences:
 
-* `Event.NODE_MOVED` is not supported. Instead `Event.NODE_ADDED` and `Event.Node_REMOVED` events are
-  reported as long as they don't cancel each other (e.g. in case of reordering of nodes).
+  * `Event.NODE_MOVED` is not supported. Instead `Event.NODE_ADDED` and `Event.Node_REMOVED` events
+     are reported for the respective subtrees.
+
+  * Reordering nodes will [not report any event](https://issues.apache.org/jira/browse/OAK-1090).
+
+  * Touched properties: Jackrabbit 2 used to generate a `PROPERTY_CHANGED` event when touching a
+    property (i.e. setting a property to its current value). Oak keeps closer to the specification
+    and [omits such events](https://issues.apache.org/jira/browse/OAK-948). More generally removing
+    a subtree and replacing it with the same subtree will not generate any event.
+
+  * Removing a referenceable node and adding it again will result in a `PROPERTY_CHANGED` event for
+    `jcr:uuid`.
+
+* The sequence of differences Oak generates observation events from is guaranteed to contain the
+  before and after states of all cluster local changes. This guarantee does not hold for cluster
+  external changes. That is, cancelling operations from cluster external events might not be
+  reported event though they stem from separate commits (`Session.save()`).
+
 
 Same name siblings
 ------------------
