@@ -104,18 +104,18 @@ Observation
   Furthermore the order of the events depends on the underlying implementation and is not specified.
   In particular there are some interesting consequences:
 
-  * `Event.NODE_MOVED` is not supported. Instead `Event.NODE_ADDED` and `Event.Node_REMOVED` events
-     are reported for the respective subtrees.
+    * `Event.NODE_MOVED` is not supported. Instead `Event.NODE_ADDED` and `Event.Node_REMOVED` events
+      are reported for the respective subtrees.
 
-  * Reordering nodes will [not report any event](https://issues.apache.org/jira/browse/OAK-1090).
+    * Reordering nodes will [not report any event](https://issues.apache.org/jira/browse/OAK-1090).
 
-  * Touched properties: Jackrabbit 2 used to generate a `PROPERTY_CHANGED` event when touching a
-    property (i.e. setting a property to its current value). Oak keeps closer to the specification
-    and [omits such events](https://issues.apache.org/jira/browse/OAK-948). More generally removing
-    a subtree and replacing it with the same subtree will not generate any event.
+    * Touched properties: Jackrabbit 2 used to generate a `PROPERTY_CHANGED` event when touching a
+      property (i.e. setting a property to its current value). Oak keeps closer to the specification
+      and [omits such events](https://issues.apache.org/jira/browse/OAK-948). More generally removing
+      a subtree and replacing it with the same subtree will not generate any event.
 
-  * Removing a referenceable node and adding it again will result in a `PROPERTY_CHANGED` event for
-    `jcr:uuid`.
+    * Removing a referenceable node and adding it again will result in a `PROPERTY_CHANGED` event for
+      `jcr:uuid`.
 
 * The sequence of differences Oak generates observation events from is guaranteed to contain the
   before and after states of all cluster local changes. This guarantee does not hold for cluster
