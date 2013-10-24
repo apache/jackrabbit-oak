@@ -255,15 +255,24 @@ public class MongoMKDiffTest extends AbstractMongoConnectionTest {
         for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
             sb.append("+\"node-").append(i).append("\":{}");
         }
+        String branchRev = mk.branch(null);
         mk.commit("/", sb.toString(), null, null);
+        branchRev = mk.commit("/", "+\"branch\":{}", branchRev, null);
+        branchRev = mk.commit("/branch", sb.toString(), branchRev, null);
         // wait a while, _modified has 5 seconds resolution
         Thread.sleep(TimeUnit.SECONDS.toMillis(6));
-        // create a base commit for the diff
+        // create a base commits for the diffs
         String base = mk.commit("/", "+\"foo\":{}", null, null);
-        // this is the commit we want to get the diff for
+        branchRev = mk.commit("/branch", "+\"foo\":{}", branchRev, null);
+        String branchBase = branchRev;
+        // these are the commits we want to get the diffs for
         String rev = mk.commit("/node-0", "+\"foo\":{}", null, null);
+        branchRev = mk.commit("/branch/node-0", "+\"foo\":{}", branchRev, null);
+        // perform diffs
         String diff = mk.diff(base, rev, "/", 0);
         assertTrue(diff, diff.contains("^\"/node-0\""));
+        diff = mk.diff(branchBase, branchRev, "/branch", 0);
+        assertTrue(diff, diff.contains("^\"/branch/node-0\""));
     }
 
     @Test
