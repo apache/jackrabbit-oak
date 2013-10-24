@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
  * ConfigurationParameters is a convenience class that allows typed access to configuration properties. It implements
  * the {@link Map} interface but is immutable.
  */
-public class ConfigurationParameters implements Map<String, Object> {
+public final class ConfigurationParameters implements Map<String, Object> {
 
     /**
      * internal logger
