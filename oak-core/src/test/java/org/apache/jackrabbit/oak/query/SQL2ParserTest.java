@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.IN
 
 import java.text.ParseException;
 
+import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
