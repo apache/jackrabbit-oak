@@ -292,7 +292,7 @@ class PersistenceCopier {
                     name, value.getBoolean(), Type.BOOLEAN);
         case PropertyType.DATE:
             return PropertyStates.createProperty(
-                    name, value.getCalendar().getTimeInMillis(), Type.DATE);
+                    name, value.getString(), Type.DATE);
         case PropertyType.DECIMAL:
             return PropertyStates.createProperty(
                     name, value.getDecimal(), Type.DECIMAL);
