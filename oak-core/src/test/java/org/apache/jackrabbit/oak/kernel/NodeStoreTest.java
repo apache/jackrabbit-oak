@@ -43,7 +43,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -82,7 +84,6 @@ public class NodeStoreTest {
         test.child("x");
         test.child("y");
         test.child("z");
-        root = store.merge(builder, EmptyHook.INSTANCE, null);
         root = store.merge(builder, EmptyHook.INSTANCE, null);
     }
 
@@ -285,10 +286,91 @@ public class NodeStoreTest {
         assertEquals("child-moved", diff.removed.get(0));
     }
 
+    @Ignore  // FIXME OAK-1114
+    @Test
+    public void move() throws CommitFailedException {
+        NodeBuilder test = store.getRoot().builder().getChildNode("test");
+        NodeBuilder x = test.getChildNode("x");
+        NodeBuilder y = test.getChildNode("y");
+        assertTrue(x.moveTo(y, "xx"));
+        assertTrue(x.exists());
+        assertTrue(y.exists());
+        assertFalse(test.hasChildNode("x"));
+        assertTrue(y.hasChildNode("xx"));
+    }
+
+    @Test
+    public void moveNonExisting() throws CommitFailedException {
+        Assume.assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK); // FIXME OAK-1114
+        NodeBuilder test = store.getRoot().builder().getChildNode("test");
+        NodeBuilder any = test.getChildNode("any");
+        NodeBuilder y = test.getChildNode("y");
+        assertFalse(any.moveTo(y, "xx"));
+        assertFalse(any.exists());
+        assertTrue(y.exists());
+        assertFalse(y.hasChildNode("xx"));
+    }
+
+    @Test
+    public void moveToExisting() throws CommitFailedException {
+        Assume.assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK); // FIXME OAK-1114
+        NodeBuilder test = store.getRoot().builder().getChildNode("test");
+        NodeBuilder x = test.getChildNode("x");
+        assertFalse(x.moveTo(test, "y"));
+        assertTrue(x.exists());
+        assertTrue(test.hasChildNode("x"));
+        assertTrue(test.hasChildNode("y"));
+    }
+
+    @Ignore  // FIXME OAK-1114
+    @Test
+    public void rename() throws CommitFailedException {
+        NodeBuilder test = store.getRoot().builder().getChildNode("test");
+        NodeBuilder x = test.getChildNode("x");
+        assertTrue(x.moveTo(test, "xx"));
+        assertTrue(x.exists());
+        assertFalse(test.hasChildNode("x"));
+        assertTrue(test.hasChildNode("xx"));
+    }
+
+    @Test
+    public void renameNonExisting() throws CommitFailedException {
+        Assume.assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK); // FIXME OAK-1114
+        NodeBuilder test = store.getRoot().builder().getChildNode("test");
+        NodeBuilder any = test.getChildNode("any");
+        assertFalse(any.moveTo(test, "xx"));
+        assertFalse(any.exists());
+        assertFalse(test.hasChildNode("xx"));
+    }
+
+    @Test
+    public void renameToExisting() throws CommitFailedException {
+        Assume.assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK); // FIXME OAK-1114
+        NodeBuilder test = store.getRoot().builder().getChildNode("test");
+        NodeBuilder x = test.getChildNode("x");
+        assertFalse(x.moveTo(test, "y"));
+        assertTrue(x.exists());
+        assertTrue(test.hasChildNode("x"));
+        assertTrue(test.hasChildNode("y"));
+    }
+
     @Test
     public void moveToSelf() throws CommitFailedException {
-        NodeBuilder builder = store.getRoot().builder();
-        assertTrue(builder.getChildNode("x").moveTo(builder, "x"));
+        NodeBuilder test = store.getRoot().builder().getChildNode("test");
+        NodeBuilder x = test.getChildNode("x");
+        assertTrue(x.moveTo(test, "x"));
+        assertTrue(x.exists());
+        assertTrue(test.hasChildNode("x"));
+    }
+
+    @Ignore  // FIXME OAK-1114
+    @Test
+    public void moveToSelfNonExisting() throws CommitFailedException {
+        NodeBuilder test = store.getRoot().builder().getChildNode("test");
+        NodeBuilder any = test.getChildNode("any");
+        assertFalse(any.moveTo(test, "any"));
+        assertFalse(any.exists());
+        assertFalse(test.hasChildNode("any"));
     }
 
     @Test
