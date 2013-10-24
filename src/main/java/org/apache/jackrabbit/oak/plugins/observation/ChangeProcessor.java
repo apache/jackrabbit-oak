@@ -80,7 +80,6 @@ public class ChangeProcessor implements Runnable {
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
     private final AtomicReference<EventFilter> filterRef;
-    private final AtomicReference<String> userDataRef = new AtomicReference<String>(null);
 
     private final ListenerTracker tracker;
     private final EventListener listener;
@@ -110,14 +109,6 @@ public class ChangeProcessor implements Runnable {
      */
     public void setFilter(EventFilter filter) {
         filterRef.set(filter);
-    }
-
-    /**
-     * Set the user data to return with {@link javax.jcr.observation.Event#getUserData()}.
-     * @param userData
-     */
-    public void setUserData(String userData) {
-        userDataRef.set(userData);
     }
 
     /**
