@@ -202,6 +202,28 @@ abstract class Expression {
         }
     
     }
+    
+    /**
+     * An "or" condition.
+     */
+    static class OrCondition extends Condition {
+
+        OrCondition(Expression left, Expression right) {
+            super(left, "or", right, Expression.PRECEDENCE_OR);
+        }
+        
+    }
+    
+    /**
+     * An "and" condition.
+     */
+    static class AndCondition extends Condition {
+
+        AndCondition(Expression left, Expression right) {
+            super(left, "and", right, Expression.PRECEDENCE_AND);
+        }
+        
+    }
 
     /**
      * A function call.
