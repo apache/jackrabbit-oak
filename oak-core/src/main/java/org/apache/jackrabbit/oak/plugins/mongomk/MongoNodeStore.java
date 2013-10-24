@@ -674,9 +674,7 @@ public final class MongoNodeStore
             }
             set.removeAll(removed);
             for (String name : added) {
-                // make sure the name string does not contain
-                // unnecessary baggage
-                set.add(new String(name));
+                set.add(Utils.unshareString(name));
             }
             c2.children.addAll(set);
             nodeChildrenCache.put(key, c2);
@@ -693,17 +691,13 @@ public final class MongoNodeStore
                     for (String childPath : added) {
                         String name = PathUtils.getName(childPath);
                         if (names.higher(name) != null) {
-                            // make sure the name string does not contain
-                            // unnecessary baggage
-                            names.add(new String(name));
+                            names.add(Utils.unshareString(name));
                         }
                     }
                 } else {
                     // add all
                     for (String childPath : added) {
-                        // make sure the name string does not contain
-                        // unnecessary baggage
-                        names.add(new String(PathUtils.getName(childPath)));
+                        names.add(Utils.unshareString(PathUtils.getName(childPath)));
                     }
                 }
                 // any changes?

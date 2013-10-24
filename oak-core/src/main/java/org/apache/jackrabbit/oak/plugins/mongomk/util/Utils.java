@@ -40,6 +40,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class Utils {
     
+    /**
+     * Make sure the name string does not contain unnecessary baggage (shared
+     * strings).
+     * <p>
+     * This is only needed for older versions of Java (before Java 7 update 6).
+     * See also
+     * http://mail.openjdk.java.net/pipermail/core-libs-dev/2012-May/010257.html
+     * 
+     * @param x the string
+     * @return the new string
+     */
+    public static String unshareString(String x) {
+        return new String(x);
+    }
+    
     public static int pathDepth(String path) {
         if (path.equals("/")) {
             return 0;
@@ -92,8 +107,10 @@ public class Utils {
             size += map.size() * 136;
         } else {
             // overhead for some other kind of map
-            size += 112; // TreeMap (80) + unmodifiable wrapper (32)
-            size += map.size() * 64; // 64 bytes per entry
+            // TreeMap (80) + unmodifiable wrapper (32)
+            size += 112; 
+            // 64 bytes per entry
+            size += map.size() * 64; 
         }
         return size;
     }
