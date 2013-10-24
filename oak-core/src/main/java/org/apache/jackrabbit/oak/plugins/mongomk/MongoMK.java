@@ -254,13 +254,13 @@ public class MongoMK implements MicroKernel {
         }
         // also consider nodes with not yet stored modifications (OAK-1107)
         Revision minRev = new Revision(minTimestamp, 0, nodeStore.getClusterId());
-        for (String p : nodeStore.getPendingModifications().getPaths(minRev)) {
-            if (PathUtils.denotesRoot(p)) {
-                continue;
-            }
-            String parent = PathUtils.getParentPath(p);
-            if (path.equals(parent)) {
-                paths.add(p);
+        addPathsForDiff(path, paths, nodeStore.getPendingModifications(), minRev);
+        for (Revision r : new Revision[]{fromRev, toRev}) {
+            if (r.isBranch()) {
+                Branch b = nodeStore.getBranches().getBranch(fromRev);
+                if (b != null) {
+                    addPathsForDiff(path, paths, b.getModifications(r), r);
+                }
             }
         }
         for (String p : paths) {
@@ -287,6 +287,21 @@ public class MongoMK implements MicroKernel {
                     // does not exist in either revisions
                     // -> do nothing
                 }
+            }
+        }
+    }
+
+    private void addPathsForDiff(String path,
+                                 Set<String> paths,
+                                 UnsavedModifications pending,
+                                 Revision minRev) {
+        for (String p : pending.getPaths(minRev)) {
+            if (PathUtils.denotesRoot(p)) {
+                continue;
+            }
+            String parent = PathUtils.getParentPath(p);
+            if (path.equals(parent)) {
+                paths.add(p);
             }
         }
     }
