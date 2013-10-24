@@ -23,7 +23,7 @@ import javax.annotation.CheckForNull;
 import com.google.common.collect.Iterators;
 
 /**
- * EntryIterator... TODO
+ * Base class for PermissionEntry iterators.
  */
 abstract class AbstractEntryIterator implements Iterator<PermissionEntry> {
 
@@ -35,12 +35,10 @@ abstract class AbstractEntryIterator implements Iterator<PermissionEntry> {
 
     @Override
     public boolean hasNext() {
-        if (next == null) {
+        if (next == null && nextEntries == null) {
             // lazy initialization
-            if (nextEntries == null) {
-                nextEntries = Iterators.emptyIterator();
-                seekNext();
-            }
+            nextEntries = Iterators.emptyIterator();
+            seekNext();
         }
         return next != null;
     }
