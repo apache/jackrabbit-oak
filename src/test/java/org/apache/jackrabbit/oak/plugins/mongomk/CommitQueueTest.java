@@ -49,7 +49,8 @@ public class CommitQueueTest {
                 try {
                     Revision before = new Revision(0, 0, store.getClusterId());
                     while (running.get()) {
-                        ChangeDispatcher.ChangeSet changes = listener.getChanges();
+                        ChangeDispatcher.ChangeSet changes =
+                                listener.getChanges(1000);
                         if (changes != null) {
                             MongoNodeState after = (MongoNodeState) changes.getAfterState();
                             Revision r = after.getRevision();
@@ -61,13 +62,6 @@ public class CommitQueueTest {
                                 break;
                             }
                             before = r;
-                        } else {
-                            // avoid busy wait
-                            try {
-                                Thread.sleep(10);
-                            } catch (InterruptedException e) {
-                                // ignore
-                            }
                         }
                     }
                 } catch (Exception e) {
