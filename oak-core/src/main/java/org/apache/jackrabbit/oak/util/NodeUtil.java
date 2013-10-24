@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
@@ -46,6 +47,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -274,7 +276,9 @@ public class NodeUtil {
     }
 
     public void setDate(String name, long time) {
-        tree.setProperty(name, time, DATE);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(time);
+        tree.setProperty(name, ISO8601.format(calendar), DATE);
     }
 
     public long getLong(String name, long defaultValue) {

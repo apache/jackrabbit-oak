@@ -21,8 +21,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -37,14 +35,13 @@ import javax.jcr.version.VersionException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.util.ISO8601;
 
 /**
  * {@code VersionHistoryDelegate}...
@@ -136,14 +133,14 @@ public class VersionHistoryDelegate extends NodeDelegate {
     @Nonnull
     public Iterator<VersionDelegate> getAllVersions()
             throws RepositoryException {
-        SortedMap<Calendar, String> versions = new TreeMap<Calendar, String>();
+        SortedMap<Long, String> versions = new TreeMap<Long, String>();
         for (Iterator<NodeDelegate> it = getChildren(); it.hasNext(); ) {
             NodeDelegate n = it.next();
             String primaryType = n.getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
             if (primaryType.equals(VersionConstants.NT_VERSION)) {
                 PropertyDelegate created = n.getPropertyOrNull(JcrConstants.JCR_CREATED);
                 if (created != null) {
-                    Calendar cal = Conversions.convert(created.getDate()).toCalendar();
+                    Long cal = ISO8601.parse(created.getDate()).getTimeInMillis();
                     versions.put(cal, n.getName());
                 }
             }

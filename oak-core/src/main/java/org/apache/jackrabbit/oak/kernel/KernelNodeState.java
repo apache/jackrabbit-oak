@@ -755,11 +755,9 @@ public final class KernelNodeState extends AbstractNodeState {
         if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
             try {
-                return new LongPropertyState(
-                        name, Long.parseLong(number), Type.LONG);
+                return new LongPropertyState(name, Long.parseLong(number));
             } catch (NumberFormatException e) {
-                return new DoublePropertyState(
-                        name, Double.parseDouble(number));
+                return new DoublePropertyState(name, Double.parseDouble(number));
             }
         } else if (reader.matches(JsopReader.TRUE)) {
             return BooleanPropertyState.booleanProperty(name, true);
@@ -829,8 +827,6 @@ public final class KernelNodeState extends AbstractNodeState {
                         values.add(Conversions.convert(value).toDouble());
                     } else if (type == PropertyType.DECIMAL) {
                         values.add(Conversions.convert(value).toDecimal());
-                    } else if (type == PropertyType.DATE) {
-                        values.add(Conversions.convert(value).toCalendar().getTimeInMillis());
                     } else {
                         values.add(StringCache.get(value));
                     }

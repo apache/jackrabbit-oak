@@ -29,11 +29,13 @@ import javax.jcr.Value;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ValueImpl;
+import org.apache.jackrabbit.util.ISO8601;
 
 /**
  * Utility class for creating {@link PropertyState} instances.
@@ -52,7 +54,6 @@ public final class PropertyStates {
      */
     @Nonnull
     public static PropertyState createProperty(String name, Value value) throws RepositoryException {
-
         int type = value.getType();
         switch (type) {
             case PropertyType.STRING:
@@ -63,8 +64,6 @@ public final class PropertyStates {
                 return LongPropertyState.createLongProperty(name, value.getLong());
             case PropertyType.DOUBLE:
                 return DoublePropertyState.doubleProperty(name, value.getDouble());
-            case PropertyType.DATE:
-                return LongPropertyState.createDateProperty(name, value.getLong());
             case PropertyType.BOOLEAN:
                 return BooleanPropertyState.booleanProperty(name, value.getBoolean());
             case PropertyType.DECIMAL:
@@ -125,12 +124,6 @@ public final class PropertyStates {
                     doubles.add(value.getDouble());
                 }
                 return MultiDoublePropertyState.doubleProperty(name, doubles);
-            case PropertyType.DATE:
-                List<Long> dates = Lists.newArrayList();
-                for (Value value : values) {
-                    dates.add(value.getLong());
-                }
-                return MultiLongPropertyState.createDatePropertyFromLong(name, dates);
             case PropertyType.BOOLEAN:
                 List<Boolean> booleans = Lists.newArrayList();
                 for (Value value : values) {
@@ -182,8 +175,6 @@ public final class PropertyStates {
                 return LongPropertyState.createLongProperty(name, Conversions.convert(value).toLong());
             case PropertyType.DOUBLE:
                 return DoublePropertyState.doubleProperty(name, Conversions.convert(value).toDouble());
-            case PropertyType.DATE:
-                return LongPropertyState.createDateProperty(name, Conversions.convert(value).toDate());
             case PropertyType.BOOLEAN:
                 return BooleanPropertyState.booleanProperty(name, Conversions.convert(value).toBoolean());
             case PropertyType.DECIMAL:
@@ -222,8 +213,8 @@ public final class PropertyStates {
                 : DoublePropertyState.doubleProperty(name, (Double) value);
             case PropertyType.DATE:
                 return type.isArray()
-                ? MultiLongPropertyState.createDatePropertyFromLong(name, (Iterable<Long>) value)
-                : LongPropertyState.createDateProperty(name, (Long) value);
+                ? MultiGenericPropertyState.dateProperty(name, (Iterable<String>) value)
+                : GenericPropertyState.dateProperty(name, (String) value);
             case PropertyType.BOOLEAN:
                 return type.isArray()
                 ? MultiBooleanPropertyState.booleanProperty(name, (Iterable<Boolean>) value)
@@ -279,7 +270,7 @@ public final class PropertyStates {
         } else if (value instanceof Double) {
             return DoublePropertyState.doubleProperty(name, (Double) value);
         } else if (value instanceof Calendar) {
-            return LongPropertyState.createDateProperty(name, (Calendar) value);
+            return GenericPropertyState.dateProperty(name, ISO8601.format((Calendar) value));
         } else if (value instanceof Boolean) {
             return BooleanPropertyState.booleanProperty(name, (Boolean) value);
         } else if (value instanceof BigDecimal) {

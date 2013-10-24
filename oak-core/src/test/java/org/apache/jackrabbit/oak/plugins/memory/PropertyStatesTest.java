@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
 import static java.util.Collections.singletonMap;
@@ -59,10 +60,10 @@ public class PropertyStatesTest {
 
     @Test
     public void dateValueFromDateProperty() throws RepositoryException {
-        long expected = Calendar.getInstance().getTimeInMillis();
+        String expected = ISO8601.format(Calendar.getInstance());
         PropertyState dateProperty = PropertyStates.createProperty(
                 "date", expected, Type.DATE);
-        long actual = dateProperty.getValue(Type.DATE);
+        String actual = dateProperty.getValue(Type.DATE);
         assertEquals(expected, actual);
     }
 }

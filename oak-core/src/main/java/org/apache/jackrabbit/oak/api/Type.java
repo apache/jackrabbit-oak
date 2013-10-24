@@ -61,8 +61,8 @@ public final class Type<T> implements Comparable<Type<?>> {
     public static final Type<Double> DOUBLE =
             create(PropertyType.DOUBLE, false, "DOUBLE");
 
-    /** Map {@code Long} to {@link PropertyType#DATE} */
-    public static final Type<Long> DATE =
+    /** Map {@code String} to {@link PropertyType#DATE} */
+    public static final Type<String> DATE =
             create(PropertyType.DATE, false, "DATE");
 
     /** Map {@code Boolean} to {@link PropertyType#BOOLEAN} */
@@ -109,8 +109,8 @@ public final class Type<T> implements Comparable<Type<?>> {
     public static final Type<Iterable<Double>> DOUBLES =
             create(PropertyType.DOUBLE, true, "DOUBLES");
 
-    /** Map {@code Iterable<Long>} to array of {@link PropertyType#DATE} */
-    public static final Type<Iterable<Long>> DATES =
+    /** Map {@code Iterable<String>} to array of {@link PropertyType#DATE} */
+    public static final Type<Iterable<String>> DATES =
             create(PropertyType.DATE, true, "DATES");
 
     /** Map {@code Iterable<Boolean>} to array of {@link PropertyType#BOOLEAN} */

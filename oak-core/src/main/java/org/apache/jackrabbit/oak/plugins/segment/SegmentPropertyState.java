@@ -157,25 +157,14 @@ class SegmentPropertyState extends Record implements PropertyState {
             return (T) new SegmentBlob(segment, valueId);
         } else {
             String value = segment.readString(valueId);
-            if (type == Type.STRING || type == Type.URI
+            if (type == Type.STRING || type == Type.URI || type == Type.DATE
                     || type == Type.NAME || type == Type.PATH
                     || type == Type.REFERENCE || type == Type.WEAKREFERENCE) {
                 return (T) value;
             } else {
-                Converter converter = Conversions.convert(value);
-                if (base == Type.DATE) {
-                    converter = Conversions.convert(converter.toCalendar());
-                } else if (base == Type.DECIMAL) {
-                    converter = Conversions.convert(converter.toDecimal());
-                } else if (base == Type.DOUBLE) {
-                    converter = Conversions.convert(converter.toDouble());
-                } else if (base == Type.LONG) {
-                    converter = Conversions.convert(converter.toLong());
-                }
+                Converter converter = Conversions.convert(value, base);
                 if (type == Type.BOOLEAN) {
                     return (T) Boolean.valueOf(converter.toBoolean());
-                } else if (type == Type.DATE) {
-                    return (T) converter.toDate();
                 } else if (type == Type.DECIMAL) {
                     return (T) converter.toDecimal();
                 } else if (type == Type.DOUBLE) {

@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -85,7 +86,7 @@ public class SegmentSizeTest {
 
     @Test
     public void testDuplicateDates() {
-        long now = Calendar.getInstance().getTimeInMillis();
+        String now = ISO8601.format(Calendar.getInstance());
 
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(PropertyStates.createProperty(
