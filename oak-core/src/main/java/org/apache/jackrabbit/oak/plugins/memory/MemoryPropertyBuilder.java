@@ -181,8 +181,6 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
                     return MultiLongPropertyState.createLongProperty(name, (Iterable<Long>) values);
                 case PropertyType.DOUBLE:
                     return MultiDoublePropertyState.doubleProperty(name, (Iterable<Double>) values);
-                case PropertyType.DATE:
-                    return MultiLongPropertyState.createDatePropertyFromLong(name, (Iterable<Long>) values);
                 case PropertyType.BOOLEAN:
                     return MultiBooleanPropertyState.booleanProperty(name, (Iterable<Boolean>) values);
                 case PropertyType.DECIMAL:
@@ -201,8 +199,6 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
                     return LongPropertyState.createLongProperty(name, (Long) value);
                 case PropertyType.DOUBLE:
                     return DoublePropertyState.doubleProperty(name, (Double) value);
-                case PropertyType.DATE:
-                    return LongPropertyState.createDateProperty(name, (Long) value);
                 case PropertyType.BOOLEAN:
                     return BooleanPropertyState.booleanProperty(name, (Boolean) value);
                 case PropertyType.DECIMAL:

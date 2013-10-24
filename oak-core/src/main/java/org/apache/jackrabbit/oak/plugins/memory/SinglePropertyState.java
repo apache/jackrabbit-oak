@@ -61,7 +61,7 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
             case PropertyType.BINARY: return (S) getConverter().toBinary();
             case PropertyType.LONG: return (S) (Long) getConverter().toLong();
             case PropertyType.DOUBLE: return (S) (Double) getConverter().toDouble();
-            case PropertyType.DATE: return (S) getConverter().toDate();
+            case PropertyType.DATE: return (S) getConverter().toString();
             case PropertyType.BOOLEAN: return (S) (Boolean) getConverter().toBoolean();
             case PropertyType.NAME: return (S) getConverter().toString();
             case PropertyType.PATH: return (S) getConverter().toString();

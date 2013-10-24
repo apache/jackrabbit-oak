@@ -108,7 +108,7 @@ public class PropertyDelegate extends ItemDelegate {
         return getSingleState().getValue(Type.STRING);
     }
 
-    public Long getDate() throws ValueFormatException, InvalidItemStateException {
+    public String getDate() throws ValueFormatException, InvalidItemStateException {
         return getSingleState().getValue(Type.DATE);
     }
 
