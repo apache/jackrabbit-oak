@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MemoryNodeBuilderTest {
@@ -313,13 +314,14 @@ public class MemoryNodeBuilderTest {
     @Test
     public void testMoveToSelf() {
         NodeBuilder rootBuilder = base.builder();
-        assertTrue(rootBuilder.getChildNode("y").moveTo(rootBuilder, "y"));
+        assertFalse(rootBuilder.getChildNode("y").moveTo(rootBuilder, "y"));
 
         NodeState newRoot = rootBuilder.getNodeState();
         assertTrue(newRoot.hasChildNode("y"));
     }
 
     @Test
+    @Ignore  // FIXME OAK-1114
     public void testMoveToDescendant() {
         NodeBuilder rootBuilder = base.builder();
         assertFalse(rootBuilder.getChildNode("x").moveTo(rootBuilder.getChildNode("x"), "xx"));
