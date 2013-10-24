@@ -67,6 +67,9 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> report = parser.accepts("report", "Whether to output intermediate results")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
+        OptionSpec<Boolean> randomUser = parser.accepts("randomUser", "Whether to use a random user to read.")
+                        .withOptionalArg().ofType(Boolean.class)
+                        .defaultsTo(Boolean.FALSE);
         OptionSpec<File> csvFile = parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
                 .withOptionalArg().ofType(File.class);
 
@@ -145,7 +148,8 @@ public class BenchmarkRunner {
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
                     bgReaders.value(options),
-                    report.value(options)),
+                    report.value(options),
+                    randomUser.value(options)),
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
             ReadManyTest.linear("LinearReadNodes", 1, ReadManyTest.NODES),
