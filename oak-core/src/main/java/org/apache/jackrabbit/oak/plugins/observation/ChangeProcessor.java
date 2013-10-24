@@ -72,7 +72,7 @@ import org.slf4j.LoggerFactory;
  * {@link #run()} methods to be regularly executed and stopped in order to not
  * execute its run method anymore.
  */
-public class ChangeProcessor implements Runnable {
+public class ChangeProcessor {
 
     private static final Logger log =
             LoggerFactory.getLogger(ChangeProcessor.class);
@@ -84,13 +84,12 @@ public class ChangeProcessor implements Runnable {
     private final ListenerTracker tracker;
     private final EventListener listener;
 
-    private volatile Thread running = null;
-    private volatile boolean stopping = false;
-    private volatile Runnable deferredUnregister;
+    /**
+     * Background thread used to wait for and deliver events.
+     */
+    private ListenerThread thread = null;
 
-    private Registration runnable;
-    private Registration mbean;
-    private Listener changeListener;
+    private volatile boolean stopping = false;
 
     public ChangeProcessor(
             ContentSession contentSession, NamePathMapper namePathMapper,
@@ -118,14 +117,12 @@ public class ChangeProcessor implements Runnable {
      * @throws IllegalStateException if started already
      */
     public synchronized void start(Whiteboard whiteboard) {
-        checkState(runnable == null, "Change processor started already");
+        checkState(thread == null, "Change processor started already");
 
-        stopping = false;
-        changeListener = ((Observable) contentSession).newListener();
-        runnable = WhiteboardUtils.scheduleWithFixedDelay(whiteboard, this, 1);
-        mbean = WhiteboardUtils.registerMBean(
-                whiteboard, EventListenerMBean.class, tracker.getListenerMBean(),
-                "EventListener", tracker.toString());
+        thread = new ListenerThread(whiteboard);
+        thread.setDaemon(true);
+        thread.setPriority(Thread.MIN_PRIORITY);
+        thread.start();
     }
 
     /**
@@ -133,79 +130,11 @@ public class ChangeProcessor implements Runnable {
      * events will be delivered.
      * @throws IllegalStateException if not yet started or stopped already
      */
-    public void stop() {
-        stopping = true; // do this outside synchronization
+    public synchronized void stop() {
+        checkState(thread != null, "Change processor not started");
+        checkState(!stopping, "Change processor already stopped");
 
-        if (running == Thread.currentThread()) {
-            // Defer stopping from event listener, defer unregistering until
-            // event listener is done
-            deferredUnregister = new Runnable() {
-                @Override
-                public void run() {
-                    unregister();
-                }
-            };
-        } else {
-            // Otherwise wait for the event listener to terminate and unregister immediately
-            synchronized (this) {
-                try {
-                    while (running != null) {
-                        wait();
-                    }
-                    unregister();
-                }
-                catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
-    }
-
-    private void unregister() {
-        checkState(runnable != null, "Change processor not started");
-        mbean.unregister();
-        runnable.unregister();
-        changeListener.dispose();
-    }
-
-    @Override
-    public void run() {
-        // guarantee that only one thread is processing changes at a time
-        synchronized (this) {
-            if (running != null) {
-                return;
-            } else {
-                running = Thread.currentThread();
-            }
-        }
-
-        try {
-            ChangeSet changes = changeListener.getChanges();
-            while (!stopping && changes != null) {
-                EventFilter filter = filterRef.get();
-                // FIXME don't rely on toString for session id
-                if (!(filter.excludeLocal() && changes.isLocal(contentSession.toString()))) {
-                    String path = namePathMapper.getOakPath(filter.getPath());
-                    ImmutableTree beforeTree = getTree(changes.getBeforeState(), path);
-                    ImmutableTree afterTree = getTree(changes.getAfterState(), path);
-                    EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
-                            changes.getCommitInfo(), beforeTree, afterTree);
-                    SecureNodeStateDiff.compare(VisibleDiff.wrap(diff), beforeTree, afterTree);
-                    if (!stopping) {
-                        diff.sendEvents();
-                    }
-                }
-                changes = changeListener.getChanges();
-            }
-        } catch (Exception e) {
-            log.debug("Error while dispatching observation events", e);
-        } finally {
-            running = null;
-            synchronized (this) { notifyAll(); }
-            if (deferredUnregister != null) {
-                deferredUnregister.run();
-            }
-        }
+        stopping = true;
     }
 
     private static ImmutableTree getTree(NodeState beforeState, String path) {
@@ -213,6 +142,50 @@ public class ChangeProcessor implements Runnable {
     }
 
     //------------------------------------------------------------< private >---
+
+    private class ListenerThread extends Thread {
+
+        private final Listener changeListener =
+                ((Observable) contentSession).newListener();
+
+        private final Registration mbean;
+
+        ListenerThread(Whiteboard whiteboard) {
+            mbean = WhiteboardUtils.registerMBean(
+                    whiteboard, EventListenerMBean.class,
+                    tracker.getListenerMBean(), "EventListener",
+                    tracker.toString());
+        }
+
+        @Override
+        public void run() {
+            try {
+                ChangeSet changes = changeListener.getChanges(100);
+                while (!stopping) {
+                    EventFilter filter = filterRef.get();
+                    // FIXME don't rely on toString for session id
+                    if (!(filter.excludeLocal() && changes.isLocal(contentSession.toString()))) {
+                        String path = namePathMapper.getOakPath(filter.getPath());
+                        ImmutableTree beforeTree = getTree(changes.getBeforeState(), path);
+                        ImmutableTree afterTree = getTree(changes.getAfterState(), path);
+                        EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
+                                changes.getCommitInfo(), beforeTree, afterTree);
+                        SecureNodeStateDiff.compare(VisibleDiff.wrap(diff), beforeTree, afterTree);
+                        if (!stopping) {
+                            diff.sendEvents();
+                        }
+                    }
+                    changes = changeListener.getChanges(100);
+                }
+            } catch (Exception e) {
+                log.debug("Error while dispatching observation events", e);
+            } finally {
+                mbean.unregister();
+                changeListener.dispose();
+            }
+        }
+
+    }
 
     private class EventGeneratingNodeStateDiff extends RecursingNodeStateDiff {
         public static final int EVENT_LIMIT = 8192;

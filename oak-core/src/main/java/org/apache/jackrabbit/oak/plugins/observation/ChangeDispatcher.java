@@ -21,16 +21,18 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Queues.newLinkedBlockingQueue;
 
-import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -63,7 +65,8 @@ public class ChangeDispatcher {
     private final Set<Listener> listeners = Sets.newHashSet();
     private final NodeStore store;
 
-    private NodeState previousRoot;
+    @Nonnull
+    private volatile NodeState root;
 
     /**
      * Create a new instance for recording changes to {@code store}.
@@ -71,7 +74,7 @@ public class ChangeDispatcher {
      */
     public ChangeDispatcher(@Nonnull NodeStore store) {
         this.store = store;
-        previousRoot = checkNotNull(store.getRoot());
+        this.root = checkNotNull(store.getRoot());
     }
 
     /**
@@ -82,7 +85,7 @@ public class ChangeDispatcher {
      */
     @Nonnull
     public Listener newListener() {
-        Listener listener = new Listener();
+        Listener listener = new Listener(root);
         register(listener);
         return listener;
     }
@@ -130,12 +133,8 @@ public class ChangeDispatcher {
             @Nonnull NodeState root, @Nonnull CommitInfo info) {
         checkState(inLocalCommit());
         checkNotNull(root);
-        if (info != null) {
-            add(new ChangeSet(previousRoot, root, info));
-        } else {
-            add(new ChangeSet(previousRoot, root));
-        }
-        previousRoot = root;
+        add(root, info);
+        this.root = root;
     }
 
     /**
@@ -168,9 +167,9 @@ public class ChangeDispatcher {
     }
 
     private synchronized void externalChange(NodeState root) {
-        if (!root.equals(previousRoot)) {
-            add(new ChangeSet(previousRoot, root));
-            previousRoot = root;
+        if (!root.equals(this.root)) {
+            add(root, null);
+            this.root = root;
         }
     }
 
@@ -186,9 +185,11 @@ public class ChangeDispatcher {
         }
     }
 
-    private void add(ChangeSet changeSet) {
-        for (Listener l : getListeners()) {
-            l.add(changeSet);
+    private void add(NodeState root, CommitInfo info) {
+        synchronized (listeners) {
+            for (Listener l : getListeners()) {
+                l.add(root, info);
+            }
         }
     }
 
@@ -201,10 +202,21 @@ public class ChangeDispatcher {
     //------------------------------------------------------------< Listener >---
 
     /**
-     * Listener for receiving changes reported into a change dispatcher by any of its hooks.
+     * Listener for receiving changes reported into a change dispatcher by
+     * any of its hooks.
      */
     public class Listener {
-        private final Queue<ChangeSet> changeSets = Queues.newLinkedBlockingQueue();
+
+        private final LinkedBlockingQueue<ChangeSet> changeSets =
+                newLinkedBlockingQueue();
+
+        private NodeState previousRoot;
+
+        private boolean blocked = false;
+
+        Listener(NodeState root) {
+            this.previousRoot = checkNotNull(root);
+        }
 
         /**
          * Free up any resources associated by this hook.
@@ -215,20 +227,31 @@ public class ChangeDispatcher {
 
         /**
          * Poll for changes reported to this listener.
-         * @return  {@code ChangeSet} of the changes or {@code null} if no changes occurred since
-         *          the last call to this method.
+         *
+         * @param timeout maximum number of milliseconds to wait for changes
+         * @return  {@code ChangeSet} of the changes, or {@code null} if
+         *          no changes occurred since the last call to this method
+         *          and before the timeout
+         * @throws InterruptedException if polling was interrupted
          */
         @CheckForNull
-        public ChangeSet getChanges() {
+        public ChangeSet getChanges(long timeout) throws InterruptedException {
             if (changeSets.isEmpty()) {
                 externalChange();
             }
-
-            return changeSets.isEmpty() ? null : changeSets.remove();
+            return changeSets.poll(timeout, TimeUnit.MILLISECONDS);
         }
 
-        private void add(ChangeSet changeSet) {
-            changeSets.add(changeSet);
+        private synchronized void add(NodeState root, CommitInfo info) {
+            if (blocked) {
+                info = null;
+            }
+            if (changeSets.offer(new ChangeSet(previousRoot, root, info))) {
+                previousRoot = root;
+                blocked = false;
+            } else {
+                blocked = true;
+            }
         }
     }
 
@@ -246,22 +269,13 @@ public class ChangeDispatcher {
         private final CommitInfo commitInfo;
 
         /**
-         * Creates an external change set
-         */
-        ChangeSet(@Nonnull NodeState before, @Nonnull NodeState after) {
-            this.before = checkNotNull(before);
-            this.after = checkNotNull(after);
-            this.commitInfo = null;
-        }
-
-        /**
-         * Creates a local change set
+         * Creates a change set
          */
         ChangeSet(@Nonnull NodeState before, @Nonnull NodeState after,
-                @Nonnull CommitInfo commitInfo) {
+                @Nullable CommitInfo commitInfo) {
             this.before = checkNotNull(before);
             this.after = checkNotNull(after);
-            this.commitInfo = checkNotNull(commitInfo);
+            this.commitInfo = commitInfo;
         }
 
         public boolean isExternal() {
