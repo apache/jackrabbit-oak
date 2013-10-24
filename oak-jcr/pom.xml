@@ -108,6 +108,7 @@
 
       <!-- Permission Evaluation -->
       org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testWriteOnParentWithNoReadePriv<!-- OAK-869 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testMoveRemoveSubTree           <!-- OAK-1115 blocked by OAK-783 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion   <!-- OAK-168 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion2  <!-- OAK-168 -->
