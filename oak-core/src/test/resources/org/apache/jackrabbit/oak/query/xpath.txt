@@ -406,7 +406,7 @@ xpath2sql //element(*, my:type)[(not(@my:title) and @my:subject)]
 select [jcr:path], [jcr:score], * from [my:type] as a where [my:title] is null and [my:subject] is not null /* xpath: //element(*, my:type)[(not(@my:title) and @my:subject)] */
 
 xpath2sql //element(*, my:type)[not(@my:title) or @my:subject]
-select [jcr:path], [jcr:score], * from [my:type] as a where [my:title] is null or [my:subject] is not null /* xpath: //element(*, my:type)[not(@my:title) or @my:subject] */
+select [jcr:path], [jcr:score], * from [my:type] as a where [my:title] is null union select [jcr:path], [jcr:score], * from [my:type] as a where [my:subject] is not null /* xpath: //element(*, my:type)[not(@my:title) or @my:subject] */
 
 xpath2sql //element(*, my:type)[not(@my:value > 0 and @my:value < 100)]
 select [jcr:path], [jcr:score], * from [my:type] as a where not([my:value] > 0 and [my:value] < 100) /* xpath: //element(*, my:type)[not(@my:value > 0 and @my:value < 100)] */
