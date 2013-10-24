@@ -35,9 +35,11 @@ public class ManyUserReadTest extends ReadDeepTreeTest {
 
     private final int numberOfUsers = 1000;
     private final int numberOfMembers = 10;
+    private final boolean randomUser;
 
-    protected ManyUserReadTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
+    protected ManyUserReadTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport, boolean randomUser) {
         super(runAsAdmin, itemsToRead, bgReaders, doReport);
+        this.randomUser = randomUser;
     }
 
     @Override
@@ -97,7 +99,7 @@ public class ManyUserReadTest extends ReadDeepTreeTest {
         if (runAsAdmin) {
             return loginWriter();
         } else {
-            String userId = "user" + getIndex();
+            String userId = (randomUser) ? "user"+getIndex() : "user1";
             SimpleCredentials sc = new SimpleCredentials(userId, userId.toCharArray());
             return login(sc);
         }
