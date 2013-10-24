@@ -62,7 +62,7 @@ import static com.google.common.collect.Iterators.concat;
  * TODO: WIP
  * FIXME: decide on where to filter out hidden items (OAK-753)
  */
-class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants {
+final class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants {
 
     private static final Logger log = LoggerFactory.getLogger(CompiledPermissionImpl.class);
 
