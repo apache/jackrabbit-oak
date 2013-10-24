@@ -227,8 +227,8 @@ public class TokenProviderImpl implements TokenProvider {
                 } else {
                     exp = tokenExpiration;
                 }
-                long expirationTime = createExpirationTime(creationTime, exp);
-                tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
+                long expTime = createExpirationTime(creationTime, exp);
+                tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
 
                 for (String name : attributes.keySet()) {
                     if (!RESERVED_ATTRIBUTES.contains(name)) {
@@ -459,17 +459,15 @@ public class TokenProviderImpl implements TokenProvider {
             Tree tokenTree = getTokenTree(this);
             if (tokenTree != null && tokenTree.exists()) {
                 NodeUtil tokenNode = new NodeUtil(tokenTree);
-                long expTime = getExpirationTime(tokenNode, 0);
                 if (isExpired(loginTime)) {
                     log.debug("Attempt to reset an expired token.");
                     return false;
                 }
 
-                long expiration = tokenNode.getLong(PARAM_TOKEN_EXPIRATION, tokenExpiration);
-                if (expTime - loginTime <= expiration / 2) {
-                    long expirationTime = createExpirationTime(loginTime, expiration);
+                if (expirationTime - loginTime <= tokenExpiration / 2) {
                     try {
-                        tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
+                        long expTime = createExpirationTime(loginTime, tokenExpiration);
+                        tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
                         root.commit();
                         log.debug("Successfully reset token expiration time.");
                         return true;
