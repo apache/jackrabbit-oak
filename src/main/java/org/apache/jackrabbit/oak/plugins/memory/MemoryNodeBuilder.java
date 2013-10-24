@@ -158,7 +158,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     /**
      * @return  {@code true} iff this is the root builder
      */
-    private boolean isRoot() {
+    protected final boolean isRoot() {
         return this == rootBuilder;
     }
 
@@ -320,13 +320,15 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean moveTo(NodeBuilder newParent, String newName) {
-        if (isRoot()) {
+        checkNotNull(newParent);
+        checkNotNull(newName);
+        if (isRoot() || !exists() || newParent.hasChildNode(newName)) {
             return false;
         } else {
-            NodeState nodeState = getNodeState();
-            remove();
             if (newParent.exists()) {
-                checkNotNull(newParent).setChildNode(checkNotNull(newName), nodeState);
+                NodeState nodeState = getNodeState();
+                newParent.setChildNode(newName, nodeState);
+                remove();
                 return true;
             } else {
                 // Move to descendant
