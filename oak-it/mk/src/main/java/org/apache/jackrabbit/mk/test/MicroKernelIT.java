@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.mk.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,13 +40,6 @@ import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Integration tests for verifying that a {@code MicroKernel} implementation
@@ -937,7 +937,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         mk.commit("", "+\"/test/sub\":{}", null, "");
         try {
             // try to move /test to /test/sub/test
-            mk.commit("/", "> \"test\": \"/test/sub/test\"", null, "");
+            mk.commit("/", "> \"/test\": \"/test/sub/test\"", null, "");
             fail();
         } catch (Exception e) {
             // expected

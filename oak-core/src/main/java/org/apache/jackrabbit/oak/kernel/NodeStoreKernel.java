@@ -35,6 +35,10 @@ import java.util.zip.Checksum;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
@@ -46,7 +50,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -54,11 +57,6 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
-import com.google.common.io.ByteStreams;
 
 /**
  * This is a simple {@link NodeStore}-based {@link MicroKernel} implementation.
@@ -209,6 +207,10 @@ public class NodeStoreKernel implements MicroKernel {
                 NodeBuilder targetParent =
                         getNode(builder, getParentPath(targetPath));
                 String targetName = getName(targetPath);
+                if (path.equals(targetPath) || PathUtils.isAncestor(path, targetPath)) {
+                    throw new MicroKernelException(
+                            "Target path must not be the same or a descendant of the source path: " + targetPath);
+                }
                 if (targetParent.hasChildNode(targetName)) {
                     throw new MicroKernelException(
                             "Target node exists: " + targetPath);

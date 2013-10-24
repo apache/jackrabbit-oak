@@ -66,7 +66,10 @@ public class KernelNodeBuilder extends MemoryNodeBuilder implements FastCopyMove
     @Override
     public boolean moveTo(NodeBuilder newParent, String newName) {
         if (newParent instanceof FastCopyMove) {
-            return ((FastCopyMove) newParent).moveFrom(this, newName);
+            checkNotNull(newParent);
+            checkNotNull(newName);
+            return !isRoot() && exists() && !newParent.hasChildNode(newName) &&
+                    ((FastCopyMove) newParent).moveFrom(this, newName);
         } else {
             return super.moveTo(newParent, newName);
         }

@@ -208,6 +208,12 @@ public interface NodeBuilder {
 
     /**
      * Move this child to a new parent with a new name.
+     * The move succeeds if both, this builder and {@code newParent} exist, there is no child with
+     * {@code newName} at {@code newParent} and {@code newParent} is not in the subtree of this
+     * builder.
+     * After a successful move {@code exists()} on this builder returns {@code false}, otherwise
+     * {@code true}.
+     *
      * @param newParent  builder for the new parent.
      * @param newName  name of this child at the new parent
      * @return  {@code true} on success, {@code false} otherwise
