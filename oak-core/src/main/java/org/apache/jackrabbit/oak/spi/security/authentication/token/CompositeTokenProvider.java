@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableList;
  * Aggregates a collection of {@link TokenProvider}s into a single
  * provider.
  */
-public class CompositeTokenProvider implements TokenProvider {
+public final class CompositeTokenProvider implements TokenProvider {
 
     private final List<TokenProvider> providers;
 
