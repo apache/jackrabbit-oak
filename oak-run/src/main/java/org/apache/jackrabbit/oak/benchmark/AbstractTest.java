@@ -306,13 +306,27 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
    protected Session login(Credentials credentials) {
        try {
            Session session = repository.login(credentials);
-           sessions.add(session);
+           synchronized (sessions) {
+               sessions.add(session);
+           }
            return session;
        } catch (RepositoryException e) {
            throw new RuntimeException(e);
        }
    }
-    
+
+    /**
+     * Logs out and removes the session from the internal pool.
+     * @param session the session to logout
+     */
+    protected void logout(Session session) {
+        if (session != null) {
+            session.logout();
+        }
+        synchronized (sessions) {
+            sessions.remove(session);
+        }
+    }
 
     /**
      * Returns a new writer session that will be automatically closed once
@@ -323,7 +337,9 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
     protected Session loginWriter() {
         try {
             Session session = repository.login(credentials);
-            sessions.add(session);
+            synchronized (sessions) {
+                sessions.add(session);
+            }
             return session;
         } catch (RepositoryException e) {
             throw new RuntimeException(e);
