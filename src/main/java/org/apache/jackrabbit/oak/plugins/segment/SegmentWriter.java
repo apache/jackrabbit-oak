@@ -171,8 +171,9 @@ public class SegmentWriter {
 
         int alignment = Segment.RECORD_ALIGN_BYTES - 1;
         int alignedSize = (fullSize + alignment) & ~alignment;
+        int segmentReferenceCount = uuids.size() + segmentIds.size();
         if (length + alignedSize > buffer.length
-                || uuids.size() + segmentIds.size() > 0x100) {
+                || segmentReferenceCount > Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();
         }
 
