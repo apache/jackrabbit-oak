@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -97,14 +97,29 @@ public class Segment {
 
     private final ByteBuffer data;
 
-    private final List<UUID> uuids;
-
-    public Segment(
-            SegmentStore store, UUID uuid, ByteBuffer data, List<UUID> uuids) {
+    public Segment(SegmentStore store, UUID uuid, ByteBuffer data) {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
-        this.uuids = checkNotNull(uuids);
+    }
+
+    public Segment(
+            SegmentStore store, UUID uuid, Collection<UUID> refids,
+            byte[] buffer, int offset, int length) {
+        this.store = checkNotNull(store);
+        this.uuid = checkNotNull(uuid);
+
+        checkNotNull(refids);
+        checkNotNull(buffer);
+        checkPositionIndexes(offset, offset + length, buffer.length);
+
+        this.data = ByteBuffer.allocate(refids.size() * 16 + length);
+        for (UUID refid : refids) {
+            data.putLong(refid.getMostSignificantBits());
+            data.putLong(refid.getLeastSignificantBits());
+        }
+        data.put(buffer, offset, length);
+        data.rewind();
     }
 
     /**
@@ -155,7 +170,6 @@ public class Segment {
         return getSegment(checkNotNull(id).getSegmentId());
     }
 
-
     /**
      * Reads the given number of bytes starting from the given position
      * in this segment.
@@ -179,10 +193,14 @@ public class Segment {
     }
 
     private RecordId internalReadRecordId(int pos) {
-        return new RecordId(
-                uuids.get(data.get(pos) & 0xff),
-                (data.get(pos + 1) & 0xff) << (8 + Segment.RECORD_ALIGN_BITS)
-                | (data.get(pos + 2) & 0xff) << Segment.RECORD_ALIGN_BITS);
+        int refpos = data.position() + (data.get(pos) & 0xff) * 16;
+        UUID refid = new UUID(data.getLong(refpos), data.getLong(refpos + 8));
+
+        int offset =
+                (((data.get(pos + 1) & 0xff) << 8) | (data.get(pos + 2) & 0xff))
+                << RECORD_ALIGN_BITS;
+
+        return new RecordId(refid, offset);
     }
 
     int readInt(int offset) {
