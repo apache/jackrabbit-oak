@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.nio.ByteBuffer;
@@ -86,7 +87,7 @@ public class Segment {
             new Weigher<UUID, Segment>() {
                 @Override
                 public int weigh(UUID key, Segment value) {
-                    return value.size();
+                    return value.data.remaining();
                 }
             };
 
@@ -116,21 +117,14 @@ public class Segment {
      * @return position within the data array
      */
     private int pos(int offset, int length) {
-        int pos = offset - (MAX_SEGMENT_SIZE - size());
-        checkPositionIndexes(pos, pos + length, size());
-        return data.position() + pos;
+        checkPositionIndexes(offset, offset + length, MAX_SEGMENT_SIZE);
+        int pos = data.limit() - MAX_SEGMENT_SIZE + offset;
+        checkState(pos >= data.position());
+        return pos;
     }
 
     public UUID getSegmentId() {
         return uuid;
-    }
-
-    public ByteBuffer getData() {
-        return data;
-    }
-
-    public int size() {
-        return data.remaining();
     }
 
     byte readByte(int offset) {
