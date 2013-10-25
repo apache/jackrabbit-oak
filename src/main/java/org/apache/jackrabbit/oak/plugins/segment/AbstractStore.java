@@ -25,7 +25,6 @@ import java.util.concurrent.Callable;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 
 import com.google.common.cache.Cache;
-import com.google.common.cache.Weigher;
 
 public abstract class AbstractStore implements SegmentStore {
 
@@ -43,12 +42,7 @@ public abstract class AbstractStore implements SegmentStore {
 
     protected AbstractStore(int cacheSize) {
         this.segments = CacheLIRS.newBuilder()
-                .weigher(new Weigher<UUID, Segment>() {
-                    @Override
-                    public int weigh(UUID key, Segment value) {
-                        return value.size();
-                    }
-                })
+                .weigher(Segment.WEIGHER)
                 .maximumWeight(cacheSize)
                 .build();
     }
