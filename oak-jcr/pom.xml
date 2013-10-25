@@ -178,6 +178,7 @@
 
       <!-- Node Types -->
       org.apache.jackrabbit.oak.jcr.nodetype.NodeDefinitionTest#testRootType                         <!-- OAK-901 -->
+      org.apache.jackrabbit.oak.jcr.nodetype.MixinTest#testRemoveAddMixVersionable1                  <!-- OAK-1118 -->
 
     </known.issues>
   </properties>
