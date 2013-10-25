@@ -23,7 +23,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -34,7 +33,6 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -118,18 +116,16 @@ public class SegmentWriter {
     public SegmentWriter(SegmentStore store) {
         this.store = store;
         this.dummySegment = new Segment(
-                store, UUID.randomUUID(),
-                ByteBuffer.allocate(0), Collections.<UUID>emptyList());
+                store, UUID.randomUUID(), Collections.<UUID>emptyList(),
+                new byte[0], 0, 0);
     }
 
     public synchronized Segment getCurrentSegment(UUID id) {
         if (equal(id, uuid)) {
             if (currentSegment == null) {
-                ByteBuffer b = ByteBuffer.allocate(length);
-                System.arraycopy(
-                        buffer, buffer.length - length, b.array(), 0, length);
                 currentSegment = new Segment(
-                        store, uuid, b, newArrayList(uuids.keySet()));
+                        store, uuid, uuids.keySet(),
+                        buffer, buffer.length - length, length);
             }
             return currentSegment;
         } else {
@@ -144,8 +140,8 @@ public class SegmentWriter {
     public synchronized void flush() {
         if (length > 0) {
             store.writeSegment(
-                    uuid, buffer, buffer.length - length, length,
-                    newArrayList(uuids.keySet()));
+                    uuid, uuids.keySet(),
+                    buffer, buffer.length - length, length);
 
             uuid = UUID.randomUUID();
             uuids.clear();
@@ -556,8 +552,8 @@ public class SegmentWriter {
                 int align = Segment.RECORD_ALIGN_BYTES - 1;
                 int bulkAlignLength = (bulkLength + align) & ~align;
                 store.writeSegment(
-                        segmentId, bulk, 0, bulkAlignLength,
-                        Collections.<UUID>emptyList());
+                        segmentId, Collections.<UUID>emptyList(),
+                        bulk, 0, bulkAlignLength);
                 for (int pos = Segment.MAX_SEGMENT_SIZE - bulkAlignLength;
                         pos < Segment.MAX_SEGMENT_SIZE;
                         pos += BLOCK_SIZE) {

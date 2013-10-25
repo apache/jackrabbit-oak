@@ -22,7 +22,6 @@ import static com.mongodb.ReadPreference.nearest;
 import static com.mongodb.ReadPreference.primary;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -84,8 +83,8 @@ public class MongoStore extends AbstractStore {
 
     @Override
     public void writeSegment(
-            UUID segmentId, byte[] data, int offset, int length,
-            List<UUID> referencedSegmentIds) {
+            UUID segmentId, Collection<UUID> referencedSegmentIds,
+            byte[] data, int offset, int length) {
         byte[] d = new byte[length];
         System.arraycopy(data, offset, d, 0, length);
         insertSegment(segmentId, d, referencedSegmentIds);
@@ -111,7 +110,7 @@ public class MongoStore extends AbstractStore {
         for (Object object : list) {
             uuids.add(UUID.fromString(object.toString()));
         }
-        return new Segment(this, segmentId, ByteBuffer.wrap(data), uuids);
+        return new Segment(this, segmentId, uuids, data, 0, data.length);
     }
 
     private void insertSegment(
