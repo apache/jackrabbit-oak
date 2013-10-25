@@ -161,7 +161,7 @@ public class SegmentWriter {
         Set<UUID> segmentIds = new HashSet<UUID>();
         for (RecordId id : checkNotNull(ids)) {
             UUID segmentId = id.getSegmentId();
-            if (!uuids.containsKey(segmentId)) {
+            if (!equal(uuid, segmentId) && !uuids.containsKey(segmentId)) {
                 segmentIds.add(segmentId);
             }
         }
@@ -187,18 +187,22 @@ public class SegmentWriter {
         checkNotNull(id);
 
         UUID segmentId = id.getSegmentId();
-        Byte segmentIndex = uuids.get(segmentId);
-        if (segmentIndex == null) {
-            checkState(uuids.size() < Segment.SEGMENT_REFERENCE_LIMIT);
-            segmentIndex = Byte.valueOf((byte) uuids.size());
-            uuids.put(segmentId, segmentIndex);
+        if (equal(uuid, segmentId)) {
+            buffer[position++] = (byte) 0xff;
+        } else {
+            Byte segmentIndex = uuids.get(segmentId);
+            if (segmentIndex == null) {
+                checkState(uuids.size() < Segment.SEGMENT_REFERENCE_LIMIT);
+                segmentIndex = Byte.valueOf((byte) uuids.size());
+                uuids.put(segmentId, segmentIndex);
+            }
+            buffer[position++] = segmentIndex.byteValue();
         }
 
         int offset = id.getOffset();
         checkState(0 <= offset && offset < MAX_SEGMENT_SIZE);
         checkState((offset & (Segment.RECORD_ALIGN_BYTES - 1)) == 0);
 
-        buffer[position++] = segmentIndex.byteValue();
         buffer[position++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
         buffer[position++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
     }
