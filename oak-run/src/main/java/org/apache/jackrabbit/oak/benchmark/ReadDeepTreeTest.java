@@ -39,18 +39,25 @@ public class ReadDeepTreeTest extends AbstractTest {
     protected final int bgReaders;
     protected final boolean doReport;
 
+    protected final boolean singleSession;
+
     protected Session adminSession;
     protected Node testRoot;
 
     private Session testSession;
 
-    protected List<String> allPaths = new ArrayList();
+    protected List<String> allPaths = new ArrayList<String>();
 
     protected ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
+        this(runAsAdmin, itemsToRead, bgReaders, doReport, true);
+    }
+
+    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport, boolean singleSession) {
         this.runAsAdmin = runAsAdmin;
         this.itemsToRead = itemsToRead;
         this.bgReaders = bgReaders;
         this.doReport = doReport;
+        this.singleSession = singleSession;
     }
 
     public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
@@ -64,7 +71,7 @@ public class ReadDeepTreeTest extends AbstractTest {
         createDeepTree();
 
         for (int i = 0; i < bgReaders; i++) {
-            final Session session = getTestSession();
+            final Session session = singleSession ? getTestSession() : null;
             addBackgroundJob(new Runnable() {
                 @Override
                 public void run() {
@@ -78,7 +85,7 @@ public class ReadDeepTreeTest extends AbstractTest {
         }
         System.out.println("Threads started: " + bgReaders);
 
-        testSession = getTestSession();
+        testSession = singleSession ? getTestSession() : null;
     }
 
     protected void createDeepTree() throws Exception {
@@ -136,29 +143,40 @@ public class ReadDeepTreeTest extends AbstractTest {
     }
 
     protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
-        int nodeCnt = 0;
-        int propertyCnt = 0;
-        int noAccess = 0;
-        int size = allPaths.size();
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < cnt; i++) {
-            double rand = size * Math.random();
-            int index = (int) Math.floor(rand);
-            String path = allPaths.get(index);
-            if (testSession.itemExists(path)) {
-                Item item = testSession.getItem(path);
-                if (item.isNode()) {
-                    nodeCnt++;
-                } else {
-                    propertyCnt++;
-                }
-            } else {
-                noAccess++;
-            }
+        boolean logout = false;
+        if (testSession == null) {
+            testSession = getTestSession();
+            logout = true;
         }
-        long end = System.currentTimeMillis();
-        if (doReport) {
-            System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-noAccess) + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+") completed in " + (end - start));
+        try {
+            int nodeCnt = 0;
+            int propertyCnt = 0;
+            int noAccess = 0;
+            int size = allPaths.size();
+            long start = System.currentTimeMillis();
+            for (int i = 0; i < cnt; i++) {
+                double rand = size * Math.random();
+                int index = (int) Math.floor(rand);
+                String path = allPaths.get(index);
+                if (testSession.itemExists(path)) {
+                    Item item = testSession.getItem(path);
+                    if (item.isNode()) {
+                        nodeCnt++;
+                    } else {
+                        propertyCnt++;
+                    }
+                } else {
+                    noAccess++;
+                }
+            }
+            long end = System.currentTimeMillis();
+            if (doReport) {
+                System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-noAccess) + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+") completed in " + (end - start));
+            }
+        } finally {
+            if (logout) {
+                logout(testSession);
+            }
         }
     }
 
