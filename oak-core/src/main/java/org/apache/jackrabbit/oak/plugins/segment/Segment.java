@@ -47,9 +47,9 @@ public class Segment {
     /**
      * The limit on segment references within one segment. Since record
      * identifiers use one byte to indicate the referenced segment, a single
-     * segment can hold references to up to 256 segments.
+     * segment can hold references to up to 255 segments plus itself.
      */
-    static final int SEGMENT_REFERENCE_LIMIT = 1 << 8; // 256
+    static final int SEGMENT_REFERENCE_LIMIT = (1 << 8) - 1; // 255
 
     /**
      * The number of bytes (or bits of address space) to use for the
@@ -193,8 +193,14 @@ public class Segment {
     }
 
     private RecordId internalReadRecordId(int pos) {
-        int refpos = data.position() + (data.get(pos) & 0xff) * 16;
-        UUID refid = new UUID(data.getLong(refpos), data.getLong(refpos + 8));
+        UUID refid;
+        int refpos = data.get(pos) & 0xff;
+        if (refpos != 0xff) {
+            refpos = data.position() + refpos * 16;
+            refid = new UUID(data.getLong(refpos), data.getLong(refpos + 8));
+        } else {
+            refid = uuid;
+        }
 
         int offset =
                 (((data.get(pos + 1) & 0xff) << 8) | (data.get(pos + 2) & 0xff))
