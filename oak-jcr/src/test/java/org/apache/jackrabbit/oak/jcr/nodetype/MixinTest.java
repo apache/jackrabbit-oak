@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-
 import javax.jcr.Node;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
@@ -28,7 +26,10 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 /**
  *
@@ -100,4 +101,50 @@ public class MixinTest extends AbstractJCRTest {
         }
     }
 
+    @Test
+    public void testRemoveMixVersionable() throws Exception {
+        testRootNode.addMixin(mixVersionable);
+        superuser.save();
+
+        testRootNode.removeMixin(mixVersionable);
+        superuser.save();
+    }
+
+    @Test
+    public void testRemoveMixVersionable1() throws Exception {
+        testRootNode.addMixin(mixReferenceable);
+        testRootNode.addMixin(mixVersionable);
+        superuser.save();
+
+        testRootNode.removeMixin(mixVersionable);
+        superuser.save();
+    }
+
+    @Test
+    public void testRemoveAddMixVersionable() throws Exception {
+        testRootNode.addMixin(mixVersionable);
+        superuser.save();
+        String vhId = testRootNode.getVersionHistory().getUUID();
+
+        testRootNode.removeMixin(mixVersionable);
+        testRootNode.addMixin(mixVersionable);
+        superuser.save();
+
+        assertFalse(vhId.equals(testRootNode.getVersionHistory().getUUID()));
+    }
+
+    @Ignore("OAK-1118") // FIXME: OAK-1118
+    @Test
+    public void testRemoveAddMixVersionable1() throws Exception {
+        testRootNode.addMixin(mixReferenceable);
+        testRootNode.addMixin(mixVersionable);
+        superuser.save();
+        String vhId = testRootNode.getVersionHistory().getUUID();
+
+        testRootNode.removeMixin(mixVersionable);
+        testRootNode.addMixin(mixVersionable);
+        superuser.save();
+
+        assertFalse(vhId.equals(testRootNode.getVersionHistory().getUUID()));
+    }
 }
