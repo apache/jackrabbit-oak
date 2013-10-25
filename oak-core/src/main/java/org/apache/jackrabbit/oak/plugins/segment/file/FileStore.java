@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -27,8 +26,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -136,21 +135,8 @@ public class FileStore extends AbstractStore {
             if (buffer != null) {
                 checkState(SEGMENT_MAGIC == buffer.getLong());
                 int length = buffer.getInt();
-                int count = buffer.getInt();
-
-                checkState(id.equals(new UUID(
-                        buffer.getLong(), buffer.getLong())));
-
-                List<UUID> referencedIds = newArrayListWithCapacity(count);
-                for (int i = 0; i < count; i++) {
-                    referencedIds.add(new UUID(
-                            buffer.getLong(), buffer.getLong()));
-                }
-
                 buffer.limit(buffer.position() + length);
-                return new Segment(
-                        FileStore.this, id,
-                        buffer.slice(), referencedIds);
+                return new Segment(FileStore.this, id, buffer.slice());
             }
         }
 
@@ -159,22 +145,19 @@ public class FileStore extends AbstractStore {
 
     @Override
     public synchronized void writeSegment(
-            UUID segmentId, byte[] data, int offset, int length,
-            List<UUID> referencedSegmentIds) {
-        int size = 8 + 4 + 4 + 16 + 16 * referencedSegmentIds.size() + length;
+            UUID segmentId, Collection<UUID> referencedSegmentIds,
+            byte[] data, int offset, int length) {
+        int size = 8 + 4 + 16 * referencedSegmentIds.size() + length;
         ByteBuffer buffer = ByteBuffer.allocate(size);
 
         buffer.putLong(SEGMENT_MAGIC);
-        buffer.putInt(length);
-        buffer.putInt(referencedSegmentIds.size());
-        buffer.putLong(segmentId.getMostSignificantBits());
-        buffer.putLong(segmentId.getLeastSignificantBits());
+        buffer.putInt(16 * referencedSegmentIds.size() + length);
+
         for (UUID referencedSegmentId : referencedSegmentIds) {
             buffer.putLong(referencedSegmentId.getMostSignificantBits());
             buffer.putLong(referencedSegmentId.getLeastSignificantBits());
         }
 
-        int pos = buffer.position();
         buffer.put(data, offset, length);
 
         try {
@@ -182,8 +165,6 @@ public class FileStore extends AbstractStore {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-        buffer.position(pos);
     }
 
     private void writeEntry(UUID segmentId, byte[] buffer)

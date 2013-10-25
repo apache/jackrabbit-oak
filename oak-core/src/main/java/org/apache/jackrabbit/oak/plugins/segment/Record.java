@@ -20,8 +20,6 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -77,13 +75,6 @@ class Record {
         this.segment = checkNotNull(segment);
         this.uuid = segment.getSegmentId();
         this.offset = offset;
-    }
-
-    // TODO: remove this ugly hack
-    protected Record(SegmentStore store, RecordId id) {
-        this(new Segment(
-                store, UUID.randomUUID(),
-                ByteBuffer.allocate(0), Collections.<UUID>emptyList()), id);
     }
 
     /**

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -32,14 +32,14 @@ public interface SegmentStore {
      * Writes the given segment to the segment store.
      *
      * @param segmentId segment identifier
+     * @param referencedSegmentIds identifiers of all the referenced segments
      * @param bytes byte buffer that contains the raw contents of the segment
      * @param offset start offset within the byte buffer
      * @param length length of the segment
-     * @param referencedSegmentIds identifiers of all the referenced segments
      */
     void writeSegment(
-            UUID segmentId, byte[] bytes, int offset, int length,
-            List<UUID> referencedSegmentIds);
+            UUID segmentId, Collection<UUID> referencedSegmentIds,
+            byte[] bytes, int offset, int length);
 
     void deleteSegment(UUID segmentId);
 
