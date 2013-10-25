@@ -44,6 +44,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.core.RepositoryImpl.ACTIVITIES_NODE_ID;
+import static org.apache.jackrabbit.core.RepositoryImpl.ROOT_NODE_ID;
+import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -63,21 +66,26 @@ import java.util.Map;
 import java.util.Properties;
 
 import javax.jcr.NamespaceException;
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.OnParentVersionAction;
 
+import org.apache.jackrabbit.core.NamespaceRegistryImpl;
 import org.apache.jackrabbit.core.RepositoryContext;
-import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
+import org.apache.jackrabbit.core.persistence.PersistenceManager;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QItemDefinition;
@@ -416,15 +424,18 @@ public class RepositoryUpgrade {
             NodeBuilder root, Map<Integer, String> idxToPrefix)
             throws RepositoryException, IOException {
         logger.info("Copying version histories");
-        NodeBuilder system = root.child(JCR_SYSTEM);
-        NodeBuilder versionStorage = system.child(JCR_VERSIONSTORAGE);
-        NodeBuilder activities = system.child("jcr:activities");
 
-        PersistenceCopier copier = new PersistenceCopier(
-                source.getInternalVersionManager().getPersistenceManager(),
-                source.getNamespaceRegistry(), target);
-        copier.copy(RepositoryImpl.VERSION_STORAGE_NODE_ID, versionStorage);
-        copier.copy(RepositoryImpl.ACTIVITIES_NODE_ID, activities);
+        PersistenceManager pm =
+                source.getInternalVersionManager().getPersistenceManager();
+        NamespaceRegistry nr =source.getNamespaceRegistry();
+
+        NodeBuilder system = root.child(JCR_SYSTEM);
+        system.setChildNode(
+                JCR_VERSIONSTORAGE,
+                new JackrabbitNodeState(pm, nr, VERSION_STORAGE_NODE_ID));
+        system.setChildNode(
+                "jcr:activities",
+                new JackrabbitNodeState(pm, nr, ACTIVITIES_NODE_ID));
     }   
 
     private void copyWorkspaces(
@@ -435,11 +446,21 @@ public class RepositoryUpgrade {
         // Copy all the default workspace content
         RepositoryConfig config = source.getRepositoryConfig();
         String name = config.getDefaultWorkspaceName();
-        PersistenceCopier copier = new PersistenceCopier(
-                source.getWorkspaceInfo(name).getPersistenceManager(),
-                source.getNamespaceRegistry(), target);
-        copier.excludeNode(RepositoryImpl.SYSTEM_ROOT_NODE_ID);
-        copier.copy(RepositoryImpl.ROOT_NODE_ID, root);
+
+        PersistenceManager pm =
+                source.getWorkspaceInfo(name).getPersistenceManager();
+        NamespaceRegistryImpl nr = source.getNamespaceRegistry();
+
+        NodeState state = new JackrabbitNodeState(pm, nr, ROOT_NODE_ID);
+        for (PropertyState property : state.getProperties()) {
+            root.setProperty(property);
+        }
+        for (ChildNodeEntry child : state.getChildNodeEntries()) {
+            String childName = child.getName();
+            if (!JCR_SYSTEM.equals(childName)) {
+                root.setChildNode(childName, child.getNodeState());
+            }
+        }
 
         // TODO: Copy all the active open-scoped locks
     }
