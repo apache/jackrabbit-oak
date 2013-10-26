@@ -26,9 +26,12 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -39,7 +42,7 @@ public class AutoSaveEnabledManagerTest extends AbstractSecurityTest {
     @Override
     public void before() throws Exception {
         super.before();
-        mgr = new AutoSaveEnabledManager(root, getNamePathMapper(), getSecurityProvider());
+        mgr = new AutoSaveEnabledManager(getUserManager(root), root);
     }
 
     @Override
@@ -56,6 +59,36 @@ public class AutoSaveEnabledManagerTest extends AbstractSecurityTest {
             root.commit();
         }
         super.after();
+    }
+
+    @Test
+    public void testGetAuthorizable() throws RepositoryException {
+        Authorizable a = mgr.getAuthorizable(UserConstants.DEFAULT_ANONYMOUS_ID);
+        assertNotNull(a);
+        assertTrue(a instanceof AuthorizableImpl);
+        assertTrue(a instanceof UserImpl);
+
+        a = mgr.getAuthorizableByPath(a.getPath());
+        assertNotNull(a);
+        assertTrue(a instanceof AuthorizableImpl);
+        assertTrue(a instanceof UserImpl);
+
+        a = mgr.getAuthorizable(a.getPrincipal());
+        assertNotNull(a);
+        assertTrue(a instanceof AuthorizableImpl);
+        assertTrue(a instanceof UserImpl);
+
+        assertNull(mgr.getAuthorizable("unknown"));
+    }
+
+    @Test
+    public void testFindAuthorizable() throws RepositoryException {
+        Iterator<Authorizable> res = mgr.findAuthorizables(UserConstants.REP_AUTHORIZABLE_ID, UserConstants.DEFAULT_ANONYMOUS_ID);
+        assertTrue(res.hasNext());
+
+        Authorizable a = res.next();
+        assertNotNull(a);
+        assertTrue(a instanceof AuthorizableImpl);
     }
 
     @Test

@@ -17,16 +17,21 @@
 package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.security.Principal;
+import java.util.Iterator;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
 /**
  * Implementation of the user management that allows to set the autosave flag.
@@ -50,20 +55,87 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
  *     }
  * </pre>
  */
-public class AutoSaveEnabledManager extends UserManagerImpl {
+public class AutoSaveEnabledManager implements UserManager {
 
+    private final UserManager dlg;
     private final Root root;
     private boolean autosave = true;
 
-    public AutoSaveEnabledManager(Root root, NamePathMapper namePathMapper, SecurityProvider securityProvider) {
-        super(root, namePathMapper, securityProvider);
+    public AutoSaveEnabledManager(UserManager dlg, Root root) {
+        this.dlg = dlg;
         this.root = root;
+    }
+
+    @Override
+    public Authorizable getAuthorizable(String s) throws RepositoryException {
+        return wrap(dlg.getAuthorizable(s));
+    }
+
+    @Override
+    public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
+        return wrap(dlg.getAuthorizable(principal));
+    }
+
+    @Override
+    public Authorizable getAuthorizableByPath(String s) throws UnsupportedRepositoryOperationException, RepositoryException {
+        return wrap(dlg.getAuthorizableByPath(s));
+    }
+
+    @Override
+    public Iterator<Authorizable> findAuthorizables(String s, String s1) throws RepositoryException {
+        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(s, s1), this);
+    }
+
+    @Override
+    public Iterator<Authorizable> findAuthorizables(String s, String s1, int i) throws RepositoryException {
+        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(s, s1, i), this);
+    }
+
+    @Override
+    public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
+        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(query), this);
+    }
+
+    @Override
+    public User createUser(String userID, String password) throws AuthorizableExistsException, RepositoryException {
+        try {
+            return wrap(dlg.createUser(userID, password));
+        } finally {
+            autosave();
+        }
     }
 
     @Override
     public User createUser(String userID, String password, Principal principal, @Nullable String intermediatePath) throws RepositoryException {
         try {
-            return new UserImpl(super.createUser(userID, password, principal, intermediatePath), this);
+            return wrap(dlg.createUser(userID, password, principal, intermediatePath));
+        } finally {
+            autosave();
+        }
+    }
+
+    @Override
+    public Group createGroup(String groupId) throws AuthorizableExistsException, RepositoryException {
+        try {
+            return wrap(dlg.createGroup(groupId));
+        } finally {
+            autosave();
+        }
+    }
+
+    @Override
+    public Group createGroup(Principal principal) throws AuthorizableExistsException, RepositoryException {
+        try {
+            return wrap(dlg.createGroup(principal));
+        } finally {
+            autosave();
+        }
+    }
+
+    @Override
+    public Group createGroup(Principal principal, String groupId) throws AuthorizableExistsException, RepositoryException {
+        try {
+            return wrap(dlg.createGroup(principal, groupId));
         } finally {
             autosave();
         }
@@ -72,7 +144,7 @@ public class AutoSaveEnabledManager extends UserManagerImpl {
     @Override
     public Group createGroup(String groupID, Principal principal, @Nullable String intermediatePath) throws RepositoryException {
         try {
-            return new GroupImpl(super.createGroup(groupID, principal, intermediatePath), this);
+            return wrap(dlg.createGroup(groupID, principal, intermediatePath));
         } finally {
             autosave();
         }
@@ -88,6 +160,8 @@ public class AutoSaveEnabledManager extends UserManagerImpl {
         autosave = enable;
     }
 
+    //--------------------------------------------------------------------------
+
     void autosave() throws RepositoryException {
         if (autosave) {
             try {
@@ -98,5 +172,27 @@ public class AutoSaveEnabledManager extends UserManagerImpl {
                 root.refresh();
             }
         }
+    }
+
+    @CheckForNull
+    Authorizable wrap(@Nullable Authorizable authorizable) {
+        if (authorizable == null) {
+            return null;
+        }
+        if (authorizable.isGroup()) {
+            return wrap((Group) authorizable);
+        } else {
+            return wrap((User) authorizable);
+        }
+    }
+
+    @Nonnull
+    User wrap(@Nonnull User user) {
+        return new UserImpl(user, this);
+    }
+
+    @Nonnull
+    Group wrap(@Nonnull Group group) {
+        return new GroupImpl(group, this);
     }
 }
