@@ -22,7 +22,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
 
 class AuthorizableWrapper<T extends Authorizable> implements Function<T, T> {
 
@@ -36,10 +35,8 @@ class AuthorizableWrapper<T extends Authorizable> implements Function<T, T> {
     public T apply(T authorizable) {
         if (authorizable == null) {
             return null;
-        } else if (authorizable.isGroup()) {
-            return (T) new GroupImpl((Group) authorizable, mgr);
         } else {
-            return (T) new UserImpl((User) authorizable, mgr);
+            return (T) mgr.wrap(authorizable);
         }
     }
 
