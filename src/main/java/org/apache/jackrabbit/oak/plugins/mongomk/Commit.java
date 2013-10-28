@@ -294,22 +294,22 @@ public class Commit {
                 //Parent node all ready part of modification list
                 //Update it in place
                 if (op.isNew()) {
-                    NodeDocument.setChildNodesStatus(op, true);
+                    NodeDocument.setChildrenFlag(op, true);
                 } else {
                     NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(parentPath));
-                    if (nd != null && nd.hasChildNodes()) {
+                    if (nd != null && nd.hasChildren()) {
                         continue;
                     }
-                    NodeDocument.setChildNodesStatus(op, true);
+                    NodeDocument.setChildrenFlag(op, true);
                 }
             } else {
                 NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(parentPath));
-                if (nd != null && nd.hasChildNodes()) {
-                    //Status already set to true. Nothing to do
+                if (nd != null && nd.hasChildren()) {
+                    //Flag already set to true. Nothing to do
                     continue;
                 } else {
                     UpdateOp updateParentOp = getUpdateOperationForNode(parentPath);
-                    NodeDocument.setChildNodesStatus(updateParentOp, true);
+                    NodeDocument.setChildrenFlag(updateParentOp, true);
                 }
             }
         }
