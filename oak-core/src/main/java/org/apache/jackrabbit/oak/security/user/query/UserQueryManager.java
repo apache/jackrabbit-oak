@@ -100,8 +100,8 @@ public class UserQueryManager {
         StringBuilder statement = new StringBuilder();
         ConditionVisitor visitor = new XPathConditionVisitor(statement, namePathMapper);
 
-        String searchRoot = QueryUtil.getSearchRoot(builder.getSelectorType(), config);
-        String ntName = QueryUtil.getNodeTypeName(builder.getSelectorType());
+        String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(builder.getSelectorType(), config));
+        String ntName = namePathMapper.getJcrName(QueryUtil.getNodeTypeName(builder.getSelectorType()));
         statement.append(searchRoot).append("//element(*,").append(ntName).append(')');
 
         if (condition != null) {
