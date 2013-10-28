@@ -35,13 +35,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
@@ -55,9 +53,10 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.VisibleDiff;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
@@ -171,7 +170,8 @@ public class ChangeProcessor {
                         ImmutableTree afterTree = getTree(changes.getAfterState(), path);
                         EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
                                 changes.getCommitInfo(), beforeTree, afterTree);
-                        SecureNodeStateDiff.compare(VisibleDiff.wrap(diff), beforeTree, afterTree);
+                        VisibleValidator visibleDiff = new VisibleValidator(diff, true, true);
+                        SecureValidator.compare(beforeTree, afterTree, visibleDiff);
                         if (!stopping) {
                             diff.sendEvents();
                         }
@@ -188,7 +188,7 @@ public class ChangeProcessor {
 
     }
 
-    private class EventGeneratingNodeStateDiff extends RecursingNodeStateDiff {
+    private class EventGeneratingNodeStateDiff extends DefaultValidator {
         public static final int EVENT_LIMIT = 8192;
 
         private final String userId;
@@ -252,34 +252,31 @@ public class ChangeProcessor {
         }
 
         @Override
-        public boolean propertyAdded(PropertyState after) {
+        public void propertyAdded(PropertyState after) {
             if (filterRef.get().include(PROPERTY_ADDED, afterTree)) {
                 Event event = generatePropertyEvent(PROPERTY_ADDED, afterTree, after);
                 events.add(singletonIterator(event));
             }
-            return !stopping;
         }
 
         @Override
-        public boolean propertyChanged(PropertyState before, PropertyState after) {
+        public void propertyChanged(PropertyState before, PropertyState after) {
             if (filterRef.get().include(Event.PROPERTY_CHANGED, afterTree)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, afterTree, after);
                 events.add(singletonIterator(event));
             }
-            return !stopping;
         }
 
         @Override
-        public boolean propertyDeleted(PropertyState before) {
+        public void propertyDeleted(PropertyState before) {
             if (filterRef.get().include(PROPERTY_REMOVED, afterTree)) {
                 Event event = generatePropertyEvent(PROPERTY_REMOVED, beforeTree, before);
                 events.add(singletonIterator(event));
             }
-            return !stopping;
         }
 
         @Override
-        public boolean childNodeAdded(String name, NodeState after) {
+        public Validator childNodeAdded(String name, NodeState after) {
             if (filterRef.get().includeChildren(afterTree.getPath())) {
                 Iterator<Event> events = generateNodeEvents(
                         NODE_ADDED, afterTree.getChild(name));
@@ -288,33 +285,25 @@ public class ChangeProcessor {
                     sendEvents();
                 }
             }
-            return !stopping;
+            return null;
         }
 
         @Override
-        public boolean childNodeDeleted(String name, NodeState before) {
+        public Validator childNodeDeleted(String name, NodeState before) {
             if (filterRef.get().includeChildren(beforeTree.getPath())) {
                 Iterator<Event> events = generateNodeEvents(
                         NODE_REMOVED, beforeTree.getChild(name));
                 this.events.add(events);
             }
-            return !stopping;
+            return null;
         }
 
         @Override
-        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-            return !stopping;
-        }
-
-        @Nonnull
-        @Override
-        public RecursingNodeStateDiff createChildDiff(String name, NodeState before, NodeState after) {
-            if (filterRef.get().includeChildren(afterTree.getPath())) {
-                EventGeneratingNodeStateDiff diff =
-                        new EventGeneratingNodeStateDiff(this, name);
-                return VisibleDiff.wrap(diff);
+        public Validator childNodeChanged(String name, NodeState before, NodeState after) {
+            if (stopping || !filterRef.get().includeChildren(afterTree.getPath())) {
+                return null;
             } else {
-                return RecursingNodeStateDiff.EMPTY;
+                return new EventGeneratingNodeStateDiff(this, name);
             }
         }
 
