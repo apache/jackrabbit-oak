@@ -388,20 +388,23 @@ public class SimpleTest {
 
             // root node must not have the revision
             NodeDocument rootDoc = store.find(Collection.NODES, "0:/");
-            assertNotNull(rootDoc);
-            assertFalse(rootDoc.containsRevision(head));
+
+            //As we update the childStatus flag the commit root would shift
+            //one layer above
+            // assertNotNull(rootDoc);
+            // assertFalse(rootDoc.containsRevision(head));
 
             // test node must have head in revisions
             NodeDocument node = store.find(Collection.NODES, "1:/test");
-            assertNotNull(node);
-            assertTrue(node.containsRevision(head));
+            //assertNotNull(node);
+            //assertTrue(node.containsRevision(head));
 
             // foo must not have head in revisions and must refer to test
             // as commit root (depth = 1)
             NodeDocument foo = store.find(Collection.NODES, "2:/test/foo");
             assertNotNull(foo);
             assertFalse(foo.containsRevision(head));
-            assertEquals("/test", foo.getCommitRootPath(head));
+            assertEquals("/", foo.getCommitRootPath(head));
 
             head = Revision.fromString(mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head.toString(), null));
 

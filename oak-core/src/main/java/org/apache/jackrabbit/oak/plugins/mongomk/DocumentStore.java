@@ -176,13 +176,14 @@ public interface DocumentStore {
     void dispose();
 
     /**
-     * Check whether the given document is in the cache.
-     * 
+     * Fetches the cached document. If document is not present in cache <code>null</code> would be returned
+     *
      * @param <T> the document type
      * @param collection the collection
      * @param key the key
-     * @return true if yes
+     * @return cached document if present. Otherwise null
      */
-    <T extends Document> boolean isCached(Collection<T> collection, String key);
+    @CheckForNull
+    <T extends Document> T getIfCached(Collection<T> collection, String key);
 
 }

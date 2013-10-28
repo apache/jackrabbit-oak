@@ -34,6 +34,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
@@ -125,11 +126,18 @@ public class NodeDocument extends Document {
     private static final String LAST_REV = "_lastRev";
 
     /**
+     * Flag indicating that there are child nodes present. Its just used as a hint.
+     * If false then that indicates that there are no child. However if its true its
+     * not necessary that there are child nodes. It just means at some moment this
+     * node had a child node
+     */
+    private static final String HAS_CHILD_NODE = "_hasChildNodes";
+
+    /**
      * Properties to ignore when a document is split.
      */
-    private static final Set<String> IGNORE_ON_SPLIT =
-            Collections.unmodifiableSet(new HashSet<String>(
-                    Arrays.asList(ID, MOD_COUNT, MODIFIED, PREVIOUS, LAST_REV)));
+    private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(ID, MOD_COUNT, MODIFIED, PREVIOUS,
+            LAST_REV, HAS_CHILD_NODE);
 
     final DocumentStore store;
 
@@ -168,6 +176,13 @@ public class NodeDocument extends Document {
      */
     public final long getCreated() {
         return time;
+    }
+
+    /**
+     * @return the approximate number of children for this node.
+     */
+    public boolean hasChildNodes() {
+        return checkNotNull((Boolean) get(HAS_CHILD_NODE)).booleanValue();
     }
 
     /**
@@ -391,7 +406,7 @@ public class NodeDocument extends Document {
             return null;
         }
         String path = Utils.getPathFromId(getId());
-        Node n = new Node(path, readRevision);
+        Node n = new Node(path, readRevision, hasChildNodes());
         for (String key : keySet()) {
             if (!Utils.isPropertyName(key)) {
                 continue;
@@ -756,6 +771,11 @@ public class NodeDocument extends Document {
     }
 
     //-------------------------< UpdateOp modifiers >---------------------------
+
+    public static void setChildNodesStatus(@Nonnull UpdateOp op,
+                                   boolean hasChildNode) {
+        checkNotNull(op).set(HAS_CHILD_NODE, Boolean.valueOf(hasChildNode));
+    }
 
     public static void setModified(@Nonnull UpdateOp op,
                                    @Nonnull Revision revision) {

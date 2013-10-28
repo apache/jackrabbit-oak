@@ -275,10 +275,10 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> boolean isCached(Collection<T> collection, String key) {
+    public <T extends Document> T getIfCached(Collection<T> collection, String key) {
         try {
             long start = now();
-            boolean result = base.isCached(collection, key);
+            T result = base.getIfCached(collection, key);
             updateAndLogTimes("isCached", start, 0, 0);
             return result;
         } catch (Exception e) {

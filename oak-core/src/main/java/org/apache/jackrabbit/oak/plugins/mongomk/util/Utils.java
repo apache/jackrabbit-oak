@@ -94,6 +94,8 @@ public class Utils {
                 size += 48 + ((String) o).length() * 2;
             } else if (o instanceof Long) {
                 size += 16;
+            } else if (o instanceof Boolean) {
+                size += 8;
             } else if (o instanceof Integer) {
                 size += 8;
             } else if (o instanceof Map) {

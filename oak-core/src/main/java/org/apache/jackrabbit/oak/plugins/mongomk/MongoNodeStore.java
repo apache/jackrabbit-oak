@@ -498,6 +498,14 @@ public final class MongoNodeStore
     public Node.Children getChildren(final String path, final Revision rev, final int limit)  throws
             MicroKernelException {
         checkRevisionAge(rev, path);
+
+        //Preemptive check. If we know there are no child then
+        //return straight away
+        final Node node = getNode(path,rev);
+        if(node.hasNoChildren()){
+            return new Node.Children();
+        }
+
         String key = path + "@" + rev;
         Node.Children children;
         try {
