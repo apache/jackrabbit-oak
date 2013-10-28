@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * creating {@code SecurableValidator} instances. Further implementors should override
  * {@link #canRead(Tree, PropertyState, Tree, PropertyState)} and {@link #canRead(Tree, Tree)}
  * to determine whether the passed states are accessible. Finally implementors should override,
- * {@link #secureBefore(String, NodeState)}, and {@link #secureAfter(String, NodeState)}} wrapping
- * the passed node state into a node state that restricts access to accessible child nodes and
+ * {@link #secure(NodeState)} wrapping the passed node state into a node state that restricts access
+ * to accessible child nodes and
  * properties.
  */
 public abstract class SecurableValidator implements Validator {
@@ -103,26 +103,12 @@ public abstract class SecurableValidator implements Validator {
     }
 
     /**
-     * Secure the before state of a child node such that it only provides
-     * accessible child nodes and properties.
-     * @param name       name of the child node
-     * @param nodeState  before state of the child node
+     * Secure a node state such that it only provides accessible child nodes and properties.
+     * @param nodeState  unsecured node state
      * @return  secured before state
      */
     @Nonnull
-    protected NodeState secureBefore(String name, NodeState nodeState) {
-        return nodeState;
-    }
-
-    /**
-     * Secure the after state of a child node such that it only provides
-     * accessible child nodes and properties.
-     * @param name       name of the child node
-     * @param nodeState  after state of the child node
-     * @return  secured after state
-     */
-    @Nonnull
-    protected NodeState secureAfter(String name, NodeState nodeState) {
+    protected NodeState secure(NodeState nodeState) {
         return nodeState;
     }
 
@@ -130,10 +116,12 @@ public abstract class SecurableValidator implements Validator {
 
     @Override
     public void enter(NodeState before, NodeState after) throws CommitFailedException {
+        validator.enter(secure(before), secure(after));
     }
 
     @Override
     public void leave(NodeState before, NodeState after) throws CommitFailedException {
+        validator.leave(secure(before), secure(after));
     }
 
     @Override
@@ -161,7 +149,7 @@ public abstract class SecurableValidator implements Validator {
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         if (canRead(beforeTree.getChild(name), afterTree.getChild(name))) {
-            Validator childValidator = validator.childNodeAdded(name, secureAfter(name, after));
+            Validator childValidator = validator.childNodeAdded(name, secure(after));
             return childValidator == null
                 ? null
                 : create(beforeTree.getChild(name), afterTree.getChild(name), childValidator);
@@ -174,7 +162,7 @@ public abstract class SecurableValidator implements Validator {
     public Validator childNodeChanged(String name, NodeState before, NodeState after)
             throws CommitFailedException {
         Validator childValidator = validator.childNodeChanged(
-                name, secureBefore(name, before), secureAfter(name, after));
+                name, secure(before), secure(after));
         return childValidator == null
             ? null
             : create(beforeTree.getChild(name), afterTree.getChild(name), childValidator);
@@ -183,7 +171,7 @@ public abstract class SecurableValidator implements Validator {
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
         if (canRead(beforeTree.getChild(name), afterTree.getChild(name))) {
-            Validator childValidator = validator.childNodeDeleted(name, secureBefore(name, before));
+            Validator childValidator = validator.childNodeDeleted(name, secure(before));
             return childValidator == null
                 ? null
                 : create(beforeTree.getChild(name), afterTree.getChild(name), childValidator);
