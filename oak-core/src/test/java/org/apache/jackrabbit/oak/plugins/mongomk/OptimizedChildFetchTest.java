@@ -53,9 +53,9 @@ public class OptimizedChildFetchTest extends BaseMongoMKTest {
                         "+\"/root/a/b\":{}\n",
                 head, "");
 
-        assertTrue(getChildStatus("/root"));
-        assertTrue(getChildStatus("/root/a"));
-        assertFalse(getChildStatus("/root/a/b"));
+        assertTrue(hasChildren("/root"));
+        assertTrue(hasChildren("/root/a"));
+        assertFalse(hasChildren("/root/a/b"));
     }
 
     @Test
@@ -93,9 +93,9 @@ public class OptimizedChildFetchTest extends BaseMongoMKTest {
 
     }
 
-    private boolean getChildStatus(String path) {
+    private boolean hasChildren(String path) {
         NodeDocument nd = mk.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
-        return nd.hasChildNodes();
+        return nd.hasChildren();
     }
 
 

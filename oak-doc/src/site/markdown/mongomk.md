@@ -41,6 +41,7 @@ The basic MongoDB document of a node in Oak looks like this:
         },
         "_modified" : NumberLong(274208361),
         "_modCount" : NumberLong(1),
+        "_children" : Boolean(true),
         "_revisions" : {
             "r13f3875b5d1-0-1" : "c"
         }
@@ -68,10 +69,18 @@ only information actually used by MongoMK is the clusterId. The `_lastRev`
 sub-document is only updated for non-branch commits or on merge, when changes
 become visible to all readers.
 
-The `_modified` field contains an indexed low-resolution timestamp when the node was last modified. The time resolution is five seconds. This field is also updated when
-a branch commit modifies a node.
+The `_modified` field contains an indexed low-resolution timestamp when the node
+was last modified. The time resolution is five seconds. This field is also updated
+when a branch commit modifies a node.
 
-The `_modCount` field contains a modification counter, which is incremented with every change to the document. This field allows MongoMK to perform conditional updates without requesting the whole document.
+The `_modCount` field contains a modification counter, which is incremented with
+every change to the document. This field allows MongoMK to perform conditional updates
+without requesting the whole document.
+
+The `_children` field is a boolean flag to indicate if this node has child nodes. By
+default a node would not have this field. If any node gets added as child of this node
+then it would be set to true. It is used to optimize access to child nodes and allows MongoMK
+to omit calls to fetch child nodes for leaf nodes.
 
 Finally, the `_revisions` sub-document contains commit information about changes
 marked with a revision. E.g. the single entry in the above document tells us

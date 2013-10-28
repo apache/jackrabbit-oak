@@ -131,13 +131,13 @@ public class NodeDocument extends Document {
      * not necessary that there are child nodes. It just means at some moment this
      * node had a child node
      */
-    private static final String HAS_CHILD_NODE = "_hasChildNodes";
+    private static final String CHILDREN_FLAG = "_children";
 
     /**
      * Properties to ignore when a document is split.
      */
     private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(ID, MOD_COUNT, MODIFIED, PREVIOUS,
-            LAST_REV, HAS_CHILD_NODE);
+            LAST_REV, CHILDREN_FLAG);
 
     final DocumentStore store;
 
@@ -181,8 +181,9 @@ public class NodeDocument extends Document {
     /**
      * @return the approximate number of children for this node.
      */
-    public boolean hasChildNodes() {
-        return checkNotNull((Boolean) get(HAS_CHILD_NODE)).booleanValue();
+    public boolean hasChildren() {
+        Boolean childrenFlag = (Boolean) get(CHILDREN_FLAG);
+        return childrenFlag != null ? childrenFlag.booleanValue() : false;
     }
 
     /**
@@ -406,7 +407,7 @@ public class NodeDocument extends Document {
             return null;
         }
         String path = Utils.getPathFromId(getId());
-        Node n = new Node(path, readRevision, hasChildNodes());
+        Node n = new Node(path, readRevision, hasChildren());
         for (String key : keySet()) {
             if (!Utils.isPropertyName(key)) {
                 continue;
@@ -772,9 +773,9 @@ public class NodeDocument extends Document {
 
     //-------------------------< UpdateOp modifiers >---------------------------
 
-    public static void setChildNodesStatus(@Nonnull UpdateOp op,
-                                   boolean hasChildNode) {
-        checkNotNull(op).set(HAS_CHILD_NODE, Boolean.valueOf(hasChildNode));
+    public static void setChildrenFlag(@Nonnull UpdateOp op,
+                                       boolean hasChildNode) {
+        checkNotNull(op).set(CHILDREN_FLAG, Boolean.valueOf(hasChildNode));
     }
 
     public static void setModified(@Nonnull UpdateOp op,
