@@ -240,14 +240,14 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> boolean isCached(final Collection<T> collection,
-                                                 final String key) {
+    public <T extends Document> T getIfCached(final Collection<T> collection,
+                                              final String key) {
         try {
             logMethod("isCached", collection, key);
-            return logResult(new Callable<Boolean>() {
+            return logResult(new Callable<T>() {
                 @Override
-                public Boolean call() throws Exception {
-                    return store.isCached(collection, key);
+                public T call() throws Exception {
+                    return store.getIfCached(collection, key);
                 }
             });
         } catch (Exception e) {
