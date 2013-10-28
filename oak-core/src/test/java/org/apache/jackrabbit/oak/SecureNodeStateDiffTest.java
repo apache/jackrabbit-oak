@@ -22,14 +22,16 @@ package org.apache.jackrabbit.oak;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.observation.SecurableNodeStateDiff;
+import org.apache.jackrabbit.oak.plugins.observation.SecurableValidator;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
+import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,89 +54,86 @@ public class SecureNodeStateDiffTest {
     }
 
     @Test
-    public void testRemoveNode() {
+    public void testRemoveNode() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.child("x").remove();
         new AssertingNodeStateDiff(base, builder.getNodeState()).expect("-x");
     }
 
     @Test
-    public void testAddNode() {
+    public void testAddNode() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.child("v");
         new AssertingNodeStateDiff(base, builder.getNodeState()).expect("+v");
     }
 
     @Test
-    public void testRemoveProperty() {
+    public void testRemoveProperty() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.removeProperty("a");
         new AssertingNodeStateDiff(base, builder.getNodeState()).expect("-a");
     }
 
     @Test
-    public void testAddProperty() {
+    public void testAddProperty() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.setProperty("d", "d");
         new AssertingNodeStateDiff(base, builder.getNodeState()).expect("+d");
     }
 
     @Test
-    public void testChangeProperty() {
+    public void testChangeProperty() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.setProperty("c", 42);
         new AssertingNodeStateDiff(base, builder.getNodeState()).expect("^c");
     }
 
     @Test
-    public void testChangeNode() {
+    public void testChangeNode() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.child("NA1").setProperty("p", "p");
-        new AssertingNodeStateDiff(base, builder.getNodeState()).expect("^NA1+p");
+        new AssertingNodeStateDiff(base, builder.getNodeState()).expect("+p");
     }
 
     @Test
-    public void testAddInaccessibleChild() {
+    public void testAddInaccessibleChild() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.child("NA3").child("x3").child("NA3a").child("y3").child("NA3a");
         new AssertingNodeStateDiff(base, builder.getNodeState()).expect("");
     }
 
     @Test
-    public void testChangeInaccessibleChild() {
+    public void testChangeInaccessibleChild() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.child("NA3").child("x3").child("NA3a").child("y3").remove();
-        new AssertingNodeStateDiff(base, builder.getNodeState()).expect("^NA3^x3^NA3a-y3");
+        new AssertingNodeStateDiff(base, builder.getNodeState()).expect("-y3");
     }
 
     @Test
-    public void testRemoveInaccessibleChild() {
+    public void testRemoveInaccessibleChild() throws CommitFailedException {
         NodeBuilder builder = base.builder();
         builder.child("NA3").child("x3").child("NA3a").remove();
         new AssertingNodeStateDiff(base, builder.getNodeState()).expect("");
     }
 
-    private static class SecureNodeStateDiff extends SecurableNodeStateDiff {
-        protected SecureNodeStateDiff(SecurableNodeStateDiff parent, Tree beforeParent, Tree afterParent, String name) {
-            super(parent, beforeParent, afterParent, name);
+    private static class SecureValidator extends SecurableValidator {
+        public static SecureValidator wrap(Tree before, Tree after, Validator secureValidator) {
+            return new SecureValidator(before, after, secureValidator);
         }
 
-        public static NodeStateDiff wrap(RecursingNodeStateDiff diff, Tree before, Tree after) {
-            return new SecureNodeStateDiff(diff, before, after);
-        }
-
-        private SecureNodeStateDiff(RecursingNodeStateDiff diff, Tree before, Tree after) {
-            super(diff, before, after);
+        private SecureValidator(Tree before, Tree after, Validator secureValidator) {
+            super(before, after, secureValidator);
         }
 
         @Override
-        protected SecurableNodeStateDiff create(SecurableNodeStateDiff parent,
-                String name, NodeState before, NodeState after) {
-            return new SecureNodeStateDiff(parent, beforeTree, afterTree, name);
+        protected SecurableValidator create(Tree beforeTree, Tree afterTree,
+                Validator secureValidator) {
+            return wrap(beforeTree, afterTree, secureValidator);
         }
 
         @Override
-        protected boolean canRead(Tree beforeParent, PropertyState before, Tree afterParent, PropertyState after) {
+        protected boolean canRead(Tree beforeParent, PropertyState before, Tree afterParent,
+                PropertyState after) {
             return canRead(before) && canRead(after);
         }
 
@@ -152,7 +151,7 @@ public class SecureNodeStateDiffTest {
         }
     }
 
-    private static class AssertingNodeStateDiff extends RecursingNodeStateDiff {
+    private static class AssertingNodeStateDiff extends DefaultValidator {
         private final StringBuilder actual = new StringBuilder();
         private final NodeState before;
         private final NodeState after;
@@ -162,46 +161,46 @@ public class SecureNodeStateDiffTest {
             this.after = after;
         }
 
-        public void expect(String expected) {
-            NodeStateDiff secureDiff = SecureNodeStateDiff.wrap(this, new ImmutableTree(before), new ImmutableTree(after));
-            after.compareAgainstBaseState(before, secureDiff);
+        public void expect(String expected) throws CommitFailedException {
+            SecureValidator secureDiff = SecureValidator.wrap(
+                    new ImmutableTree(before), new ImmutableTree(after), this);
+            CommitFailedException exception = EditorDiff.process(secureDiff, before, after);
+            if (exception != null) {
+                throw exception;
+            }
             assertEquals(expected, actual.toString());
         }
 
         @Override
-        public boolean propertyAdded(PropertyState after) {
+        public void propertyAdded(PropertyState after) {
             actual.append('+').append(after.getName());
-            return true;
         }
 
         @Override
-        public boolean propertyChanged(PropertyState before, PropertyState after) {
+        public void propertyChanged(PropertyState before, PropertyState after) {
             actual.append('^').append(after.getName());
-            return true;
         }
 
         @Override
-        public boolean propertyDeleted(PropertyState before) {
+        public void propertyDeleted(PropertyState before) {
             actual.append('-').append(before.getName());
-            return true;
         }
 
         @Override
-        public boolean childNodeAdded(String name, NodeState after) {
+        public Validator childNodeAdded(String name, NodeState after) {
             actual.append('+').append(name);
-            return true;
+            return this;
         }
 
         @Override
-        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-            actual.append('^').append(name);
-            return true;
+        public Validator childNodeChanged(String name, NodeState before, NodeState after) {
+            return this;
         }
 
         @Override
-        public boolean childNodeDeleted(String name, NodeState before) {
+        public Validator childNodeDeleted(String name, NodeState before) {
             actual.append('-').append(name);
-            return true;
+            return this;
         }
     }
 }
