@@ -16,24 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static com.google.common.base.Predicates.in;
-import static com.google.common.collect.Iterables.addAll;
-import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 
 import java.util.Set;
 
@@ -46,10 +36,13 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.base.Predicate;
 
 /**
  * Index editor for keeping a property index up to date.
@@ -81,10 +74,8 @@ class PropertyIndexEditor implements IndexEditor {
 
     private final Set<String> propertyNames;
 
-    private final Set<String> primaryTypes;
+    private final Predicate<NodeState> typePredicate;
 
-    private final Set<String> mixinTypes;
-    
     private final boolean unique;
 
     private final Set<String> keysToCheckForUniqueness;
@@ -119,23 +110,10 @@ class PropertyIndexEditor implements IndexEditor {
         // get declaring types, and all their subtypes
         // TODO: should we reindex when type definitions change?
         if (definition.hasProperty(DECLARING_NODE_TYPES)) {
-            this.primaryTypes = newHashSet();
-            this.mixinTypes = newHashSet();
-            NodeState types =
-                    root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
-            for (String name : definition.getNames(DECLARING_NODE_TYPES)) {
-                NodeState type = types.getChildNode(name);
-                if (type.getBoolean(JCR_ISMIXIN)) {
-                    mixinTypes.add(name);
-                } else {
-                    primaryTypes.add(name);
-                }
-                addAll(mixinTypes, type.getNames(OAK_MIXIN_SUBTYPES));
-                addAll(primaryTypes, type.getNames(OAK_PRIMARY_SUBTYPES));
-            }
+            this.typePredicate = new TypePredicate(
+                    root, definition.getNames(DECLARING_NODE_TYPES));
         } else {
-            this.primaryTypes = null;
-            this.mixinTypes = null;
+            this.typePredicate = NodeState.EXISTS;
         }
 
         // keep track of modified keys for uniqueness checks
@@ -154,8 +132,7 @@ class PropertyIndexEditor implements IndexEditor {
         this.path = null;
         this.definition = parent.definition;
         this.propertyNames = parent.propertyNames;
-        this.primaryTypes = parent.primaryTypes;
-        this.mixinTypes = parent.mixinTypes;
+        this.typePredicate = parent.typePredicate;
         this.unique = parent.unique;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
     }
@@ -168,13 +145,6 @@ class PropertyIndexEditor implements IndexEditor {
             path = concat(parent.getPath(), name);
         }
         return path;
-    }
-
-    private boolean isOfMatchingType(NodeState state) {
-        // no type limitations
-        return primaryTypes == null 
-                || primaryTypes.contains(state.getName(JCR_PRIMARYTYPE))
-                || any(state.getNames(JCR_MIXINTYPES), in(mixinTypes));
     }
 
     private static void addValueKeys(Set<String> keys, PropertyState property) {
@@ -196,8 +166,8 @@ class PropertyIndexEditor implements IndexEditor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        boolean beforeMatches = before.exists() && isOfMatchingType(before);
-        boolean afterMatches  = after.exists()  && isOfMatchingType(after);
+        boolean beforeMatches = typePredicate.apply(before);
+        boolean afterMatches  = typePredicate.apply(after);
 
         if (beforeMatches || afterMatches) {
             beforeKeys = newHashSet();
