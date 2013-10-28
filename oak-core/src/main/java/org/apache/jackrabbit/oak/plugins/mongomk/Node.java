@@ -98,7 +98,6 @@ public class Node implements CacheValue {
         op.set(Document.ID, id);
         NodeDocument.setModified(op, rev);
         NodeDocument.setDeleted(op, rev, false);
-        NodeDocument.setChildNodesStatus(op,false);
         for (String p : properties.keySet()) {
             String key = Utils.escapePropertyName(p);
             op.setMapEntry(key, rev, properties.get(p));
