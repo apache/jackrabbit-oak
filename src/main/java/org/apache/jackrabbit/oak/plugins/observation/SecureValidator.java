@@ -61,14 +61,8 @@ public class SecureValidator extends SecurableValidator {
     }
 
     @Override
-    protected NodeState secureBefore(String name, NodeState nodeState) {
-        // TODO implement secureBefore
-        return nodeState;
-    }
-
-    @Override
-    protected NodeState secureAfter(String name, NodeState nodeState) {
-        // TODO implement secureAfter
+    protected NodeState secure(NodeState nodeState) {
+        // TODO implement secure
         return nodeState;
     }
 
