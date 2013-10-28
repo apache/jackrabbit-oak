@@ -457,7 +457,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         } finally {
             end("create", start);
-        }        
+        }
     }
 
     @Override
@@ -516,6 +516,8 @@ public class MongoDocumentStore implements DocumentStore {
                     copy.put(key, o);
                 } else if (o instanceof Long) {
                     copy.put(key, o);
+                } else if (o instanceof Boolean) {
+                    copy.put(key, o);
                 } else if (o instanceof BasicDBObject) {
                     copy.put(key, convertMongoMap((BasicDBObject) o));
                 }
@@ -571,11 +573,11 @@ public class MongoDocumentStore implements DocumentStore {
     }
     
     @Override
-    public <T extends Document> boolean isCached(Collection<T> collection, String key) {
+    public <T extends Document> T getIfCached(Collection<T> collection, String key){
         if (collection != Collection.NODES) {
-            return false;
+            return null;
         }
-        return nodesCache.getIfPresent(key) != null;
+        return (T)nodesCache.getIfPresent(key);
     }
 
 

@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
  * Represents a node held in memory (in the cache for example).
  */
 public class Node implements CacheValue {
-
     /**
      * A node, which does not exist at a given revision.
      */
@@ -44,10 +43,16 @@ public class Node implements CacheValue {
     final Revision rev;
     final Map<String, String> properties = Utils.newMap();
     Revision lastRevision;
+    final boolean hasChildren;
     
     Node(String path, Revision rev) {
+       this(path,rev,false);
+    }
+
+    Node(String path, Revision rev,boolean hasChildren) {
         this.path = path;
         this.rev = rev;
+        this.hasChildren = hasChildren;
     }
     
     void setProperty(String propertyName, String value) {
@@ -70,6 +75,10 @@ public class Node implements CacheValue {
         newNode.properties.putAll(properties);
     }
 
+    public boolean hasNoChildren(){
+        return !hasChildren;
+    }
+
     @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
@@ -89,6 +98,7 @@ public class Node implements CacheValue {
         op.set(Document.ID, id);
         NodeDocument.setModified(op, rev);
         NodeDocument.setDeleted(op, rev, false);
+        NodeDocument.setChildNodesStatus(op,false);
         for (String p : properties.keySet()) {
             String key = Utils.escapePropertyName(p);
             op.setMapEntry(key, rev, properties.get(p));

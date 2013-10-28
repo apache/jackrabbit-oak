@@ -574,10 +574,6 @@ public class MongoMK implements MicroKernel {
         return nodeStore.getDocChildrenCacheStats();
     }
 
-    public boolean isCached(String path) {
-        return store.isCached(Collection.NODES, Utils.getIdFromPath(path));
-    }
-
     //------------------------------< internal >--------------------------------
 
     private void parseJsonDiff(Commit commit, String json, String rootPath) {

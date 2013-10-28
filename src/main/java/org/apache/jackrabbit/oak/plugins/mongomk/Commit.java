@@ -20,12 +20,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopWriter;
@@ -138,6 +140,7 @@ public class Commit {
      */
     void apply() {
         if (!operations.isEmpty()) {
+            updateParentChildStatus();
             applyToDocumentStore();
             applyToCache(false);
         }
@@ -145,6 +148,7 @@ public class Commit {
 
     void prepare(Revision baseRevision) {
         if (!operations.isEmpty()) {
+            updateParentChildStatus();
             applyToDocumentStore(baseRevision);
             applyToCache(true);
         }
@@ -267,6 +271,47 @@ public class Commit {
             String msg = "Exception committing " + diff.toString();
             LOG.debug(msg, e);
             throw new MicroKernelException(msg, e);
+        }
+    }
+
+    private void updateParentChildStatus() {
+        final DocumentStore store = nodeStore.getDocumentStore();
+        final Set<String> processedParents = Sets.newHashSet();
+        for (String path : addedNodes) {
+            if (PathUtils.denotesRoot(path)) {
+                continue;
+            }
+
+            String parentPath = PathUtils.getParentPath(path);
+
+            if (processedParents.contains(parentPath)) {
+                continue;
+            }
+
+            processedParents.add(parentPath);
+            final UpdateOp op = operations.get(parentPath);
+            if (op != null) {
+                //Parent node all ready part of modification list
+                //Update it in place
+                if (op.isNew()) {
+                    NodeDocument.setChildNodesStatus(op, true);
+                } else {
+                    NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(parentPath));
+                    if (nd != null && nd.hasChildNodes()) {
+                        continue;
+                    }
+                    NodeDocument.setChildNodesStatus(op, true);
+                }
+            } else {
+                NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(parentPath));
+                if (nd != null && nd.hasChildNodes()) {
+                    //Status already set to true. Nothing to do
+                    continue;
+                } else {
+                    UpdateOp updateParentOp = getUpdateOperationForNode(parentPath);
+                    NodeDocument.setChildNodesStatus(updateParentOp, true);
+                }
+            }
         }
     }
     

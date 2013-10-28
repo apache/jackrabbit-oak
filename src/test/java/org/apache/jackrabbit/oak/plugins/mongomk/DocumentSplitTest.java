@@ -195,7 +195,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         Map<Revision, String> revs = doc.getLocalRevisions();
         assertEquals(3, revs.size());
         revs = doc.getValueMap("_revisions");
-        assertEquals(3 * NodeDocument.REVISIONS_SPLIT_OFF_SIZE + 1, revs.size());
+        assertEquals(3 * NodeDocument.REVISIONS_SPLIT_OFF_SIZE, revs.size());
         Revision previous = null;
         for (Map.Entry<Revision, String> entry : revs.entrySet()) {
             if (previous != null) {
