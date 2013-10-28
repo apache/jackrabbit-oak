@@ -69,8 +69,8 @@ import org.slf4j.LoggerFactory;
  * based on a {@link EventFilter} and delivers them to an {@link javax.jcr.observation.EventListener}.
  * <p>
  * After instantiation a {@code ChangeProcessor} must be started in order for its
- * {@link #run()} methods to be regularly executed and stopped in order to not
- * execute its run method anymore.
+ * {@link ListenerThread listener thread's} run methods to be regularly
+ * executed and stopped in order to not execute its run method anymore.
  */
 public class ChangeProcessor {
 
