@@ -19,37 +19,37 @@
 
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
-
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.RecursingNodeStateDiff;
 
-public class SecureNodeStateDiff extends SecurableNodeStateDiff {
-    private SecureNodeStateDiff(RecursingNodeStateDiff diff, Tree before, Tree after) {
-        super(diff, before, after);
+public class SecureValidator extends SecurableValidator {
+    private SecureValidator(Tree before, Tree after, Validator diff) {
+        super(before, after, diff);
     }
 
-    private SecureNodeStateDiff(SecurableNodeStateDiff parent, Tree beforeParent, Tree afterParent, String name) {
-        super(parent, beforeParent, afterParent, name);
-    }
-
-    public static void compare(RecursingNodeStateDiff diff, ImmutableTree before, ImmutableTree after) {
-        SecureNodeStateDiff secureDiff = new SecureNodeStateDiff(diff, before, after);
-        after.getNodeState().compareAgainstBaseState(before.getNodeState(), secureDiff);
-    }
-
-    @Override
-    protected SecurableNodeStateDiff create(SecurableNodeStateDiff parent,
-            String name, NodeState before, NodeState after) {
-
-        return isHidden(name) ? null : new SecureNodeStateDiff(parent, beforeTree, afterTree, name);
+    public static void compare(ImmutableTree before, ImmutableTree after, Validator diff)
+            throws CommitFailedException {
+        SecureValidator secureValidator = new SecureValidator(before, after, diff);
+        CommitFailedException exception = EditorDiff.process(
+                secureValidator, before.getNodeState(), after.getNodeState());
+        if (exception != null) {
+            throw exception;
+        }
     }
 
     @Override
-    protected boolean canRead(Tree beforeParent, PropertyState before, Tree afterParent, PropertyState after) {
+    protected SecurableValidator create(Tree beforeTree, Tree afterTree, Validator secureValidator) {
+        return new SecureValidator(beforeTree, afterTree, secureValidator);
+    }
+
+    @Override
+    protected boolean canRead(Tree beforeParent, PropertyState before, Tree afterParent,
+            PropertyState after) {
         // TODO implement canRead
         return true;
     }
