@@ -424,6 +424,16 @@ public class QueryImpl implements Query {
         prepared = true;
         source.prepare();
     }
+ 
+    /**
+     * <b>!Test purpose only! <b>
+     * 
+     * this creates a filter for the given query
+     * 
+     */
+    Filter createFilter(boolean preparing) {
+        return source.createFilter(preparing);
+    }
 
     /**
      * An iterator over result rows.

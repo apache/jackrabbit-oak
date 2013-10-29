@@ -14,6 +14,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -137,6 +138,12 @@ public class JoinImpl extends SourceImpl {
         this.rootState = rootState;
         leftNeedExecute = true;
         end = false;
+    }
+
+    @Override
+    public Filter createFilter(boolean preparing) {
+        // TODO is a join filter needed?
+        return left.createFilter(preparing);
     }
 
     @Override
