@@ -401,4 +401,16 @@ public class MicroKernelImplTest {
         assertTrue(trunkNode.contains("\"q\":43"));
     }
 
+    @Test // OAK-1122
+    public void emptyCommit() {
+        String rev = mk.getHeadRevision();
+        assertEquals("empty commit must return current head revision",
+                rev, mk.commit("/", "", rev, null));
+        // now the same on a branch
+        rev = mk.branch(rev);
+        // commit something to branch
+        rev = mk.commit("/", "+\"x\":{}", rev, null);
+        assertEquals("empty branch commit must return current head of branch revision",
+                rev, mk.commit("/", "", rev, null));
+    }
 }
