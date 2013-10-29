@@ -56,7 +56,7 @@ public class MoveDetector extends DefaultValidator {
     private final MoveValidator moveValidator;
     private final String path;
 
-    private MoveDetector(MoveValidator moveValidator, String path) {
+    public MoveDetector(MoveValidator moveValidator, String path) {
         this.moveValidator = moveValidator;
         this.path = path;
     }
