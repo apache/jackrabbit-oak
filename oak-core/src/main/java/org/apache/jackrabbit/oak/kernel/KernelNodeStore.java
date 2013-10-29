@@ -248,8 +248,8 @@ public class KernelNodeStore implements NodeStore, Observable {
         }
     }
 
-    NodeStoreBranch createBranch(NodeState base) {
-        return new KernelNodeStoreBranch(this, mergeLock, (KernelNodeState) base);
+    NodeStoreBranch createBranch(KernelNodeState base) {
+        return new KernelNodeStoreBranch(this, changeDispatcher, mergeLock, base);
     }
 
     MicroKernel getKernel() {
@@ -257,6 +257,10 @@ public class KernelNodeStore implements NodeStore, Observable {
     }
 
     KernelNodeState commit(String jsop, KernelNodeState base) {
+        if (jsop.isEmpty()) {
+            // nothing to commit
+            return base;
+        }
         KernelNodeState rootState = getRootState(kernel.commit("", jsop, base.getRevision(), null));
         if (base.isBranch()) {
             rootState.setBranch();
@@ -272,20 +276,7 @@ public class KernelNodeStore implements NodeStore, Observable {
         return getRootState(kernel.rebase(branchHead.getRevision(), base.getRevision())).setBranch();
     }
 
-    NodeState merge(KernelNodeState branchHead) {
+    KernelNodeState merge(KernelNodeState branchHead) {
         return getRootState(kernel.merge(branchHead.getRevision(), null));
     }
-
-    void beforeCommit(NodeState root) {
-        changeDispatcher.beforeCommit(root);
-    }
-
-    void localCommit(NodeState root, CommitInfo info) {
-        changeDispatcher.localCommit(root, info);
-    }
-
-    void afterCommit(NodeState root) {
-        changeDispatcher.afterCommit(root);
-    }
-
 }
