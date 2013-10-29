@@ -27,10 +27,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AstElementFactory;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
@@ -98,12 +100,16 @@ public class SQL2Parser {
 
     private boolean supportSQL1;
 
+    private NamePathMapper namePathMapper;
+
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      * 
+     * @param namePathMapper the name-path mapper to use
      * @param types the node with the node type information
      */
-    public SQL2Parser(NodeState types) {
+    public SQL2Parser(NamePathMapper namePathMapper, NodeState types) {
+        this.namePathMapper = namePathMapper;
         this.types = checkNotNull(types);
     }
 
@@ -206,6 +212,15 @@ public class SQL2Parser {
 
     private SelectorImpl parseSelector() throws ParseException {
         String nodeTypeName = readName();
+        if (namePathMapper != null) {
+            try {
+                nodeTypeName = namePathMapper.getOakName(nodeTypeName);
+            } catch (RepositoryException e) {
+                ParseException e2 = getSyntaxError("could not convert node type name " + nodeTypeName);
+                e2.initCause(e);
+                throw e2;
+            }
+        }
         NodeState type = types.getChildNode(nodeTypeName);
         if (!type.exists()) {
             throw getSyntaxError("unknown node type");

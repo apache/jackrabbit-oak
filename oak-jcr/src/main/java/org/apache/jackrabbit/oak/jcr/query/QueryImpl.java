@@ -74,11 +74,18 @@ public class QueryImpl implements Query {
         bindVariableMap.put(varName, value);
     }
 
-    private void parse() throws InvalidQueryException {
+    private void parse() throws InvalidQueryException, RepositoryException {
         if (parsed) {
             return;
         }
-        List<String> names = manager.parse(statement, language);
+        List<String> names = sessionContext.getSessionDelegate().perform(
+                new SessionOperation<List<String>>() {
+                    @Override
+                    public List<String> perform() throws RepositoryException {
+                        return manager.parse(statement, language);
+                    }
+                });
+        
         for (String n : names) {
             bindVariableMap.put(n, null);
         }

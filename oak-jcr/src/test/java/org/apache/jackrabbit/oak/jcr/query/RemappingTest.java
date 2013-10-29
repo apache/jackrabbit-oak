@@ -21,6 +21,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 
@@ -96,7 +97,26 @@ public class RemappingTest extends AbstractJCRTest {
         assertEquals(resultPath, ni.nextNode().getPath());
     }
 
+    public void testQuery4() throws Exception {
+        String statement = 
+                "/jcr:root/myRep:security/myRep:authorizables//" + 
+                "element(*,myRep:Authorizable)[@my:property='value']";
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Query q = qm.createQuery(statement, "xpath");
+        
+        q.getBindVariableNames();
+
+        QueryResult qr = q.execute();
+        NodeIterator ni = qr.getNodes();
+        while (ni.hasNext()) {
+            ni.next();
+        }
+        
+    }
+
     private String createStatement(String propertyName, String value) throws RepositoryException {
         return "/jcr:root"+ testRootNode.getPath() +"/my:node//element(*)[@"+propertyName+"='"+value+"']";
     }
+
 }
