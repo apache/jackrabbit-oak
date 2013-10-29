@@ -42,8 +42,6 @@ public class FileStore extends AbstractStore {
 
     private static final int DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
 
-    private static final long SEGMENT_MAGIC = 0x4f616b0a527845ddL;
-
     private static final long JOURNAL_MAGIC = 0xdf36544212c0cb24L;
 
     static final UUID JOURNALS_UUID = new UUID(0, 0);
@@ -133,13 +131,9 @@ public class FileStore extends AbstractStore {
         for (TarFile file : files) {
             ByteBuffer buffer = file.readEntry(id);
             if (buffer != null) {
-                checkState(SEGMENT_MAGIC == buffer.getLong());
-                int length = buffer.getInt();
-                buffer.limit(buffer.position() + length);
-                return new Segment(FileStore.this, id, buffer.slice());
+                return new Segment(FileStore.this, id, buffer);
             }
         }
-
         throw new IllegalStateException("Segment " + id + " not found");
     }
 
@@ -147,34 +141,38 @@ public class FileStore extends AbstractStore {
     public synchronized void writeSegment(
             UUID segmentId, Collection<UUID> referencedSegmentIds,
             byte[] data, int offset, int length) {
-        int size = 8 + 4 + 16 * referencedSegmentIds.size() + length;
-        ByteBuffer buffer = ByteBuffer.allocate(size);
+        if (!referencedSegmentIds.isEmpty()) {
+            int size = 16 * referencedSegmentIds.size() + length;
+            ByteBuffer buffer = ByteBuffer.allocate(size);
 
-        buffer.putLong(SEGMENT_MAGIC);
-        buffer.putInt(16 * referencedSegmentIds.size() + length);
+            for (UUID referencedSegmentId : referencedSegmentIds) {
+                buffer.putLong(referencedSegmentId.getMostSignificantBits());
+                buffer.putLong(referencedSegmentId.getLeastSignificantBits());
+            }
 
-        for (UUID referencedSegmentId : referencedSegmentIds) {
-            buffer.putLong(referencedSegmentId.getMostSignificantBits());
-            buffer.putLong(referencedSegmentId.getLeastSignificantBits());
+            buffer.put(data, offset, length);
+
+            data = buffer.array();
+            offset = 0;
+            length = size;
         }
 
-        buffer.put(data, offset, length);
-
         try {
-            writeEntry(segmentId, buffer.array());
+            writeEntry(segmentId, data, offset, length);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void writeEntry(UUID segmentId, byte[] buffer)
+    private void writeEntry(
+            UUID segmentId, byte[] buffer, int offset, int length)
             throws IOException {
         if (files.isEmpty() || !files.getLast().writeEntry(
-                segmentId, buffer, 0, buffer.length)) {
+                segmentId, buffer, offset, length)) {
             String name = String.format(FILE_NAME_FORMAT, files.size());
             File file = new File(directory, name);
             TarFile last = new TarFile(file, maxFileSize, memoryMapping);
-            checkState(last.writeEntry(segmentId, buffer, 0, buffer.length));
+            checkState(last.writeEntry(segmentId, buffer, offset, length));
             files.add(last);
         }
     }
@@ -204,7 +202,7 @@ public class FileStore extends AbstractStore {
             buffer.putInt(head.getOffset());
         }
 
-        writeEntry(JOURNALS_UUID, buffer.array());
+        writeEntry(JOURNALS_UUID, buffer.array(), 0, size);
     }
 
 }
