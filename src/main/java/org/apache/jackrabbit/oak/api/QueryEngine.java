@@ -42,10 +42,12 @@ public interface QueryEngine {
      *
      * @param statement
      * @param language
+     * @param namePathMapper the name and path mapper to use
      * @return the list of bind variable names
      * @throws ParseException
      */
-    List<String> getBindVariableNames(String statement, String language) throws ParseException;
+    List<String> getBindVariableNames(String statement, String language,
+            NamePathMapper namePathMapper) throws ParseException;
 
     /**
      * Execute a query and get the result.

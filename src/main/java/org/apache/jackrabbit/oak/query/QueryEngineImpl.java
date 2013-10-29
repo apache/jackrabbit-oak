@@ -88,17 +88,18 @@ public abstract class QueryEngineImpl implements QueryEngine {
      * @throws ParseException
      */
     @Override
-    public List<String> getBindVariableNames(String statement, String language) throws ParseException {
-        Query q = parseQuery(statement, language, getExecutionContext());
+    public List<String> getBindVariableNames(String statement, String language, NamePathMapper namePathMapper) throws ParseException {
+        Query q = parseQuery(statement, language, getExecutionContext(), namePathMapper);
         return q.getBindVariableNames();
     }
 
-    private static Query parseQuery(String statement, String language, ExecutionContext context) throws ParseException {
+    private static Query parseQuery(String statement, String language, 
+            ExecutionContext context, NamePathMapper namePathMapper) throws ParseException {
         LOG.debug("Parsing {} statement: {}", language, statement);
         NodeState root = context.getRootState();
         NodeState system = root.getChildNode(JCR_SYSTEM);
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
-        SQL2Parser parser = new SQL2Parser(types);
+        SQL2Parser parser = new SQL2Parser(namePathMapper, types);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);
@@ -116,7 +117,10 @@ public abstract class QueryEngineImpl implements QueryEngine {
             try {
                 return parser.parse(sql2);
             } catch (ParseException e) {
-                throw new ParseException(statement + " converted to SQL-2 " + e.getMessage(), 0);
+                ParseException e2 = new ParseException(
+                        statement + " converted to SQL-2 " + e.getMessage(), 0);
+                e2.initCause(e);
+                throw e2;
             }
         } else {
             throw new ParseException("Unsupported language: " + language, 0);
@@ -135,7 +139,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         }
 
         ExecutionContext context = getExecutionContext();
-        Query q = parseQuery(statement, language, context);
+        Query q = parseQuery(statement, language, context, namePathMapper);
         q.setExecutionContext(context);
         q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
