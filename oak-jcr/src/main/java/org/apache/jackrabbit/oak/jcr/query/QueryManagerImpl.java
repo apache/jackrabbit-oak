@@ -108,7 +108,7 @@ public class QueryManagerImpl implements QueryManager {
      */
     public List<String> parse(String statement, String language) throws InvalidQueryException {
         try {
-            return queryEngine.getBindVariableNames(statement, language);
+            return queryEngine.getBindVariableNames(statement, language, sessionContext);
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
         }
