@@ -495,8 +495,8 @@ public final class MongoNodeStore
         }
     }
 
-    public Node.Children getChildren(final String path, final Revision rev, final int limit)  throws
-            MicroKernelException {
+    Node.Children getChildren(final String path, final Revision rev, final int limit)
+            throws MicroKernelException {
         checkRevisionAge(rev, path);
 
         //Preemptive check. If we know there are no child then
@@ -728,8 +728,118 @@ public final class MongoNodeStore
      * @return the root node state at the given revision.
      */
     @Nonnull
-    NodeState getRoot(@Nonnull Revision revision) {
+    MongoNodeState getRoot(@Nonnull Revision revision) {
         return new MongoNodeState(this, "/", revision);
+    }
+
+    @Nonnull
+    MongoNodeStoreBranch createBranch(MongoNodeState base) {
+        return new MongoNodeStoreBranch(this, base);
+    }
+
+    @Nonnull
+    Revision rebase(@Nonnull Revision branchHead, @Nonnull Revision base) {
+        checkNotNull(branchHead);
+        checkNotNull(base);
+        // TODO conflict handling
+        Branch b = getBranches().getBranch(branchHead);
+        if (b == null) {
+            // empty branch
+            return base.asBranchRevision();
+        }
+        if (b.getBase().equals(base)) {
+            return branchHead;
+        }
+        // add a pseudo commit to make sure current head of branch
+        // has a higher revision than base of branch
+        Revision head = newRevision().asBranchRevision();
+        b.rebase(head, base);
+        return head;
+    }
+
+    @Nonnull
+    Revision merge(@Nonnull Revision branchHead) {
+        Branch b = getBranches().getBranch(branchHead);
+        Revision base = branchHead;
+        if (b != null) {
+            base = b.getBase(branchHead);
+        }
+        boolean success = false;
+        Commit commit = newCommit(base);
+        try {
+            // make branch commits visible
+            UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
+            NodeDocument.setModified(op, commit.getRevision());
+            if (b != null) {
+                String commitTag = "c-" + commit.getRevision().toString();
+                for (Revision rev : b.getCommits()) {
+                    rev = rev.asTrunkRevision();
+                    NodeDocument.setRevision(op, rev, commitTag);
+                    op.containsMapEntry(NodeDocument.COLLISIONS, rev, false);
+                }
+                if (store.findAndUpdate(Collection.NODES, op) != null) {
+                    // remove from branchCommits map after successful update
+                    b.applyTo(getPendingModifications(), commit.getRevision());
+                    getBranches().remove(b);
+                } else {
+                    // TODO: use non-MK exception type
+                    throw new MicroKernelException("Conflicting concurrent change. Update operation failed: " + op);
+                }
+            } else {
+                // no commits in this branch -> do nothing
+            }
+            success = true;
+        } finally {
+            if (!success) {
+                canceled(commit);
+            } else {
+                done(commit, false);
+            }
+        }
+        return commit.getRevision();
+    }
+
+    /**
+     * Applies a commit to the store and updates the caches accordingly.
+     *
+     * @param commit the commit to apply.
+     * @return the commit revision.
+     * @throws MicroKernelException if the commit cannot be applied.
+     *              TODO: use non-MK exception type
+     */
+    @Nonnull
+    Revision apply(@Nonnull Commit commit) throws MicroKernelException {
+        checkNotNull(commit);
+        boolean success = false;
+        Revision baseRev = commit.getBaseRevision();
+        boolean isBranch = baseRev != null && baseRev.isBranch();
+        Revision rev = commit.getRevision();
+        if (isBranch) {
+            rev = rev.asBranchRevision();
+            // remember branch commit
+            Branch b = getBranches().getBranch(baseRev);
+            if (b == null) {
+                // baseRev is marker for new branch
+                b = getBranches().create(baseRev.asTrunkRevision(), rev);
+            } else {
+                b.addCommit(rev);
+            }
+            try {
+                // prepare commit
+                commit.prepare(baseRev);
+                success = true;
+            } finally {
+                if (!success) {
+                    b.removeCommit(rev);
+                    if (!b.hasCommits()) {
+                        getBranches().remove(b);
+                    }
+                }
+            }
+        } else {
+            commit.apply();
+        }
+        return rev;
     }
 
     //------------------------< Observable >------------------------------------
@@ -743,7 +853,7 @@ public final class MongoNodeStore
 
     @Nonnull
     @Override
-    public NodeState getRoot() {
+    public MongoNodeState getRoot() {
         return getRoot(headRevision);
     }
 
@@ -753,21 +863,18 @@ public final class MongoNodeStore
                            @Nonnull CommitHook commitHook,
                            @Nullable CommitInfo info)
             throws CommitFailedException {
-        // TODO: implement
-        return null;
+        return asMongoRootBuilder(builder).merge(commitHook, info);
     }
 
     @Nonnull
     @Override
     public NodeState rebase(@Nonnull NodeBuilder builder) {
-        // TODO: implement
-        return null;
+        return asMongoRootBuilder(builder).rebase();
     }
 
     @Override
     public NodeState reset(@Nonnull NodeBuilder builder) {
-        // TODO: implement
-        return null;
+        return asMongoRootBuilder(builder).reset();
     }
 
     @Override
@@ -1019,6 +1126,15 @@ public final class MongoNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    private static MongoRootBuilder asMongoRootBuilder(NodeBuilder builder)
+            throws IllegalArgumentException {
+        if (!(builder instanceof MongoRootBuilder)) {
+            throw new IllegalArgumentException("builder must be a " +
+                    MongoRootBuilder.class.getName());
+        }
+        return (MongoRootBuilder) builder;
+    }
 
     private void moveOrCopyNode(boolean move,
                                 String sourcePath,
