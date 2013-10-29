@@ -167,4 +167,19 @@ public interface UserConstants {
      * is used.
      */
     String PARAM_AUTHORIZABLE_ACTION_PROVIDER = "authorizableActionProvider";
+
+    /**
+     * Optional configuration parameter that might be used to get back support
+     * for the auto-save behavior which has been dropped in the default
+     * user management implementation present with OAK.
+     *
+     * <p>Note that this option has been added for those cases where API consumers
+     * rely on the implementation specific behavior present with Jackrabbit 2.x.
+     * In general using this option should not be required as the Jackrabbit
+     * User Management API expects that API consumers tests the auto-save
+     * mode is enabled. Therefore this option should be considered a temporary
+     * workaround after upgrading a repository to OAK; the affected code should
+     * be reviewed and adjusted accordingly.</p>
+     */
+    String PARAM_SUPPORT_AUTOSAVE = "supportAutoSave";
 }
