@@ -143,7 +143,8 @@ public class ChangeProcessor {
                     EventFilter filter = filterRef.get();
                     // FIXME don't rely on toString for session id
                     if (changes != null &&
-                            filter.include(changes.isLocal(contentSession.toString()))) {
+                            filter.includeSessionLocal(changes.isLocal(contentSession.toString())) &&
+                            filter.includeClusterExternal(changes.getCommitInfo() == null)) {
                         String path = namePathMapper.getOakPath(filter.getPath());
                         ImmutableTree beforeTree = getTree(changes.getBeforeState(), path);
                         ImmutableTree afterTree = getTree(changes.getAfterState(), path);

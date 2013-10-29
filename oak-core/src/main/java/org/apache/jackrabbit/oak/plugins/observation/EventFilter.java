@@ -43,7 +43,8 @@ public class EventFilter {
     private final boolean deep;
     private final String[] uuids;
     private final String[] nodeTypeOakName;
-    private final boolean includeLocal;
+    private final boolean includeSessionLocal;
+    private final boolean includeClusterExternal;
 
     /**
      * Create a new instance of a filter for a certain criterion
@@ -51,24 +52,28 @@ public class EventFilter {
      * @param ntMgr
      * @param eventTypes  event types to include encoded as a bit mask
      * @param path        path to include
-     * @param deep        {@code true} if descendants of {@code path} should be included. {@code false} otherwise.
+     * @param deep        {@code true} if descendants of {@code path} should be included.
+     *                    {@code false} otherwise.
      * @param uuids       uuids to include
-     * @param nodeTypeName  node type names to include
-     * @param includeLocal  include session local events if {@code true}. Exclude otherwise.
-     * @throws NoSuchNodeTypeException  if any of the node types in {@code nodeTypeName} does not exist
+     * @param nodeTypeName              node type names to include
+     * @param includeSessionLocal       include session local events if {@code true}.
+     *                                  Exclude otherwise.
+     * @param includeClusterExternal    include cluster external events if {@code true}.
+     *                                  Exclude otherwise.
+     * @throws NoSuchNodeTypeException  if any of the node types in {@code nodeTypeName} does not
+     *                                  exist
      * @throws RepositoryException      if an error occurs while reading from the node type manager.
-     * @see javax.jcr.observation.ObservationManager#addEventListener(javax.jcr.observation.EventListener,
-     * int, String, boolean, String[], String[], boolean)
-     */
+     * @see javax.jcr.observation.ObservationManager#addEventListener(javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean) */
     public EventFilter(ReadOnlyNodeTypeManager ntMgr, int eventTypes, String path, boolean deep, String[] uuids,
-            String[] nodeTypeName, boolean includeLocal) {
+            String[] nodeTypeName, boolean includeSessionLocal, boolean includeClusterExternal) {
         this.ntMgr = ntMgr;
         this.eventTypes = eventTypes;
         this.path = path;
         this.deep = deep;
         this.uuids = uuids;
         this.nodeTypeOakName = nodeTypeName;
-        this.includeLocal = includeLocal;
+        this.includeSessionLocal = includeSessionLocal;
+        this.includeClusterExternal = includeClusterExternal;
     }
 
     /**
@@ -87,11 +92,20 @@ public class EventFilter {
 
     /**
      * Determine whether session local changes should be included.
-     * @param local  {@code true} for session local changes, {@code false} otherwise.
+     * @param isLocal  {@code true} for session local changes, {@code false} otherwise.
      * @return  {@code true} if the changes are included with this filter. {@code false} otherwise.
      */
-    public boolean include(boolean local) {
-        return includeLocal || !local;
+    public boolean includeSessionLocal(boolean isLocal) {
+        return includeSessionLocal || !isLocal;
+    }
+
+    /**
+     * Determine whether cluster external changes should be included.
+     * @param isExternal  {@code true} for cluster external changes, {@code false} otherwise.
+     * @return  {@code true} if the changes are included with this filter. {@code false} otherwise.
+     */
+    public boolean includeClusterExternal(boolean isExternal) {
+        return includeClusterExternal || !isExternal;
     }
 
     /**
@@ -120,7 +134,8 @@ public class EventFilter {
                 .add("deep", deep)
                 .add("uuids", Arrays.toString(uuids))
                 .add("node types", Arrays.toString(nodeTypeOakName))
-                .add("includeLocal", includeLocal)
+                .add("includeSessionLocal", includeSessionLocal)
+                .add("includeClusterExternal", includeClusterExternal)
             .toString();
     }
 

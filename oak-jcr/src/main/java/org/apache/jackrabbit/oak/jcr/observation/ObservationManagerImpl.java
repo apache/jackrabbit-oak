@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeProcessor;
 import org.apache.jackrabbit.oak.plugins.observation.EventFilter;
+import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
@@ -104,8 +105,9 @@ public class ObservationManagerImpl implements ObservationManager {
     @Override
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
+        boolean includeExternal = !(listener instanceof ExcludeExternal);
         EventFilter filter = new EventFilter(ntMgr, eventTypes, oakPath(absPath), isDeep,
-                uuid, validateNodeTypeNames(nodeTypeName), !noLocal);
+                uuid, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
             log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filter);
