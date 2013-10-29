@@ -73,7 +73,7 @@ public class MixinTest extends AbstractJCRTest {
         superuser.save();
 
         try {
-            testRootNode.removeMixin(JcrConstants.MIX_REFERENCEABLE);
+            node.removeMixin(JcrConstants.MIX_REFERENCEABLE);
             fail();
         } catch (NoSuchNodeTypeException e) {
             // success
