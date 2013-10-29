@@ -405,34 +405,9 @@ public class MongoMK implements MicroKernel {
         try {
             Revision baseRev = commit.getBaseRevision();
             isBranch = baseRev != null && baseRev.isBranch();
-            rev = commit.getRevision();
             parseJsonDiff(commit, jsonDiff, rootPath);
-            if (isBranch) {
-                rev = rev.asBranchRevision();
-                // remember branch commit
-                Branch b = nodeStore.getBranches().getBranch(baseRev);
-                if (b == null) {
-                    // baseRev is marker for new branch
-                    b = nodeStore.getBranches().create(baseRev.asTrunkRevision(), rev);
-                } else {
-                    b.addCommit(rev);
-                }
-                try {
-                    // prepare commit
-                    commit.prepare(baseRev);
-                    success = true;
-                } finally {
-                    if (!success) {
-                        b.removeCommit(rev);
-                        if (!b.hasCommits()) {
-                            nodeStore.getBranches().remove(b);
-                        }
-                    }
-                }
-            } else {
-                commit.apply();
-                success = true;
-            }
+            rev = nodeStore.apply(commit);
+            success = true;
         } finally {
             if (!success) {
                 nodeStore.canceled(commit);
@@ -460,43 +435,7 @@ public class MongoMK implements MicroKernel {
         if (!revision.isBranch()) {
             throw new MicroKernelException("Not a branch: " + branchRevisionId);
         }
-        Branch b = nodeStore.getBranches().getBranch(revision);
-        Revision base = revision;
-        if (b != null) {
-            base = b.getBase(revision);
-        }
-        boolean success = false;
-        Commit commit = nodeStore.newCommit(base);
-        try {
-            // make branch commits visible
-            UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
-            NodeDocument.setModified(op, commit.getRevision());
-            if (b != null) {
-                String commitTag = "c-" + commit.getRevision().toString();
-                for (Revision rev : b.getCommits()) {
-                    rev = rev.asTrunkRevision();
-                    NodeDocument.setRevision(op, rev, commitTag);
-                    op.containsMapEntry(NodeDocument.COLLISIONS, rev, false);
-                }
-                if (store.findAndUpdate(Collection.NODES, op) != null) {
-                    // remove from branchCommits map after successful update
-                    b.applyTo(nodeStore.getPendingModifications(), commit.getRevision());
-                    nodeStore.getBranches().remove(b);
-                } else {
-                    throw new MicroKernelException("Conflicting concurrent change. Update operation failed: " + op);
-                }
-            } else {
-                // no commits in this branch -> do nothing
-            }
-            success = true;
-        } finally {
-            if (!success) {
-                nodeStore.canceled(commit);
-            } else {
-                nodeStore.done(commit, false);
-            }
-        }
-        return commit.getRevision().toString();
+        return nodeStore.merge(revision).toString();
     }
 
     @Override
@@ -504,24 +443,11 @@ public class MongoMK implements MicroKernel {
     public String rebase(@Nonnull String branchRevisionId,
                          @Nullable String newBaseRevisionId)
             throws MicroKernelException {
-        // TODO conflict handling
         Revision r = Revision.fromString(branchRevisionId);
         Revision base = newBaseRevisionId != null ?
                 Revision.fromString(newBaseRevisionId) :
                 nodeStore.getHeadRevision();
-        Branch b = nodeStore.getBranches().getBranch(r);
-        if (b == null) {
-            // empty branch
-            return base.asBranchRevision().toString();
-        }
-        if (b.getBase().equals(base)) {
-            return branchRevisionId;
-        }
-        // add a pseudo commit to make sure current head of branch
-        // has a higher revision than base of branch
-        Revision head = nodeStore.newRevision().asBranchRevision();
-        b.rebase(head, base);
-        return head.toString();
+        return nodeStore.rebase(r, base).toString();
     }
 
     @Override

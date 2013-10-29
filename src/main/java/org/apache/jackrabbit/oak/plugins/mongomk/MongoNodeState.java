@@ -81,7 +81,6 @@ class MongoNodeState extends AbstractNodeState {
 
     @Override
     public boolean exists() {
-        // TODO: implement
         return true;
     }
 
@@ -112,4 +111,7 @@ class MongoNodeState extends AbstractNodeState {
         // TODO: implement
         return new MemoryNodeBuilder(this);
     }
+
+    //------------------------------< internal >--------------------------------
+
 }
