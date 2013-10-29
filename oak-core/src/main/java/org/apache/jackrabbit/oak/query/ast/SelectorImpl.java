@@ -228,7 +228,8 @@ public class SelectorImpl extends SourceImpl {
      * @param preparing whether a filter for the prepare phase should be made 
      * @return the filter
      */
-    private Filter createFilter(boolean preparing) {
+    @Override
+    public Filter createFilter(boolean preparing) {
         FilterImpl f = new FilterImpl(this, query.getStatement());
         f.setPreparing(preparing);
         if (joinCondition != null) {
