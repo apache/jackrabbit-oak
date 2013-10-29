@@ -110,6 +110,13 @@ public class ChangeProcessor {
         checkState(!stopping, "Change processor already stopped");
 
         stopping = true;
+        if (Thread.currentThread() != thread) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                log.warn("Interruption while waiting for the observation thread to terminate", e);
+            }
+        }
     }
 
     //------------------------------------------------------------< private >---
@@ -131,8 +138,8 @@ public class ChangeProcessor {
         @Override
         public void run() {
             try {
-                ChangeSet changes = changeListener.getChanges(100);
                 while (!stopping) {
+                    ChangeSet changes = changeListener.getChanges(100);
                     EventFilter filter = filterRef.get();
                     // FIXME don't rely on toString for session id
                     if (changes != null &&
@@ -146,7 +153,6 @@ public class ChangeProcessor {
                             listener.onEvent(new EventIteratorAdapter(events));
                         }
                     }
-                    changes = changeListener.getChanges(100);
                 }
             } catch (Exception e) {
                 log.debug("Error while dispatching observation events", e);
