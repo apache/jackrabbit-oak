@@ -18,9 +18,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -45,8 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
-
-import static com.google.common.collect.Lists.newArrayList;
 
 public class ObservationManagerImpl implements ObservationManager {
 
@@ -104,7 +105,7 @@ public class ObservationManagerImpl implements ObservationManager {
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
         EventFilter filter = new EventFilter(ntMgr, eventTypes, oakPath(absPath), isDeep,
-                uuid, validateNodeTypeNames(nodeTypeName), noLocal);
+                uuid, validateNodeTypeNames(nodeTypeName), !noLocal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
             log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filter);
