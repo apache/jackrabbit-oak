@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.benchmark;
  */
 public class ConcurrentReadDeepTreeTest extends ReadDeepTreeTest {
 
-    public ConcurrentReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
-        super(runAsAdmin, itemsToRead, bgReaders, doReport);
+    public ConcurrentReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
+        super(runAsAdmin, itemsToRead, doReport);
     }
 
 }

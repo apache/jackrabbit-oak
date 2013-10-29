@@ -37,8 +37,8 @@ public class ManyUserReadTest extends ReadDeepTreeTest {
     private final int numberOfMembers = 10;
     private final boolean randomUser;
 
-    protected ManyUserReadTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport, boolean randomUser) {
-        super(runAsAdmin, itemsToRead, bgReaders, doReport, !randomUser);
+    protected ManyUserReadTest(boolean runAsAdmin, int itemsToRead, boolean doReport, boolean randomUser) {
+        super(runAsAdmin, itemsToRead, doReport, !randomUser);
         this.randomUser = randomUser;
     }
 

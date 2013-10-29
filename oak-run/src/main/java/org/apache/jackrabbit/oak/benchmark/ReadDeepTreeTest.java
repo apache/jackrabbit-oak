@@ -36,7 +36,6 @@ public class ReadDeepTreeTest extends AbstractTest {
 
     protected final boolean runAsAdmin;
     protected final int itemsToRead;
-    protected final int bgReaders;
     protected final boolean doReport;
 
     protected final boolean singleSession;
@@ -48,48 +47,27 @@ public class ReadDeepTreeTest extends AbstractTest {
 
     protected List<String> allPaths = new ArrayList<String>();
 
-    protected ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
-        this(runAsAdmin, itemsToRead, bgReaders, doReport, true);
+    protected ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
+        this(runAsAdmin, itemsToRead, doReport, true);
     }
 
-    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport, boolean singleSession) {
+    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport, boolean singleSession) {
         this.runAsAdmin = runAsAdmin;
         this.itemsToRead = itemsToRead;
-        this.bgReaders = bgReaders;
         this.doReport = doReport;
         this.singleSession = singleSession;
-    }
-
-    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
-        this(runAsAdmin, itemsToRead, 0, doReport);
     }
 
     @Override
     protected void beforeSuite() throws Exception {
         adminSession = loginWriter();
-
         createDeepTree();
-
-        for (int i = 0; i < bgReaders; i++) {
-            final Session session = singleSession ? getTestSession() : null;
-            addBackgroundJob(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        randomRead(session, allPaths, itemsToRead);
-                    } catch (RepositoryException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            });
-        }
-        System.out.println("Threads started: " + bgReaders);
-
         testSession = singleSession ? getTestSession() : null;
     }
 
     protected void createDeepTree() throws Exception {
         Node rn = adminSession.getRootNode();
+        allPaths.clear();
 
         String testNodeName = getClass().getSimpleName() + TEST_ID;
         long start = System.currentTimeMillis();

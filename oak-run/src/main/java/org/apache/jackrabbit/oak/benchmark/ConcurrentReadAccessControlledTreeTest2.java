@@ -40,10 +40,10 @@ import org.apache.jackrabbit.util.Text;
 public class ConcurrentReadAccessControlledTreeTest2 extends ConcurrentReadDeepTreeTest {
 
     int counter = 0;
-    final List<Principal> principals = new ArrayList();
+    final List<Principal> principals = new ArrayList<Principal>();
 
-    public ConcurrentReadAccessControlledTreeTest2(boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
-        super(runAsAdmin, itemsToRead, bgReaders, doReport);
+    public ConcurrentReadAccessControlledTreeTest2(boolean runAsAdmin, int itemsToRead, boolean doReport) {
+        super(runAsAdmin, itemsToRead, doReport);
     }
 
     @Override

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.util.List;
+
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 public abstract class Benchmark {
@@ -27,6 +29,11 @@ public abstract class Benchmark {
      * @param fixtures repository fixtures
      */
     public abstract void run(Iterable<RepositoryFixture> fixtures);
+
+    public void run(Iterable<RepositoryFixture> fixtures, List<Integer> concurrencyLevels) {
+        run(fixtures);
+    }
+
 
     public String toString() {
         String name = getClass().getName();
