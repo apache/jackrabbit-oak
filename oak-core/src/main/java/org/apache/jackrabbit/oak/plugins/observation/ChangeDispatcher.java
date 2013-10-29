@@ -61,7 +61,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * The {@link #newListener()} method registers a listener for receiving changes reported
  * into a change dispatcher.
  */
-public class ChangeDispatcher {
+public class ChangeDispatcher implements Observable {
     private final Set<Listener> listeners = Sets.newHashSet();
     private final NodeStore store;
 
@@ -83,6 +83,7 @@ public class ChangeDispatcher {
      * when no longer needed.
      * @return  a new {@code Listener} instance.
      */
+    @Override
     @Nonnull
     public Listener newListener() {
         Listener listener = new Listener(root);
