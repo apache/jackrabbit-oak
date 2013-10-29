@@ -17,15 +17,20 @@
 package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
@@ -37,12 +42,12 @@ import static org.junit.Assert.fail;
 
 public class AutoSaveEnabledManagerTest extends AbstractSecurityTest {
 
-    private AutoSaveEnabledManager mgr;
+    private UserManager mgr;
 
     @Override
     public void before() throws Exception {
         super.before();
-        mgr = new AutoSaveEnabledManager(getUserManager(root), root);
+        mgr = getUserManager(root);
     }
 
     @Override
@@ -59,6 +64,23 @@ public class AutoSaveEnabledManagerTest extends AbstractSecurityTest {
             root.commit();
         }
         super.after();
+    }
+
+    @Override
+    protected ConfigurationParameters getSecurityConfigParameters() {
+        ConfigurationParameters userConfig = ConfigurationParameters.of(
+                Collections.singletonMap(UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE));
+        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+    }
+
+    @Test
+    public void testAutoSaveEnabled() throws RepositoryException {
+        assertTrue(mgr instanceof AutoSaveEnabledManager);
+        assertTrue(mgr.isAutoSave());
+
+        mgr.autoSave(false);
+        assertFalse(mgr.isAutoSave());
+        mgr.autoSave(true);
     }
 
     @Test
