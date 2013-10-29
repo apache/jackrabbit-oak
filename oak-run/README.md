@@ -64,9 +64,9 @@ The following benchmark options (with default values) are currently supported:
     --wikipedia <file>     - Wikipedia dump
     --runAsAdmin false     - Run test as admin session
     --itemsToRead 1000     - Number of items to read
-    --bgReaders 20         - Number of background readers
     --report false         - Whether to output intermediate results
     --csvFile <file>       - Optional csv file to report the benchmark results
+    --concurrency <levels> - Comma separated list of concurrency levels
 
 These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the
@@ -75,6 +75,8 @@ MongoMK and SegmentMK -based repository fixtures. The cache setting
 controls the bundle cache size in Jackrabbit, the KernelNodeState
 cache size in MongoMK and the default H2 MK, and the segment cache
 size in SegmentMK.
+
+The `--concurrency` levels can be specified as comma separated list of values, eg: `--concurrency 1,4,8`, which will execute the same test with the number of respective threads. Note that the `beforeSuite()` and `afterSuite()` are executed before and after the concurrency loop. eg. in the example above, the execution order is: `beforeSuite()`, 1x `runTest()`, 4x `runTest()`, 8x `runTest()`, `afterSuite()`. Tests that create their own background threads, should be executed with `--concurrency 1` which is the default.
 
 You can use extra JVM options like `-Xmx` settings to better control the
 benchmark environment. It's also possible to attach the JVM to a
@@ -124,7 +126,7 @@ reported:
 
 | Column      | Description                                           |
 |-------------|-------------------------------------------------------|
-| C           | concurrency level (only some tests)                   |
+| C           | concurrency level                                     |
 | min         | minimum time (in ms) taken by a test run              |
 | 10%         | time (in ms) in which the fastest 10% of test runs    |
 | 50%         | time (in ms) taken by the median test run             |

@@ -36,8 +36,8 @@ public class ConcurrentReadAccessControlledTreeTest extends ConcurrentReadDeepTr
     int counter = 0;
 
     public ConcurrentReadAccessControlledTreeTest(
-            boolean runAsAdmin, int itemsToRead, int bgReaders, boolean doReport) {
-        super(runAsAdmin, itemsToRead, bgReaders, doReport);
+            boolean runAsAdmin, int itemsToRead, boolean doReport) {
+        super(runAsAdmin, itemsToRead, doReport);
     }
 
     @Override

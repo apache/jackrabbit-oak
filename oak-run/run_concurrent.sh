@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 USERS="false true"
-RUNTIME=20
+RUNTIME=5
 #BENCH=ConcurrentReadAccessControlledTreeTest
 BENCH=ManyUserReadTest
 RANDOM_USER="true"
-FIXS="Oak-Tar" # Jackrabbit"
-THREADS="0 1 2 4 8 12 16 20"
+FIXS="Oak-Tar Jackrabbit"
+THREADS="1,2,4,8,10,15,20,50"
 PROFILE=false
 
 LOG=$BENCH"_$(date +'%Y%m%d_%H%M%S').csv"
@@ -35,12 +35,13 @@ echo "Profiling: $PROFILE" >> $LOG
 echo "--------------------------------------" >> $LOG
 for user in $USERS
     do
-    echo "Executing benchmarks as admin: $user" | tee -a $LOG
-    echo "-----------------------------------------------------------" | tee -a $LOG
-    for i in $THREADS
-        do
+    # we start new VMs for each fixture to minmize memory impacts between them
+    for fix in $FIXS
+	do
+        echo "Executing benchmarks as admin: $user on $fix" | tee -a $LOG
+	echo "-----------------------------------------------------------" | tee -a $LOG
         rm -rf target/Jackrabbit-* target/Oak-Tar-*
-        cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -jar target/oak-run-*-SNAPSHOT.jar benchmark --csvFile $LOG --bgReaders $i --runAsAdmin $user --report false --randomUser $RANDOM_USER $BENCH $FIXS"
+        cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -jar target/oak-run-*-SNAPSHOT.jar benchmark --csvFile $LOG --concurrency $THREADS --runAsAdmin $user --report false --randomUser $RANDOM_USER $BENCH $fix"
         echo $cmd
         $cmd 
     done

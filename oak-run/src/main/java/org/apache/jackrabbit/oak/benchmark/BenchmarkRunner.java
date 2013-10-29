@@ -62,8 +62,8 @@ public class BenchmarkRunner {
                 .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
-        OptionSpec<Integer> bgReaders = parser.accepts("bgReaders", "Number of background readers")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(20);
+        OptionSpec<Integer> concurrency = parser.accepts("concurrency", "Number of test threads.")
+                .withRequiredArg().ofType(Integer.class).withValuesSeparatedBy(',');
         OptionSpec<Boolean> report = parser.accepts("report", "Whether to output intermediate results")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
@@ -127,27 +127,22 @@ public class BenchmarkRunner {
             new ConcurrentReadDeepTreeTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
-                    bgReaders.value(options),
                     report.value(options)),
             new ConcurrentReadSinglePolicyTreeTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
-                    bgReaders.value(options),
                     report.value(options)),
             new ConcurrentReadAccessControlledTreeTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
-                    bgReaders.value(options),
                     report.value(options)),
             new ConcurrentReadAccessControlledTreeTest2(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
-                    bgReaders.value(options),
                     report.value(options)),
             new ManyUserReadTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
-                    bgReaders.value(options),
                     report.value(options),
                     randomUser.value(options)),
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
@@ -184,7 +179,7 @@ public class BenchmarkRunner {
                 if (benchmark instanceof CSVResultGenerator) {
                     ((CSVResultGenerator) benchmark).setPrintStream(out);
                 }
-                benchmark.run(fixtures);
+                benchmark.run(fixtures, options.valuesOf(concurrency));
             }
             if (out != null) {
                 out.close();

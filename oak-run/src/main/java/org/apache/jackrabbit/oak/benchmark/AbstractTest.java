@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -31,6 +32,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.util.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
@@ -74,10 +76,8 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
     private List<Thread> threads;
 
     private volatile boolean running;
-    
-    private Profiler profiler;
 
-    private int concurrency;
+    private Profiler profiler;
 
     private PrintStream out;
 
@@ -118,6 +118,11 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
 
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
+        run(fixtures, null);
+    }
+
+    @Override
+    public void run(Iterable<RepositoryFixture> fixtures, List<Integer> concurrencyLevels) {
         System.out.format(
                 "# %-26.26s       C     min     10%%     50%%     90%%     max       N%n",
                 toString());
@@ -130,32 +135,7 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
             try {
                 Repository[] cluster = fixture.setUpCluster(1);
                 try {
-                    // Run the test
-                    DescriptiveStatistics statistics = runTest(cluster[0]);
-                    if (statistics.getN() > 0) {
-                        System.out.format(
-                                "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
-                                fixture.toString(),
-                                concurrency,
-                                statistics.getMin(),
-                                statistics.getPercentile(10.0),
-                                statistics.getPercentile(50.0),
-                                statistics.getPercentile(90.0),
-                                statistics.getMax(),
-                                statistics.getN());
-                        if (out != null) {
-                            out.format(
-                                    "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d%n",
-                                    fixture.toString(),
-                                    concurrency,
-                                    statistics.getMin(),
-                                    statistics.getPercentile(10.0),
-                                    statistics.getPercentile(50.0),
-                                    statistics.getPercentile(90.0),
-                                    statistics.getMax(),
-                                    statistics.getN());
-                        }
-                    }
+                    runTest(fixture, cluster[0], concurrencyLevels);
                 } finally {
                     fixture.tearDownCluster();
                 }
@@ -165,8 +145,8 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
         }
     }
 
-    private DescriptiveStatistics runTest(Repository repository) throws Exception {
-        DescriptiveStatistics statistics = new DescriptiveStatistics();
+
+    private void runTest(RepositoryFixture fixture, Repository repository, List<Integer> concurrencyLevels) throws Exception {
 
         setUp(repository, CREDENTIALS);
         try {
@@ -177,15 +157,106 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
                 execute();
             }
 
+            if (concurrencyLevels == null || concurrencyLevels.isEmpty()) {
+                concurrencyLevels = Arrays.asList(1);
+            }
+
+            for (Integer concurrency: concurrencyLevels) {
+                // Run the test
+                DescriptiveStatistics statistics = runTest(concurrency);
+                if (statistics.getN() > 0) {
+                    System.out.format(
+                            "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                            fixture.toString(),
+                            concurrency,
+                            statistics.getMin(),
+                            statistics.getPercentile(10.0),
+                            statistics.getPercentile(50.0),
+                            statistics.getPercentile(90.0),
+                            statistics.getMax(),
+                            statistics.getN());
+                    if (out != null) {
+                        out.format(
+                                "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d%n",
+                                fixture.toString(),
+                                concurrency,
+                                statistics.getMin(),
+                                statistics.getPercentile(10.0),
+                                statistics.getPercentile(50.0),
+                                statistics.getPercentile(90.0),
+                                statistics.getMax(),
+                                statistics.getN());
+                    }
+                }
+
+            }
+        } finally {
+            tearDown();
+        }
+    }
+
+    private class Executor extends Thread {
+
+        private final SynchronizedDescriptiveStatistics statistics;
+
+        private boolean running = true;
+
+        private Executor(String name, SynchronizedDescriptiveStatistics statistics) {
+            super(name);
+            this.statistics = statistics;
+        }
+
+        @Override
+        public void run() {
+            try {
+                while (running) {
+                    statistics.addValue(execute());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+
+    private DescriptiveStatistics runTest(int concurrencyLevel) throws Exception {
+        final SynchronizedDescriptiveStatistics statistics = new SynchronizedDescriptiveStatistics();
+        if (concurrencyLevel == 1) {
             // Run test iterations, and capture the execution times
             long runtimeEnd = System.currentTimeMillis() + RUNTIME;
             while (System.currentTimeMillis() < runtimeEnd) {
                 statistics.addValue(execute());
             }
-        } finally {
-            tearDown();
-        }
 
+        } else {
+            List<Executor> threads = new LinkedList<Executor>();
+            for (int n=0; n<concurrencyLevel; n++) {
+                threads.add(new Executor("Background job " + n, statistics));
+            }
+
+            // start threads
+            for (Thread t: threads) {
+                t.start();
+            }
+            System.out.printf("Started %d threads%n", threads.size());
+
+            // Run test iterations, and capture the execution times
+            long runtimeEnd = System.currentTimeMillis() + RUNTIME;
+            while (System.currentTimeMillis() < runtimeEnd) {
+                Thread.sleep(runtimeEnd - System.currentTimeMillis());
+            }
+
+            // stop threads
+            for (Executor e: threads) {
+                e.running = false;
+            }
+
+            // wait for threads
+            for (Executor e: threads) {
+                e.join();
+            }
+        }
         return statistics;
     }
 
@@ -217,7 +288,7 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
         for (Thread thread : threads) {
             thread.join();
         }
-        
+
         if (profiler != null) {
             System.out.println(profiler.stopCollecting().getTop(5));
             profiler = null;
@@ -231,7 +302,6 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
             }
         }
 
-        concurrency = this.threads.size();
         this.threads = null;
         this.sessions = null;
         this.credentials = null;
