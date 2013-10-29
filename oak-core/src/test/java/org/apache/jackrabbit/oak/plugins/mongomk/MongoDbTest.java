@@ -106,6 +106,92 @@ public class MongoDbTest {
         log("Count: " + count);
         db.getMongo().close();
     }
+        
+    @Test
+    @Ignore
+    public void updateDocument() {
+        DB db = MongoUtils.getConnection().getDB();
+        MongoUtils.dropCollections(db);
+        DBCollection nodes = db.getCollection(Collection.NODES.toString());
+        DBObject index = new BasicDBObject();
+        // modification time (descending)
+        index.put("_mod", -1L);
+        // and then id (ascending)
+        index.put("_id", 1L);
+        DBObject options = new BasicDBObject();
+        // options.put("unique", Boolean.TRUE);
+        nodes.ensureIndex(index, options);  
+        
+        long time;
+        time = System.currentTimeMillis();
+        
+        int nodeCount = 4500;
+        String parent = "/parent/node/abc";
+        DBObject[] inserts = new DBObject[nodeCount];
+        for (int i = 0; i < nodeCount; i++) {
+            BasicDBObject doc = new BasicDBObject();
+            inserts[i] = doc;
+            doc.put("_id", parent + "/node" + i);
+            doc.put("_mod", 0);
+            doc.put("_counter", 0);
+            doc.put("x", 10);
+        }
+        nodes.insert(inserts, WriteConcern.SAFE);
+        
+        time = System.currentTimeMillis() - time;
+        System.out.println("insert: " + time);
+        time = System.currentTimeMillis();
+        
+        for (int i = 0; i < nodeCount; i++) {
+            QueryBuilder queryBuilder = QueryBuilder.start(Document.ID).is(parent + "/node" + i);
+            DBObject fields = new BasicDBObject();
+            // return _id only
+            fields.put("_id", 1);
+            DBObject query = queryBuilder.get();
+
+            BasicDBObject setUpdates = new BasicDBObject();
+            BasicDBObject incUpdates = new BasicDBObject();
+            BasicDBObject unsetUpdates = new BasicDBObject();
+
+            setUpdates.append("_mod", i);
+            incUpdates.append("_counter", 1);
+            unsetUpdates.append("x", "1");
+            
+            BasicDBObject update = new BasicDBObject();
+            if (!setUpdates.isEmpty()) {
+                update.append("$set", setUpdates);
+            }
+            if (!incUpdates.isEmpty()) {
+                update.append("$inc", incUpdates);
+            }
+            if (!unsetUpdates.isEmpty()) {
+                update.append("$unset", unsetUpdates);
+            }
+
+            // 1087 ms (upsert true+false, returnNew = false)
+            // 1100 ms (returnNew = true)
+//            DBObject oldNode = 
+            nodes.findAndModify(query, fields,
+                    null /*sort*/, false /*remove*/, update, false /*returnNew*/,
+                    true /*upsert*/);
+
+            // 250 ms WriteConcern.NORMAL, NONE
+            // 891 ms WriteConvern.SAFE
+            // > 10 s WriteConcern.JOURNAL_SAFE, FSYNC_SAFE
+            
+//            WriteResult result = 
+//            nodes.update(query, update, /* upsert */ true, /* multi */ false, 
+//                    WriteConcern.NORMAL);
+
+            
+        }
+        
+        time = System.currentTimeMillis() - time;
+        System.out.println("update: " + time);
+        time = System.currentTimeMillis();
+
+        db.getMongo().close();
+    }
     
     private static void log(String msg) {
         System.out.println(msg);
