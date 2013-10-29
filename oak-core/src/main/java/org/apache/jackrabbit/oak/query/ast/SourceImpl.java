@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.ArrayList;
 
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -169,5 +170,13 @@ public abstract class SourceImpl extends AstElement {
     public abstract boolean next();
 
     abstract void setParent(JoinConditionImpl joinCondition);
+
+    /**
+     * <b>!Test purpose only! <b>
+     * 
+     * this creates a filter for the given query
+     * 
+     */
+    abstract public Filter createFilter(boolean preparing);
 
 }
