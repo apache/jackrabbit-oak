@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.IN
 
 import java.text.ParseException;
 
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -35,7 +36,7 @@ public class FilterTest {
     private final NodeState types = INITIAL_CONTENT.getChildNode(JCR_SYSTEM)
             .getChildNode(JCR_NODE_TYPES);
 
-    private final SQL2Parser p = new SQL2Parser(types);
+    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, types);
 
     private Filter createFilter(String xpath) throws ParseException {
         String sql = new XPathToSQL2Converter().convert(xpath);
