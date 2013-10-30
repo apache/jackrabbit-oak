@@ -631,7 +631,11 @@ public class QueryImpl implements Query {
         if (namePathMapper == null) {
             return path;
         }
-        return namePathMapper.getOakPath(path);
+        String p = namePathMapper.getOakPath(path);
+        if (p == null) {
+            throw new IllegalArgumentException("Invalid path or namespace prefix: " + path);
+        }
+        return p;
     }
 
     @Override
