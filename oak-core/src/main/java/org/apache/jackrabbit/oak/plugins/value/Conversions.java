@@ -103,6 +103,16 @@ public final class Conversions {
         }
 
         /**
+         * Convert to date. This default implementation delegates to {@link #toCalendar()}
+         * and returns the {@code ISO8601.format(Calendar)} value of the calendar.
+         * @return  date representation of the converted value
+         * @throws IllegalArgumentException  if the string cannot be parsed into a date
+         */
+        public String toDate() {
+            return ISO8601.format(toCalendar());
+        }
+
+        /**
          * Convert to boolean. This default implementation is based on {@code Boolean.parseBoolean(String)}.
          * @return  boolean representation of the converted value
          */

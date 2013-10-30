@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Collections.singleton;
+
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Collections.singleton;
 
 /**
  * Abstract base class for single valued {@code PropertyState} implementations.
@@ -61,7 +61,7 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
             case PropertyType.BINARY: return (S) getConverter().toBinary();
             case PropertyType.LONG: return (S) (Long) getConverter().toLong();
             case PropertyType.DOUBLE: return (S) (Double) getConverter().toDouble();
-            case PropertyType.DATE: return (S) getConverter().toString();
+            case PropertyType.DATE: return (S) getConverter().toDate();
             case PropertyType.BOOLEAN: return (S) (Boolean) getConverter().toBoolean();
             case PropertyType.NAME: return (S) getConverter().toString();
             case PropertyType.PATH: return (S) getConverter().toString();
