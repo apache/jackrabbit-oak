@@ -115,6 +115,7 @@ public class ChangeProcessor {
                 thread.join();
             } catch (InterruptedException e) {
                 log.warn("Interruption while waiting for the observation thread to terminate", e);
+                Thread.currentThread().interrupt();
             }
         }
     }
