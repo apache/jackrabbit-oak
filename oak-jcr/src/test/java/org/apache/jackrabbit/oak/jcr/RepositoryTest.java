@@ -1154,7 +1154,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-1111")  // FIXME OAK-1111
     public void setPropertyWithConversion() throws RepositoryException {
         Node n = getNode(TEST_PATH);
         Node file = n.addNode("file", "nt:file");
