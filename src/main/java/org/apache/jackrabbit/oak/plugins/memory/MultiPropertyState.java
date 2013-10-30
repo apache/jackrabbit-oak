@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -30,8 +32,6 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Abstract base class for multi valued {@code PropertyState} implementations.
@@ -92,7 +92,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
                 return (S) Iterables.transform(values, new Function<T, String>() {
                     @Override
                     public String apply(T value) {
-                        return getConverter(value).toString();
+                        return getConverter(value).toDate();
                     }
                 });
             case PropertyType.BOOLEAN:
