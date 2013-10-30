@@ -854,6 +854,9 @@ public class SQL2Parser {
             boolean includeSelectorName) {
         String selectorName = selector.getSelectorName();
         for (String property : selector.getWildcardColumns()) {
+            if (namePathMapper != null) {
+                property = namePathMapper.getJcrName(property);
+            }
             String columnName = property;
             if (includeSelectorName) {
                 columnName = selectorName + "." + property;
