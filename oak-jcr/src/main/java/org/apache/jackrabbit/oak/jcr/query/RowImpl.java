@@ -72,6 +72,11 @@ public class RowImpl implements Row {
             throw new RepositoryException(e);
         }
     }
+    
+    @Override
+    public String toString() {
+        return row.toString();
+    }
 
     @Override
     public double getScore() throws RepositoryException {
