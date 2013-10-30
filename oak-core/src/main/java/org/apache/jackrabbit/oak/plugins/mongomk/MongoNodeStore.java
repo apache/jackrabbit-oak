@@ -747,7 +747,7 @@ public final class MongoNodeStore
             // empty branch
             return base.asBranchRevision();
         }
-        if (b.getBase().equals(base)) {
+        if (b.getBase(branchHead).equals(base)) {
             return branchHead;
         }
         // add a pseudo commit to make sure current head of branch
