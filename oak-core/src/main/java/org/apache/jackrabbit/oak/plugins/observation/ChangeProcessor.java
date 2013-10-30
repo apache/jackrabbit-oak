@@ -116,6 +116,8 @@ public class ChangeProcessor {
             } catch (InterruptedException e) {
                 log.warn("Interruption while waiting for the observation thread to terminate", e);
                 Thread.currentThread().interrupt();
+            } finally {
+                thread.dispose();
             }
         }
     }
@@ -157,15 +159,17 @@ public class ChangeProcessor {
                     }
                 }
             } catch (Exception e) {
-                log.debug("Error while dispatching observation events", e);
-            } finally {
-                mbean.unregister();
-                changeListener.dispose();
+                log.warn("Error while dispatching observation events", e);
             }
         }
 
         private ImmutableTree getTree(NodeState nodeState, String path) {
             return new ImmutableRoot(nodeState).getTree(path);
+        }
+
+        void dispose() {
+            mbean.unregister();
+            changeListener.dispose();
         }
     }
 
