@@ -53,20 +53,55 @@ public class MongoNodeStoreBranch
     }
 
     @Override
-    protected MongoNodeState persist(NodeState toPersist, MongoNodeState base) {
-        // TODO
-        return null;
+    protected MongoNodeState persist(final NodeState toPersist,
+                                     final MongoNodeState base) {
+        return persist(new Changes() {
+            @Override
+            public void with(Commit c) {
+                toPersist.compareAgainstBaseState(base, new CommitDiff(c));
+            }
+        }, base);
     }
 
     @Override
-    protected MongoNodeState copy(String source,
-                                  String target,
+    protected MongoNodeState copy(final String source,
+                                  final String target,
                                   MongoNodeState base) {
+        return persist(new Changes() {
+            @Override
+            public void with(Commit c) {
+                store.copyNode(source, target, c);
+            }
+        }, base);
+    }
+
+    @Override
+    protected MongoNodeState move(final String source,
+                                  final String target,
+                                  MongoNodeState base) {
+        return persist(new Changes() {
+            @Override
+            public void with(Commit c) {
+                store.moveNode(source, target, c);
+            }
+        }, base);
+    }
+
+    //------------------------------< internal >--------------------------------
+
+    /**
+     * Persist some changes on top of the given base state.
+     *
+     * @param op the changes to persist.
+     * @param base the base state.
+     * @return the result state.
+     */
+    private MongoNodeState persist(Changes op, MongoNodeState base) {
         boolean success = false;
         Commit c = store.newCommit(base.getRevision());
         Revision rev;
         try {
-            store.copyNode(source, target, c);
+            op.with(c);
             rev = store.apply(c);
             success = true;
         } finally {
@@ -79,24 +114,8 @@ public class MongoNodeStoreBranch
         return store.getRoot(rev);
     }
 
-    @Override
-    protected MongoNodeState move(String source,
-                                  String target,
-                                  MongoNodeState base) {
-        boolean success = false;
-        Commit c = store.newCommit(base.getRevision());
-        Revision rev;
-        try {
-            store.moveNode(source, target, c);
-            rev = store.apply(c);
-            success = true;
-        } finally {
-            if (success) {
-                store.done(c, base.getRevision().isBranch());
-            } else {
-                store.canceled(c);
-            }
-        }
-        return store.getRoot(rev);
+    private interface Changes {
+
+        void with(Commit c);
     }
 }
