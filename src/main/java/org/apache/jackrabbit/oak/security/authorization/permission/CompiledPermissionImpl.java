@@ -50,7 +50,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.TreeLocation;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,8 +193,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 if (VersionConstants.VERSION_STORE_NT_NAMES.contains(ntName) || VersionConstants.NT_ACTIVITY.equals(ntName)) {
                     return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_VERSION, parentPermission);
                 } else {
-                    TreeLocation tl = getLocation(tree, null);
-                    if (tl == null) {
+                    Tree versionableTree = getVersionableTree(tree);
+                    if (versionableTree == null) {
                         log.warn("Cannot retrieve versionable node for " + tree.getPath());
                         return TreePermission.EMPTY;
                     } else {
@@ -203,17 +202,11 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         // TODO that would match the path of the versionable node
                         // TODO (or item in the subtree) but that item no longer exists
                         // TODO -> evaluation by path would be more accurate (-> see #isGranted)
-                        while (!tl.exists() || tl.getProperty() != null) {
-                            tl = tl.getParent();
+                        while (!versionableTree.exists()) {
+                            versionableTree = versionableTree.getParent();
                         }
-                        Tree versionableTree = tl.getTree();
-                        if (versionableTree == null) {
-                            log.warn("Cannot retrieve versionable tree for {0}; versionable location {1} does not resolve to an existing tree.", tree.getPath(), tl.getPath());
-                            return TreePermission.EMPTY;
-                        } else {
-                            TreePermission pp = getParentPermission(versionableTree, TreeTypeProvider.TYPE_VERSION);
-                            return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
-                        }
+                        TreePermission pp = getParentPermission(versionableTree, TreeTypeProvider.TYPE_VERSION);
+                        return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
                     }
                 }
             case TreeTypeProvider.TYPE_PERMISSION_STORE:
@@ -247,18 +240,21 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 // TODO: OAK-753 decide on where to filter out hidden items.
                 return true;
             case TreeTypeProvider.TYPE_VERSION:
-                TreeLocation location = getLocation(tree, property);
-                if (location == null) {
+                Tree versionableTree = getVersionableTree(tree);
+                if (versionableTree == null) {
                     // unable to determine the location of the versionable item -> deny access.
                     return false;
                 }
-                Tree versionableTree = (property == null) ? location.getTree() : location.getParent().getTree();
-                if (versionableTree != null) {
+                if (versionableTree.exists()) {
                     return internalIsGranted(versionableTree, property, permissions);
                 } else {
                     // versionable node does not exist (anymore) in this workspace;
                     // use best effort calculation based on the item path.
-                    return isGranted(location.getPath(), permissions);
+                    String path = versionableTree.getPath();
+                    if (property != null) {
+                        path = PathUtils.concat(path, property.getName());
+                    }
+                    return isGranted(path, permissions);
                 }
             case TreeTypeProvider.TYPE_PERMISSION_STORE:
                 return false;
@@ -364,17 +360,13 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             case TreeTypeProvider.TYPE_HIDDEN:
                 return PrivilegeBits.EMPTY;
             case TreeTypeProvider.TYPE_VERSION:
-                TreeLocation location = getLocation(tree, null);
-                if (location == null) {
+                Tree versionableTree = getVersionableTree(tree);
+                if (versionableTree == null || !versionableTree.exists()) {
                     // unable to determine the location of the versionable item -> deny access.
-                    return PrivilegeBits.EMPTY;
-                }
-                Tree versionableTree = location.getTree();
-                if (versionableTree != null) {
-                    return getPrivilegeBits(tree);
-                } else {
                     // TODO : add proper handling for cases where the versionable node does not exist (anymore)
                     return PrivilegeBits.EMPTY;
+                }  else {
+                    return getPrivilegeBits(versionableTree);
                 }
             case TreeTypeProvider.TYPE_PERMISSION_STORE:
                 return PrivilegeBits.EMPTY;
@@ -417,9 +409,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     }
 
     @CheckForNull
-    private TreeLocation getLocation(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
+    private Tree getVersionableTree(@Nonnull Tree versionStoreTree) {
         String relPath = "";
-        String propName = (property == null) ? "" : property.getName();
         String versionablePath = null;
         Tree t = versionStoreTree;
         while (t.exists() && !t.isRoot() && !VersionConstants.VERSION_STORE_ROOT_NAMES.contains(t.getName())) {
@@ -429,27 +420,27 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             } else if (JcrConstants.NT_VERSIONHISTORY.equals(ntName)) {
                 PropertyState prop = t.getProperty(workspaceName);
                 if (prop != null) {
-                    versionablePath = PathUtils.concat(prop.getValue(Type.PATH), relPath, propName);
+                    versionablePath = PathUtils.concat(prop.getValue(Type.PATH), relPath);
                 }
-                return PermissionUtil.createLocation(root, versionablePath);
+                return (versionablePath == null) ? null : root.getTree(versionablePath);
             } else if (VersionConstants.NT_CONFIGURATION.equals(ntName)) {
                 String rootId = TreeUtil.getString(t, VersionConstants.JCR_ROOT);
                 if (rootId != null) {
                     versionablePath = new IdentifierManager(root).getPath(rootId);
-                    return PermissionUtil.createLocation(root, versionablePath);
+                    return (versionablePath == null) ? null : root.getTree(versionablePath);
                 } else {
                     log.error("Missing mandatory property jcr:root with configuration node.");
                     return null;
                 }
             } else if (VersionConstants.NT_ACTIVITY.equals(ntName)) {
-                return PermissionUtil.createLocation(versionStoreTree, property);
+                return versionStoreTree;
             }
             t = t.getParent();
         }
 
         // intermediate node in the version, configuration or activity store that
         // matches none of the special conditions checked above -> regular permission eval.
-        return PermissionUtil.createLocation(versionStoreTree, property);
+        return versionStoreTree;
     }
 
     private final class TreePermissionImpl implements TreePermission {
