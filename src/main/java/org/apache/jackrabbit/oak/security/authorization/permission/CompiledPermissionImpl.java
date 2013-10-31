@@ -196,22 +196,24 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 } else {
                     TreeLocation tl = getLocation(tree, null);
                     if (tl == null) {
+                        log.warn("Cannot retrieve versionable node for " + tree.getPath());
                         return TreePermission.EMPTY;
                     } else {
                         // TODO: may return wrong results in case of restrictions
                         // TODO that would match the path of the versionable node
                         // TODO (or item in the subtree) but that item no longer exists
                         // TODO -> evaluation by path would be more accurate (-> see #isGranted)
-                        while (!tl.exists()) {
+                        while (!tl.exists() || tl.getProperty() != null) {
                             tl = tl.getParent();
                         }
                         Tree versionableTree = tl.getTree();
                         if (versionableTree == null) {
-                            // for PropertyLocations
-                            versionableTree = tl.getParent().getTree();
+                            log.warn("Cannot retrieve versionable tree for {0}; versionable location {1} does not resolve to an existing tree.", tree.getPath(), tl.getPath());
+                            return TreePermission.EMPTY;
+                        } else {
+                            TreePermission pp = getParentPermission(versionableTree, TreeTypeProvider.TYPE_VERSION);
+                            return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
                         }
-                        TreePermission pp = getParentPermission(versionableTree, TreeTypeProvider.TYPE_VERSION);
-                        return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
                     }
                 }
             case TreeTypeProvider.TYPE_PERMISSION_STORE:
