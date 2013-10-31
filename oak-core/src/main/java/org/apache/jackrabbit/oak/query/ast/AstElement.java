@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -120,10 +119,6 @@ abstract class AstElement {
      */
     protected String getLocalPath(String path) {
         return path;
-    }
-
-    protected Tree getTree(String path) {
-        return query.getTree(path);
     }
 
 }

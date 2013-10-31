@@ -192,7 +192,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 path = PathUtils.concat(path, rp);
             }
 
-            Tree tree = getTree(path);
+            Tree tree = selector.getTree(path);
             if (tree == null || !tree.exists()) {
                 return false;
             }
