@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -50,6 +51,7 @@ import com.google.common.collect.Lists;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
@@ -186,6 +188,26 @@ final class MongoNodeState extends AbstractNodeState {
         } else {
             return new MemoryNodeBuilder(this);
         }
+    }
+
+    @Override
+    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        if (this == base) {
+            return true;
+        } else if (base == EMPTY_NODE || !base.exists()) { // special case
+            return EmptyNodeState.compareAgainstEmptyState(this, diff);
+        } else if (base instanceof MongoNodeState) {
+            MongoNodeState mBase = (MongoNodeState) base;
+            if (store == mBase.store) {
+                if (node.getLastRevision().equals(mBase.node.getLastRevision())
+                        && getPath().equals(mBase.getPath())) {
+                    return true; // no differences
+                }
+                // TODO: use diff, similar to KernelNodeState
+            }
+        }
+        // fall back to the generic node state diff algorithm
+        return super.compareAgainstBaseState(base, diff);
     }
 
     //------------------------------< internal >--------------------------------
