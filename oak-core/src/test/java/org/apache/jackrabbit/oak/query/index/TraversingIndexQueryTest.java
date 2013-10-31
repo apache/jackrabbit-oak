@@ -52,6 +52,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         //OAK-1024 allow '/' in a full-text query 
         Tree node = root.getTree("/").addChild("content");
         node.setProperty("jcr:mimeType", "text/plain");
+        root.commit();
         assertQuery("//*[jcr:contains(., 'text/plain')]", "xpath",
                 ImmutableList.of("/content"));
     }
@@ -61,6 +62,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         Tree c = root.getTree("/").addChild("content");
         c.addChild("testFullTextTermNameSimple");
         c.addChild("testFullTextTermNameFile.txt");
+        root.commit();
         assertQuery("//*[jcr:contains(., 'testFullTextTermNameSimple')]",
                 "xpath",
                 ImmutableList.of("/content/testFullTextTermNameSimple"));

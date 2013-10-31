@@ -328,15 +328,12 @@ public abstract class AbstractRoot implements Root {
         return new QueryEngineImpl() {
             @Override
             protected ExecutionContext getExecutionContext() {
-                NodeState rootState = AbstractRoot.this.getRootState();
-                return new ExecutionContext(rootState, rootTree, getIndexProvider(rootState));
-            }
-
-            private QueryIndexProvider getIndexProvider(NodeState rootState) {
+                QueryIndexProvider provider = indexProvider;
                 if (hasPendingChanges()) {
-                    return new UUIDDiffIndexProviderWrapper(indexProvider, getBaseState(), rootState);
+                    provider = new UUIDDiffIndexProviderWrapper(
+                            provider, getBaseState(), getRootState());
                 }
-                return indexProvider;
+                return new ExecutionContext(getBaseState(), rootTree, provider);
             }
         };
     }
