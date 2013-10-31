@@ -63,7 +63,7 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
     /**
      * the restriction pattern for this entry
      */
-    private final RestrictionPattern restriction;
+    final RestrictionPattern restriction;
 
     PermissionEntry(String path, Tree entryTree, RestrictionProvider restrictionsProvider) {
         this.path = path;
