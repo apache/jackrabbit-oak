@@ -90,10 +90,10 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     //----------------------------------------< JackrabbitAccessControlList >---
-
     @Override
     public boolean addEntry(Principal principal, Privilege[] privileges,
-                            boolean isAllow, Map<String, Value> restrictions) throws RepositoryException {
+                            boolean isAllow, Map<String, Value> restrictions,
+                            Map<String, Value[]> mvRestrictions) throws RepositoryException {
         if (privileges == null || privileges.length == 0) {
             throw new AccessControlException("Privileges may not be null nor an empty array");
         }
@@ -114,13 +114,21 @@ abstract class ACL extends AbstractAccessControlList {
         }
 
         Set<Restriction> rs;
-        if (restrictions == null) {
+        if (restrictions == null && mvRestrictions == null) {
             rs = Collections.emptySet();
         } else {
-            rs = new HashSet<Restriction>(restrictions.size());
-            for (String jcrName : restrictions.keySet()) {
-                String oakName = getNamePathMapper().getOakName(jcrName);
-                rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrictions.get(oakName)));
+            rs = new HashSet<Restriction>();
+            if (restrictions != null) {
+                for (String jcrName : restrictions.keySet()) {
+                    String oakName = getNamePathMapper().getOakName(jcrName);
+                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrictions.get(oakName)));
+                }
+            }
+            if (mvRestrictions != null) {
+                for (String jcrName : mvRestrictions.keySet()) {
+                    String oakName = getNamePathMapper().getOakName(jcrName);
+                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, mvRestrictions.get(oakName)));
+                }
             }
         }
 
