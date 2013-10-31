@@ -140,6 +140,10 @@ public class BenchmarkRunner {
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
                     report.value(options)),
+            new ConcurrentReadRandomNodeAndItsPropertiesTest(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    report.value(options)),
             new ManyUserReadTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
