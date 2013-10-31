@@ -30,12 +30,15 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -637,6 +640,31 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         // ... complementary entry -> must modify the acl.
         assertTrue(acl.addEntry(testPrincipal, writePriv, true, restrictions));
         assertEquals(2, acl.getAccessControlEntries().length);
+    }
+
+    @Test
+    public void testMvRestrictions() throws Exception {
+
+        ValueFactory vf = getValueFactory();
+        Value[] vs = new Value[] {
+                vf.createValue(JcrConstants.NT_FILE, PropertyType.NAME),
+                vf.createValue(JcrConstants.NT_FOLDER, PropertyType.NAME)
+        };
+        Map<String, Value[]> mvRestrictions = Collections.singletonMap(REP_NT_NAMES, vs);
+        Map<String, Value> restrictions = Collections.singletonMap(REP_GLOB, vf.createValue("/.*"));
+
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, false, restrictions, mvRestrictions));
+        assertFalse(acl.addEntry(testPrincipal, testPrivileges, false, restrictions, mvRestrictions));
+        assertEquals(1, acl.getAccessControlEntries().length);
+        JackrabbitAccessControlEntry ace = (JackrabbitAccessControlEntry) acl.getAccessControlEntries()[0];
+        try {
+            ace.getRestriction(REP_NT_NAMES);
+            fail();
+        } catch (ValueFormatException e) {
+            // success
+        }
+        Value[] vvs = ace.getRestrictions(REP_NT_NAMES);
+        assertArrayEquals(vs, vvs);
     }
 
     @Test

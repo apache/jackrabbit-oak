@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,6 +28,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
@@ -130,5 +132,10 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @Override
     public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow) throws RepositoryException {
         return addEntry(principal, privileges, isAllow, Collections.<String, Value>emptyMap());
+    }
+
+    @Override
+    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws AccessControlException, RepositoryException {
+        return addEntry(principal, privileges, isAllow, restrictions, null);
     }
 }
