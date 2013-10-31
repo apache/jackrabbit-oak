@@ -408,6 +408,7 @@ public class NodeDocument extends Document {
         }
         String path = Utils.getPathFromId(getId());
         Node n = new Node(path, readRevision, hasChildren());
+        Revision lastRevision = min;
         for (String key : keySet()) {
             if (!Utils.isPropertyName(key)) {
                 continue;
@@ -423,11 +424,19 @@ public class NodeDocument extends Document {
             String propertyName = Utils.unescapePropertyName(key);
             String v = value != null ? value.value : null;
             n.setProperty(propertyName, v);
+            // keep track of when this node was last modified
+            if (value != null && isRevisionNewer(context, value.revision, lastRevision)) {
+                lastRevision = value.revision;
+            }
         }
+
+        // lastRevision now points to the revision when this node was
+        // last modified directly. but it may also have been 'modified'
+        // by an operation on a descendant node, which is tracked in
+        // _lastRev.
 
         // when was this node last modified?
         Branch branch = context.getBranches().getBranch(readRevision);
-        Revision lastRevision = null;
         Map<Integer, Revision> lastRevs = Maps.newHashMap(getLastRev());
         // overlay with unsaved last modified from this instance
         if (lastModified != null) {
@@ -447,9 +456,15 @@ public class NodeDocument extends Document {
         for (Revision r : lastRevs.values()) {
             // ignore if newer than readRevision
             if (isRevisionNewer(context, r, readRevision)) {
+                // the node has a _lastRev which is newer than readRevision
+                // this means we don't know when if this node was
+                // modified by an operation on a descendant node between
+                // current lastRevision and readRevision. therefore we have
+                // to stay on the safe side and use readRevision
+                lastRevision = readRevision;
                 continue;
             }
-            if (lastRevision == null || isRevisionNewer(context, r, lastRevision)) {
+            if (isRevisionNewer(context, r, lastRevision)) {
                 lastRevision = r;
             }
         }
@@ -460,10 +475,6 @@ public class NodeDocument extends Document {
             if (r != null) {
                 lastRevision = r;
             }
-        }
-        if (lastRevision == null) {
-            // use readRevision if none found
-            lastRevision = readRevision;
         }
         n.setLastRevision(lastRevision);
         return n;

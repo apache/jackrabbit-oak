@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
  * A node builder implementation for MongoMK.
@@ -34,5 +35,20 @@ class MongoNodeBuilder extends MemoryNodeBuilder {
     @Override
     protected MongoNodeBuilder createChildBuilder(String name) {
         return new MongoNodeBuilder(this, name);
+    }
+
+    @Override
+    public boolean moveTo(NodeBuilder newParent, String newName) {
+        if (newParent instanceof MongoNodeBuilder) {
+            // check if this builder is an ancestor of newParent or newParent
+            MongoNodeBuilder parent = (MongoNodeBuilder) newParent;
+            while (parent != null) {
+                if (parent == this) {
+                    return false;
+                }
+                parent = (MongoNodeBuilder) parent.getParent();
+            }
+        }
+        return super.moveTo(newParent, newName);
     }
 }

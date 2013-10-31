@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.mongomk.MongoNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -68,6 +69,25 @@ public abstract class NodeStoreFixture {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+            }
+        }
+    };
+
+    public static final NodeStoreFixture MONGO_NS = new NodeStoreFixture() {
+        @Override
+        public String toString() {
+            return "MongoNS Fixture";
+        }
+
+        @Override
+        public NodeStore createNodeStore() {
+            return new MongoMK.Builder().getNodeStore();
+        }
+
+        @Override
+        public void dispose(NodeStore nodeStore) {
+            if (nodeStore instanceof MongoNodeStore) {
+                ((MongoNodeStore) nodeStore).dispose();
             }
         }
     };
