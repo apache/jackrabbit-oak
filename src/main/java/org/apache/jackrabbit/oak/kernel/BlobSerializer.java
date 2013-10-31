@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.Blob;
  * Customizable mechanism for mapping {@link Blob} instances to corresponding
  * serialization identifiers.
  */
-class BlobSerializer {
+public class BlobSerializer {
 
     public String serialize(Blob blob) {
         return "Blob{" + blob + '}';

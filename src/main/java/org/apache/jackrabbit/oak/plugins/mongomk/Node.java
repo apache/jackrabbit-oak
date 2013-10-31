@@ -105,6 +105,14 @@ public class Node implements CacheValue {
         return op;
     }
 
+    String getPath() {
+        return path;
+    }
+
+    Revision getReadRevision() {
+        return rev;
+    }
+
     public String getId() {
         return path + "@" + lastRevision;        
     }
