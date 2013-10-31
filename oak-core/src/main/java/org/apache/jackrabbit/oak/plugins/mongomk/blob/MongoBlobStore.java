@@ -66,6 +66,8 @@ public class MongoBlobStore extends AbstractBlobStore {
         mongoBlob.setData(data);
         mongoBlob.setLevel(level);
         mongoBlob.setLastMod(System.currentTimeMillis());
+        // TODO check the return value
+        // TODO verify insert is fast if the entry already exists
         getBlobCollection().insert(mongoBlob);
     }
 
