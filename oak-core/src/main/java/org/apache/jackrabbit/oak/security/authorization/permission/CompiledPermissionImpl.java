@@ -206,6 +206,10 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                             tl = tl.getParent();
                         }
                         Tree versionableTree = tl.getTree();
+                        if (versionableTree == null) {
+                            // for PropertyLocations
+                            versionableTree = tl.getParent().getTree();
+                        }
                         TreePermission pp = getParentPermission(versionableTree, TreeTypeProvider.TYPE_VERSION);
                         return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
                     }
