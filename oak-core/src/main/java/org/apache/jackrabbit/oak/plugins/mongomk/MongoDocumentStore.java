@@ -573,11 +573,11 @@ public class MongoDocumentStore implements DocumentStore {
     }
     
     @Override
-    public <T extends Document> T getIfCached(Collection<T> collection, String key){
+    public <T extends Document> T getIfCached(Collection<T> collection, String key) {
         if (collection != Collection.NODES) {
             return null;
         }
-        return (T)nodesCache.getIfPresent(key);
+        return (T) nodesCache.getIfPresent(key);
     }
 
 
@@ -641,7 +641,7 @@ public class MongoDocumentStore implements DocumentStore {
      *          in the cache.
      */
     @Nonnull
-    private NodeDocument addToCache(final @Nonnull NodeDocument doc) {
+    private NodeDocument addToCache(@Nonnull final NodeDocument doc) {
         if (doc == NodeDocument.NULL) {
             throw new IllegalArgumentException("doc must not be NULL document");
         }
@@ -673,7 +673,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Nonnull
-    private QueryBuilder createQueryForUpdate(UpdateOp updateOp,
+    private static QueryBuilder createQueryForUpdate(UpdateOp updateOp,
                                               boolean checkConditions) {
         QueryBuilder query = getByKeyQuery(updateOp.id);
 
@@ -699,7 +699,7 @@ public class MongoDocumentStore implements DocumentStore {
      * @return the DBObject.
      */
     @Nonnull
-    private DBObject createUpdate(UpdateOp updateOp) {
+    private static DBObject createUpdate(UpdateOp updateOp) {
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();

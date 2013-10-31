@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import java.util.ArrayList;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.SortedMap;
@@ -29,9 +31,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <code>UnmergedBranches</code> contains all un-merged branches of a MongoMK

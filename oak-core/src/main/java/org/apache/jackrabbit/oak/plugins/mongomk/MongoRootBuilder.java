@@ -56,7 +56,7 @@ class MongoRootBuilder extends MongoNodeBuilder {
     /**
      * Number of updated not yet persisted to the private {@link #branch}
      */
-    private int updates = 0;
+    private int updates;
 
     MongoRootBuilder(MongoNodeState base, MongoNodeStore store) {
         super(checkNotNull(base));
