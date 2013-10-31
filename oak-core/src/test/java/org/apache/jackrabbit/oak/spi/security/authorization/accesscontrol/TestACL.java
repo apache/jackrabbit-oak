@@ -21,8 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.Lists;
@@ -63,6 +65,11 @@ public final class TestACL extends AbstractAccessControlList {
     @Override
     public boolean addEntry(Principal principal, Privilege[] privileges,
                             boolean isAllow, Map<String, Value> restrictions) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions) throws AccessControlException, RepositoryException {
         throw new UnsupportedOperationException();
     }
 

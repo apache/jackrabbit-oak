@@ -86,6 +86,13 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
             // success
         }
 
+        try {
+            acl.addEntry(testPrincipal, testPrivileges, false, Collections.<String, Value>emptyMap(), Collections.<String, Value[]>emptyMap());
+            fail(msg);
+        } catch (AccessControlException e) {
+            // success
+        }
+
         AccessControlEntry[] entries = acl.getAccessControlEntries();
         if (entries.length > 1) {
             try {
