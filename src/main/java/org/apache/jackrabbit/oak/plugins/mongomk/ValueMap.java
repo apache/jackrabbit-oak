@@ -38,12 +38,12 @@ import com.google.common.collect.Iterators;
  */
 class ValueMap {
 
-    static SortedMap<Revision, String> EMPTY = Collections.unmodifiableSortedMap(
+    static final SortedMap<Revision, String> EMPTY = Collections.unmodifiableSortedMap(
             new TreeMap<Revision, String>(new StableRevisionComparator()));
 
     @Nonnull
-    static Map<Revision, String> create(final @Nonnull NodeDocument doc,
-                                        final @Nonnull String property) {
+    static Map<Revision, String> create(@Nonnull final NodeDocument doc,
+                @Nonnull final String property) {
         final SortedMap<Revision, String> map = doc.getLocalMap(property);
         if (doc.getPreviousRanges().isEmpty()) {
             return map;

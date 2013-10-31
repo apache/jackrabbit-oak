@@ -501,8 +501,8 @@ public final class MongoNodeStore
 
         //Preemptive check. If we know there are no child then
         //return straight away
-        final Node node = getNode(path,rev);
-        if(node.hasNoChildren()){
+        final Node node = getNode(path, rev);
+        if (node.hasNoChildren()) {
             return new Node.Children();
         }
 
