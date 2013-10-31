@@ -294,7 +294,7 @@ public final class MongoNodeStore
         backgroundThread.start();
     }
 
-    void dispose() {
+    public void dispose() {
         // force background write (with asyncDelay > 0, the root wouldn't be written)
         // TODO make this more obvious / explicit
         // TODO tests should also work if this is not done
@@ -729,7 +729,12 @@ public final class MongoNodeStore
      */
     @Nonnull
     MongoNodeState getRoot(@Nonnull Revision revision) {
-        return new MongoNodeState(this, "/", revision);
+        Node root = getNode("/", revision);
+        if (root == null) {
+            throw new IllegalStateException(
+                    "root node does not exist at revision " + revision);
+        }
+        return new MongoNodeState(this, root);
     }
 
     @Nonnull
@@ -840,6 +845,18 @@ public final class MongoNodeStore
             commit.apply();
         }
         return rev;
+    }
+
+    /**
+     * Returns the {@link Blob} with the given blobId.
+     *
+     * @param blobId the blobId of the blob.
+     * @return the blob.
+     */
+    @Nonnull
+    Blob getBlob(String blobId) {
+        // TODO: implement blob handling
+        return null;
     }
 
     //------------------------< Observable >------------------------------------

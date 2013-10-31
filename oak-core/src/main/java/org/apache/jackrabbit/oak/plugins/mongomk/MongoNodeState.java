@@ -17,48 +17,81 @@
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.mk.json.JsopReader;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.kernel.StringCache;
+import org.apache.jackrabbit.oak.kernel.TypeCodes;
+import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * A {@link NodeState} implementation for the {@link MongoNodeStore}.
+ * TODO: merge MongoNodeState with Node
+ * TODO: implement more methods for efficient access (getProperty(), etc.)
  */
-class MongoNodeState extends AbstractNodeState {
+final class MongoNodeState extends AbstractNodeState {
 
     private final MongoNodeStore store;
 
-    private final String path;
+    private final Node node;
 
-    private final Revision revision;
+    /**
+     * TODO: OAK-1056
+     */
+    private boolean isBranch;
 
     MongoNodeState(@Nonnull MongoNodeStore store,
-                   @Nonnull String path,
-                   @Nonnull Revision revision) {
+                   @Nonnull Node node) {
         this.store = checkNotNull(store);
-        this.path = checkNotNull(path);
-        this.revision = checkNotNull(revision);
+        this.node = checkNotNull(node);
     }
 
     String getPath() {
-        return path;
+        return node.getPath();
     }
 
     Revision getRevision() {
-        return revision;
+        return node.getReadRevision();
+    }
+
+    MongoNodeState setBranch() {
+        isBranch = true;
+        return this;
+    }
+
+    boolean isBranch() {
+        return isBranch;
     }
 
     //--------------------------< NodeState >-----------------------------------
-
 
     @Override
     public boolean equals(Object that) {
@@ -66,7 +99,7 @@ class MongoNodeState extends AbstractNodeState {
             return true;
         } else if (that instanceof MongoNodeState) {
             MongoNodeState other = (MongoNodeState) that;
-            if (revision.equals(other.revision) && path.equals(other.path)) {
+            if (node.getLastRevision().equals(other.node.getLastRevision()) && getPath().equals(other.getPath())) {
                 return true;
             } else {
                 // TODO: optimize equals check for this case
@@ -81,37 +114,176 @@ class MongoNodeState extends AbstractNodeState {
 
     @Override
     public boolean exists() {
-        return true;
+        return node != null;
     }
 
     @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        // TODO: implement
-        return Collections.emptyList();
+        if (node == null) {
+            return Collections.emptyList();
+        }
+        return Iterables.transform(node.getPropertyNames(), new Function<String, PropertyState>() {
+            @Override
+            public PropertyState apply(String name) {
+                String value = node.getProperty(name);
+                JsopReader reader = new JsopTokenizer(value);
+                if (reader.matches('[')) {
+                    return readArrayProperty(name, reader);
+                } else {
+                    return readProperty(name, reader);
+                }
+            }
+        });
     }
 
     @Nonnull
     @Override
     public NodeState getChildNode(@Nonnull String name) {
-        // TODO: implement
-        return EmptyNodeState.MISSING_NODE;
+        String p = PathUtils.concat(getPath(), name);
+        Node child = store.getNode(p, node.getLastRevision());
+        if (child == null) {
+            return EmptyNodeState.MISSING_NODE;
+        } else {
+            return new MongoNodeState(store, child);
+        }
     }
 
     @Nonnull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        // TODO: implement
-        return Collections.emptyList();
+        // TODO: handle many child nodes better
+        Node.Children children = store.getChildren(getPath(),
+                node.getLastRevision(), Integer.MAX_VALUE);
+        return Iterables.transform(children.children, new Function<String, ChildNodeEntry>() {
+            @Override
+            public ChildNodeEntry apply(String path) {
+                final String name = PathUtils.getName(path);
+                return new AbstractChildNodeEntry() {
+                    @Nonnull
+                    @Override
+                    public String getName() {
+                        return name;
+                    }
+
+                    @Nonnull
+                    @Override
+                    public NodeState getNodeState() {
+                        return getChildNode(name);
+                    }
+                };
+            }
+        });
     }
 
     @Nonnull
     @Override
     public NodeBuilder builder() {
-        // TODO: implement
-        return new MemoryNodeBuilder(this);
+        if (isBranch) {
+            return new MemoryNodeBuilder(this);
+        } else if ("/".equals(getPath())) {
+            return new MongoRootBuilder(this, store);
+        } else {
+            return new MemoryNodeBuilder(this);
+        }
     }
 
     //------------------------------< internal >--------------------------------
 
+    /**
+     * FIXME: copied from KernelNodeState.
+     *
+     * Read a {@code PropertyState} from a {@link JsopReader}
+     * @param name  The name of the property state
+     * @param reader  The reader
+     * @return new property state
+     */
+    private PropertyState readProperty(String name, JsopReader reader) {
+        if (reader.matches(JsopReader.NUMBER)) {
+            String number = reader.getToken();
+            try {
+                return new LongPropertyState(name, Long.parseLong(number));
+            } catch (NumberFormatException e) {
+                return new DoublePropertyState(name, Double.parseDouble(number));
+            }
+        } else if (reader.matches(JsopReader.TRUE)) {
+            return BooleanPropertyState.booleanProperty(name, true);
+        } else if (reader.matches(JsopReader.FALSE)) {
+            return BooleanPropertyState.booleanProperty(name, false);
+        } else if (reader.matches(JsopReader.STRING)) {
+            String jsonString = reader.getToken();
+            if (jsonString.startsWith(TypeCodes.EMPTY_ARRAY)) {
+                int type = PropertyType.valueFromName(jsonString.substring(TypeCodes.EMPTY_ARRAY.length()));
+                return PropertyStates.createProperty(name, emptyList(), Type.fromTag(type, true));
+            }
+            int split = TypeCodes.split(jsonString);
+            if (split != -1) {
+                int type = TypeCodes.decodeType(split, jsonString);
+                String value = TypeCodes.decodeName(split, jsonString);
+                if (type == PropertyType.BINARY) {
+                    return  BinaryPropertyState.binaryProperty(name, store.getBlob(value));
+                } else {
+                    return createProperty(name, StringCache.get(value), type);
+                }
+            } else {
+                return StringPropertyState.stringProperty(name, StringCache.get(jsonString));
+            }
+        } else {
+            throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+        }
+    }
+
+    /**
+     * FIXME: copied from KernelNodeState.
+     *
+     * Read a multi valued {@code PropertyState} from a {@link JsopReader}
+     * @param name  The name of the property state
+     * @param reader  The reader
+     * @return new property state
+     */
+    private PropertyState readArrayProperty(String name, JsopReader reader) {
+        int type = PropertyType.STRING;
+        List<Object> values = Lists.newArrayList();
+        while (!reader.matches(']')) {
+            if (reader.matches(JsopReader.NUMBER)) {
+                String number = reader.getToken();
+                try {
+                    type = PropertyType.LONG;
+                    values.add(Long.parseLong(number));
+                } catch (NumberFormatException e) {
+                    type = PropertyType.DOUBLE;
+                    values.add(Double.parseDouble(number));
+                }
+            } else if (reader.matches(JsopReader.TRUE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(true);
+            } else if (reader.matches(JsopReader.FALSE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(false);
+            } else if (reader.matches(JsopReader.STRING)) {
+                String jsonString = reader.getToken();
+                int split = TypeCodes.split(jsonString);
+                if (split != -1) {
+                    type = TypeCodes.decodeType(split, jsonString);
+                    String value = TypeCodes.decodeName(split, jsonString);
+                    if (type == PropertyType.BINARY) {
+                        values.add(store.getBlob(value));
+                    } else if (type == PropertyType.DOUBLE) {
+                        values.add(Conversions.convert(value).toDouble());
+                    } else if (type == PropertyType.DECIMAL) {
+                        values.add(Conversions.convert(value).toDecimal());
+                    } else {
+                        values.add(StringCache.get(value));
+                    }
+                } else {
+                    type = PropertyType.STRING;
+                    values.add(StringCache.get(jsonString));
+                }
+            } else {
+                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+            }
+            reader.matches(',');
+        }
+        return createProperty(name, values, Type.fromTag(type, true));
+    }
 }

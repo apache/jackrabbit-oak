@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Utility class for serializing node and property states to JSON.
  */
-class JsonSerializer {
+public class JsonSerializer {
 
     private final JsopBuilder json;
 
@@ -67,7 +67,7 @@ class JsonSerializer {
                 new JsonFilter(filter), blobs);
     }
 
-    JsonSerializer(JsopBuilder json, BlobSerializer blobs) {
+    public JsonSerializer(JsopBuilder json, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
                 new JsonFilter("{\"properties\":[\"*\", \"-:childNodeCount\"]}"),
                 blobs);
@@ -116,7 +116,7 @@ class JsonSerializer {
         json.endObject();
     }
 
-    void serialize(PropertyState property) {
+    public void serialize(PropertyState property) {
         Type<?> type = property.getType();
         if (!type.isArray()) {
             serialize(property, type, 0);

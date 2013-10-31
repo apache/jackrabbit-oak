@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -25,6 +27,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class MongoNodeStoreBranch
         extends AbstractNodeStoreBranch<MongoNodeStore, MongoNodeState> {
+
+    private final BlobSerializer blobs = new BlobSerializer() {
+        @Override
+        public String serialize(Blob blob) {
+            // TODO: implement correct blob handling
+            return super.serialize(blob);
+        }
+    };
 
     public MongoNodeStoreBranch(MongoNodeStore store,
                                 MongoNodeState base) {
@@ -38,13 +48,13 @@ public class MongoNodeStoreBranch
 
     @Override
     protected MongoNodeState createBranch(MongoNodeState state) {
-        return store.getRoot(state.getRevision().asBranchRevision());
+        return store.getRoot(state.getRevision().asBranchRevision()).setBranch();
     }
 
     @Override
     protected MongoNodeState rebase(MongoNodeState branchHead,
                                     MongoNodeState base) {
-        return store.getRoot(store.rebase(branchHead.getRevision(), base.getRevision()));
+        return store.getRoot(store.rebase(branchHead.getRevision(), base.getRevision())).setBranch();
     }
 
     @Override
@@ -55,12 +65,16 @@ public class MongoNodeStoreBranch
     @Override
     protected MongoNodeState persist(final NodeState toPersist,
                                      final MongoNodeState base) {
-        return persist(new Changes() {
+        MongoNodeState state = persist(new Changes() {
             @Override
             public void with(Commit c) {
-                toPersist.compareAgainstBaseState(base, new CommitDiff(c));
+                toPersist.compareAgainstBaseState(base, new CommitDiff(c, blobs));
             }
         }, base);
+        if (base.isBranch()) {
+            state.setBranch();
+        }
+        return state;
     }
 
     @Override

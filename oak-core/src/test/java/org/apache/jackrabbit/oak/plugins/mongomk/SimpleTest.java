@@ -96,7 +96,7 @@ public class SimpleTest {
         String rev4 = mk.commit("/test", "^\"a/x\":1", null, null);
         
         String r0 = mk.getNodes("/", rev0, 0, 0, Integer.MAX_VALUE, ":id");
-        assertEquals("{\":id\":\"/@r1-0-1\",\":childNodeCount\":0}", r0);
+        assertEquals("{\":id\":\"/@r0-0-1\",\":childNodeCount\":0}", r0);
         String r1 = mk.getNodes("/", rev1, 0, 0, Integer.MAX_VALUE, ":id");
         assertEquals("{\":id\":\"/@r2-0-1\",\"test\":{},\":childNodeCount\":1}", r1);
         String r2 = mk.getNodes("/", rev2, 0, 0, Integer.MAX_VALUE, ":id");
