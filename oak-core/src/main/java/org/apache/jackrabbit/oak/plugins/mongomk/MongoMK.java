@@ -291,7 +291,7 @@ public class MongoMK implements MicroKernel {
         }
     }
 
-    private void addPathsForDiff(String path,
+    private static void addPathsForDiff(String path,
                                  Set<String> paths,
                                  UnsavedModifications pending,
                                  Revision minRev) {

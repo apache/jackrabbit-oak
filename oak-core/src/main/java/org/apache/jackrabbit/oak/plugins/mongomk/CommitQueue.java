@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
@@ -29,16 +31,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * <code>CommitQueue</code> ensures a sequence of commits consistent with the
  * commit revision even if commits did not complete in this sequence.
  */
 class CommitQueue {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CommitQueue.class);
+    static final Logger LOG = LoggerFactory.getLogger(CommitQueue.class);
 
     private final MongoNodeStore store;
 
@@ -88,7 +87,7 @@ class CommitQueue {
     }
 
     private void afterTrunkCommit(Commit c, CommitInfo info) {
-        assert(!commits.isEmpty());
+        assert !commits.isEmpty();
 
         boolean isHead;
         Entry commitEntry;

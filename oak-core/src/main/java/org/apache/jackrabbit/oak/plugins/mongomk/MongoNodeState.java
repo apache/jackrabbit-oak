@@ -194,14 +194,16 @@ final class MongoNodeState extends AbstractNodeState {
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (this == base) {
             return true;
-        } else if (base == EMPTY_NODE || !base.exists()) { // special case
+        } else if (base == EMPTY_NODE || !base.exists()) { 
+            // special case
             return EmptyNodeState.compareAgainstEmptyState(this, diff);
         } else if (base instanceof MongoNodeState) {
             MongoNodeState mBase = (MongoNodeState) base;
             if (store == mBase.store) {
                 if (node.getLastRevision().equals(mBase.node.getLastRevision())
                         && getPath().equals(mBase.getPath())) {
-                    return true; // no differences
+                    // no differences
+                    return true; 
                 }
                 // TODO: use diff, similar to KernelNodeState
             }
@@ -220,7 +222,7 @@ final class MongoNodeState extends AbstractNodeState {
      * @param reader  The reader
      * @return new property state
      */
-    private PropertyState readProperty(String name, JsopReader reader) {
+    PropertyState readProperty(String name, JsopReader reader) {
         if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
             try {
@@ -263,7 +265,7 @@ final class MongoNodeState extends AbstractNodeState {
      * @param reader  The reader
      * @return new property state
      */
-    private PropertyState readArrayProperty(String name, JsopReader reader) {
+    PropertyState readArrayProperty(String name, JsopReader reader) {
         int type = PropertyType.STRING;
         List<Object> values = Lists.newArrayList();
         while (!reader.matches(']')) {

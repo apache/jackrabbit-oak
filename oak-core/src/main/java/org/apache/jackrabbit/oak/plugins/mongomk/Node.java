@@ -46,10 +46,10 @@ public class Node implements CacheValue {
     final boolean hasChildren;
     
     Node(String path, Revision rev) {
-       this(path,rev,false);
+        this(path, rev, false);
     }
 
-    Node(String path, Revision rev,boolean hasChildren) {
+    Node(String path, Revision rev, boolean hasChildren) {
         this.path = path;
         this.rev = rev;
         this.hasChildren = hasChildren;
@@ -75,7 +75,7 @@ public class Node implements CacheValue {
         newNode.properties.putAll(properties);
     }
 
-    public boolean hasNoChildren(){
+    public boolean hasNoChildren() {
         return !hasChildren;
     }
 

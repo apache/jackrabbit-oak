@@ -357,7 +357,7 @@ public class MemoryDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> T getIfCached(Collection<T> collection, String key) {
-        return find(collection,key);
+        return find(collection, key);
     }
 
     @Override

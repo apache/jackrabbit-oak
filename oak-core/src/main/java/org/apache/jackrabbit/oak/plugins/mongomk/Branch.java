@@ -16,17 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import java.util.NavigableMap;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Contains commit information about a branch and its base revision.
