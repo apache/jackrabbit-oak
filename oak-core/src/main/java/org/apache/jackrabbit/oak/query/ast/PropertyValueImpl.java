@@ -112,7 +112,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             PropertyValue p = selector.currentProperty(propertyName);
             return matchesPropertyType(p) ? p : null;
         }
-        Tree tree = getTree(selector.currentPath());
+        Tree tree = selector.currentTree();
         if (tree == null || !tree.exists()) {
             return null;
         }

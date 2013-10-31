@@ -94,6 +94,9 @@ public class SelectorImpl extends SourceImpl {
     private Cursor cursor;
     private IndexRow currentRow;
     private int scanCount;
+    
+    private Tree lastTree;
+    private String lastPath;
 
     /**
      * The selector condition can be evaluated when the given selector is
@@ -344,12 +347,31 @@ public class SelectorImpl extends SourceImpl {
         return cursor == null ? null : currentRow.getPath();
     }
     
+    /**
+     * Get the tree at the current path.
+     * 
+     * @return the current tree, or null
+     */
     public Tree currentTree() {
         String path = currentPath();
         if (path == null) {
             return null;
         }
         return getTree(path);
+    }
+    
+    /**
+     * Get the tree at the given path.
+     * 
+     * @param path the path
+     * @return the tree, or null
+     */
+    Tree getTree(String path) {
+        if (lastPath == null || !path.equals(lastPath)) {
+            lastTree = query.getTree(path);
+            lastPath = path;
+        }
+        return lastTree;
     }
 
     /**
