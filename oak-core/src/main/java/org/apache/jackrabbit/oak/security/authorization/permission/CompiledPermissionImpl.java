@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
@@ -454,8 +455,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private Collection<PermissionEntry> userEntries;
         private Collection<PermissionEntry> groupEntries;
 
-        // FIXME: use proper readstatus
-        private Boolean canReadThis;
+        private ReadStatus readStatus;
 
         private TreePermissionImpl(Tree tree, int treeType, TreePermission parentPermission) {
             this.tree = tree;
@@ -473,19 +473,20 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             if (!isAcTree && readableTree) {
                 return true;
             }
-            if (canReadThis == null) {
-                canReadThis = false;
+            if (readStatus == null) {
+                readStatus = ReadStatus.DENY_THIS;
                 long permission = (isAcTree) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_NODE;
+                PrivilegeBits requiredBits = READ_BITS.get(permission);
                 Iterator<PermissionEntry> it = getIterator(null);
                 while (it.hasNext()) {
                     PermissionEntry entry = it.next();
-                    if (entry.privilegeBits.includes(READ_BITS.get(permission))) {
-                        canReadThis = (entry.isAllow);
+                    if (entry.privilegeBits.includes(requiredBits)) {
+                        readStatus = ReadStatus.create(entry, permission);
                         break;
                     }
                 }
             }
-            return canReadThis;
+            return readStatus.allowsThis();
         }
 
         @Override
@@ -493,6 +494,10 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             if (!isAcTree && readableTree) {
                 return true;
             }
+            if (readStatus != null && readStatus.allowsProperties()) {
+                return true;
+            }
+
             long permission = (isAcTree) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_PROPERTY;
             Iterator<PermissionEntry> it = getIterator(property);
             while (it.hasNext()) {
@@ -506,12 +511,14 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         @Override
         public boolean canReadAll() {
-            return false;  // TODO: best effort approach to detect full read-access within a given tree.
+            // TODO: best effort approach to detect full read-access within a given tree.
+            return readStatus != null && readStatus.allowsAll();
         }
 
         @Override
         public boolean canReadProperties() {
-            return false;  // TODO: best effort approach to detect full read-property permission
+                // TODO: best effort approach to detect full read-property permission
+            return readStatus != null && readStatus.allowsProperties();
         }
 
         @Override
@@ -663,6 +670,61 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     }
                 }
             }
+            return false;
+        }
+    }
+
+    private static final class ReadStatus {
+
+        private static final int THIS = 1;
+        private static final int PROPERTIES = 2;
+        private static final int CHILD_NODES = 4;
+        private static final int ALL = THIS | PROPERTIES | CHILD_NODES;
+
+        private static final ReadStatus ALLOW_THIS = new ReadStatus(THIS, true);
+        private static final ReadStatus ALLOW_PROPERTIES = new ReadStatus(PROPERTIES, true);
+        private static final ReadStatus ALLOW_ALL = new ReadStatus(ALL, true);
+        private static final ReadStatus DENY_THIS = new ReadStatus(THIS, false);
+        private static final ReadStatus DENY_PROPERTIES = new ReadStatus(PROPERTIES, false);
+        private static final ReadStatus DENY_ALL = new ReadStatus(ALL, false);
+
+        private static final PrivilegeBits READ_BITS = PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ);
+        private static final PrivilegeBits READ_PROPERTIES_BITS = PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_PROPERTIES);
+
+        private final int status;
+        private final boolean isAllow;
+
+        private ReadStatus(int status, boolean isAllow) {
+            this.status = status;
+            this.isAllow = isAllow;
+        }
+
+        private static ReadStatus create(PermissionEntry pe, long permission) {
+            // best effort: read status is only calculated if the first matching
+            // entry doesn't define any restrictions and it's a regular tree
+            if (pe.restriction == RestrictionPattern.EMPTY &&
+                    permission != Permissions.READ_ACCESS_CONTROL) {
+                if (pe.privilegeBits.includes(READ_BITS)) {
+                    return (pe.isAllow) ? ALLOW_ALL : DENY_ALL;
+                } else if (pe.privilegeBits.includes(READ_PROPERTIES_BITS)) {
+                    return (pe.isAllow) ? ALLOW_PROPERTIES : DENY_PROPERTIES;
+                } else {
+                    return (pe.isAllow) ? ALLOW_THIS : DENY_THIS;
+                }
+            } else {
+                return (pe.isAllow) ? ALLOW_THIS : DENY_THIS;
+            }
+        }
+
+        private boolean allowsThis() {
+            return isAllow && ((status & THIS) == THIS);
+        }
+
+        private boolean allowsProperties() {
+            return isAllow && ((status & PROPERTIES) == PROPERTIES);
+        }
+
+        private boolean allowsAll() {
             return false;
         }
     }
