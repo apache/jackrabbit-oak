@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 class SegmentRootBuilder extends SegmentNodeBuilder {
 
     /**
@@ -44,9 +46,15 @@ class SegmentRootBuilder extends SegmentNodeBuilder {
 
     @Override
     public SegmentNodeState getNodeState() {
-        set(writer.writeNode(super.getNodeState()));
-        updateCount = 0;
-        return writer.writeNode(super.getNodeState());
+        NodeState state = super.getNodeState();
+        if (state instanceof SegmentNodeState) {
+            return (SegmentNodeState) state;
+        } else {
+            SegmentNodeState segmentState = writer.writeNode(state);
+            set(segmentState);
+            updateCount = 0;
+            return segmentState;
+        }
     }
 
 }
