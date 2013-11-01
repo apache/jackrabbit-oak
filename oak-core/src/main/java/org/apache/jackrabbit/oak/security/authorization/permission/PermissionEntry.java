@@ -111,9 +111,9 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
                 return -1;
             }
         } else {
-            int depth = PathUtils.getDepth(path);
-            int otherDepth = PathUtils.getDepth(pe.path);
-            if (PathUtils.getDepth(path) == otherDepth) {
+            final int depth = PathUtils.getDepth(path);
+            final int otherDepth = PathUtils.getDepth(pe.path);
+            if (depth == otherDepth) {
                 return path.compareTo(pe.path);
             } else {
                 return (depth < otherDepth) ? 1 : -1;

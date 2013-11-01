@@ -25,8 +25,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 import javax.security.auth.Subject;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Root;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionEntryCache;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
@@ -53,12 +52,16 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * Default implementation of the {@code AccessControlConfiguration}.
  */
 @Component()
 @Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
-public class  AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
+public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
+
+    private final PermissionEntryCache permissionEntryCache = new PermissionEntryCache();
 
     public AuthorizationConfigurationImpl() {
         super();
@@ -91,7 +94,7 @@ public class  AuthorizationConfigurationImpl extends ConfigurationBase implement
     public List<? extends CommitHook> getCommitHooks(String workspaceName) {
         return ImmutableList.of(
                 new VersionablePathHook(workspaceName),
-                new PermissionHook(workspaceName, getRestrictionProvider()));
+                new PermissionHook(workspaceName, getRestrictionProvider(), permissionEntryCache));
     }
 
     @Override
@@ -129,6 +132,7 @@ public class  AuthorizationConfigurationImpl extends ConfigurationBase implement
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
-        return new PermissionProviderImpl(root, principals, this);
+        return new PermissionProviderImpl(root, principals, this, permissionEntryCache.createLocalCache());
     }
+
 }

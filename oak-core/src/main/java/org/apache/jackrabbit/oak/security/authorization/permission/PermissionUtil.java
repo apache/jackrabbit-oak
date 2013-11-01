@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -86,13 +87,13 @@ public final class PermissionUtil implements PermissionConstants {
     }
 
     @Nonnull
-    public static ImmutableTree getPermissionsRoot(ImmutableRoot immutableRoot, String workspaceName) {
-        return immutableRoot.getTree(PERMISSIONS_STORE_PATH + '/' + workspaceName);
+    public static Tree getPermissionsRoot(Root root, String workspaceName) {
+        return root.getTree(PERMISSIONS_STORE_PATH + '/' + workspaceName);
     }
 
     @Nonnull
-    public static Tree getPrincipalRoot(Tree permissionsTree, Principal principal) {
-        return permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
+    public static Tree getPrincipalRoot(Tree permissionsTree, String principalName) {
+        return permissionsTree.getChild(Text.escapeIllegalJcrChars(principalName));
     }
 
     public static int getType(@Nonnull ImmutableTree tree, @Nullable PropertyState property) {

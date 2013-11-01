@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 import java.security.Principal;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -116,11 +117,27 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
                                    @Nonnull Principal principal,
                                    boolean isAllow,
                                    @Nonnull String... privilegeNames) throws Exception {
+        setupPermission(root, path, principal, isAllow, privilegeNames);
+    }
+
+    /**
+     * Setup simple allow/deny permissions (without restrictions).
+     *
+     * @param path
+     * @param principal
+     * @param isAllow
+     * @param privilegeNames
+     * @throws Exception
+     */
+    protected void setupPermission(@Nonnull Root root,
+                                   @Nullable String path,
+                                   @Nonnull Principal principal,
+                                   boolean isAllow,
+                                   @Nonnull String... privilegeNames) throws Exception {
     	AccessControlManager acMgr = getAccessControlManager(root);
     	JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
       	acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);
      	acMgr.setPolicy(path, acl);
-
         root.commit();
     }
 }
