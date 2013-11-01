@@ -20,17 +20,16 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -55,6 +54,9 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterators.concat;
 
@@ -71,60 +73,55 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             Permissions.READ_PROPERTY, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_PROPERTIES),
             Permissions.READ_ACCESS_CONTROL, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
 
-    private final Set<Principal> principals;
     private ImmutableRoot root;
-    private final String workspaceName;
 
-    private final Map<String, Tree> userTrees;
-    private final Map<String, Tree> groupTrees;
+    private final String workspaceName;
 
     private final ReadPolicy readPolicy;
 
-    private final PermissionStore userStore;
-    private final PermissionStore groupStore;
+    private PermissionStoreImpl store;
+    private final PermissionEntryProvider userStore;
+    private final PermissionEntryProvider groupStore;
 
     private PrivilegeBitsProvider bitsProvider;
 
-    private CompiledPermissionImpl(@Nonnull Set<Principal> principals,
+    private CompiledPermissionImpl(@Nonnull PermissionEntryCache.Local cache,
+                                   @Nonnull Set<Principal> principals,
                                    @Nonnull ImmutableRoot root, @Nonnull String workspaceName,
-                                   @Nonnull ImmutableTree permissionsTree,
                                    @Nonnull RestrictionProvider restrictionProvider,
                                    @Nonnull Set<String> readPaths) {
-        this.principals = principals;
         this.root = root;
         this.workspaceName = workspaceName;
 
         bitsProvider = new PrivilegeBitsProvider(root);
         readPolicy = (readPaths.isEmpty()) ? EmptyReadPolicy.INSTANCE : new DefaultReadPolicy(readPaths);
 
-        userTrees = new HashMap<String, Tree>(principals.size());
-        groupTrees = new HashMap<String, Tree>(principals.size());
-        if (permissionsTree.exists()) {
-            for (Principal principal : principals) {
-                Tree t = PermissionUtil.getPrincipalRoot(permissionsTree, principal);
-                Map<String, Tree> target = (principal instanceof Group) ? groupTrees : userTrees;
-                if (t.exists()) {
-                    target.put(principal.getName(), t);
-                } else {
-                    target.remove(principal.getName());
-                }
+        // setup
+        store = new PermissionStoreImpl(root, workspaceName, restrictionProvider);
+        Set<String> userNames = new HashSet<String>(principals.size());
+        Set<String> groupNames = new HashSet<String>(principals.size());
+        for (Principal principal : principals) {
+            if (principal instanceof Group) {
+                groupNames.add(principal.getName());
+            } else {
+                userNames.add(principal.getName());
             }
         }
 
-        userStore = PermissionStore.create(userTrees, restrictionProvider);
-        groupStore = PermissionStore.create(groupTrees, restrictionProvider);
+        userStore = new PermissionEntryProviderImpl(store, cache, userNames);
+        groupStore = new PermissionEntryProviderImpl(store, cache, groupNames);
     }
 
     static CompiledPermissions create(@Nonnull ImmutableRoot root, @Nonnull String workspaceName,
                                       @Nonnull Set<Principal> principals,
-                                      @Nonnull AuthorizationConfiguration acConfig) {
-        ImmutableTree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
+                                      @Nonnull AuthorizationConfiguration acConfig,
+                                      @Nonnull PermissionEntryCache.Local cache) {
+        Tree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
         if (!permissionsTree.exists() || principals.isEmpty()) {
             return NoPermissions.getInstance();
         } else {
             Set<String> readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
-            return new CompiledPermissionImpl(principals, root, workspaceName,
-                    permissionsTree, acConfig.getRestrictionProvider(), readPaths);
+            return new CompiledPermissionImpl(cache, principals, root, workspaceName, acConfig.getRestrictionProvider(), readPaths);
         }
     }
 
@@ -133,40 +130,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     public void refresh(@Nonnull ImmutableRoot root, @Nonnull String workspaceName) {
         this.root = root;
         this.bitsProvider = new PrivilegeBitsProvider(root);
-        // test if a permission has been added for those principals that didn't have one before
-
-        ImmutableTree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
-        boolean flushUserStore = false;
-        boolean flushGroupStore = false;
-        for (Principal principal : principals) {
-            boolean isGroup = (principal instanceof Group);
-            Map<String, Tree> target = isGroup ? groupTrees : userTrees;
-            Tree principalRoot = PermissionUtil.getPrincipalRoot(permissionsTree, principal);
-            String pName = principal.getName();
-
-            if (principalRoot.exists()) {
-                if (!target.containsKey(pName) || !principalRoot.equals(target.get(pName))) {
-                    target.put(pName, principalRoot);
-                    if (isGroup) {
-                        flushGroupStore = true;
-                    } else {
-                        flushUserStore = true;
-                    }
-                }
-            } else if (target.remove(pName) != null) {
-                if (isGroup) {
-                    flushGroupStore = true;
-                } else {
-                    flushUserStore = true;
-                }
-            }
-        }
-        if (flushUserStore) {
-            userStore.flush();
-        }
-        if (flushGroupStore) {
-            groupStore.flush();
-        }
+        store.flush(root);
+        userStore.flush();
+        groupStore.flush();
     }
 
     @Override
@@ -219,7 +185,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     @Nonnull
     private TreePermission getParentPermission(@Nonnull Tree tree, int type) {
-        List<Tree> trees = new ArrayList();
+        List<Tree> trees = new ArrayList<Tree>();
         while (!tree.isRoot()) {
             tree = tree.getParent();
             if (tree.exists()) {

@@ -87,8 +87,8 @@ public class PermissionStoreTest extends AbstractSecurityTest {
         }
     }
 
-    private PermissionProviderImpl createPermissionProvider() {
-        return new PermissionProviderImpl(testRoot, testSession.getAuthInfo().getPrincipals(), acConfig);
+    private PermissionProvider createPermissionProvider() {
+        return acConfig.getPermissionProvider(testRoot, testSession.getAuthInfo().getPrincipals());
     }
 
     @Test

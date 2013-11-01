@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,6 +84,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
+    private final PermissionEntryCache cache;
 
     private NodeBuilder permissionRoot;
     private ReadOnlyNodeTypeManager ntMgr;
@@ -91,9 +93,10 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private Map<String, Acl> modified = new HashMap<String, Acl>();
     private Map<String, Acl> deleted = new HashMap<String, Acl>();
 
-    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider) {
+    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider, PermissionEntryCache cache) {
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
+        this.cache = cache;
     }
 
     @Nonnull
@@ -112,12 +115,14 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     }
 
     private void apply() {
+        Set<String> principalNames = new HashSet<String>();
         for (Map.Entry<String, Acl> entry : deleted.entrySet()) {
-            entry.getValue().remove();
+            entry.getValue().remove(principalNames);
         }
         for (Map.Entry<String, Acl> entry : modified.entrySet()) {
-            entry.getValue().update();
+            entry.getValue().update(principalNames);
         }
+        cache.flush(principalNames);
     }
 
     private boolean isACL(@Nonnull Tree tree) {
@@ -291,10 +296,11 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             }
         }
 
-        private void remove() {
+        private void remove(Set<String> principalNames) {
             String msg = "Unable to remove permission entry";
             for (String principalName: entries.keySet()) {
                 if (permissionRoot.hasChildNode(principalName)) {
+                    principalNames.add(principalName);
                     NodeBuilder principalRoot = permissionRoot.getChildNode(principalName);
 
                     // find the ACL node that for this path and principal
@@ -343,14 +349,16 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                         }
                     }
                     principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries);
+                    principalRoot.setProperty(REP_TIMESTAMP, System.currentTimeMillis());
                 } else {
                     log.error("{} {}: Principal root missing.", msg, this);
                 }
             }
         }
 
-        private void update() {
+        private void update(Set<String> principalNames) {
             for (String principalName: entries.keySet()) {
+                principalNames.add(principalName);
                 NodeBuilder principalRoot = permissionRoot.child(principalName);
                 if (!principalRoot.hasProperty(JCR_PRIMARYTYPE)) {
                     principalRoot.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
@@ -397,6 +405,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 long numEntries = PermissionUtil.getNumPermissions(principalRoot);
                 numEntries+= updateEntries(parent, entries.get(principalName));
                 principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries);
+                principalRoot.setProperty(REP_TIMESTAMP, System.currentTimeMillis());
             }
         }
 
