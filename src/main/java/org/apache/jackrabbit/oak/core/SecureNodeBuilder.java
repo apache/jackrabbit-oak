@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
 import static java.util.Collections.emptyList;
@@ -32,6 +33,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -77,23 +79,25 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     private final NodeBuilder builder;
 
     /**
-     * Internal revision counter for the base state of this builder. The counter
-     * is incremented in the root builder whenever its base state is reset.
-     * Each builder instance has its own copy of this revision counter for
-     * quickly checking whether its security context needs updating
-     * @see #reset(org.apache.jackrabbit.oak.spi.state.NodeState)
-     * @see #securityContext
+     * Security context of this subtree, updated whenever the base revision
+     * changes.
      */
-    private long baseRevision;
+    private SecurityContext securityContext = null; // initialized lazily
 
     /**
-     * Security context of this subtree. Use {@link #getSecurityContext()} for obtaining
-     * an up to date security context.
+     * Possibly outdated reference to the security context of the root
+     * builder. Used to detect when the base state (and thus the security
+     * context) of the root builder has changed, and trigger an update of
+     * the security context of this builder.
+     *
+     * @see #securityContext
      */
-    private SecurityContext securityContext;
+    private SecurityContext rootContext = null; // initialized lazily
 
-    SecureNodeBuilder(@Nonnull NodeBuilder builder,
-            @Nonnull LazyValue<PermissionProvider> permissionProvider, @Nonnull Context acContext) {
+    SecureNodeBuilder(
+            @Nonnull NodeBuilder builder,
+            @Nonnull LazyValue<PermissionProvider> permissionProvider,
+            @Nonnull Context acContext) {
         this.rootBuilder = this;
         this.parent = null;
         this.name = null;
@@ -115,7 +119,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     public NodeState getBaseState() {
         NodeState base = builder.getBaseState();
         if (base != null) { // TODO: should use a missing state instead of null
-            base = new SecureNodeState(base, getSecurityContext()); // TODO: baseContext?
+            base = new SecureNodeState(base, getSecurityContext());
         }
         return base;
     }
@@ -141,8 +145,10 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     }
 
     public void baseChanged() {
-        baseRevision++;
-        securityContext = null;
+        checkState(parent == null);
+        securityContext = null; // trigger re-evaluation of the context
+        rootContext = null;
+        getSecurityContext();   // sets both securityContext and rootContext
     }
 
     @Override
@@ -342,19 +348,21 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     }
 
     /**
-     * Security context of this subtree. This accessor memoises the security context
-     * as long as {@link #reset(NodeState)} has not been called.
+     * Security context of this subtree.
      */
     private SecurityContext getSecurityContext() {
-        if (securityContext == null || rootBuilder.baseRevision != baseRevision) {
+        if (securityContext == null
+                || rootContext != rootBuilder.securityContext) {
+            NodeState base = builder.getBaseState();
             if (parent == null) {
                 securityContext = new SecurityContext(
-                        builder.getNodeState(), permissionProvider.get() , acContext);
+                        base, permissionProvider.get(), acContext);
+                rootContext = securityContext;
             } else {
-                securityContext = parent.getSecurityContext().getChildContext(
-                        name, parent.builder.getChildNode(name).getBaseState());
+                SecurityContext parentContext = parent.getSecurityContext();
+                securityContext = parentContext.getChildContext(name, base);
+                rootContext = parent.rootContext;
             }
-            baseRevision = rootBuilder.baseRevision;
         }
         return securityContext;
     }
