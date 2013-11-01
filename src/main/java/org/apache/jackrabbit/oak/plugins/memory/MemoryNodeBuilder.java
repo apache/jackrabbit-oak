@@ -124,6 +124,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
         this.parent = parent;
         this.name = name;
         this.rootBuilder = parent.rootBuilder;
+        this.baseRevision = parent.baseRevision;
+        this.base = parent.base.getChildNode(name);
         this.head = new UnconnectedHead();
     }
 
@@ -137,8 +139,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         this.name = null;
         this.rootBuilder = this;
 
-        // ensure child builder's base is updated on first access
-        this.baseRevision = 1;
+        this.baseRevision = 0;
         this.base = checkNotNull(base);
 
         this.head = new RootHead();
@@ -524,8 +525,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     private class UnconnectedHead extends Head {
-        private long revision;
-        private NodeState state;
+        private long revision = 0;
+        private NodeState state = base;
 
         @Override
         public Head update() {
@@ -628,8 +629,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private class RootHead extends ConnectedHead {
         public RootHead() {
             super(new MutableNodeState(base));
-            // ensure updating of child builders on first access
-            revision = 1;
         }
 
         @Override

@@ -32,6 +32,10 @@ public class KernelNodeBuilder extends MemoryNodeBuilder implements FastCopyMove
 
     private final KernelRootBuilder root;
 
+    private NodeState base = null;
+
+    protected NodeState rootBase = null;
+
     KernelNodeBuilder(MemoryNodeBuilder parent, String name, KernelRootBuilder root) {
         super(parent, name);
         this.root = checkNotNull(root);
@@ -44,10 +48,13 @@ public class KernelNodeBuilder extends MemoryNodeBuilder implements FastCopyMove
         return new KernelNodeBuilder(this, name, root);
     }
 
-    // TODO optimise this by caching similar to what we do in MemoryNodeBuilder
     @Override
     public NodeState getBaseState() {
-        return getParent().getBaseState().getChildNode(getName());
+        if (base == null || rootBase != root.getBaseState()) {
+            base = getParent().getBaseState().getChildNode(getName());
+            rootBase = root.getBaseState();
+        }
+        return base;
     }
 
     @Override
