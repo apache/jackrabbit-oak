@@ -301,12 +301,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override
     public NodeBuilder getChildNode(@Nonnull String name) {
-        NodeBuilder child = builder.getChildNode(checkNotNull(name));
-        if (child.exists() && !getSecurityContext().canReadAll()) {
-            return new SecureNodeBuilder(this, name);
-        } else {
-            return child;
-        }
+        return new SecureNodeBuilder(this, checkNotNull(name));
     }
 
     @Override
