@@ -131,7 +131,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override
     public boolean exists() {
-        return builder.exists() && getSecurityContext().canReadThisNode(); // TODO: isNew()?
+        return getSecurityContext().canReadThisNode() && builder.exists(); // TODO: isNew()?
     }
 
     @Override
