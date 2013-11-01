@@ -47,6 +47,32 @@ public abstract class ItemDelegate {
     }
 
     /**
+     * Checks whether the session has changed since this delegate instance
+     * was last accessed, thus triggering an {@link #update() update} of the
+     * internal state of this delegate.
+     *
+     * @return {@code true} if the session was recently updated,
+     *         {@code false} if not
+     */
+    protected boolean checkUpdate() {
+        long sessionCount = sessionDelegate.getUpdateCount();
+        if (updateCount != sessionCount) {
+            updateCount = sessionCount;
+            update();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Called by {@link #checkUpdate()} to update the internal state of this
+     * delegate.
+     */
+    protected void update() {
+    }
+
+    /**
      * Performs a sanity check on this item and the associated session.
      *
      * @throws RepositoryException if this item has been rendered invalid
@@ -55,13 +81,9 @@ public abstract class ItemDelegate {
      */
     public synchronized void checkAlive() throws RepositoryException {
         sessionDelegate.checkAlive();
-        long sessionCount = sessionDelegate.getUpdateCount();
-        if (updateCount != sessionCount) {
-            if (!exists()) {
-                throw new InvalidItemStateException(
-                        "This item does not exist anymore : " + getPath());
-            }
-            updateCount = sessionCount;
+        if (checkUpdate() && !exists()) {
+            throw new InvalidItemStateException(
+                    "This item does not exist anymore");
         }
     }
 

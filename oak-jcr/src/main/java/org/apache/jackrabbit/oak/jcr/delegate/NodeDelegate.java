@@ -247,14 +247,18 @@ public class NodeDelegate extends ItemDelegate {
      *         no such property exists
      */
     @CheckForNull
-    public PropertyDelegate getPropertyOrNull(String relPath) throws RepositoryException {
+    public PropertyDelegate getPropertyOrNull(String relPath)
+            throws RepositoryException {
         Tree parent = getTree(PathUtils.getParentPath(relPath));
         String name = PathUtils.getName(relPath);
-        if (parent != null && parent.hasProperty(name)) {
-            return new PropertyDelegate(sessionDelegate, parent, name);
-        } else {
-            return null;
+        if (parent != null) {
+            PropertyDelegate property =
+                    new PropertyDelegate(sessionDelegate, parent, name);
+            if (property.exists()) {
+                return property;
+            }
         }
+        return null;
     }
 
     /**
