@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -40,39 +41,51 @@ public class PropertyDelegate extends ItemDelegate {
     /** The underlying {@link org.apache.jackrabbit.oak.api.Tree} of this property's parent */
     private final Tree parent;
 
+    @Nonnull
     private final String name;
+
+    @CheckForNull
+    private PropertyState state;
 
     PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, String name) {
         super(sessionDelegate);
-        this.parent = parent;
-        this.name = name;
+        this.parent = checkNotNull(parent);
+        this.name = checkNotNull(name);
+        this.state = parent.getProperty(name);
     }
 
+    /**
+     * The session has been updated since the last time this property delegate
+     * was accessed, so we need to re-retrieve the property state to get any
+     * potential updates. It might also be that this property was removed,
+     * in which case the {@link #state} reference will be {@code null}.
+     */
     @Override
-    @Nonnull
+    protected void update() {
+        state = parent.getProperty(name);
+    }
+
+    @Override @Nonnull
     public String getName() {
         return name;
     }
 
-    @Override
-    @Nonnull
+    @Override @Nonnull
     public String getPath() {
         return PathUtils.concat(parent.getPath(), name);
     }
 
-    @Override
-    @CheckForNull
+    @Override @CheckForNull
     public NodeDelegate getParent() {
         return parent.exists() ? new NodeDelegate(sessionDelegate, parent) : null;
     }
 
     @Override
     public boolean exists() {
-        return parent.exists() && parent.hasProperty(name);
+        return state != null;
     }
 
-    @Override
-    @CheckForNull
+    @Override @CheckForNull
     public Status getStatus() {
         return parent.getPropertyStatus(name);
     }
@@ -84,11 +97,12 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Nonnull
     public PropertyState getPropertyState() throws InvalidItemStateException {
-        PropertyState p = parent.getProperty(name);
-        if (p == null) {
-            throw new InvalidItemStateException();
+        if (state != null) {
+            return state;
+        } else {
+            throw new InvalidItemStateException(
+                    "The " + name + " property does not exist");
         }
-        return p;
     }
 
     @Nonnull
@@ -130,8 +144,7 @@ public class PropertyDelegate extends ItemDelegate {
      */
     @Override
     public boolean remove() {
-        boolean exists = parent.hasProperty(name);
-        if (exists) {
+        if (parent.hasProperty(name)) {
             parent.removeProperty(name);
             return true;
         } else {
