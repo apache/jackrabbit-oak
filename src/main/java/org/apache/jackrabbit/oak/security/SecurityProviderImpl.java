@@ -17,11 +17,13 @@
 package org.apache.jackrabbit.oak.security;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionEntryCache;
 import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
@@ -37,6 +39,10 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 public class SecurityProviderImpl implements SecurityProvider {
 
     private final ConfigurationParameters configuration;
+
+    // we only need 1 instance of authorization config.
+    // todo: maybe provide general mechanism to singletons of configs
+    private AuthorizationConfiguration authorizationConfiguration;
 
     public SecurityProviderImpl() {
         this(ConfigurationParameters.EMPTY);
@@ -89,7 +95,10 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     @Nonnull
     private AuthorizationConfiguration getAuthorizationConfiguration() {
-        return new AuthorizationConfigurationImpl(this);
+        if (authorizationConfiguration == null) {
+            authorizationConfiguration = new AuthorizationConfigurationImpl(this);
+        }
+        return authorizationConfiguration;
     }
 
     @Nonnull
