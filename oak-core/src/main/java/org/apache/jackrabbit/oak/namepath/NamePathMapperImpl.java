@@ -140,9 +140,8 @@ public class NamePathMapperImpl implements NamePathMapper {
     }
 
     private String getOakPath(final String jcrPath, final boolean keepIndex) {
-        if ("/".equals(jcrPath)) {
-            // avoid the need to special case the root path later on
-            return "/";
+        if (!needsFullMapping(jcrPath)) {
+            return jcrPath;
         }
 
         int length = jcrPath.length();
@@ -158,23 +157,6 @@ public class NamePathMapperImpl implements NamePathMapper {
                 return null;
             }
             return this.idManager.getPath(jcrPath.substring(1, length - 1));
-        }
-
-        // Shortcut iff the JCR path does not start with a dot, does not contain any of
-        // {}[]/ and if it contains a colon the session does not have local re-mappings.
-        boolean hasLocalMappings = hasSessionLocalMappings();
-        boolean shortcut = length > 0 && jcrPath.charAt(0) != '.';
-        for (int i = 0; shortcut && i < length; i++) {
-            char c = jcrPath.charAt(i);
-            if (c == '{' || c == '}' || c == '[' || c == ']' || c == '/') {
-                shortcut = false;
-            } else if (c == ':') {
-                shortcut = !hasLocalMappings;
-            }
-        }
-
-        if (shortcut) {
-            return jcrPath;
         }
 
         final StringBuilder parseErrors = new StringBuilder();
@@ -231,6 +213,68 @@ public class NamePathMapperImpl implements NamePathMapper {
         // be considered here
         oakPath.deleteCharAt(oakPath.length() - 1);
         return oakPath.toString();
+    }
+
+    /**
+     * Checks if the given path needs to be fully parsed to apply namespace
+     * mappings or to validate its syntax. If the given path is "simple", i.e.
+     * it doesn't contain any complex constructs, and there are no local
+     * namespace remappings, it's possible to skip the full path parsing
+     * and simply use the JCR path string as-is as an Oak path.
+     *
+     * @param path JCR path
+     * @return {@code true} if the path needs to be fully parsed,
+     *         {@code false} if not
+     */
+    private boolean needsFullMapping(String path) {
+        int length = path.length();
+        if (length == 0) {
+            return true;
+        }
+
+        int slash = -1; // index of the last slash in the path
+        int colon = -1; // index of the last colon in the path
+
+        switch (path.charAt(0)) {
+        case '{': // possibly an expanded name
+        case '[': // starts with an identifier
+        case '.': // possibly "." or ".."
+        case ':': // colon as the first character
+            return true;
+        case '/':
+            if (length == 1) {
+                return false; // the root path
+            }
+            slash = 0;
+            break;
+        }
+
+        for (int i = 1; i < length; i++) {
+            switch (path.charAt(i)) {
+            case '{': // possibly an expanded name
+            case '[': // possibly an index
+                return true;
+            case '.':
+                if (i == slash + 1) {
+                    return true; // possibly "." or ".."
+                }
+                break;
+            case ':':
+                if (i == slash + 1 || i == colon + i || i + 1 == length) {
+                    return true; // colon following slash/colon or as last char
+                }
+                colon = i;
+                break;
+            case '/':
+                if (i == slash + 1 || i == colon + i || i + 1 == length) {
+                    return true; // colon following slash/colon or as last char
+                }
+                slash = i;
+                break;
+            }
+        }
+
+        return colon != -1 && hasSessionLocalMappings();
     }
 
     //------------------------------------------------------------< PathListener >---
