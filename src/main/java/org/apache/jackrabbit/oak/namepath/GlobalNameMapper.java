@@ -41,6 +41,19 @@ import static org.apache.jackrabbit.oak.plugins.name.Namespaces.getNamespacePref
  */
 public class GlobalNameMapper implements NameMapper {
 
+    protected static boolean isHiddenName(String name) {
+        return name.startsWith(":");
+    }
+
+    protected static boolean isExpandedName(String name) {
+        if (name.startsWith("{")) {
+            int brace = name.indexOf('}', 1);
+            return brace != -1 && name.substring(1, brace).indexOf(':') != -1;
+        } else {
+            return false;
+        }
+    }
+
     protected final Tree tree;
 
     public GlobalNameMapper(Tree tree) {
@@ -51,8 +64,8 @@ public class GlobalNameMapper implements NameMapper {
     public String getJcrName(@Nonnull String oakName) {
         // Sanity checks, can be turned to assertions if needed for performance
         checkNotNull(oakName);
-        checkArgument(!oakName.startsWith(":")); // hidden name
-        checkArgument(!oakName.startsWith("{")); // expanded name
+        checkArgument(!isHiddenName(oakName), oakName);
+        checkArgument(!isExpandedName(oakName), oakName);
 
         return oakName;
     }
