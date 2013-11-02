@@ -32,6 +32,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -222,9 +223,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @param newBase new base state
      */
     public void reset(NodeState newBase) {
+        checkState(parent == null);
         base = checkNotNull(newBase);
-        baseRevision++;
-        head().setState(newBase);
+        baseRevision = rootHead().setState(newBase) + 1;
     }
 
     /**
@@ -234,8 +235,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @param newHead new head state
      */
     protected void set(NodeState newHead) {
-        baseRevision++; // this forces all sub-builders to refresh their heads
-        head().setState(newHead);
+        checkState(parent == null);
+        // updating the base revision forces all sub-builders to refresh
+        baseRevision = rootHead().setState(newHead);
     }
 
     //--------------------------------------------------------< NodeBuilder >---
@@ -518,14 +520,10 @@ public class MemoryNodeBuilder implements NodeBuilder {
          */
         public abstract boolean isModified();
 
-        public void setState(NodeState state) {
-            throw new IllegalStateException("Cannot set the state of a non-root builder");
-        }
-
     }
 
     private class UnconnectedHead extends Head {
-        private long revision = 0;
+        private long revision = baseRevision;
         private NodeState state = base;
 
         @Override
@@ -636,10 +634,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
             return this;
         }
 
-        @Override
-        public final void setState(NodeState state) {
+        public final long setState(NodeState state) {
             this.state = new MutableNodeState(state);
-            revision++;
+            // To be able to make a distinction between set() and reset(), we
+            revision++;          // increment the revision twice and
+            return revision++;   // return the intermediate value
         }
 
     }
