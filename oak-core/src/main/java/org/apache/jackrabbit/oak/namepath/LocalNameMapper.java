@@ -35,15 +35,6 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
         super(tree);
     }
 
-    private static boolean isExpandedName(String name) {
-        if (name.startsWith("{")) {
-            int brace = name.indexOf('}', 1);
-            return brace != -1 && name.substring(1, brace).indexOf(':') != -1;
-        } else {
-            return false;
-        }
-    }
-
     @Override @CheckForNull
     public String getJcrName(String oakName) {
         checkNotNull(oakName);
