@@ -260,14 +260,19 @@ public class NamePathMapperImpl implements NamePathMapper {
                 }
                 break;
             case ':':
-                if (i == slash + 1 || i == colon + i || i + 1 == length) {
-                    return true; // colon following slash/colon or as last char
+                if (i == slash + 1              // "x/:y"
+                        || i == colon + i       // "x::y"
+                        || colon > slash        // "x:y:z"
+                        || i + 1 == length) {   // "x:"
+                    return true;
                 }
                 colon = i;
                 break;
             case '/':
-                if (i == slash + 1 || i == colon + i || i + 1 == length) {
-                    return true; // colon following slash/colon or as last char
+                if (i == slash + 1              // "x//y"
+                        || i == colon + i       // "x:/y"
+                        || i + 1 == length) {   // "x/"
+                    return true;
                 }
                 slash = i;
                 break;
