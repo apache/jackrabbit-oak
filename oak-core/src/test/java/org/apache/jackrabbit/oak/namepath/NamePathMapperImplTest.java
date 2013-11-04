@@ -160,8 +160,14 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testInvalidJcrPaths() {
-        String[] paths = {"//", "/foo//", "/..//", "/..", "/foo/../.."};
-
+        String[] paths = {
+                "//",
+                "/foo//",
+                "/..//",
+                "/..",
+                "/foo/../..",
+                "foo::bar",
+                "foo:bar:baz" };
         for (String path : paths) {
             assertNull(npMapper.getOakPath(path));
         }
