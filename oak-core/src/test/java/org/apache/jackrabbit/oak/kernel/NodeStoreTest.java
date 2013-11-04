@@ -43,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -138,14 +137,17 @@ public class NodeStoreTest {
 
     @Test
     public void afterCommitHook() throws CommitFailedException {
-        // this test only works with a KernelNodeStore
-        assumeTrue(store instanceof KernelNodeStore);
+        // FIXME OAK-1131
+        assumeTrue(fixture != NodeStoreFixture.MONGO_NS);
+
         final NodeState[] states = new NodeState[2]; // { before, after }
-        ((KernelNodeStore) store).setObserver(new Observer() {
+        fixture.setObserver(new Observer() {
             @Override
             public void contentChanged(NodeState before, NodeState after) {
-                states[0] = before;
-                states[1] = after;
+                if (!before.equals(after)) {
+                    states[0] = before;
+                    states[1] = after;
+                }
             }
         });
 
@@ -368,7 +370,7 @@ public class NodeStoreTest {
 
     @Test
     public void moveToDescendant() throws CommitFailedException {
-        Assume.assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);  // FIXME OAK-1114
+        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);  // FIXME OAK-1114
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
         assertFalse(x.moveTo(x, "xx"));

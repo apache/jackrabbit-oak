@@ -58,17 +58,25 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
-    public SegmentNodeStore(SegmentStore store, String journal) {
+    public SegmentNodeStore(SegmentStore store, String journal, Observer observer) {
         this.store = store;
         this.journal = store.getJournal(journal);
-        this.observer = EmptyObserver.INSTANCE;
+        this.observer = observer;
         this.head = new SegmentNodeState(
                 store.getWriter().getDummySegment(), this.journal.getHead());
         this.changeDispatcher = new ChangeDispatcher(this);
     }
 
+    public SegmentNodeStore(SegmentStore store, String journal) {
+        this(store, journal, EmptyObserver.INSTANCE);
+    }
+
     public SegmentNodeStore(SegmentStore store) {
         this(store, "root");
+    }
+
+    public SegmentNodeStore(SegmentStore store, Observer observer) {
+        this(store, "root", observer);
     }
 
     void setMaximumBackoff(long max) {

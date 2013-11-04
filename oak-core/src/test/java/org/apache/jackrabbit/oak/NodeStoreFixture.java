@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static org.apache.jackrabbit.oak.kernel.KernelNodeStore.DEFAULT_CACHE_SIZE;
+
 import java.io.Closeable;
 import java.io.IOException;
 
@@ -27,6 +29,8 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
@@ -35,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 public abstract class NodeStoreFixture {
 
     public static final NodeStoreFixture SEGMENT_MK = new NodeStoreFixture() {
+        private final ResettableObserver observer = new ResettableObserver();
+
         @Override
         public String toString() {
             return "SegmentMK Fixture";
@@ -42,15 +48,22 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            return new SegmentNodeStore(new MemoryStore());
+            return new SegmentNodeStore(new MemoryStore(), observer);
         }
 
         @Override
         public void dispose(NodeStore nodeStore) {
         }
+
+        @Override
+        public void setObserver(Observer observer) {
+            this.observer.setObserver(observer);
+        }
     };
 
     public static final NodeStoreFixture MONGO_MK = new NodeStoreFixture() {
+        private final ResettableObserver observer = new ResettableObserver();
+
         @Override
         public String toString() {
             return "MongoMK Fixture";
@@ -58,7 +71,7 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            return new CloseableNodeStore(new MongoMK.Builder().open());
+            return new CloseableNodeStore(new MongoMK.Builder().open(), observer);
         }
 
         @Override
@@ -71,9 +84,16 @@ public abstract class NodeStoreFixture {
                 }
             }
         }
+
+        @Override
+        public void setObserver(Observer observer) {
+            this.observer.setObserver(observer);
+        }
     };
 
     public static final NodeStoreFixture MONGO_NS = new NodeStoreFixture() {
+        private final ResettableObserver observer = new ResettableObserver();
+
         @Override
         public String toString() {
             return "MongoNS Fixture";
@@ -90,9 +110,16 @@ public abstract class NodeStoreFixture {
                 ((MongoNodeStore) nodeStore).dispose();
             }
         }
+
+        @Override
+        public void setObserver(Observer observer) {
+            this.observer.setObserver(observer);
+        }
     };
 
     public static final NodeStoreFixture MK_IMPL = new NodeStoreFixture() {
+        private final ResettableObserver observer = new ResettableObserver();
+
         @Override
         public String toString() {
             return "MKImpl Fixture";
@@ -100,11 +127,16 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            return new KernelNodeStore(new MicroKernelImpl());
+            return new KernelNodeStore(new MicroKernelImpl(), DEFAULT_CACHE_SIZE, observer);
         }
 
         @Override
         public void dispose(NodeStore nodeStore) {
+        }
+
+        @Override
+        public void setObserver(Observer observer) {
+            this.observer.setObserver(observer);
         }
     };
 
@@ -112,19 +144,36 @@ public abstract class NodeStoreFixture {
 
     public abstract void dispose(NodeStore nodeStore);
 
+    public abstract void setObserver(Observer observer);
+
     private static class CloseableNodeStore
             extends KernelNodeStore implements Closeable {
 
         private final MongoMK kernel;
 
-        public CloseableNodeStore(MongoMK kernel) {
-            super(kernel);
+        public CloseableNodeStore(MongoMK kernel, Observer observer) {
+            super(kernel, DEFAULT_CACHE_SIZE, observer);
             this.kernel = kernel;
         }
 
         @Override
         public void close() throws IOException {
             kernel.dispose();
+        }
+    }
+
+    private static class ResettableObserver implements Observer {
+        private Observer observer;
+
+        @Override
+        public void contentChanged(NodeState before, NodeState after) {
+            if (observer != null) {
+                observer.contentChanged(before, after);
+            }
+        }
+
+        public void setObserver(Observer observer) {
+            this.observer = observer;
         }
     }
 }
