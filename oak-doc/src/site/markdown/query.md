@@ -41,6 +41,20 @@ Every conversion is logged in `debug` level under the
 
 _Each transformed SQL2 query contains the original XPath query as a comment._
 
+### Compatibility
+
+The query parser is now generally more strict about invalid syntax.
+The following query used to work in Jackrabbit 2.x, but not in Oak,
+because multiple way to quote the path are used at the same time:
+
+    SELECT * FROM [nt:base] AS s 
+    WHERE ISDESCENDANTNODE(s, ["/libs/sling/config"])
+    
+Instead, the query now needs to be:
+
+    SELECT * FROM [nt:base] AS s 
+    WHERE ISDESCENDANTNODE(s, [/libs/sling/config])
+
 ### Query Processing
 
 Internally, the query engine uses a cost based query optimizer that asks all the available
