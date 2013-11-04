@@ -115,13 +115,9 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
         this.builder = parent.builder.getChildNode(name);
     }
 
-    @Override @CheckForNull
+    @Override @Nonnull
     public NodeState getBaseState() {
-        NodeState base = builder.getBaseState();
-        if (base != null) { // TODO: should use a missing state instead of null
-            base = new SecureNodeState(base, getSecurityContext());
-        }
-        return base;
+        return new SecureNodeState(builder.getBaseState(), getSecurityContext());
     }
 
     @Override @Nonnull
