@@ -290,6 +290,9 @@ public final class MongoNodeStore
             n = new Node("/", headRevision);
             commit.addNode(n);
             commit.applyToDocumentStore();
+            commit.applyToCache(false);
+            // make sure _lastRev is written back to store
+            backgroundWrite();
         } else {
             // initialize branchCommits
             branches.init(store, this);
@@ -302,10 +305,6 @@ public final class MongoNodeStore
     }
 
     public void dispose() {
-        // force background write (with asyncDelay > 0, the root wouldn't be written)
-        // TODO make this more obvious / explicit
-        // TODO tests should also work if this is not done
-        asyncDelay = 0;
         runBackgroundOperations();
         if (!isDisposed.getAndSet(true)) {
             synchronized (isDisposed) {
@@ -658,26 +657,18 @@ public final class MongoNodeStore
             Revision branchRev = rev.asBranchRevision();
             unsaved = branches.getBranch(branchRev).getModifications(branchRev);
         }
-        // track unsaved modifications of nodes that were not
-        // written in the commit (implicitly modified parent)
-        // or any modification if this is a branch commit
-        if (!isWritten || isBranchCommit) {
-            Revision prev = unsaved.put(path, rev);
-            if (prev != null) {
-                if (isRevisionNewer(prev, rev)) {
-                    // revert
-                    unsaved.put(path, prev);
-                    String msg = String.format("Attempt to update " +
-                            "unsavedLastRevision for %s with %s, which is " +
-                            "older than current %s.",
-                            path, rev, prev);
-                    throw new MicroKernelException(msg);
-                }
+        // write back _lastRev with background thread
+        Revision prev = unsaved.put(path, rev);
+        if (prev != null) {
+            if (isRevisionNewer(prev, rev)) {
+                // revert
+                unsaved.put(path, prev);
+                String msg = String.format("Attempt to update " +
+                        "unsavedLastRevision for %s with %s, which is " +
+                        "older than current %s.",
+                        path, rev, prev);
+                throw new MicroKernelException(msg);
             }
-        } else {
-            // the document was updated:
-            // we no longer need to update it in a background process
-            unsaved.remove(path);
         }
         String key = path + "@" + rev;
         Node.Children c = nodeChildrenCache.getIfPresent(key);
@@ -1113,7 +1104,6 @@ public final class MongoNodeStore
 
         });
 
-        long now = Revision.getCurrentTimestamp();
         UpdateOp updateOp = null;
         Revision lastRev = null;
         List<String> ids = new ArrayList<String>();
@@ -1121,12 +1111,6 @@ public final class MongoNodeStore
             String p = paths.get(i);
             Revision r = unsavedLastRevisions.get(p);
             if (r == null) {
-                continue;
-            }
-            // FIXME: with below code fragment the root (and other nodes
-            // 'close' to the root) will not be updated in MongoDB when there
-            // are frequent changes.
-            if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
                 continue;
             }
             int size = ids.size();
