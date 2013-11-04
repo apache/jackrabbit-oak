@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-USERS="false true"
+ADMIN="false true"
 RUNTIME=10
 #BENCH=ConcurrentReadAccessControlledTreeTest
 BENCH=ManyUserReadTest
@@ -28,16 +28,16 @@ NUM_ITEMS=10000
 LOG=$BENCH"_$(date +'%Y%m%d_%H%M%S').csv"
 echo "Benchmarks: $BENCH" > $LOG
 echo "Fixtures: $FIXS" >> $LOG
-echo "Users: $USERS" >> $LOG
+echo "Admin User: $ADMIN" >> $LOG
 echo "Runtime: $RUNTIME" >> $LOG
 echo "Num Items: $NUM_ITEMS" >> $LOG
 echo "Concurrency: $THREADS" >> $LOG
 echo "Random User: $RANDOM_USER" >> $LOG
 echo "Profiling: $PROFILE" >> $LOG
 echo "--------------------------------------" >> $LOG
-for user in $USERS
+for user in $ADMIN
     do
-    # we start new VMs for each fixture to minmize memory impacts between them
+    # we start new VMs for each fixture to minimize memory impacts between them
     for fix in $FIXS
 	do
         echo "Executing benchmarks as admin: $user on $fix" | tee -a $LOG
