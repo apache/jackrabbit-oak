@@ -204,11 +204,6 @@ public class Commit {
         UpdateOp commitRoot = getUpdateOperationForNode(commitRootPath);
         for (String p : operations.keySet()) {
             UpdateOp op = operations.get(p);
-            if (baseBranchRevision == null) {
-                // only apply _lastRev for trunk commits, _lastRev for
-                // branch commits only become visible on merge
-                NodeDocument.setLastRev(op, revision);
-            }
             if (op.isNew()) {
                 NodeDocument.setDeleted(op, revision, false);
             }
