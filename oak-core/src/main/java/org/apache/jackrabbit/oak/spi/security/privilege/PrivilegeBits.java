@@ -121,8 +121,12 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * @return a new instance of privilege bits.
      */
     @Nonnull
-    public static PrivilegeBits getInstance(@Nonnull PrivilegeBits base) {
-        return new PrivilegeBits(new ModifiableData(base.d));
+    public static PrivilegeBits getInstance(@Nonnull PrivilegeBits... base) {
+        PrivilegeBits bts = getInstance();
+        for (PrivilegeBits baseBits : base) {
+            bts.add(baseBits);
+        }
+        return bts;
     }
 
     /**
@@ -491,8 +495,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
         abstract boolean includes(Data other);
 
-        abstract boolean includes(long permissions);
-
         /**
          * Checks if all {@code otherBits} is already included in {@code bits}.
          * <p>
@@ -619,11 +621,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
             }
         }
 
-        @Override
-        boolean includes(long permissions) {
-            return (isSimple) ? (bits & permissions) == permissions : (bitsArr[0] & permissions) == permissions;
-        }
-
         //---------------------------------------------------------< Object >---
         @Override
         public int hashCode() {
@@ -711,11 +708,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
             } else {
                 return includes(bits, other.longValues());
             }
-        }
-
-        @Override
-        boolean includes(long permissions) {
-            return (bits[0] & permissions) == permissions;
         }
 
         /**
