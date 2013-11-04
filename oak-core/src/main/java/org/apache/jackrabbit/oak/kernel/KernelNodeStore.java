@@ -34,7 +34,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -56,8 +55,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
  * {@code NodeStore} implementations against {@link MicroKernel}.
  */
 public class KernelNodeStore implements NodeStore, Observable {
-
-    private static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
+    public static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
 
     /**
      * The {@link MicroKernel} instance used to store the content tree.
@@ -68,7 +66,7 @@ public class KernelNodeStore implements NodeStore, Observable {
      * Change observer.
      */
     @Nonnull
-    private volatile Observer observer = EmptyObserver.INSTANCE;
+    private final Observer observer;
 
     private final LoadingCache<String, KernelNodeState> cache;
 
@@ -86,8 +84,9 @@ public class KernelNodeStore implements NodeStore, Observable {
      */
     private KernelNodeState root;
 
-    public KernelNodeStore(final MicroKernel kernel, long cacheSize) {
+    public KernelNodeStore(final MicroKernel kernel, long cacheSize, Observer observer) {
         this.kernel = checkNotNull(kernel);
+        this.observer = observer;
 
         Weigher<String, KernelNodeState> weigher = new Weigher<String, KernelNodeState>() {
             @Override
@@ -130,12 +129,12 @@ public class KernelNodeStore implements NodeStore, Observable {
         changeDispatcher = new ChangeDispatcher(this);
     }
 
-    public KernelNodeStore(MicroKernel kernel) {
-        this(kernel, DEFAULT_CACHE_SIZE);
+    public KernelNodeStore(MicroKernel kernel, long cacheSize) {
+        this(kernel, cacheSize, EmptyObserver.INSTANCE);
     }
 
-    public void setObserver(@Nonnull Observer observer) {
-        this.observer = checkNotNull(observer);
+    public KernelNodeStore(MicroKernel kernel) {
+        this(kernel, DEFAULT_CACHE_SIZE, EmptyObserver.INSTANCE);
     }
 
     /**
