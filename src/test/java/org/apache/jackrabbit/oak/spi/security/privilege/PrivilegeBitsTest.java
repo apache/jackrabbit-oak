@@ -485,9 +485,7 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
                 PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ_ACCESS_CONTROL),
                 PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT));
 
-        assertNotSame(pb, pb2);
         assertEquivalent(pb, pb2);
-        assertSame(pb.unmodifiable(), pb2.unmodifiable());
     }
 
     @Test
