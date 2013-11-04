@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -46,6 +48,7 @@ class MongoRootBuilder extends MongoNodeBuilder {
      * This differs from the base state of super since the latter one reflects
      * the base created by the last purge.
      */
+    @Nonnull
     private NodeState base;
 
     /**
@@ -68,14 +71,14 @@ class MongoRootBuilder extends MongoNodeBuilder {
     //--------------------------------------------------< MemoryNodeBuilder >---
 
 
-    @Override
+    @Override @Nonnull
     public NodeState getBaseState() {
         return base;
     }
 
     @Override
-    public void reset(NodeState newBase) {
-        base = newBase;
+    public void reset(@Nonnull NodeState newBase) {
+        base = checkNotNull(newBase);
         super.reset(newBase);
     }
 

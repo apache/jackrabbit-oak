@@ -108,6 +108,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * The base state of this builder, possibly non-existent if this builder
      * represents a new node that didn't yet exist in the base content tree.
      */
+    @Nonnull
     private NodeState base;
 
     /**
@@ -222,7 +223,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      *
      * @param newBase new base state
      */
-    public void reset(NodeState newBase) {
+    public void reset(@Nonnull NodeState newBase) {
         checkState(parent == null);
         base = checkNotNull(newBase);
         baseRevision = rootHead().setState(newBase) + 1;
@@ -242,12 +243,12 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     //--------------------------------------------------------< NodeBuilder >---
 
-    @Override
+    @Override @Nonnull
     public NodeState getNodeState() {
         return head().getImmutableNodeState();
     }
 
-    @Override
+    @Override @Nonnull
     public NodeState getBaseState() {
         return base();
     }

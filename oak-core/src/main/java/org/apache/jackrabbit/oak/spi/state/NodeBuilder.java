@@ -84,12 +84,13 @@ public interface NodeBuilder {
 
     /**
      * Returns the original base state that this builder is modifying.
-     * Returns {@code null} if this builder represents a new node that
+     * The return value may be non-existent (i.e. its {@code exists} method
+     * returns {@code false}) if this builder represents a new node that
      * didn't exist in the base content tree.
      *
-     * @return base node state, or {@code null}
+     * @return base node state, possibly non-existent
      */
-    @CheckForNull
+    @Nonnull
     NodeState getBaseState();
 
     /**
