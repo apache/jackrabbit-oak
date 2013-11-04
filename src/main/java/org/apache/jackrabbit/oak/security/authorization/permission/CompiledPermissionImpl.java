@@ -645,13 +645,14 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private static final int THIS = 1;
         private static final int PROPERTIES = 2;
         private static final int CHILD_NODES = 4;
+        private static final int THIS_PROPERTIES = THIS | PROPERTIES;
         private static final int ALL = THIS | PROPERTIES | CHILD_NODES;
 
         private static final ReadStatus ALLOW_THIS = new ReadStatus(THIS, true);
-        private static final ReadStatus ALLOW_PROPERTIES = new ReadStatus(PROPERTIES, true);
+        private static final ReadStatus ALLOW_THIS_PROPERTIES = new ReadStatus(THIS_PROPERTIES, true);
         private static final ReadStatus ALLOW_ALL = new ReadStatus(ALL, true);
         private static final ReadStatus DENY_THIS = new ReadStatus(THIS, false);
-        private static final ReadStatus DENY_PROPERTIES = new ReadStatus(PROPERTIES, false);
+        private static final ReadStatus DENY_THIS_PROPERTIES = new ReadStatus(THIS_PROPERTIES, false);
         private static final ReadStatus DENY_ALL = new ReadStatus(ALL, false);
 
         private static final PrivilegeBits READ_BITS = PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ);
@@ -668,17 +669,20 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private static ReadStatus create(PermissionEntry pe, long permission) {
             // best effort: read status is only calculated if the first matching
             // entry doesn't define any restrictions and it's a regular tree
-            if (pe.restriction == RestrictionPattern.EMPTY &&
-                    permission != Permissions.READ_ACCESS_CONTROL) {
-                if (pe.privilegeBits.includes(READ_BITS)) {
-                    return (pe.isAllow) ? ALLOW_ALL : DENY_ALL;
-                } else if (pe.privilegeBits.includes(READ_PROPERTIES_BITS)) {
-                    return (pe.isAllow) ? ALLOW_PROPERTIES : DENY_PROPERTIES;
+            if (permission == Permissions.READ_ACCESS_CONTROL) {
+                return (pe.isAllow) ? ALLOW_THIS : DENY_THIS;
+            } else {
+                if (pe.restriction == RestrictionPattern.EMPTY) {
+                    if (pe.privilegeBits.includes(READ_BITS)) {
+                        return (pe.isAllow) ? ALLOW_ALL : DENY_ALL;
+                    } else if (pe.privilegeBits.includes(READ_PROPERTIES_BITS)) {
+                        return (pe.isAllow) ? ALLOW_THIS_PROPERTIES : DENY_THIS_PROPERTIES;
+                    } else {
+                        return (pe.isAllow) ? ALLOW_THIS : DENY_THIS;
+                    }
                 } else {
                     return (pe.isAllow) ? ALLOW_THIS : DENY_THIS;
                 }
-            } else {
-                return (pe.isAllow) ? ALLOW_THIS : DENY_THIS;
             }
         }
 
