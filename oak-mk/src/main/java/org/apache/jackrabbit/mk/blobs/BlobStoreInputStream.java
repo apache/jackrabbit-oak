@@ -27,12 +27,12 @@ import java.io.InputStream;
  */
 public class BlobStoreInputStream extends InputStream {
 
-    private final AbstractBlobStore store;
+    private final BlobStore store;
     private final String id;
     private long pos;
     private byte[] oneByteBuff;
 
-    public BlobStoreInputStream(AbstractBlobStore store, String id, long pos) {
+    public BlobStoreInputStream(BlobStore store, String id, long pos) {
         this.store = store;
         this.id = id;
         this.pos = pos;
