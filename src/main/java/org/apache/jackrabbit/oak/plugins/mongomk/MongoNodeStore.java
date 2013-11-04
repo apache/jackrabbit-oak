@@ -49,6 +49,7 @@ import com.google.common.cache.Cache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -113,15 +114,15 @@ public final class MongoNodeStore
     protected final ChangeDispatcher dispatcher;
 
     /**
-     * Whether this instance is disposed.
-     */
-    private final AtomicBoolean isDisposed = new AtomicBoolean();
-
-    /**
      * The delay for asynchronous operations (delayed commit propagation and
      * cache update).
      */
     protected int asyncDelay = 1000;
+
+    /**
+     * Whether this instance is disposed.
+     */
+    private final AtomicBoolean isDisposed = new AtomicBoolean();
 
     /**
      * The cluster instance info.
@@ -219,8 +220,14 @@ public final class MongoNodeStore
      */
     private final Cache<String, NodeDocument.Children> docChildrenCache;
     private final CacheStats docChildrenCacheStats;
+    
+    /**
+     * The MongoDB blob store.
+     */
+    private final BlobStore blobStore;
 
     public MongoNodeStore(MongoMK.Builder builder) {
+        this.blobStore = builder.getBlobStore();
         if (builder.isUseSimpleRevision()) {
             this.simpleRevisionCounter = new AtomicInteger(0);
         }
@@ -475,7 +482,7 @@ public final class MongoNodeStore
      *          given revision.
      */
     @CheckForNull
-    Node getNode(final @Nonnull String path, final @Nonnull Revision rev) {
+    Node getNode(@Nonnull final String path, @Nonnull final Revision rev) {
         checkRevisionAge(checkNotNull(rev), checkNotNull(path));
         try {
             String key = path + "@" + rev;
@@ -855,8 +862,7 @@ public final class MongoNodeStore
      */
     @Nonnull
     Blob getBlob(String blobId) {
-        // TODO: implement blob handling
-        return null;
+        return new MongoBlob(blobStore, blobId);
     }
 
     //------------------------< Observable >------------------------------------
@@ -896,8 +902,15 @@ public final class MongoNodeStore
 
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
-        // TODO: implement
-        return null;
+        String id;
+        try {
+            id = blobStore.writeBlob(inputStream);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Could not write blob", e);
+        }
+        return new MongoBlob(blobStore, id);
     }
 
     @Nonnull
@@ -1229,4 +1242,9 @@ public final class MongoNodeStore
             }
         }
     }
+
+    public BlobStore getBlobStore() {
+        return blobStore;
+    }
+    
 }
