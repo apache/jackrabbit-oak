@@ -19,20 +19,11 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
-
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.util.TreeUtil;
-
 /**
- * <code>PermissionEntries</code> holds the permission entries of one principal
+ * {@code PermissionEntries} holds the permission entries of one principal
  */
 public class PrincipalPermissionEntries {
 
