@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
- * <code>PermissionStoreImpl</code>...
+ * {@code PermissionStoreImpl}...
  */
 public class PermissionStoreImpl implements PermissionStore {
 
