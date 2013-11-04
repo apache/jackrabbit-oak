@@ -80,11 +80,6 @@ public class MongoMK implements MicroKernel {
     protected final DocumentStore store;
 
     /**
-     * The MongoDB blob store.
-     */
-    private final BlobStore blobStore;
-
-    /**
      * Diff cache.
      */
     private final Cache<String, Diff> diffCache;
@@ -93,7 +88,6 @@ public class MongoMK implements MicroKernel {
     MongoMK(Builder builder) {
         this.nodeStore = builder.getNodeStore();
         this.store = nodeStore.getDocumentStore();
-        this.blobStore = builder.getBlobStore();
 
         diffCache = builder.buildCache(builder.getDiffCacheSize());
         diffCacheStats = new CacheStats(diffCache, "MongoMk-DiffCache",
@@ -453,7 +447,7 @@ public class MongoMK implements MicroKernel {
     @Override
     public long getLength(String blobId) throws MicroKernelException {
         try {
-            return blobStore.getBlobLength(blobId);
+            return nodeStore.getBlob(blobId).length();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
@@ -463,7 +457,7 @@ public class MongoMK implements MicroKernel {
     public int read(String blobId, long pos, byte[] buff, int off, int length)
             throws MicroKernelException {
         try {
-            return blobStore.readBlob(blobId, pos, buff, off, length);
+            return nodeStore.getBlobStore().readBlob(blobId, pos, buff, off, length);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
@@ -472,7 +466,7 @@ public class MongoMK implements MicroKernel {
     @Override
     public String write(InputStream in) throws MicroKernelException {
         try {
-            return blobStore.writeBlob(in);
+            return nodeStore.getBlobStore().writeBlob(in);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
