@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -32,10 +34,11 @@ import org.apache.jackrabbit.oak.api.Type;
  */
 public class ReadOnlyBuilder implements NodeBuilder {
 
+    @Nonnull
     private final NodeState state;
 
-    public ReadOnlyBuilder(NodeState state) {
-        this.state = state;
+    public ReadOnlyBuilder(@Nonnull NodeState state) {
+        this.state = checkNotNull(state);
     }
 
     protected RuntimeException unsupported() {
@@ -57,12 +60,12 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return false;
     }
 
-    @Override
+    @Override @Nonnull
     public NodeState getNodeState() {
         return state;
     }
 
-    @Override
+    @Override @Nonnull
     public NodeState getBaseState() {
         return state;
     }
