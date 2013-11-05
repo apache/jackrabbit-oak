@@ -37,6 +37,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class JsonSerializer {
 
+    private static final JsonFilter DEFAULT_FILTER =
+            new JsonFilter("{\"properties\":[\"*\", \"-:childNodeCount\"]}");
+
     private final JsopBuilder json;
 
     private final int depth;
@@ -69,8 +72,7 @@ public class JsonSerializer {
 
     public JsonSerializer(JsopBuilder json, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
-                new JsonFilter("{\"properties\":[\"*\", \"-:childNodeCount\"]}"),
-                blobs);
+                DEFAULT_FILTER, blobs);
     }
 
     protected JsonSerializer getChildSerializer() {
