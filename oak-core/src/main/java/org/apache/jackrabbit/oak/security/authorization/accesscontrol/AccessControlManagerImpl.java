@@ -696,11 +696,11 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     private class NodeACL extends ACL {
 
         NodeACL(@Nullable String oakPath) {
-            super(oakPath, namePathMapper);
+            this(oakPath, null);
         }
 
         NodeACL(@Nullable String oakPath, @Nullable List<ACE> entries) {
-            super(oakPath, entries, namePathMapper);
+            super(oakPath, entries, namePathMapper, principalManager, privilegeManager, bitsProvider);
         }
 
         @Nonnull
@@ -710,23 +710,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
 
         @Override
-        PrincipalManager getPrincipalManager() {
-            return principalManager;
-        }
-
-        @Override
-        PrivilegeManager getPrivilegeManager() {
-            return privilegeManager;
-        }
-
-        @Override
-        PrivilegeBitsProvider getPrivilegeBitsProvider() {
-            return bitsProvider;
-        }
-
-        @Override
-        ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException {
-            return new Entry(principal, privilegeBits, isAllow, restrictions, namePathMapper);
+        ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException {
+            return new Entry(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
         }
 
         @Override
@@ -760,7 +745,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         private PrincipalACL(@Nullable String oakPath, @Nonnull Principal principal,
                              @Nullable List<ACE> entries,
                              @Nonnull RestrictionProvider restrictionProvider) {
-            super(oakPath, entries, namePathMapper);
+            super(oakPath, entries, namePathMapper, principalManager, privilegeManager, bitsProvider);
             this.principal = principal;
             rProvider = restrictionProvider;
         }
@@ -772,23 +757,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
 
         @Override
-        PrincipalManager getPrincipalManager() {
-            return principalManager;
-        }
-
-        @Override
-        PrivilegeManager getPrivilegeManager() {
-            return privilegeManager;
-        }
-
-        @Override
-        PrivilegeBitsProvider getPrivilegeBitsProvider() {
-            return bitsProvider;
-        }
-
-        @Override
-        ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException {
-            return new Entry(principal, privilegeBits, isAllow, restrictions, namePathMapper);
+        ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException {
+            return new Entry(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
         }
 
         @Override

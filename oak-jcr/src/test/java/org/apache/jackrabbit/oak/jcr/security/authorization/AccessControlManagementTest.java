@@ -33,7 +33,6 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.util.Text;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

@@ -50,7 +50,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -71,7 +70,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -178,24 +176,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     private ACL createPolicy(@Nullable String path) {
         final PrincipalManager pm = getPrincipalManager(root);
         final RestrictionProvider rp = getRestrictionProvider();
-        return new ACL(path, getNamePathMapper()) {
-            @Override
-            PrincipalManager getPrincipalManager() {
-                return pm;
-            }
+        return new ACL(path, null, getNamePathMapper(), pm, AccessControlManagerImplTest.this.getPrivilegeManager(root), getBitsProvider()) {
 
             @Override
-            PrivilegeManager getPrivilegeManager() {
-                return AccessControlManagerImplTest.this.getPrivilegeManager(root);
-            }
-
-            @Override
-            PrivilegeBitsProvider getPrivilegeBitsProvider() {
-                return new PrivilegeBitsProvider(root);
-            }
-
-            @Override
-            ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException {
+            ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) {
                 throw new UnsupportedOperationException();
             }
 
