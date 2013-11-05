@@ -16,18 +16,31 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+
 /**
- * <code>PermissionEntryCache</code> caches the permission entries of principals. The cache is held globally and contains
+ * {@code PermissionEntryCache} caches the permission entries of principals. The cache is held globally and contains
  * a version of the principal permission entries of the session that read them last. each session gets a lazy copy of
  * the cache and needs to verify if each cached principal permission set still reflects the state that the session sees.
  * every newly loaded principal permission set can be pushed down to the base cache if it does not exist there yet, or
  * if it's newer.
+ *
+ * Todo:
+ * - currently only the entries of 'everyone' are globally cached. this should be improved to dynamically cache those
+ *   principals that are used often
+ * - report cache usage metrics
+ * - limit size of local caches based on ppe sizes. the current implementation loads all ppes. this can get a memory
+ *   problem, as well as a performance problem for principals with many entries. principals with many entries must
+ *   fallback to the direct store.load() methods when providing the entries. if those principals with many entries
+ *   are used often, they might get elected to live in the global cache; memory permitting.
  */
 public class PermissionEntryCache {
 
@@ -66,19 +79,45 @@ public class PermissionEntryCache {
                 }
             }
 
-            // check if base cache has the entries
-            PrincipalPermissionEntries baseppe = base.get(principalName);
-            if (baseppe == null || ppe.getTimestamp() > baseppe.getTimestamp()) {
-                base.put(principalName, ppe);
+            // currently we only cache 'everyones' entries. but the cache should dynamically cache the principals
+            // that are used often.
+            if (EveryonePrincipal.NAME.equals(principalName)) {
+                // check if base cache has the entries
+                PrincipalPermissionEntries baseppe = base.get(principalName);
+                if (baseppe == null || ppe.getTimestamp() > baseppe.getTimestamp()) {
+                    base.put(principalName, ppe);
+                }
             }
             return ppe;
         }
 
+        public void load(PermissionStore store, Map<String, Collection<PermissionEntry>> pathEntryMap, String principalName) {
+            // todo: conditionally load entries if too many
+            PrincipalPermissionEntries ppe = getEntries(store, principalName);
+            for (Map.Entry<String, Collection<PermissionEntry>> e: ppe.getEntries().entrySet()) {
+                Collection<PermissionEntry> pathEntries = pathEntryMap.get(e.getKey());
+                if (pathEntries == null) {
+                    pathEntries = new TreeSet<PermissionEntry>(e.getValue());
+                    pathEntryMap.put(e.getKey(), pathEntries);
+                } else {
+                    pathEntries.addAll(e.getValue());
+                }
+            }
+        }
+
+        public void load(PermissionStore store, Collection<PermissionEntry> ret, String principalName, String path) {
+            // todo: conditionally load entries if too many
+            PrincipalPermissionEntries ppe = getEntries(store, principalName);
+            ret.addAll(ppe.getEntries(path));
+        }
+
         public boolean hasEntries(PermissionStore store, String principalName) {
+            // todo: conditionally load entries if too many
             return getNumEntries(store, principalName) > 0;
         }
 
         public long getNumEntries(PermissionStore store, String principalName) {
+            // todo: conditionally load entries if too many
             return getEntries(store, principalName).getEntries().size();
         }
 
