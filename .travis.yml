@@ -24,4 +24,4 @@ notifications:
   webhooks:
     urls:       http://zitting.name/travis/notify
     on_success: change
-    on_failure: always
+    on_failure: change
