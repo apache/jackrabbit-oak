@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -61,6 +62,7 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
 import org.apache.jackrabbit.oak.plugins.observation.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -163,14 +165,6 @@ public final class MongoNodeStore
     private final Map<String, String> splitCandidates = Maps.newConcurrentMap();
 
     /**
-     * The splitting point in milliseconds. If a document is split, revisions
-     * older than this number of milliseconds are moved to a different document.
-     * The default is 0, meaning documents are never split. Revisions that are
-     * newer than this are kept in the newest document.
-     */
-    private final long splitDocumentAgeMillis;
-
-    /**
      * The last known revision for each cluster instance.
      *
      * Key: the machine id, value: revision.
@@ -196,8 +190,6 @@ public final class MongoNodeStore
      * for testing.
      */
     private AtomicInteger simpleRevisionCounter;
-
-    private boolean stopBackground;
 
     /**
      * The node cache.
@@ -226,8 +218,14 @@ public final class MongoNodeStore
      */
     private final BlobStore blobStore;
 
+    /**
+     * The node store observer.
+     */
+    private final Observer observer;
+
     public MongoNodeStore(MongoMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
+        this.observer = builder.getObserver();
         if (builder.isUseSimpleRevision()) {
             this.simpleRevisionCounter = new AtomicInteger(0);
         }
@@ -253,7 +251,6 @@ public final class MongoNodeStore
         this.clusterId = cid;
         this.revisionComparator = new Revision.RevisionComparator(clusterId);
         this.branches = new UnmergedBranches(getRevisionComparator());
-        this.splitDocumentAgeMillis = builder.getSplitDocumentAgeMillis();
         this.asyncDelay = builder.getAsyncDelay();
 
         //TODO Make stats collection configurable as it add slight overhead
@@ -270,38 +267,39 @@ public final class MongoNodeStore
         docChildrenCacheStats = new CacheStats(docChildrenCache, "MongoMk-DocChildren",
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
 
-        init();
-        // initial reading of the revisions of other cluster nodes
-        backgroundRead();
-        getRevisionComparator().add(headRevision, Revision.newRevision(0));
-        headRevision = newRevision();
-        dispatcher = new ChangeDispatcher(this);
-        commitQueue = new CommitQueue(this, dispatcher);
-
-        LOG.info("Initialized MongoNodeStore with clusterNodeId: {}", clusterId);
-    }
-
-    void init() {
-        headRevision = newRevision();
-        Node n = readNode("/", headRevision);
+        // check if root node exists
+        Revision head = newRevision();
+        Node n = readNode("/", head);
         if (n == null) {
             // root node is missing: repository is not initialized
-            Commit commit = new Commit(this, null, headRevision);
-            n = new Node("/", headRevision);
+            Commit commit = new Commit(this, null, head);
+            n = new Node("/", head);
             commit.addNode(n);
             commit.applyToDocumentStore();
             commit.applyToCache(false);
+            setHeadRevision(commit.getRevision());
             // make sure _lastRev is written back to store
             backgroundWrite();
         } else {
             // initialize branchCommits
             branches.init(store, this);
+            // initial reading of the revisions of other cluster nodes
+            backgroundRead();
+            if (headRevision == null) {
+                // no revision read from other cluster nodes
+                setHeadRevision(newRevision());
+            }
+            getRevisionComparator().add(headRevision, Revision.newRevision(0));
         }
+        dispatcher = new ChangeDispatcher(this);
+        commitQueue = new CommitQueue(this, dispatcher);
         backgroundThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
                 "MongoNodeStore background thread");
         backgroundThread.setDaemon(true);
         backgroundThread.start();
+
+        LOG.info("Initialized MongoNodeStore with clusterNodeId: {}", clusterId);
     }
 
     public void dispose() {
@@ -328,9 +326,17 @@ public final class MongoNodeStore
         return headRevision;
     }
 
-    Revision setHeadRevision(Revision newHead) {
+    Revision setHeadRevision(@Nonnull Revision newHead) {
+        checkArgument(!newHead.isBranch());
         Revision previous = headRevision;
+        if (checkNotNull(newHead).equals(previous)) {
+            return previous;
+        }
+        // head changed
         headRevision = newHead;
+        if (previous != null) {
+            observer.contentChanged(getRoot(previous), getRoot(newHead));
+        }
         return previous;
     }
 
@@ -610,8 +616,7 @@ public final class MongoNodeStore
             docChildrenCache.put(path, clone);
             c = clone;
         }
-        Iterable<NodeDocument> it = Iterables.transform(c.childNames,
-                new Function<String, NodeDocument>() {
+        Iterable<NodeDocument> it = Iterables.transform(c.childNames, new Function<String, NodeDocument>() {
             @Override
             public NodeDocument apply(String name) {
                 String p = PathUtils.concat(path, name);
@@ -963,7 +968,7 @@ public final class MongoNodeStore
         revisionComparator.add(headRevision, headSeen);
         revisionComparator.add(changeRevision, changeSeen);
         // the head revision is after other revisions
-        headRevision = Revision.newRevision(clusterId);
+        setHeadRevision(Revision.newRevision(clusterId));
     }
 
     @Override
@@ -982,7 +987,7 @@ public final class MongoNodeStore
             // only when using timestamp
             return;
         }
-        if (!ENABLE_BACKGROUND_OPS || stopBackground) {
+        if (!ENABLE_BACKGROUND_OPS) {
             return;
         }
         try {
@@ -1058,7 +1063,7 @@ public final class MongoNodeStore
             // happened before the latest revisions of other cluster nodes
             revisionComparator.add(r, headSeen);
             // the head revision is after other revisions
-            headRevision = Revision.newRevision(clusterId);
+            setHeadRevision(Revision.newRevision(clusterId));
         }
         revisionComparator.purge(Revision.getCurrentTimestamp() - REMEMBER_REVISION_ORDER_MILLIS);
     }
