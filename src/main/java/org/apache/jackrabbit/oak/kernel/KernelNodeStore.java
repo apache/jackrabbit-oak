@@ -158,9 +158,8 @@ public class KernelNodeStore implements NodeStore, Observable {
     public synchronized KernelNodeState getRoot() {
         String revision = kernel.getHeadRevision();
         if (!revision.equals(root.getRevision())) {
-            NodeState before = root;
             root = getRootState(revision);
-            observer.contentChanged(before, root);
+            observer.contentChanged(root, null);
         }
         return root;
     }

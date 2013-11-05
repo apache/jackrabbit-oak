@@ -23,12 +23,16 @@ import static org.apache.jackrabbit.oak.kernel.KernelNodeStore.DEFAULT_CACHE_SIZ
 import java.io.Closeable;
 import java.io.IOException;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -163,12 +167,14 @@ public abstract class NodeStoreFixture {
     }
 
     private static class ResettableObserver implements Observer {
+
         private Observer observer;
 
         @Override
-        public void contentChanged(NodeState before, NodeState after) {
+        public void contentChanged(
+                @Nonnull NodeState root, @Nullable CommitInfo info) {
             if (observer != null) {
-                observer.contentChanged(before, after);
+                observer.contentChanged(root, info);
             }
         }
 

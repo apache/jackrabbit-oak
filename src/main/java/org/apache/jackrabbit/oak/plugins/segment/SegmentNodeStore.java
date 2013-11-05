@@ -84,11 +84,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     synchronized SegmentNodeState getHead() {
-        NodeState before = head.getChildNode(ROOT);
         head = new SegmentNodeState(
                 store.getWriter().getDummySegment(), journal.getHead());
-        NodeState after = head.getChildNode(ROOT);
-        observer.contentChanged(before, after);
+        observer.contentChanged(head.getChildNode(ROOT), null);
         return head;
     }
 
