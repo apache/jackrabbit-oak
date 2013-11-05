@@ -24,6 +24,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
+import org.apache.jackrabbit.oak.plugins.mongomk.MongoNodeStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -103,6 +104,47 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
             public void tearDownCluster() {
                 for (MongoMK kernel : kernels) {
                     kernel.dispose();
+                }
+                if (dropDBAfterTest) {
+                    try {
+                        MongoConnection mongo =
+                                new MongoConnection(host, port, dbName);
+                        mongo.getDB().dropDatabase();
+                        mongo.close();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        };
+    }
+
+    public static RepositoryFixture getMongoNS(
+            final String host, final int port, final String database,
+            final boolean dropDBAfterTest, final long cacheSize) {
+        return new OakRepositoryFixture("Oak-MongoNS") {
+            private String dbName = database != null ? database : unique;
+            private MongoNodeStore[] stores;
+            @Override
+            public Repository[] setUpCluster(int n) throws Exception {
+                Repository[] cluster = new Repository[n];
+                stores = new MongoNodeStore[cluster.length];
+                for (int i = 0; i < cluster.length; i++) {
+                    MongoConnection mongo =
+                            new MongoConnection(host, port, dbName);
+                    stores[i] = new MongoMK.Builder().
+                            setMongoDB(mongo.getDB()).
+                            memoryCacheSize(cacheSize).
+                            setClusterId(i).setLogging(false).getNodeStore();
+                    Oak oak = new Oak(stores[i]);
+                    cluster[i] = new Jcr(oak).createRepository();
+                }
+                return cluster;
+            }
+            @Override
+            public void tearDownCluster() {
+                for (MongoNodeStore store : stores) {
+                    store.dispose();
                 }
                 if (dropDBAfterTest) {
                     try {
