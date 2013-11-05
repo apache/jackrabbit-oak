@@ -413,7 +413,6 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     private final class TreePermissionImpl implements TreePermission {
 
-        private final ImmutableTree rootTree;
         private final ImmutableTree tree;
         private final TreePermissionImpl parent;
 
@@ -430,14 +429,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             this.tree = tree;
             if (parentPermission instanceof TreePermissionImpl) {
                 parent = (TreePermissionImpl) parentPermission;
-                rootTree = parent.rootTree;
             } else {
                 parent = null;
-                if (tree.isRoot()) {
-                    rootTree = tree;
-                } else {
-                    rootTree = root.getTree("/");
-                }
             }
             readableTree = readPolicy.isReadableTree(tree, parent);
             isAcTree = (treeType == TreeTypeProvider.TYPE_AC);
@@ -513,29 +506,6 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         @Override
         public boolean isGranted(long permissions, @Nonnull PropertyState property) {
             return hasPermissions(getIterator(property), permissions, tree.getPath());
-        }
-
-        //---------------------------------------------------------< Object >---
-        @Override
-        public boolean equals(Object object) {
-            if (object == this) {
-                return true;
-            } else if (object instanceof TreePermissionImpl) {
-                TreePermissionImpl that = (TreePermissionImpl) object;
-                // TODO: We should be able to do this optimization also across
-                // different revisions (root states) as long as the path,
-                // the subtree, and any security-related areas like the
-                // permission store are equal for both states.
-                return rootTree.equals(that.rootTree)
-                        && tree.getPath().equals(that.tree.getPath());
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return 0;
         }
 
         //--------------------------------------------------------< private >---

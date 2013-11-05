@@ -161,25 +161,6 @@ class SecureNodeState extends AbstractNodeState {
         return new MemoryNodeBuilder(this);
     }
 
-    //-------------------------------------------------------------< Object >---
-
-    @Override
-    public boolean equals(Object object) {
-        if (object == this) {
-            return true;
-        } else if (object instanceof SecureNodeState) {
-            SecureNodeState that = (SecureNodeState) object;
-            // TODO: We should be able to do this optimization also across
-            // different revisions (root states) as long as the path,
-            // the subtree, and any security-related areas like the
-            // permission store are equal for both states.
-            if (state.equals(that.state) && treePermission.equals(that.treePermission)) {
-                return true;
-            }
-        }
-        return super.equals(object);
-    }
-
     //------------------------------------------------------< inner classes >---
 
     /**
