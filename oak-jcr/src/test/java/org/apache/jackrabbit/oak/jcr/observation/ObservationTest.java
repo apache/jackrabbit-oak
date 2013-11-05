@@ -31,6 +31,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -288,7 +289,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             }
         });
 
-        observationManager.addEventListener(listener, NODE_ADDED, path + "/", true, null, null, false);
+        observationManager.addEventListener(listener, NODE_ADDED, path + '/', true, null, null, false);
         try {
             Node root = getNode("/");
             root.addNode("events").addNode("only").addNode("here").addNode("at");
@@ -378,6 +379,44 @@ public class ObservationTest extends AbstractRepositoryTest {
         // Make sure we see the events and the listener is gone
         assertNotNull(unregistered.get(2, TimeUnit.SECONDS));
         assertFalse(observationManager.getRegisteredEventListeners().hasNext());
+    }
+
+    @Test
+    public void testReorder() throws RepositoryException, InterruptedException, ExecutionException {
+        Node testNode = getNode(TEST_PATH);
+        Node nodeA = testNode.addNode("a", "nt:unstructured");
+        Node nodeB = testNode.addNode("b", "nt:unstructured");
+        testNode.getSession().save();
+
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, Event.NODE_MOVED, "/", true, null, null, false);
+        listener.expect(new Expectation("orderBefore"){
+            @Override
+            public boolean onEvent(Event event) throws Exception {
+                if (event.getType() != NODE_MOVED || event.getInfo() == null) {
+                    return false;
+                }
+
+                Map<?, ?> info = event.getInfo();
+                if (PathUtils.concat(TEST_PATH, "a").equals(event.getPath())) {
+                    return "a".equals(info.get("srcChildRelPath")) &&
+                           "b".equals(info.get("destChildRelPath"));
+                } else if (PathUtils.concat(TEST_PATH, "b").equals(event.getPath())) {
+                    return "b".equals(info.get("srcChildRelPath")) &&
+                           "a".equals(info.get("destChildRelPath"));
+                } else {
+                    return false;
+                }
+            }
+        });
+
+        testNode.orderBefore(nodeA.getName(), null);
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
 
     //------------------------------------------------------------< private >---
