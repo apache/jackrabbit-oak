@@ -20,11 +20,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * TreePermission... TODO
  */
 public interface TreePermission {
+
+    TreePermission getChildPermission(String childName, NodeState childState);
 
     boolean canRead();
 
@@ -39,6 +42,11 @@ public interface TreePermission {
     boolean isGranted(long permissions, @Nonnull PropertyState property);
 
     TreePermission EMPTY = new TreePermission() {
+        @Override
+        public TreePermission getChildPermission(String childName, NodeState childState) {
+            return EMPTY;
+        }
+
         @Override
         public boolean canRead() {
             return false;
@@ -71,6 +79,11 @@ public interface TreePermission {
     };
 
     TreePermission ALL = new TreePermission() {
+        @Override
+        public TreePermission getChildPermission(String childName, NodeState childState) {
+            return ALL;
+        }
+
         @Override
         public boolean canRead() {
             return true;

@@ -16,6 +16,25 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.io.IOException;
+import java.io.InputStream;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.kernel.FastCopyMove;
+import org.apache.jackrabbit.oak.kernel.KernelNodeBuilder;
+import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.LazyValue;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.filter;
@@ -24,26 +43,6 @@ import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
-
-import java.io.IOException;
-import java.io.InputStream;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import com.google.common.base.Predicate;
-
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.kernel.FastCopyMove;
-import org.apache.jackrabbit.oak.kernel.KernelNodeBuilder;
-import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.LazyValue;
 
 class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
@@ -82,17 +81,17 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
      * Security context of this subtree, updated whenever the base revision
      * changes.
      */
-    private SecurityContext securityContext = null; // initialized lazily
+    private TreePermission treePermission = null; // initialized lazily
 
     /**
-     * Possibly outdated reference to the security context of the root
+     * Possibly outdated reference to the tree permission of the root
      * builder. Used to detect when the base state (and thus the security
      * context) of the root builder has changed, and trigger an update of
-     * the security context of this builder.
+     * the tree permission of this builder.
      *
-     * @see #securityContext
+     * @see #treePermission
      */
-    private SecurityContext rootContext = null; // initialized lazily
+    private TreePermission rootPermission = null; // initialized lazily
 
     SecureNodeBuilder(
             @Nonnull NodeBuilder builder,
@@ -117,17 +116,17 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override @Nonnull
     public NodeState getBaseState() {
-        return new SecureNodeState(builder.getBaseState(), getSecurityContext());
+        return new SecureNodeState(builder.getBaseState(), getTreePermission());
     }
 
     @Override @Nonnull
     public NodeState getNodeState() {
-        return new SecureNodeState(builder.getNodeState(), getSecurityContext());
+        return new SecureNodeState(builder.getNodeState(), getTreePermission());
     }
 
     @Override
     public boolean exists() {
-        return getSecurityContext().canReadThisNode() && builder.exists(); // TODO: isNew()?
+        return getTreePermission().canRead() && builder.exists(); // TODO: isNew()?
     }
 
     @Override
@@ -142,9 +141,9 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     public void baseChanged() {
         checkState(parent == null);
-        securityContext = null; // trigger re-evaluation of the context
-        rootContext = null;
-        getSecurityContext();   // sets both securityContext and rootContext
+        treePermission = null; // trigger re-evaluation of the context
+        rootPermission = null;
+        getTreePermission();   // sets both tree permissions and root node permissions
     }
 
     @Override
@@ -166,7 +165,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
-        if (property != null && getSecurityContext().canReadProperty(property)) {
+        if (property != null && getTreePermission().canRead(property)) {
             return property;
         } else {
             return null;
@@ -180,7 +179,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override
     public synchronized long getPropertyCount() {
-        if (getSecurityContext().canReadAll()) {
+        if (getTreePermission().canReadAll()) {
             return builder.getPropertyCount();
         } else {
             return size(filter(
@@ -191,9 +190,9 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        if (getSecurityContext().canReadAll()) {
+        if (getTreePermission().canReadAll()) {
             return builder.getProperties();
-        } else if (getSecurityContext().canReadThisNode()) { // TODO: check DENY_PROPERTIES?
+        } else if (getTreePermission().canRead()) { // TODO: check DENY_PROPERTIES?
             return filter(
                     builder.getProperties(),
                     new ReadablePropertyPredicate());
@@ -302,7 +301,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override
     public synchronized long getChildNodeCount(long max) {
-        if (getSecurityContext().canReadAll()) {
+        if (getTreePermission().canReadAll()) {
             return builder.getChildNodeCount(max);
         } else {
             return size(getChildNodeNames());
@@ -339,23 +338,24 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     }
 
     /**
-     * Security context of this subtree.
+     * Permissions of this tree.
+     *
+     * @return The permissions for this tree.
      */
-    private SecurityContext getSecurityContext() {
-        if (securityContext == null
-                || rootContext != rootBuilder.securityContext) {
+    private TreePermission getTreePermission() {
+        if (treePermission == null
+                || rootPermission != rootBuilder.treePermission) {
             NodeState base = builder.getBaseState();
             if (parent == null) {
-                securityContext = new SecurityContext(
-                        base, permissionProvider.get(), acContext);
-                rootContext = securityContext;
+                ImmutableTree baseTree = new ImmutableTree(base, new TreeTypeProviderImpl(acContext));
+                treePermission = permissionProvider.get().getTreePermission(baseTree, TreePermission.EMPTY);
+                rootPermission = treePermission;
             } else {
-                SecurityContext parentContext = parent.getSecurityContext();
-                securityContext = parentContext.getChildContext(name, base);
-                rootContext = parent.rootContext;
+                treePermission = parent.getTreePermission().getChildPermission(name, base);
+                rootPermission = parent.rootPermission;
             }
         }
-        return securityContext;
+        return treePermission;
     }
 
     //------------------------------------------------------< inner classes >---
@@ -366,7 +366,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
         public boolean apply(@Nonnull PropertyState property) {
-            return getSecurityContext().canReadProperty(property);
+            return getTreePermission().canRead(property);
         }
     }
 
