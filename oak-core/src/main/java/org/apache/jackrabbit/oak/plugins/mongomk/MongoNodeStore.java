@@ -329,13 +329,10 @@ public final class MongoNodeStore
     Revision setHeadRevision(@Nonnull Revision newHead) {
         checkArgument(!newHead.isBranch());
         Revision previous = headRevision;
-        if (checkNotNull(newHead).equals(previous)) {
-            return previous;
-        }
-        // head changed
-        headRevision = newHead;
-        if (previous != null) {
-            observer.contentChanged(getRoot(previous), getRoot(newHead));
+        if (!checkNotNull(newHead).equals(previous)) {
+            // head changed
+            headRevision = newHead;
+            observer.contentChanged(getRoot(newHead), null);
         }
         return previous;
     }

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static junit.framework.Assert.assertFalse;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
@@ -30,12 +31,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -137,14 +143,13 @@ public class NodeStoreTest {
 
     @Test
     public void afterCommitHook() throws CommitFailedException {
-        final NodeState[] states = new NodeState[2]; // { before, after }
+        final AtomicReference<NodeState> observedRoot =
+                new AtomicReference<NodeState>(null);
         fixture.setObserver(new Observer() {
             @Override
-            public void contentChanged(NodeState before, NodeState after) {
-                if (!before.equals(after)) {
-                    states[0] = before;
-                    states[1] = after;
-                }
+            public void contentChanged(
+                    @Nonnull NodeState root, @Nullable CommitInfo info) {
+                observedRoot.set(checkNotNull(root));
             }
         });
 
@@ -160,12 +165,8 @@ public class NodeStoreTest {
         store.merge(rootBuilder, EmptyHook.INSTANCE, null);
         NodeState newRoot = store.getRoot(); // triggers the observer
 
-        NodeState before = states[0];
-        NodeState after = states[1];
-        assertNotNull(before);
+        NodeState after = observedRoot.get();
         assertNotNull(after);
-
-        assertFalse(before.getChildNode("test").getChildNode("newNode").exists());
         assertTrue(after.getChildNode("test").getChildNode("newNode").exists());
         assertFalse(after.getChildNode("test").getChildNode("a").exists());
         assertEquals(42, (long) after.getChildNode("test").getChildNode("newNode").getProperty("n").getValue(LONG));
