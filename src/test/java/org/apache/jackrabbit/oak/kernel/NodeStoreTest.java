@@ -137,9 +137,6 @@ public class NodeStoreTest {
 
     @Test
     public void afterCommitHook() throws CommitFailedException {
-        // FIXME OAK-1131
-        assumeTrue(fixture != NodeStoreFixture.MONGO_NS);
-
         final NodeState[] states = new NodeState[2]; // { before, after }
         fixture.setObserver(new Observer() {
             @Override
