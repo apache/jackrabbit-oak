@@ -26,7 +26,9 @@ import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.core.AbstractTree.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
 import java.util.Iterator;
@@ -38,6 +40,7 @@ import javax.jcr.observation.Event;
 import com.google.common.collect.ForwardingIterator;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -178,10 +181,51 @@ class EventGenerator extends ForwardingIterator<Event> implements MoveValidator 
 
     @Override
     public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) {
+        if (filter.include(NODE_MOVED, afterTree)) {
+            detectReorder(name, before, after);
+        }
         if (filter.includeChildren(afterTree.getPath())) {
             childEvents.add(new EventGenerator(this, name));
         }
         return null;
+    }
+
+    private void detectReorder(String name, NodeState before, NodeState after) {
+        PropertyState afterOrder = after.getProperty(OAK_CHILD_ORDER);
+        PropertyState beforeOrder = before.getProperty(OAK_CHILD_ORDER);
+        if (afterOrder == null || beforeOrder == null) {
+            return;
+        }
+
+        List<String> afterNames = getNames(afterOrder);
+        List<String> beforeNames = getNames(beforeOrder);
+
+        afterNames.retainAll(beforeNames);
+        beforeNames.retainAll(afterNames);
+
+        // Selection sort beforeNames into afterNames recording the swaps as we go
+        for (int a = 0; a < afterNames.size(); a++) {
+            String afterName = afterNames.get(a);
+            for (int b = a; b < beforeNames.size(); b++) {
+                String beforeName = beforeNames.get(b);
+                if (a != b && beforeName.equals(afterName)) {
+                    beforeNames.set(b, beforeNames.get(a));
+                    beforeNames.set(a, beforeName);
+                    events.add(createEvent(NODE_MOVED, afterTree.getChild(name).getChild(afterName),
+                            ImmutableMap.of(
+                                    "srcChildRelPath", beforeNames.get(a),
+                                    "destChildRelPath", beforeNames.get(a + 1))));
+                }
+            }
+        }
+    }
+
+    private static List<String> getNames(PropertyState propertyState) {
+        List<String> names = Lists.newArrayList();
+        for (int k = 0; k < propertyState.count(); k++) {
+            names.add(propertyState.getValue(STRING, k));
+        }
+        return names;
     }
 
     @Override
