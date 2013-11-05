@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import javax.annotation.CheckForNull;
-
-import com.google.common.collect.Iterators;
 
 /**
  * Base class for PermissionEntry iterators.
