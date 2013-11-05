@@ -16,51 +16,55 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Extension point for observing changes in an Oak repository. Content
- * changes are reported by passing the "before" and "after" state of the
- * content tree to the {@link #contentChanged(NodeState, NodeState)}
- * callback method.
+ * Extension point for observing changes in an Oak repository. Observer
+ * implementations might use the observed content changes to update caches,
+ * trigger JCR-level observation events or otherwise process the changes.
  * <p>
- * Each observer is guaranteed to see a linear sequence of changes, i.e.
- * the "after" state of one method call is guaranteed to be the "before"
- * state of the following call. This sequence of changes only applies while
- * a hook is registered with a specific repository instance, and is thus for
- * example <em>not</me> guaranteed across repository restarts.
+ * An observer is informed about content changes by calling the
+ * {@link #contentChanged(NodeState, CommitInfo)} method. The frequency and
+ * granularity of these callbacks is not specified. However, each observer is
+ * always guaranteed a linear sequence of changes. In other words the
+ * method will not be called concurrently from multiple threads and successive
+ * calls to represent a logical sequence of repository states, i.e. the root
+ * state passed to one call is guaranteed to be a base state of the root
+ * state passed to the next call. The observer is expected to keep track of
+ * the previously observed state if it wants to use a content diff to
+ * determine what exactly changed between two states.
  * <p>
- * Note also that two observers may not necessarily see the same sequence of
- * content changes, and each commit does not necessarily trigger a separate
- * observer callback. It is also possible for an observer to be notified
- * when no actual changes have been committed.
+ * A repository may capture the optional {@link CommitInfo} instance passed
+ * to a commit and make it available to observers along with the committed
+ * committed content changes. In such cases, i.e. when the commit info
+ * argument is non-{@code null}, the reported content change is guaranteed
+ * to contain <em>only</em> changes from that specific commit (and the
+ * applied commit hooks). Note that it is possible for a repository to report
+ * commit information for only some commits but not others.
+ * <p>
+ * It should also be noted that two observers may not necessarily see the
+ * same sequence of content changes. It is also possible for an observer to
+ * be notified when no actual content changes have happened.
  * <p>
  * A specific implementation or deployment may offer more guarantees about
  * when and how observers are notified of content changes. See the relevant
  * documentation for more details about such cases.
  *
- * @since Oak 0.3
+ * @since Oak 0.11
  */
 public interface Observer {
 
     /**
-     * Observes a content change. The implementation might for example
-     * use this information to update caches, trigger JCR-level observation
-     * events or otherwise record the change.
-     * <p>
-     * Content changes are observed for both commits made locally against
-     * the repository instance to which the hook is registered and any
-     * other changes committed by other repository instances in the same
-     * cluster.
-     * <p>
-     * After-commit hooks are executed synchronously within the context of
-     * a repository instance, so to prevent delaying access to latest changes
-     * the after-commit hooks should avoid any potentially blocking
-     * operations.
+     * Observes a content change. See the {@link Observer} class javadocs
+     * and relevant repository and observer registration details for more
+     * information on when and how this method gets called.
      *
-     * @param before content tree before the changes
-     * @param after content tree after the changes
+     * @param root root state of the repository
+     * @param info local commit information, or {@code null}
      */
-    void contentChanged(NodeState before, NodeState after);
+    void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info);
 
 }
