@@ -35,7 +35,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 
 /**
- * <code>PermissionEntryProviderImpl</code>...
+ * {@code PermissionEntryProviderImpl} ...
  */
 public class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
@@ -75,9 +75,15 @@ public class PermissionEntryProviderImpl implements PermissionEntryProvider {
                 }
             }
         }
-        this.pathEntryMap = cnt < MAX_SIZE
-                ? createMap(cache, store, existingNames)
-                : null;
+        if (cnt < MAX_SIZE) {
+            // cache all entries of all principals
+            pathEntryMap = new HashMap<String, Collection<PermissionEntry>>();
+            for (String name: principalNames) {
+                cache.load(store, pathEntryMap, name);
+            }
+        } else {
+            pathEntryMap = null;
+        }
     }
 
     public void flush() {
@@ -122,34 +128,17 @@ public class PermissionEntryProviderImpl implements PermissionEntryProvider {
     private Collection<PermissionEntry> loadEntries(@Nonnull String path) {
         Collection<PermissionEntry> ret = new TreeSet<PermissionEntry>();
         for (String name: existingNames) {
-            PrincipalPermissionEntries ppe = cache.getEntries(store, name);
-            ret.addAll(ppe.getEntries(path));
+            cache.load(store, ret, name, path);
         }
         return ret;
-    }
-
-    private static Map<String, Collection<PermissionEntry>> createMap(@Nonnull PermissionEntryCache.Local cache,
-                                                                      @Nonnull PermissionStore store,
-                                                                      @Nonnull Set<String> principalNames) {
-        Map<String, Collection<PermissionEntry>> pathEntryMap = new HashMap<String, Collection<PermissionEntry>>();
-        for (String name: principalNames) {
-            PrincipalPermissionEntries ppe = cache.getEntries(store, name);
-            for (Map.Entry<String, Collection<PermissionEntry>> e: ppe.getEntries().entrySet()) {
-                Collection<PermissionEntry> pathEntries = pathEntryMap.get(e.getKey());
-                if (pathEntries == null) {
-                    pathEntries = new TreeSet<PermissionEntry>(e.getValue());
-                    pathEntryMap.put(e.getKey(), pathEntries);
-                } else {
-                    pathEntries.addAll(e.getValue());
-                }
-            }
-        }
-        return pathEntryMap;
     }
 
     private final class EntryIterator extends AbstractEntryIterator {
 
         private final EntryPredicate predicate;
+
+        // the ordered permission entries at a given path in the hierarchy
+        private Iterator<PermissionEntry> nextEntries = Iterators.emptyIterator();
 
         // the next oak path for which to retrieve permission entries
         private String path;
@@ -159,9 +148,9 @@ public class PermissionEntryProviderImpl implements PermissionEntryProvider {
             this.path = Strings.nullToEmpty(predicate.getPath());
         }
 
-        @CheckForNull
+        @Override
         protected void seekNext() {
-            for (next = null; next == null; ) {
+            for (next = null; next == null;) {
                 if (nextEntries.hasNext()) {
                     PermissionEntry pe = nextEntries.next();
                     if (predicate.apply(pe)) {
