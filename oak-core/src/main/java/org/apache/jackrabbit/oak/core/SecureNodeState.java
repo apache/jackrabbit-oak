@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -50,36 +51,35 @@ class SecureNodeState extends AbstractNodeState {
     private final NodeState state;
 
     /**
-     * Security context of this subtree.
+     * Tree permissions of this subtree.
      */
-    private final SecurityContext context;
+    private final TreePermission treePermission;
 
     private long childNodeCount = -1;
 
     private long propertyCount = -1;
 
-    SecureNodeState(
-            @Nonnull NodeState state, @Nonnull SecurityContext context) {
+    SecureNodeState(@Nonnull NodeState state, @Nonnull TreePermission treePermission) {
         this.state = checkNotNull(state);
-        this.context = checkNotNull(context);
+        this.treePermission = checkNotNull(treePermission);
     }
 
-    SecureNodeState(
-            @Nonnull NodeState root, @Nonnull PermissionProvider permissionProvider,
-            @Nonnull Context acContext) {
-        this(root, new SecurityContext(
-                root, checkNotNull(permissionProvider), checkNotNull(acContext)));
+    SecureNodeState(@Nonnull NodeState root, @Nonnull PermissionProvider permissionProvider,
+                    @Nonnull Context acContext) {
+        this(root, permissionProvider.getTreePermission(
+                new ImmutableTree(root, new TreeTypeProviderImpl(acContext)),
+                TreePermission.EMPTY));
     }
 
     @Override
     public boolean exists() {
-        return context.canReadThisNode();
+        return treePermission.canRead();
     }
 
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         PropertyState property = state.getProperty(name);
-        if (property != null && context.canReadProperty(property)) {
+        if (property != null && treePermission.canRead(property)) {
             return property;
         } else {
             return null;
@@ -89,7 +89,7 @@ class SecureNodeState extends AbstractNodeState {
     @Override
     public synchronized long getPropertyCount() {
         if (propertyCount == -1) {
-            if (context.canReadAll()) {
+            if (treePermission.canReadAll()) {
                 propertyCount = state.getPropertyCount();
             } else {
                 propertyCount = count(filter(
@@ -102,9 +102,9 @@ class SecureNodeState extends AbstractNodeState {
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        if (context.canReadAll()) {
+        if (treePermission.canReadAll()) {
             return state.getProperties();
-        } else if (context.canReadThisNode()) { // TODO: check DENY_PROPERTIES?
+        } else if (treePermission.canRead()) { // TODO: check DENY_PROPERTIES?
             return filter(
                     state.getProperties(),
                     new ReadablePropertyPredicate());
@@ -116,7 +116,7 @@ class SecureNodeState extends AbstractNodeState {
     @Override
     public NodeState getChildNode(@Nonnull String name) {
         NodeState child = state.getChildNode(checkNotNull(name));
-        if (child.exists() && !context.canReadAll()) {
+        if (child.exists() && !treePermission.canReadAll()) {
             ChildNodeEntry entry = new MemoryChildNodeEntry(name, child);
             return new WrapChildEntryFunction().apply(entry).getNodeState();
         } else {
@@ -128,7 +128,7 @@ class SecureNodeState extends AbstractNodeState {
     public synchronized long getChildNodeCount(long max) {
         if (childNodeCount == -1) {
             long count;
-            if (context.canReadAll()) {
+            if (treePermission.canReadAll()) {
                 count = state.getChildNodeCount(max);
             } else {
                 count = super.getChildNodeCount(max);
@@ -143,10 +143,10 @@ class SecureNodeState extends AbstractNodeState {
 
     @Override @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        if (context.canReadAll()) {
+        if (treePermission.canReadAll()) {
             // everything is readable including ac-content -> no secure wrapper needed
             return state.getChildNodeEntries();
-        } else if (context.canReadThisNode()) {// TODO: check DENY_CHILDREN?
+        } else if (treePermission.canRead()) {// TODO: check DENY_CHILDREN?
             Iterable<ChildNodeEntry> readable = transform(
                     state.getChildNodeEntries(),
                     new WrapChildEntryFunction());
@@ -173,7 +173,7 @@ class SecureNodeState extends AbstractNodeState {
             // different revisions (root states) as long as the path,
             // the subtree, and any security-related areas like the
             // permission store are equal for both states.
-            if (state.equals(that.state) && context.equals(that.context)) {
+            if (state.equals(that.state) && treePermission.equals(that.treePermission)) {
                 return true;
             }
         }
@@ -188,7 +188,7 @@ class SecureNodeState extends AbstractNodeState {
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
         public boolean apply(@Nonnull PropertyState property) {
-            return context.canReadProperty(property);
+            return treePermission.canRead(property);
         }
     }
 
@@ -217,11 +217,11 @@ class SecureNodeState extends AbstractNodeState {
         public ChildNodeEntry apply(@Nonnull ChildNodeEntry input) {
             String name = input.getName();
             NodeState child = input.getNodeState();
-            SecurityContext childContext = context.getChildContext(name, child);
+            TreePermission childContext = treePermission.getChildPermission(name, child);
             SecureNodeState secureChild = new SecureNodeState(child, childContext);
             if (child.getChildNodeCount(1) == 0
-                    && secureChild.context.canReadThisNode()
-                    && secureChild.context.canReadAllProperties()) {
+                    && secureChild.treePermission.canRead()
+                    && secureChild.treePermission.canReadProperties()) {
                 // Since this is an accessible leaf node whose all properties
                 // are readable, we don't need the SecureNodeState wrapper
                 // TODO: A further optimization would be to return the raw

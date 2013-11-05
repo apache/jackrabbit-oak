@@ -45,11 +45,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,7 +161,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 if (VersionConstants.VERSION_STORE_NT_NAMES.contains(ntName) || VersionConstants.NT_ACTIVITY.equals(ntName)) {
                     return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_VERSION, parentPermission);
                 } else {
-                    Tree versionableTree = getVersionableTree(tree);
+                    ImmutableTree versionableTree = getVersionableTree(tree);
                     if (versionableTree == null) {
                         log.warn("Cannot retrieve versionable node for " + tree.getPath());
                         return TreePermission.EMPTY;
@@ -185,8 +185,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     }
 
     @Nonnull
-    private TreePermission getParentPermission(@Nonnull Tree tree, int type) {
-        List<Tree> trees = new ArrayList<Tree>();
+    private TreePermission getParentPermission(@Nonnull ImmutableTree tree, int type) {
+        List<ImmutableTree> trees = new ArrayList<ImmutableTree>();
         while (!tree.isRoot()) {
             tree = tree.getParent();
             if (tree.exists()) {
@@ -194,7 +194,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
         }
         TreePermission pp = TreePermission.EMPTY;
-        for (Tree tr : trees) {
+        for (ImmutableTree tr : trees) {
             pp = new TreePermissionImpl(tr, type, pp);
         }
         return pp;
@@ -377,7 +377,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     }
 
     @CheckForNull
-    private Tree getVersionableTree(@Nonnull Tree versionStoreTree) {
+    private ImmutableTree getVersionableTree(@Nonnull ImmutableTree versionStoreTree) {
         String relPath = "";
         String versionablePath = null;
         Tree t = versionStoreTree;
@@ -413,7 +413,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     private final class TreePermissionImpl implements TreePermission {
 
-        private final Tree tree;
+        private final ImmutableTree rootTree;
+        private final ImmutableTree tree;
         private final TreePermissionImpl parent;
 
         private final boolean isAcTree;
@@ -425,15 +426,28 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private boolean skipped;
         private ReadStatus readStatus;
 
-        private TreePermissionImpl(Tree tree, int treeType, TreePermission parentPermission) {
+        private TreePermissionImpl(ImmutableTree tree, int treeType, TreePermission parentPermission) {
             this.tree = tree;
             if (parentPermission instanceof TreePermissionImpl) {
                 parent = (TreePermissionImpl) parentPermission;
+                rootTree = parent.rootTree;
             } else {
                 parent = null;
+                if (tree.isRoot()) {
+                    rootTree = tree;
+                } else {
+                    rootTree = root.getTree("/");
+                }
             }
             readableTree = readPolicy.isReadableTree(tree, parent);
             isAcTree = (treeType == TreeTypeProvider.TYPE_AC);
+        }
+
+        //-------------------------------------------------< TreePermission >---
+        @Override
+        public TreePermission getChildPermission(String childName, NodeState childState) {
+            ImmutableTree childTree = new ImmutableTree(tree, childName, childState);
+            return getTreePermission(childTree, this);
         }
 
         @Override
@@ -501,6 +515,30 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             return hasPermissions(getIterator(property), permissions, tree.getPath());
         }
 
+        //---------------------------------------------------------< Object >---
+        @Override
+        public boolean equals(Object object) {
+            if (object == this) {
+                return true;
+            } else if (object instanceof TreePermissionImpl) {
+                TreePermissionImpl that = (TreePermissionImpl) object;
+                // TODO: We should be able to do this optimization also across
+                // different revisions (root states) as long as the path,
+                // the subtree, and any security-related areas like the
+                // permission store are equal for both states.
+                return rootTree.equals(that.rootTree)
+                        && tree.getPath().equals(that.tree.getPath());
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return 0;
+        }
+
+        //--------------------------------------------------------< private >---
         private Iterator<PermissionEntry> getIterator(@Nullable PropertyState property) {
             EntryPredicate predicate = new EntryPredicate(tree, property);
             return concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
@@ -657,6 +695,4 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             return false;
         }
     }
-
-
 }
