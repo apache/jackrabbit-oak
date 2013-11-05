@@ -75,8 +75,6 @@
 
       <!-- Observation -->
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved
-      org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
-      org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
 
       <!-- Versioning -->
       org.apache.jackrabbit.test.api.version.VersionTest#testUpdate
