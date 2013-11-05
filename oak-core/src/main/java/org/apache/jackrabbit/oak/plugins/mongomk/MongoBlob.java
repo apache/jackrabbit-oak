@@ -57,4 +57,23 @@ public class MongoBlob implements Blob {
         return id;
     }
     
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        } 
+        if (other instanceof MongoBlob) {
+            MongoBlob b = (MongoBlob) other;
+            // theoretically, the data could be the same  
+            // even if the id is different
+            return b.id.equals(id);
+        }
+        return false;
+    }
+
 }
