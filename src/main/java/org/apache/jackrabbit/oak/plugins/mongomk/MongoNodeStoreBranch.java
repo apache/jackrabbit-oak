@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
@@ -31,7 +33,16 @@ public class MongoNodeStoreBranch
     private final BlobSerializer blobs = new BlobSerializer() {
         @Override
         public String serialize(Blob blob) {
-            return blob.toString();
+            if (blob instanceof MongoBlob) {
+                return blob.toString();
+            }
+            String id;
+            try {
+                id = store.createBlob(blob.getNewStream()).toString();
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+            return id;
         }
     };
 
