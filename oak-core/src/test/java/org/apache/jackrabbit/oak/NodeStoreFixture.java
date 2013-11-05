@@ -101,7 +101,7 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            return new MongoMK.Builder().getNodeStore();
+            return new MongoMK.Builder().setObserver(observer).getNodeStore();
         }
 
         @Override
