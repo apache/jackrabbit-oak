@@ -31,8 +31,7 @@ public class MongoNodeStoreBranch
     private final BlobSerializer blobs = new BlobSerializer() {
         @Override
         public String serialize(Blob blob) {
-            // TODO: implement correct blob handling
-            return super.serialize(blob);
+            return blob.toString();
         }
     };
 
