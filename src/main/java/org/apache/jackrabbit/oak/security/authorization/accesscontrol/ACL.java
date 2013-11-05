@@ -52,25 +52,25 @@ abstract class ACL extends AbstractAccessControlList {
 
     private final List<ACE> entries = new ArrayList<ACE>();
 
-    ACL(@Nullable String oakPath, @Nonnull NamePathMapper namePathMapper) {
-        this(oakPath, null, namePathMapper);
-    }
+    private final PrincipalManager principalManager;
+    private final PrivilegeManager privilegeManager;
+    private final PrivilegeBitsProvider privilegeBitsProvider;
 
     ACL(@Nullable String oakPath, @Nullable List<ACE> entries,
-        @Nonnull NamePathMapper namePathMapper) {
+        @Nonnull NamePathMapper namePathMapper,
+        @Nonnull PrincipalManager principalManager,
+        @Nonnull PrivilegeManager privilegeManager,
+        @Nonnull PrivilegeBitsProvider privilegeBitsProvider) {
         super(oakPath, namePathMapper);
         if (entries != null) {
             this.entries.addAll(entries);
         }
+        this.principalManager = principalManager;
+        this.privilegeManager = privilegeManager;
+        this.privilegeBitsProvider = privilegeBitsProvider;
     }
 
-    abstract PrincipalManager getPrincipalManager();
-
-    abstract PrivilegeManager getPrivilegeManager();
-
-    abstract PrivilegeBitsProvider getPrivilegeBitsProvider();
-
-    abstract ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException;
+    abstract ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException;
 
     //------------------------------------------< AbstractAccessControlList >---
     @Nonnull
@@ -98,13 +98,13 @@ abstract class ACL extends AbstractAccessControlList {
             throw new AccessControlException("Privileges may not be null nor an empty array");
         }
         for (Privilege p : privileges) {
-            Privilege pv = getPrivilegeManager().getPrivilege(p.getName());
+            Privilege pv = privilegeManager.getPrivilege(p.getName());
             if (pv.isAbstract()) {
                 throw new AccessControlException("Privilege " + p + " is abstract.");
             }
         }
 
-        Util.checkValidPrincipal(principal, getPrincipalManager());
+        Util.checkValidPrincipal(principal, principalManager);
 
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             String jcrName = getNamePathMapper().getJcrName(def.getName());
@@ -132,7 +132,7 @@ abstract class ACL extends AbstractAccessControlList {
             }
         }
 
-        ACE entry = createACE(principal, getPrivilegeBits(privileges), isAllow, rs, getNamePathMapper());
+        ACE entry = createACE(principal, getPrivilegeBits(privileges), isAllow, rs);
         if (entries.contains(entry)) {
             log.debug("Entry is already contained in policy -> no modification.");
             return false;
@@ -239,10 +239,10 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     private ACE createACE(@Nonnull ACE existing, @Nonnull PrivilegeBits newPrivilegeBits) throws RepositoryException {
-        return createACE(existing.getPrincipal(), newPrivilegeBits, existing.isAllow(), existing.getRestrictions(), getNamePathMapper());
+        return createACE(existing.getPrincipal(), newPrivilegeBits, existing.isAllow(), existing.getRestrictions());
     }
 
     private PrivilegeBits getPrivilegeBits(Privilege[] privileges) {
-        return getPrivilegeBitsProvider().getBits(privileges, getNamePathMapper());
+        return privilegeBitsProvider.getBits(privileges, getNamePathMapper());
     }
 }

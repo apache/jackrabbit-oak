@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -101,29 +100,14 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
                                                   @Nonnull NamePathMapper namePathMapper,
                                                   final @Nonnull RestrictionProvider restrictionProvider) {
         String path = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
-        return new ACL(path, entries, namePathMapper) {
+        return new ACL(path, entries, namePathMapper, principalManager, privilegeManager, getBitsProvider()) {
             @Override
             public RestrictionProvider getRestrictionProvider() {
                 return restrictionProvider;
             }
 
             @Override
-            PrincipalManager getPrincipalManager() {
-                return principalManager;
-            }
-
-            @Override
-            PrivilegeManager getPrivilegeManager() {
-                return privilegeManager;
-            }
-
-            @Override
-            PrivilegeBitsProvider getPrivilegeBitsProvider() {
-                return getBitsProvider();
-            }
-
-            @Override
-            ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws RepositoryException {
+            ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException {
                 return createEntry(principal, privilegeBits, isAllow, restrictions);
             }
         };
