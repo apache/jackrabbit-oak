@@ -107,11 +107,6 @@ Observation
   Furthermore the order of the events depends on the underlying implementation and is not specified.
   In particular there are some interesting consequences:
 
-    * `Event.NODE_MOVED` is not supported. Instead `Event.NODE_ADDED` and `Event.Node_REMOVED` events
-      are reported for the respective subtrees.
-
-    * Reordering nodes will [not report any event](https://issues.apache.org/jira/browse/OAK-1090).
-
     * Touched properties: Jackrabbit 2 used to generate a `PROPERTY_CHANGED` event when touching a
       property (i.e. setting a property to its current value). Oak keeps closer to the specification
       and [omits such events](https://issues.apache.org/jira/browse/OAK-948). More generally removing
@@ -121,6 +116,19 @@ Observation
       `jcr:uuid`; the same applies for other built-in protected and mandatory properties
       such as e.g. jcr:versionHistory if the corresponding versionable node
       was removed and a versionable node with the same name is being created.
+
+    * Limited support for `Event.NODE_MOVED`:
+
+      + `NODE_MOVED` are only reported for nodes whose source location is not transient. A source
+        location is transient if it is transiently added or a child node of a transiently moved
+        tree.
+
+      + Removing a node and adding a node with the same name at the same parent will be reported as
+        `NODE_MOVED` event as if it where caused by `Node.orderBefore()`.
+
+      + The exact sequence of `Node.orderBefore()` will not be reflected through `NODE_MOVED`
+        events: given two child nodes `a` and `b`, ordering `a` after `b` may be reported as
+        ordering `b` before `a`.
 
 * The sequence of differences Oak generates observation events from is guaranteed to contain the
   before and after states of all cluster local changes. This guarantee does not hold for cluster
