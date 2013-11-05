@@ -74,7 +74,7 @@
       org.apache.jackrabbit.test.api.LifecycleTest
 
       <!-- Observation -->
-      org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved
+      org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved  <!-- Move in 2nd session not reflected in nodes of 1st session -->
 
       <!-- Versioning -->
       org.apache.jackrabbit.test.api.version.VersionTest#testUpdate
