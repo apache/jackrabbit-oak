@@ -27,38 +27,39 @@ import com.google.common.collect.Iterators;
  */
 abstract class AbstractEntryIterator implements Iterator<PermissionEntry> {
 
-    // the ordered permission entries at a given path in the hierarchy
-    protected Iterator<PermissionEntry> nextEntries;
-
     // the next permission entry
     protected PermissionEntry next;
 
+    // indicate that seekNext was already invoked
+    private boolean sought;
+
     @Override
     public boolean hasNext() {
-        if (next == null && nextEntries == null) {
-            // lazy initialization
-            nextEntries = Iterators.emptyIterator();
+        if (!sought) {
             seekNext();
+            sought = true;
         }
         return next != null;
     }
 
     @Override
     public PermissionEntry next() {
+        if (!sought) {
+            seekNext();
+            sought = true;
+        }
         if (next == null) {
             throw new NoSuchElementException();
         }
-
-        PermissionEntry pe = next;
-        seekNext();
-        return pe;
+        sought = false;
+        return next;
     }
+
 
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }
 
-    @CheckForNull
     protected abstract void seekNext();
 }

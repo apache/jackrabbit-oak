@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
- * <code>PermissionEntryProvider</code> provides permission entries for a given set of principals.
+ * {@code PermissionEntryProvider} provides permission entries for a given set of principals.
  * It may internally hold a cache to improve performance and usually operates on the permission store.
  */
 public interface PermissionEntryProvider {

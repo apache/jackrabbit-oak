@@ -520,7 +520,11 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     private static final class LazyIterator extends AbstractEntryIterator {
 
-        private boolean isUser;
+        private final boolean isUser;
+
+        // the ordered permission entries at a given path in the hierarchy
+        private Iterator<PermissionEntry> nextEntries = Iterators.emptyIterator();
+
         private TreePermissionImpl tp;
 
         private LazyIterator(@Nonnull TreePermissionImpl tp, boolean isUser) {
@@ -528,9 +532,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             this.isUser = isUser;
         }
 
-        @CheckForNull
+        @Override
         protected void seekNext() {
-            for (next = null; next == null; ) {
+            for (next = null; next == null;) {
                 if (nextEntries.hasNext()) {
                     next = nextEntries.next();
                 } else {
