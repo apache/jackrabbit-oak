@@ -43,7 +43,7 @@ public class ReadDeepTreeTest extends AbstractTest {
     protected Session adminSession;
     protected Node testRoot;
 
-    private Session testSession;
+    protected Session testSession;
 
     protected List<String> allPaths = new ArrayList<String>();
 
