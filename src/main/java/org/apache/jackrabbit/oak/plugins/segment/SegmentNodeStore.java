@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -30,9 +31,8 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
-import org.apache.jackrabbit.oak.plugins.observation.Observable;
+import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
@@ -105,8 +105,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public Listener newListener() {
-        return changeDispatcher.newListener();
+    public Closeable addObserver(Observer observer) {
+        return changeDispatcher.addObserver(observer);
     }
 
     @Override @Nonnull

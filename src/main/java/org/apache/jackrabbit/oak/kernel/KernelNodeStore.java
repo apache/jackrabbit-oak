@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.kernel;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
@@ -39,9 +40,8 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
-import org.apache.jackrabbit.oak.plugins.observation.Observable;
+import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
@@ -148,8 +148,8 @@ public class KernelNodeStore implements NodeStore, Observable {
     //------------------------------------------------------------< Observable >---
 
     @Override
-    public Listener newListener() {
-        return changeDispatcher.newListener();
+    public Closeable addObserver(Observer observer) {
+        return changeDispatcher.addObserver(observer);
     }
 
     //----------------------------------------------------------< NodeStore >---
