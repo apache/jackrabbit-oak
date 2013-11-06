@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.spi.commit;
 
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Queues.newLinkedBlockingQueue;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -32,10 +34,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.Sets;
-
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -58,8 +57,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
       }
  * </pre>
  * <p>
- * The {@link #newListener()} method registers a listener for receiving changes reported
- * into a change dispatcher.
+ * The {@link #addObserver(Observer)} method registers an {@link Observer} for receiving
+ * notifications about all changes reported to this instance.
  */
 public class ChangeDispatcher implements Observable {
     private final Set<Listener> listeners = Sets.newHashSet();
@@ -78,15 +77,18 @@ public class ChangeDispatcher implements Observable {
     }
 
     /**
-     * Create a new {@link Listener} for receiving changes reported into
-     * this change dispatcher. Listeners need to be {@link Listener#dispose() disposed}
-     * when no longer needed.
-     * @return  a new {@code Listener} instance.
+     * Register a new {@link Observer} for receiving notifications about changes reported to
+     * this change dispatcher. Changes are reported asynchronously. Clients need to
+     * call {@link java.io.Closeable#close()} close} on the returned {@code Closeable} instance
+     * to stop receiving notifications.
+     *
+     * @return  a {@link Closeable} instance
      */
     @Override
     @Nonnull
-    public Listener newListener() {
-        Listener listener = new Listener(root);
+    public Closeable addObserver(Observer observer) {
+        Listener listener = new Listener(observer, root);
+        listener.start();
         register(listener);
         return listener;
     }
@@ -187,10 +189,8 @@ public class ChangeDispatcher implements Observable {
     }
 
     private void add(NodeState root, CommitInfo info) {
-        synchronized (listeners) {
-            for (Listener l : getListeners()) {
-                l.add(root, info);
-            }
+        for (Listener l : getListeners()) {
+            l.contentChanged(root, info);
         }
     }
 
@@ -203,123 +203,92 @@ public class ChangeDispatcher implements Observable {
     //------------------------------------------------------------< Listener >---
 
     /**
-     * Listener for receiving changes reported into a change dispatcher by
-     * any of its hooks.
+     * Listener thread receiving changes reported into {@code ChangeDispatcher} and
+     * asynchronously distributing these to an associated {@link Observer}.
      */
-    public class Listener {
-
-        private final LinkedBlockingQueue<ChangeSet> changeSets =
-                newLinkedBlockingQueue();
-
-        private NodeState previousRoot;
+    private class Listener extends Thread implements Closeable, Observer {
+        private final LinkedBlockingQueue<Commit> commits = newLinkedBlockingQueue();
+        private final Observer observer;
 
         private boolean blocked = false;
+        private volatile boolean stopping;
 
-        Listener(NodeState root) {
-            this.previousRoot = checkNotNull(root);
+        Listener(Observer observer, NodeState root) {
+            this.observer = checkNotNull(observer);
+            commits.add(new Commit(root, null));
+            setDaemon(true);
+            setPriority(Thread.MIN_PRIORITY);
         }
 
-        /**
-         * Free up any resources associated by this hook.
-         */
-        public void dispose() {
+        @Override
+        public void contentChanged(NodeState root, CommitInfo info) {
+            Commit commit = new Commit(root, blocked ? null : info);
+            blocked = !commits.offer(commit);
+        }
+
+        @Override
+        public void run() {
+            try {
+                while (!stopping) {
+                    if (commits.isEmpty()) {
+                        externalChange();
+                    }
+                    Commit commit = commits.poll(100, TimeUnit.MILLISECONDS);
+                    if (commit != null) {
+                        observer.contentChanged(commit.getRoot(), commit.getCommitInfo());
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            checkState(!stopping, "Change processor already stopped");
+
             unregister(this);
-        }
-
-        /**
-         * Poll for changes reported to this listener.
-         *
-         * @param timeout maximum number of milliseconds to wait for changes
-         * @return  {@code ChangeSet} of the changes, or {@code null} if
-         *          no changes occurred since the last call to this method
-         *          and before the timeout
-         * @throws InterruptedException if polling was interrupted
-         */
-        @CheckForNull
-        public ChangeSet getChanges(long timeout) throws InterruptedException {
-            if (changeSets.isEmpty()) {
-                externalChange();
-            }
-            return changeSets.poll(timeout, TimeUnit.MILLISECONDS);
-        }
-
-        private synchronized void add(NodeState root, CommitInfo info) {
-            if (blocked) {
-                info = null;
-            }
-            if (changeSets.offer(new ChangeSet(previousRoot, root, info))) {
-                previousRoot = root;
-                blocked = false;
-            } else {
-                blocked = true;
+            stopping = true;
+            if (Thread.currentThread() != this) {
+                try {
+                    join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException
+                            ("Interruption while waiting for the listener thread to terminate", e);
+                }
             }
         }
     }
 
-    //------------------------------------------------------------< ChangeSet >---
+    //------------------------------------------------------------< Commit >---
 
-    /**
-     * Instances of this class represent changes to a node store. In addition they
-     * record meta data associated with such changes like whether a change occurred
-     * on the local cluster node, the user causing the changes and the date the changes
-     * where persisted.
-     */
-    public static class ChangeSet {
-        private final NodeState before;
-        private final NodeState after;
+    private static class Commit {
+        private final NodeState root;
         private final CommitInfo commitInfo;
 
-        /**
-         * Creates a change set
-         */
-        ChangeSet(@Nonnull NodeState before, @Nonnull NodeState after,
-                @Nullable CommitInfo commitInfo) {
-            this.before = checkNotNull(before);
-            this.after = checkNotNull(after);
+        Commit(@Nonnull NodeState root, @Nullable CommitInfo commitInfo) {
+            this.root = checkNotNull(root);
             this.commitInfo = commitInfo;
         }
 
-        public boolean isExternal() {
-            return commitInfo == null;
-        }
-
-        public boolean isLocal(String sessionId) {
-            return commitInfo != null
-                    && Objects.equal(commitInfo.getSessionId(), sessionId);
+        @Nonnull
+        NodeState getRoot() {
+            return root;
         }
 
         @CheckForNull
-        public CommitInfo getCommitInfo() {
+        CommitInfo getCommitInfo() {
             return commitInfo;
-        }
-
-        /**
-         * State before the change
-         * @return  before state
-         */
-        @Nonnull
-        public NodeState getBeforeState() {
-            return before;
-        }
-
-        /**
-         * State after the change
-         * @return  after state
-         */
-        @Nonnull
-        public NodeState getAfterState() {
-            return after;
         }
 
         @Override
         public String toString() {
             return toStringHelper(this)
-                .add("base", before)
-                .add("head", after)
+                .add("root", root)
                 .add("commit info", commitInfo)
                 .toString();
         }
-
     }
 
 }
