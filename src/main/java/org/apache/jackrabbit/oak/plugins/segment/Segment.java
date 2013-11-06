@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -101,25 +100,6 @@ public class Segment {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
-    }
-
-    public Segment(
-            SegmentStore store, UUID uuid, Collection<UUID> refids,
-            byte[] buffer, int offset, int length) {
-        this.store = checkNotNull(store);
-        this.uuid = checkNotNull(uuid);
-
-        checkNotNull(refids);
-        checkNotNull(buffer);
-        checkPositionIndexes(offset, offset + length, buffer.length);
-
-        this.data = ByteBuffer.allocate(refids.size() * 16 + length);
-        for (UUID refid : refids) {
-            data.putLong(refid.getMostSignificantBits());
-            data.putLong(refid.getLeastSignificantBits());
-        }
-        data.put(buffer, offset, length);
-        data.rewind();
     }
 
     /**

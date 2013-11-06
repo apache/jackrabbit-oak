@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -33,7 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -115,17 +116,21 @@ public class SegmentWriter {
 
     public SegmentWriter(SegmentStore store) {
         this.store = store;
-        this.dummySegment = new Segment(
-                store, UUID.randomUUID(), Collections.<UUID>emptyList(),
-                new byte[0], 0, 0);
+        this.dummySegment =
+                new Segment(store, UUID.randomUUID(), ByteBuffer.allocate(0));
     }
 
     public synchronized Segment getCurrentSegment(UUID id) {
         if (equal(id, uuid)) {
             if (currentSegment == null) {
-                currentSegment = new Segment(
-                        store, uuid, uuids.keySet(),
-                        buffer, buffer.length - length, length);
+                ByteBuffer b = ByteBuffer.allocate(16 * uuids.size() + length);
+                for (UUID refid : uuids.keySet()) {
+                    b.putLong(refid.getMostSignificantBits());
+                    b.putLong(refid.getLeastSignificantBits());
+                }
+                b.put(buffer, buffer.length - length, length);
+                b.rewind();
+                currentSegment = new Segment(store, uuid, b);
             }
             return currentSegment;
         } else {
@@ -139,9 +144,16 @@ public class SegmentWriter {
 
     public synchronized void flush() {
         if (length > 0) {
-            store.writeSegment(
-                    uuid, uuids.keySet(),
-                    buffer, buffer.length - length, length);
+            length += 16 * uuids.size();
+
+            ByteBuffer b = ByteBuffer.wrap(
+                    buffer, buffer.length - length, 16 * uuids.size());
+            for (UUID refid : uuids.keySet()) {
+                b.putLong(refid.getMostSignificantBits());
+                b.putLong(refid.getLeastSignificantBits());
+            }
+
+            store.writeSegment(uuid, buffer, buffer.length - length, length);
 
             uuid = UUID.randomUUID();
             uuids.clear();
@@ -167,13 +179,11 @@ public class SegmentWriter {
         }
 
         int fullSize = size + ids.size() * Segment.RECORD_ID_BYTES;
-        checkArgument(fullSize > 0);
-
         int alignment = Segment.RECORD_ALIGN_BYTES - 1;
         int alignedSize = (fullSize + alignment) & ~alignment;
-        int segmentReferenceCount = uuids.size() + segmentIds.size();
-        if (length + alignedSize > buffer.length
-                || segmentReferenceCount > Segment.SEGMENT_REFERENCE_LIMIT) {
+        int refs = uuids.size() + segmentIds.size();
+        if (refs * 16 + length + alignedSize > buffer.length - 1
+                || refs > Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();
         }
 
@@ -516,60 +526,56 @@ public class SegmentWriter {
 
     private RecordId internalWriteStream(InputStream stream)
             throws IOException {
-        // First read the head of the stream. This covers most small
-        // values and the frequently accessed head of larger ones.
-        // The head gets inlined in the current segment.
-        byte[] head = new byte[Segment.MEDIUM_LIMIT];
-        int headLength = ByteStreams.read(stream, head, 0, head.length);
+        byte[] data = new byte[Segment.MAX_SEGMENT_SIZE];
+        int n = ByteStreams.read(stream, data, 0, data.length);
 
-        if (headLength < Segment.SMALL_LIMIT) {
+        // Special case for short binaries (up to about 16kB):
+        // store them directly as small- or medium-sized value records
+        if (n < Segment.MEDIUM_LIMIT) {
             synchronized (this) {
-                RecordId id = prepare(1 + headLength);
-                buffer[position++] = (byte) headLength;
-                System.arraycopy(head, 0, buffer, position, headLength);
-                position += headLength;
-                return id;
-            }
-        } else if (headLength < Segment.MEDIUM_LIMIT) {
-            synchronized (this) {
-                RecordId id = prepare(2 + headLength);
-                int len = (headLength - Segment.SMALL_LIMIT) | 0x8000;
-                buffer[position++] = (byte) (len >> 8);
-                buffer[position++] = (byte) len;
-                System.arraycopy(head, 0, buffer, position, headLength);
-                position += headLength;
-                return id;
-            }
-        } else {
-            // If the stream filled the full head buffer, it's likely
-            // that the bulk of the data is still to come. Read it
-            // in larger chunks and save in separate segments.
-
-            long length = 0;
-            List<RecordId> blockIds = new ArrayList<RecordId>();
-
-            byte[] bulk = new byte[Segment.MAX_SEGMENT_SIZE];
-            System.arraycopy(head, 0, bulk, 0, headLength);
-            int bulkLength = headLength + ByteStreams.read(
-                    stream, bulk, headLength, bulk.length - headLength);
-            while (bulkLength > 0) {
-                UUID segmentId = UUID.randomUUID();
-                int align = Segment.RECORD_ALIGN_BYTES - 1;
-                int bulkAlignLength = (bulkLength + align) & ~align;
-                store.writeSegment(
-                        segmentId, Collections.<UUID>emptyList(),
-                        bulk, 0, bulkAlignLength);
-                for (int pos = Segment.MAX_SEGMENT_SIZE - bulkAlignLength;
-                        pos < Segment.MAX_SEGMENT_SIZE;
-                        pos += BLOCK_SIZE) {
-                    blockIds.add(new RecordId(segmentId, pos));
+                RecordId id;
+                if (n < Segment.SMALL_LIMIT) {
+                    id = prepare(1 + n);
+                    buffer[position++] = (byte) n;
+                } else {
+                    id = prepare(2 + n);
+                    int len = (n - Segment.SMALL_LIMIT) | 0x8000;
+                    buffer[position++] = (byte) (len >> 8);
+                    buffer[position++] = (byte) len;
                 }
-                length += bulkLength;
-                bulkLength = ByteStreams.read(stream, bulk, 0, bulk.length);
+                System.arraycopy(data, 0, buffer, position, n);
+                position += n;
+                return id;
+            }
+        }
+
+        long length = n;
+        List<RecordId> blockIds = newArrayListWithExpectedSize(n / 4096);
+
+        // Write full bulk segments
+        while (n == buffer.length) {
+            UUID id = UUID.randomUUID();
+            store.writeSegment(id, data, 0, data.length);
+
+            for (int i = 0; i < data.length; i += BLOCK_SIZE) {
+                blockIds.add(new RecordId(id, i));
             }
 
-            return writeValueRecord(length, writeList(blockIds));
+            n = ByteStreams.read(stream, data, 0, data.length);
+            length += n;
         }
+
+
+        // Inline the remaining blocks in the current segments
+        for (int p = 0; p < n; p += BLOCK_SIZE) {
+            int size = Math.min(n - p, BLOCK_SIZE);
+            synchronized (this) {
+                blockIds.add(prepare(size));
+                System.arraycopy(data, p, buffer, position, size);
+            }
+        }
+
+        return writeValueRecord(length, writeList(blockIds));
     }
 
     private RecordId writeProperty(
