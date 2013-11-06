@@ -89,7 +89,7 @@ class SecureNodeState extends AbstractNodeState {
     @Override
     public synchronized long getPropertyCount() {
         if (propertyCount == -1) {
-            if (treePermission.canReadAll()) {
+            if (treePermission.canReadProperties()) {
                 propertyCount = state.getPropertyCount();
             } else {
                 propertyCount = count(filter(
@@ -102,14 +102,12 @@ class SecureNodeState extends AbstractNodeState {
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        if (treePermission.canReadAll()) {
+        if (treePermission.canReadProperties()) {
             return state.getProperties();
-        } else if (treePermission.canRead()) { // TODO: check DENY_PROPERTIES?
+        } else {
             return filter(
                     state.getProperties(),
                     new ReadablePropertyPredicate());
-        } else {
-            return emptyList();
         }
     }
 
