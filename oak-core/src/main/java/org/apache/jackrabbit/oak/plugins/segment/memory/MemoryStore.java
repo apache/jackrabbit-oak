@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment.memory;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
-import java.util.Collection;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
@@ -75,10 +75,11 @@ public class MemoryStore extends AbstractStore {
 
     @Override
     public void writeSegment(
-            UUID segmentId, Collection<UUID> referencedSegmentIds,
-            byte[] data, int offset, int length) {
-        Segment segment = new Segment(
-                this, segmentId, referencedSegmentIds, data, offset, length);
+            UUID segmentId, byte[] data, int offset, int length) {
+        ByteBuffer buffer = ByteBuffer.allocate(length);
+        buffer.put(data, offset, length);
+        buffer.rewind();
+        Segment segment = new Segment(this, segmentId, buffer);
         if (segments.putIfAbsent(segment.getSegmentId(), segment) != null) {
             throw new IllegalStateException(
                     "Segment override: " + segment.getSegmentId());
