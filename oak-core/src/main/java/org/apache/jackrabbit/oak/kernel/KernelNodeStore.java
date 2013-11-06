@@ -41,10 +41,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
-import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -62,12 +61,6 @@ public class KernelNodeStore implements NodeStore, Observable {
      */
     private final MicroKernel kernel;
 
-    /**
-     * Change observer.
-     */
-    @Nonnull
-    private final Observer observer;
-
     private final LoadingCache<String, KernelNodeState> cache;
 
     private final CacheStats cacheStats;
@@ -84,9 +77,8 @@ public class KernelNodeStore implements NodeStore, Observable {
      */
     private KernelNodeState root;
 
-    public KernelNodeStore(final MicroKernel kernel, long cacheSize, Observer observer) {
+    public KernelNodeStore(final MicroKernel kernel, long cacheSize) {
         this.kernel = checkNotNull(kernel);
-        this.observer = observer;
 
         Weigher<String, KernelNodeState> weigher = new Weigher<String, KernelNodeState>() {
             @Override
@@ -129,12 +121,8 @@ public class KernelNodeStore implements NodeStore, Observable {
         changeDispatcher = new ChangeDispatcher(this);
     }
 
-    public KernelNodeStore(MicroKernel kernel, long cacheSize) {
-        this(kernel, cacheSize, EmptyObserver.INSTANCE);
-    }
-
     public KernelNodeStore(MicroKernel kernel) {
-        this(kernel, DEFAULT_CACHE_SIZE, EmptyObserver.INSTANCE);
+        this(kernel, DEFAULT_CACHE_SIZE);
     }
 
     /**
@@ -159,7 +147,6 @@ public class KernelNodeStore implements NodeStore, Observable {
         String revision = kernel.getHeadRevision();
         if (!revision.equals(root.getRevision())) {
             root = getRootState(revision);
-            observer.contentChanged(root, null);
         }
         return root;
     }

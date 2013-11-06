@@ -32,10 +32,9 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
-import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -50,33 +49,22 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     private final Journal journal;
 
-    private final Observer observer;
-
     private final ChangeDispatcher changeDispatcher;
 
     private SegmentNodeState head;
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
-    public SegmentNodeStore(SegmentStore store, String journal, Observer observer) {
+    public SegmentNodeStore(SegmentStore store, String journal) {
         this.store = store;
         this.journal = store.getJournal(journal);
-        this.observer = observer;
         this.head = new SegmentNodeState(
                 store.getWriter().getDummySegment(), this.journal.getHead());
         this.changeDispatcher = new ChangeDispatcher(this);
     }
 
-    public SegmentNodeStore(SegmentStore store, String journal) {
-        this(store, journal, EmptyObserver.INSTANCE);
-    }
-
     public SegmentNodeStore(SegmentStore store) {
         this(store, "root");
-    }
-
-    public SegmentNodeStore(SegmentStore store, Observer observer) {
-        this(store, "root", observer);
     }
 
     void setMaximumBackoff(long max) {
@@ -86,7 +74,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
     synchronized SegmentNodeState getHead() {
         head = new SegmentNodeState(
                 store.getWriter().getDummySegment(), journal.getHead());
-        observer.contentChanged(head.getChildNode(ROOT), null);
         return head;
     }
 
