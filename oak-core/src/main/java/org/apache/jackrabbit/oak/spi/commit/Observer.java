@@ -29,25 +29,26 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * An observer is informed about content changes by calling the
  * {@link #contentChanged(NodeState, CommitInfo)} method. The frequency and
  * granularity of these callbacks is not specified. However, each observer is
- * always guaranteed a linear sequence of changes. In other words the
+ * always guaranteed to see a linear sequence of changes. In other words the
  * method will not be called concurrently from multiple threads and successive
- * calls to represent a logical sequence of repository states, i.e. the root
- * state passed to one call is guaranteed to be a base state of the root
- * state passed to the next call. The observer is expected to keep track of
- * the previously observed state if it wants to use a content diff to
- * determine what exactly changed between two states.
+ * calls represent a linear sequence of repository states, i.e. the root
+ * state passed to a call is guaranteed to represent a repository state
+ * that is not newer than the root state passed to the next call. The observer
+ * is expected to keep track of the previously observed state if it wants to
+ * use a content diff to determine what exactly changed between two states.
  * <p>
  * A repository may capture the optional {@link CommitInfo} instance passed
  * to a commit and make it available to observers along with the committed
- * committed content changes. In such cases, i.e. when the commit info
- * argument is non-{@code null}, the reported content change is guaranteed
- * to contain <em>only</em> changes from that specific commit (and the
- * applied commit hooks). Note that it is possible for a repository to report
- * commit information for only some commits but not others.
+ * content changes. In such cases, i.e. when the commit info argument is
+ * non-{@code null}, the reported content change is guaranteed to contain
+ * <em>only</em> changes from that specific commit (and the applied commit
+ * hooks). Note that it is possible for a repository to report commit
+ * information for only some commits but not others.
  * <p>
  * It should also be noted that two observers may not necessarily see the
  * same sequence of content changes. It is also possible for an observer to
- * be notified when no actual content changes have happened.
+ * be notified when no actual content changes have happened therefore passing
+ * the same root state to subsequent calls.
  * <p>
  * A specific implementation or deployment may offer more guarantees about
  * when and how observers are notified of content changes. See the relevant
