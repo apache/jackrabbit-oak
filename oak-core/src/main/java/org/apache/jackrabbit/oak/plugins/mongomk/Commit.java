@@ -212,6 +212,10 @@ public class Commit {
             } else {
                 NodeDocument.setCommitRoot(op, revision, commitRootDepth);
                 if (op.isNew()) {
+                    // for new nodes we can safely set _lastRev on insert.
+                    // for existing nodes the _lastRev is updated by the
+                    // background thread to avoid concurrent updates
+                    NodeDocument.setLastRev(op, revision);
                     newNodes.add(op);
                 } else {
                     changedNodes.add(op);
@@ -237,6 +241,9 @@ public class Commit {
                             // (because there might be a conflict)
                             NodeDocument.unsetRevision(commitRoot, revision);
                         }
+                        // setting _lastRev is only safe on insert. now the
+                        // background thread needs to take care of it
+                        NodeDocument.unsetLastRev(op, revision.getClusterId());
                         changedNodes.add(op);
                     }
                     newNodes.clear();
@@ -442,9 +449,10 @@ public class Commit {
             }
             UpdateOp op = operations.get(path);
             boolean isNew = op != null && op.isNew();
-            boolean isWritten = op != null;
+            boolean pendingLastRev = op == null
+                    || !NodeDocument.hasLastRev(op, revision.getClusterId());
             boolean isDelete = op != null && op.isDelete();
-            nodeStore.applyChanges(revision, path, isNew, isDelete, isWritten, isBranchCommit, added, removed);
+            nodeStore.applyChanges(revision, path, isNew, isDelete, pendingLastRev, isBranchCommit, added, removed);
         }
     }
 
