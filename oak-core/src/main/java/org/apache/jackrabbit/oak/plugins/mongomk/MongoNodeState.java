@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
@@ -101,10 +102,13 @@ final class MongoNodeState extends AbstractNodeState {
             return true;
         } else if (that instanceof MongoNodeState) {
             MongoNodeState other = (MongoNodeState) that;
-            if (node.getLastRevision().equals(other.node.getLastRevision()) && getPath().equals(other.getPath())) {
-                return true;
-            } else {
-                // TODO: optimize equals check for this case
+            if (getPath().equals(other.getPath())) {
+                return node.getLastRevision().equals(other.node.getLastRevision());
+            }
+        } else if (that instanceof ModifiedNodeState) {
+            ModifiedNodeState modified = (ModifiedNodeState) that;
+            if (modified.getBaseState() == this) {
+                return false;
             }
         }
         if (that instanceof NodeState) {
@@ -156,7 +160,11 @@ final class MongoNodeState extends AbstractNodeState {
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         // TODO: handle many child nodes better
         Node.Children children = store.getChildren(getPath(),
-                node.getLastRevision(), Integer.MAX_VALUE);
+                node.getLastRevision(), 100);
+        if (children.hasMore) {
+            children = store.getChildren(getPath(),
+                    node.getLastRevision(), Integer.MAX_VALUE);
+        }
         return Iterables.transform(children.children, new Function<String, ChildNodeEntry>() {
             @Override
             public ChildNodeEntry apply(String path) {

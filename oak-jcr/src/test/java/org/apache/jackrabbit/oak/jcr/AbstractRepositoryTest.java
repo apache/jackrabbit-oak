@@ -49,6 +49,7 @@ public abstract class AbstractRepositoryTest {
         Object[][] fixtures = new Object[][] {
                 {NodeStoreFixture.MK_IMPL},
                 {NodeStoreFixture.MONGO_MK},
+                {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},
         };
         return Arrays.asList(fixtures);

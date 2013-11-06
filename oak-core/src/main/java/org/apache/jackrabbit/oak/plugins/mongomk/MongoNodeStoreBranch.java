@@ -18,9 +18,16 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.io.IOException;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -29,6 +36,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class MongoNodeStoreBranch
         extends AbstractNodeStoreBranch<MongoNodeStore, MongoNodeState> {
+
+    /**
+     * TODO: what is a reasonable value?
+     * TODO: fall back to pessimistic approach? how does this work in a cluster?
+     */
+    private static final int MERGE_RETRIES = 10;
 
     private final BlobSerializer blobs = new BlobSerializer() {
         @Override
@@ -109,6 +122,25 @@ public class MongoNodeStoreBranch
                 store.moveNode(source, target, c);
             }
         }, base);
+    }
+
+    //--------------------< AbstractNodeStoreBranch >---------------------------
+
+    @Nonnull
+    @Override
+    public NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
+            throws CommitFailedException {
+        MicroKernelException ex = null;
+        for (int i = 0; i < MERGE_RETRIES; i++) {
+            try {
+                return super.merge(hook, info);
+            } catch (MicroKernelException e) {
+                ex = e;
+            }
+        }
+        throw new CommitFailedException(
+                "Kernel", 1,
+                "Failed to merge changes to the underlying store", ex);
     }
 
     //------------------------------< internal >--------------------------------
