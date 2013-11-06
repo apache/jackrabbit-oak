@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 
 /**
@@ -50,7 +49,7 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
  *     <li>Moving a node back and forth to its original location is not reported at all.</li>
  * </ul>
  */
-public class MoveDetector extends DefaultValidator {
+public class MoveDetector implements Validator {
     public static final String SOURCE_PATH = ":source-path";
 
     private final MoveValidator moveValidator;
@@ -63,6 +62,16 @@ public class MoveDetector extends DefaultValidator {
 
     public MoveDetector(MoveValidator moveValidator) {
         this(moveValidator, "/");
+    }
+
+    @Override
+    public void enter(NodeState before, NodeState after) throws CommitFailedException {
+        moveValidator.enter(before, after);
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after) throws CommitFailedException {
+        moveValidator.enter(before, after);
     }
 
     @Override
