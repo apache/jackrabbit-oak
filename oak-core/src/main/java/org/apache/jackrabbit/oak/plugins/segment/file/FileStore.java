@@ -26,7 +26,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.UUID;
@@ -139,24 +138,7 @@ public class FileStore extends AbstractStore {
 
     @Override
     public synchronized void writeSegment(
-            UUID segmentId, Collection<UUID> referencedSegmentIds,
-            byte[] data, int offset, int length) {
-        if (!referencedSegmentIds.isEmpty()) {
-            int size = 16 * referencedSegmentIds.size() + length;
-            ByteBuffer buffer = ByteBuffer.allocate(size);
-
-            for (UUID referencedSegmentId : referencedSegmentIds) {
-                buffer.putLong(referencedSegmentId.getMostSignificantBits());
-                buffer.putLong(referencedSegmentId.getLeastSignificantBits());
-            }
-
-            buffer.put(data, offset, length);
-
-            data = buffer.array();
-            offset = 0;
-            length = size;
-        }
-
+            UUID segmentId, byte[] data, int offset, int length) {
         try {
             writeEntry(segmentId, data, offset, length);
         } catch (IOException e) {

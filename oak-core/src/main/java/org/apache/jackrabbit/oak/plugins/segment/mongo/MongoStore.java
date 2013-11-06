@@ -22,8 +22,7 @@ import static com.mongodb.ReadPreference.nearest;
 import static com.mongodb.ReadPreference.primary;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
-import java.util.Collection;
-import java.util.List;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -83,17 +81,20 @@ public class MongoStore extends AbstractStore {
 
     @Override
     public void writeSegment(
-            UUID segmentId, Collection<UUID> referencedSegmentIds,
-            byte[] data, int offset, int length) {
+            UUID segmentId, byte[] data, int offset, int length) {
         byte[] d = new byte[length];
         System.arraycopy(data, offset, d, 0, length);
-        insertSegment(segmentId, d, referencedSegmentIds);
+
+        BasicDBObject segment = new BasicDBObject();
+        segment.put("_id", segmentId.toString());
+        segment.put("data", data);
+        segments.insert(segment, concern);
     }
 
     @Override
     protected Segment loadSegment(UUID segmentId) {
         DBObject id = new BasicDBObject("_id", segmentId.toString());
-        DBObject fields = new BasicDBObject(of("data", 1, "uuids", 1));
+        DBObject fields = new BasicDBObject(of("data", 1));
 
         DBObject segment = segments.findOne(id, fields, nearest());
         if (segment == null) {
@@ -105,26 +106,7 @@ public class MongoStore extends AbstractStore {
         }
 
         byte[] data = (byte[]) segment.get("data");
-        List<?> list = (List<?>) segment.get("uuids");
-        List<UUID> uuids = Lists.newArrayListWithCapacity(list.size());
-        for (Object object : list) {
-            uuids.add(UUID.fromString(object.toString()));
-        }
-        return new Segment(this, segmentId, uuids, data, 0, data.length);
-    }
-
-    private void insertSegment(
-            UUID segmentId, byte[] data, Collection<UUID> uuids) {
-        List<String> list = Lists.newArrayListWithCapacity(uuids.size());
-        for (UUID uuid : uuids) {
-            list.add(uuid.toString());
-        }
-
-        BasicDBObject segment = new BasicDBObject();
-        segment.put("_id", segmentId.toString());
-        segment.put("data", data);
-        segment.put("uuids", list);
-        segments.insert(segment, concern);
+        return new Segment(this, segmentId, ByteBuffer.wrap(data));
     }
 
     @Override
