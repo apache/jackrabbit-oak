@@ -15,17 +15,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+TITLE=ConcurrentReadAccessControlledTreeTest
+BENCH="ConcurrentReadAccessControlledTreeTest" #ConcurrentReadAccessControlledTreeTest2 ConcurrentReadSinglePolicyTreeTest ManyUserReadTest ConcurrentTraversalTest"
 ADMIN="false true"
 RUNTIME=10
-#BENCH=ConcurrentReadAccessControlledTreeTest
-BENCH=ManyUserReadTest
 RANDOM_USER="true"
 FIXS="Oak-Tar Jackrabbit"
 THREADS="1,2,4,8,10,15,20,50"
 PROFILE=false
 NUM_ITEMS=10000
 
-LOG=$BENCH"_$(date +'%Y%m%d_%H%M%S').csv"
+LOG=$TITLE"_$(date +'%Y%m%d_%H%M%S').csv"
 echo "Benchmarks: $BENCH" > $LOG
 echo "Fixtures: $FIXS" >> $LOG
 echo "Admin User: $ADMIN" >> $LOG
@@ -35,17 +35,21 @@ echo "Concurrency: $THREADS" >> $LOG
 echo "Random User: $RANDOM_USER" >> $LOG
 echo "Profiling: $PROFILE" >> $LOG
 echo "--------------------------------------" >> $LOG
-for user in $ADMIN
+
+for bm in $BENCH
     do
-    # we start new VMs for each fixture to minimize memory impacts between them
-    for fix in $FIXS
-	do
-        echo "Executing benchmarks as admin: $user on $fix" | tee -a $LOG
-	echo "-----------------------------------------------------------" | tee -a $LOG
-        rm -rf target/Jackrabbit-* target/Oak-Tar-*
-        cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=20 -jar target/oak-run-*-SNAPSHOT.jar benchmark --itemsToRead $NUM_ITEMS --csvFile $LOG --concurrency $THREADS --runAsAdmin $user --report false --randomUser $RANDOM_USER $BENCH $fix"
-        echo $cmd
-        $cmd 
+    for user in $ADMIN
+        do
+        # we start new VMs for each fixture to minimize memory impacts between them
+        for fix in $FIXS
+        do
+            echo "Executing benchmarks as admin: $user on $fix" | tee -a $LOG
+        echo "-----------------------------------------------------------" | tee -a $LOG
+            rm -rf target/Jackrabbit-* target/Oak-Tar-*
+            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=20 -jar target/oak-run-*-SNAPSHOT.jar benchmark --itemsToRead $NUM_ITEMS --csvFile $LOG --concurrency $THREADS --runAsAdmin $user --report false --randomUser $RANDOM_USER $bm $fix"
+            echo $cmd
+            $cmd
+        done
     done
 done
 echo "-----------------------------------------"
