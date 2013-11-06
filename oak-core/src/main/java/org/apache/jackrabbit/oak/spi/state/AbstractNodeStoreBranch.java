@@ -88,9 +88,10 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      * Merges the branch head and returns the result state of the merge.
      *
      * @param branchHead the head of the branch to merge.
+     * @param info the commit info or <code>null</code> if none available.
      * @return the result state of the merge.
      */
-    protected abstract N merge(N branchHead);
+    protected abstract N merge(N branchHead, CommitInfo info);
 
     /**
      * Persists the changes between <code>toPersist</code> and <code>base</code>
@@ -102,9 +103,10 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      *
      * @param toPersist the state with the changes on top of <code>base</code>.
      * @param base the base state.
+     * @param info the commit info or <code>null</code> if there is none.
      * @return the state with the persisted changes.
      */
-    protected abstract N persist(NodeState toPersist, N base);
+    protected abstract N persist(NodeState toPersist, N base, CommitInfo info);
 
     /**
      * Perform a potentially optimized copy operation directly on the underlying
@@ -389,7 +391,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                 rebase();
                 dispatcher.beforeCommit(base);
                 NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-                NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base);
+                NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
                 dispatcher.localCommit(newHead, info);
                 branchState = new Merged(base);
                 return newHead;
@@ -473,8 +475,8 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                     branchState = new Merged(base);
                     return base;
                 } else {
-                    head = AbstractNodeStoreBranch.this.persist(toCommit, head);
-                    NodeState newRoot = AbstractNodeStoreBranch.this.merge(head);
+                    head = AbstractNodeStoreBranch.this.persist(toCommit, head, info);
+                    NodeState newRoot = AbstractNodeStoreBranch.this.merge(head, info);
                     dispatcher.localCommit(newRoot, info);
                     branchState = new Merged(base);
                     return newRoot;
@@ -486,7 +488,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         private void persistTransientHead(NodeState newHead) {
             if (!newHead.equals(head)) {
-                head = AbstractNodeStoreBranch.this.persist(newHead, head);
+                head = AbstractNodeStoreBranch.this.persist(newHead, head, null);
             }
         }
     }

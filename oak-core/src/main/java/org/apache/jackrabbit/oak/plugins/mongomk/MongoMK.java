@@ -405,7 +405,7 @@ public class MongoMK implements MicroKernel {
             if (!success) {
                 nodeStore.canceled(commit);
             } else {
-                nodeStore.done(commit, isBranch);
+                nodeStore.done(commit, isBranch, null);
             }
         }
         return rev.toString();
@@ -428,7 +428,7 @@ public class MongoMK implements MicroKernel {
         if (!revision.isBranch()) {
             throw new MicroKernelException("Not a branch: " + branchRevisionId);
         }
-        return nodeStore.merge(revision).toString();
+        return nodeStore.merge(revision, null).toString();
     }
 
     @Override

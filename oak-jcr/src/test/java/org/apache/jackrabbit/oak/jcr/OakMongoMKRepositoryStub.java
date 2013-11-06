@@ -70,11 +70,7 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
         Session session = null;
         try {
             this.connection = new MongoConnection(HOST, PORT, DB);
-            MongoMK m = new MongoMK.Builder().setClusterId(1).
-                    memoryCacheSize(64 * 1024 * 1024).
-                    setMongoDB(connection.getDB()).open();
-            Jcr jcr = new Jcr(m);
-            this.repository = jcr.createRepository();
+            this.repository = createRepository(connection);
 
             session = getRepository().login(superuser);
             TestContentLoader loader = new TestContentLoader();
@@ -88,6 +84,14 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
         }
         Runtime.getRuntime().addShutdownHook(
                 new Thread(new ShutdownHook(connection)));
+    }
+
+    protected Repository createRepository(MongoConnection connection) {
+        MongoMK m = new MongoMK.Builder().setClusterId(1).
+                memoryCacheSize(64 * 1024 * 1024).
+                setMongoDB(connection.getDB()).open();
+        Jcr jcr = new Jcr(m);
+        return jcr.createRepository();
     }
 
     /**
