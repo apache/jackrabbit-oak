@@ -81,19 +81,20 @@ public class MongoNodeStoreBranch
     }
 
     @Override
-    protected MongoNodeState merge(MongoNodeState branchHead) {
-        return store.getRoot(store.merge(branchHead.getRevision()));
+    protected MongoNodeState merge(MongoNodeState branchHead, CommitInfo info) {
+        return store.getRoot(store.merge(branchHead.getRevision(), info));
     }
 
     @Override
     protected MongoNodeState persist(final NodeState toPersist,
-                                     final MongoNodeState base) {
+                                     final MongoNodeState base,
+                                     final CommitInfo info) {
         MongoNodeState state = persist(new Changes() {
             @Override
             public void with(Commit c) {
                 toPersist.compareAgainstBaseState(base, new CommitDiff(c, blobs));
             }
-        }, base);
+        }, base, info);
         if (base.isBranch()) {
             state.setBranch();
         }
@@ -109,7 +110,7 @@ public class MongoNodeStoreBranch
             public void with(Commit c) {
                 store.copyNode(source, target, c);
             }
-        }, base);
+        }, base, null);
     }
 
     @Override
@@ -121,7 +122,7 @@ public class MongoNodeStoreBranch
             public void with(Commit c) {
                 store.moveNode(source, target, c);
             }
-        }, base);
+        }, base, null);
     }
 
     //--------------------< AbstractNodeStoreBranch >---------------------------
@@ -150,9 +151,12 @@ public class MongoNodeStoreBranch
      *
      * @param op the changes to persist.
      * @param base the base state.
+     * @param info the commit info.
      * @return the result state.
      */
-    private MongoNodeState persist(Changes op, MongoNodeState base) {
+    private MongoNodeState persist(Changes op,
+                                   MongoNodeState base,
+                                   CommitInfo info) {
         boolean success = false;
         Commit c = store.newCommit(base.getRevision());
         Revision rev;
@@ -162,7 +166,7 @@ public class MongoNodeStoreBranch
             success = true;
         } finally {
             if (success) {
-                store.done(c, base.getRevision().isBranch());
+                store.done(c, base.getRevision().isBranch(), info);
             } else {
                 store.canceled(c);
             }

@@ -89,12 +89,15 @@ public class KernelNodeStoreBranch extends
     }
 
     @Override
-    protected KernelNodeState merge(KernelNodeState branchHead) {
+    protected KernelNodeState merge(KernelNodeState branchHead,
+                                    CommitInfo info) {
         return store.merge(branchHead);
     }
 
     @Override
-    protected KernelNodeState persist(NodeState toPersist, KernelNodeState base) {
+    protected KernelNodeState persist(NodeState toPersist,
+                                      KernelNodeState base,
+                                      CommitInfo info) {
         JsopDiff diff = new JsopDiff(blobs);
         toPersist.compareAgainstBaseState(base, diff);
         return store.commit(diff.toString(), base);
