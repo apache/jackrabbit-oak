@@ -25,6 +25,10 @@ import java.util.concurrent.ExecutionException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.Weigher;
+import com.mongodb.DB;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
@@ -41,15 +45,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.Node.Children;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.Weigher;
-import com.mongodb.DB;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A MicroKernel implementation that stores the data in a MongoDB.
@@ -622,7 +617,6 @@ public class MongoMK implements MicroKernel {
         private MongoNodeStore nodeStore;
         private DocumentStore documentStore;
         private BlobStore blobStore;
-        private Observer observer = EmptyObserver.INSTANCE;
         private int clusterId  = Integer.getInteger("oak.mongoMK.clusterId", 0);
         private int asyncDelay = 1000;
         private boolean timing;
@@ -807,16 +801,6 @@ public class MongoMK implements MicroKernel {
         
         public long getSplitDocumentAgeMillis() {
             return splitDocumentAgeMillis;
-        }
-
-        public Builder setObserver(@Nonnull Observer observer) {
-            this.observer = checkNotNull(observer);
-            return this;
-        }
-
-        @Nonnull
-        public Observer getObserver() {
-            return observer;
         }
 
         /**

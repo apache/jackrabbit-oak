@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
@@ -43,12 +45,14 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -142,14 +146,19 @@ public class NodeStoreTest {
     }
 
     @Test
-    public void afterCommitHook() throws CommitFailedException {
+    public void afterCommitHook() throws CommitFailedException, InterruptedException {
+        Assume.assumeTrue(store instanceof Observable);
+
         final AtomicReference<NodeState> observedRoot =
                 new AtomicReference<NodeState>(null);
-        fixture.setObserver(new Observer() {
+        final CountDownLatch latch = new CountDownLatch(2);
+
+        ((Observable) store).addObserver(new Observer() {
             @Override
             public void contentChanged(
                     @Nonnull NodeState root, @Nullable CommitInfo info) {
                 observedRoot.set(checkNotNull(root));
+                latch.countDown();
             }
         });
 
@@ -159,11 +168,11 @@ public class NodeStoreTest {
         NodeBuilder newNodeBuilder = testBuilder.child("newNode");
 
         newNodeBuilder.setProperty("n", 42);
-
         testBuilder.getChildNode("a").remove();
 
         store.merge(rootBuilder, EmptyHook.INSTANCE, null);
         NodeState newRoot = store.getRoot(); // triggers the observer
+        latch.await(2, TimeUnit.SECONDS);
 
         NodeState after = observedRoot.get();
         assertNotNull(after);

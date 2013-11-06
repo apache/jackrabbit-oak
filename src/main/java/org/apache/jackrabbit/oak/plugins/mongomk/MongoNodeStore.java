@@ -219,14 +219,8 @@ public final class MongoNodeStore
      */
     private final BlobStore blobStore;
 
-    /**
-     * The node store observer.
-     */
-    private final Observer observer;
-
     public MongoNodeStore(MongoMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
-        this.observer = builder.getObserver();
         if (builder.isUseSimpleRevision()) {
             this.simpleRevisionCounter = new AtomicInteger(0);
         }
@@ -333,7 +327,6 @@ public final class MongoNodeStore
         if (!checkNotNull(newHead).equals(previous)) {
             // head changed
             headRevision = newHead;
-            observer.contentChanged(getRoot(newHead), null);
         }
         return previous;
     }
