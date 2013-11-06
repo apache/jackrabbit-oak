@@ -324,6 +324,9 @@ public class NodeDelegate extends ItemDelegate {
      */
     @CheckForNull
     public NodeDelegate getChild(String relPath) throws RepositoryException {
+        if (relPath.isEmpty()) {
+            return this;
+        }
         Tree tree = getTree(relPath);
         return tree == null || !tree.exists() ? null : new NodeDelegate(sessionDelegate, tree);
     }
