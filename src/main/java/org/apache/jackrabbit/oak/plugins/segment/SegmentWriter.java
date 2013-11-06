@@ -25,6 +25,8 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -38,7 +40,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,17 @@ import com.google.common.io.Closeables;
 
 public class SegmentWriter {
 
+    private enum RecordType {
+        LEAF,
+        BRANCH,
+        BUCKET,
+        LIST,
+        VALUE,
+        BLOCK,
+        TEMPLATE,
+        NODE
+    }
+
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
     private final SegmentStore store;
@@ -90,7 +102,13 @@ public class SegmentWriter {
      * respective single-byte UUID index values used when serializing
      * record identifiers.
      */
-    private final Map<UUID, Byte> uuids = Maps.newLinkedHashMap();
+    private final Map<UUID, Byte> refids = newLinkedHashMap();
+
+    /**
+     * The set of root records (i.e. ones not referenced by other records)
+     * in this segment.
+     */
+    private final Map<RecordId, RecordType> roots = newHashMap();
 
     /**
      * The segment write buffer, filled from the end to the beginning
@@ -123,8 +141,8 @@ public class SegmentWriter {
     public synchronized Segment getCurrentSegment(UUID id) {
         if (equal(id, uuid)) {
             if (currentSegment == null) {
-                ByteBuffer b = ByteBuffer.allocate(16 * uuids.size() + length);
-                for (UUID refid : uuids.keySet()) {
+                ByteBuffer b = ByteBuffer.allocate(16 * refids.size() + length);
+                for (UUID refid : refids.keySet()) {
                     b.putLong(refid.getMostSignificantBits());
                     b.putLong(refid.getLeastSignificantBits());
                 }
@@ -144,11 +162,11 @@ public class SegmentWriter {
 
     public synchronized void flush() {
         if (length > 0) {
-            length += 16 * uuids.size();
+            length += 16 * refids.size();
 
             ByteBuffer b = ByteBuffer.wrap(
-                    buffer, buffer.length - length, 16 * uuids.size());
-            for (UUID refid : uuids.keySet()) {
+                    buffer, buffer.length - length, 16 * refids.size());
+            for (UUID refid : refids.keySet()) {
                 b.putLong(refid.getMostSignificantBits());
                 b.putLong(refid.getLeastSignificantBits());
             }
@@ -156,56 +174,73 @@ public class SegmentWriter {
             store.writeSegment(uuid, buffer, buffer.length - length, length);
 
             uuid = UUID.randomUUID();
-            uuids.clear();
+            refids.clear();
+            roots.clear();
             length = 0;
             position = buffer.length;
             currentSegment = null;
         }
     }
 
-    private RecordId prepare(int size) {
-        return prepare(size, Collections.<RecordId>emptyList());
+    private RecordId prepare(RecordType type, int size) {
+        return prepare(type, size, Collections.<RecordId>emptyList());
     }
 
-    private RecordId prepare(int size, Collection<RecordId> ids) {
+    private RecordId prepare(
+            RecordType type, int size, Collection<RecordId> ids) {
         checkArgument(size >= 0);
+        checkNotNull(ids);
 
-        Set<UUID> segmentIds = new HashSet<UUID>();
-        for (RecordId id : checkNotNull(ids)) {
+        Set<UUID> segmentIds = newHashSet();
+        for (RecordId id : ids) {
             UUID segmentId = id.getSegmentId();
-            if (!equal(uuid, segmentId) && !uuids.containsKey(segmentId)) {
+            if (!equal(uuid, segmentId) && !refids.containsKey(segmentId)) {
                 segmentIds.add(segmentId);
             }
         }
+        int refCount = refids.size() + segmentIds.size();
+
+        Set<RecordId> rootIds = newHashSet(roots.keySet());
+        rootIds.removeAll(ids);
+        int rootCount = rootIds.size() + 1;
 
         int fullSize = size + ids.size() * Segment.RECORD_ID_BYTES;
         int alignment = Segment.RECORD_ALIGN_BYTES - 1;
         int alignedSize = (fullSize + alignment) & ~alignment;
-        int refs = uuids.size() + segmentIds.size();
-        if (refs * 16 + length + alignedSize > buffer.length - 1
-                || refs > Segment.SEGMENT_REFERENCE_LIMIT) {
+
+        int segmentSize =
+                3 + rootCount * 3 + refCount * 16 + alignedSize + length;
+        if (segmentSize > buffer.length - 1
+                || rootCount > 0xffff
+                || refCount > Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();
         }
 
         length += alignedSize;
         position = buffer.length - length;
         checkState(position >= 0);
+
         currentSegment = null;
-        return new RecordId(uuid, position);
+
+        RecordId id = new RecordId(uuid, position);
+        roots.put(id, type);
+        return id;
     }
 
     private void writeRecordId(RecordId id) {
         checkNotNull(id);
 
+        roots.remove(id);
+
         UUID segmentId = id.getSegmentId();
         if (equal(uuid, segmentId)) {
             buffer[position++] = (byte) 0xff;
         } else {
-            Byte segmentIndex = uuids.get(segmentId);
+            Byte segmentIndex = refids.get(segmentId);
             if (segmentIndex == null) {
-                checkState(uuids.size() < Segment.SEGMENT_REFERENCE_LIMIT);
-                segmentIndex = Byte.valueOf((byte) uuids.size());
-                uuids.put(segmentId, segmentIndex);
+                checkState(refids.size() < Segment.SEGMENT_REFERENCE_LIMIT);
+                segmentIndex = Byte.valueOf((byte) refids.size());
+                refids.put(segmentId, segmentIndex);
             }
             buffer[position++] = segmentIndex.byteValue();
         }
@@ -250,7 +285,7 @@ public class SegmentWriter {
         Arrays.sort(array);
 
         synchronized (this) {
-            RecordId id = prepare(4 + size * 4, ids);
+            RecordId id = prepare(RecordType.LEAF, 4 + size * 4, ids);
             writeInt((level << MapRecord.SIZE_BITS) | size);
             for (MapEntry entry : array) {
                 writeInt(entry.getHash());
@@ -276,7 +311,7 @@ public class SegmentWriter {
         }
 
         synchronized (this) {
-            RecordId mapId = prepare(8, ids);
+            RecordId mapId = prepare(RecordType.BRANCH, 8, ids);
             writeInt((level << MapRecord.SIZE_BITS) | size);
             writeInt(bitmap);
             for (RecordId id : ids) {
@@ -288,7 +323,7 @@ public class SegmentWriter {
 
 
     private synchronized RecordId writeListBucket(List<RecordId> bucket) {
-        RecordId bucketId = prepare(0, bucket);
+        RecordId bucketId = prepare(RecordType.BUCKET, 0, bucket);
         for (RecordId id : bucket) {
             writeRecordId(id);
         }
@@ -305,7 +340,7 @@ public class SegmentWriter {
                 return dummySegment.readMap(baseId);
             } else if (level == 0) {
                 synchronized (this) {
-                    RecordId id = prepare(4);
+                    RecordId id = prepare(RecordType.LIST, 4);
                     writeInt(0);
                     return new MapRecord(dummySegment, id);
                 }
@@ -368,7 +403,7 @@ public class SegmentWriter {
                 } else if (newSize == 0) {
                     if (level == 0) {
                         synchronized (this) {
-                            RecordId id = prepare(4);
+                            RecordId id = prepare(RecordType.LIST, 4);
                             writeInt(0);
                             return new MapRecord(dummySegment, id);
                         }
@@ -411,7 +446,8 @@ public class SegmentWriter {
 
     private synchronized RecordId writeValueRecord(
             long length, RecordId blocks) {
-        RecordId valueId = prepare(8, Collections.singleton(blocks));
+        RecordId valueId = prepare(
+                RecordType.VALUE, 8, Collections.singleton(blocks));
         writeLong((length - Segment.MEDIUM_LIMIT) | (0x3L << 62));
         writeRecordId(blocks);
         return valueId;
@@ -430,7 +466,7 @@ public class SegmentWriter {
         checkNotNull(bytes);
         checkPositionIndexes(offset, offset + length, bytes.length);
 
-        RecordId blockId = prepare(length);
+        RecordId blockId = prepare(RecordType.BLOCK, length);
         System.arraycopy(bytes, offset, buffer, position, length);
         position += length;
         return blockId;
@@ -535,10 +571,10 @@ public class SegmentWriter {
             synchronized (this) {
                 RecordId id;
                 if (n < Segment.SMALL_LIMIT) {
-                    id = prepare(1 + n);
+                    id = prepare(RecordType.VALUE, 1 + n);
                     buffer[position++] = (byte) n;
                 } else {
-                    id = prepare(2 + n);
+                    id = prepare(RecordType.VALUE, 2 + n);
                     int len = (n - Segment.SMALL_LIMIT) | 0x8000;
                     buffer[position++] = (byte) (len >> 8);
                     buffer[position++] = (byte) len;
@@ -570,7 +606,7 @@ public class SegmentWriter {
         for (int p = 0; p < n; p += BLOCK_SIZE) {
             int size = Math.min(n - p, BLOCK_SIZE);
             synchronized (this) {
-                blockIds.add(prepare(size));
+                blockIds.add(prepare(RecordType.BLOCK, size));
                 System.arraycopy(data, p, buffer, position, size);
             }
         }
@@ -607,14 +643,15 @@ public class SegmentWriter {
             return valueIds.iterator().next();
         } else if (count == 0) {
             synchronized (this) {
-                RecordId propertyId = prepare(4);
+                RecordId propertyId = prepare(RecordType.LIST, 4);
                 writeInt(0);
                 return propertyId;
             }
         } else {
             RecordId listId = writeList(valueIds);
             synchronized (this) {
-                RecordId propertyId = prepare(4, Collections.singleton(listId));
+                RecordId propertyId = prepare(
+                        RecordType.LIST, 4, Collections.singleton(listId));
                 writeInt(count);
                 writeRecordId(listId);
                 return propertyId;
@@ -679,7 +716,8 @@ public class SegmentWriter {
                 head |= propertyNames.length;
 
                 synchronized (this) {
-                    id = prepare(4 + propertyTypes.length, ids);
+                    id = prepare(
+                            RecordType.TEMPLATE, 4 + propertyTypes.length, ids);
                     writeInt(head);
                     if (primaryId != null) {
                         writeRecordId(primaryId);
@@ -793,7 +831,7 @@ public class SegmentWriter {
         }
 
         synchronized (this) {
-            RecordId recordId = prepare(0, ids);
+            RecordId recordId = prepare(RecordType.NODE, 0, ids);
             for (RecordId id : ids) {
                 writeRecordId(id);
             }
