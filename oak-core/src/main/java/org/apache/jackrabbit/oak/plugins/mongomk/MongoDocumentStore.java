@@ -157,6 +157,7 @@ public class MongoDocumentStore implements DocumentStore {
         return find(collection, key, Integer.MAX_VALUE);
     }
     
+    @SuppressWarnings("unchecked")
     @Override
     public <T extends Document> T find(final Collection<T> collection,
                                        final String key,
@@ -164,8 +165,18 @@ public class MongoDocumentStore implements DocumentStore {
         if (collection != Collection.NODES) {
             return findUncached(collection, key);
         }
+        NodeDocument doc;
+        if (maxCacheAge > 0) {
+            // first try without lock
+            doc = nodesCache.getIfPresent(key);
+            if (doc != null) {
+                if (maxCacheAge == Integer.MAX_VALUE ||
+                        System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                    return (T) doc;
+                }
+            }
+        }
         try {
-            NodeDocument doc;
             Lock lock = getAndLock(key);
             try {
                 if (maxCacheAge == 0) {
@@ -197,9 +208,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (doc == NodeDocument.NULL) {
                 return null;
             } else {
-                @SuppressWarnings("unchecked")
-                T result = (T) doc;
-                return result;
+                return (T) doc;
             }
         } catch (ExecutionException e) {
             throw new IllegalStateException("Failed to load document with " + key, e);
