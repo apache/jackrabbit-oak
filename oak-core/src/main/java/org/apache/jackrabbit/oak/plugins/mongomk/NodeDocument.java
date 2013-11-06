@@ -813,6 +813,16 @@ public class NodeDocument extends Document {
                 revision.toString());
     }
 
+    public static boolean hasLastRev(@Nonnull UpdateOp op, int clusterId) {
+        return checkNotNull(op).getChanges().containsKey(
+                new Key(LAST_REV, new Revision(0, 0, clusterId)));
+    }
+
+    public static void unsetLastRev(@Nonnull UpdateOp op, int clusterId) {
+        checkNotNull(op).unsetMapEntry(LAST_REV,
+                new Revision(0, 0, clusterId));
+    }
+
     public static void setCommitRoot(@Nonnull UpdateOp op,
                                      @Nonnull Revision revision,
                                      int commitRootDepth) {

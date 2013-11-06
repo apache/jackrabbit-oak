@@ -644,14 +644,14 @@ public final class MongoNodeStore
      * @param path the path
      * @param isNew whether this is a new node
      * @param isDelete whether the node is deleted
-     * @param isWritten whether the MongoDB documented was added / updated
+     * @param pendingLastRev whether the node has a pending _lastRev to write
      * @param isBranchCommit whether this is from a branch commit
      * @param added the list of added child nodes
      * @param removed the list of removed child nodes
      *
      */
     public void applyChanges(Revision rev, String path,
-                             boolean isNew, boolean isDelete, boolean isWritten,
+                             boolean isNew, boolean isDelete, boolean pendingLastRev,
                              boolean isBranchCommit, ArrayList<String> added,
                              ArrayList<String> removed) {
         UnsavedModifications unsaved = unsavedLastRevisions;
@@ -659,17 +659,19 @@ public final class MongoNodeStore
             Revision branchRev = rev.asBranchRevision();
             unsaved = branches.getBranch(branchRev).getModifications(branchRev);
         }
-        // write back _lastRev with background thread
-        Revision prev = unsaved.put(path, rev);
-        if (prev != null) {
-            if (isRevisionNewer(prev, rev)) {
-                // revert
-                unsaved.put(path, prev);
-                String msg = String.format("Attempt to update " +
-                        "unsavedLastRevision for %s with %s, which is " +
-                        "older than current %s.",
-                        path, rev, prev);
-                throw new MicroKernelException(msg);
+        if (isBranchCommit || pendingLastRev) {
+            // write back _lastRev with background thread
+            Revision prev = unsaved.put(path, rev);
+            if (prev != null) {
+                if (isRevisionNewer(prev, rev)) {
+                    // revert
+                    unsaved.put(path, prev);
+                    String msg = String.format("Attempt to update " +
+                            "unsavedLastRevision for %s with %s, which is " +
+                            "older than current %s.",
+                            path, rev, prev);
+                    throw new MicroKernelException(msg);
+                }
             }
         }
         String key = path + "@" + rev;
