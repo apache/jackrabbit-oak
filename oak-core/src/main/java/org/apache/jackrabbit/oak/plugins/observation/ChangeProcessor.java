@@ -21,10 +21,15 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.observation.EventListener;
 
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
@@ -32,8 +37,9 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.ChangeSet;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -43,28 +49,23 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A {@code ChangeProcessor} generates observation {@link javax.jcr.observation.Event}s
- * based on a {@link EventFilter} and delivers them to an {@link javax.jcr.observation.EventListener}.
+ * based on a {@link EventFilter} and delivers them to an {@link EventListener}.
  * <p>
- * After instantiation a {@code ChangeProcessor} must be started in order for its
- * {@link ListenerThread listener thread's} run methods to be regularly
- * executed and stopped in order to not execute its run method anymore.
+ * After instantiation a {@code ChangeProcessor} must be started in order to start
+ * delivering observation events and stopped to stop doing so.
  */
-public class ChangeProcessor {
+public class ChangeProcessor implements Observer {
     private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
 
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
-    private final AtomicReference<EventFilter> filterRef;
-
     private final ListenerTracker tracker;
     private final EventListener listener;
+    private final AtomicReference<EventFilter> filterRef;
 
-    /**
-     * Background thread used to wait for and deliver events.
-     */
-    private ListenerThread thread = null;
-
-    private volatile boolean stopping = false;
+    private Closeable observer;
+    private Registration mbean;
+    private NodeState previousRoot;
 
     public ChangeProcessor(
             ContentSession contentSession, NamePathMapper namePathMapper,
@@ -73,7 +74,7 @@ public class ChangeProcessor {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
-        this.listener = tracker.getTrackedListener();
+        listener = tracker.getTrackedListener();
         filterRef = new AtomicReference<EventFilter>(filter);
     }
 
@@ -92,12 +93,11 @@ public class ChangeProcessor {
      * @throws IllegalStateException if started already
      */
     public synchronized void start(Whiteboard whiteboard) {
-        checkState(thread == null, "Change processor started already");
+        checkState(observer == null, "Change processor started already");
+        observer = ((Observable) contentSession).addObserver(this);
+        mbean = WhiteboardUtils.registerMBean(whiteboard, EventListenerMBean.class,
+                tracker.getListenerMBean(), "EventListener", tracker.toString());
 
-        thread = new ListenerThread(whiteboard);
-        thread.setDaemon(true);
-        thread.setPriority(Thread.MIN_PRIORITY);
-        thread.start();
     }
 
     /**
@@ -106,71 +106,49 @@ public class ChangeProcessor {
      * @throws IllegalStateException if not yet started or stopped already
      */
     public synchronized void stop() {
-        checkState(thread != null, "Change processor not started");
-        checkState(!stopping, "Change processor already stopped");
-
-        stopping = true;
-        if (Thread.currentThread() != thread) {
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                log.warn("Interruption while waiting for the observation thread to terminate", e);
-                Thread.currentThread().interrupt();
-            } finally {
-                thread.dispose();
-            }
+        checkState(observer != null, "Change processor not started");
+        try {
+            mbean.unregister();
+            observer.close();
+        } catch (IOException e) {
+            log.error("Error while stopping change listener", e);
         }
     }
 
-    //------------------------------------------------------------< private >---
-
-    private class ListenerThread extends Thread {
-
-        private final Listener changeListener =
-                ((Observable) contentSession).newListener();
-
-        private final Registration mbean;
-
-        ListenerThread(Whiteboard whiteboard) {
-            mbean = WhiteboardUtils.registerMBean(
-                    whiteboard, EventListenerMBean.class,
-                    tracker.getListenerMBean(), "EventListener",
-                    tracker.toString());
-        }
-
-        @Override
-        public void run() {
+    @Override
+    public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+        if (previousRoot != null) {
             try {
-                while (!stopping) {
-                    ChangeSet changes = changeListener.getChanges(100);
-                    EventFilter filter = filterRef.get();
-                    // FIXME don't rely on toString for session id
-                    if (changes != null &&
-                            filter.includeSessionLocal(changes.isLocal(contentSession.toString())) &&
-                            filter.includeClusterExternal(changes.getCommitInfo() == null)) {
-                        String path = namePathMapper.getOakPath(filter.getPath());
-                        ImmutableTree beforeTree = getTree(changes.getBeforeState(), path);
-                        ImmutableTree afterTree = getTree(changes.getAfterState(), path);
-                        EventGenerator events = new EventGenerator(changes.getCommitInfo(),
-                                beforeTree, afterTree, filter, namePathMapper);
-                        if (events.hasNext()) {
-                            listener.onEvent(new EventIteratorAdapter(events));
-                        }
+                EventFilter filter = filterRef.get();
+                if (filter.includeSessionLocal(isLocal(info))
+                        && filter.includeClusterExternal(isExternal(info))) {
+                    String path = namePathMapper.getOakPath(filter.getPath());
+                    ImmutableTree beforeTree = getTree(previousRoot, path);
+                    ImmutableTree afterTree = getTree(root, path);
+                    EventGenerator events = new EventGenerator(
+                            info, beforeTree, afterTree, filter, namePathMapper);
+                    if (events.hasNext()) {
+                        listener.onEvent(new EventIteratorAdapter(events));
                     }
                 }
             } catch (Exception e) {
                 log.warn("Error while dispatching observation events", e);
             }
         }
+        previousRoot = root;
+    }
 
-        private ImmutableTree getTree(NodeState nodeState, String path) {
-            return new ImmutableRoot(nodeState).getTree(path);
-        }
+    private boolean isLocal(CommitInfo info) {
+        // FIXME don't rely on toString for session id
+        return info != null && Objects.equal(info.getSessionId(), contentSession.toString());
+    }
 
-        void dispose() {
-            mbean.unregister();
-            changeListener.dispose();
-        }
+    private static boolean isExternal(CommitInfo info) {
+        return info == null;
+    }
+
+    private static ImmutableTree getTree(NodeState nodeState, String path) {
+        return new ImmutableRoot(nodeState).getTree(path);
     }
 
 }

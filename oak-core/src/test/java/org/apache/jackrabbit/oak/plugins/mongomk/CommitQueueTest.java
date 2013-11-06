@@ -16,13 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 /**
@@ -38,38 +45,26 @@ public class CommitQueueTest {
     public void concurrentCommits() throws Exception {
         final MongoNodeStore store = new MongoMK.Builder().getNodeStore();
         ChangeDispatcher dispatcher = new ChangeDispatcher(store);
-        final ChangeDispatcher.Listener listener = dispatcher.newListener();
-        final AtomicBoolean running = new AtomicBoolean(true);
+        AtomicBoolean running = new AtomicBoolean(true);
         final CommitQueue queue = new CommitQueue(store, dispatcher);
-        final List<Exception> exceptions = Collections.synchronizedList(
-                new ArrayList<Exception>());
-        Thread reader = new Thread(new Runnable() {
+        final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
+
+        Closeable observer = dispatcher.addObserver(new Observer() {
+            private Revision before = new Revision(0, 0, store.getClusterId());
+
             @Override
-            public void run() {
-                try {
-                    Revision before = new Revision(0, 0, store.getClusterId());
-                    while (running.get()) {
-                        ChangeDispatcher.ChangeSet changes =
-                                listener.getChanges(1000);
-                        if (changes != null) {
-                            MongoNodeState after = (MongoNodeState) changes.getAfterState();
-                            Revision r = after.getRevision();
-                            // System.out.println("seen: " + r);
-                            if (r.compareRevisionTime(before) < 1) {
-                                exceptions.add(new Exception(
-                                        "Inconsistent revision sequence. Before: " +
-                                                before + ", after: " + r));
-                                break;
-                            }
-                            before = r;
-                        }
-                    }
-                } catch (Exception e) {
-                    exceptions.add(e);
+            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+                MongoNodeState after = (MongoNodeState) root;
+                Revision r = after.getRevision();
+//                System.out.println("seen: " + r);
+                if (r.compareRevisionTime(before) < 1) {
+                    exceptions.add(new Exception(
+                            "Inconsistent revision sequence. Before: " +
+                                    before + ", after: " + r));
                 }
+                before = r;
             }
         });
-        reader.start();
 
         // perform commits with multiple threads
         List<Thread> writers = new ArrayList<Thread>();
@@ -108,7 +103,7 @@ public class CommitQueueTest {
             t.join();
         }
         running.set(false);
-        reader.join();
+        observer.close();
         for (Exception e : exceptions) {
             throw e;
         }

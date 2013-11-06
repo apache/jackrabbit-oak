@@ -17,23 +17,24 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.spi.commit;
 
-import org.apache.jackrabbit.oak.plugins.observation.ChangeDispatcher.Listener;
+import java.io.Closeable;
 
 /**
- * An {@code Observable} supports attaching {@link Listener} instances for
+ * An {@code Observable} supports attaching {@link Observer} instances for
  * listening to content changes.
  *
- * @see ChangeDispatcher
+ * @see Observable
  */
 public interface Observable {
 
     /**
-     * Register a new {@code Listener}. Clients need to call
-     * {@link ChangeDispatcher.Listener#dispose()} to free
-     * up any resources associated with the listener when done.
-     * @return a fresh {@code Listener} instance.
+     * Register a new {@code Observer}. Clients need to call {@link Closeable#close()} 
+     * to stop getting notifications on the registered observer and to free up any resources
+     * associated with the registration.
+     * 
+     * @return a {@code Closeable} instance.
      */
-    Listener newListener();
+    Closeable addObserver(Observer observer);
 }
