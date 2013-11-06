@@ -351,8 +351,8 @@ public final class MongoNodeStore
 
     /**
      * Creates a new commit. The caller must acknowledge the commit either with
-     * {@link #done(Commit, boolean)} or {@link #canceled(Commit)}, depending
-     * on the result of the commit.
+     * {@link #done(Commit, boolean, CommitInfo)} or {@link #canceled(Commit)},
+     * depending on the result of the commit.
      *
      * @param base the base revision for the commit or <code>null</code> if the
      *             commit should use the current head revision as base.
@@ -377,9 +377,9 @@ public final class MongoNodeStore
         return c;
     }
 
-    void done(@Nonnull Commit c, boolean isBranch) {
+    void done(@Nonnull Commit c, boolean isBranch, @Nullable CommitInfo info) {
         try {
-            commitQueue.done(c, isBranch, null);
+            commitQueue.done(c, isBranch, info);
         } finally {
             backgroundOperationLock.readLock().unlock();
         }
@@ -759,7 +759,7 @@ public final class MongoNodeStore
     }
 
     @Nonnull
-    Revision merge(@Nonnull Revision branchHead) {
+    Revision merge(@Nonnull Revision branchHead, @Nullable CommitInfo info) {
         Branch b = getBranches().getBranch(branchHead);
         Revision base = branchHead;
         if (b != null) {
@@ -794,7 +794,7 @@ public final class MongoNodeStore
             if (!success) {
                 canceled(commit);
             } else {
-                done(commit, false);
+                done(commit, false, info);
             }
         }
         return commit.getRevision();
