@@ -179,7 +179,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override
     public synchronized long getPropertyCount() {
-        if (getTreePermission().canReadAll()) {
+        if (getTreePermission().canReadProperties()) {
             return builder.getPropertyCount();
         } else {
             return size(filter(
@@ -190,14 +190,12 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        if (getTreePermission().canReadAll()) {
+        if (getTreePermission().canReadProperties()) {
             return builder.getProperties();
-        } else if (getTreePermission().canRead()) { // TODO: check DENY_PROPERTIES?
+        } else {
             return filter(
                     builder.getProperties(),
                     new ReadablePropertyPredicate());
-        } else {
-            return emptyList();
         }
     }
 
