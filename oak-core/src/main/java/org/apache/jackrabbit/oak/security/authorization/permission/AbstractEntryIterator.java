@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * Base class for PermissionEntry iterators.
+ * Base class for {@code PermissionEntry} iterators.
  */
 abstract class AbstractEntryIterator implements Iterator<PermissionEntry> {
 
