@@ -27,12 +27,15 @@ import org.apache.jackrabbit.oak.api.Tree;
  * {@code PermissionEntryProvider} provides permission entries for a given set of principals.
  * It may internally hold a cache to improve performance and usually operates on the permission store.
  */
-public interface PermissionEntryProvider {
+interface PermissionEntryProvider {
 
+    @Nonnull
     Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate);
 
+    @Nonnull
     Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree);
 
+    @Nonnull
     Collection<PermissionEntry> getEntries(@Nonnull String accessControlledPath);
 
     void flush();
