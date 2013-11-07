@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -297,7 +296,6 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
      * @since oak 1.0 cyclic group membership added in a single set of transient
      *        modifications must be detected upon save.
      */
-    @Ignore("OAK-615")
     @Test
     public void testDetectCyclicMembership() throws Exception {
         Group group1 = null;
@@ -324,7 +322,6 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         } catch (CommitFailedException e) {
             // success
         } finally {
-            root.refresh();
             if (group1 != null) group1.remove();
             if (group2 != null) group2.remove();
             if (group3 != null) group3.remove();
