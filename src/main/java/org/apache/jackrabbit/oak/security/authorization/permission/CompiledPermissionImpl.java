@@ -460,6 +460,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     if (entry.privilegeBits.includes(requiredBits)) {
                         readStatus = ReadStatus.create(entry, permission, skipped);
                         break;
+                    } else if (permission == Permissions.READ_NODE &&
+                            entry.privilegeBits.includes(READ_BITS.get(Permissions.READ_PROPERTY))) {
+                        skipped = true;
                     }
                 }
             }
