@@ -29,7 +29,6 @@ import java.io.PrintStream;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -66,7 +65,7 @@ public class BlobThroughPutTest {
     }
 
     private final String localServer = "localhost:27017/test";
-    private final String remoteServer = "chetanm-desk:27017/test";
+    private final String remoteServer = "remote:27017/test";
 
     @Ignore
     @Test
