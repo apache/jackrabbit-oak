@@ -22,6 +22,8 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.UUID;
@@ -369,6 +371,69 @@ public class Segment {
                     new ListRecord(this, internalReadRecordId(pos + 8), size);
             return new SegmentStream(store, id, list, length);
         }
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public String toString() {
+        StringWriter string = new StringWriter();
+        PrintWriter writer = new PrintWriter(string);
+
+        int pos = refposition;
+        int refcount = data.get(data.position()) & 0xff;
+        int rootcount = data.getShort(data.position() + 1) &0xffff;
+        int length =
+                data.capacity() - (align(3 + rootcount * 3) + refcount * 16);
+
+        writer.format(
+                "Segment %s (%d bytes, %d ref%s, %d root%s)%n",
+                uuid, length,
+                refcount, (refcount != 1 ? "s" : ""),
+                rootcount, (rootcount != 1 ? "s" : ""));
+        writer.println("--------------------------------------------------------------------------");
+        if (refcount > 0) {
+            for (int i = 0; i < refcount; i++) {
+                UUID id = new UUID(data.getLong(pos), data.getLong(pos + 8));
+                writer.format("reference %02x: %s%n", i, id);
+                pos += 16;
+            }
+            writer.println("--------------------------------------------------------------------------");
+        }
+        pos = data.limit() - ((length + 15) & ~15);
+        while (pos < data.limit()) {
+            writer.format("%04x: ", (MAX_SEGMENT_SIZE - data.limit() + pos) >> RECORD_ALIGN_BITS);
+            for (int i = 0; i < 16; i++) {
+                if (i > 0 && i % 4 == 0) {
+                    writer.append(' ');
+                }
+                if (pos + i >= data.position()) {
+                    byte b = data.get(pos + i);
+                    writer.format("%02x ", b & 0xff);
+                } else {
+                    writer.append("   ");
+                }
+            }
+            writer.append(' ');
+            for (int i = 0; i < 16; i++) {
+                if (pos + i >= data.position()) {
+                    byte b = data.get(pos + i);
+                    if (b >= ' ' && b < 127) {
+                        writer.append((char) b);
+                    } else {
+                        writer.append('.');
+                    }
+                } else {
+                    writer.append(' ');
+                }
+            }
+            writer.println();
+            pos += 16;
+        }
+        writer.println("--------------------------------------------------------------------------");
+
+        writer.close();
+        return string.toString();
     }
 
 }
