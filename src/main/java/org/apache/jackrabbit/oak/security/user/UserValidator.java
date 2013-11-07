@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -79,7 +82,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
 
         if (REP_MEMBERS.equals(name)) {
-            checkForCyclicMembership(after);
+            checkForCyclicMembership(after.getValue(Type.STRINGS));
         }
     }
 
@@ -107,7 +110,9 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
 
         if (REP_MEMBERS.equals(name)) {
-            checkForCyclicMembership(after);
+            Set<String> afterValues = Sets.newHashSet(after.getValue(Type.STRINGS));
+            afterValues.removeAll(ImmutableSet.copyOf(before.getValue(Type.STRINGS)));
+            checkForCyclicMembership(afterValues);
         }
     }
 
@@ -173,8 +178,20 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private void checkForCyclicMembership(PropertyState repMembers) {
-        // FIXME OAK-615
+    private void checkForCyclicMembership(@Nonnull Iterable<String> memberRefs) throws CommitFailedException {
+        String groupContentId = TreeUtil.getString(parentAfter, JcrConstants.JCR_UUID);
+        if (groupContentId == null) {
+            throw constraintViolation(30, "Missing content id for group " + UserUtil.getAuthorizableId(parentAfter) + "; cannot check for cyclic group membership.");
+        }
+        MembershipProvider mp = provider.getMembershipProvider();
+        for (String memberContentId : memberRefs) {
+            Tree memberTree = mp.getByContentID(memberContentId, AuthorizableType.GROUP);
+            if (memberTree != null) {
+                if (mp.isCyclicMembership(memberTree, groupContentId)) {
+                    throw constraintViolation(31, "Cyclic group membership detected in group" + UserUtil.getAuthorizableId(parentAfter));
+                }
+            }
+        }
     }
 
     private static boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
