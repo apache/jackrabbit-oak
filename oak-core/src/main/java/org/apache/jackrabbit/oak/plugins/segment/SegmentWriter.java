@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -108,7 +109,7 @@ public class SegmentWriter {
      * The set of root records (i.e. ones not referenced by other records)
      * in this segment.
      */
-    private final Map<RecordId, RecordType> roots = newHashMap();
+    private final Map<RecordId, RecordType> roots = newLinkedHashMap();
 
     /**
      * The segment write buffer, filled from the end to the beginning
@@ -138,14 +139,37 @@ public class SegmentWriter {
                 new Segment(store, UUID.randomUUID(), ByteBuffer.allocate(0));
     }
 
+    private void writeSegmentHeader(ByteBuffer b) {
+        int p = b.position();
+
+        b.put((byte) refids.size());
+        b.putShort((short) roots.size());
+
+        for (Map.Entry<RecordId, RecordType> entry : roots.entrySet()) {
+            int offset = entry.getKey().getOffset();
+            b.put((byte) entry.getValue().ordinal());
+            b.put((byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS)));
+            b.put((byte) (offset >> Segment.RECORD_ALIGN_BITS));
+        }
+
+        p = b.position() - p;
+        int q = Segment.align(p);
+        for (int i = p; i < q; i++) {
+            b.put((byte) 0);
+        }
+
+        for (UUID refid : refids.keySet()) {
+            b.putLong(refid.getMostSignificantBits());
+            b.putLong(refid.getLeastSignificantBits());
+        }
+    }
+
     public synchronized Segment getCurrentSegment(UUID id) {
         if (equal(id, uuid)) {
             if (currentSegment == null) {
-                ByteBuffer b = ByteBuffer.allocate(16 * refids.size() + length);
-                for (UUID refid : refids.keySet()) {
-                    b.putLong(refid.getMostSignificantBits());
-                    b.putLong(refid.getLeastSignificantBits());
-                }
+                int header = align(3 + roots.size() * 3) + 16 * refids.size();
+                ByteBuffer b = ByteBuffer.allocate(header + length);
+                writeSegmentHeader(b);
                 b.put(buffer, buffer.length - length, length);
                 b.rewind();
                 currentSegment = new Segment(store, uuid, b);
@@ -162,14 +186,11 @@ public class SegmentWriter {
 
     public synchronized void flush() {
         if (length > 0) {
-            length += 16 * refids.size();
+            length += align(3 + roots.size() * 3) + refids.size() * 16;
 
             ByteBuffer b = ByteBuffer.wrap(
-                    buffer, buffer.length - length, 16 * refids.size());
-            for (UUID refid : refids.keySet()) {
-                b.putLong(refid.getMostSignificantBits());
-                b.putLong(refid.getLeastSignificantBits());
-            }
+                    buffer, buffer.length - length, length);
+            writeSegmentHeader(b);
 
             store.writeSegment(uuid, buffer, buffer.length - length, length);
 
@@ -204,19 +225,16 @@ public class SegmentWriter {
         rootIds.removeAll(ids);
         int rootCount = rootIds.size() + 1;
 
-        int fullSize = size + ids.size() * Segment.RECORD_ID_BYTES;
-        int alignment = Segment.RECORD_ALIGN_BYTES - 1;
-        int alignedSize = (fullSize + alignment) & ~alignment;
-
-        int segmentSize =
-                3 + rootCount * 3 + refCount * 16 + alignedSize + length;
+        int recordSize = Segment.align(size + ids.size() * Segment.RECORD_ID_BYTES);
+        int headerSize = Segment.align(3 + rootCount * 3);
+        int segmentSize = headerSize + refCount * 16 + recordSize + length;
         if (segmentSize > buffer.length - 1
                 || rootCount > 0xffff
                 || refCount > Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();
         }
 
-        length += alignedSize;
+        length += recordSize;
         position = buffer.length - length;
         checkState(position >= 0);
 
@@ -247,7 +265,7 @@ public class SegmentWriter {
 
         int offset = id.getOffset();
         checkState(0 <= offset && offset < MAX_SEGMENT_SIZE);
-        checkState((offset & (Segment.RECORD_ALIGN_BYTES - 1)) == 0);
+        checkState(offset == Segment.align(offset));
 
         buffer[position++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
         buffer[position++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
