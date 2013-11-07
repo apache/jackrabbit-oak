@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.mongomk.util;
 
 import com.mongodb.DB;
 import com.mongodb.Mongo;
+import com.mongodb.MongoOptions;
+import com.mongodb.ServerAddress;
 
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
@@ -36,7 +38,9 @@ public class MongoConnection {
      * @throws Exception If an error occurred while trying to connect.
      */
     public MongoConnection(String host, int port, String database) throws Exception {
-        mongo = new Mongo(host, port);
+        MongoOptions options = new MongoOptions();
+        options.setThreadsAllowedToBlockForConnectionMultiplier(100);
+        mongo = new Mongo(new ServerAddress(host, port), options);
         db = mongo.getDB(database);
     }
 
