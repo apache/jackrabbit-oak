@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.mongodb.*;
 import org.junit.Ignore;
@@ -26,6 +29,7 @@ import java.io.PrintStream;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -47,16 +51,54 @@ public class BlobThroughPutTest {
 
     private final List<Result> results = new ArrayList<Result>();
 
+    private static final BiMap<WriteConcern,String> namedConcerns;
+
+    static {
+        BiMap<WriteConcern,String> bimap = HashBiMap.create();
+        bimap.put(WriteConcern.FSYNC_SAFE,"FSYNC_SAFE");
+        bimap.put(WriteConcern.JOURNAL_SAFE,"JOURNAL_SAFE");
+//        bimap.put(WriteConcern.MAJORITY,"MAJORITY");
+        bimap.put(WriteConcern.NONE,"NONE");
+        bimap.put(WriteConcern.NORMAL,"NORMAL");
+//        bimap.put(WriteConcern.REPLICAS_SAFE,"REPLICAS_SAFE");
+        bimap.put(WriteConcern.SAFE,"SAFE");
+        namedConcerns = Maps.unmodifiableBiMap(bimap);
+    }
+
+    private final String localServer = "localhost:27017/test";
+    private final String remoteServer = "chetanm-desk:27017/test";
+
     @Ignore
     @Test
     public void performBenchMark() throws UnknownHostException, InterruptedException {
-        Mongo local = new Mongo(new DBAddress("localhost:27017/test"));
-        Mongo remote = new Mongo(new DBAddress("remote:27017/test"));
+        Mongo local = new Mongo(new DBAddress(localServer));
+        Mongo remote = new Mongo(new DBAddress(remoteServer));
 
         run(local, false, false);
         run(local, true, false);
         run(remote, false, true);
         run(remote, true, true);
+
+        dumpResult();
+    }
+
+    @Ignore
+    @Test
+    public void performBenchMark_WriteConcern() throws UnknownHostException, InterruptedException {
+        Mongo mongo = new Mongo(new DBAddress(remoteServer));
+        final DB db = mongo.getDB(TEST_DB1);
+        final DBCollection nodes = db.getCollection("nodes");
+        final DBCollection blobs = db.getCollection("blobs");
+        int readers = 0;
+        int writers = 2;
+        for(WriteConcern wc : namedConcerns.keySet()){
+            prepareDB(nodes,blobs);
+            final Benchmark b = new Benchmark(nodes, blobs);
+            Result r = b.run(readers, writers, true, wc);
+            results.add(r);
+        }
+
+        prepareDB(nodes,blobs);
 
         dumpResult();
     }
@@ -77,20 +119,21 @@ public class BlobThroughPutTest {
         final DBCollection nodes = nodeDB.getCollection("nodes");
         final DBCollection blobs = blobDB.getCollection("blobs");
 
-
-        final Benchmark b = new Benchmark(nodes, blobs);
-
         for (int readers : READERS) {
             for (int writers : WRITERS) {
-                MongoUtils.dropCollections(nodeDB);
-                MongoUtils.dropCollections(blobDB);
-
-                createTestNodes(nodes);
-
-                Result r = b.run(readers, writers, remote);
+                prepareDB(nodes,blobs);
+                final Benchmark b = new Benchmark(nodes, blobs);
+                Result r = b.run(readers, writers, remote, WriteConcern.SAFE);
                 results.add(r);
             }
         }
+    }
+
+    private void prepareDB(DBCollection nodes, DBCollection blobs) {
+        MongoUtils.dropCollections(nodes.getDB());
+        MongoUtils.dropCollections(blobs.getDB());
+
+        createTestNodes(nodes);
     }
 
     private void createTestNodes(DBCollection nodes) {
@@ -103,7 +146,7 @@ public class BlobThroughPutTest {
 
     private static class Result {
         final static String OUTPUT_FORMAT = "remote, samedb, readers, writers, reads, writes, " +
-                "time, readThroughPut, writeThroughPut";
+                "time, readThroughPut, writeThroughPut, writeConcern";
         int totalReads;
         int totalWrites = 0;
         int noOfReaders;
@@ -112,6 +155,7 @@ public class BlobThroughPutTest {
         int dataSize = BLOB_SIZE;
         boolean sameDB;
         boolean remote;
+        WriteConcern writeConcern;
 
         double readThroughPut() {
             return totalReads / execTime;
@@ -121,9 +165,13 @@ public class BlobThroughPutTest {
             return totalWrites * dataSize / execTime;
         }
 
+        String getWriteConcern(){
+            return namedConcerns.get(writeConcern);
+        }
+
         @Override
         public String toString() {
-            return String.format("%s,%s,%d,%d,%d,%d,%d,%1.0f,%s",
+            return String.format("%s,%s,%d,%d,%d,%d,%d,%1.0f,%s,%s",
                     remote,
                     sameDB,
                     noOfReaders,
@@ -132,7 +180,8 @@ public class BlobThroughPutTest {
                     totalWrites,
                     execTime,
                     readThroughPut(),
-                    humanReadableByteCount((long) writeThroughPut(), true));
+                    humanReadableByteCount((long) writeThroughPut(), true),
+                    getWriteConcern());
         }
     }
 
@@ -170,7 +219,7 @@ public class BlobThroughPutTest {
             this.blobs = blobs;
         }
 
-        public Result run(int noOfReaders, int noOfWriters, boolean remote) throws InterruptedException {
+        public Result run(int noOfReaders, int noOfWriters, boolean remote, WriteConcern writeConcern) throws InterruptedException {
             boolean sameDB = nodes.getDB().getName().equals(blobs.getDB().getName());
 
             List<Reader> readers = new ArrayList<Reader>(noOfReaders);
@@ -183,7 +232,7 @@ public class BlobThroughPutTest {
             }
 
             for (int i = 0; i < noOfWriters; i++) {
-                writers.add(new Writer(i, stopLatch));
+                writers.add(new Writer(i, stopLatch, writeConcern));
             }
 
             runnables.addAll(readers);
@@ -200,8 +249,8 @@ public class BlobThroughPutTest {
             }
 
             System.err.printf("Running with [%d] readers and [%d] writers. " +
-                    "Same DB [%s], Remote server [%s], Max Time [%d] seconds %n",
-                    noOfReaders, noOfWriters, sameDB, remote, MAX_EXEC_TIME);
+                    "Same DB [%s], Remote server [%s], Max Time [%d] seconds, WriteConcern [%s] %n",
+                    noOfReaders, noOfWriters, sameDB, remote, MAX_EXEC_TIME,namedConcerns.get(writeConcern));
 
             startLatch.countDown();
 
@@ -228,6 +277,7 @@ public class BlobThroughPutTest {
             r.totalWrites = totalWrites;
             r.remote = remote;
             r.sameDB = sameDB;
+            r.writeConcern = writeConcern;
 
             System.err.printf("Run complete. Reads [%d] and writes [%d] %n", totalReads, totalWrites);
             System.err.println(r.toString());
@@ -266,10 +316,12 @@ public class BlobThroughPutTest {
             int writeCount = 0;
             final int id;
             final CountDownLatch stopLatch;
+            final WriteConcern writeConcern;
 
-            private Writer(int id, CountDownLatch stopLatch) {
+            private Writer(int id, CountDownLatch stopLatch, WriteConcern writeConcern) {
                 this.id = id;
                 this.stopLatch = stopLatch;
+                this.writeConcern = writeConcern;
             }
 
             public void run() {
@@ -279,7 +331,7 @@ public class BlobThroughPutTest {
                     DBObject obj = new BasicDBObject()
                             .append("foo", _id);
                     obj.put("blob", DATA);
-                    blobs.insert(obj, WriteConcern.SAFE);
+                    blobs.insert(obj, writeConcern);
                     writeCount++;
                 }
                 stopLatch.countDown();
