@@ -54,8 +54,12 @@ public class Segment {
      * The number of bytes (or bits of address space) to use for the
      * alignment boundary of segment records.
      */
-    static final int RECORD_ALIGN_BITS = 2;
-    static final int RECORD_ALIGN_BYTES = 1 << RECORD_ALIGN_BITS; // 4
+    static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
+
+    static int align(int value) {
+        int mask = -1 << RECORD_ALIGN_BITS;
+        return (value + ~mask) & mask;
+    }
 
     /**
      * Maximum segment size. Record identifiers are stored as three-byte
@@ -96,10 +100,22 @@ public class Segment {
 
     private final ByteBuffer data;
 
+    private final int refposition;
+
     public Segment(SegmentStore store, UUID uuid, ByteBuffer data) {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
+
+        if (data.capacity() > 0
+                && data.capacity() < Segment.MAX_SEGMENT_SIZE) {
+            // so skip the header parts of a normal non-bulk, non-empty segment
+            int roots = data.getShort(data.position() + 1) & 0xffff;
+            int headerSize = 3 + roots * 3;
+            this.refposition = data.position() + align(headerSize);
+        } else {
+            this.refposition = data.position();
+        }
     }
 
     /**
@@ -176,7 +192,7 @@ public class Segment {
         UUID refid;
         int refpos = data.get(pos) & 0xff;
         if (refpos != 0xff) {
-            refpos = data.position() + refpos * 16;
+            refpos = refposition + refpos * 16;
             refid = new UUID(data.getLong(refpos), data.getLong(refpos + 8));
         } else {
             refid = uuid;

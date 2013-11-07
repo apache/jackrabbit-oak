@@ -42,7 +42,7 @@ public final class RecordId implements Comparable<RecordId> {
 
     public RecordId(UUID segmentId, int offset) {
         checkArgument(offset < Segment.MAX_SEGMENT_SIZE);
-        checkArgument((offset & (Segment.RECORD_ALIGN_BYTES - 1)) == 0);
+        checkArgument(offset == Segment.align(offset));
         this.segmentId = checkNotNull(segmentId);
         this.offset = offset;
     }
