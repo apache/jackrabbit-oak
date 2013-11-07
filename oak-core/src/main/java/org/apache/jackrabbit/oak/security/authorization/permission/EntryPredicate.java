@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -51,6 +52,7 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
         this.path = null;
     }
 
+    @CheckForNull
     public String getPath() {
         return path;
     }

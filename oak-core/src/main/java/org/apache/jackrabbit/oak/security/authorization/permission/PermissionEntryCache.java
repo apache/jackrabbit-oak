@@ -23,15 +23,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
- * {@code PermissionEntryCache} caches the permission entries of principals. The cache is held globally and contains
- * a version of the principal permission entries of the session that read them last. each session gets a lazy copy of
- * the cache and needs to verify if each cached principal permission set still reflects the state that the session sees.
- * every newly loaded principal permission set can be pushed down to the base cache if it does not exist there yet, or
- * if it's newer.
+ * {@code PermissionEntryCache} caches the permission entries of principals.
+ * The cache is held globally and contains a version of the principal permission
+ * entries of the session that read them last. Each session gets a lazy copy of
+ * the cache and needs to verify if each cached principal permission set still
+ * reflects the state that the session sees.
+ * Every newly loaded principal permission set can be pushed down to the base
+ * cache if it does not exist there yet, or if it's newer.
  *
  * Todo:
  * - currently only the entries of 'everyone' are globally cached. this should be improved to dynamically cache those
@@ -46,11 +49,12 @@ public class PermissionEntryCache {
 
     private final Map<String, PrincipalPermissionEntries> base = new ConcurrentHashMap<String, PrincipalPermissionEntries>();
 
+    @Nonnull
     public Local createLocalCache() {
         return new Local();
     }
 
-    public void flush(Set<String> principalNames) {
+    public void flush(@Nonnull Set<String> principalNames) {
         base.keySet().removeAll(principalNames);
     }
 
@@ -60,11 +64,13 @@ public class PermissionEntryCache {
 
         private final Set<String> verified = new HashSet<String>();
 
-        public Local() {
+        private Local() {
             entries.putAll(base);
         }
 
-        public PrincipalPermissionEntries getEntries(PermissionStore store, String principalName) {
+        @Nonnull
+        public PrincipalPermissionEntries getEntries(@Nonnull PermissionStore store,
+                                                     @Nonnull String principalName) {
             PrincipalPermissionEntries ppe = entries.get(principalName);
             if (ppe == null) {
                 ppe = store.load(principalName);
@@ -79,8 +85,10 @@ public class PermissionEntryCache {
                 }
             }
 
-            // currently we only cache 'everyones' entries. but the cache should dynamically cache the principals
-            // that are used often.
+            /*
+            Currently this cache only handles entries for the Everyone principal.
+            TODO: the cache should dynamically cache the principals that are used often.
+            */
             if (EveryonePrincipal.NAME.equals(principalName)) {
                 // check if base cache has the entries
                 PrincipalPermissionEntries baseppe = base.get(principalName);
@@ -91,7 +99,9 @@ public class PermissionEntryCache {
             return ppe;
         }
 
-        public void load(PermissionStore store, Map<String, Collection<PermissionEntry>> pathEntryMap, String principalName) {
+        public void load(@Nonnull PermissionStore store,
+                         @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap,
+                         @Nonnull String principalName) {
             // todo: conditionally load entries if too many
             PrincipalPermissionEntries ppe = getEntries(store, principalName);
             for (Map.Entry<String, Collection<PermissionEntry>> e: ppe.getEntries().entrySet()) {
@@ -105,23 +115,28 @@ public class PermissionEntryCache {
             }
         }
 
-        public void load(PermissionStore store, Collection<PermissionEntry> ret, String principalName, String path) {
+        public void load(@Nonnull PermissionStore store,
+                         @Nonnull Collection<PermissionEntry> ret,
+                         @Nonnull String principalName,
+                         @Nonnull String path) {
             // todo: conditionally load entries if too many
             PrincipalPermissionEntries ppe = getEntries(store, principalName);
             ret.addAll(ppe.getEntries(path));
         }
 
-        public boolean hasEntries(PermissionStore store, String principalName) {
+        public boolean hasEntries(@Nonnull PermissionStore store,
+                                  @Nonnull String principalName) {
             // todo: conditionally load entries if too many
             return getNumEntries(store, principalName) > 0;
         }
 
-        public long getNumEntries(PermissionStore store, String principalName) {
+        public long getNumEntries(@Nonnull PermissionStore store,
+                                  @Nonnull String principalName) {
             // todo: conditionally load entries if too many
             return getEntries(store, principalName).getEntries().size();
         }
 
-        public void flush(Set<String> principalNames) {
+        public void flush(@Nonnull Set<String> principalNames) {
             verified.removeAll(principalNames);
         }
 

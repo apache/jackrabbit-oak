@@ -34,9 +34,9 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 
 /**
- * {@code PermissionEntryProviderImpl} ...
+ * {@code PermissionEntryProviderImpl} ...  TODO
  */
-public class PermissionEntryProviderImpl implements PermissionEntryProvider {
+class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private static final long MAX_SIZE = 250; // TODO define size or make configurable
 
@@ -50,8 +50,8 @@ public class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private final PermissionEntryCache.Local cache;
 
-    protected PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache.Local cache,
-                                          @Nonnull Set<String> principalNames) {
+    PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache.Local cache,
+                                @Nonnull Set<String> principalNames) {
         this.store = store;
         this.cache = cache;
         this.principalNames = Collections.unmodifiableSet(principalNames);
@@ -90,6 +90,7 @@ public class PermissionEntryProviderImpl implements PermissionEntryProvider {
         init();
     }
 
+    @Nonnull
     public Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
         if (existingNames.isEmpty()) {
             return Iterators.emptyIterator();
@@ -98,6 +99,7 @@ public class PermissionEntryProviderImpl implements PermissionEntryProvider {
         }
     }
 
+    @Nonnull
     public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
         if (existingNames.isEmpty()) {
             return Collections.emptyList();
