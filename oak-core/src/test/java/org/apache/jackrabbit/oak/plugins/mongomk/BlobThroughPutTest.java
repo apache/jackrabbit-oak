@@ -81,7 +81,7 @@ public class BlobThroughPutTest {
         for (int i = 0; i < NO_OF_NODES; i++) {
             DBObject obj = new BasicDBObject("_id", i)
                     .append("foo", "bar1" + i);
-            nodes.insert(obj,WriteConcern.SAFE);
+            nodes.insert(obj, WriteConcern.SAFE);
         }
     }
 
@@ -116,7 +116,7 @@ public class BlobThroughPutTest {
                     totalWrites,
                     execTime,
                     readThroughPut(),
-                    humanReadableByteCount((long)writeThroughPut(),true));
+                    humanReadableByteCount((long) writeThroughPut(), true));
         }
     }
 
@@ -167,7 +167,7 @@ public class BlobThroughPutTest {
             }
 
             for (int i = 0; i < noOfWriters; i++) {
-                writers.add(new Writer(i,stopLatch));
+                writers.add(new Writer(i, stopLatch));
             }
 
             runnables.addAll(readers);
@@ -218,7 +218,7 @@ public class BlobThroughPutTest {
             return r;
         }
 
-        private void waitForStart(){
+        private void waitForStart() {
             try {
                 startLatch.await();
             } catch (InterruptedException e) {
@@ -251,7 +251,7 @@ public class BlobThroughPutTest {
             final int id;
             final CountDownLatch stopLatch;
 
-            private Writer(int id,CountDownLatch stopLatch) {
+            private Writer(int id, CountDownLatch stopLatch) {
                 this.id = id;
                 this.stopLatch = stopLatch;
             }
