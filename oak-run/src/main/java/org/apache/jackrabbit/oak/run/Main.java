@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.run;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.UUID;
 
 import javax.jcr.Repository;
 
@@ -73,6 +74,22 @@ public class Main {
             } else {
                 System.err.println("usage: upgrade <olddir> <newdir>");
                 System.exit(1);
+            }
+        } else if ("inspect".equals(command)) {
+            if (args.length == 0) {
+                System.err.println("usage: inspect <path> [uuid...]");
+                System.exit(1);
+            } else {
+                File file = new File(args[0]);
+                FileStore store = new FileStore(file, 256 * 1024 * 1024, false);
+                try {
+                    for (int i = 1; i < args.length; i++) {
+                        UUID uuid = UUID.fromString(args[i]);
+                        System.out.println(store.readSegment(uuid));
+                    }
+                } finally {
+                    store.close();
+                }
             }
         } else {
             System.err.println("Unknown command: " + command);
