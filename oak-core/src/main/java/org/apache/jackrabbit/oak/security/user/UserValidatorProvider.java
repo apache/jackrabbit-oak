@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -33,6 +34,8 @@ class UserValidatorProvider extends ValidatorProvider {
 
     private final ConfigurationParameters config;
 
+    private MembershipProvider membershipProvider;
+
     UserValidatorProvider(ConfigurationParameters config) {
         this.config = checkNotNull(config);
     }
@@ -41,6 +44,7 @@ class UserValidatorProvider extends ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
+        membershipProvider = new MembershipProvider(new ImmutableRoot(after), config);
         return new UserValidator(new ImmutableTree(before), new ImmutableTree(after), this);
     }
 
@@ -48,5 +52,10 @@ class UserValidatorProvider extends ValidatorProvider {
     @Nonnull
     ConfigurationParameters getConfig() {
         return config;
+    }
+
+    @Nonnull
+    MembershipProvider getMembershipProvider() {
+        return membershipProvider;
     }
 }
