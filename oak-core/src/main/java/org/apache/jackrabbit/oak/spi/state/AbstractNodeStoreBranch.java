@@ -487,9 +487,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         }
 
         private void persistTransientHead(NodeState newHead) {
-            if (!newHead.equals(head)) {
-                head = AbstractNodeStoreBranch.this.persist(newHead, head, null);
-            }
+            head = AbstractNodeStoreBranch.this.persist(newHead, head, null);
         }
     }
 
