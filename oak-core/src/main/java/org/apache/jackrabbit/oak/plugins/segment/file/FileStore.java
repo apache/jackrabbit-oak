@@ -45,7 +45,7 @@ public class FileStore extends AbstractStore {
 
     static final UUID JOURNALS_UUID = new UUID(0, 0);
 
-    private static final String FILE_NAME_FORMAT = "data%05d.tar";
+    private static final String FILE_NAME_FORMAT = "%s%05d.tar";
 
     private final File directory;
 
@@ -53,7 +53,9 @@ public class FileStore extends AbstractStore {
 
     private final boolean memoryMapping;
 
-    private final LinkedList<TarFile> files = newLinkedList();
+    private final LinkedList<TarFile> bulkFiles = newLinkedList();
+
+    private final LinkedList<TarFile> treeFiles = newLinkedList();
 
     private final Map<String, Journal> journals = newHashMap();
 
@@ -66,17 +68,27 @@ public class FileStore extends AbstractStore {
         this.memoryMapping = memoryMapping;
 
         for (int i = 0; true; i++) {
-            String name = String.format(FILE_NAME_FORMAT, i);
+            String name = String.format(FILE_NAME_FORMAT, "bulk", i);
             File file = new File(directory, name);
             if (file.isFile()) {
-                files.add(new TarFile(file, maxFileSize, memoryMapping));
+                bulkFiles.add(new TarFile(file, maxFileSize, memoryMapping));
+            } else {
+                break;
+            }
+        }
+
+        for (int i = 0; true; i++) {
+            String name = String.format(FILE_NAME_FORMAT, "data", i);
+            File file = new File(directory, name);
+            if (file.isFile()) {
+                treeFiles.add(new TarFile(file, maxFileSize, memoryMapping));
             } else {
                 break;
             }
         }
 
         Segment segment = getWriter().getDummySegment();
-        for (TarFile tar : files) {
+        for (TarFile tar : treeFiles) {
             ByteBuffer buffer = tar.readEntry(JOURNALS_UUID);
             if (buffer != null) {
                 checkState(JOURNAL_MAGIC == buffer.getLong());
@@ -105,10 +117,14 @@ public class FileStore extends AbstractStore {
     public synchronized void close() {
         try {
             super.close();
-            for (TarFile file : files) {
+            for (TarFile file : bulkFiles) {
                 file.close();
             }
-            files.clear();
+            bulkFiles.clear();
+            for (TarFile file : treeFiles) {
+                file.close();
+            }
+            treeFiles.clear();
             System.gc(); // for any memory-mappings that are no longer used
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -127,7 +143,13 @@ public class FileStore extends AbstractStore {
 
     @Override
     protected Segment loadSegment(UUID id) throws Exception {
-        for (TarFile file : files) {
+        for (TarFile file : treeFiles) {
+            ByteBuffer buffer = file.readEntry(id);
+            if (buffer != null) {
+                return new Segment(FileStore.this, id, buffer);
+            }
+        }
+        for (TarFile file : bulkFiles) {
             ByteBuffer buffer = file.readEntry(id);
             if (buffer != null) {
                 return new Segment(FileStore.this, id, buffer);
@@ -149,9 +171,15 @@ public class FileStore extends AbstractStore {
     private void writeEntry(
             UUID segmentId, byte[] buffer, int offset, int length)
             throws IOException {
+        LinkedList<TarFile> files = treeFiles;
+        String base = "data";
+        if (length == Segment.MAX_SEGMENT_SIZE) {
+            files = bulkFiles;
+            base = "bulk";
+        }
         if (files.isEmpty() || !files.getLast().writeEntry(
                 segmentId, buffer, offset, length)) {
-            String name = String.format(FILE_NAME_FORMAT, files.size());
+            String name = String.format(FILE_NAME_FORMAT, base, files.size());
             File file = new File(directory, name);
             TarFile last = new TarFile(file, maxFileSize, memoryMapping);
             checkState(last.writeEntry(segmentId, buffer, offset, length));
