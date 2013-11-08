@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 
 /**
  * Filter for filtering observation events according to a certain criterion.
+ * FIXME rename. EventFilter clashes with the same named interface in JCR 2.1
  */
 public class EventFilter {
     private final ReadOnlyNodeTypeManager ntMgr;
