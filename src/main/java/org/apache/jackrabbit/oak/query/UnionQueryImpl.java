@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,9 +103,9 @@ public class UnionQueryImpl implements Query {
     }
 
     @Override
-    public void setIndexProvider(QueryIndexProvider indexProvider) {
-        left.setIndexProvider(indexProvider);
-        right.setIndexProvider(indexProvider);
+    public void setTraversalFallback(boolean traversal) {
+        left.setTraversalFallback(traversal);
+        right.setTraversalFallback(traversal);
     }
 
     @Override
