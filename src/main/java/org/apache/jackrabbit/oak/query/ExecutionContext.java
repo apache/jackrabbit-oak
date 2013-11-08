@@ -31,28 +31,33 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * the execution context was created.
  */
 public class ExecutionContext {
-    private final NodeState rootState;
+
+    /**
+     * Base state used for index lookups.
+     */
+    private final NodeState baseState;
+
     private final Tree rootTree;
+
     private final QueryIndexProvider indexProvider;
 
-    public ExecutionContext(NodeState rootState, Tree rootTree,
+    public ExecutionContext(
+            NodeState baseState, Tree rootTree,
             QueryIndexProvider indexProvider) {
-
-        this.rootState = rootState;
+        this.baseState = baseState;
         this.rootTree = rootTree;
         this.indexProvider = indexProvider;
     }
 
     /**
-     * 
      * Used to evaluate the query (ie. read the existing node types, index
      * definitions), doesn't need to be a secured version of a node state
      * 
-     * @return Root node state of the content tree against which the query runs.
+     * @return base state of the content tree against which the query runs.
      */
     @Nonnull
-    public NodeState getRootState() {
-        return rootState;
+    public NodeState getBaseState() {
+        return baseState;
     }
 
     /**
@@ -69,7 +74,7 @@ public class ExecutionContext {
 
     /**
      * @return Index provider for indexes matching the state of the content tree as
-     * returned from {@link #getRootState()}.
+     * returned from {@link #getBaseState()}.
      */
     @Nonnull
     public QueryIndexProvider getIndexProvider() {

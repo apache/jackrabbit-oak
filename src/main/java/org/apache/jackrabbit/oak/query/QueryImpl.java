@@ -381,7 +381,7 @@ public class QueryImpl implements Query {
             LOG.debug("query execute {} ", statement);
             LOG.debug("query plan {}", getPlan());
         }
-        RowIterator rowIt = new RowIterator(context.getRootState());
+        RowIterator rowIt = new RowIterator(context.getBaseState());
         Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
         Iterator<ResultRowImpl> it = 
                 FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy);
@@ -420,7 +420,7 @@ public class QueryImpl implements Query {
     
     @Override
     public String getPlan() {
-        return source.getPlan(context.getRootState());
+        return source.getPlan(context.getBaseState());
     }
 
     @Override
@@ -593,7 +593,7 @@ public class QueryImpl implements Query {
     }
 
     public QueryIndex getBestIndex(Filter filter) {
-        return getBestIndex(context.getRootState(), filter,
+        return getBestIndex(context.getBaseState(), filter,
                 context.getIndexProvider(), traversalFallback);
     }
 
