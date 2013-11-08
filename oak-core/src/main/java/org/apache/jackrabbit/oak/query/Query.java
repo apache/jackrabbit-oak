@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
 /**
  * A "select" or "union" query.
@@ -43,7 +42,7 @@ public interface Query {
 
     void bindValue(String key, PropertyValue value);
 
-    void setIndexProvider(QueryIndexProvider indexProvider);
+    void setTraversalFallback(boolean traversal);
 
     void prepare();
 
@@ -52,7 +51,7 @@ public interface Query {
     List<String> getBindVariableNames();
 
     ColumnImpl[] getColumns();
-    
+
     int getColumnIndex(String columnName);
 
     String[] getSelectorNames();

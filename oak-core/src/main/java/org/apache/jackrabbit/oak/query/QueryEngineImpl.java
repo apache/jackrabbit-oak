@@ -21,23 +21,16 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,51 +142,13 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 q.bindValue(e.getKey(), e.getValue());
             }
         }
-        q.setIndexProvider(getIndexProvider(context.getIndexProvider(), traversalFallback));
+        q.setTraversalFallback(traversalFallback);
         q.prepare();
         return q.executeQuery();
     }
 
-    private static QueryIndexProvider getIndexProvider(final QueryIndexProvider indexProvider,
-            boolean traversalFallback) {
-        if (traversalFallback) {
-            return new QueryIndexProvider() {
-                @Nonnull
-                @Override
-                public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-                    List<QueryIndex> indexes = new ArrayList<QueryIndex>(indexProvider.getQueryIndexes(nodeState));
-                    indexes.add(new TraversingIndex());
-                    return indexes;
-                }
-            };
-        } else {
-            return indexProvider;
-        }
-    }
-
     protected void setTraversalFallback(boolean traversal) {
         this.traversalFallback = traversal;
-    }
-
-    public static QueryIndex getBestIndex(NodeState rootState, Filter filter,
-            QueryIndexProvider indexProvider) {
-        QueryIndex best = null;
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("cost using filter " + filter);
-        }
-
-        double bestCost = Double.POSITIVE_INFINITY;
-        for (QueryIndex index : indexProvider.getQueryIndexes(rootState)) {
-            double cost = index.getCost(filter, rootState);
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("cost for " + index.getIndexName() + " is " + cost);
-            }
-            if (cost < bestCost) {
-                bestCost = cost;
-                best = index;
-            }
-        }
-        return best;
     }
 
 }
