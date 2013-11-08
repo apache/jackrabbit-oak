@@ -36,13 +36,16 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -99,6 +102,55 @@ public class PropertyIndexTest {
 
         cost = lookup.getCost(f, "foo", null);
         assertTrue("cost: " + cost, cost >= MANY);
+    }
+
+    @Test
+    @Ignore("OAK-1155")
+    public void costMaxEstimation() throws Exception {
+        NodeState root = EmptyNodeState.EMPTY_NODE;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        NodeState before = builder.getNodeState();
+
+        // 100 nodes in the index:
+        // with a single level /content cost is 6250000
+        // adding a second level /content/data cost jumps to 1.544804416E9
+
+        // 101 nodes in the index:
+        // with a single level /content cost is 100
+        // adding a second level /content/data stays at 100
+
+        // 100 nodes, 12 levels deep, cost is 2.147483647E9
+        // 101 nodes, 12 levels deep, cost is 6.7108864E7
+
+        // threshold for estimation (PropertyIndexLookup.MAX_COST) is at 100
+        int nodes = 100;
+        int levels = 12;
+
+        NodeBuilder data = builder;
+        for (int i = 0; i < levels; i++) {
+            data = data.child("l" + i);
+        }
+        for (int i = 0; i < nodes; i++) {
+            NodeBuilder c = data.child("c_" + i);
+            c.setProperty("foo", "azerty");
+        }
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        double cost = lookup.getCost(f, "foo",
+                PropertyValues.newString("azerty"));
+        double traversal = new TraversingIndex().getCost(f, indexed);
+
+        assertTrue("Estimated cost for " + nodes
+                + " nodes should not be higher than traversal (" + cost + ")",
+                cost < traversal);
     }
 
     @Test
