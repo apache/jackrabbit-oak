@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.query.ast.SameNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
+import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -93,8 +94,14 @@ public class QueryImpl implements Query {
     final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
     ConstraintImpl constraint;
-    
-    private QueryIndexProvider indexProvider;
+
+    /**
+     * Whether fallback to the traversing index is supported if no other index
+     * is available. This is enabled by default and can be disabled for testing
+     * purposes.
+     */
+    private boolean traversalFallback = true;
+
     private OrderingImpl[] orderings;
     private ColumnImpl[] columns;
     private boolean explain, measure;
@@ -581,13 +588,38 @@ public class QueryImpl implements Query {
     }
 
     @Override
-    public void setIndexProvider(QueryIndexProvider indexProvider) {
-        this.indexProvider = indexProvider;
+    public void setTraversalFallback(boolean traversal) {
+        this.traversalFallback = traversal;
     }
 
     public QueryIndex getBestIndex(Filter filter) {
-        return QueryEngineImpl.getBestIndex(context.getRootState(), filter,
-                indexProvider);
+        return getBestIndex(context.getRootState(), filter,
+                context.getIndexProvider(), traversalFallback);
+    }
+
+    private static QueryIndex getBestIndex(NodeState rootState, Filter filter,
+            QueryIndexProvider indexProvider, boolean traversalFallback) {
+        QueryIndex best = null;
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("cost using filter " + filter);
+        }
+
+        double bestCost = Double.POSITIVE_INFINITY;
+        for (QueryIndex index : indexProvider.getQueryIndexes(rootState)) {
+            double cost = index.getCost(filter, rootState);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("cost for " + index.getIndexName() + " is " + cost);
+            }
+            if (cost < bestCost) {
+                bestCost = cost;
+                best = index;
+            }
+        }
+
+        if (bestCost == Double.POSITIVE_INFINITY && traversalFallback) {
+            best = new TraversingIndex();
+        }
+        return best;
     }
 
     @Override

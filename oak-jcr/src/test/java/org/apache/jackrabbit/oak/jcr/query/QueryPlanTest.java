@@ -30,6 +30,7 @@ import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -42,6 +43,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
     }
     
     @Test
+    @Ignore("OAK-1155")
     public void nodeType() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
