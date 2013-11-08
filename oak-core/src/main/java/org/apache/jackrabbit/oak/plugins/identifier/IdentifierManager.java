@@ -255,7 +255,7 @@ public class IdentifierManager {
     }
 
     @CheckForNull
-    public String resolveUUID(String uuid) {
+    private String resolveUUID(String uuid) {
         return resolveUUID(StringPropertyState.stringProperty("", uuid));
     }
 
