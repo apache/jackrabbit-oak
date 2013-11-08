@@ -70,7 +70,7 @@ public class Segment {
      * at four-byte boundaries, the two bytes can address up to 256kB of
      * record data.
      */
-    static final int MAX_SEGMENT_SIZE = 1 << (16 + RECORD_ALIGN_BITS); // 256kB
+    public static final int MAX_SEGMENT_SIZE = 1 << (16 + RECORD_ALIGN_BITS); // 256kB
 
     /**
      * The size limit for small values. The variable length of small values
