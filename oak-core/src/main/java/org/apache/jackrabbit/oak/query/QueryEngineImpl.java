@@ -89,9 +89,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
     private static Query parseQuery(String statement, String language, 
             ExecutionContext context, NamePathMapper namePathMapper) throws ParseException {
         LOG.debug("Parsing {} statement: {}", language, statement);
-        NodeState root = context.getRootState();
-        NodeState system = root.getChildNode(JCR_SYSTEM);
-        NodeState types = system.getChildNode(JCR_NODE_TYPES);
+        NodeState types = context.getBaseState()
+                .getChildNode(JCR_SYSTEM)
+                .getChildNode(JCR_NODE_TYPES);
         SQL2Parser parser = new SQL2Parser(namePathMapper, types);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
