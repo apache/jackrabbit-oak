@@ -170,7 +170,7 @@ class EventGenerator extends ForwardingIterator<Event> implements MoveValidator 
 
     @Override
     public MoveValidator childNodeDeleted(String name, NodeState before) {
-        if (filter.include(NODE_REMOVED, beforeTree)) {
+        if (filter.include(NODE_REMOVED, afterTree)) {
             events.add(createEvent(NODE_REMOVED, beforeTree.getChild(name)));
         }
         if (filter.includeChildren(beforeTree.getPath())) {
