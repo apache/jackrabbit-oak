@@ -23,9 +23,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.commit.DefaultMoveValidator;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.junit.Before;
 import org.junit.Test;
@@ -149,7 +149,7 @@ public class MoveDetectorTest {
         return builder;
     }
 
-    private static class FindSingleMove implements MoveValidator {
+    private static class FindSingleMove extends DefaultMoveValidator {
         private final String sourcePath;
         private final String destPath;
 
@@ -172,38 +172,8 @@ public class MoveDetectorTest {
         }
 
         @Override
-        public void enter(NodeState before, NodeState after) throws CommitFailedException {
-        }
-
-        @Override
-        public void leave(NodeState before, NodeState after) throws CommitFailedException {
-        }
-
-        @Override
-        public void propertyAdded(PropertyState after) {
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
-        }
-
-        @Override
-        public void propertyDeleted(PropertyState before) {
-        }
-
-        @Override
-        public MoveValidator childNodeAdded(String name, NodeState after) {
-            return null;
-        }
-
-        @Override
         public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) {
             return this;
-        }
-
-        @Override
-        public MoveValidator childNodeDeleted(String name, NodeState before) {
-            return null;
         }
 
         public boolean found() {
@@ -211,45 +181,15 @@ public class MoveDetectorTest {
         }
     }
 
-    private static class AssertNoMove implements MoveValidator {
+    private static class AssertNoMove extends DefaultMoveValidator {
         @Override
         public void move(String sourcePath, String destPath, NodeState moved) throws CommitFailedException {
             throw new CommitFailedException("Test", 0, "There should be no move operation");
         }
 
         @Override
-        public void enter(NodeState before, NodeState after) throws CommitFailedException {
-        }
-
-        @Override
-        public void leave(NodeState before, NodeState after) throws CommitFailedException {
-        }
-
-        @Override
-        public void propertyAdded(PropertyState after) {
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
-        }
-
-        @Override
-        public void propertyDeleted(PropertyState before) {
-        }
-
-        @Override
-        public MoveValidator childNodeAdded(String name, NodeState after) {
-            return null;
-        }
-
-        @Override
         public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) {
             return this;
-        }
-
-        @Override
-        public MoveValidator childNodeDeleted(String name, NodeState before) {
-            return null;
         }
     }
 
