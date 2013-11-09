@@ -30,14 +30,37 @@ public class SolrIndexInitializer implements RepositoryInitializer {
 
     private static final String SOLR_IDX = "solr";
 
+    private final String async;
+
+    /**
+     * build Solr index definition with defaults (reindex enabled, asynchronous):
+     */
+    public SolrIndexInitializer() {
+        this.async = "async";
+    }
+
+    /**
+     * build Solr index definition by specifying if it should be async or not
+     * 
+     * @param async
+     *            if <code>true</code> for the index to be asynchronous, <code>false</code> to make
+     *            it synchronous
+     */
+    public SolrIndexInitializer(boolean async) {
+        this.async = async ? "async" : null;
+    }
+
     @Override
     public void initialize(@Nonnull NodeBuilder builder) {
         if (builder.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
                 && !builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME).hasChildNode(SOLR_IDX)) {
             builder = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME).child(SOLR_IDX);
             builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE)
-                   .setProperty(IndexConstants.TYPE_PROPERTY_NAME, "solr")
+                   .setProperty(IndexConstants.TYPE_PROPERTY_NAME, SOLR_IDX)
                    .setProperty(IndexConstants.REINDEX_PROPERTY_NAME, "true");
+            if (async != null) {
+                builder.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, async);
+            }
 
         }
     }

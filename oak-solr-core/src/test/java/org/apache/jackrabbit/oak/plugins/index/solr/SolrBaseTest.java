@@ -60,7 +60,7 @@ public abstract class SolrBaseTest {
                 new SolrIndexEditorProvider(provider, provider)));
         Oak oak = new Oak().with(new InitialContent())
                 .with(new OpenSecurityProvider())
-                .with(new SolrIndexInitializer())
+                .with(new SolrIndexInitializer(false)) // synchronous
                 .with(new SolrQueryIndexProvider(provider, provider))
                 .with(new SolrIndexEditorProvider(provider, provider));
         repository = oak
