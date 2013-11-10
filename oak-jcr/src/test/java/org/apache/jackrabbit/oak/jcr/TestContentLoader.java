@@ -147,7 +147,7 @@ public class TestContentLoader {
         resource.addMixin("mix:referenceable");
         resource.setProperty("jcr:encoding", ENCODING);
         resource.setProperty("jcr:mimeType", "text/plain");
-        resource.setProperty("jcr:data", new BinaryValue("Hello w\u00F6rld.".getBytes(ENCODING)));
+        resource.setProperty("jcr:data", "Hello w\u00F6rld.", PropertyType.BINARY);
         resource.setProperty("jcr:lastModified", Calendar.getInstance());
 
         Node resReference = getOrAddNode(node, "reference");
@@ -230,8 +230,7 @@ public class TestContentLoader {
         resource = getOrAddNode(node, "invalidBin");
         resource.setProperty("jcr:encoding", ENCODING);
         resource.setProperty("jcr:mimeType", "text/plain");
-        byte[] bytes = "Hello w\u00F6rld.".getBytes(ENCODING);
-        resource.setProperty(name, new BinaryValue(bytes));
+        resource.setProperty(name, "Hello w\u00F6rld.", PropertyType.BINARY);
         resource.setProperty("jcr:lastModified", Calendar.getInstance());
     }
 }
