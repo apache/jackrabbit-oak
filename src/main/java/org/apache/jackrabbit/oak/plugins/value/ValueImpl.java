@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -39,6 +40,11 @@ import static com.google.common.base.Preconditions.checkState;
  * Implementation of {@link Value} based on {@code PropertyState}.
  */
 public class ValueImpl implements Value {
+
+    public static Blob getBlob(Value value) {
+        checkState(value instanceof ValueImpl);
+        return ((ValueImpl) value).getBlob();
+    }
 
     private final PropertyState propertyState;
     private final int index;
@@ -70,6 +76,10 @@ public class ValueImpl implements Value {
      */
     ValueImpl(PropertyState property, NamePathMapper namePathMapper) {
         this(checkSingleValued(property), 0, namePathMapper);
+    }
+
+    private Blob getBlob() {
+        return propertyState.getValue(Type.BINARY, index);
     }
 
     /**
