@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
@@ -164,9 +165,12 @@ class SysViewImportHandler extends TargetImportHandler {
             }
         } else if (namespaceURI.equals(NamespaceConstants.NAMESPACE_SV) && "value".equals(localName)) {
             // sv:value element
-            currentPropValue = new BufferedStringValue(sessionContext.getValueFactory(), currentNamePathMapper());
-            String xsiType = atts.getValue("xsi:type");
-            currentPropValue.setBase64("xs:base64Binary".equals(xsiType));
+            boolean base64 =
+                    currentPropType == PropertyType.BINARY
+                    || "xs:base64Binary".equals(atts.getValue("xsi:type"));
+            currentPropValue = new BufferedStringValue(
+                    sessionContext.getValueFactory(), currentNamePathMapper(),
+                    base64);
         } else {
             throw new SAXException(new InvalidSerializedDataException(
                     "Unexpected element in system view xml document: {" + namespaceURI + '}' + localName));

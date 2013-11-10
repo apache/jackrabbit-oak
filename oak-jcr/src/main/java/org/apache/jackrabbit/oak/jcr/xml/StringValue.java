@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -24,7 +27,7 @@ import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
-import org.apache.jackrabbit.value.ValueHelper;
+import org.apache.jackrabbit.util.Base64;
 
 /**
  * {@code StringValue} represents an immutable serialized value.
@@ -57,14 +60,32 @@ class StringValue implements TextValue {
         return this.value;
     }
 
-    @Override
+    @Override @SuppressWarnings("deprecation")
     public Value getValue(int type) throws RepositoryException {
-        String inputValue = type == PropertyType.NAME ?
-                namePathMapper.getOakName(value) :
-                type == PropertyType.PATH ?
-                        namePathMapper.getOakPath(value) :
-                        value;
-        return ValueHelper.deserialize(inputValue, type, false, valueFactory);
+        if (type == PropertyType.BINARY) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try {
+                Base64.decode(value, baos);
+                return valueFactory.createValue(
+                        new ByteArrayInputStream(baos.toByteArray()));
+            } catch (IOException e) {
+                throw new RepositoryException(
+                        "Failed to decode binary value: " + value, e);
+            }
+        }
+
+        // The ValueFactory instance takes care of name and path mapping
+        // from JCR to Oak values, but here we need an additional level of
+        // mapping for XML to JCR values.
+        String jcrValue;
+        if (type == PropertyType.NAME) {
+            jcrValue = namePathMapper.getOakName(value);
+        } else if (type == PropertyType.PATH) {
+            jcrValue = namePathMapper.getOakPath(value);
+        } else {
+            jcrValue = value;
+        }
+        return valueFactory.createValue(jcrValue, type);
     }
 
     @Override

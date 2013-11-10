@@ -109,7 +109,7 @@ public final class PropertyStates {
             case PropertyType.BINARY:
                 List<Blob> blobs = Lists.newArrayList();
                 for (Value value : values) {
-                    blobs.add(new ValueBasedBlob(value));
+                    blobs.add(ValueImpl.getBlob(value));
                 }
                 return MultiBinaryPropertyState.binaryPropertyFromBlob(name, blobs);
             case PropertyType.LONG:

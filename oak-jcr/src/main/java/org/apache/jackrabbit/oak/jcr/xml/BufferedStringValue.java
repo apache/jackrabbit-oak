@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.xml;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,6 +31,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
+
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -39,7 +41,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.util.Base64;
 import org.apache.jackrabbit.util.TransientFileFactory;
-import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +90,7 @@ class BufferedStringValue implements TextValue {
     /**
      * Whether the value is base64 encoded.
      */
-    private boolean base64;
+    private final boolean base64;
 
     /**
      * Constructs a new empty {@code BufferedStringValue}.
@@ -97,13 +98,16 @@ class BufferedStringValue implements TextValue {
      * @param valueFactory The value factory
      * @param namePathMapper the name/path mapper
      */
-    protected BufferedStringValue(ValueFactory valueFactory, NamePathMapper namePathMapper) {
+    protected BufferedStringValue(
+            ValueFactory valueFactory, NamePathMapper namePathMapper,
+            boolean base64) {
         buffer = new StringWriter();
         length = 0;
         tmpFile = null;
         writer = null;
         this.namePathMapper = namePathMapper;
         this.valueFactory = valueFactory;
+        this.base64 = base64;
     }
 
     /**
@@ -169,8 +173,25 @@ class BufferedStringValue implements TextValue {
     }
 
     private Reader openReader() throws IOException {
-        return new InputStreamReader(
-                new BufferedInputStream(new FileInputStream(tmpFile)), "UTF-8");
+        return new InputStreamReader(openStream(), "UTF-8");
+    }
+
+    private InputStream openStream() throws IOException {
+        return new BufferedInputStream(new FileInputStream(tmpFile));
+    }
+
+    private InputStream stream() throws IOException {
+        if (base64) {
+            return new Base64ReaderInputStream(reader());
+        } else if (buffer != null) {
+            return new ByteArrayInputStream(retrieve().getBytes("UTF-8"));
+        } else if (tmpFile != null) {
+            // close writer first
+            writer.close();
+            return openStream();
+        } else {
+            throw new IOException("this instance has already been disposed");
+        }
     }
 
     /**
@@ -242,36 +263,23 @@ class BufferedStringValue implements TextValue {
 
     //--------------------------------------------------------< TextValue >
 
-    @Override
+    @Override @SuppressWarnings("deprecation")
     public Value getValue(int targetType) throws RepositoryException {
         try {
-            if (targetType == PropertyType.NAME) {
-                return ValueHelper.deserialize(
-                        namePathMapper.getOakName(retrieveString()), targetType, false, valueFactory);
-            } else if (targetType == PropertyType.PATH) {
-                return ValueHelper.deserialize(
-                        namePathMapper.getOakPath(retrieveString()), targetType, false, valueFactory);
-            } else if (targetType == PropertyType.BINARY) {
-                if (length() < 0x10000) {
-                    // < 65kb: deserialize BINARY type using String
-                    return ValueHelper.deserialize(retrieve(), targetType, false, valueFactory);
-                } else {
-                    // >= 65kb: deserialize BINARY type using Reader
-                    Reader reader = reader();
-                    try {
-                        return ValueHelper.deserialize(reader, targetType, false, valueFactory);
-                    } finally {
-                        reader.close();
-                    }
-                }
-            } else {
-                // all other types
-                return ValueHelper.deserialize(retrieveString(), targetType, false, valueFactory);
+            if (targetType == PropertyType.BINARY) {
+                return valueFactory.createValue(stream());
             }
+
+            String jcrValue = retrieveString();
+            if (targetType == PropertyType.NAME) {
+                jcrValue = namePathMapper.getOakName(jcrValue);
+            } else if (targetType == PropertyType.PATH) {
+                jcrValue = namePathMapper.getOakPath(jcrValue);
+            }
+            return valueFactory.createValue(jcrValue, targetType);
         } catch (IOException e) {
-            String msg = "failed to retrieve serialized value";
-            log.debug(msg, e);
-            throw new RepositoryException(msg, e);
+            throw new RepositoryException(
+                    "failed to retrieve serialized value", e);
         }
     }
 
@@ -336,15 +344,12 @@ class BufferedStringValue implements TextValue {
             remaining--;
             return buffer[pos++] & 0xff;
         }
-    }
 
-    /**
-     * Whether this value is base64 encoded
-     *
-     * @param base64 the flag
-     */
-    public void setBase64(boolean base64) {
-        this.base64 = base64;
+        @Override
+        public void close() throws IOException {
+            reader.close();
+        }
+
     }
 
 }

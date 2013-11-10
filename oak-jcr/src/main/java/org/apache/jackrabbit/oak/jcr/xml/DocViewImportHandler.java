@@ -108,7 +108,9 @@ class DocViewImportHandler extends TargetImportHandler {
     private void appendCharacters(char[] ch, int start, int length)
             throws SAXException {
         if (textHandler == null) {
-            textHandler = new BufferedStringValue(sessionContext.getValueFactory(), currentNamePathMapper());
+            textHandler = new BufferedStringValue(
+                    sessionContext.getValueFactory(), currentNamePathMapper(),
+                    false);
         }
         try {
             textHandler.append(ch, start, length);
