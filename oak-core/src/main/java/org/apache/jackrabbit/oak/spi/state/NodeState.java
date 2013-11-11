@@ -347,6 +347,9 @@ public interface NodeState {
      *
      * @param base base state
      * @param diff handler of node state differences
+     * @return {@code true} if the full diff was performed, or
+     *         {@code false} if it was aborted as requested by the handler
+     *         (see the {@link NodeStateDiff} contract for more details)
      * @since 0ak 0.4, return value added in 0.7
      */
     boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff);
