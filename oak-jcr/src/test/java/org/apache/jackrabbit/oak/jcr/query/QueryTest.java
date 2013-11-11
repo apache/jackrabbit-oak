@@ -188,7 +188,7 @@ public class QueryTest extends AbstractRepositoryTest {
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
         r = q.execute();
         assertEquals(
-                newHashSet("jcr:path", "jcr:score", "a.jcr:primaryType"),
+                newHashSet("jcr:path", "jcr:score", "jcr:primaryType"),
                 newHashSet(r.getColumnNames()));
     }
 
