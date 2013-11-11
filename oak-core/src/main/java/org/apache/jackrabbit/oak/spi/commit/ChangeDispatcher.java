@@ -36,10 +36,10 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * A {@code ChangeDispatcher} instance records changes to a {@link NodeStore}
+ * A {@code ChangeDispatcher} instance records changes to a
+ * {@link org.apache.jackrabbit.oak.spi.state.NodeStore}
  * and dispatches them to interested parties.
  * <p>
  * Actual changes are reported by calling {@link #beforeCommit(NodeState)},
@@ -62,18 +62,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public class ChangeDispatcher implements Observable {
     private final Set<Listener> listeners = Sets.newHashSet();
-    private final NodeStore store;
 
     @Nonnull
     private volatile NodeState root;
 
     /**
-     * Create a new instance for recording changes to {@code store}.
-     * @param store  the node store to record changes for
+     * Create a new instance for recording changes to a {@code NodeStore}
+     * @param root  current root node state of the node store
      */
-    public ChangeDispatcher(@Nonnull NodeStore store) {
-        this.store = store;
-        this.root = checkNotNull(store.getRoot());
+    public ChangeDispatcher(@Nonnull NodeState root) {
+        this.root = checkNotNull(root);
     }
 
     /**
@@ -157,18 +155,6 @@ public class ChangeDispatcher implements Observable {
         changeCount.incrementAndGet();
     }
 
-    private void externalChange() {
-        if (!inLocalCommit()) {
-            long c = changeCount.get();
-            NodeState root = store.getRoot();  // Need to get root outside sync. See OAK-959
-            synchronized (this) {
-                if (c == changeCount.get() && !inLocalCommit()) {
-                    externalChange(root);
-                }
-            }
-        }
-    }
-
     private synchronized void externalChange(NodeState root) {
         if (!root.equals(this.root)) {
             add(root, null);
@@ -230,9 +216,6 @@ public class ChangeDispatcher implements Observable {
         public void run() {
             try {
                 while (!stopping) {
-                    if (commits.isEmpty()) {
-                        externalChange();
-                    }
                     Commit commit = commits.poll(100, TimeUnit.MILLISECONDS);
                     if (commit != null) {
                         observer.contentChanged(commit.getRoot(), commit.getCommitInfo());
