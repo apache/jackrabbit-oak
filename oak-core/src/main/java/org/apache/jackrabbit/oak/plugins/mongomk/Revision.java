@@ -380,9 +380,13 @@ public class Revision {
                         return;
                     }
                     if (last.revision.compareRevisionTime(r) > 0) {
+                        /*
                         throw new IllegalArgumentException(
                                 "Can not add an earlier revision: " + last.revision + " > " + r + 
                                 "; current cluster node is " + currentClusterNodeId);
+                        */
+                        // quick fix for OAK-1167
+                        return;
                     }
                     newList = new ArrayList<RevisionRange>(list);
                 }
