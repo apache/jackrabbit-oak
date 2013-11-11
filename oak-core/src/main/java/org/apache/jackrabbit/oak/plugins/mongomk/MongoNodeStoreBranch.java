@@ -61,7 +61,7 @@ public class MongoNodeStoreBranch
 
     public MongoNodeStoreBranch(MongoNodeStore store,
                                 MongoNodeState base) {
-        super(store, new ChangeDispatcher(store), base);
+        super(store, new ChangeDispatcher(store.getRoot()), base);
     }
 
     @Override

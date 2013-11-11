@@ -118,7 +118,7 @@ public class KernelNodeStore implements NodeStore, Observable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        changeDispatcher = new ChangeDispatcher(this);
+        changeDispatcher = new ChangeDispatcher(root);
     }
 
     public KernelNodeStore(MicroKernel kernel) {
