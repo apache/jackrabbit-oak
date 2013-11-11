@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 /**
- * DefaultTreeTypeProvider... TODO
+ * Default implementation of the {@link TreeTypeProvider} interface.
  */
 public final class TreeTypeProviderImpl implements TreeTypeProvider {
 
