@@ -94,7 +94,7 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
         // - different type
         rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), true));
         // - different multi-value status
-        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.of(value), Type.STRINGS), true));
+        rs.add(new RestrictionImpl(PropertyStates.createProperty(name, ImmutableList.of(value), Type.NAMES), true));
         // - different name
         rs.add(new RestrictionImpl(createProperty("otherName", value), true));
         // - different value

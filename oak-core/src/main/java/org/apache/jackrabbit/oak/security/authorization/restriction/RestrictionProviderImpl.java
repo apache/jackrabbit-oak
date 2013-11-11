@@ -57,7 +57,8 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
     private static Map<String, RestrictionDefinition> supportedRestrictions() {
         RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false);
         RestrictionDefinition nts = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
-        return ImmutableMap.of(glob.getName(), glob, nts.getName(), nts);
+        RestrictionDefinition pfxs = new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false);
+        return ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, pfxs.getName(), pfxs);
     }
 
     //------------------------------------------------< RestrictionProvider >---
@@ -76,6 +77,11 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
             PropertyState ntNames = tree.getProperty(REP_NT_NAMES);
             if (ntNames != null) {
                 patterns.add(new NodeTypePattern(ntNames.getValue(Type.NAMES)));
+            }
+
+            PropertyState prefixes = tree.getProperty(REP_PREFIXES);
+            if (prefixes != null) {
+                patterns.add(new PrefixPattern(prefixes.getValue(Type.STRINGS)));
             }
 
             switch (patterns.size()) {

@@ -47,7 +47,8 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
 
     private RestrictionProvider rp1 = new TestProvider(ImmutableMap.<String, RestrictionDefinition>of(
             REP_GLOB, new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false),
-            REP_NT_NAMES, new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false)
+            REP_NT_NAMES, new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false),
+            REP_PREFIXES, new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false)
     ));
     private RestrictionProvider rp2 = new TestProvider(ImmutableMap.of(
             "boolean", new RestrictionDefinitionImpl("boolean", Type.BOOLEAN, true),
