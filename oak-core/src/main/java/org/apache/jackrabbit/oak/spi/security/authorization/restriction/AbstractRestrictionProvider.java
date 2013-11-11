@@ -175,7 +175,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
 
     @Nonnull
     private Restriction createRestriction(PropertyState propertyState, RestrictionDefinition definition) {
-        return new RestrictionImpl(propertyState, definition.isMandatory());
+        return new RestrictionImpl(propertyState, definition);
     }
 
     @Nonnull

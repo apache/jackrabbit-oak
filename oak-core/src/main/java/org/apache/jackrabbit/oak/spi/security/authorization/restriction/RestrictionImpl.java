@@ -29,6 +29,11 @@ public class RestrictionImpl implements Restriction {
     private final RestrictionDefinition definition;
     private final PropertyState property;
 
+    public RestrictionImpl(@Nonnull PropertyState property, @Nonnull RestrictionDefinition def) {
+        this.definition = def;
+        this.property = property;
+    }
+
     public RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory) {
         this.definition = new RestrictionDefinitionImpl(property.getName(), property.getType(), isMandatory);
         this.property = property;

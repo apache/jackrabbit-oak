@@ -34,12 +34,21 @@ public interface AccessControlConstants {
     String REP_NODE_PATH = "rep:nodePath";
 
     /**
-     * Name of the optional access control restriction by node type name.
+     * Name of the optional multivalued access control restriction by node type name.
      * The corresponding restriction type is {@link org.apache.jackrabbit.oak.api.Type#NAMES}.
      *
      * @since OAK 1.0
      */
     String REP_NT_NAMES = "rep:ntNames";
+
+    /**
+     * Name of the optional multivalued access control restriction which matches by name space prefix.
+     * The corresponding restriction type is {@link org.apache.jackrabbit.oak.api.Type#STRINGS}.
+     *
+     * @since OAK 1.0
+     */
+    String REP_PREFIXES = "rep:prefixes";
+
     /**
      * @since OAK 1.0
      */
