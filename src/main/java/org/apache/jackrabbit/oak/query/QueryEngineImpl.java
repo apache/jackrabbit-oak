@@ -108,6 +108,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
             String sql2 = converter.convert(statement);
             LOG.debug("XPath > SQL2: {}", sql2);
             try {
+                // OAK-874: No artificial XPath selector name in wildcards
+                parser.setIncludeSelectorNameInWildcardColumns(false);
                 return parser.parse(sql2);
             } catch (ParseException e) {
                 ParseException e2 = new ParseException(
