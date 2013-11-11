@@ -50,6 +50,7 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
         this.type = type;
         this.isMandatory = isMandatory;
     }
+
     //----------------------------------------------< RestrictionDefinition >---
     @Nonnull
     @Override

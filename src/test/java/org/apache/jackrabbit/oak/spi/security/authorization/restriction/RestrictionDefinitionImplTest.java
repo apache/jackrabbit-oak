@@ -92,7 +92,9 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
         // - different name
         defs.add(new RestrictionDefinitionImpl("otherName", Type.NAME, true));
         // - different mandatory flag
-        defs.add(new RestrictionDefinitionImpl(name, Type.NAMES, false));
+        defs.add(new RestrictionDefinitionImpl(name, Type.NAME, false));
+        // - different mv flag
+        defs.add(new RestrictionDefinitionImpl(name, Type.NAMES, true));
         // - different impl
         defs.add(new RestrictionDefinition() {
             @Override
@@ -107,6 +109,7 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
             public boolean isMandatory() {
                 return true;
             }
+
         });
 
         for (RestrictionDefinition rd : defs) {
