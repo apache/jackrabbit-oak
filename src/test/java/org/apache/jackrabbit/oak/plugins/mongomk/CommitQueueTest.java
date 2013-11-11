@@ -44,7 +44,7 @@ public class CommitQueueTest {
     @Test
     public void concurrentCommits() throws Exception {
         final MongoNodeStore store = new MongoMK.Builder().getNodeStore();
-        ChangeDispatcher dispatcher = new ChangeDispatcher(store);
+        ChangeDispatcher dispatcher = new ChangeDispatcher(store.getRoot());
         AtomicBoolean running = new AtomicBoolean(true);
         final CommitQueue queue = new CommitQueue(store, dispatcher);
         final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());

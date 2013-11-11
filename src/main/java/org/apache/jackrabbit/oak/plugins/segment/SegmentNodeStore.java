@@ -60,7 +60,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         this.journal = store.getJournal(journal);
         this.head = new SegmentNodeState(
                 store.getWriter().getDummySegment(), this.journal.getHead());
-        this.changeDispatcher = new ChangeDispatcher(this);
+        this.changeDispatcher = new ChangeDispatcher(getRoot());
     }
 
     public SegmentNodeStore(SegmentStore store) {

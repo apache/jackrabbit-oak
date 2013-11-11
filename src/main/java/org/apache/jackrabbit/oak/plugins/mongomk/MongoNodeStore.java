@@ -286,7 +286,7 @@ public final class MongoNodeStore
             }
             getRevisionComparator().add(headRevision, Revision.newRevision(0));
         }
-        dispatcher = new ChangeDispatcher(this);
+        dispatcher = new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this, dispatcher);
         backgroundThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
