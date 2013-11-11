@@ -27,15 +27,13 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
@@ -84,35 +82,6 @@ public class UserManagerTest extends AbstractUserTest {
             }
         }
     }
-    
-    @Test
-    // FIXME clarify expectations, move to auto refresh related tests. See OAK-938.
-    public void testAutoRefreshSession() throws RepositoryException {
-        Session adminSession = null;
-        SimpleCredentials credentials = new SimpleCredentials("admin", "admin".toCharArray());
-        credentials.setAttribute(RepositoryImpl.REFRESH_INTERVAL, 0);
-
-        User user = null;
-        try {
-            adminSession = superuser.getRepository().login(credentials);
-            UserManager adminUserManager = ((JackrabbitSession) adminSession).getUserManager();
-
-            String uid = createUserId();
-            user = userMgr.createUser(uid, uid);
-            superuser.save();
-
-            assertNotNull(adminUserManager.getAuthorizable(uid));
-        } finally {
-            if (adminSession != null) {
-                adminSession.logout();
-            }
-            if (user != null) {
-                user.remove();
-            }
-        }
-    }
-    
-    
 
     @Test
     public void testGetAuthorizableByPath() throws RepositoryException, NotExecutableException {
