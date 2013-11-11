@@ -105,7 +105,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
         Configuration loginConfig = null;
         try {
             loginConfig = Configuration.getConfiguration();
-            // FIXME: workaround for Java7 behavior. needs clean up (see OAK-497)
+            // NOTE: workaround for Java7 behavior (see OAK-497)
             if (loginConfig.getAppConfigurationEntry(appName) == null) {
                 loginConfig = null;
             }
