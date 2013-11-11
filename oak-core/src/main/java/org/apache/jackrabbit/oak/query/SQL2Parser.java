@@ -95,6 +95,7 @@ public class SQL2Parser {
     // SQL injection protection: if disabled, literals are not allowed
     private boolean allowTextLiterals = true;
     private boolean allowNumberLiterals = true;
+    private boolean includeSelectorNameInWildcardColumns = true;
 
     private final AstElementFactory factory = new AstElementFactory();
 
@@ -860,7 +861,12 @@ public class SQL2Parser {
             if (namePathMapper != null) {
                 propertyName = namePathMapper.getJcrName(propertyName);
             }
-            String columnName = selectorName + "." + propertyName;
+            String columnName;
+            if (includeSelectorNameInWildcardColumns) {
+                columnName = selectorName + "." + propertyName;
+            } else {
+                columnName = propertyName;
+            }
             columns.add(factory.column(selectorName, propertyName, columnName));
         }
     }
@@ -1289,6 +1295,10 @@ public class SQL2Parser {
 
     public void setAllowNumberLiterals(boolean allowNumberLiterals) {
         this.allowNumberLiterals = allowNumberLiterals;
+    }
+
+    public void setIncludeSelectorNameInWildcardColumns(boolean value) {
+        this.includeSelectorNameInWildcardColumns = value;
     }
 
 }
