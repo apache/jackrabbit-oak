@@ -70,14 +70,20 @@ public class NodeDocument extends Document {
 
     /**
      * A document size threshold after which a split is forced even if
-     * {@link #REVISIONS_SPLIT_OFF_SIZE} is not reached.
+     * {@link #NUM_REVS_THRESHOLD} is not reached.
      */
-    static final int FORCE_SPLIT_THRESHOLD = 256 * 1024;
+    static final int DOC_SIZE_THRESHOLD = 256 * 1024;
 
     /**
      * Only split off at least this number of revisions.
      */
-    static final int REVISIONS_SPLIT_OFF_SIZE = 100;
+    static final int NUM_REVS_THRESHOLD = 100;
+
+    /**
+     * The split ratio. Only split data to an old document when at least
+     * 30% of the data can be moved.
+     */
+    static final float SPLIT_RATIO = 0.3f;
 
     /**
      * Revision collision markers set by commits with modifications, which
@@ -575,8 +581,8 @@ public class NodeDocument extends Document {
     public Iterable<UpdateOp> split(@Nonnull RevisionContext context) {
         // only consider if there are enough commits,
         // unless document is really big
-        if (getLocalRevisions().size() + getLocalCommitRoot().size() <= REVISIONS_SPLIT_OFF_SIZE
-                && getMemory() < FORCE_SPLIT_THRESHOLD) {
+        if (getLocalRevisions().size() + getLocalCommitRoot().size() <= NUM_REVS_THRESHOLD
+                && getMemory() < DOC_SIZE_THRESHOLD) {
             return Collections.emptyList();
         }
         String id = getId();
@@ -640,7 +646,8 @@ public class NodeDocument extends Document {
             numValues += splitMap.size();
         }
         if (high != null && low != null
-                && (numValues >= REVISIONS_SPLIT_OFF_SIZE || getMemory() > FORCE_SPLIT_THRESHOLD)) {
+                && (numValues >= NUM_REVS_THRESHOLD
+                    || getMemory() > DOC_SIZE_THRESHOLD)) {
             // enough revisions to split off
             splitOps = new ArrayList<UpdateOp>(2);
             // move to another document
@@ -656,8 +663,15 @@ public class NodeDocument extends Document {
                     old.setMapEntry(property, r, entry.getValue());
                 }
             }
-            splitOps.add(old);
-            splitOps.add(main);
+            // check size of old document
+            NodeDocument oldDoc = new NodeDocument(store);
+            MemoryDocumentStore.applyChanges(oldDoc, old,
+                    context.getRevisionComparator());
+            // only split if half of the data can be moved to old document
+            if (oldDoc.getMemory() > getMemory() * SPLIT_RATIO) {
+                splitOps.add(old);
+                splitOps.add(main);
+            }
         }
         return splitOps;
     }
