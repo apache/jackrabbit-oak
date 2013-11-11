@@ -45,7 +45,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         revisions.addAll(doc.getLocalRevisions().keySet());
         revisions.add(Revision.fromString(mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null)));
         // create nodes
-        while (revisions.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
+        while (revisions.size() <= NodeDocument.NUM_REVS_THRESHOLD) {
             revisions.add(Revision.fromString(mk.commit("/", "+\"foo/node-" + revisions.size() + "\":{}" +
                     "+\"bar/node-" + revisions.size() + "\":{}", null, null)));
         }
@@ -77,7 +77,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         assertNotNull(doc);
         revisions.addAll(doc.getLocalRevisions().keySet());
         boolean create = false;
-        while (revisions.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
+        while (revisions.size() <= NodeDocument.NUM_REVS_THRESHOLD) {
             if (create) {
                 revisions.add(Revision.fromString(mk.commit("/", "+\"foo\":{}", null, null)));
             } else {
@@ -114,7 +114,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         Set<Revision> commitRoots = Sets.newHashSet();
         commitRoots.addAll(doc.getLocalCommitRoot().keySet());
         // create nodes
-        while (commitRoots.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
+        while (commitRoots.size() <= NodeDocument.NUM_REVS_THRESHOLD) {
             commitRoots.add(Revision.fromString(mk.commit("/", "^\"foo/prop\":" +
                     commitRoots.size() + "^\"bar/prop\":" + commitRoots.size(), null, null)));
         }
@@ -138,7 +138,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         assertNotNull(doc);
         Set<Revision> revisions = Sets.newHashSet();
         // create nodes
-        while (revisions.size() <= NodeDocument.REVISIONS_SPLIT_OFF_SIZE) {
+        while (revisions.size() <= NodeDocument.NUM_REVS_THRESHOLD) {
             revisions.add(Revision.fromString(mk.commit("/", "^\"foo/prop\":" +
                     revisions.size(), null, null)));
         }
@@ -180,7 +180,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         MongoMK mk3 = builder.setClusterId(3).open();
 
-        for (int i = 0; i < NodeDocument.REVISIONS_SPLIT_OFF_SIZE; i++) {
+        for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
             mk1.commit("/", "^\"test/prop1\":" + i, null, null);
             mk2.commit("/", "^\"test/prop2\":" + i, null, null);
             mk3.commit("/", "^\"test/prop3\":" + i, null, null);
@@ -195,7 +195,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         Map<Revision, String> revs = doc.getLocalRevisions();
         assertEquals(3, revs.size());
         revs = doc.getValueMap("_revisions");
-        assertEquals(3 * NodeDocument.REVISIONS_SPLIT_OFF_SIZE, revs.size());
+        assertEquals(3 * NodeDocument.NUM_REVS_THRESHOLD, revs.size());
         Revision previous = null;
         for (Map.Entry<Revision, String> entry : revs.entrySet()) {
             if (previous != null) {
