@@ -793,6 +793,10 @@ public class SQL2Parser {
                             column.propertyName = readName();
                             if (readIf("AS")) {
                                 column.columnName = readName();
+                            } else {
+                                column.columnName =
+                                        column.selectorName
+                                        + "." + column.propertyName;
                             }
                         }
                     } else {
@@ -837,12 +841,12 @@ public class SQL2Parser {
             throws ParseException {
         if (selectorName == null) {
             for (SelectorImpl selector : selectors.values()) {
-                addWildcardColumns(columns, selector, selectors.size() > 1);
+                addWildcardColumns(columns, selector);
             }
         } else {
             SelectorImpl selector = selectors.get(selectorName);
             if (selector != null) {
-                addWildcardColumns(columns, selector, true);
+                addWildcardColumns(columns, selector);
             } else {
                 throw getSyntaxError("Unknown selector: " + selectorName);
             }
@@ -850,18 +854,14 @@ public class SQL2Parser {
     }
 
     private void addWildcardColumns(
-            Collection<ColumnImpl> columns, SelectorImpl selector,
-            boolean includeSelectorName) {
+            Collection<ColumnImpl> columns, SelectorImpl selector) {
         String selectorName = selector.getSelectorName();
-        for (String property : selector.getWildcardColumns()) {
+        for (String propertyName : selector.getWildcardColumns()) {
             if (namePathMapper != null) {
-                property = namePathMapper.getJcrName(property);
+                propertyName = namePathMapper.getJcrName(propertyName);
             }
-            String columnName = property;
-            if (includeSelectorName) {
-                columnName = selectorName + "." + property;
-            }
-            columns.add(factory.column(selectorName, property, columnName));
+            String columnName = selectorName + "." + propertyName;
+            columns.add(factory.column(selectorName, propertyName, columnName));
         }
     }
 
