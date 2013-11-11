@@ -135,6 +135,10 @@ public class Commit {
         addedNodes.add(n.path);
     }
 
+    boolean isEmpty() {
+        return operations.isEmpty();
+    }
+
     /**
      * Apply the changes to the document store and the cache.
      */

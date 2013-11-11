@@ -162,6 +162,11 @@ public class MongoNodeStoreBranch
         Revision rev;
         try {
             op.with(c);
+            if (c.isEmpty()) {
+                // no changes to persist. return base state and let
+                // finally clause cancel the commit
+                return base;
+            }
             rev = store.apply(c);
             success = true;
         } finally {
