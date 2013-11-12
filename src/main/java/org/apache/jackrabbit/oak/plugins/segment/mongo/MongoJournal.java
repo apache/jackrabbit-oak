@@ -142,6 +142,9 @@ class MongoJournal implements Journal {
             return false;
         }
 
+        // Flush any pending records
+        store.getWriter().flush();
+
         BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
         builder.add("_id", name);
         if (state.containsField("parent")) {
