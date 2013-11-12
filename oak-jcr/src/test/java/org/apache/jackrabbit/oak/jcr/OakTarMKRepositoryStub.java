@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.File;
 import java.security.Principal;
 import java.util.Properties;
-import java.util.Random;
 
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;

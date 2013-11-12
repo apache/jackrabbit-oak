@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static junit.framework.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Session;
 
-import org.junit.Ignore;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test nodes with many child nodes.

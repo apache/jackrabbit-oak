@@ -26,10 +26,9 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.apache.jackrabbit.test.NotExecutableException;
 
 /**
- * <code>VersionableTest</code> contains tests for method relevant to
+ * {@code VersionableTest} contains tests for method relevant to
  * versionable nodes.
  */
 public class VersionableTest extends AbstractJCRTest {
