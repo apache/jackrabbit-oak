@@ -541,7 +541,7 @@ public class ImporterImpl implements Importer {
         }
     }
 
-    private class Reference {
+    private static final class Reference {
 
         private final Tree tree;
         private final PropertyState property;
