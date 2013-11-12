@@ -27,6 +27,14 @@ public class JsonObject {
     private Map<String, String> props = new HashMap<String, String>();
     private Map<String, JsonObject> children = new HashMap<String, JsonObject>();
 
+    /**
+     * Reads a JSON object from the given tokenizer. The opening '{' of the
+     * object should already have been consumed from the tokenizer before
+     * this method is called.
+     *
+     * @param t tokenizer
+     * @return JSON object
+     */
     public static JsonObject create(JsopTokenizer t) {
         JsonObject obj = new JsonObject();
         if (!t.matches('}')) {
