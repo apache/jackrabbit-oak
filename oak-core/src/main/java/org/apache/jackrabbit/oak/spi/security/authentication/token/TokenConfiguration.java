@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 
 /**
- * TokenConfiguration... TODO
+ * Configuration for token management.
  */
 public interface TokenConfiguration extends SecurityConfiguration {
 
