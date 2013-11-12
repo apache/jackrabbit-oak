@@ -18,18 +18,20 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.junit.Ignore;
-import org.junit.Test;
 
 public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
      
@@ -104,6 +106,26 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
             fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessViolation());
+        }
+    }
+
+    @Ignore("OAK-869") // FIXME: OAK-869
+    @Test
+    public void testAddNodeCollidingWithInvisibleNode() throws Exception {
+        setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);
+        setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.JCR_READ);
+
+        Root testRoot = getTestRoot();
+        Tree a = testRoot.getTree("/a");
+
+        assertFalse(a.getChild("b").exists());
+        new NodeUtil(a).addChild("b", JcrConstants.NT_UNSTRUCTURED);
+
+        try {
+            testRoot.commit();
+            fail();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
         }
     }
 
