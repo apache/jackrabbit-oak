@@ -21,9 +21,7 @@ import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 
 /**
  * This implementation of the authentication configuration provides login
@@ -60,11 +58,5 @@ public class OpenAuthenticationConfiguration extends SecurityConfiguration.Defau
                 };
             }
         };
-    }
-
-    @Nonnull
-    @Override
-    public TokenProvider getTokenProvider(Root root) {
-        throw new UnsupportedOperationException();
     }
 }

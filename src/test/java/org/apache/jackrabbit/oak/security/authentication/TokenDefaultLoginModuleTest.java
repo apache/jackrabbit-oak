@@ -30,8 +30,8 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
@@ -221,8 +221,8 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
     @Test
     public void testValidTokenCredentials() throws Exception {
         Root root = adminSession.getLatestRoot();
-        AuthenticationConfiguration authConfig = getSecurityProvider().getConfiguration(AuthenticationConfiguration.class);
-        TokenProvider tp = authConfig.getTokenProvider(root);
+        TokenConfiguration tc = getSecurityProvider().getConfiguration(TokenConfiguration.class);
+        TokenProvider tp = tc.getTokenProvider(root);
 
         SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
         TokenInfo info = tp.createToken(sc.getUserID(), Collections.<String, Object>emptyMap());

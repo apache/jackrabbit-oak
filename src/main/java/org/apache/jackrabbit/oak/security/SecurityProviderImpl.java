@@ -21,6 +21,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
@@ -65,6 +67,7 @@ public class SecurityProviderImpl implements SecurityProvider {
         scs.add(getUserConfiguration());
         scs.add(getPrincipalConfiguration());
         scs.add(getPrivilegeConfiguration());
+        scs.add(getTokenConfiguration());
         return scs;
     }
 
@@ -81,6 +84,8 @@ public class SecurityProviderImpl implements SecurityProvider {
             return (T) getPrincipalConfiguration();
         } else if (PrivilegeConfiguration.class == configClass) {
             return (T) getPrivilegeConfiguration();
+        } else if (TokenConfiguration.class == configClass) {
+            return (T) getTokenConfiguration();
         } else {
             throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
         }
@@ -112,5 +117,10 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     private PrincipalConfiguration getPrincipalConfiguration() {
         return new PrincipalConfigurationImpl(this);
+    }
+
+    @Nonnull
+    private TokenConfiguration getTokenConfiguration() {
+        return new TokenConfigurationImpl(this);
     }
 }
