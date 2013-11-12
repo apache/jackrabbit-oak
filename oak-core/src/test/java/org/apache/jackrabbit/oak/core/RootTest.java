@@ -18,13 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +33,12 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class RootTest extends OakBaseTest {
 
