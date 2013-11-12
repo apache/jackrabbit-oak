@@ -135,7 +135,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     }
 
     @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws AccessControlException, RepositoryException {
+    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws RepositoryException {
         return addEntry(principal, privileges, isAllow, restrictions, null);
     }
 }
