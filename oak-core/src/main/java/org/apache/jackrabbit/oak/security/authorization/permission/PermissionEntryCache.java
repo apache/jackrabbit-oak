@@ -58,7 +58,7 @@ public class PermissionEntryCache {
         base.keySet().removeAll(principalNames);
     }
 
-    public class Local {
+    public final class Local {
 
         private final Map<String, PrincipalPermissionEntries> entries = new HashMap<String, PrincipalPermissionEntries>();
 
