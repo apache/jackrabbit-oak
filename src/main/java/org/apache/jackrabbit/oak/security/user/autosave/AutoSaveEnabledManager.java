@@ -22,10 +22,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
@@ -67,8 +65,8 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public Authorizable getAuthorizable(String s) throws RepositoryException {
-        return wrap(dlg.getAuthorizable(s));
+    public Authorizable getAuthorizable(String id) throws RepositoryException {
+        return wrap(dlg.getAuthorizable(id));
     }
 
     @Override
@@ -77,18 +75,18 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public Authorizable getAuthorizableByPath(String s) throws UnsupportedRepositoryOperationException, RepositoryException {
-        return wrap(dlg.getAuthorizableByPath(s));
+    public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
+        return wrap(dlg.getAuthorizableByPath(path));
     }
 
     @Override
-    public Iterator<Authorizable> findAuthorizables(String s, String s1) throws RepositoryException {
-        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(s, s1), this);
+    public Iterator<Authorizable> findAuthorizables(String relPath, String value) throws RepositoryException {
+        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(relPath, value), this);
     }
 
     @Override
-    public Iterator<Authorizable> findAuthorizables(String s, String s1, int i) throws RepositoryException {
-        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(s, s1, i), this);
+    public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
+        return AuthorizableWrapper.createIterator(dlg.findAuthorizables(relPath, value, searchType), this);
     }
 
     @Override
@@ -97,7 +95,7 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public User createUser(String userID, String password) throws AuthorizableExistsException, RepositoryException {
+    public User createUser(String userID, String password) throws RepositoryException {
         try {
             return wrap(dlg.createUser(userID, password));
         } finally {
@@ -115,7 +113,7 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public Group createGroup(String groupId) throws AuthorizableExistsException, RepositoryException {
+    public Group createGroup(String groupId) throws RepositoryException {
         try {
             return wrap(dlg.createGroup(groupId));
         } finally {
@@ -124,7 +122,7 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public Group createGroup(Principal principal) throws AuthorizableExistsException, RepositoryException {
+    public Group createGroup(Principal principal) throws RepositoryException {
         try {
             return wrap(dlg.createGroup(principal));
         } finally {
@@ -133,7 +131,7 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public Group createGroup(Principal principal, String groupId) throws AuthorizableExistsException, RepositoryException {
+    public Group createGroup(Principal principal, String groupId) throws RepositoryException {
         try {
             return wrap(dlg.createGroup(principal, groupId));
         } finally {

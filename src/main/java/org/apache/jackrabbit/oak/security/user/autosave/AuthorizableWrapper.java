@@ -23,7 +23,7 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 
-class AuthorizableWrapper<T extends Authorizable> implements Function<T, T> {
+final class AuthorizableWrapper<T extends Authorizable> implements Function<T, T> {
 
     private final AutoSaveEnabledManager mgr;
 

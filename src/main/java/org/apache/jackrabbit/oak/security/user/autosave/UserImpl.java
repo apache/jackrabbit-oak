@@ -88,7 +88,7 @@ class UserImpl extends AuthorizableImpl implements User {
         return getDelegate().getDisabledReason();
     }
 
-    private class ImpersonationImpl implements Impersonation {
+    private final class ImpersonationImpl implements Impersonation {
 
         private final Impersonation dlg;
 
