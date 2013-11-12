@@ -157,8 +157,10 @@ public class NodeStoreTest {
             @Override
             public void contentChanged(
                     @Nonnull NodeState root, @Nullable CommitInfo info) {
-                observedRoot.set(checkNotNull(root));
-                latch.countDown();
+                if (root.getChildNode("test").hasChildNode("newNode")) {
+                    observedRoot.set(checkNotNull(root));
+                    latch.countDown();
+                }
             }
         });
 
