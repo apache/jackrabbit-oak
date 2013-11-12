@@ -17,13 +17,11 @@
 package org.apache.jackrabbit.oak.security;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
-import org.apache.jackrabbit.oak.security.authorization.permission.PermissionEntryCache;
 import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
