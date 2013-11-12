@@ -25,7 +25,7 @@ Internals of Permission Evaluation
      permission on _AC trees_ [^1] and stores the result in the `ReadStatus`.
      
      For that an iterator of the _permission entries_ is [retrieved](#getEntrtyIterator) which
-     provides all the relevant permission entries that need to be evaluated for this tree (and
+     provides all the relevant permission entries needed to be evaluated for this tree (and
      _subject_). 
      
   1. The _permission entries_ are analyzed if they include the respective permission and if so,
@@ -34,8 +34,21 @@ Internals of Permission Evaluation
      by the way how they are stored in the [permission store](#permissionStore) and how they
      are feed into the iterator.
      
-  1. and then..... (WIP)   
+     The iteration also detects if the evaluated permission entries cover _this_ node and all
+     its properties. If this is the case, subsequent calls that evaluate the property read
+     permissions would then not need to do the same iteration again. In order to detect this,
+     the iteration checks if a non-matching permission entry or privilege was skipped
+     and eventually sets the respective flag in the `ReadStatus`. This flag indicates if the
+     present permission entries are sufficient to tell if the session is allowed to read
+     _this_ node and all its properties. If there are more entries present than the ones needed
+     for evaluating the `READ_NODE` permission, then it's ambiguous to determine if all
+     properties can be read. 
+     
+  1. Once the `ReadStatus` is calculated (or was calculated earlier) the `canRead()` method
+     returns `ReadStatus.allowsThis()` which specifies if _this_ node is allowed to be read.
 	   
+  1. next up: getProperty() (WIP)
+  
   [^1]: AC trees are usually the `rep:policy` subtrees of access controlled nodes.
 
 
