@@ -82,8 +82,11 @@ public class MongoStore extends AbstractStore {
     @Override
     public void writeSegment(
             UUID segmentId, byte[] data, int offset, int length) {
-        byte[] d = new byte[length];
-        System.arraycopy(data, offset, d, 0, length);
+        if (offset != 0 || length != data.length) {
+            byte[] b = new byte[length];
+            System.arraycopy(data, offset, b, 0, length);
+            data = b;
+        }
 
         BasicDBObject segment = new BasicDBObject();
         segment.put("_id", segmentId.toString());

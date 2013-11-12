@@ -51,8 +51,7 @@ public abstract class TCKBase extends TestSuite {
         Setup.wrap(this, OakRepositoryStub.class.getName());
         Setup.wrap(this, OakTarMKRepositoryStub.class.getName());
         if (OakSegmentMKRepositoryStub.isAvailable()) {
-            // disabled for now. see OAK-1087
-            // Setup.wrap(this, OakSegmentMKRepositoryStub.class.getName());
+            Setup.wrap(this, OakSegmentMKRepositoryStub.class.getName());
         }
         if (OakMongoMKRepositoryStub.isMongoDBAvailable()) {
             Setup.wrap(this, OakMongoMKRepositoryStub.class.getName());
