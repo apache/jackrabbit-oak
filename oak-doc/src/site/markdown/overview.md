@@ -29,5 +29,6 @@ TODO: Document core concepts and architecture:
 * Clustering
 * Search and indexing
 * Security
+    * [Permission Evaluation](security/permission_eval.html)
 * [Oak Core](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-core/README.md)
 * ...
