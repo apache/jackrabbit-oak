@@ -32,11 +32,11 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.TokenProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.slf4j.Logger;
@@ -215,8 +215,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
         SecurityProvider securityProvider = getSecurityProvider();
         Root root = getRoot();
         if (root != null && securityProvider != null) {
-            AuthenticationConfiguration authConfig = securityProvider.getConfiguration(AuthenticationConfiguration.class);
-            provider = authConfig.getTokenProvider(root);
+            TokenConfiguration tokenConfig = securityProvider.getConfiguration(TokenConfiguration.class);
+            provider = tokenConfig.getTokenProvider(root);
         }
         if (provider == null && callbackHandler != null) {
             try {

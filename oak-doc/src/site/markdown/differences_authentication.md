@@ -176,6 +176,7 @@ org.apache.jackrabbit.oak.spi.security.authentication:
 
 org.apache.jackrabbit.oak.spi.security.authentication.token:
 
+- `TokenConfiguration`: Interface to obtain a `TokenProvider` instance.
 - `TokenProvider`: Interface to manage login tokens.
 - `TokenInfo`: Information related to a login token and token validity.
 
@@ -188,11 +189,13 @@ org.apache.jackrabbit.oak.spi.security.authentication.external:
 
 ##### AuthenticationConfiguration [9]:
 - `getLoginContextProvider` -> configuration of the login context
-- `getTokenProvider` -> configuration of the token management implementation
+
+##### TokenConfiguration [10]:
+- `getTokenProvider`
 
 ##### Utilities
 There also exists a utility class that allows to obtain different
-`javax.security.auth.login.Configuration` for the most common setup [10]:
+`javax.security.auth.login.Configuration` for the most common setup [11]:
 
 - `ConfigurationUtil#getDefaultConfiguration`: default OAK configuration supporting uid/pw login configures `LoginModuleImpl` only
 
@@ -225,4 +228,6 @@ There also exists a utility class that allows to obtain different
 
 [9] http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authentication/AuthenticationConfiguration.java
 
-[10] http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authentication/ConfigurationUtil.java
+[10] http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenConfiguration.java
+
+[11] http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authentication/ConfigurationUtil.java

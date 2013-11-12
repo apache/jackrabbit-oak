@@ -22,8 +22,6 @@ import javax.security.auth.login.Configuration;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -32,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfi
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,26 +114,5 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
             loginConfig = ConfigurationUtil.getDefaultConfiguration(getParameters());
         }
         return new LoginContextProviderImpl(appName, loginConfig, contentRepository, getSecurityProvider());
-    }
-
-    /**
-     * Returns a new instance of {@link TokenProvider}.
-     *
-     * <h4>Configuration Options</h4>
-     * <ul>
-     *     <li>{@link #PARAM_TOKEN_OPTIONS}: The configuration parameters for
-     *     the token provider which allows to change the default expiration time
-     *     and the length of the generated token.</li>
-     * </ul>
-     *
-     * @param root The target root.
-     * @return A new instance of {@link TokenProvider}.
-     */
-    @Nonnull
-    @Override
-    public TokenProvider getTokenProvider(Root root) {
-        ConfigurationParameters tokenOptions = getParameters().getConfigValue(PARAM_TOKEN_OPTIONS, ConfigurationParameters.EMPTY);
-        UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
-        return new TokenProviderImpl(root, tokenOptions, uc);
     }
 }

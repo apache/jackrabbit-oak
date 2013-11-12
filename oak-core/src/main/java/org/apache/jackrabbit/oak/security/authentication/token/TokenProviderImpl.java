@@ -89,7 +89,7 @@ import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.get
  * interface will not validate the node type of the token node associated with
  * a given token.
  */
-public class TokenProviderImpl implements TokenProvider {
+class TokenProviderImpl implements TokenProvider {
 
     private static final Logger log = LoggerFactory.getLogger(TokenProviderImpl.class);
 
@@ -125,7 +125,7 @@ public class TokenProviderImpl implements TokenProvider {
     private final UserManager userManager;
     private final IdentifierManager identifierManager;
 
-    public TokenProviderImpl(Root root, ConfigurationParameters options, UserConfiguration userConfiguration) {
+    TokenProviderImpl(Root root, ConfigurationParameters options, UserConfiguration userConfiguration) {
         this.root = root;
         this.options = options;
 
