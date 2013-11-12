@@ -53,7 +53,7 @@ import static org.junit.Assert.fail;
 /**
  * Testing the {@code PermissionHook}
  */
-public abstract class AbstractPermissionHookTest extends AbstractAccessControlTest implements AccessControlConstants, PermissionConstants, PrivilegeConstants {
+public class PermissionHookTest extends AbstractAccessControlTest implements AccessControlConstants, PermissionConstants, PrivilegeConstants {
 
     protected String testPath = "/testPath";
     protected String childPath = "/testPath/childNode";
