@@ -146,60 +146,12 @@ there are ideas to implement a feature for automatic [disambiguation of node nam
 In the meanwhile we have [basic support](https://issues.apache.org/jira/browse/OAK-203) for same
 name siblings but that might not cover all cases.
 
-Authentication
---------------
+Security
+--------
 
-Please refer to [OAK-793](https://issues.apache.org/jira/browse/OAK-793) for a general overview of
-changes with respect to Jackrabbit 2.
-
-Access Control Management
--------------------------
-
-Refer to [OAK-792](https://issues.apache.org/jira/browse/OAK-792) for a general overview of changes
-with respect to Jackrabbit 2.
-
-The following modification are most likely to have an effect on existing applications:
-
-* `AccessControlManager#hasPrivilege()` and `AccessControlManager#getPrivileges()` will throw a
-  `PathNotFoundException` if the node for the specified path is not accessible. The Jackrabbit 2
-  implementation is wrong and we fixed that in OAK ([OAK-886](https://issues.apache.org/jira/browse/OAK-886)).
-  If the new behaviour turns out to be a problem with existing applications we might consider
-  adding backward compatible behaviour.
-
-Permissions
------------
-
-Refer to [OAK-942](https://issues.apache.org/jira/browse/OAK-942) for a general overview of changes
-with respect to Jackrabbit 2.
-
-* As of Oak `Node#remove()` only requires sufficient permissions to remove the target node. In
-  contrast to jackrabbit the validation will not traverse the tree and verify remove permission on
-  all child nodes/properties. There exists a configuration flag that aims to produce best effort
-  backwards compatibility but this flag is currently not enabled by default. Please let us know if
-  you suspect this causes wrong behavior in your application.
-
-* By default user management operations require the specific user mgt related
-  permission that has been introduced with OAK-1.0. This behavior can be
-  turned off by setting the corresponding configuration flag.
-
-* As of OAK reading and writing items in the version store does not follow the
-  regular permission evaluation but depends on access rights present on the
-  corresponding versionable node [OAK-444](https://issues.apache.org/jira/browse/OAK-444).
-
-Privilege Management
---------------------
-
-Refer to [OAK-910](https://issues.apache.org/jira/browse/OAK-910) for a general overview of changes
-with respect to Jackrabbit 2.
-
-User Management
----------------
-
-Refer to [OAK-791](https://issues.apache.org/jira/browse/OAK-791) for a general overview of changes
-with respect to Jackrabbit 2.
-
-Principal Management
---------------------
-
-Refer to [OAK-909](https://issues.apache.org/jira/browse/OAK-909) for a general overview of changes
-with respect to Jackrabbit 2.
+* [AccessControl Management](differences_accesscontrol.html)
+* [Authentication](differences_authentication.html)
+* [Permission Evaluation](differences_permission.html)
+* [Principal Management](differences_principal.html)
+* [Privilege Management](differences_privileges.html)
+* [User Management](differences_user.html)
