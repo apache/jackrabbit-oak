@@ -78,16 +78,16 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     boolean setHead(SegmentNodeState base, SegmentNodeState head, CommitInfo info) {
-        changeDispatcher.beforeCommit(base.getChildNode(ROOT));
+        changeDispatcher.contentChanged(base.getChildNode(ROOT), null);
         try {
             if (journal.setHead(base.getRecordId(), head.getRecordId())) {
-                changeDispatcher.localCommit(head.getChildNode(ROOT), info);
+                changeDispatcher.contentChanged(head.getChildNode(ROOT), info);
                 return true;
             } else {
                 return false;
             }
         } finally {
-            changeDispatcher.afterCommit(getRoot());
+            changeDispatcher.contentChanged(getRoot(), null);
         }
     }
 
