@@ -29,7 +29,6 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.commons.JcrUtils;
 
 import com.google.common.io.ByteStreams;
-import com.google.common.io.NullOutputStream;
 
 abstract class ReadManyTest extends AbstractTest {
 
@@ -64,7 +63,7 @@ abstract class ReadManyTest extends AbstractTest {
             try {
                 InputStream stream = binary.getStream();
                 try {
-                    ByteStreams.copy(stream, new NullOutputStream());
+                    ByteStreams.copy(stream, ByteStreams.nullOutputStream());
                 } finally {
                     stream.close();
                 }

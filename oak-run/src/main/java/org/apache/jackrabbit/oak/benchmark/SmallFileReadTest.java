@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.google.common.io.ByteStreams;
-import com.google.common.io.NullOutputStream;
 
 public class SmallFileReadTest extends AbstractTest {
 
@@ -60,7 +59,7 @@ public class SmallFileReadTest extends AbstractTest {
             Node content = file.getNode("jcr:content");
             InputStream stream = content.getProperty("jcr:data").getStream();
             try {
-                ByteStreams.copy(stream, new NullOutputStream());
+                ByteStreams.copy(stream, ByteStreams.nullOutputStream());
             } finally {
                 stream.close();
             }
