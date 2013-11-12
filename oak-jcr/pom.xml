@@ -75,6 +75,10 @@
 
       <!-- Observation -->
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved  <!-- Move in 2nd session not reflected in nodes of 1st session -->
+      org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove          <!-- Uses SNS -->
+      org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName           <!-- Uses SNS -->
+      org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove <!-- Uses SNS -->
+      org.apache.jackrabbit.core.observation.ReorderTest                                           <!-- Uses SNS -->
 
       <!-- Versioning -->
       org.apache.jackrabbit.test.api.version.VersionTest#testUpdate
@@ -170,7 +174,6 @@
       org.apache.jackrabbit.core.query.SQL2OrderByTest#testOrderByScore                              <!-- JCR-3677 -->
 
       <!-- Node Types -->
-      org.apache.jackrabbit.oak.jcr.nodetype.NodeDefinitionTest#testRootType                         <!-- OAK-901 -->
       org.apache.jackrabbit.oak.jcr.nodetype.MixinTest#testRemoveAddMixVersionable1                  <!-- OAK-1118 -->
 
     </known.issues>
