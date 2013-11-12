@@ -389,14 +389,14 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                 throws CommitFailedException {
             try {
                 rebase();
-                dispatcher.beforeCommit(base);
+                dispatcher.contentChanged(base, null);
                 NodeState toCommit = checkNotNull(hook).processCommit(base, head);
                 NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
-                dispatcher.localCommit(newHead, info);
+                dispatcher.contentChanged(newHead, info);
                 branchState = new Merged(base);
                 return newHead;
             } finally {
-                dispatcher.afterCommit(getRoot());
+                dispatcher.contentChanged(getRoot(), null);
             }
         }
     }
@@ -469,7 +469,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         NodeState merge(@Nonnull CommitHook hook, CommitInfo info) throws CommitFailedException {
             try {
                 rebase();
-                dispatcher.beforeCommit(base);
+                dispatcher.contentChanged(base, null);
                 NodeState toCommit = checkNotNull(hook).processCommit(base, head);
                 if (toCommit.equals(base)) {
                     branchState = new Merged(base);
@@ -477,12 +477,12 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                 } else {
                     head = AbstractNodeStoreBranch.this.persist(toCommit, head, info);
                     NodeState newRoot = AbstractNodeStoreBranch.this.merge(head, info);
-                    dispatcher.localCommit(newRoot, info);
+                    dispatcher.contentChanged(newRoot, info);
                     branchState = new Merged(base);
                     return newRoot;
                 }
             } finally {
-                dispatcher.afterCommit(getRoot());
+                dispatcher.contentChanged(getRoot(), null);
             }
         }
 

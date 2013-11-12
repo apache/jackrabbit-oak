@@ -109,11 +109,11 @@ class CommitQueue {
                 store.setHeadRevision(c.getRevision());
                 NodeState root = store.getRoot();
                 // TODO: correct?
-                dispatcher.beforeCommit(store.getRoot(before));
+                dispatcher.contentChanged(store.getRoot(before), null);
                 try {
-                    dispatcher.localCommit(root, info);
+                    dispatcher.contentChanged(root, info);
                 } finally {
-                    dispatcher.afterCommit(root);
+                    dispatcher.contentChanged(root, null);
                 }
             } finally {
                 // notify next if there is any
