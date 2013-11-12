@@ -57,7 +57,7 @@ public class CommitQueueTest {
                 MongoNodeState after = (MongoNodeState) root;
                 Revision r = after.getRevision();
 //                System.out.println("seen: " + r);
-                if (r.compareRevisionTime(before) < 1) {
+                if (r.compareRevisionTime(before) < 0) {
                     exceptions.add(new Exception(
                             "Inconsistent revision sequence. Before: " +
                                     before + ", after: " + r));
