@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.run;
 
 import java.net.InetAddress;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.server.Server;
 

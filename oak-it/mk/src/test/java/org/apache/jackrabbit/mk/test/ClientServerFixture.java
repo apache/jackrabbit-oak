@@ -23,7 +23,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.client.Client;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.server.Server;
-import org.apache.jackrabbit.mk.test.MicroKernelFixture;
 
 public class ClientServerFixture implements MicroKernelFixture {
 
