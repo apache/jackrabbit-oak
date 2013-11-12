@@ -26,7 +26,6 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

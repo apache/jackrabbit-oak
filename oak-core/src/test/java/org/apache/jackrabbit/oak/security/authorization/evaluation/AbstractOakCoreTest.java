@@ -16,12 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-
 import java.security.Principal;
-import java.util.UUID;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlManager;
@@ -35,6 +30,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 /**
  * Base class for all classes that attempt to test OAK API and OAK core functionality
