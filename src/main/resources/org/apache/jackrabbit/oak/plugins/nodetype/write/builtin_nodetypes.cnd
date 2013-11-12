@@ -444,26 +444,23 @@
   + oak:namedChildNodeDefinitions (oak:namedChildNodeDefinitions) = oak:namedChildNodeDefinitions protected mandatory
   + oak:residualChildNodeDefinitions (oak:childNodeDefinitions) = oak:childNodeDefinitions protected mandatory
 
-/**
- * @since oak 1.0
- */
 [oak:namedPropertyDefinitions]
   + * (oak:propertyDefinitions) = oak:propertyDefinitions protected
 
-/**
- * @since oak 1.0
- */
 [oak:propertyDefinitions]
-  + * (nt:propertyDefinition) = nt:propertyDefinition protected
+  + * (oak:propertyDefinition) = oak:propertyDefinition protected
+
+[oak:propertyDefinition] > nt:propertyDefinition
+  - oak:declaringNodeType (NAME) protected mandatory
 
 [oak:namedChildNodeDefinitions]
   + * (oak:childNodeDefinitions) = oak:childNodeDefinitions protected
 
-/**
- * @since oak 1.0
- */
 [oak:childNodeDefinitions]
-  + * (nt:childNodeDefinition) = nt:childNodeDefinition protected
+  + * (oak:childNodeDefinition) = oak:childNodeDefinition protected
+
+[oak:childNodeDefinition] > nt:childNodeDefinition
+  - oak:declaringNodeType (NAME) protected mandatory
 
 /**
  * This node type used to store a property definition within a node type definition,

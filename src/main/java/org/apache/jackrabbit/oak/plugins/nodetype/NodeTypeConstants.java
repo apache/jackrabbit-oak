@@ -55,7 +55,7 @@ public interface NodeTypeConstants extends JcrConstants {
 
     String RESIDUAL_NAME = "*";
 
-    // Precompiled Oak type information fields
+    // Pre-compiled Oak type information fields
     String OAK_SUPERTYPES = "oak:supertypes";
     String OAK_PRIMARY_SUBTYPES = "oak:primarySubtypes";
     String OAK_MIXIN_SUBTYPES = "oak:mixinSubtypes";
@@ -63,21 +63,20 @@ public interface NodeTypeConstants extends JcrConstants {
     String OAK_MANDATORY_CHILD_NODES = "oak:mandatoryChildNodes";
     String OAK_PROTECTED_PROPERTIES = "oak:protectedProperties";
     String OAK_PROTECTED_CHILD_NODES = "oak:protectedChildNodes";
-    String OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES =
-            "oak:hasProtectedResidualProperties";
-    String OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES =
-            "oak:hasProtectedResidualChildNodes";
-    String OAK_NAMED_SINGLE_VALUED_PROPERTIES =
-            "oak:namedSingleValuedProperties";
-    String OAK_RESIDUAL_CHILD_NODE_DEFINITIONS =
-            "oak:residualChildNodeDefinitions";
-    String OAK_NAMED_CHILD_NODE_DEFINITIONS =
-            "oak:namedChildNodeDefinitions";
-    String OAK_RESIDUAL_PROPERTY_DEFINITIONS =
-            "oak:residualPropertyDefinitions";
-    String OAK_NAMED_PROPERTY_DEFINITIONS =
-            "oak:namedPropertyDefinitions";
+    String OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES = "oak:hasProtectedResidualProperties";
+    String OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES = "oak:hasProtectedResidualChildNodes";
+    String OAK_NAMED_SINGLE_VALUED_PROPERTIES = "oak:namedSingleValuedProperties";
+    String OAK_RESIDUAL_CHILD_NODE_DEFINITIONS = "oak:residualChildNodeDefinitions";
+    String OAK_NAMED_CHILD_NODE_DEFINITIONS = "oak:namedChildNodeDefinitions";
+    String OAK_RESIDUAL_PROPERTY_DEFINITIONS = "oak:residualPropertyDefinitions";
+    String OAK_NAMED_PROPERTY_DEFINITIONS = "oak:namedPropertyDefinitions";
     String OAK_PROPERTY_DEFINITIONS = "oak:propertyDefinitions";
+    String OAK_PROPERTY_DEFINITION = "oak:propertyDefinition";
     String OAK_CHILD_NODE_DEFINITIONS = "oak:childNodeDefinitions";
+    String OAK_CHILD_NODE_DEFINITION = "oak:childNodeDefinition";
+    String OAK_DECLARING_NODE_TYPE = "oak:declaringNodeType";
+    String OAK_PRIMARY_TYPE = "oak:primaryType";
+    String OAK_MIXIN_TYPES = "oak:mixinTypes";
+    String OAK_UUID = "oak:uuid";
 
 }
