@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -32,13 +27,15 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Testing {@link Root} with access control restrictions in place.
  */
 public class RootTest extends AbstractOakCoreTest {
-
-    // TODO: include acl setup with restrictions
-    // TODO: test location for access control content (with and without JCR_READ_ACCESSCONTROL privilege)
 
     @Test
     public void testGetTree() throws Exception {
