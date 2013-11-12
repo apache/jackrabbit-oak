@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
@@ -119,19 +120,34 @@ public class UserQueryManager {
                     .append(sortDir.getDirection());
         }
 
-        if (builder.getGroupID() == null) {
+        final String groupId = builder.getGroupID();
+        if (groupId == null || EveryonePrincipal.NAME.equals(groupId)) {
             long offset = builder.getOffset();
             if (bound != null && offset > 0) {
                 log.warn("Found bound {} and offset {} in limit. Discarding offset.", bound, offset);
                 offset = 0;
             }
-            return findAuthorizables(statement.toString(), builder.getMaxCount(), offset, null);
+            Iterator<Authorizable> result = findAuthorizables(statement.toString(), builder.getMaxCount(), offset, null);
+            if (groupId == null) {
+                return result;
+            } else {
+                return Iterators.filter(result, new Predicate<Authorizable>() {
+                    @Override
+                    public boolean apply(@Nullable Authorizable authorizable) {
+                        try {
+                            return authorizable != null && !groupId.equals(authorizable.getID());
+                        } catch (RepositoryException e) {
+                            return false;
+                        }
+                    }
+                });
+            }
         } else {
             // filtering by group name included in query -> enforce offset
             // and limit on the result set.
             Iterator<Authorizable> result = findAuthorizables(statement.toString(), Long.MAX_VALUE, 0, null);
             Predicate groupFilter = new GroupPredicate(userManager,
-                    builder.getGroupID(),
+                    groupId,
                     builder.isDeclaredMembersOnly());
             return ResultIterator.create(builder.getOffset(), builder.getMaxCount(),
                     Iterators.filter(result, groupFilter));
