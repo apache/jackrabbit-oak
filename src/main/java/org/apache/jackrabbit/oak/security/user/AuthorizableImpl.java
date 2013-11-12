@@ -255,7 +255,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         Iterator<String> oakPaths = mMgr.getMembership(getTree(), includeInherited);
 
         Authorizable everyoneGroup = userManager.getAuthorizable(EveryonePrincipal.getInstance());
-        if (everyoneGroup != null && everyoneGroup instanceof GroupImpl) {
+        if (everyoneGroup instanceof GroupImpl) {
             String everyonePath = ((GroupImpl) everyoneGroup).getTree().getPath();
             oakPaths = Iterators.concat(oakPaths, ImmutableSet.of(everyonePath).iterator());
         }
