@@ -26,7 +26,6 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.junit.Test;
@@ -151,12 +150,12 @@ public class AbstractLoginModuleTest {
         }
 
         @Override
-        public boolean login() throws LoginException {
+        public boolean login() {
             return true;
         }
 
         @Override
-        public boolean commit() throws LoginException {
+        public boolean commit() {
             return true;
         }
     }
