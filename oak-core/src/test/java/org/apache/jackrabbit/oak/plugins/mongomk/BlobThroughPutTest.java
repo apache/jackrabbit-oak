@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
-import com.mongodb.*;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.UnknownHostException;
@@ -33,6 +25,21 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBAddress;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.Mongo;
+import com.mongodb.QueryBuilder;
+import com.mongodb.WriteConcern;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
 
