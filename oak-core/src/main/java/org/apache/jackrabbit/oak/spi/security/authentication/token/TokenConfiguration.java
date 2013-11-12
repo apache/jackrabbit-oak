@@ -14,23 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 
 /**
- * Interface for the authentication setup.
+ * TokenConfiguration... TODO
  */
-public interface AuthenticationConfiguration extends SecurityConfiguration {
+public interface TokenConfiguration extends SecurityConfiguration {
 
-    String NAME = "org.apache.jackrabbit.oak.authentication";
+    String NAME = "org.apache.jackrabbit.oak.authentication.token";
 
-    String PARAM_APP_NAME = "org.apache.jackrabbit.oak.authentication.appName";
-    String DEFAULT_APP_NAME = "jackrabbit.oak";
+    String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.authentication.token";
 
     @Nonnull
-    LoginContextProvider getLoginContextProvider(ContentRepository contentRepository);
+    TokenProvider getTokenProvider(Root root);
 }
