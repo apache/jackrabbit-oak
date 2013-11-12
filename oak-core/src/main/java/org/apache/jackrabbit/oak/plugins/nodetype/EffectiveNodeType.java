@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
@@ -43,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
@@ -225,15 +227,12 @@ public class EffectiveNodeType {
      */
     @Nonnull
     public Iterable<PropertyDefinition> getNamedPropertyDefinitions(
-            final String oakName) {
-        return Iterables.concat(Iterables.transform(
-                nodeTypes.values(),
-                new Function<NodeTypeImpl, Iterable<PropertyDefinition>>() {
-                    @Override
-                    public Iterable<PropertyDefinition> apply(NodeTypeImpl input) {
-                        return input.getDeclaredNamedPropertyDefinitions(oakName);
-                    }
-                }));
+            String oakName) {
+        List<PropertyDefinition> definitions = newArrayList();
+        for (NodeTypeImpl type : nodeTypes.values()) {
+            definitions.addAll(type.getDeclaredNamedPropertyDefinitions(oakName));
+        }
+        return definitions;
     }
 
     /**
@@ -243,14 +242,11 @@ public class EffectiveNodeType {
      */
     @Nonnull
     public Iterable<NodeDefinition> getResidualNodeDefinitions() {
-        return Iterables.concat(Iterables.transform(
-                nodeTypes.values(),
-                new Function<NodeTypeImpl, Iterable<NodeDefinition>>() {
-                    @Override
-                    public Iterable<NodeDefinition> apply(NodeTypeImpl input) {
-                        return input.getDeclaredResidualNodeDefinitions();
-                    }
-                }));
+        List<NodeDefinition> definitions = newArrayList();
+        for (NodeTypeImpl type : nodeTypes.values()) {
+            definitions.addAll(type.getDeclaredResidualNodeDefinitions());
+        }
+        return definitions;
     }
 
     /**
@@ -260,14 +256,11 @@ public class EffectiveNodeType {
      */
     @Nonnull
     public Iterable<PropertyDefinition> getResidualPropertyDefinitions() {
-        return Iterables.concat(Iterables.transform(
-                nodeTypes.values(),
-                new Function<NodeTypeImpl, Iterable<PropertyDefinition>>() {
-                    @Override
-                    public Iterable<PropertyDefinition> apply(NodeTypeImpl input) {
-                        return input.getDeclaredResidualPropertyDefinitions();
-                    }
-                }));
+        List<PropertyDefinition> definitions = newArrayList();
+        for (NodeTypeImpl type : nodeTypes.values()) {
+            definitions.addAll(type.getDeclaredResidualPropertyDefinitions());
+        }
+        return definitions;
     }
 
     public void checkSetProperty(PropertyState property) throws RepositoryException {

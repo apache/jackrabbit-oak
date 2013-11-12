@@ -44,15 +44,20 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_CHILD_NODE_DEFINITION;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_DECLARING_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_TYPE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITION;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_PROPERTIES;
@@ -60,6 +65,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_R
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_UUID;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -254,9 +260,9 @@ class RegistrationEditor extends DefaultEditor {
         for (String childNodeName : type.getChildNodeNames()) {
             NodeState definition = type.child(childNodeName).getNodeState();
             if (childNodeName.startsWith(JCR_PROPERTYDEFINITION)) {
-                validateAndCompilePropertyDefinition(type, definition);
+                validateAndCompilePropertyDefinition(type, name, definition);
             } else if (childNodeName.startsWith(JCR_CHILDNODEDEFINITION)) {
-                validateAndCompileChildNodeDefinition(types, type, definition);
+                validateAndCompileChildNodeDefinition(types, type, name, definition);
             }
         }
     }
@@ -271,7 +277,7 @@ class RegistrationEditor extends DefaultEditor {
     }
 
     private void validateAndCompilePropertyDefinition(
-            NodeBuilder type, NodeState definition)
+            NodeBuilder type, String typeName, NodeState definition)
             throws CommitFailedException {
         // - jcr:name (NAME) protected 
         PropertyState name = definition.getProperty(JCR_NAME);
@@ -281,11 +287,11 @@ class RegistrationEditor extends DefaultEditor {
             propertyName = name.getValue(NAME);
             String escapedName = propertyName;
             if (JCR_PRIMARYTYPE.equals(escapedName)) {
-                escapedName = "oak:primaryType";
+                escapedName = OAK_PRIMARY_TYPE;
             } else if (JCR_MIXINTYPES.equals(escapedName)) {
-                escapedName = "oak:mixinTypes";
+                escapedName = OAK_MIXIN_TYPES;
             } else if (JCR_UUID.equals(escapedName)) {
-                escapedName = "oak:uuid";
+                escapedName = OAK_UUID;
             }
             definitions = type.child(OAK_NAMED_PROPERTY_DEFINITIONS);
             definitions.setProperty(
@@ -332,12 +338,14 @@ class RegistrationEditor extends DefaultEditor {
             addNameToList(type, OAK_NAMED_SINGLE_VALUED_PROPERTIES, propertyName);
         }
 
-        definitions.setChildNode(key, definition);
+        definitions.setChildNode(key, definition)
+            .setProperty(JCR_PRIMARYTYPE, OAK_PROPERTY_DEFINITION, NAME)
+            .setProperty(OAK_DECLARING_NODE_TYPE, typeName, NAME);
     }
 
     private void validateAndCompileChildNodeDefinition(
-            NodeBuilder types, NodeBuilder type, NodeState definition)
-            throws CommitFailedException {
+            NodeBuilder types, NodeBuilder type, String typeName,
+            NodeState definition) throws CommitFailedException {
         // - jcr:name (NAME) protected 
         PropertyState name = definition.getProperty(JCR_NAME);
         NodeBuilder definitions;
@@ -378,7 +386,9 @@ class RegistrationEditor extends DefaultEditor {
                             "Constraint", 33,
                             "Unknown required primary type " + key);
                 } else if (!definitions.hasChildNode(key)) {
-                    definitions.setChildNode(key, definition);
+                    definitions.setChildNode(key, definition)
+                        .setProperty(JCR_PRIMARYTYPE, OAK_CHILD_NODE_DEFINITION, NAME)
+                        .setProperty(OAK_DECLARING_NODE_TYPE, typeName, NAME);
                 }
             }
         }
