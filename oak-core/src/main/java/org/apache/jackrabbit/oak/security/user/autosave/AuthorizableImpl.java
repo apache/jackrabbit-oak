@@ -19,20 +19,12 @@ package org.apache.jackrabbit.oak.security.user.autosave;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class AuthorizableImpl implements Authorizable {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(AuthorizableImpl.class);
 
     final Authorizable dlg;
     final AutoSaveEnabledManager mgr;
@@ -125,7 +117,7 @@ class AuthorizableImpl implements Authorizable {
     }
 
     @Override
-    public String getPath() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public String getPath() throws RepositoryException {
         return dlg.getPath();
     }
 }
