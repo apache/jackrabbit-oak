@@ -93,7 +93,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @Nonnull
     public static ConfigurationParameters of(@Nonnull Properties properties) {
-        if (properties == null || properties.isEmpty()) {
+        if (properties.isEmpty()) {
             return EMPTY;
         }
         Map<String, Object> options = new HashMap<String, Object>(properties.size());
@@ -110,7 +110,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @Nonnull
     public static ConfigurationParameters of(@Nonnull Dictionary<String, Object> properties) {
-        if (properties == null || properties.isEmpty()) {
+        if (properties.isEmpty()) {
             return EMPTY;
         }
         Map<String, Object> options = new HashMap<String, Object>(properties.size());
@@ -128,7 +128,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @Nonnull
     public static ConfigurationParameters of(@Nonnull Map<?, ?> map) {
-        if (map == null || map.isEmpty()) {
+        if (map.isEmpty()) {
             return EMPTY;
         }
         Map<String, Object> options = new HashMap<String, Object>(map.size());
@@ -165,8 +165,6 @@ public final class ConfigurationParameters implements Map<String, Object> {
      *     {@code null} an attempt is made to convert the configured value to
      *     match the type of the default value.</li>
      * </ul>
-     *
-     * TODO: shouldn't a NULL configuration value be treated the same as missing one, in respect to the default value handling? I don't think it's intuitive that NULL is returned.
      *
      * @param key The name of the configuration option.
      * @param defaultValue The default value to return if no such entry exists
@@ -206,7 +204,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (property == null) {
             return defaultValue;
         } else {
-            return convert(property, defaultValue, null);
+            T value = convert(property, defaultValue, null);
+            return (value == null) ? defaultValue : value;
         }
     }
 
@@ -246,7 +245,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
             }
         } catch (NumberFormatException e) {
             log.warn("Invalid value {}; cannot be parsed into {}", str, clazz.getName());
-            throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + clazz.getName());
+            throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + clazz.getName(), e);
         }
     }
     //-----------------------------------------------------------------------------------< Map interface delegation >---
