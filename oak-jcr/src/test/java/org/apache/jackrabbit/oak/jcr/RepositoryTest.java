@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -279,6 +280,27 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void testExceptionThrownForInvalidPath() throws RepositoryException {
         Session session = getAdminSession();
         session.itemExists("//jcr:content");
+    }
+
+    @Test
+    @Ignore("OAK-1174")  // FIXME OAK-1174
+    public void testInvalidName() throws RepositoryException {
+        Session session = getAdminSession();
+
+        RepositoryException exception = null;
+        try {
+            session.itemExists("/jcr:cont]ent");
+        } catch (RepositoryException e) {
+            exception = e;
+        }
+
+        session.setNamespacePrefix("foo", "http://foo.bar");
+        try {
+            session.itemExists("/jcr:cont]ent");
+            assertNull(exception);
+        } catch (RepositoryException e) {
+            assertNotNull(exception);
+        }
     }
 
     @Test
