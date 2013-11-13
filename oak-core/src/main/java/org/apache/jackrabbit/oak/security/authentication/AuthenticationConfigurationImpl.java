@@ -23,13 +23,11 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,10 +40,6 @@ import org.slf4j.LoggerFactory;
  *     {@link LoginContextProvider}: Returns the default implementation of
  *     {@code LoginContextProvider} that handles standard JAAS based logins and
  *     deals with pre-authenticated subjects.</li>
- * <li>
- *     {@link TokenProvider}: Returns the default implementation of the token
- *     provider interface that stores information in the content repository.
- * </li>
  * </ul>
  *
  */
@@ -76,7 +70,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
      * {@link javax.security.auth.login.Configuration#getConfiguration() JAAS}
      * functionality. In case no login configuration for the specified app name
      * can be retrieve this implementation uses the default as defined by
-     * {@link ConfigurationUtil#getDefaultConfiguration(ConfigurationParameters)}.
+     * {@link ConfigurationUtil#getDefaultConfiguration(org.apache.jackrabbit.oak.spi.security.ConfigurationParameters)}.
      * <p>
      * The {@link LoginContextProvider} implementation is intended to be used with
      * <ul>
