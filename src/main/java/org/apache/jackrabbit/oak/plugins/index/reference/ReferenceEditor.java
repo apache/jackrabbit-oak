@@ -259,10 +259,10 @@ class ReferenceEditor extends DefaultEditor {
     public void propertyChanged(PropertyState before, PropertyState after) {
         if (before != null) {
             if (before.getType() == REFERENCE) {
-                put(rmRefs, before.getValue(STRING), getPath());
+                put(rmRefs, before.getValue(STRINGS), getPath());
             }
             if (before.getType() == WEAKREFERENCE) {
-                put(rmWeakRefs, before.getValue(STRING), getPath());
+                put(rmWeakRefs, before.getValue(STRINGS), getPath());
             }
             if (JCR_UUID.equals(before.getName())) {
                 // node remove + add -> changed uuid
@@ -274,10 +274,10 @@ class ReferenceEditor extends DefaultEditor {
         }
         if (after != null) {
             if (after.getType() == REFERENCE) {
-                put(newRefs, after.getValue(STRING), getPath());
+                put(newRefs, after.getValue(STRINGS), getPath());
             }
             if (after.getType() == WEAKREFERENCE) {
-                put(newWeakRefs, after.getValue(STRING), getPath());
+                put(newWeakRefs, after.getValue(STRINGS), getPath());
             }
         }
     }
@@ -361,14 +361,16 @@ class ReferenceEditor extends DefaultEditor {
         return false;
     }
 
-    private static void put(Map<String, Set<String>> map, String key,
-            String value) {
-        Set<String> values = map.get(key);
-        if (values == null) {
-            values = newHashSet();
+    private static void put(Map<String, Set<String>> map,
+            Iterable<String> keys, String value) {
+        for (String key : keys) {
+            Set<String> values = map.get(key);
+            if (values == null) {
+                values = newHashSet();
+            }
+            values.add(value);
+            map.put(key, values);
         }
-        values.add(value);
-        map.put(key, values);
     }
 
     private static void set(NodeBuilder child, String name, Set<String> add,
