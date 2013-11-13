@@ -20,7 +20,6 @@ import javax.jcr.Node;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -28,7 +27,6 @@ import org.junit.Test;
  */
 public class ItemModifiedTest extends AbstractEvaluationTest {
 
-    @Ignore("OAK-1177") // FIXME: OAK-1177
     @Test
     public void testModified() throws Exception {
         Node child = superuser.getNode(path).addNode("child");
@@ -40,7 +38,6 @@ public class ItemModifiedTest extends AbstractEvaluationTest {
         assertFalse(n.isModified());
     }
 
-    @Ignore("OAK-1177") // FIXME: OAK-1177
     @Test
     public void testModified2() throws Exception {
         Node child = superuser.getNode(path).addNode("child");
@@ -64,7 +61,6 @@ public class ItemModifiedTest extends AbstractEvaluationTest {
         assertFalse(n.isModified());
     }
 
-    @Ignore("OAK-1177") // FIXME: OAK-1177
     @Test
     public void testModified4() throws Exception {
         //Deny access to properties
