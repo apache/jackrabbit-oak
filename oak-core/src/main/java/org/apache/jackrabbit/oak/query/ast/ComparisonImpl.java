@@ -95,7 +95,12 @@ public class ComparisonImpl extends ConstraintImpl {
         }
         // "the value of operand2 is converted to the
         // property type of the value of operand1"
-        p2 = convertValueToType(p2, p1);
+        try {
+            p2 = convertValueToType(p2, p1);
+        } catch (IllegalArgumentException ex) {
+            // unable to convert, just skip this node
+            return false;
+        }
         return evaluate(p1, p2);
     }
 
