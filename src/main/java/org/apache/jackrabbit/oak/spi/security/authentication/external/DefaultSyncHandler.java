@@ -68,7 +68,7 @@ public class DefaultSyncHandler implements SyncHandler {
         this.mode = mode;
         this.options = (options == null) ? ConfigurationParameters.EMPTY : options;
 
-        valueFactory = new ValueFactoryImpl(root.getBlobFactory(), NamePathMapper.DEFAULT);
+        valueFactory = new ValueFactoryImpl(root, NamePathMapper.DEFAULT);
         initialized = true;
         return true;
     }

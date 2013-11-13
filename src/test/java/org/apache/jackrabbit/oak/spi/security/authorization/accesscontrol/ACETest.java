@@ -77,7 +77,7 @@ public class ACETest extends AbstractAccessControlTest {
                 return "TestPrincipal";
             }
         };
-        ValueFactory valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
+        ValueFactory valueFactory = new ValueFactoryImpl(root, namePathMapper);
         globValue = valueFactory.createValue("*");
         nameValue = valueFactory.createValue("nt:file", PropertyType.NAME);
         nameValues = new Value[] {

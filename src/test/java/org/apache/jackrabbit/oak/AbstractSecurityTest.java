@@ -184,7 +184,7 @@ public abstract class AbstractSecurityTest {
     }
 
     protected ValueFactory getValueFactory() {
-        return new ValueFactoryImpl(root.getBlobFactory(), getNamePathMapper());
+        return new ValueFactoryImpl(root, getNamePathMapper());
     }
 
     protected User getTestUser() throws Exception {

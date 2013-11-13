@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.value;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -24,6 +26,7 @@ import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -36,9 +39,9 @@ import javax.jcr.nodetype.NodeType;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -59,19 +62,20 @@ import org.apache.jackrabbit.util.ISO8601;
  */
 public class ValueFactoryImpl implements ValueFactory {
 
-    private final BlobFactory blobFactory;
+    private final Root root;
     private final NamePathMapper namePathMapper;
 
     /**
      * Creates a new instance of {@code ValueFactory}.
      *
-     * @param blobFactory The factory for creation of binary values
+     * @param root the root instance for creating binary values
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
      */
-    public ValueFactoryImpl(BlobFactory blobFactory, NamePathMapper namePathMapper) {
-        this.blobFactory = blobFactory;
-        this.namePathMapper = namePathMapper;
+    public ValueFactoryImpl(
+            @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+        this.root = checkNotNull(root);
+        this.namePathMapper = checkNotNull(namePathMapper);
     }
 
     /**
@@ -274,7 +278,7 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     private ValueImpl createBinaryValue(InputStream value) throws IOException {
-        Blob blob = blobFactory.createBlob(value);
+        Blob blob = root.createBlob(value);
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
     }
 

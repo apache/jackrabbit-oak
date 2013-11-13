@@ -113,7 +113,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         npMapper = new NamePathMapperImpl(nameMapper);
 
         acMgr = getAccessControlManager(npMapper);
-        valueFactory = new ValueFactoryImpl(root.getBlobFactory(), npMapper);
+        valueFactory = new ValueFactoryImpl(root, npMapper);
 
         NodeUtil rootNode = new NodeUtil(root.getTree("/"), npMapper);
         rootNode.addChild(testName, JcrConstants.NT_UNSTRUCTURED);
