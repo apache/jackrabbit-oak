@@ -53,7 +53,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         user = getTestUser();
         queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getParameters(), root);
 
-        valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
+        valueFactory = new ValueFactoryImpl(root, namePathMapper);
         propertyName = "testProperty";
     }
 

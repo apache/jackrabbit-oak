@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.core;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
+
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -84,7 +86,7 @@ public class ImmutableRootTest extends OakBaseTest {
         }
 
         try {
-            root.getBlobFactory();
+            root.createBlob(new ByteArrayInputStream(new byte[0]));
             fail();
         } catch (UnsupportedOperationException e) {
             // success

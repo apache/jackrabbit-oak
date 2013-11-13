@@ -35,7 +35,6 @@ import javax.annotation.Nullable;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -338,18 +337,10 @@ public abstract class AbstractRoot implements Root {
         };
     }
 
-    @Nonnull
-    @Override
-    public BlobFactory getBlobFactory() {
+    @Override @Nonnull
+    public Blob createBlob(@Nonnull InputStream inputStream) throws IOException {
         checkLive();
-
-        return new BlobFactory() {
-            @Override
-            public Blob createBlob(InputStream inputStream) throws IOException {
-                checkLive();
-                return store.createBlob(inputStream);
-            }
-        };
+        return store.createBlob(checkNotNull(inputStream));
     }
 
     //-----------------------------------------------------------< internal >---
