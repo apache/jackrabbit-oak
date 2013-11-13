@@ -103,13 +103,15 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
     }
 
     /**
-     * Setup simple allow/deny permissions (without restrictions).
+     * Same as {@link #setupPermission(org.apache.jackrabbit.oak.api.Root, String, java.security.Principal, boolean, String...)}
+     * where the specified root is the current root associated with the admin
+     * session created in the test setup.
      *
-     * @param path
-     * @param principal
-     * @param isAllow
-     * @param privilegeNames
-     * @throws Exception
+     * @param path The path of the access controlled tree.
+     * @param principal The principal for which new ACE is being created.
+     * @param isAllow {@code true} if privileges are granted; {@code false} otherwise.
+     * @param privilegeNames The privilege names.
+     * @throws Exception If an error occurs.
      */
     protected void setupPermission(@Nullable String path,
                                    @Nonnull Principal principal,
@@ -121,11 +123,12 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
     /**
      * Setup simple allow/deny permissions (without restrictions).
      *
-     * @param path
-     * @param principal
-     * @param isAllow
-     * @param privilegeNames
-     * @throws Exception
+     * @param root The editing root.
+     * @param path The path of the access controlled tree.
+     * @param principal The principal for which new ACE is being created.
+     * @param isAllow {@code true} if privileges are granted; {@code false} otherwise.
+     * @param privilegeNames The privilege names.
+     * @throws Exception If an error occurs.
      */
     protected void setupPermission(@Nonnull Root root,
                                    @Nullable String path,
