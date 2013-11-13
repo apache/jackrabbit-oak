@@ -19,16 +19,17 @@
 
 package org.apache.jackrabbit.oak.kernel;
 
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
 
 public class KernelNodeBuilderTest {
 
@@ -44,6 +45,17 @@ public class KernelNodeBuilderTest {
         NodeStore store = new MemoryNodeStore();
         init(store);
         run(store);
+    }
+
+    @Test
+    @Ignore("OAK-1178")  // FIXME OAK-1178
+    public void rebasePreservesStatus() {
+        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeBuilder root = store.getRoot().builder();
+        NodeBuilder added = root.setChildNode("added");
+        assertTrue(added.isNew());
+        store.rebase(root);
+        assertTrue(added.isNew());
     }
 
     private static void init(NodeStore store) throws CommitFailedException {
