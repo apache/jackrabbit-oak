@@ -24,9 +24,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for <a href>OAK-1177</a>
+ * Tests for <a href="https://issues.apache.org/jira/browse/OAK-1177">OAK-1177</a>
  */
-@Ignore("OAK-1177") // FIXME: OAK-1177
 public class ItemModifiedTest extends AbstractEvaluationTest {
 
     @Ignore("OAK-1177") // FIXME: OAK-1177
