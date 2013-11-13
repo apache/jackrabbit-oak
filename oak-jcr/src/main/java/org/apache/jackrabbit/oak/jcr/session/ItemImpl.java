@@ -16,18 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.PATH;
-import static org.apache.jackrabbit.oak.api.Type.PATHS;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
-import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 import java.util.List;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -42,7 +31,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -57,6 +45,16 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.PATH;
+import static org.apache.jackrabbit.oak.api.Type.PATHS;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * TODO document
@@ -319,13 +317,6 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     //-----------------------------------------------------------< internal >---
-
-    void checkProtected(ItemDefinition definition) throws ConstraintViolationException {
-        if (definition.isProtected()) {
-            throw new ConstraintViolationException("Item is protected.");
-        }
-    }
-
     @Nonnull
     String getOakName(String name) throws RepositoryException {
         return sessionContext.getOakName(name);
