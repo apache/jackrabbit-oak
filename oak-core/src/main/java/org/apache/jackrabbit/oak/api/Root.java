@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -153,13 +156,23 @@ public interface Root {
     QueryEngine getQueryEngine();
 
     /**
-     * Returns the blob factory (TODO: review if that really belongs to the OAK-API. see also todos on BlobFactory)
+     * Reads (and closes) the given stream and returns a {@link Blob} that
+     * contains that binary. The returned blob will remain valid at least
+     * until the {@link ContentSession} of this root is closed, or longer
+     * if it has been committed as a part of a content update.
+     * <p>
+     * The implementation may decide to persist the blob at any point
+     * during or between this method method call and a {@link #commit()}
+     * that includes the blob, but the blob will become visible to other
+     * sessions only after such a commit.
      *
-     * @return the blob factory.
+     * @param stream the stream for reading the binary
+     * @return the blob that was created
+     * @throws IOException if the stream could not be read
      */
     @Nonnull
-    BlobFactory getBlobFactory();
-    
+    Blob createBlob(@Nonnull InputStream stream) throws IOException;
+
     /**
      * Get the {@code ContentSession} from which this root was acquired
      * 

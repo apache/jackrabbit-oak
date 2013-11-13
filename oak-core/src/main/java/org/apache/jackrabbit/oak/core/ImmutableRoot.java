@@ -21,9 +21,11 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
+import java.io.InputStream;
+
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.BlobFactory;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
@@ -117,9 +119,8 @@ public final class ImmutableRoot implements Root {
         };
     }
 
-    @Nonnull
-    @Override
-    public BlobFactory getBlobFactory() {
+    @Override @Nonnull
+    public Blob createBlob(@Nonnull InputStream stream) {
         throw new UnsupportedOperationException();
     }
 

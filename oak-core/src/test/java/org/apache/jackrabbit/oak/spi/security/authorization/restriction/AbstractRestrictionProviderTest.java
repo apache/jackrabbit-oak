@@ -63,7 +63,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     public void before() throws Exception {
         super.before();
 
-        valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
+        valueFactory = new ValueFactoryImpl(root, namePathMapper);
         globValue = valueFactory.createValue("*");
         nameValue = valueFactory.createValue("nt:file", PropertyType.NAME);
         nameValues = new Value[] {

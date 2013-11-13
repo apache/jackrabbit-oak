@@ -130,7 +130,7 @@ public class SessionContext implements NamePathMapper {
         this.namePathMapper = new NamePathMapperImpl(
                 nameMapper, delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
-                delegate.getRoot().getBlobFactory(), namePathMapper);
+                delegate.getRoot(), namePathMapper);
     }
 
     public final Map<String, Object> getAttributes() {
