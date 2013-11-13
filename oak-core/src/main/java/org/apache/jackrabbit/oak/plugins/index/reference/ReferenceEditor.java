@@ -259,11 +259,11 @@ class ReferenceEditor extends DefaultEditor {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         if (before != null) {
-            if (before.getType() == REFERENCE || before.getType() == REFERENCES) {
+            if (before.getType() == REFERENCE /* || before.getType() == REFERENCES */ ) {
                 put(rmRefs, before.getValue(STRINGS), getPath());
             }
             if (before.getType() == WEAKREFERENCE
-                    || before.getType() == WEAKREFERENCES) {
+                    /* || before.getType() == WEAKREFERENCES */ ) {
                 put(rmWeakRefs, before.getValue(STRINGS), getPath());
             }
             if (JCR_UUID.equals(before.getName())) {
@@ -275,11 +275,11 @@ class ReferenceEditor extends DefaultEditor {
             }
         }
         if (after != null) {
-            if (after.getType() == REFERENCE || after.getType() == REFERENCES) {
+            if (after.getType() == REFERENCE /* || after.getType() == REFERENCES */ ) {
                 put(newRefs, after.getValue(STRINGS), getPath());
             }
             if (after.getType() == WEAKREFERENCE
-                    || after.getType() == WEAKREFERENCES) {
+                    /* || after.getType() == WEAKREFERENCES */ ) {
                 put(newWeakRefs, after.getValue(STRINGS), getPath());
             }
         }
