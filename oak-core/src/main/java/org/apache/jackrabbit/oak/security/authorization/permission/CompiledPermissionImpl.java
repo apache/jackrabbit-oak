@@ -157,7 +157,10 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 // TODO: OAK-753 decide on where to filter out hidden items.
                 return TreePermission.ALL;
             case TreeTypeProvider.TYPE_VERSION:
-                String ntName = checkNotNull(TreeUtil.getPrimaryTypeName(tree));
+                String ntName = TreeUtil.getPrimaryTypeName(tree);
+                if (ntName == null) {
+                    return TreePermission.EMPTY;
+                }
                 if (VersionConstants.VERSION_STORE_NT_NAMES.contains(ntName) || VersionConstants.NT_ACTIVITY.equals(ntName)) {
                     return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_VERSION, parentPermission);
                 } else {
