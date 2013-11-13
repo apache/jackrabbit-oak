@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class KernelNodeBuilderTest {
@@ -48,8 +47,7 @@ public class KernelNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-1178")  // FIXME OAK-1178
-    public void rebasePreservesStatus() {
+    public void rebasePreservesNew() {
         NodeStore store = new KernelNodeStore(new MicroKernelImpl());
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder added = root.setChildNode("added");
