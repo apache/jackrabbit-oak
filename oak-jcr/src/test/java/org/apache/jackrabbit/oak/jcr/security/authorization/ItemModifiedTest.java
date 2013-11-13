@@ -26,6 +26,7 @@ import org.junit.Test;
 /**
  * Tests for <a href="https://issues.apache.org/jira/browse/OAK-1177">OAK-1177</a>
  */
+@Ignore("OAK-1177") // FIXME: OAK-1177
 public class ItemModifiedTest extends AbstractEvaluationTest {
 
     @Ignore("OAK-1177") // FIXME: OAK-1177
@@ -61,6 +62,16 @@ public class ItemModifiedTest extends AbstractEvaluationTest {
         superuser.save();
 
         Node n = testSession.getNode(child.getPath());
+        assertFalse(n.isModified());
+    }
+
+    @Ignore("OAK-1177") // FIXME: OAK-1177
+    @Test
+    public void testModified4() throws Exception {
+        //Deny access to properties
+        deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+
+        Node n = testSession.getNode(childNPath);
         assertFalse(n.isModified());
     }
 }
