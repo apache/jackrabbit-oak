@@ -21,9 +21,11 @@ import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.INTEGRITY;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
+import static org.apache.jackrabbit.oak.api.Type.REFERENCES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
+import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
@@ -257,10 +259,11 @@ class ReferenceEditor extends DefaultEditor {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         if (before != null) {
-            if (before.getType() == REFERENCE) {
+            if (before.getType() == REFERENCE || before.getType() == REFERENCES) {
                 put(rmRefs, before.getValue(STRINGS), getPath());
             }
-            if (before.getType() == WEAKREFERENCE) {
+            if (before.getType() == WEAKREFERENCE
+                    || before.getType() == WEAKREFERENCES) {
                 put(rmWeakRefs, before.getValue(STRINGS), getPath());
             }
             if (JCR_UUID.equals(before.getName())) {
@@ -272,10 +275,11 @@ class ReferenceEditor extends DefaultEditor {
             }
         }
         if (after != null) {
-            if (after.getType() == REFERENCE) {
+            if (after.getType() == REFERENCE || after.getType() == REFERENCES) {
                 put(newRefs, after.getValue(STRINGS), getPath());
             }
-            if (after.getType() == WEAKREFERENCE) {
+            if (after.getType() == WEAKREFERENCE
+                    || after.getType() == WEAKREFERENCES) {
                 put(newWeakRefs, after.getValue(STRINGS), getPath());
             }
         }
