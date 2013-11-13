@@ -259,12 +259,12 @@ class ReferenceEditor extends DefaultEditor {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         if (before != null) {
-            if (before.getType() == REFERENCE /* || before.getType() == REFERENCES */ ) {
-                put(rmRefs, before.getValue(STRINGS), getPath());
+            if (before.getType() == REFERENCE || before.getType() == REFERENCES) {
+                put(rmRefs, before.getValue(STRINGS), concat(getPath(), before.getName()));
             }
             if (before.getType() == WEAKREFERENCE
-                    /* || before.getType() == WEAKREFERENCES */ ) {
-                put(rmWeakRefs, before.getValue(STRINGS), getPath());
+                    || before.getType() == WEAKREFERENCES) {
+                put(rmWeakRefs, before.getValue(STRINGS), concat(getPath(), before.getName()));
             }
             if (JCR_UUID.equals(before.getName())) {
                 // node remove + add -> changed uuid
@@ -275,12 +275,12 @@ class ReferenceEditor extends DefaultEditor {
             }
         }
         if (after != null) {
-            if (after.getType() == REFERENCE /* || after.getType() == REFERENCES */ ) {
-                put(newRefs, after.getValue(STRINGS), getPath());
+            if (after.getType() == REFERENCE || after.getType() == REFERENCES) {
+                put(newRefs, after.getValue(STRINGS), concat(getPath(), after.getName()));
             }
             if (after.getType() == WEAKREFERENCE
-                    /* || after.getType() == WEAKREFERENCES */ ) {
-                put(newWeakRefs, after.getValue(STRINGS), getPath());
+                    || after.getType() == WEAKREFERENCES) {
+                put(newWeakRefs, after.getValue(STRINGS), concat(getPath(), after.getName()));
             }
         }
     }
