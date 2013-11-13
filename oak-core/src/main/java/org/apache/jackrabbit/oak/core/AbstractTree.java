@@ -19,18 +19,7 @@
 
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.size;
-import static com.google.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
-import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
-import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
-
 import java.util.Iterator;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
@@ -41,6 +30,16 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.size;
+import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
+import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
+import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 /**
  * {@code AbstractTree} provides default implementations for most
@@ -244,9 +243,11 @@ public abstract class AbstractTree implements Tree {
             max += INTERNAL_NODE_NAMES.length;
         }
         long count = nodeBuilder.getChildNodeCount(max);
-        for (String name : INTERNAL_NODE_NAMES) {
-            if (nodeBuilder.hasChildNode(name)) {
-                count--;
+        if (count > 0) {
+            for (String name : INTERNAL_NODE_NAMES) {
+                if (nodeBuilder.hasChildNode(name)) {
+                    count--;
+                }
             }
         }
         return count;
