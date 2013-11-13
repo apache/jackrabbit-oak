@@ -21,12 +21,14 @@ package org.apache.jackrabbit.oak.kernel;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
@@ -51,9 +53,37 @@ public class KernelNodeBuilderTest {
         NodeStore store = new KernelNodeStore(new MicroKernelImpl());
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder added = root.setChildNode("added");
+        assertTrue(root.hasChildNode("added"));
         assertTrue(added.isNew());
         store.rebase(root);
+        assertTrue(added.exists());
+        assertTrue(root.hasChildNode("added"));
         assertTrue(added.isNew());
+    }
+
+    @Test
+    public void rebaseInvariant() {
+        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeBuilder root = store.getRoot().builder();
+        NodeBuilder added = root.setChildNode("added");
+        NodeState base = root.getBaseState();
+        store.rebase(root);
+        assertEquals(base, root.getBaseState());
+    }
+
+    @Test
+    public void rebase() throws CommitFailedException {
+        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeBuilder root = store.getRoot().builder();
+        modify(store);
+        store.rebase(root);
+        assertEquals(store.getRoot(), root.getBaseState());
+    }
+
+    private static void modify(NodeStore store) throws CommitFailedException {
+        NodeBuilder root = store.getRoot().builder();
+        root.setChildNode("added");
+        store.merge(root, EmptyHook.INSTANCE, null);
     }
 
     private static void init(NodeStore store) throws CommitFailedException {
