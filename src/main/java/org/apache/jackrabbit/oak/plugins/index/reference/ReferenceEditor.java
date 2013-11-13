@@ -26,6 +26,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.WEAK_REF_NAME;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -53,9 +55,6 @@ class ReferenceEditor extends DefaultEditor {
     // TODO
     // - look into using a storage strategy (trees)
     // - what happens when you move a node? who updates the backlinks?
-
-    private final static String REF_NAME = ":references";
-    private final static String WEAK_REF_NAME = ":weakreferences";
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final ReferenceEditor parent;
