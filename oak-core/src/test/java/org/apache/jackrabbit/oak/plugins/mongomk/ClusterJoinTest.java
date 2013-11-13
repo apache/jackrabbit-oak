@@ -65,7 +65,7 @@ public class ClusterJoinTest extends AbstractMongoConnectionTest {
                 assertNodesExist(rev2, "/" + name);
             }
             // must only see /foo, /baz and /qux @rev2
-            assertEquals(3, obj.get(":childNodeCount"));
+            assertEquals(3L, obj.get(":childNodeCount"));
             // @rev3 is after background read
             rev3 = mk.getHeadRevision();
             // now all nodes must be visible
@@ -75,10 +75,10 @@ public class ClusterJoinTest extends AbstractMongoConnectionTest {
                 if (name.startsWith(":")) {
                     continue;
                 }
-                assertNodesExist(rev2, "/" + name);
+                assertNodesExist(rev3, "/" + name);
             }
             // must only see all nodes @rev3
-            assertEquals(5, obj.get(":childNodeCount"));
+            assertEquals(5L, obj.get(":childNodeCount"));
         } finally {
             mk2.dispose();
         }
