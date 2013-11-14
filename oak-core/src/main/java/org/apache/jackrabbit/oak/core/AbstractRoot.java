@@ -196,11 +196,9 @@ public abstract class AbstractRoot implements Root {
             getTree(getParentPath(destPath)).updateChildOrder();
             lastMove = lastMove.setMove(sourcePath, newParent, newName);
             updated();
+            // remember all move operations for further processing in the commit hooks.
+            moveInfo.addMove(sourcePath, destPath);
         }
-
-        // remember all move operations for further processing in the commit hooks.
-        moveInfo.addMove(sourcePath, destPath);
-
         return success;
     }
 
