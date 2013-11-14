@@ -83,12 +83,4 @@ public interface ContentRepository {
     ContentSession login(@Nullable Credentials credentials, @Nullable String workspaceName)
             throws LoginException, NoSuchWorkspaceException;
 
-    /**
-     * Returns the repository descriptors which contain all or a subset of the descriptors defined in
-     * {@link javax.jcr.Repository}.
-     *
-     * @return the repository descriptors
-     */
-    @Nonnull
-    Descriptors getDescriptors();
 }
