@@ -263,12 +263,11 @@ public final class MongoNodeStore
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
 
         // check if root node exists
-        Revision head = newRevision();
-        Node n = readNode("/", head);
-        if (n == null) {
+        if (store.find(Collection.NODES, Utils.getIdFromPath("/")) == null) {
             // root node is missing: repository is not initialized
+            Revision head = newRevision();
             Commit commit = new Commit(this, null, head);
-            n = new Node("/", head);
+            Node n = new Node("/", head);
             commit.addNode(n);
             commit.applyToDocumentStore();
             commit.applyToCache(false);
@@ -284,8 +283,8 @@ public final class MongoNodeStore
                 // no revision read from other cluster nodes
                 setHeadRevision(newRevision());
             }
-            getRevisionComparator().add(headRevision, Revision.newRevision(0));
         }
+        getRevisionComparator().add(headRevision, Revision.newRevision(0));
         dispatcher = new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this, dispatcher);
         backgroundThread = new Thread(
@@ -931,37 +930,6 @@ public final class MongoNodeStore
     @Override
     public Revision.RevisionComparator getRevisionComparator() {
         return revisionComparator;
-    }
-
-    @Override
-    public void publishRevision(Revision foreignRevision, Revision changeRevision) {
-        Revision.RevisionComparator revisionComparator = getRevisionComparator();
-        if (revisionComparator.compare(headRevision, foreignRevision) >= 0) {
-            // already visible
-            return;
-        }
-        int clusterNodeId = foreignRevision.getClusterId();
-        if (clusterNodeId == this.clusterId) {
-            return;
-        }
-        // the (old) head occurred first
-        Revision headSeen = Revision.newRevision(0);
-        // then we saw this new revision (from another cluster node)
-        Revision otherSeen = Revision.newRevision(0);
-        // and after that, the current change
-        Revision changeSeen = Revision.newRevision(0);
-        revisionComparator.add(foreignRevision, otherSeen);
-        // TODO invalidating the whole cache is not really needed,
-        // but how to ensure we invalidate the right part of the cache?
-        // possibly simply wait for the background thread to pick
-        // up the changes, but this depends on how often this method is called
-        store.invalidateCache();
-        // the latest revisions of the current cluster node
-        // happened before the latest revisions of other cluster nodes
-        revisionComparator.add(headRevision, headSeen);
-        revisionComparator.add(changeRevision, changeSeen);
-        // the head revision is after other revisions
-        setHeadRevision(Revision.newRevision(clusterId));
     }
 
     @Override

@@ -28,7 +28,6 @@ import static org.junit.Assert.assertEquals;
  */
 public class ClusterJoinTest extends AbstractMongoConnectionTest {
 
-    @Ignore
     @Test
     public void nodeJoins() throws Exception {
         String rev1, rev2, rev3;
@@ -77,7 +76,7 @@ public class ClusterJoinTest extends AbstractMongoConnectionTest {
                 }
                 assertNodesExist(rev3, "/" + name);
             }
-            // must only see all nodes @rev3
+            // must now see all nodes @rev3
             assertEquals(5L, obj.get(":childNodeCount"));
         } finally {
             mk2.dispose();

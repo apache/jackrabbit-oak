@@ -67,12 +67,14 @@ class Collision {
      * marked if it is not yet committed, otherwise our revision is marked.
      * 
      * @param store the document store.
+     * @return the revision that was marked. Either our or their.
      * @throws MicroKernelException if the mark operation fails.
      */
-    void mark(DocumentStore store) throws MicroKernelException {
+    @Nonnull
+    Revision mark(DocumentStore store) throws MicroKernelException {
         // first try to mark their revision
         if (markCommitRoot(document, theirRev, store)) {
-            return;
+            return theirRev;
         }
         // their commit wins, we have to mark ourRev
         NodeDocument newDoc = Collection.NODES.newDocument(store);
@@ -83,6 +85,7 @@ class Collision {
                     + "with collision marker. Our revision: " + ourRev
                     + ", document:\n" + newDoc.format());
         }
+        return ourRev;
     }
 
     /**

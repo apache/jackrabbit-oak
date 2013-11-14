@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -50,6 +49,7 @@ public class Commit {
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new HashMap<String, UpdateOp>();
     private JsopWriter diff = new JsopStream();
+    private List<Revision> collisions = new ArrayList<Revision>();
 
     /**
      * List of all node paths which have been modified in this commit. In addition to the nodes
@@ -340,19 +340,16 @@ public class Commit {
      * @param op the operation
      */
     public void createOrUpdateNode(DocumentStore store, UpdateOp op) {
+        collisions.clear();
         NodeDocument doc = store.createOrUpdate(Collection.NODES, op);
         if (baseRevision != null) {
-            final AtomicReference<List<Revision>> collisions = new AtomicReference<List<Revision>>();
             Revision newestRev = null;
             if (doc != null) {
                 newestRev = doc.getNewestRevision(nodeStore, revision,
                         new CollisionHandler() {
                             @Override
                             void concurrentModification(Revision other) {
-                                if (collisions.get() == null) {
-                                    collisions.set(new ArrayList<Revision>());
-                                }
-                                collisions.get().add(other);
+                                collisions.add(other);
                             }
                         });
             }
@@ -375,20 +372,36 @@ public class Commit {
                             baseRevision;
                 }
             }
+            if (conflictMessage == null) {
+                // the modification was successful
+                // -> check for collisions and conflict (concurrent updates
+                // on a node are possible if property updates do not overlap)
+                // TODO: unify above conflict detection and isConflicting()
+                if (!collisions.isEmpty() && isConflicting(doc, op)) {
+                    for (Revision r : collisions) {
+                        // mark collisions on commit root
+                        Collision c = new Collision(doc, r, op, revision, nodeStore);
+                        if (c.mark(store).equals(revision)) {
+                            // our revision was marked
+                            if (baseRevision.isBranch()) {
+                                // this is a branch commit. do not fail immediately
+                                // merging this branch will fail later.
+                            } else {
+                                // fail immediately
+                                conflictMessage = "The node " +
+                                        op.getId() + " was changed in revision\n" + r +
+                                        ", which was applied after the base revision\n" +
+                                        baseRevision;
+                            }
+                        }
+                    }
+                }
+            }
             if (conflictMessage != null) {
                 conflictMessage += ", before\n" + revision + 
                         "; document:\n" + (doc == null ? "" : doc.format()) +
                         ",\nrevision order:\n" + nodeStore.getRevisionComparator();
                 throw new MicroKernelException(conflictMessage);
-            }
-            // if we get here the modification was successful
-            // -> check for collisions and conflict (concurrent updates
-            // on a node are possible if property updates do not overlap)
-            if (collisions.get() != null && isConflicting(doc, op)) {
-                for (Revision r : collisions.get()) {
-                    // mark collisions on commit root
-                    new Collision(doc, r, op, revision, nodeStore).mark(store);
-                }
             }
         }
 

@@ -324,21 +324,14 @@ public class NodeDocument extends Document {
         for (Revision r : Iterables.mergeSorted(
                 Arrays.asList(revisions.keySet(), commitRoots.keySet()),
                 revisions.comparator())) {
-            if (isRevisionNewer(context, r, changeRev)) {
-                // we have seen a previous change from another cluster node
-                // (which might be conflicting or not) - we need to make
-                // sure this change is visible from now on
-                // TODO verify this is really needed
-                context.publishRevision(r, changeRev);
-            }
             if (!r.equals(changeRev)) {
-                if (!isValidRevision(context, r, changeRev, new HashSet<Revision>())) {
-                    handler.concurrentModification(r);
-                } else {
+                if (isValidRevision(context, r, changeRev, new HashSet<Revision>())) {
                     newestRev = r;
                     // found newest revision, no need to check more revisions
                     // revisions are sorted newest first
                     break;
+                } else {
+                    handler.concurrentModification(r);
                 }
             }
         }
