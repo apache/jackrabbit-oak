@@ -180,7 +180,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
                     }
                 }
-            case TreeTypeProvider.TYPE_PERMISSION_STORE:
+            case TreeTypeProvider.TYPE_INTERNAL:
                 return TreePermission.EMPTY;
             default:
                 return new TreePermissionImpl(tree, type, parentPermission);
@@ -227,7 +227,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     }
                     return isGranted(path, permissions);
                 }
-            case TreeTypeProvider.TYPE_PERMISSION_STORE:
+            case TreeTypeProvider.TYPE_INTERNAL:
                 return false;
             default:
                 return internalIsGranted(tree, property, permissions);
@@ -339,7 +339,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 }  else {
                     return getPrivilegeBits(versionableTree);
                 }
-            case TreeTypeProvider.TYPE_PERMISSION_STORE:
+            case TreeTypeProvider.TYPE_INTERNAL:
                 return PrivilegeBits.EMPTY;
             default:
                 return getPrivilegeBits(tree);

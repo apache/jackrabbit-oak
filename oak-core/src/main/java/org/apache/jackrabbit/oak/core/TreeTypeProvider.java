@@ -30,8 +30,8 @@ public interface TreeTypeProvider {
     int TYPE_DEFAULT = 1;
     // version store(s) content
     int TYPE_VERSION = 2;
-    // permissions store
-    int TYPE_PERMISSION_STORE = 4;
+    // repository internal content such as e.g. permissions store
+    int TYPE_INTERNAL = 4;
     // access control content
     int TYPE_AC = 8;
     // hidden trees
