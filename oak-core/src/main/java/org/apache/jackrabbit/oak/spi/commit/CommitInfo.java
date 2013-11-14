@@ -19,12 +19,15 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
-
+import java.util.Iterator;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.security.auth.Subject;
+
+import org.apache.jackrabbit.oak.api.AuthInfo;
+
+import static com.google.common.base.Objects.toStringHelper;
 
 /**
  * Commit info instances associate some meta data with a commit.
@@ -35,29 +38,28 @@ public class CommitInfo {
 
     private final String sessionId;
 
-    private final String userId;
+    private final Subject subject;
 
     private final String message;
 
     private final long date = System.currentTimeMillis();
 
+    private final MoveInfo moveInfo;
+
     /**
      * Creates a commit info for the given session and user.
      *
      * @param sessionId session identifier
-     * @param userId user identifier, or {@code null} for an unknown user
+     * @param subject Subject identifying the user
+     * @param moveInfo Information regarding move operations associated with this commit.
      * @param message message attached to this commit, or {@code null}
      */
-    public CommitInfo(
-            @Nonnull String sessionId, @Nullable String userId,
-            @Nullable String message) {
-        this.sessionId = checkNotNull(sessionId);
-        if (userId != null) {
-            this.userId = userId;
-        } else {
-            this.userId = OAK_UNKNOWN;
-        }
+    public CommitInfo(@Nonnull String sessionId, @Nonnull Subject subject,
+                      @Nonnull MoveInfo moveInfo, @Nullable String message) {
+        this.sessionId = sessionId;
+        this.subject = subject;
         this.message = message;
+        this.moveInfo = moveInfo;
     }
 
     /**
@@ -73,7 +75,22 @@ public class CommitInfo {
      */
     @Nonnull
     public String getUserId() {
-        return userId;
+        Iterator<AuthInfo> it = subject.getPublicCredentials(AuthInfo.class).iterator();
+        String userId = null;
+        if (it.hasNext()) {
+            userId = it.next().getUserID();
+        }
+        return (userId == null) ? OAK_UNKNOWN : userId;
+    }
+
+    @Nonnull
+    public Subject getSubject() {
+        return subject;
+    }
+
+    @Nonnull
+    public MoveInfo getMoveInfo() {
+        return moveInfo;
     }
 
     /**
@@ -95,9 +112,10 @@ public class CommitInfo {
     public String toString() {
         return toStringHelper(this)
                 .add("sessionId", sessionId)
-                .add("userId", userId)
+                .add("userId", getUserId())
                 .add("userData", message)
                 .add("date", date)
+                .add("moveInfo", moveInfo)
                 .toString();
     }
 
