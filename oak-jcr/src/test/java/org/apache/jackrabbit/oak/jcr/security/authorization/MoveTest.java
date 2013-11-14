@@ -53,7 +53,7 @@ public class MoveTest extends AbstractEvaluationTest {
         try {
             testSession.move(childNPath, destPath);
             testSession.save();
-            fail("Move requires add and remove permission.");
+            fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
         }
@@ -65,7 +65,7 @@ public class MoveTest extends AbstractEvaluationTest {
         try {
             testSession.move(childNPath, destPath);
             testSession.save();
-            fail("Move requires add and remove permission.");
+            fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
         }
@@ -82,7 +82,7 @@ public class MoveTest extends AbstractEvaluationTest {
         try {
             testSession.move(destPath, childNPath);
             testSession.save();
-            fail("Move requires add and remove permission.");
+            fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
         }
@@ -98,7 +98,7 @@ public class MoveTest extends AbstractEvaluationTest {
                 Privilege.JCR_NODE_TYPE_MANAGEMENT}));
         try {
             testSession.getWorkspace().move(childNPath, destPath);
-            fail("Move requires add and remove permission.");
+            fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
         }
@@ -109,7 +109,7 @@ public class MoveTest extends AbstractEvaluationTest {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         try {
             testSession.getWorkspace().move(childNPath, destPath);
-            fail("Move requires add and remove permission.");
+            fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
         }
@@ -124,7 +124,7 @@ public class MoveTest extends AbstractEvaluationTest {
         deny(path, privilegesFromName(Privilege.JCR_ADD_CHILD_NODES));
         try {
             testSession.getWorkspace().move(destPath, childNPath);
-            fail("Move requires add and remove permission.");
+            fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
         }

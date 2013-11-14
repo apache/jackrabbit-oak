@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.security.auth.Subject;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -70,8 +70,7 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
 
     @Nonnull
     @Override
-    public List<? extends ValidatorProvider> getValidators(
-            String workspaceName, Subject subject) {
+    public List<? extends ValidatorProvider> getValidators(String workspaceName, CommitInfo commitInfo) {
         return Collections.singletonList(new PrivilegeValidatorProvider());
     }
 
