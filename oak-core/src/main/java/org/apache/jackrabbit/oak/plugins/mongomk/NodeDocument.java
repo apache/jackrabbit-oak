@@ -867,10 +867,8 @@ public class NodeDocument extends Document {
         }
         String commitRootPath = getCommitRootPath(rev);
         if (commitRootPath == null) {
-            // shouldn't happen, either node is commit root for a revision
-            // or has a reference to the commit root
-            LOG.warn("Node {} does not have commit root reference for revision {}",
-                    getId(), rev);
+            // may happen for a commit root document, which hasn't been
+            // updated with the commit revision yet
             return null;
         }
         // get root of commit
