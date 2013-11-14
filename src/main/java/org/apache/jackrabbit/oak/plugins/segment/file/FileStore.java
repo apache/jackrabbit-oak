@@ -61,7 +61,12 @@ public class FileStore extends AbstractStore {
 
     public FileStore(File directory, int maxFileSize, boolean memoryMapping)
             throws IOException {
-        super(DEFAULT_MEMORY_CACHE_SIZE);
+        this(directory, maxFileSize, DEFAULT_MEMORY_CACHE_SIZE, memoryMapping);
+    }
+
+    public FileStore(File directory, int maxFileSize, int cacheSize,
+            boolean memoryMapping) throws IOException {
+        super(cacheSize);
         checkNotNull(directory).mkdirs();
         this.directory = directory;
         this.maxFileSize = maxFileSize;
