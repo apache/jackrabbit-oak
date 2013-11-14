@@ -69,7 +69,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
 
-    private final DescriptorsImpl descriptors;
+    protected final DescriptorsImpl descriptors;
     private final ContentRepository contentRepository;
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
