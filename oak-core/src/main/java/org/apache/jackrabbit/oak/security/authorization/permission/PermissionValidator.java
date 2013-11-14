@@ -58,42 +58,54 @@ class PermissionValidator extends DefaultValidator {
     PermissionValidator(Tree parentBefore, Tree parentAfter,
                         PermissionProvider permissionProvider,
                         PermissionValidatorProvider provider) {
-        this(parentBefore, parentAfter,
-                permissionProvider.getTreePermission(parentBefore, TreePermission.EMPTY),
-                permissionProvider, provider, Permissions.NO_PERMISSION);
+        this.parentBefore = parentBefore;
+        this.parentAfter = parentAfter;
+        this.parentPermission = permissionProvider.getTreePermission(parentBefore, TreePermission.EMPTY);
+
+        this.permissionProvider = permissionProvider;
+        this.provider = provider;
+
+        permission = Permissions.getPermission(getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
     }
 
     private PermissionValidator(Tree parentBefore, Tree parentAfter,
                         @Nullable TreePermission parentPermission,
-                        PermissionProvider permissionProvider,
-                        PermissionValidatorProvider provider,
-                        long permission) {
-        this.permissionProvider = permissionProvider;
-        this.provider = provider;
+                        @Nonnull PermissionValidator parentValidator) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
         this.parentPermission = parentPermission;
-        if (Permissions.NO_PERMISSION == permission) {
+
+        permissionProvider = parentValidator.permissionProvider;
+        provider = parentValidator.provider;
+
+        if (Permissions.NO_PERMISSION == parentValidator.permission) {
             this.permission = Permissions.getPermission(getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
         } else {
-            this.permission = permission;
+            this.permission = parentValidator.permission;
         }
     }
 
     //----------------------------------------------------------< Validator >---
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
-        checkPermissions(parentAfter, after, Permissions.ADD_PROPERTY);
+        String name = after.getName();
+        if (!AbstractTree.OAK_CHILD_ORDER.equals(name)) {
+            checkPermissions(parentAfter, after, Permissions.ADD_PROPERTY);
+        }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-        if (AbstractTree.OAK_CHILD_ORDER.equals(after.getName())) {
+        String name = after.getName();
+        if (AbstractTree.OAK_CHILD_ORDER.equals(name)) {
             String childName = ChildOrderDiff.firstReordered(before, after);
             if (childName != null) {
                 Tree child = parentAfter.getChild(childName);
                 checkPermissions(child, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
             } // else: no re-order but only internal update
+        } else if (isImmutableProperty(name)) {
+            // parent node has been removed and and re-added as
+            checkPermissions(parentAfter, false, Permissions.ADD_NODE|Permissions.REMOVE_NODE);
         } else {
             checkPermissions(parentAfter, after, Permissions.MODIFY_PROPERTY);
         }
@@ -101,7 +113,9 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
-        checkPermissions(parentBefore, before, Permissions.REMOVE_PROPERTY);
+        if (!AbstractTree.OAK_CHILD_ORDER.equals(before.getName())) {
+            checkPermissions(parentBefore, before, Permissions.REMOVE_PROPERTY);
+        }
     }
 
     @Override
@@ -137,7 +151,7 @@ class PermissionValidator extends DefaultValidator {
 
     //------------------------------------------------------------< private >---
     private Validator nextValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter, @Nonnull TreePermission treePermission) {
-        Validator validator = new PermissionValidator(parentBefore, parentAfter, treePermission, permissionProvider, provider, permission);
+        Validator validator = new PermissionValidator(parentBefore, parentAfter, treePermission, this);
         return new VisibleValidator(validator, true, false);
     }
 
@@ -172,11 +186,14 @@ class PermissionValidator extends DefaultValidator {
             return;
         }
         long toTest = getPermission(parent, property, defaultPermission);
+        boolean isGranted;
         if (Permissions.isRepositoryPermission(toTest)) {
-            if (!permissionProvider.getRepositoryPermission().isGranted(toTest)) {
-                throw new CommitFailedException(ACCESS, 0, "Access denied");
-            }
-        } else if (!parentPermission.isGranted(toTest, property)) {
+            isGranted = permissionProvider.getRepositoryPermission().isGranted(toTest);
+        } else {
+            isGranted = parentPermission.isGranted(toTest, property);
+        }
+
+        if (!isGranted) {
             throw new CommitFailedException(ACCESS, 0, "Access denied");
         }
     }
@@ -228,7 +245,10 @@ class PermissionValidator extends DefaultValidator {
         } else if (JcrConstants.JCR_MIXINTYPES.equals(name)) {
             perm = Permissions.NODE_TYPE_MANAGEMENT;
         } else if (JcrConstants.JCR_UUID.equals(name)) {
-            if (provider.getNodeTypeManager().isNodeType(parent, JcrConstants.MIX_REFERENCEABLE)) {
+            if (isNodeType(parent, JcrConstants.MIX_REFERENCEABLE)) {
+                // property added or removed: jcr:uuid is autocreated in
+                // JCR, thus can't determine here if this was a user supplied
+                // modification or not.
                 perm = Permissions.NO_PERMISSION;
             } else {
                 /* the parent is not referenceable -> check regular permissions
@@ -260,6 +280,21 @@ class PermissionValidator extends DefaultValidator {
                     permission == Permissions.REMOVE_NODE ||
                     defaultPermission == Permissions.REMOVE_NODE;
         }
+    }
+
+    private boolean isImmutableProperty(String name) {
+        // TODO: review; cant' rely on autocreated/protected definition as this doesn't reveal if a given property is expected to be never modified after creation
+        if (JcrConstants.JCR_UUID.equals(name) && isNodeType(parentAfter, JcrConstants.MIX_REFERENCEABLE)) {
+            return true;
+        } else if (("jcr:created".equals(name) || "jcr:createdBy".equals(name)) && isNodeType(parentAfter, "mix:created")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isNodeType(Tree parent, String ntName) {
+        return provider.getNodeTypeManager().isNodeType(parent, ntName);
     }
 
     private boolean isVersionstorageTree(Tree tree) {
