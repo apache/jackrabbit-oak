@@ -100,10 +100,18 @@ public class Main {
     private static void upgrade(String olddir, String newdir) throws Exception {
         RepositoryContext source = RepositoryContext.create(
                 RepositoryConfig.create(new File(olddir)));
-        NodeStore target = new SegmentNodeStore(new FileStore(
-                new File(newdir), 256 * 1024 * 1024, false));
-        new RepositoryUpgrade(source, target).copy();
-        source.getRepository().shutdown();
+        try {
+            FileStore store = new FileStore(
+                    new File(newdir), 256 * 1024 * 1024, true);
+            try {
+                NodeStore target = new SegmentNodeStore(store);
+                new RepositoryUpgrade(source, target).copy();
+            } finally {
+                store.close();
+            }
+        } finally {
+            source.getRepository().shutdown();
+        }
     }
 
     private static void printProductInfo() {
