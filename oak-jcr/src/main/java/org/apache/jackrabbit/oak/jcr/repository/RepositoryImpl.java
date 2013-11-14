@@ -37,8 +37,6 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Descriptors;
-import org.apache.jackrabbit.oak.core.DescriptorsImpl;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.LogOnce;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Once;
@@ -69,7 +67,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
 
-    protected final DescriptorsImpl descriptors;
+    private final Descriptors descriptors;
     private final ContentRepository contentRepository;
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
@@ -241,8 +239,8 @@ public class RepositoryImpl implements JackrabbitRepository {
      * by the subclasses to add more values to the descriptor
      * @return  repository descriptor
      */
-    protected DescriptorsImpl determineDescriptors() {
-        return new JcrDescriptorsImpl(contentRepository.getDescriptors(), new SimpleValueFactory());
+    protected Descriptors determineDescriptors() {
+        return new Descriptors(new SimpleValueFactory());
     }
 
     /**
