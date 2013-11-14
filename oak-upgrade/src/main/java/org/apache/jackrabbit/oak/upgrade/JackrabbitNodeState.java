@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.Path;
+import org.apache.jackrabbit.util.ISO8601;
 
 class JackrabbitNodeState extends AbstractNodeState {
 
@@ -164,7 +165,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                     name, value.getBoolean(), Type.BOOLEAN);
         case PropertyType.DATE:
             return PropertyStates.createProperty(
-                    name, value.getString(), Type.DATE);
+                    name, ISO8601.format(value.getCalendar()), Type.DATE);
         case PropertyType.DECIMAL:
             return PropertyStates.createProperty(
                     name, value.getDecimal(), Type.DECIMAL);
@@ -214,9 +215,9 @@ class JackrabbitNodeState extends AbstractNodeState {
             }
             return PropertyStates.createProperty(name, booleans, Type.BOOLEANS);
         case PropertyType.DATE:
-            List<Long> dates = newArrayListWithCapacity(values.length);
+            List<String> dates = newArrayListWithCapacity(values.length);
             for (InternalValue value : values) {
-                dates.add(value.getCalendar().getTimeInMillis());
+                dates.add(ISO8601.format(value.getCalendar()));
             }
             return PropertyStates.createProperty(name, dates, Type.DATES);
         case PropertyType.DECIMAL:
