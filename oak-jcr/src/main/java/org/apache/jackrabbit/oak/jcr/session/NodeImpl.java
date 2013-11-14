@@ -82,12 +82,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newLinkedHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
 
 /**
  * TODO document
@@ -928,7 +930,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    public void removeMixin(String mixinName) throws RepositoryException {
+    public void removeMixin(final String mixinName) throws RepositoryException {
         final String oakTypeName = getOakName(checkNotNull(mixinName));
         perform(new ItemWriteOperation<Void>() {
             @Override
@@ -937,6 +939,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (!isCheckedOut()) {
                     throw new VersionException(
                             "Cannot remove mixin type. Node is checked in.");
+                }
+
+                // check for NODE_TYPE_MANAGEMENT permission here as we cannot
+                // distinguish between a combination of removeMixin and addMixin
+                // and Node#remove plus subsequent addNode when it comes to
+                // autocreated properties like jcr:create, jcr:uuid and so forth.
+                Set<String> mixins = newLinkedHashSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
+                if (!mixins.isEmpty() && mixins.remove(getOakName(mixinName))) {
+                    PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, mixins, NAMES);
+                    sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
                 }
             }
             @Override
