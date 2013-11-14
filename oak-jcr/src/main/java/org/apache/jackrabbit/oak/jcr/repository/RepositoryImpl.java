@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.repository;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Collections;
 import java.util.Map;
 
@@ -37,17 +35,20 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.LogOnce;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Once;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.ThreadSynchronising;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Timed;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.util.GenericDescriptors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * TODO document
@@ -67,7 +68,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      */
     public static final String REFRESH_INTERVAL = "oak.refresh-interval";
 
-    private final Descriptors descriptors;
+    private final GenericDescriptors descriptors;
     private final ContentRepository contentRepository;
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
@@ -239,15 +240,15 @@ public class RepositoryImpl implements JackrabbitRepository {
      * by the subclasses to add more values to the descriptor
      * @return  repository descriptor
      */
-    protected Descriptors determineDescriptors() {
-        return new Descriptors(new SimpleValueFactory());
+    protected GenericDescriptors determineDescriptors() {
+        return new JcrDescriptorsImpl(contentRepository.getDescriptors(), new SimpleValueFactory());
     }
 
     /**
      * Returns the descriptors associated with the repository
      * @return repository descriptor
      */
-    protected Descriptors getDescriptors() {
+    protected GenericDescriptors getDescriptors() {
         return descriptors;
     }
 
