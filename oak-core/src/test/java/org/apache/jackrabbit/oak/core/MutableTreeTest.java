@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,15 +32,19 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -435,6 +440,20 @@ public class MutableTreeTest extends OakBaseTest {
 
         assertFalse(x.exists());
         assertFalse(xx.exists());
+    }
+
+    @Test
+    @Ignore("OAK-1188")  // FIXME OAK-1188
+    public void testBlob() throws CommitFailedException, IOException {
+        Blob expected = new StringBasedBlob("test blob");
+        root.getTree("/x").setProperty("blob", expected);
+        root.commit();
+
+        Blob actual = root.getTree("/x").getProperty("blob").getValue(Type.BINARY);
+        assertEquals(expected, actual);
+
+        assertTrue(expected.getNewStream().available() > 0);
+        assertTrue(actual.getNewStream().available() > 0);
     }
 
 }
