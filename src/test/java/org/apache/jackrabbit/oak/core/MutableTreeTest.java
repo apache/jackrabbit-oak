@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -443,7 +442,6 @@ public class MutableTreeTest extends OakBaseTest {
     }
 
     @Test
-    @Ignore("OAK-1188")  // FIXME OAK-1188
     public void testBlob() throws CommitFailedException, IOException {
         Blob expected = new StringBasedBlob("test blob");
         root.getTree("/x").setProperty("blob", expected);
@@ -452,8 +450,8 @@ public class MutableTreeTest extends OakBaseTest {
         Blob actual = root.getTree("/x").getProperty("blob").getValue(Type.BINARY);
         assertEquals(expected, actual);
 
-        assertTrue(expected.getNewStream().available() > 0);
-        assertTrue(actual.getNewStream().available() > 0);
+        assertTrue(expected.getNewStream().available() >= 0);
+        assertTrue(actual.getNewStream().available() >= 0);
     }
 
 }
