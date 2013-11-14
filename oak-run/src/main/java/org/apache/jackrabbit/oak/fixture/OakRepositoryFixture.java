@@ -190,7 +190,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
 
     public static RepositoryFixture getTar(
             final File base,
-            final int maxFileSize, final boolean memoryMapping) {
+            final int maxFileSize, final int cacheSize, final boolean memoryMapping) {
         return new OakRepositoryFixture("Oak-Tar") {
             private SegmentStore[] stores;
             @Override
@@ -199,7 +199,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 stores = new FileStore[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
                     stores[i] = new FileStore(
-                            new File(base, unique), maxFileSize, memoryMapping);
+                            new File(base, unique), maxFileSize, cacheSize, memoryMapping);
                     Oak oak = new Oak(new SegmentNodeStore(stores[i]));
                     cluster[i] = new Jcr(oak).createRepository();
                 }

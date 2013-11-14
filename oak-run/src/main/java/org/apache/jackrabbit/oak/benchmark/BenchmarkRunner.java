@@ -92,7 +92,7 @@ public class BenchmarkRunner {
                 OakRepositoryFixture.getSegment(
                         host.value(options), port.value(options), cacheSize * MB),
                 OakRepositoryFixture.getTar(
-                        base.value(options), 256 * 1024 * 1024, mmap.value(options))
+                        base.value(options), 256 * MB, cacheSize * MB, mmap.value(options))
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new LoginTest(),
