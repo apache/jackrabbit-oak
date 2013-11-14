@@ -23,7 +23,6 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
-import javax.security.auth.Subject;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.security.authorization.permission.PermissionSto
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -98,11 +98,10 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     }
 
     @Override
-    public List<ValidatorProvider> getValidators(
-            String workspaceName, Subject subject) {
+    public List<ValidatorProvider> getValidators(String workspaceName, CommitInfo commitInfo) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
-                new PermissionValidatorProvider(getSecurityProvider(), subject),
+                new PermissionValidatorProvider(getSecurityProvider(), commitInfo),
                 new AccessControlValidatorProvider(getSecurityProvider()));
     }
 

@@ -18,22 +18,17 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.security.auth.Subject;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -49,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.MoveInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -61,6 +57,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.LazyValue;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 public abstract class AbstractRoot implements Root {
 
@@ -103,6 +105,17 @@ public abstract class AbstractRoot implements Root {
      * Sentinel for the next move operation to take place on the this root
      */
     private Move lastMove = new Move();
+
+    /**
+     * Simple info object used to collect all move operations (source + dest)
+     * for further processing in those commit hooks that wish to distinguish
+     * between simple add/remove and move operations.
+     * Please note that this information will only allow to perform best-effort
+     * matching as depending on the sequence of modifications some operations
+     * may no longer be detected as changes in the commit hook due to way the
+     * diff is compiled.
+     */
+    private MoveInfo moveInfo = new MoveInfo();
 
     /**
      * Number of {@link #updated} occurred.
@@ -155,10 +168,6 @@ public abstract class AbstractRoot implements Root {
     protected void checkLive() {
     }
 
-    protected String getUserData() {
-        return null;
-    }
-
     //---------------------------------------------------------------< Root >---
 
     @Override
@@ -188,6 +197,10 @@ public abstract class AbstractRoot implements Root {
             lastMove = lastMove.setMove(sourcePath, newParent, newName);
             updated();
         }
+
+        // remember all move operations for further processing in the commit hooks.
+        moveInfo.addMove(sourcePath, destPath);
+
         return success;
     }
 
@@ -254,14 +267,15 @@ public abstract class AbstractRoot implements Root {
         ContentSession session = getContentSession();
         CommitInfo info = new CommitInfo(
                 session.toString(),
-                session.getAuthInfo().getUserID(),
-                message);
-        base = store.merge(builder, getCommitHook(hook), info);
+                getCommitSubject(session),
+                moveInfo, message);
+        base = store.merge(builder, getCommitHook(hook, info), info);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
             permissionProvider.get().refresh();
         }
+        moveInfo.clear();
     }
 
     /**
@@ -269,11 +283,11 @@ public abstract class AbstractRoot implements Root {
      * and the hooks and validators defined by the various security related
      * configurations.
      *
-     * @param hook extra hook to be used for just this commit, or {@code null}
+     * @param extraHook extra hook to be used for just this commit, or {@code null}
      * @return A commit hook combining repository global commit hook(s) with the pluggable hooks
      *         defined with the security modules and the padded {@code hooks}.
      */
-    private CommitHook getCommitHook(@Nullable CommitHook extraHook) {
+    private CommitHook getCommitHook(@Nullable CommitHook extraHook, @Nonnull CommitInfo commitInfo) {
         List<CommitHook> hooks = newArrayList();
 
         if (extraHook != null) {
@@ -292,8 +306,7 @@ public abstract class AbstractRoot implements Root {
                 }
             }
 
-            List<? extends ValidatorProvider> validators =
-                    sc.getValidators(workspaceName, getCommitSubject());
+            List<? extends ValidatorProvider> validators = sc.getValidators(workspaceName, commitInfo);
             if (!validators.isEmpty()) {
                 hooks.add(new EditorHook(CompositeEditorProvider.compose(validators)));
             }
@@ -304,15 +317,17 @@ public abstract class AbstractRoot implements Root {
     }
 
     /**
-     * TODO: review again once the permission validation is completed.
-     * Build a read only subject for the {@link #commit(CommitHook...)} call that makes the
-     * principals and the permission provider available to the commit hooks.
+     * Build a read only subject for the {@link #commit(String, CommitHook)} call that makes the
+     * principals, auth info and the permission provider available to the commit hooks.
      *
      * @return a new read only subject.
      */
-    private Subject getCommitSubject() {
-        return new Subject(true, subject.getPrincipals(),
-                Collections.singleton(permissionProvider.get()), Collections.<Object>emptySet());
+    private Subject getCommitSubject(ContentSession session) {
+        Set<Object> publicCreds = ImmutableSet.of(
+                permissionProvider.get(),
+                session.getAuthInfo()
+        );
+        return new Subject(true, subject.getPrincipals(), publicCreds, Collections.<Object>emptySet());
     }
 
     @Override
