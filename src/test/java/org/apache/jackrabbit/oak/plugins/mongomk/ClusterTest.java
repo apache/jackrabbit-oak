@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
@@ -119,34 +120,27 @@ public class ClusterTest {
     public void openCloseOpen() {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
-        MongoMK.Builder builder;
-        
-        builder = new MongoMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs);
-        MongoMK mk1 = builder.setClusterId(1).open();
+
+        MongoMK mk1 = createMK(1, 0, ds, bs);
         mk1.commit("/", "+\"a\": {}", null, null);
         mk1.commit("/", "-\"a\"", null, null);
+        mk1.runBackgroundOperations();
         
-        builder = new MongoMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs);
-        MongoMK mk2 = builder.setClusterId(2).open();
+        MongoMK mk2 = createMK(2, 0, ds, bs);
         mk2.commit("/", "+\"a\": {}", null, null);
         mk2.commit("/", "-\"a\"", null, null);
+        mk2.runBackgroundOperations();
 
-        builder = new MongoMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs);
-        MongoMK mk3 = builder.setClusterId(3).open();
+        MongoMK mk3 = createMK(3, 0, ds, bs);
         mk3.commit("/", "+\"a\": {}", null, null);
         mk3.commit("/", "-\"a\"", null, null);
+        mk3.runBackgroundOperations();
 
-        builder = new MongoMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs);
-        MongoMK mk4 = builder.setClusterId(4).open();
+        MongoMK mk4 = createMK(4, 0, ds, bs);
         mk4.commit("/", "+\"a\": {}", null, null);
+        mk4.runBackgroundOperations();
 
-        builder = new MongoMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs);
-        MongoMK mk5 = builder.setClusterId(5).open();
+        MongoMK mk5 = createMK(5, 0, ds, bs);
         mk5.commit("/", "-\"a\"", null, null);
         mk5.commit("/", "+\"a\": {}", null, null);
 
@@ -227,8 +221,8 @@ public class ClusterTest {
     
     @Test
     public void conflict() {
-        MongoMK mk1 = createMK(1);
-        MongoMK mk2 = createMK(2);
+        MongoMK mk1 = createMK(1, 0);
+        MongoMK mk2 = createMK(2, 0);
         
         String m1r0 = mk1.getHeadRevision();
         String m2r0 = mk2.getHeadRevision();
@@ -240,8 +234,10 @@ public class ClusterTest {
         } catch (MicroKernelException e) {
             // expected
         }
-        // now, after the conflict, both cluster nodes see the node
-        // (before the conflict, this isn't necessarily the case for mk2)
+        mk1.runBackgroundOperations();
+        mk2.runBackgroundOperations();
+
+        // node becomes visible after running background operations
         String n1 = mk1.getNodes("/", mk1.getHeadRevision(), 0, 0, 10, null);
         String n2 = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 10, null);
         assertEquals(n1, n2);
@@ -319,10 +315,14 @@ public class ClusterTest {
     }
 
     private MongoMK createMK(int clusterId) {
-        MongoMK.Builder builder = new MongoMK.Builder();
+        return createMK(clusterId, 10);
+    }
+
+    private MongoMK createMK(int clusterId, int asyncDelay) {
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
-            builder.setMongoDB(db);
+            return new MongoMK.Builder().setMongoDB(db)
+                    .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
         } else {
             if (ds == null) {
                 ds = new MemoryDocumentStore();
@@ -330,10 +330,14 @@ public class ClusterTest {
             if (bs == null) {
                 bs = new MemoryBlobStore();
             }
-            builder.setDocumentStore(ds).setBlobStore(bs);
+            return createMK(clusterId, asyncDelay, ds, bs);
         }
-        builder.setAsyncDelay(10);
-        return builder.setClusterId(clusterId).open();
+    }
+
+    private MongoMK createMK(int clusterId, int asyncDelay,
+                           DocumentStore ds, BlobStore bs) {
+        return new MongoMK.Builder().setDocumentStore(ds).setBlobStore(bs)
+                .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
     }
 
 }

@@ -40,15 +40,6 @@ public interface RevisionContext {
     Comparator<Revision> getRevisionComparator();
 
     /**
-     * Ensure the revision visible from now on, possibly by updating the head
-     * revision, so that the changes that occurred are visible.
-     *
-     * @param foreignRevision the revision from another cluster node
-     * @param changeRevision the local revision that is sorted after the foreign revision
-     */
-    void publishRevision(Revision foreignRevision, Revision changeRevision);
-
-    /**
      * @return the cluster id of the local MongoMK instance.
      */
     int getClusterId();
