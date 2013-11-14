@@ -49,8 +49,8 @@ public final class TreeTypeProviderImpl implements TreeTypeProvider {
             case TYPE_VERSION:
                 type = TYPE_VERSION;
                 break;
-            case TYPE_PERMISSION_STORE:
-                type = TYPE_PERMISSION_STORE;
+            case TYPE_INTERNAL:
+                type = TYPE_INTERNAL;
                 break;
             case TYPE_AC:
                 type = TYPE_AC;
@@ -62,7 +62,7 @@ public final class TreeTypeProviderImpl implements TreeTypeProvider {
                 } else if (VersionConstants.VERSION_STORE_ROOT_NAMES.contains(name)) {
                     type = TYPE_VERSION;
                 } else if (PermissionConstants.REP_PERMISSION_STORE.equals(name)) {
-                    type = TYPE_PERMISSION_STORE;
+                    type = TYPE_INTERNAL;
                 } else if (contextInfo.definesContextRoot(tree)) {
                     type = TYPE_AC;
                 } else {
