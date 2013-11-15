@@ -33,6 +33,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  *
@@ -43,6 +44,11 @@ public class InMemPersistence implements GCPersistence {
     private final Map<Id, byte[]> marked = Collections.synchronizedMap(new HashMap<Id, byte[]>());
 
     private long gcStart;
+
+    /**
+     * Read-write lock for objects collection.
+     */
+    private final ReentrantReadWriteLock objectsLock = new ReentrantReadWriteLock();
 
     // TODO: make this configurable
     private IdFactory idFactory = IdFactory.getDigestFactory();
@@ -61,9 +67,27 @@ public class InMemPersistence implements GCPersistence {
         
     }
 
+    private byte[] get(Id id) {
+        objectsLock.readLock().lock();
+        try {
+            return objects.get(id);
+        } finally {
+            objectsLock.readLock().unlock();
+        }
+    }
+
+    private byte[] put(Id id, byte[] bytes) {
+        objectsLock.writeLock().lock();
+        try {
+            return objects.put(id, bytes);
+        } finally {
+            objectsLock.writeLock().unlock();
+        }
+    }
+
     public void readNode(StoredNode node) throws NotFoundException, Exception {
         Id id = node.getId();
-        byte[] bytes = objects.get(id);
+        byte[] bytes = get(id);
         if (bytes != null) {
             node.deserialize(new BinaryBinding(new ByteArrayInputStream(bytes)));
             return;
@@ -77,9 +101,8 @@ public class InMemPersistence implements GCPersistence {
         byte[] bytes = out.toByteArray();
         Id id = new Id(idFactory.createContentId(bytes));
 
-        if (!objects.containsKey(id)) {
-            objects.put(id, bytes);
-        }
+        put(id, bytes);
+
         if (gcStart != 0) {
             marked.put(id, bytes);
         }
@@ -87,7 +110,7 @@ public class InMemPersistence implements GCPersistence {
     }
 
     public StoredCommit readCommit(Id id) throws NotFoundException, Exception {
-        byte[] bytes = objects.get(id);
+        byte[] bytes = get(id);
         if (bytes != null) {
             return StoredCommit.deserialize(id, new BinaryBinding(new ByteArrayInputStream(bytes)));
         }
@@ -99,16 +122,15 @@ public class InMemPersistence implements GCPersistence {
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
 
-        if (!objects.containsKey(id)) {
-            objects.put(id, bytes);
-        }
+        put(id, bytes);
+
         if (gcStart != 0) {
             marked.put(id, bytes);
         }
     }
 
     public ChildNodeEntriesMap readCNEMap(Id id) throws NotFoundException, Exception {
-        byte[] bytes = objects.get(id);
+        byte[] bytes = get(id);
         if (bytes != null) {
             return ChildNodeEntriesMap.deserialize(new BinaryBinding(new ByteArrayInputStream(bytes)));
         }
@@ -121,9 +143,8 @@ public class InMemPersistence implements GCPersistence {
         byte[] bytes = out.toByteArray();
         Id id = new Id(idFactory.createContentId(bytes));
 
-        if (!objects.containsKey(id)) {
-            objects.put(id, bytes);
-        }
+        put(id, bytes);
+
         if (gcStart != 0) {
             marked.put(id, bytes);
         }
@@ -162,12 +183,12 @@ public class InMemPersistence implements GCPersistence {
         commit.serialize(new BinaryBinding(out));
         byte[] bytes = out.toByteArray();
 
-        objects.put(id, bytes);
+        put(id, bytes);
         marked.put(id, bytes);
     }
     
     private boolean markObject(Id id) throws NotFoundException {
-        byte[] data = objects.get(id);
+        byte[] data = get(id);
         if (data != null) {
             return marked.put(id, data) == null;
         }
@@ -176,12 +197,19 @@ public class InMemPersistence implements GCPersistence {
 
     @Override
     public int sweep() {
+        objectsLock.writeLock().lock();
+
         int count = objects.size();
-        
-        objects.clear();
-        objects.putAll(marked);
-        
-        gcStart = 0;
-        return count;
+
+        try {
+            objects.clear();
+            objects.putAll(marked);
+
+            gcStart = 0;
+
+            return count - objects.size();
+        } finally {
+            objectsLock.writeLock().unlock();
+        }
     }
 }

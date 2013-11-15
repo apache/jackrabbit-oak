@@ -40,7 +40,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -134,7 +133,6 @@ public class DefaultRevisionStoreTest {
      * 
      * @throws Exception if an error occurs
      */
-    @Ignore
     @Test
     public void testConcurrentGC() throws Exception {
         ScheduledExecutorService gcExecutor = Executors.newScheduledThreadPool(1);
@@ -143,17 +141,17 @@ public class DefaultRevisionStoreTest {
             public void run() {
                 rs.gc();
             }
-        }, 100, 20, TimeUnit.MILLISECONDS);
+        }, 10, 2, TimeUnit.MILLISECONDS);
 
         mk.commit("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }",
                 mk.getHeadRevision(), null);
 
         try {
-            for (int i = 0; i < 20; i++) {
+            for (int i = 0; i < 2000; i++) {
                 mk.commit("/a/b/c/d", "+\"e\" : {}", mk.getHeadRevision(), null);
-                Thread.sleep(10);
+                Thread.sleep(1);
                 mk.commit("/a/b/c/d/e", "+\"f\" : {}", mk.getHeadRevision(), null);
-                Thread.sleep(30);
+                Thread.sleep(3);
                 mk.commit("/a/b/c/d", "-\"e\"", mk.getHeadRevision(), null);
             }
         } finally {
@@ -167,7 +165,6 @@ public class DefaultRevisionStoreTest {
      * @throws Exception if an error occurs
      */
     @Test
-    @Ignore
     public void testConcurrentMergeGC() throws Exception {
         ScheduledExecutorService gcExecutor = Executors.newScheduledThreadPool(1);
         gcExecutor.scheduleWithFixedDelay(new Runnable() {
