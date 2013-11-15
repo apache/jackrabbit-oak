@@ -164,13 +164,13 @@ abstract class CacheInvalidator {
 
             //Fetch only the lastRev map and id
             final BasicDBObject keys = new BasicDBObject(NodeDocument.ID, 1);
-            keys.put(NodeDocument.LAST_REV, 1);
             keys.put(NodeDocument.MOD_COUNT, 1);
 
             while (pitr.hasNext()) {
                 final TreeNode tn = pitr.next();
 
                 //Root node would already have been processed
+                //Allows us to save on the extra query for /
                 if(tn.isRoot()){
                     tn.markUptodate(startTime);
                     continue;
@@ -201,13 +201,14 @@ abstract class CacheInvalidator {
 
                         result.cacheEntriesProcessedCount++;
 
-                        //Note that this is a partial document
-                        NodeDocument latestDoc = documentStore.convertFromDBObject(Collection.NODES, obj);
+                        Number latestModCount = (Number) obj.get(NodeDocument.MOD_COUNT);
+                        String id = (String) obj.get(NodeDocument.ID);
 
-                        final TreeNode tn2 = sameLevelNodes.get(latestDoc.getId());
+                        final TreeNode tn2 = sameLevelNodes.get(id);
                         NodeDocument cachedDoc = tn2.getDocument();
                         if (cachedDoc != null) {
-                            if (noChangeInRevision(latestDoc, cachedDoc)) {
+                            boolean noChangeInModCount = Objects.equal(latestModCount, cachedDoc.getModCount());
+                            if (noChangeInModCount) {
                                 result.uptodateCount++;
                                 tn2.markUptodate(startTime);
                             } else {
@@ -239,15 +240,6 @@ abstract class CacheInvalidator {
             //ids are removed from the Document Children Cache
 
             return result;
-        }
-
-        private boolean noChangeInRevision(NodeDocument latestDoc, NodeDocument cachedDoc) {
-            if (Objects.equal(latestDoc.getModCount(), cachedDoc.getModCount())) {
-                return true;
-            }
-            //TODO This is a brute force check. Check if we need to compare for rev which are
-            // visible to current cluster node only etc
-            return Objects.equal(latestDoc.getLastRev(), cachedDoc.getLastRev());
         }
 
         private TreeNode constructTreeFromPaths(Set<String> ids) {
