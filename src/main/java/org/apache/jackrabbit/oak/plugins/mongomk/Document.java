@@ -179,4 +179,9 @@ public class Document implements CacheValue {
             return Collections.unmodifiableMap(map);
         }
     }
+
+    @Override
+    public String toString() {
+        return getId();
+    }
 }
