@@ -130,6 +130,8 @@ public class MongoDocumentStore implements DocumentStore {
     
     @Override
     public void invalidateCache() {
+        //TODO Check if we should use LinearInvalidator for small cache sizes as
+        //that would lead to lesser number of queries
         CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
     }
 
