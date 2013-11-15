@@ -361,9 +361,6 @@ abstract class CacheInvalidator {
             }
 
             private void markUptodate(String key, long time, NodeDocument uptodateRoot) {
-                //TODO Should this be done under lock
-//            Lock lock = getAndLock(key);
-//            try {
                 NodeDocument doc = documentStore.getIfCached(Collection.NODES, key);
 
                 if (doc == null) {
@@ -384,9 +381,6 @@ abstract class CacheInvalidator {
                         || doc.getLastCheckTime() == uptodateRoot.getLastCheckTime()) {
                     doc.markUptodate(time);
                 }
-//            } finally {
-//                lock.unlock();
-//            }
             }
 
             private void buildPath(StringBuilder sb) {
