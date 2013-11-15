@@ -267,7 +267,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
          * Make sure that a GC cycle can not sweep this newly persisted node
          * before we have updated our token
          */
-        tokensLock.readLock().lock();
+        tokensLock.writeLock().lock();
 
         try {
             Id id = pm.writeNode(node);
@@ -285,7 +285,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
             return id;
 
         } finally {
-            tokensLock.readLock().unlock();
+            tokensLock.writeLock().unlock();
         }
     }
 
@@ -329,8 +329,15 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
 
         Id id = writeCommit(token, commit);
         setHeadCommitId(id);
-        
-        putTokens.remove(token);
+
+        tokensLock.writeLock().lock();
+
+        try {
+            putTokens.remove(token);
+        } finally {
+            tokensLock.writeLock().unlock();
+        }
+
         if (branchRevId != null) {
             synchronized (branches) {
                 branches.remove(branchRevId);
@@ -343,7 +350,14 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
         verifyInitialized();
 
         Id commitId = writeCommit(token, commit);
-        putTokens.remove(token);
+
+        tokensLock.writeLock().lock();
+
+        try {
+            putTokens.remove(token);
+        } finally {
+            tokensLock.writeLock().unlock();
+        }
 
         Id branchRootId = commit.getBranchRootId();
         if (branchRootId != null) {
@@ -531,7 +545,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
      *             if an error occurs
      */
     private void markUncommittedNodes() throws Exception {
-        tokensLock.writeLock().lock();
+        tokensLock.readLock().lock();
 
         try {
             gcpm.start();
@@ -542,7 +556,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
                 markNode(token.getLastModified());
             }
         } finally {
-            tokensLock.writeLock().unlock();
+            tokensLock.readLock().unlock();
         }
     }
 
