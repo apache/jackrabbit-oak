@@ -50,11 +50,9 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest#testMoveNodesOrderingSupportedByParent <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
 
-      org.apache.jackrabbit.oak.jcr.ReferencesTest#testMultipleReferencesOnSameNode <!-- OAK-1194 -->
-      org.apache.jackrabbit.oak.jcr.ReferencesTest#testVersionReferencesV0 <!-- OAK-1194 -->
-      org.apache.jackrabbit.oak.jcr.ReferencesTest#testVersionReferencesV1 <!-- OAK-1194 -->
       org.apache.jackrabbit.oak.jcr.ReferencesTest#testMovedReferences <!-- OAK-1195 -->
       org.apache.jackrabbit.oak.jcr.ReferencesTest#testMovedVersionedReferences <!-- OAK-1195 -->
+      org.apache.jackrabbit.oak.jcr.ReferencesTest#testVersionReferencesV1 <!-- OAK-1196 -->
       org.apache.jackrabbit.oak.jcr.ReferencesTest#testVersionedReferences <!-- OAK-1196 -->
 
       <!-- Locking : not fully implemented -->
