@@ -1013,8 +1013,6 @@ public final class MongoNodeStore
             }
         }
         if (hasNewRevisions) {
-            // TODO invalidating the whole cache is not really needed,
-            // instead only those children that are cached could be checked
             store.invalidateCache();
             // TODO only invalidate affected items
             docChildrenCache.invalidateAll();
