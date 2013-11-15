@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -47,7 +48,7 @@ public class Commit {
     private final MongoNodeStore nodeStore;
     private final Revision baseRevision;
     private final Revision revision;
-    private HashMap<String, UpdateOp> operations = new HashMap<String, UpdateOp>();
+    private HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
     private JsopWriter diff = new JsopStream();
     private List<Revision> collisions = new ArrayList<Revision>();
 

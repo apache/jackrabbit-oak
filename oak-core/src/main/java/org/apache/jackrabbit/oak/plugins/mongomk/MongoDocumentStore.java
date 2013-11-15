@@ -130,16 +130,9 @@ public class MongoDocumentStore implements DocumentStore {
     
     @Override
     public void invalidateCache() {
-        for (String key : nodesCache.asMap().keySet()) {
-            Lock lock = getAndLock(key);
-            try {
-                nodesCache.invalidate(key);
-            } finally {
-                lock.unlock();
-            }
-        }
+        CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
     }
-    
+
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         if (collection == Collection.NODES) {
@@ -514,7 +507,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @CheckForNull
-    private <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection,
+    <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection,
                                                        @Nullable DBObject n) {
         T copy = null;
         if (n != null) {
@@ -544,7 +537,7 @@ public class MongoDocumentStore implements DocumentStore {
         return map;
     }
 
-    private <T extends Document> DBCollection getDBCollection(Collection<T> collection) {
+    <T extends Document> DBCollection getDBCollection(Collection<T> collection) {
         if (collection == Collection.NODES) {
             return nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
@@ -569,6 +562,10 @@ public class MongoDocumentStore implements DocumentStore {
 
     public CacheStats getCacheStats() {
         return cacheStats;
+    }
+
+    Map<String,NodeDocument> getCache(){
+        return Collections.unmodifiableMap(nodesCache.asMap());
     }
 
     private static void log(String message, Object... args) {

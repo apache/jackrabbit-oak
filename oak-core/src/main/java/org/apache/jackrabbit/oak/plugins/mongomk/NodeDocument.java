@@ -129,7 +129,7 @@ public class NodeDocument extends Document {
     /**
      * The last revision. Key: machine id, value: revision.
      */
-    private static final String LAST_REV = "_lastRev";
+    static final String LAST_REV = "_lastRev";
 
     /**
      * Flag indicating that there are child nodes present. Its just used as a hint.
@@ -151,6 +151,11 @@ public class NodeDocument extends Document {
      * Parsed and sorted set of previous revisions.
      */
     private SortedMap<Revision, Range> previous;
+
+    /**
+     * Time at which this object was check for cache consistency
+     */
+    private long lastCheckTime = System.currentTimeMillis();
 
     private final long time = System.currentTimeMillis();
 
@@ -190,6 +195,30 @@ public class NodeDocument extends Document {
     public boolean hasChildren() {
         Boolean childrenFlag = (Boolean) get(CHILDREN_FLAG);
         return childrenFlag != null ? childrenFlag.booleanValue() : false;
+    }
+
+    /**
+     * Mark this instance as up-to-date wrt state in persistence store
+     * @param checkTime time at which the check was performed
+     */
+    public void markUptodate(long checkTime){
+        this.lastCheckTime = checkTime;
+    }
+
+    /**
+     * Returns true if the document has already been checked for consistency
+     * in current cycle
+     * @param lastCheckTime time at which current cycle started
+     */
+    public boolean isUptodate(long lastCheckTime){
+        return lastCheckTime <= this.lastCheckTime;
+    }
+
+    /**
+     * Returns the last time when this object was checked for consistency
+     */
+    public long getLastCheckTime() {
+        return lastCheckTime;
     }
 
     /**
