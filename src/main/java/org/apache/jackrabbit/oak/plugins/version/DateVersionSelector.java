@@ -69,6 +69,10 @@ public class DateVersionSelector implements VersionSelector {
         long latestDate = Long.MIN_VALUE;
         NodeBuilder latestVersion = null;
         for (String name: history.getChildNodeNames()) {
+            // OAK-1192 skip hidden child nodes
+            if (name.charAt(0) == ':') {
+                continue;
+            }
             NodeBuilder v = history.getChildNode(name);
             if (name.equals(JcrConstants.JCR_ROOTVERSION)
                     || name.equals(JcrConstants.JCR_VERSIONLABELS)) {
