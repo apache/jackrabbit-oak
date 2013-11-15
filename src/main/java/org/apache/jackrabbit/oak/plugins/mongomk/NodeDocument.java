@@ -29,6 +29,7 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -155,7 +156,7 @@ public class NodeDocument extends Document {
     /**
      * Time at which this object was check for cache consistency
      */
-    private long lastCheckTime = System.currentTimeMillis();
+    private final AtomicLong lastCheckTime = new AtomicLong(System.currentTimeMillis());
 
     private final long time = System.currentTimeMillis();
 
@@ -202,7 +203,7 @@ public class NodeDocument extends Document {
      * @param checkTime time at which the check was performed
      */
     public void markUptodate(long checkTime){
-        this.lastCheckTime = checkTime;
+        this.lastCheckTime.set(checkTime);
     }
 
     /**
@@ -211,14 +212,14 @@ public class NodeDocument extends Document {
      * @param lastCheckTime time at which current cycle started
      */
     public boolean isUptodate(long lastCheckTime){
-        return lastCheckTime <= this.lastCheckTime;
+        return lastCheckTime <= this.lastCheckTime.get();
     }
 
     /**
      * Returns the last time when this object was checked for consistency
      */
     public long getLastCheckTime() {
-        return lastCheckTime;
+        return lastCheckTime.get();
     }
 
     /**
