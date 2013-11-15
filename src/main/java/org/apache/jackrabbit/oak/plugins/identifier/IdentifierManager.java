@@ -18,19 +18,17 @@ package org.apache.jackrabbit.oak.plugins.identifier;
 
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -46,6 +44,11 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -198,17 +201,9 @@ public class IdentifierManager {
                     "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                     Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
 
-            Iterable<String> paths = Iterables.transform(result.getRows(),
-                    new Function<ResultRow, String>() {
-                @Override
-                public String apply(ResultRow row) {
-                    String pName = propertyName == null
-                            ? findProperty(row.getPath(), uuid)
-                                    : propertyName;
-                            return PathUtils.concat(row.getPath(), pName);
-                }
-            });
+            Iterable<String> paths = new ReferencePropertyIterable(result, uuid);
 
+            // todo: integrate into ReferencePropertyIterable
             if (nodeTypeNames.length > 0) {
                 paths = Iterables.filter(paths, new Predicate<String>() {
                     @Override
@@ -233,25 +228,85 @@ public class IdentifierManager {
         }
     }
 
-    private String findProperty(String path, final String uuid) {
-        Tree tree = root.getTree(path);
-        final PropertyState refProp = Iterables.find(tree.getProperties(), new Predicate<PropertyState>() {
-            @Override
-            public boolean apply(PropertyState pState) {
-                if (pState.isArray()) {
-                    for (String value : pState.getValue(Type.STRINGS)) {
-                        if (uuid.equals(value)) {
-                            return true;
+    private class ReferencePropertyIterable implements Iterable<String> {
+
+        private final Result result;
+
+        private final String uuid;
+
+        private ReferencePropertyIterable(Result result, String uuid) {
+            this.result = result;
+            this.uuid = uuid;
+        }
+
+        @Override
+        public Iterator<String> iterator() {
+
+            return new Iterator<String>() {
+
+                private final Iterator<? extends ResultRow> rows = result.getRows().iterator();
+
+                private Iterator<? extends PropertyState> iter;
+
+                private boolean sought;
+
+                private String rowPath;
+
+                private String next;
+
+                @Override
+                public boolean hasNext() {
+                    if (!sought) {
+                        seek();
+                        sought = true;
+                    }
+                    return next != null;
+                }
+
+                @Override
+                public String next() {
+                    if (!sought) {
+                        seek();
+                        sought = true;
+                    }
+                    if (next == null) {
+                        throw new NoSuchElementException();
+                    }
+                    sought = false;
+                    return next;
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
+
+                private void seek() {
+                    for (next = null; next == null;) {
+                        if (iter != null && iter.hasNext()) {
+                            PropertyState pState = iter.next();
+                            if (pState.isArray()) {
+                                for (String value : pState.getValue(Type.STRINGS)) {
+                                    if (uuid.equals(value)) {
+                                        next = PathUtils.concat(rowPath, pState.getName());
+                                        break;
+                                    }
+                                }
+                            } else if (uuid.equals(pState.getValue(STRING))) {
+                                next = PathUtils.concat(rowPath, pState.getName());
+                            }
+
+                        } else {
+                            if (!rows.hasNext()) {
+                                break;
+                            }
+                            rowPath = rows.next().getPath();
+                            iter = root.getTree(rowPath).getProperties().iterator();
                         }
                     }
-                    return false;
-                } else {
-                    return uuid.equals(pState.getValue(STRING));
                 }
-            }
-        });
-
-        return refProp.getName();
+            };
+        }
     }
 
     @CheckForNull
