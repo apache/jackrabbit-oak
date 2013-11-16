@@ -46,12 +46,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * TODO document
@@ -98,7 +95,7 @@ public class IdentifierManager {
     public static String getIdentifier(Tree tree) {
         PropertyState property = tree.getProperty(JcrConstants.JCR_UUID);
         if (property != null) {
-            return property.getValue(STRING);
+            return property.getValue(Type.STRING);
         } else if (tree.isRoot()) {
             return "/";
         } else {
@@ -201,26 +198,7 @@ public class IdentifierManager {
                     "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                     Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
 
-            Iterable<String> paths = new ReferencePropertyIterable(result, uuid);
-
-            // todo: integrate into ReferencePropertyIterable
-            if (nodeTypeNames.length > 0) {
-                paths = Iterables.filter(paths, new Predicate<String>() {
-                    @Override
-                    public boolean apply(String path) {
-                        Tree tree = root.getTree(PathUtils.getParentPath(path));
-                        if (tree.exists()) {
-                            for (String ntName : nodeTypeNames) {
-                                if (nodeTypeManager.isNodeType(tree, ntName)) {
-                                    return true;
-                                }
-                            }
-                        }
-                        return false;
-                    }
-                });
-            }
-
+            Iterable<String> paths = new ReferencePropertyIterable(result, uuid, propertyName, nodeTypeNames);
             return Sets.newHashSet(paths);
         } catch (ParseException e) {
             log.error("query failed", e);
@@ -228,15 +206,25 @@ public class IdentifierManager {
         }
     }
 
+    /**
+     * Implements an iterable that is used to collect the paths of the properties from a query result
+     * that contain a reference to the given uuid.
+     */
     private class ReferencePropertyIterable implements Iterable<String> {
 
         private final Result result;
 
         private final String uuid;
 
-        private ReferencePropertyIterable(Result result, String uuid) {
+        private final String propertyName;
+
+        private final String[] nodeTypeNames;
+
+        private ReferencePropertyIterable(Result result, String uuid, String propertyName, String[] nodeTypeNames) {
             this.result = result;
             this.uuid = uuid;
+            this.propertyName = propertyName;
+            this.nodeTypeNames = nodeTypeNames;
         }
 
         @Override
@@ -292,7 +280,7 @@ public class IdentifierManager {
                                         break;
                                     }
                                 }
-                            } else if (uuid.equals(pState.getValue(STRING))) {
+                            } else if (uuid.equals(pState.getValue(Type.STRING))) {
                                 next = PathUtils.concat(rowPath, pState.getName());
                             }
 
@@ -301,11 +289,33 @@ public class IdentifierManager {
                                 break;
                             }
                             rowPath = rows.next().getPath();
-                            iter = root.getTree(rowPath).getProperties().iterator();
+                            // skip references from the version storage (OAK-1196)
+                            if (!rowPath.startsWith("/jcr:system/jcr:versionStorage/")) {
+                                // filter by node type if needed
+                                Tree tree = root.getTree(rowPath);
+                                if (nodeTypeNames.length == 0 || containsNodeType(tree, nodeTypeNames)) {
+                                    // for a fixed property name, we don't need to look for it, but just assume that
+                                    // the search found the correct one
+                                    if (propertyName != null) {
+                                        next = PathUtils.concat(rowPath, propertyName);
+                                    } else {
+                                        iter = root.getTree(rowPath).getProperties().iterator();
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             };
+        }
+
+        private boolean containsNodeType(Tree tree, String[] nodeTypeNames) {
+            for (String ntName : nodeTypeNames) {
+                if (nodeTypeManager.isNodeType(tree, ntName)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
