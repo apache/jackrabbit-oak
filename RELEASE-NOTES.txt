@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.10
+Release Notes -- Apache Jackrabbit Oak -- Version 0.11
 
 Introduction
 ------------
@@ -10,65 +10,142 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.10 is to alpha-level software. Use at your own risk.
+Jackrabbit Oak 0.11 is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.10
+Changes in Oak 0.11
 -------------------
 
-New features
+New Features
 
-  [OAK-1001] SegmentMK: 32bit support for the file backend
+  [OAK-335] Performance tests for microkernel - write tests
+  [OAK-619] Lock-free MongoMK implementation
+  [OAK-1121] Enhance observation mechanism to only listen to cluster local changes
 
 Improvements
 
-  [OAK-444] Authorization for the jcr version store
-  [OAK-658] Unexpected illegal path handling on oak-jcr wrt backwards compatibility
-  [OAK-659] Move purge logic for transient changes below the NodeBuilder interface
-  [OAK-1023] Optimize many child nodes access
-  [OAK-1025] Keep value histories in sorted map
-  [OAK-1027] Avoid turning multivalued properties to String arrays
-  [OAK-1028] Pass Subject directly to the permission validator
-  [OAK-1042] Segment node store caching
-  [OAK-1044] Reduce traffic between MongoMK and MongoDB
-  [OAK-1049] Blobs shouldn't be Comparable
-  [OAK-1050] Remove Blob.sha256()
-  [OAK-1051] SelectorImpl should skip reading node type info if the #matchesAllTypes flag is set
-  [OAK-1057] Configurable DocumentStore logging wrapper
-  [OAK-1059] Property index: faster unique indexes using new storage strategy
-  [OAK-1061] Add option for database name
-  [OAK-1063] MutableTree.enter() simplification
-  [OAK-1071] UnsupportedRepositoryOperationException for UserManager#autoSave
-  [OAK-1072] Remove unnecessary cache invalidation
+  [OAK-51] Access Control Management
+  [OAK-66] JCR Node Type Management
+  [OAK-76] Initial content in oak-run
+  [OAK-91] Implement Authentication Support
+  [OAK-98] Source code formatting, code conventions, Javadocs
+  [OAK-366] MongoDB microkernal integration with OSGi
+  [OAK-392] Review ContentSession#createBlob
+  [OAK-414] Importing protected properties and nodes
+  [OAK-615] UserValidator should check for cyclic group membership
+  [OAK-630] SegmentMK: Implement compareAgainstBaseState
+  [OAK-657] Add oak:unstructured
+  [OAK-663] oak-jcr performance optimization
+  [OAK-741] Better toString() methods
+  [OAK-752] Remove deprecated code and code in "old" packages
+  [OAK-776] NodeState convenience accessors
+  [OAK-792] AccessControl Management: Document changes wrt. Jackrabbit
+  [OAK-801] Add Javadoc to JsonObject.create(JsopTokenizer)
+  [OAK-806] Content migration from Jackrabbit to Oak
+  [OAK-855] NodeState.equals is sometimes very slow
+  [OAK-874] Column names aren't reported properly for "select * from   [nodeType]" queries
+  [OAK-900] Run Jackrabbit Observation tests
+  [OAK-910] Privilege Management: Document changes wrt Jackrabbit
+  [OAK-946] Improve support for debugging Oak
+  [OAK-949] UserQuery does not properly work for the optional everyone group
+  [OAK-954] Make Lucene analyzer configurable
+  [OAK-987] Implement the MicroKernel API
+  [OAK-993] Improve backward compatibility for Item.save and Item.refresh
+  [OAK-1018] Optimise Session.getNode
+  [OAK-1031] SegmentMK: Fewer segment lookups
+  [OAK-1032] SegmentMK: One SegmentWriter per SegmentNodeStore
+  [OAK-1036] SegmentMK: Auto-flushing SegmentNodeBuilder
+  [OAK-1037] Improve performance of XmlImport
+  [OAK-1048] Unify node type management in the query index impls
+  [OAK-1052] Introduce execution context for executing queries
+  [OAK-1058] Review TreeTypeProvider
+  [OAK-1060] Periodically poll for external events
+  [OAK-1078] Move node state based configuration to oak-solr-core
+  [OAK-1079] Create separate OSGi service classes for SolrQueryIndex/IndexEditor providers
+  [OAK-1084] Allow blacklisting of rogue observation listener
+  [OAK-1086] NodeTypes of successive calls to node.getPrimaryNodetypes() are not equal
+  [OAK-1088] Thread safe MongoDocumentStore
+  [OAK-1101] Improve concurrency of branch lookups
+  [OAK-1102] Isolate MicroKernel specific code in MongoMK
+  [OAK-1105] Osgi pluggability for the TokenProvider
+  [OAK-1110] Make NodeStateDiff composable
+  [OAK-1112] Support user data in local events
+  [OAK-1113] Immediate delivery of events from local commits
+  [OAK-1117] [MongoMk]Flag document with children
+  [OAK-1119] [MongoMK] Reduce number of calls made to Mongo DB when an Oak based application is restarted
+  [OAK-1123] Reusable NodeStoreBranch base implementation
+  [OAK-1126] Same node and property name support
+  [OAK-1127] MixinTest.testRemoveInheritedMixin() may fail depending on test order
+  [OAK-1131] Provide a way to inject Observer instances into NodeStore implementations
+  [OAK-1135] NPE in CompiledPermissionImpl.getTreePermission()
+  [OAK-1136] Revisit/Improve CompiledPermissionImpl.getTreePermission()
+  [OAK-1139] Avoid the duplicate property lookup during getProperty("name").getString()
+  [OAK-1142] Optimize node builders for the common case where there are no transient changes
+  [OAK-1144] Avoid wrapping TreePermission into SecurityContext
+  [OAK-1146] Remove equals/hashcode on SecureNodeState and TreePermissionImpl
+  [OAK-1147] SecureNodeBuilder/SecureNodeState: Consider using 'TreePermission#canReadProperties'
+  [OAK-1148] Incomplete Javadoc with NodeState#compareAgainstBaseState
+  [OAK-1149] Avoid exists check in NodeDelegate.getChild() with empty path
+  [OAK-1156] Improve the document cache invalidation logic to selectivly invalidate doc
+  [OAK-1162] Make Solr index asynchronous by default
+  [OAK-1169] Update Guava to version 15.0
+  [OAK-1188] Input streams returned from Blob instances should implement available()
 
-Bug fixes
+Bug
 
-  [OAK-680] AbstractRepositoryTest: missing proper permission setup
-  [OAK-926] MongoMK: split documents when they are too large
-  [OAK-950] Remove org.apache.jackrabbit.oak.core from package-export
-  [OAK-1019] OffsetCache doesn't cache anything
-  [OAK-1020] Property value converion ignores reisdual property definition
-  [OAK-1021] Wrong value for Segment#MEDIUM_LIMIT
-  [OAK-1022] Add a custom Oak Lucene analizer
-  [OAK-1024] Full-text search on the traversing index fails if the condition contains a slash
-  [OAK-1026] AccessControlEntry.getPrivileges() behaves diffent than in Oak
-  [OAK-1029] ConflictAnnotatingRebaseDiff reports spurious changeDeletedNode conflicts
-  [OAK-1030] Simplify SessionDelegate#getItem
-  [OAK-1034] OOME running Oak benchmark suite
-  [OAK-1035] Property Index: cost calculation is wrong (zero) when searching for many values
-  [OAK-1038] Inaccurate size estimate for KernelNodeState
-  [OAK-1039] Session#nodExists() true for a transiently moved Node at move Source
-  [OAK-1040] after a non-committed session.move, the session.nodeExists() and getNode() are not symmetric
-  [OAK-1041] Inaccurate size estimate in EmpiricalWeigher
-  [OAK-1043] DocumentStore.find() includes fromKey
-  [OAK-1047] TimingDocumentStoreWrapper throws NPE when result is null
-  [OAK-1053] Deadlock between ChangeProcessor and Session logout
-  [OAK-1054] Folder containing an admin user should not be removed
-  [OAK-1073] PrivilegeManager#getPrivilege throws RepositoryException rather than AccessControlException
-  [OAK-1074] Benchmarks: use different test root nodes each time
-
+  [OAK-127] JCR: Support for XML imports
+  [OAK-223] Missing path convertion in oak-jcr
+  [OAK-244] ExportDocViewTest test failing
+  [OAK-373] OOME running TCK
+  [OAK-436] apache.jackrabbit.mk.store.NotFoundException
+  [OAK-504] DefaultRevisionStore: Exception occurred in GC cycle: NotFoundException
+  [OAK-567] DiffBuilder performance problem
+  [OAK-587] DefaultRevisionStoreTest.testConcurrentGC fails every now and then.
+  [OAK-724] Text.getRelativeParent() does not work with paths containing fully qualified names
+  [OAK-745] Hardcoded OpenSecurityProvider in RootImpl constructor
+  [OAK-901] Test root node type is not reported correctly
+  [OAK-948] Compatibility - Oak not generates property change event for touched properties
+  [OAK-970] DocumentViewImportTest fails with SegmentMK
+  [OAK-1055] Occasional test failure in ObservationTest.observation()
+  [OAK-1083] Query with descendent node and access control fails to return result
+  [OAK-1085] Compatibility for queries with not(child/@prop) conditions
+  [OAK-1087] TCK tests fail with SegmentMK and MongoStore
+  [OAK-1089] Too many document splits
+  [OAK-1090] Event-listener not notified on Node.orderBefore
+  [OAK-1091] TokenLoginModule#commit should throw an exception if TokenInfo is not created
+  [OAK-1093] IllegalArgumentException on Row.getValues()
+  [OAK-1095] versionable path property has wrong type
+  [OAK-1096] QueryManager does not have autorefresh
+  [OAK-1097] VersionablePathHook ignores "modified" version histories
+  [OAK-1098] AuthorizableImpl methods should convert path to Oak path
+  [OAK-1104] SegmentNodeStore rebase operation assumes wrong child node order
+  [OAK-1106] Query engine does not deal with remapped namespaces
+  [OAK-1107] MongoMK may not detect changes with diffManyChildren()
+  [OAK-1109] SegmentMK: failed to load segment
+  [OAK-1111] Node#setProperty(String, Calendar) doesn't take time zone in account
+  [OAK-1122] Empty branch commit returns head revision on trunk
+  [OAK-1125] FileStore should inherit cache size setting
+  [OAK-1128] Conditions of the form "(x=1 or x=2) or y=3" are not processed correctly
+  [OAK-1129] Repeated MongoMK.rebase() always adds new revision
+  [OAK-1132] QueryEngine #executeQuery creates a new revision on each call
+  [OAK-1140] SecureNodeBuilder should use the base state for the security context
+  [OAK-1141] SecureNodeBuilder.getChildNode() should not optimize for SecurityContext.canReadAll()
+  [OAK-1143] [scala] Repository init throws "illegal cyclic reference involving class ChangeDispatcher"
+  [OAK-1154] MongoMK throws exception when there are many listeners
+  [OAK-1164] Duplicate binaries
+  [OAK-1165] Too frequent document splits
+  [OAK-1167] Background read may cause IllegalArgumentException
+  [OAK-1170] Inconsistent reads with concurrent benchmark tests
+  [OAK-1171] Query fails unexpectedly when property conversion is not possible
+  [OAK-1172] AbstractTree.getChildrenCount() not very performant due to INTERNAL_NODE_NAMES
+  [OAK-1173] NPE if checking for a non-existing node in version storage
+  [OAK-1177] Node#isModified returns true if node has non-readable child
+  [OAK-1178] MutableTree#isNew: replace implementation by NodeBuilder#isNew
+  [OAK-1192] NPE in Versioning when a Node has a hidden child node
+  [OAK-1194] Missing properties in Node.getReferences()
+  [OAK-1196] Node.getReferences() should not show references in version storage
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 0.9 release.
+all the changes included up to the Apache Jackrabbit Oak 0.10 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
