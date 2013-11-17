@@ -177,6 +177,8 @@
       <!-- Node Types -->
       org.apache.jackrabbit.oak.jcr.nodetype.MixinTest#testRemoveAddMixVersionable1                  <!-- OAK-1118 -->
 
+      org.apache.jackrabbit.test.api.SessionUUIDTest#testSaveReferentialIntegrityException           <!-- OAK-685 -->
+      org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException              <!-- OAK-685 -->
     </known.issues>
   </properties>
 
