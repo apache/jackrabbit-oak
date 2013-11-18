@@ -16,11 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.identifier;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.Iterators.emptyIterator;
+import static com.google.common.collect.Iterators.filter;
+import static com.google.common.collect.Iterators.singletonIterator;
+import static com.google.common.collect.Iterators.transform;
+
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,6 +35,10 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -44,11 +54,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.Sets;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * TODO document
@@ -198,7 +203,7 @@ public class IdentifierManager {
                     "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                     Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
 
-            Iterable<String> paths = new ReferencePropertyIterable(result, uuid, propertyName, nodeTypeNames);
+            Iterable<String> paths = findPaths(result, uuid, propertyName, nodeTypeNames);
             return Sets.newHashSet(paths);
         } catch (ParseException e) {
             log.error("query failed", e);
@@ -206,117 +211,64 @@ public class IdentifierManager {
         }
     }
 
-    /**
-     * Implements an iterable that is used to collect the paths of the properties from a query result
-     * that contain a reference to the given uuid.
-     */
-    private class ReferencePropertyIterable implements Iterable<String> {
+    private Iterable<String> findPaths(final Result result, final String uuid, final String propertyName,
+            final String[] nodeTypeNames) {
+        return new Iterable<String>() {
+            @Override
+            public Iterator<String> iterator() {
+                return Iterators.concat(
+                    transform(result.getRows().iterator(), new RowToPaths()));
+            }
 
-        private final Result result;
-
-        private final String uuid;
-
-        private final String propertyName;
-
-        private final String[] nodeTypeNames;
-
-        private ReferencePropertyIterable(Result result, String uuid, String propertyName, String[] nodeTypeNames) {
-            this.result = result;
-            this.uuid = uuid;
-            this.propertyName = propertyName;
-            this.nodeTypeNames = nodeTypeNames;
-        }
-
-        @Override
-        public Iterator<String> iterator() {
-
-            return new Iterator<String>() {
-
-                private final Iterator<? extends ResultRow> rows = result.getRows().iterator();
-
-                private Iterator<? extends PropertyState> iter;
-
-                private boolean sought;
-
-                private String rowPath;
-
-                private String next;
-
+            class RowToPaths implements Function<ResultRow, Iterator<String>> {
                 @Override
-                public boolean hasNext() {
-                    if (!sought) {
-                        seek();
-                        sought = true;
-                    }
-                    return next != null;
-                }
+                public Iterator<String> apply(ResultRow row) {
+                    final String rowPath = row.getPath();
 
-                @Override
-                public String next() {
-                    if (!sought) {
-                        seek();
-                        sought = true;
-                    }
-                    if (next == null) {
-                        throw new NoSuchElementException();
-                    }
-                    sought = false;
-                    return next;
-                }
-
-                @Override
-                public void remove() {
-                    throw new UnsupportedOperationException();
-                }
-
-                private void seek() {
-                    for (next = null; next == null;) {
-                        if (iter != null && iter.hasNext()) {
-                            PropertyState pState = iter.next();
+                    class PropertyToPath implements Function<PropertyState, String> {
+                        @Override
+                        public String apply(PropertyState pState) {
                             if (pState.isArray()) {
                                 for (String value : pState.getValue(Type.STRINGS)) {
                                     if (uuid.equals(value)) {
-                                        next = PathUtils.concat(rowPath, pState.getName());
-                                        break;
+                                        return PathUtils.concat(rowPath, pState.getName());
                                     }
                                 }
                             } else if (uuid.equals(pState.getValue(Type.STRING))) {
-                                next = PathUtils.concat(rowPath, pState.getName());
+                                return PathUtils.concat(rowPath, pState.getName());
                             }
+                            return null;
+                        }
+                    }
 
-                        } else {
-                            if (!rows.hasNext()) {
-                                break;
-                            }
-                            rowPath = rows.next().getPath();
-                            // skip references from the version storage (OAK-1196)
-                            if (!rowPath.startsWith("/jcr:system/jcr:versionStorage/")) {
-                                // filter by node type if needed
-                                Tree tree = root.getTree(rowPath);
-                                if (nodeTypeNames.length == 0 || containsNodeType(tree, nodeTypeNames)) {
-                                    // for a fixed property name, we don't need to look for it, but just assume that
-                                    // the search found the correct one
-                                    if (propertyName != null) {
-                                        next = PathUtils.concat(rowPath, propertyName);
-                                    } else {
-                                        iter = root.getTree(rowPath).getProperties().iterator();
-                                    }
-                                }
+                    // skip references from the version storage (OAK-1196)
+                    if (!rowPath.startsWith("/jcr:system/jcr:versionStorage/")) {
+                        Tree tree = root.getTree(rowPath);
+                        if (nodeTypeNames.length == 0 || containsNodeType(tree, nodeTypeNames)) {
+                            if (propertyName == null) {
+                                return filter(
+                                        transform(tree.getProperties().iterator(), new PropertyToPath()),
+                                        notNull());
+                            } else {
+                                // for a fixed property name, we don't need to look for it, but just assume that
+                                // the search found the correct one
+                                return singletonIterator(PathUtils.concat(rowPath, propertyName));
                             }
                         }
                     }
+                    return emptyIterator();
                 }
-            };
-        }
 
-        private boolean containsNodeType(Tree tree, String[] nodeTypeNames) {
-            for (String ntName : nodeTypeNames) {
-                if (nodeTypeManager.isNodeType(tree, ntName)) {
-                    return true;
+                private boolean containsNodeType(Tree tree, String[] nodeTypeNames) {
+                    for (String ntName : nodeTypeNames) {
+                        if (nodeTypeManager.isNodeType(tree, ntName)) {
+                            return true;
+                        }
+                    }
+                    return false;
                 }
             }
-            return false;
-        }
+        };
     }
 
     @CheckForNull
@@ -346,4 +298,5 @@ public class IdentifierManager {
             return null;
         }
     }
+
 }
