@@ -41,8 +41,8 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeProcessor;
-import org.apache.jackrabbit.oak.plugins.observation.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
+import org.apache.jackrabbit.oak.plugins.observation.FilterProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
@@ -106,11 +106,11 @@ public class ObservationManagerImpl implements ObservationManager {
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
         boolean includeExternal = !(listener instanceof ExcludeExternal);
-        EventFilter filter = new EventFilter(ntMgr, eventTypes, oakPath(absPath), isDeep,
+        FilterProvider filterProvider = new FilterProvider(ntMgr, eventTypes, oakPath(absPath), isDeep,
                 uuid, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
-            log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filter);
+            log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filterProvider);
             ListenerTracker tracker = new ListenerTracker(
                     listener, eventTypes, absPath, isDeep,
                     uuid, nodeTypeName, noLocal) {
@@ -124,12 +124,12 @@ public class ObservationManagerImpl implements ObservationManager {
                 }
             };
             processor = new ChangeProcessor(
-                    sessionDelegate.getContentSession(), namePathMapper, tracker, filter);
+                    sessionDelegate.getContentSession(), namePathMapper, tracker, filterProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
-            log.debug(OBSERVATION, "Changing event listener {} to filter {}", listener, filter);
-            processor.setFilter(filter);
+            log.debug(OBSERVATION, "Changing event listener {} to filter {}", listener, filterProvider);
+            processor.setFilterProvider(filterProvider);
         }
     }
 

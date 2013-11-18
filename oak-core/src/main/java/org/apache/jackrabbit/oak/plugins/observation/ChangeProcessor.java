@@ -27,9 +27,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
-import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.observation.filter.EventIterator;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -49,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A {@code ChangeProcessor} generates observation {@link javax.jcr.observation.Event}s
- * based on a {@link EventFilter} and delivers them to an {@link EventListener}.
+ * based on a {@link FilterProvider filter} and delivers them to an {@link EventListener}.
  * <p>
  * After instantiation a {@code ChangeProcessor} must be started in order to start
  * delivering observation events and stopped to stop doing so.
@@ -60,8 +61,8 @@ public class ChangeProcessor implements Observer {
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
     private final ListenerTracker tracker;
-    private final EventListener listener;
-    private final AtomicReference<EventFilter> filterRef;
+    private final EventListener eventListener;
+    private final AtomicReference<FilterProvider> filterProvider;
 
     private Closeable observer;
     private Registration mbean;
@@ -69,21 +70,21 @@ public class ChangeProcessor implements Observer {
 
     public ChangeProcessor(
             ContentSession contentSession, NamePathMapper namePathMapper,
-            ListenerTracker tracker, EventFilter filter) {
+            ListenerTracker tracker, FilterProvider filter) {
         checkArgument(contentSession instanceof Observable);
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
-        listener = tracker.getTrackedListener();
-        filterRef = new AtomicReference<EventFilter>(filter);
+        eventListener = tracker.getTrackedListener();
+        filterProvider = new AtomicReference<FilterProvider>(filter);
     }
 
     /**
      * Set the filter for the events this change processor will generate.
      * @param filter
      */
-    public void setFilter(EventFilter filter) {
-        filterRef.set(filter);
+    public void setFilterProvider(FilterProvider filter) {
+        filterProvider.set(filter);
     }
 
     /**
@@ -119,16 +120,18 @@ public class ChangeProcessor implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
-                EventFilter filter = filterRef.get();
-                if (filter.includeSessionLocal(isLocal(info))
-                        && filter.includeClusterExternal(isExternal(info))) {
-                    String path = namePathMapper.getOakPath(filter.getPath());
+                FilterProvider provider = filterProvider.get();
+                // FIXME don't rely on toString for session id
+                if (provider.includeCommit(contentSession.toString(), info)) {
+                    String path = namePathMapper.getOakPath(provider.getPath());
                     ImmutableTree beforeTree = getTree(previousRoot, path);
                     ImmutableTree afterTree = getTree(root, path);
-                    EventGenerator events = new EventGenerator(
-                            info, beforeTree, afterTree, filter, namePathMapper);
+                    EventIterator<Event> events = new EventIterator<Event>(
+                            beforeTree.getNodeState(), afterTree.getNodeState(),
+                            provider.getFilter(afterTree),
+                            new JcrListener(beforeTree, afterTree, namePathMapper, info));
                     if (events.hasNext()) {
-                        listener.onEvent(new EventIteratorAdapter(events));
+                        eventListener.onEvent(new EventIteratorAdapter(events));
                     }
                 }
             } catch (Exception e) {
@@ -136,15 +139,6 @@ public class ChangeProcessor implements Observer {
             }
         }
         previousRoot = root;
-    }
-
-    private boolean isLocal(CommitInfo info) {
-        // FIXME don't rely on toString for session id
-        return info != null && Objects.equal(info.getSessionId(), contentSession.toString());
-    }
-
-    private static boolean isExternal(CommitInfo info) {
-        return info == null;
     }
 
     private static ImmutableTree getTree(NodeState nodeState, String path) {
