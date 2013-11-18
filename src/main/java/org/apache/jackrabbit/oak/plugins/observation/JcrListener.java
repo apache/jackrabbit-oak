@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static com.google.common.collect.Iterators.concat;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
 import static javax.jcr.observation.Event.NODE_ADDED;
@@ -37,47 +37,33 @@ import java.util.Map;
 
 import javax.jcr.observation.Event;
 
-import com.google.common.collect.ForwardingIterator;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.plugins.observation.filter.EventIterator.IterableListener;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
-import org.apache.jackrabbit.oak.spi.state.MoveDetector;
-import org.apache.jackrabbit.oak.spi.state.MoveValidator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * TODO document
+ * TODO JcrListener...
  */
-class EventGenerator extends ForwardingIterator<Event> implements MoveValidator {
-    private static final Logger log = LoggerFactory.getLogger(EventGenerator.class);
-
+class JcrListener implements IterableListener<Event> {
+    private final Tree beforeTree;
+    private final Tree afterTree;
+    private final List<Event> events = newArrayList();
+    private final PathMapper namePathMapper;
     private final String userId;
-    private final String message;
     private final long timestamp;
+    private final String message;
     private final boolean external;
 
-    private final ImmutableTree beforeTree;
-    private final ImmutableTree afterTree;
-    private final EventFilter filter;
-    private final NamePathMapper namePathMapper;
-
-    private final List<Event> events = newArrayList();
-    private final List<Iterator<Event>> childEvents = newArrayList();
-
-    private Iterator<Event> eventIterator;
-
-    EventGenerator(CommitInfo info, ImmutableTree beforeTree, ImmutableTree afterTree,
-            EventFilter filter, NamePathMapper namePathMapper) {
+    JcrListener(Tree beforeTree, Tree afterTree, PathMapper namePathMapper, CommitInfo info) {
+        this.beforeTree = beforeTree;
+        this.afterTree = afterTree;
+        this.namePathMapper = namePathMapper;
         if (info != null) {
             this.userId = info.getUserId();
             this.message = info.getMessage();
@@ -91,104 +77,69 @@ class EventGenerator extends ForwardingIterator<Event> implements MoveValidator 
             this.timestamp = System.currentTimeMillis();
             this.external = true;
         }
+    }
+
+    private JcrListener(Tree beforeTree, Tree afterTree, PathMapper namePathMapper, String userId,
+            long timestamp, String message, boolean external) {
         this.beforeTree = beforeTree;
         this.afterTree = afterTree;
-        this.filter = filter;
         this.namePathMapper = namePathMapper;
-    }
-
-    EventGenerator(EventGenerator parent, String name) {
-        this.userId = parent.userId;
-        this.message = parent.message;
-        this.timestamp = parent.timestamp;
-        this.external = parent.external;
-        this.beforeTree = parent.beforeTree.getChild(name);
-        this.afterTree = parent.afterTree.getChild(name);
-        this.filter = parent.filter;
-        this.namePathMapper = parent.namePathMapper;
-    }
-
-    //------------------------------------------------------------< ForwardingIterator >---
-
-    @Override
-    protected Iterator<Event> delegate() {
-        try {
-            if (eventIterator == null) {
-                SecureValidator.compare(beforeTree, afterTree,
-                        new VisibleValidator(
-                                new MoveDetector(this, afterTree.getPath()), true, true));
-                eventIterator = concat(events.iterator(), concat(childEvents.iterator()));
-            }
-            return eventIterator;
-        } catch (CommitFailedException e) {
-            log.error("Error while extracting observation events", e);
-            return Iterators.emptyIterator();
-        }
-    }
-
-    //------------------------------------------------------------< Validator >---
-
-    @Override
-    public void enter(NodeState before, NodeState after) throws CommitFailedException {
-    }
-
-    @Override
-    public void leave(NodeState before, NodeState after) throws CommitFailedException {
+        this.userId = userId;
+        this.timestamp = timestamp;
+        this.message = message;
+        this.external = external;
     }
 
     @Override
     public void propertyAdded(PropertyState after) {
-        if (filter.include(PROPERTY_ADDED, afterTree)) {
-            events.add(createEvent(PROPERTY_ADDED, afterTree, after));
-        }
+        events.add(createEvent(PROPERTY_ADDED, afterTree, after));
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        if (filter.include(Event.PROPERTY_CHANGED, afterTree)) {
-            events.add(createEvent(Event.PROPERTY_CHANGED, afterTree, after));
-        }
+        events.add(createEvent(Event.PROPERTY_CHANGED, afterTree, after));
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        if (filter.include(PROPERTY_REMOVED, afterTree)) {
-            events.add(createEvent(PROPERTY_REMOVED, beforeTree, before));
-        }
+        events.add(createEvent(PROPERTY_REMOVED, beforeTree, before));
     }
 
     @Override
-    public MoveValidator childNodeAdded(String name, NodeState after) {
-        if (filter.include(NODE_ADDED, afterTree)) {
-            events.add(createEvent(NODE_ADDED, afterTree.getChild(name)));
-        }
-        if (filter.includeChildren(afterTree.getPath())) {
-            childEvents.add(new EventGenerator(this, name));
-        }
-        return null;
+    public void childNodeAdded(String name, NodeState after) {
+        events.add(createEvent(NODE_ADDED, afterTree.getChild(name)));
     }
 
     @Override
-    public MoveValidator childNodeDeleted(String name, NodeState before) {
-        if (filter.include(NODE_REMOVED, afterTree)) {
-            events.add(createEvent(NODE_REMOVED, beforeTree.getChild(name)));
-        }
-        if (filter.includeChildren(beforeTree.getPath())) {
-            childEvents.add(new EventGenerator(this, name));
-        }
-        return null;
+    public void childNodeChanged(String name, NodeState before, NodeState after) {
+        detectReorder(name, before, after);
     }
 
     @Override
-    public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) {
-        if (filter.include(NODE_MOVED, afterTree)) {
-            detectReorder(name, before, after);
-        }
-        if (filter.includeChildren(afterTree.getPath())) {
-            childEvents.add(new EventGenerator(this, name));
-        }
-        return null;
+    public void childNodeDeleted(String name, NodeState before) {
+        events.add(createEvent(NODE_REMOVED, beforeTree.getChild(name)));
     }
+
+    @Override
+    public void nodeMoved(String sourcePath, String destPath, NodeState moved) {
+        events.add(createEvent(NODE_MOVED, afterTree.getChild(getName(destPath)),
+                ImmutableMap.of(
+                        "srcAbsPath", namePathMapper.getJcrPath(sourcePath),
+                        "destAbsPath", namePathMapper.getJcrPath(destPath))));
+    }
+
+    @Override
+    public JcrListener create(String name, NodeState before, NodeState after) {
+        return new JcrListener(beforeTree.getChild(name), afterTree.getChild(name), namePathMapper,
+                userId, timestamp, message, external);
+    }
+
+    @Override
+    public Iterator<Event> iterator() {
+        return events.iterator();
+    }
+
+    //------------------------------------------------------------< private >---
 
     private void detectReorder(String name, NodeState before, NodeState after) {
         PropertyState afterOrder = after.getProperty(OAK_CHILD_ORDER);
@@ -227,19 +178,6 @@ class EventGenerator extends ForwardingIterator<Event> implements MoveValidator 
         }
         return names;
     }
-
-    @Override
-    public void move(String sourcePath, String destPath, NodeState moved)
-            throws CommitFailedException {
-        if (filter.include(NODE_MOVED, afterTree)) {
-            events.add(createEvent(NODE_MOVED, afterTree.getChild(getName(destPath)),
-                    ImmutableMap.of(
-                            "srcAbsPath", namePathMapper.getJcrPath(sourcePath),
-                            "destAbsPath", namePathMapper.getJcrPath(destPath))));
-        }
-    }
-
-    //------------------------------------------------------------< internal >---
 
     private Event createEvent(int eventType, Tree tree) {
         return createEvent(eventType, tree.getPath(), getIdentifier(tree), emptyMap());
