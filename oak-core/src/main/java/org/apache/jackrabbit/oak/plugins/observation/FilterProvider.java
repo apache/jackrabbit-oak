@@ -92,9 +92,9 @@ public class FilterProvider {
             && (includeClusterExternal || !isExternal(info));
     }
 
-    public Filter getFilter(ImmutableTree afterTree) {
+    public Filter getFilter(ImmutableTree beforeTree, ImmutableTree afterTree) {
         List<Filter> filters = Lists.<Filter>newArrayList(
-                new PathFilter(afterTree, path, deep));
+                new PathFilter(beforeTree, afterTree, path, deep));
 
         if ((ALL_EVENTS & eventTypes) == 0) {
             return Filters.excludeAll();
@@ -106,7 +106,8 @@ public class FilterProvider {
             if (uuids.length == 0) {
                 return Filters.excludeAll();
             } else {
-                filters.add(new UuidFilter(afterTree.getNodeState(), uuids));
+                filters.add(new UuidFilter(
+                        beforeTree.getNodeState(), afterTree.getNodeState(), uuids));
             }
         }
 
@@ -114,7 +115,7 @@ public class FilterProvider {
             if (ntNames.length == 0) {
                 return Filters.excludeAll();
             } else {
-                filters.add(new NodeTypeFilter(afterTree, ntManager, ntNames));
+                filters.add(new NodeTypeFilter(beforeTree, afterTree, ntManager, ntNames));
             }
         }
 

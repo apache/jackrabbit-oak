@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
@@ -30,55 +34,58 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * TODO Clarify: filter applies to parent
  */
 public class PathFilter implements Filter {
+    private final ImmutableTree beforeTree;
     private final ImmutableTree afterTree;
     private final String path;
     private final boolean deep;
 
-    public PathFilter(ImmutableTree afterTree, String path, boolean deep) {
-        this.afterTree = afterTree;
-        this.path = path;
+    public PathFilter(@Nonnull ImmutableTree beforeTree, @Nonnull ImmutableTree afterTree,
+            @Nonnull String path, boolean deep) {
+        this.beforeTree = checkNotNull(beforeTree);
+        this.afterTree = checkNotNull(afterTree);
+        this.path = checkNotNull(path);
         this.deep = deep;
     }
 
     @Override
     public boolean includeAdd(PropertyState after) {
-        return includeByPath(afterTree.getPath());
+        return includeByPath();
     }
 
     @Override
     public boolean includeChange(PropertyState before, PropertyState after) {
-        return includeByPath(afterTree.getPath());
+        return includeByPath();
     }
 
     @Override
     public boolean includeDelete(PropertyState before) {
-        return includeByPath(afterTree.getPath());
+        return includeByPath();
     }
 
     @Override
     public boolean includeAdd(String name, NodeState after) {
-        return includeByPath(afterTree.getPath());
+        return includeByPath();
     }
 
     @Override
     public boolean includeChange(String name, NodeState before, NodeState after) {
-        return includeByPath(afterTree.getPath());
+        return includeByPath();
     }
 
     @Override
     public boolean includeDelete(String name, NodeState before) {
-        return includeByPath(afterTree.getPath());
+        return includeByPath();
     }
 
     @Override
     public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-        return includeByPath(afterTree.getPath());
+        return includeByPath();
     }
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
-        if (includeChildren(PathUtils.concat(afterTree.getPath(), name))) {
-            return new PathFilter(afterTree.getChild(name), path, deep);
+        if (includeChildren(name)) {
+            return new PathFilter(beforeTree, afterTree.getChild(name), path, deep);
         } else {
             return null;
         }
@@ -86,7 +93,11 @@ public class PathFilter implements Filter {
 
     //------------------------------------------------------------< private >---
 
-    private boolean includeByPath(String path) {
+    private boolean includeByPath() {
+        String path = afterTree.exists()
+            ? afterTree.getPath()
+            : beforeTree.getPath();
+
         boolean equalPaths = this.path.equals(path);
         if (!deep && !equalPaths) {
             return false;
@@ -98,12 +109,11 @@ public class PathFilter implements Filter {
         return true;
     }
 
-    /**
-     * Determine whether the children of a {@code path} would be matched by this filter
-     * @param path  path whose children to test
-     * @return  {@code true} if the children of {@code path} could be matched by this filter
-     */
-    public boolean includeChildren(String path) {
+    private boolean includeChildren(String name) {
+        String path = afterTree.exists()
+            ? PathUtils.concat(afterTree.getPath(), name)
+            : PathUtils.concat(beforeTree.getPath(), name);
+
         return PathUtils.isAncestor(path, this.path) ||
                 path.equals((this.path)) ||
                 deep && PathUtils.isAncestor(this.path, path);
