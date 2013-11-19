@@ -98,7 +98,7 @@ public class FilterProvider {
 
         if ((ALL_EVENTS & eventTypes) == 0) {
             return Filters.excludeAll();
-        } else {
+        } else if ((ALL_EVENTS & eventTypes) != ALL_EVENTS) {
             filters.add(new EventTypeFilter(eventTypes));
         }
 
