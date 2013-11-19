@@ -19,8 +19,18 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.base.Objects.toStringHelper;
+import static javax.jcr.observation.Event.NODE_ADDED;
+import static javax.jcr.observation.Event.NODE_MOVED;
+import static javax.jcr.observation.Event.NODE_REMOVED;
+import static javax.jcr.observation.Event.PERSIST;
+import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_CHANGED;
+import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+
+import java.util.List;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
@@ -35,6 +45,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
  * Provider for a filter filtering observation events according to a certain criterion.
  */
 public class FilterProvider {
+    private static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
+            PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
+
+
     private final ReadOnlyNodeTypeManager ntManager;
     private final int eventTypes;
     private final String path;
@@ -79,12 +93,33 @@ public class FilterProvider {
     }
 
     public Filter getFilter(ImmutableTree afterTree) {
-        return Filters.all(
-                // TODO add filter based on access rights of the reading session. See OAK-1163
-                new PathFilter(afterTree, path, deep),
-                new EventTypeFilter(eventTypes),
-                new UuidFilter(afterTree.getNodeState(), uuids),
-                new NodeTypeFilter(afterTree, ntManager, ntNames));
+        List<Filter> filters = Lists.<Filter>newArrayList(
+                new PathFilter(afterTree, path, deep));
+
+        if ((ALL_EVENTS & eventTypes) == 0) {
+            return Filters.excludeAll();
+        } else {
+            filters.add(new EventTypeFilter(eventTypes));
+        }
+
+        if (uuids != null) {
+            if (uuids.length == 0) {
+                return Filters.excludeAll();
+            } else {
+                filters.add(new UuidFilter(afterTree.getNodeState(), uuids));
+            }
+        }
+
+        if (ntNames != null) {
+            if (ntNames.length == 0) {
+                return Filters.excludeAll();
+            } else {
+                filters.add(new NodeTypeFilter(afterTree, ntManager, ntNames));
+            }
+        }
+
+        // TODO add filter based on access rights of the reading session. See OAK-1163
+        return Filters.all(filters.toArray(new Filter[filters.size()]));
     }
 
     public String getPath() {
