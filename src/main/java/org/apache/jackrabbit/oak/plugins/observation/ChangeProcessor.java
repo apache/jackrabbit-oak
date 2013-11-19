@@ -127,7 +127,7 @@ public class ChangeProcessor implements Observer {
                     ImmutableTree beforeTree = getTree(previousRoot, path);
                     ImmutableTree afterTree = getTree(root, path);
                     EventIterator<Event> events = new EventIterator<Event>(
-                            beforeTree.getNodeState(), afterTree.getNodeState(),
+                            beforeTree.getNodeState(), afterTree.getNodeState(), path,
                             provider.getFilter(beforeTree, afterTree),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
                     if (events.hasNext()) {

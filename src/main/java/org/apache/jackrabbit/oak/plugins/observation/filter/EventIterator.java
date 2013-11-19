@@ -28,7 +28,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.MoveDetector;
@@ -45,8 +45,9 @@ import org.slf4j.LoggerFactory;
 public class EventIterator<T> extends EventGenerator implements Iterator<T> {
     private static final Logger LOG = LoggerFactory.getLogger(EventIterator.class);
 
-    private final ImmutableTree beforeTree;
-    private final ImmutableTree afterTree;
+    private final NodeState before;
+    private final NodeState after;
+    private final String path;
 
     private final Filter filter;
     private final IterableListener<T> listener;
@@ -58,8 +59,8 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
         protected Iterator<T> createValue() {
             CommitFailedException e = EditorDiff.process(
                     new VisibleEditor(
-                        new MoveDetector(EventIterator.this, afterTree.getPath())),
-                    beforeTree.getNodeState(), afterTree.getNodeState());
+                        new MoveDetector(EventIterator.this, path)),
+                    before, after);
 
             if (e != null) {
                 LOG.error("Error while extracting observation events", e);
@@ -87,23 +88,16 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
      *
      * @param before  before state
      * @param after   after state
+     * @parem path    common path to the before and after states
      * @param filter  filter for filtering changes
      * @param listener  listener for listening to the filtered changes
      */
-    public EventIterator(NodeState before, NodeState after, Filter filter,
-            IterableListener<T> listener) {
+    public EventIterator(NodeState before, NodeState after, String path,
+            Filter filter, IterableListener<T> listener) {
         super(filter, listener);
-        this.beforeTree = new ImmutableTree(before);
-        this.afterTree = new ImmutableTree(after);
-        this.filter = filter;
-        this.listener = listener;
-    }
-
-    private EventIterator(ImmutableTree before, ImmutableTree after, Filter filter,
-            IterableListener<T> listener) {
-        super(filter, listener);
-        this.beforeTree = before;
-        this.afterTree = after;
+        this.before = before;
+        this.after = after;
+        this.path = path;
         this.filter = filter;
         this.listener = listener;
     }
@@ -115,7 +109,7 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
         Filter childFilter = filter.create(name, before, after);
         if (childFilter != null) {
             childEvents.add(new EventIterator<T>(
-                    beforeTree.getChild(name), afterTree.getChild(name),
+                    before, after, PathUtils.concat(path, name),
                     childFilter,
                     listener.create(name, before, after)));
         }

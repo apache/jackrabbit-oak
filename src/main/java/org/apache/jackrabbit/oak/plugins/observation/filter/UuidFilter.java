@@ -82,7 +82,6 @@ public class UuidFilter implements Filter {
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
-        // FIXME shouldn't we pass the respective child node states here!?
         return new UuidFilter(before, after, uuids);
     }
 
