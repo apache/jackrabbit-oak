@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.mk.store;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -40,10 +43,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests verifying the inner workings of <code>DefaultRevisionStore</code>.
@@ -165,6 +166,7 @@ public class DefaultRevisionStoreTest {
      * @throws Exception if an error occurs
      */
     @Test
+    @Ignore
     public void testConcurrentMergeGC() throws Exception {
         ScheduledExecutorService gcExecutor = Executors.newScheduledThreadPool(1);
         gcExecutor.scheduleWithFixedDelay(new Runnable() {
