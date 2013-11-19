@@ -34,12 +34,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * TODO Clarify: filter applies to parent
  */
 public class NodeTypeFilter implements Filter {
+    private final ImmutableTree beforeTree;
     private final ImmutableTree afterTree;
     private final ReadOnlyNodeTypeManager ntManager;
     private final String[] ntNames;
 
-    public NodeTypeFilter(@Nonnull ImmutableTree afterTree,
+    public NodeTypeFilter(@Nonnull ImmutableTree beforeTree, @Nonnull ImmutableTree afterTree,
             @Nonnull ReadOnlyNodeTypeManager ntManager, @Nonnull String[] ntNames) {
+        this.beforeTree = checkNotNull(beforeTree);
         this.afterTree = checkNotNull(afterTree);
         this.ntManager = checkNotNull(ntManager);
         this.ntNames = checkNotNull(ntNames);
@@ -82,7 +84,8 @@ public class NodeTypeFilter implements Filter {
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
-        return new NodeTypeFilter(afterTree.getChild(name), ntManager, ntNames);
+        return new NodeTypeFilter(
+                beforeTree.getChild(name), afterTree.getChild(name), ntManager, ntNames);
     }
 
     //------------------------------------------------------------< private >---
@@ -95,8 +98,12 @@ public class NodeTypeFilter implements Filter {
      *         parent node.
      */
     private boolean includeByType() {
+        ImmutableTree associatedParent = afterTree.exists()
+            ? afterTree
+            : beforeTree;
+
         for (String ntName : ntNames) {
-            if (ntManager.isNodeType(afterTree, ntName)) {
+            if (ntManager.isNodeType(associatedParent, ntName)) {
                 return true;
             }
         }
