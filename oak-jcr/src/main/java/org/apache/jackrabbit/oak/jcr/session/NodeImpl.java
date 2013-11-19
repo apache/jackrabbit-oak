@@ -748,7 +748,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             public PropertyIterator perform() throws InvalidItemStateException {
                 IdentifierManager idManager = sessionDelegate.getIdManager();
 
-                Set<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
+                Iterable<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
                 Iterable<Property> properties = Iterables.transform(
                         propertyOakPaths,
                         new Function<String, Property>() {
@@ -760,7 +760,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         }
                 );
 
-                return new PropertyIteratorAdapter(properties.iterator(), propertyOakPaths.size());
+                return new PropertyIteratorAdapter(properties.iterator());
             }
         });
     }

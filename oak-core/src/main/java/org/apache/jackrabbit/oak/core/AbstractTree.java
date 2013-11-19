@@ -28,6 +28,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -57,6 +58,8 @@ public abstract class AbstractTree implements Tree {
     // TODO: make this configurable
     private static final String[] INTERNAL_NODE_NAMES = {
             IndexConstants.INDEX_CONTENT_NODE_NAME,
+            NodeReferenceConstants.REF_NAME,
+            NodeReferenceConstants.WEAK_REF_NAME,
             MicroKernel.CONFLICT_NAME};
 
     /**

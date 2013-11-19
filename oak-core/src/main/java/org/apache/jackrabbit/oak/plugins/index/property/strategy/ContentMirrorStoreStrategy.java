@@ -115,10 +115,10 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         builder.setProperty("match", true);
     }
 
-    @Override
-    public Iterable<String> query(final Filter filter, final String indexName, 
-            final NodeState indexMeta, final Iterable<String> values) {
-        final NodeState index = indexMeta.getChildNode(INDEX_CONTENT_NODE_NAME);
+    public Iterable<String> query(final Filter filter, final String indexName,
+            final NodeState indexMeta, final String indexStorageNodeName,
+            final Iterable<String> values) {
+        final NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
@@ -142,8 +142,19 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
+    public Iterable<String> query(final Filter filter, final String indexName, 
+            final NodeState indexMeta, final Iterable<String> values) {
+        return query(filter, indexName, indexMeta, INDEX_CONTENT_NODE_NAME, values);
+    }
+
+    @Override
     public long count(NodeState indexMeta, Set<String> values, int max) {
-        NodeState index = indexMeta.getChildNode(INDEX_CONTENT_NODE_NAME);
+        return count(indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
+    }
+
+    public long count(NodeState indexMeta, final String indexStorageNodeName,
+            Set<String> values, int max) {
+        NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         int count = 0;
         if (values == null) {
             PropertyState ec = indexMeta.getProperty(ENTRY_COUNT_PROPERTY_NAME);

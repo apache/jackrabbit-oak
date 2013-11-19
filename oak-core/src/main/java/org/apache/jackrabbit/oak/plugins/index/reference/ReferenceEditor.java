@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
+import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.INTEGRITY;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
@@ -28,8 +30,10 @@ import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.WEAK_REF_NAME;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.SYSTEM_PATHS;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,12 +41,11 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -54,9 +57,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class ReferenceEditor extends DefaultEditor {
 
-    // TODO
-    // - look into using a storage strategy (trees)
-    // - what happens when you move a node? who updates the backlinks?
+    private static ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final ReferenceEditor parent;
@@ -111,6 +112,13 @@ class ReferenceEditor extends DefaultEditor {
      */
     private final Set<String> discardedIds;
 
+    /**
+     * set of ids that were added during this commit. we need it to reconcile
+     * moves
+     * 
+     */
+    private final Set<String> newIds;
+
     public ReferenceEditor(NodeBuilder builder) {
         this.parent = null;
         this.name = null;
@@ -123,6 +131,7 @@ class ReferenceEditor extends DefaultEditor {
         this.rmWeakRefs = newHashMap();
         this.rmIds = newHashSet();
         this.discardedIds = newHashSet();
+        this.newIds = newHashSet();
     }
 
     private ReferenceEditor(ReferenceEditor parent, String name, String uuid) {
@@ -137,6 +146,7 @@ class ReferenceEditor extends DefaultEditor {
         this.rmWeakRefs = parent.rmWeakRefs;
         this.rmIds = parent.rmIds;
         this.discardedIds = parent.discardedIds;
+        this.newIds = parent.newIds;
     }
 
     /**
@@ -174,6 +184,7 @@ class ReferenceEditor extends DefaultEditor {
         if (parent == null) {
             Set<String> offending = newHashSet(rmIds);
             offending.removeAll(rmRefs.keySet());
+            offending.removeAll(newIds);
             if (!offending.isEmpty()) {
                 throw new CommitFailedException(INTEGRITY, 1,
                         "Unable to delete referenced node");
@@ -198,7 +209,7 @@ class ReferenceEditor extends DefaultEditor {
                 if (newRefs.containsKey(uuid)) {
                     add = newRefs.remove(uuid);
                 }
-                set(child, REF_NAME, add, rm);
+                update(child, REF_NAME, uuid, add, rm);
             }
             for (Entry<String, Set<String>> ref : newRefs.entrySet()) {
                 String uuid = ref.getKey();
@@ -213,7 +224,7 @@ class ReferenceEditor extends DefaultEditor {
                 }
                 Set<String> add = ref.getValue();
                 Set<String> rm = newHashSet();
-                set(child, REF_NAME, add, rm);
+                update(child, REF_NAME, uuid, add, rm);
             }
             for (Entry<String, Set<String>> ref : rmWeakRefs.entrySet()) {
                 String uuid = ref.getKey();
@@ -231,7 +242,7 @@ class ReferenceEditor extends DefaultEditor {
                 if (newWeakRefs.containsKey(uuid)) {
                     add = newWeakRefs.remove(uuid);
                 }
-                set(child, WEAK_REF_NAME, add, rm);
+                update(child, WEAK_REF_NAME, uuid, add, rm);
             }
             for (Entry<String, Set<String>> ref : newWeakRefs.entrySet()) {
                 String uuid = ref.getKey();
@@ -246,7 +257,7 @@ class ReferenceEditor extends DefaultEditor {
                 }
                 Set<String> add = ref.getValue();
                 Set<String> rm = newHashSet();
-                set(child, WEAK_REF_NAME, add, rm);
+                update(child, WEAK_REF_NAME, uuid, add, rm);
             }
         }
     }
@@ -260,11 +271,13 @@ class ReferenceEditor extends DefaultEditor {
     public void propertyChanged(PropertyState before, PropertyState after) {
         if (before != null) {
             if (before.getType() == REFERENCE || before.getType() == REFERENCES) {
-                put(rmRefs, before.getValue(STRINGS), concat(getPath(), before.getName()));
+                put(rmRefs, before.getValue(STRINGS),
+                        concat(getPath(), before.getName()));
             }
             if (before.getType() == WEAKREFERENCE
                     || before.getType() == WEAKREFERENCES) {
-                put(rmWeakRefs, before.getValue(STRINGS), concat(getPath(), before.getName()));
+                put(rmWeakRefs, before.getValue(STRINGS),
+                        concat(getPath(), before.getName()));
             }
             if (JCR_UUID.equals(before.getName())) {
                 // node remove + add -> changed uuid
@@ -276,11 +289,13 @@ class ReferenceEditor extends DefaultEditor {
         }
         if (after != null) {
             if (after.getType() == REFERENCE || after.getType() == REFERENCES) {
-                put(newRefs, after.getValue(STRINGS), concat(getPath(), after.getName()));
+                put(newRefs, after.getValue(STRINGS),
+                        concat(getPath(), after.getName()));
             }
             if (after.getType() == WEAKREFERENCE
                     || after.getType() == WEAKREFERENCES) {
-                put(newWeakRefs, after.getValue(STRINGS), concat(getPath(), after.getName()));
+                put(newWeakRefs, after.getValue(STRINGS),
+                        concat(getPath(), after.getName()));
             }
         }
     }
@@ -296,7 +311,11 @@ class ReferenceEditor extends DefaultEditor {
         if (isVersionStorePath(path)) {
             return null;
         }
-        return new ReferenceEditor(this, name, after.getString(JCR_UUID));
+        String uuid = after.getString(JCR_UUID);
+        if (uuid != null) {
+            newIds.add(uuid);
+        }
+        return new ReferenceEditor(this, name, uuid);
     }
 
     @Override
@@ -317,10 +336,8 @@ class ReferenceEditor extends DefaultEditor {
             return null;
         }
         String uuid = before.getString(JCR_UUID);
-        if (before.hasProperty(REF_NAME)) {
-            if (uuid != null) {
-                rmIds.add(uuid);
-            }
+        if (uuid != null && check(before, REF_NAME, uuid)) {
+            rmIds.add(uuid);
         }
         return new ReferenceEditor(this, name, uuid);
     }
@@ -354,8 +371,8 @@ class ReferenceEditor extends DefaultEditor {
     }
 
     private static boolean isVersionStorePath(@Nonnull String oakPath) {
-        if (oakPath.indexOf(JcrConstants.JCR_SYSTEM) == 1) {
-            for (String p : VersionConstants.SYSTEM_PATHS) {
+        if (oakPath.indexOf(JCR_SYSTEM) == 1) {
+            for (String p : SYSTEM_PATHS) {
                 if (oakPath.startsWith(p)) {
                     return true;
                 }
@@ -366,35 +383,32 @@ class ReferenceEditor extends DefaultEditor {
 
     private static void put(Map<String, Set<String>> map,
             Iterable<String> keys, String value) {
+        String asRelative = isAbsolute(value) ? value.substring(1) : value;
         for (String key : keys) {
             Set<String> values = map.get(key);
             if (values == null) {
                 values = newHashSet();
             }
-            values.add(value);
+            values.add(asRelative);
             map.put(key, values);
         }
     }
 
-    private static void set(NodeBuilder child, String name, Set<String> add,
-            Set<String> rm) {
-        // TODO should we optimize for the remove/add case? intersect the
-        // sets, work on the diffs?
+    private static void update(NodeBuilder child, String name, String key,
+            Set<String> add, Set<String> rm) {
+        NodeBuilder index = child.child(name);
+        Set<String> empty = of();
+        for (String p : add) {
+            // TODO do we still need to encode the values?
+            STORE.update(index, p, empty, of(key));
+        }
+        for (String p : rm) {
+            STORE.update(index, p, of(key), empty);
+        }
+    }
 
-        Set<String> vals;
-        PropertyState ref = child.getProperty(name);
-        if (ref != null) {
-            vals = newHashSet(ref.getValue(STRINGS));
-        } else {
-            vals = newHashSet();
-        }
-        vals.addAll(add);
-        vals.removeAll(rm);
-        if (!vals.isEmpty()) {
-            child.setProperty(name, vals, STRINGS);
-        } else {
-            child.removeProperty(name);
-        }
+    private static boolean check(NodeState ns, String name, String key) {
+        return ns.hasChildNode(name) && STORE.count(ns, name, of(key), 1) > 0;
     }
 
 }
