@@ -57,6 +57,20 @@ public final class Filters {
         return all(Lists.newArrayList(checkNotNull(filters)));
     }
 
+    /**
+     * @return  Filter that includes everything
+     */
+    public static Filter includeAll() {
+        return new ConstantFilter(true);
+    }
+
+    /**
+     * @return  Filter that excludes everything
+     */
+    public static Filter excludeAll() {
+        return new ConstantFilter(false);
+    }
+
     private static Filter any(final List<Filter> filters) {
         return new Filter() {
             @Override
@@ -229,5 +243,53 @@ public final class Filters {
                 return all(childFilters);
             }
         };
+    }
+
+    private static class ConstantFilter implements Filter {
+        private final boolean include;
+
+        private ConstantFilter(boolean include) {
+            this.include = include;
+        }
+
+        @Override
+        public boolean includeAdd(PropertyState after) {
+            return include;
+        }
+
+        @Override
+        public boolean includeChange(PropertyState before, PropertyState after) {
+            return include;
+        }
+
+        @Override
+        public boolean includeDelete(PropertyState before) {
+            return include;
+        }
+
+        @Override
+        public boolean includeAdd(String name, NodeState after) {
+            return include;
+        }
+
+        @Override
+        public boolean includeChange(String name, NodeState before, NodeState after) {
+            return include;
+        }
+
+        @Override
+        public boolean includeDelete(String name, NodeState before) {
+            return include;
+        }
+
+        @Override
+        public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
+            return include;
+        }
+
+        @Override
+        public Filter create(String name, NodeState before, NodeState after) {
+            return include ? this : null;
+        }
     }
 }

@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -33,9 +37,9 @@ public class UuidFilter implements Filter {
     private final NodeState after;
     private final String[] uuids;
 
-    public UuidFilter(NodeState after, String[] uuids) {
-        this.after = after;
-        this.uuids = uuids;
+    public UuidFilter(@Nonnull NodeState after, @Nonnull String[] uuids) {
+        this.after = checkNotNull(after);
+        this.uuids = checkNotNull(uuids);
     }
 
     @Override
@@ -81,9 +85,6 @@ public class UuidFilter implements Filter {
     //------------------------------------------------------------< private >---
 
     private boolean includeByUuid() {
-        if (uuids == null) {
-            return true;
-        }
         if (uuids.length == 0) {
             return false;
         }

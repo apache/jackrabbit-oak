@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -34,10 +38,11 @@ public class NodeTypeFilter implements Filter {
     private final ReadOnlyNodeTypeManager ntManager;
     private final String[] ntNames;
 
-    public NodeTypeFilter(ImmutableTree afterTree, ReadOnlyNodeTypeManager ntManager, String[] ntNames) {
-        this.afterTree = afterTree;
-        this.ntManager = ntManager;
-        this.ntNames = ntNames;
+    public NodeTypeFilter(@Nonnull ImmutableTree afterTree,
+            @Nonnull ReadOnlyNodeTypeManager ntManager, @Nonnull String[] ntNames) {
+        this.afterTree = checkNotNull(afterTree);
+        this.ntManager = checkNotNull(ntManager);
+        this.ntNames = checkNotNull(ntNames);
     }
 
     @Override
@@ -90,16 +95,12 @@ public class NodeTypeFilter implements Filter {
      *         parent node.
      */
     private boolean includeByType() {
-        if (ntNames == null) {
-            return true;
-        } else {
-            for (String ntName : ntNames) {
-                if (ntManager.isNodeType(afterTree, ntName)) {
-                    return true;
-                }
+        for (String ntName : ntNames) {
+            if (ntManager.isNodeType(afterTree, ntName)) {
+                return true;
             }
-            return false;
         }
+        return false;
     }
 
 }
