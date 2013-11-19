@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -49,6 +50,23 @@ public class DescendantSearchTest extends AbstractTest {
     public void beforeSuite() throws RepositoryException {
         session = getRepository().login(getCredentials());
 
+        try {
+            // Jackrabbit 2 doesn't have the oak namespace
+            String o = session.getNamespaceURI("oak");
+        } catch (RepositoryException e) {
+            session.setNamespacePrefix("oak", "http://jackrabbit.apache.org/oak/ns/1.0");
+        }
+
+        try {
+            ensurePropertyIndex();
+        } catch (InvalidItemStateException e) {
+            // some other oak instance probably created the same
+            // index definition concurrently. refresh and try again
+            // do not catch exception if it fails again.
+            session.refresh(false);
+            ensurePropertyIndex();
+        }
+
         root = session.getRootNode().addNode(testNodeName, "nt:unstructured");
         for (int i = 0; i < NODE_COUNT; i++) {
             Node node = root.addNode("node" + i, "nt:unstructured");
@@ -58,17 +76,6 @@ public class DescendantSearchTest extends AbstractTest {
             }
             session.save();
         }
-
-        try {
-            // Jackrabbit 2 doesn't have the oak namespace
-            String o = session.getNamespaceURI("oak");
-        } catch (RepositoryException e) {
-            session.setNamespacePrefix("oak", "http://jackrabbit.apache.org/oak/ns/1.0");
-        }
-
-        new OakIndexUtils.PropertyIndex().
-            property("testcount").
-            create(session);
     }
 
     @Override
@@ -98,4 +105,9 @@ public class DescendantSearchTest extends AbstractTest {
         session.logout();
     }
 
+    private void ensurePropertyIndex() throws RepositoryException {
+        new OakIndexUtils.PropertyIndex().
+                property("testcount").
+                create(session);
+    }
 }
