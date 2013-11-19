@@ -77,7 +77,7 @@ public class PathFilter implements Filter {
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
-        if (includeChildren(afterTree.getPath())) {
+        if (includeChildren(PathUtils.concat(afterTree.getPath(), name))) {
             return new PathFilter(afterTree.getChild(name), path, deep);
         } else {
             return null;
