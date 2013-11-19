@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -47,6 +48,16 @@ public class SimpleSearchTest extends AbstractTest {
     public void beforeSuite() throws RepositoryException {
         session = getRepository().login(getCredentials());
 
+        try {
+            ensurePropertyIndex();
+        } catch (InvalidItemStateException e) {
+            // some other oak instance probably created the same
+            // index definition concurrently. refresh and try again
+            // do not catch exception if it fails again.
+            session.refresh(false);
+            ensurePropertyIndex();
+        }
+
         root = session.getRootNode().addNode("testroot" + TEST_ID, "nt:unstructured");
         for (int i = 0; i < NODE_COUNT; i++) {
             Node node = root.addNode("node" + i, "nt:unstructured");
@@ -56,10 +67,6 @@ public class SimpleSearchTest extends AbstractTest {
             }
             session.save();
         }
-
-        new OakIndexUtils.PropertyIndex().
-                property("testcount").
-                create(session);
     }
 
     @Override
@@ -89,4 +96,9 @@ public class SimpleSearchTest extends AbstractTest {
         session.logout();
     }
 
+    private void ensurePropertyIndex() throws RepositoryException {
+        new OakIndexUtils.PropertyIndex().
+                property("testcount").
+                create(session);
+    }
 }
