@@ -50,9 +50,6 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest#testMoveNodesOrderingSupportedByParent <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
 
-      org.apache.jackrabbit.oak.jcr.ReferencesTest#testMovedReferences <!-- OAK-1195 -->
-      org.apache.jackrabbit.oak.jcr.ReferencesTest#testMovedVersionedReferences <!-- OAK-1195 -->
-
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked
       org.apache.jackrabbit.test.api.lock.LockTest#testParentChildDeepLock
@@ -96,7 +93,6 @@
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
-      org.apache.jackrabbit.test.api.version.GetReferencesNodeTest#testGetReferencesNeverFromVersions <!-- Node.getReferences must not return references from version storage -->
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest
       org.apache.jackrabbit.test.api.version.MergeCheckedoutSubNodeTest
       org.apache.jackrabbit.test.api.version.MergeDoneMergeTest
@@ -176,9 +172,6 @@
 
       <!-- Node Types -->
       org.apache.jackrabbit.oak.jcr.nodetype.MixinTest#testRemoveAddMixVersionable1                  <!-- OAK-1118 -->
-
-      org.apache.jackrabbit.test.api.SessionUUIDTest#testSaveReferentialIntegrityException           <!-- OAK-685 -->
-      org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException              <!-- OAK-685 -->
     </known.issues>
   </properties>
 

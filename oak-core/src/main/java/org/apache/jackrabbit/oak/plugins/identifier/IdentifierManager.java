@@ -27,7 +27,6 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.CheckForNull;
@@ -38,7 +37,6 @@ import javax.jcr.query.Query;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -51,6 +49,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -188,23 +187,21 @@ public class IdentifierManager {
      *         specified {@code tree} and matching the constraints.
      */
     @Nonnull
-    public Set<String> getReferences(boolean weak, Tree tree, final String propertyName, final String... nodeTypeNames) {
+    public Iterable<String> getReferences(boolean weak, Tree tree, final String propertyName, final String... nodeTypeNames) {
         if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
-        try {
-            final String uuid = getIdentifier(tree);
-            String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
-            String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
-            Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
+        final String uuid = getIdentifier(tree);
+        String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
+        String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
+        Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
 
+        try {
             Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                     Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
-
-            Iterable<String> paths = findPaths(result, uuid, propertyName, nodeTypeNames);
-            return Sets.newHashSet(paths);
+            return findPaths(result, uuid, propertyName, nodeTypeNames);
         } catch (ParseException e) {
             log.error("query failed", e);
             return Collections.emptySet();
@@ -242,7 +239,7 @@ public class IdentifierManager {
                     }
 
                     // skip references from the version storage (OAK-1196)
-                    if (!rowPath.startsWith("/jcr:system/jcr:versionStorage/")) {
+                    if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) { 
                         Tree tree = root.getTree(rowPath);
                         if (nodeTypeNames.length == 0 || containsNodeType(tree, nodeTypeNames)) {
                             if (propertyName == null) {
