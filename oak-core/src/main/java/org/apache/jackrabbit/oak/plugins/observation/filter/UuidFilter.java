@@ -34,10 +34,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * TODO Clarify: filter applies to parent
  */
 public class UuidFilter implements Filter {
+    private final NodeState before;
     private final NodeState after;
     private final String[] uuids;
 
-    public UuidFilter(@Nonnull NodeState after, @Nonnull String[] uuids) {
+    public UuidFilter(@Nonnull NodeState before, @Nonnull NodeState after,
+            @Nonnull String[] uuids) {
+        this.before = checkNotNull(before);
         this.after = checkNotNull(after);
         this.uuids = checkNotNull(uuids);
     }
@@ -79,7 +82,8 @@ public class UuidFilter implements Filter {
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
-        return new UuidFilter(after, uuids);
+        // FIXME shouldn't we pass the respective child node states here!?
+        return new UuidFilter(before, after, uuids);
     }
 
     //------------------------------------------------------------< private >---
@@ -89,7 +93,11 @@ public class UuidFilter implements Filter {
             return false;
         }
 
-        PropertyState uuidProperty = after.getProperty(JcrConstants.JCR_UUID);
+        NodeState associatedParent = after.exists()
+            ? after
+            : before;
+
+        PropertyState uuidProperty = associatedParent.getProperty(JcrConstants.JCR_UUID);
         if (uuidProperty == null) {
             return false;
         }
