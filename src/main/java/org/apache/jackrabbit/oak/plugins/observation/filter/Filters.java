@@ -220,7 +220,9 @@ public final class Filters {
                 List<Filter> childFilters = Lists.newArrayList();
                 for (Filter filter : filters) {
                     Filter childFilter = filter.create(name, before, after);
-                    if (childFilter != null) {
+                    if (childFilter == null) {
+                        return null;
+                    } else {
                         childFilters.add(childFilter);
                     }
                 }
