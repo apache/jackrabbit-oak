@@ -89,7 +89,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         ntMgr.registerNodeType(mixTest, false);
 
         Node n = session.getRootNode().addNode(TEST_NODE);
-        n.addMixin("mix:test");
+        n.addMixin(TEST_TYPE);
 
         session.save();
 
@@ -177,6 +177,9 @@ public class ObservationTest extends AbstractRepositoryTest {
             Node n = getNode(TEST_PATH);
             Property p = n.setProperty("p", "v");
             listener.expectAdd(p);
+            Node n1 = n.addNode("n1");
+            listener.expect(n1.getPath(), NODE_ADDED);
+            n1.addNode("n2");
             getAdminSession().save();
 
             List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
@@ -254,27 +257,32 @@ public class ObservationTest extends AbstractRepositoryTest {
     @Test
     public void pathFilter() throws Exception {
         final String path = "/events/only/here";
-        ExpectationListener listener = new ExpectationListener();
-        listener.expect(new Expectation(path){
-            @Override
-            public boolean onEvent(Event event) throws Exception {
-                return PathUtils.isAncestor(path, event.getPath());
-            }
-        });
 
-        observationManager.addEventListener(listener, NODE_ADDED, path, true, null, null, false);
-        try {
+        for (boolean deep : new boolean[]{false, true}) {
             Node root = getNode("/");
-            root.addNode("events").addNode("only").addNode("here").addNode("at");
-            root.getSession().save();
+            if (root.hasNode("events")) {
+                root.getNode("events").remove();
+                root.getSession().save();
+            }
 
-            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
-            assertTrue("Missing events: " + missing, missing.isEmpty());
-            List<Event> unexpected = listener.getUnexpected();
-            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
-        }
-        finally {
-            observationManager.removeEventListener(listener);
+            ExpectationListener listener = new ExpectationListener();
+            observationManager.addEventListener(listener, NODE_ADDED, path, deep, null, null, false);
+            try {
+                root.addNode("events").addNode("only").addNode("here").addNode("below").addNode("this");
+                listener.expect("/events/only/here/below", NODE_ADDED);
+                if (deep) {
+                    listener.expect("/events/only/here/below/this", NODE_ADDED);
+                }
+                root.getSession().save();
+
+                List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+                assertTrue("Missing events: " + missing, missing.isEmpty());
+                List<Event> unexpected = listener.getUnexpected();
+                assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+            }
+            finally {
+                observationManager.removeEventListener(listener);
+            }
         }
     }
 
