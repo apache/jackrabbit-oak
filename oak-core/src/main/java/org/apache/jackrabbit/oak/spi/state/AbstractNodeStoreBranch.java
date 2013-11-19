@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import java.util.Random;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -40,11 +44,15 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends NodeState>
         implements NodeStoreBranch {
 
+    private static final Random RANDOM = new Random();
+
     /** The underlying store to which this branch belongs */
     protected final S store;
 
     /** The dispatcher to report changes */
     protected final ChangeDispatcher dispatcher;
+
+    protected final long maximumBackoff;
 
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted}
@@ -56,10 +64,17 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
     public AbstractNodeStoreBranch(S kernelNodeStore,
                                    ChangeDispatcher dispatcher,
                                    N base) {
+        this(kernelNodeStore, dispatcher, base, MILLISECONDS.convert(10, SECONDS));
+    }
 
+    public AbstractNodeStoreBranch(S kernelNodeStore,
+                                   ChangeDispatcher dispatcher,
+                                   N base,
+                                   long maximumBackoff) {
         this.store = checkNotNull(kernelNodeStore);
         this.dispatcher = dispatcher;
         branchState = new Unmodified(checkNotNull(base));
+        this.maximumBackoff = maximumBackoff;
     }
 
     /**
@@ -388,13 +403,31 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         NodeState merge(@Nonnull CommitHook hook, CommitInfo info)
                 throws CommitFailedException {
             try {
-                rebase();
-                dispatcher.contentChanged(base, null);
-                NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-                NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
-                dispatcher.contentChanged(newHead, info);
-                branchState = new Merged(base);
-                return newHead;
+                CommitFailedException ex = null;
+                for (long backoff = 1; backoff < maximumBackoff; backoff *= 2) {
+                    if (ex != null) {
+                        try {
+                            Thread.sleep(backoff, RANDOM.nextInt(1000000));
+                        } catch (InterruptedException ie) {
+                            // ignore
+                            Thread.interrupted();
+                        }
+                    }
+                    rebase();
+                    dispatcher.contentChanged(base, null);
+                    NodeState toCommit = checkNotNull(hook).processCommit(base, head);
+                    try {
+                        NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
+                        dispatcher.contentChanged(newHead, info);
+                        branchState = new Merged(base);
+                        return newHead;
+                    } catch (Exception e) {
+                        ex = new CommitFailedException(
+                                "Kernel", 1,
+                                "Failed to merge changes to the underlying store", e);
+                    }
+                }
+                throw ex;
             } finally {
                 dispatcher.contentChanged(getRoot(), null);
             }
