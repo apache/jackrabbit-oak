@@ -80,7 +80,7 @@ public class FilterProvider {
 
     public Filter getFilter(ImmutableTree afterTree) {
         return Filters.all(
-                // TODO add filter based on access rights of the reading session
+                // TODO add filter based on access rights of the reading session. See OAK-1163
                 new PathFilter(afterTree, path, deep),
                 new EventTypeFilter(eventTypes),
                 new UuidFilter(afterTree.getNodeState(), uuids),
