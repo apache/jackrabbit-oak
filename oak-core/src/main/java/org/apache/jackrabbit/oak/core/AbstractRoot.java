@@ -21,14 +21,11 @@ package org.apache.jackrabbit.oak.core;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.security.auth.Subject;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -267,8 +264,8 @@ public abstract class AbstractRoot implements Root {
         ContentSession session = getContentSession();
         CommitInfo info = new CommitInfo(
                 session.toString(),
-                getCommitSubject(session),
-                moveTracker, message);
+                session.getAuthInfo().getUserID(),
+                permissionProvider.get(), moveTracker, message);
         base = store.merge(builder, getCommitHook(hook, info), info);
         secureBuilder.baseChanged();
         modCount = 0;
@@ -314,20 +311,6 @@ public abstract class AbstractRoot implements Root {
         hooks.addAll(postValidationHooks);
 
         return CompositeHook.compose(hooks);
-    }
-
-    /**
-     * Build a read only subject for the {@link #commit(String, CommitHook)} call that makes the
-     * principals, auth info and the permission provider available to the commit hooks.
-     *
-     * @return a new read only subject.
-     */
-    private Subject getCommitSubject(ContentSession session) {
-        Set<Object> publicCreds = ImmutableSet.of(
-                permissionProvider.get(),
-                session.getAuthInfo()
-        );
-        return new Subject(true, subject.getPrincipals(), publicCreds, Collections.<Object>emptySet());
     }
 
     @Override
