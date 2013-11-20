@@ -269,10 +269,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
             }
         }
 
-        // modify_child_node_collection permission is granted through
-        // privileges on the parent
-        if ((parentPrivs & ADD_CHILD_NODES) == ADD_CHILD_NODES &&
-                (parentPrivs & REMOVE_CHILD_NODES) == REMOVE_CHILD_NODES) {
+        // modify_child_node_collection permission
+        if ((privs & ADD_CHILD_NODES) == ADD_CHILD_NODES &&
+                (privs & REMOVE_CHILD_NODES) == REMOVE_CHILD_NODES) {
             perm |= Permissions.MODIFY_CHILD_NODE_COLLECTION;
         }
 

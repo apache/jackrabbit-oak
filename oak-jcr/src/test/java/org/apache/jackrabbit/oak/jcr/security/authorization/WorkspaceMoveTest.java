@@ -14,41 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.commit;
+package org.apache.jackrabbit.oak.jcr.security.authorization;
 
-import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+
+import org.junit.Ignore;
 
 /**
- * MoveInfo... TODO
+ * Permission evaluation tests for move operations.
  */
-public class MoveInfo {
+@Ignore("OAK-710 : permission validator doesn't detect move")
+public class WorkspaceMoveTest extends AbstractMoveTest {
 
-    /**
-     * Create a new {@code MoveInfo}
-     */
-    public MoveInfo() {
+    @Override
+    protected void move(String source, String dest) throws RepositoryException {
+        move(source, dest, testSession);
     }
 
-    public void addMove(@Nonnull String sourcePath, @Nonnull String destPath) {
-        // TODO
-    }
+    @Override
+    protected void move(String source, String dest, Session session) throws RepositoryException {
+        session.getWorkspace().move(source, dest);
 
-    public boolean isEmpty() {
-        // TODO
-        return true;
-    }
-
-    public boolean isMoveDestination(String path) {
-        // TODO
-        return false;
-    }
-
-    public boolean isMoveSource(String path) {
-        // TODO
-        return false;
-    }
-
-    public void clear() {
-        // TODO
     }
 }
