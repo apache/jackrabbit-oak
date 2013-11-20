@@ -267,8 +267,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         boolean respectParent = (path != null) &&
                 (Permissions.includes(permissions, Permissions.ADD_NODE) ||
-                        Permissions.includes(permissions, Permissions.REMOVE_NODE) ||
-                        Permissions.includes(permissions, Permissions.MODIFY_CHILD_NODE_COLLECTION));
+                        Permissions.includes(permissions, Permissions.REMOVE_NODE));
 
         long allows = (isReadable) ? Permissions.READ : Permissions.NO_PERMISSION;
         long denies = Permissions.NO_PERMISSION;

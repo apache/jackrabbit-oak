@@ -44,22 +44,22 @@ public class CommitInfo {
 
     private final long date = System.currentTimeMillis();
 
-    private final MoveInfo moveInfo;
+    private final MoveTracker moveTracker;
 
     /**
      * Creates a commit info for the given session and user.
      *
      * @param sessionId session identifier
      * @param subject Subject identifying the user
-     * @param moveInfo Information regarding move operations associated with this commit.
+     * @param moveTracker Information regarding move operations associated with this commit.
      * @param message message attached to this commit, or {@code null}
      */
     public CommitInfo(@Nonnull String sessionId, @Nonnull Subject subject,
-                      @Nonnull MoveInfo moveInfo, @Nullable String message) {
+                      @Nonnull MoveTracker moveTracker, @Nullable String message) {
         this.sessionId = sessionId;
         this.subject = subject;
         this.message = message;
-        this.moveInfo = moveInfo;
+        this.moveTracker = moveTracker;
     }
 
     /**
@@ -89,8 +89,8 @@ public class CommitInfo {
     }
 
     @Nonnull
-    public MoveInfo getMoveInfo() {
-        return moveInfo;
+    public MoveTracker getMoveTracker() {
+        return moveTracker;
     }
 
     /**
@@ -115,7 +115,7 @@ public class CommitInfo {
                 .add("userId", getUserId())
                 .add("userData", message)
                 .add("date", date)
-                .add("moveInfo", moveInfo)
+                .add("moveTracker", moveTracker)
                 .toString();
     }
 

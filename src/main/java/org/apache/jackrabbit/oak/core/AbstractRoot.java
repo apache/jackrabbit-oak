@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
@@ -44,7 +45,7 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.MoveInfo;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -115,7 +116,7 @@ public abstract class AbstractRoot implements Root {
      * may no longer be detected as changes in the commit hook due to way the
      * diff is compiled.
      */
-    private MoveInfo moveInfo = new MoveInfo();
+    private MoveTracker moveTracker = new MoveTracker();
 
     /**
      * Number of {@link #updated} occurred.
@@ -184,6 +185,7 @@ public abstract class AbstractRoot implements Root {
             return false;
         }
 
+        Tree.Status status = source.getStatus();
         String newName = getName(destPath);
         MutableTree newParent = rootTree.getTree(getParentPath(destPath));
         if (!newParent.exists() || newParent.hasChild(newName)) {
@@ -197,7 +199,7 @@ public abstract class AbstractRoot implements Root {
             lastMove = lastMove.setMove(sourcePath, newParent, newName);
             updated();
             // remember all move operations for further processing in the commit hooks.
-            moveInfo.addMove(sourcePath, destPath);
+            moveTracker.addMove(sourcePath, destPath, status);
         }
         return success;
     }
@@ -266,14 +268,14 @@ public abstract class AbstractRoot implements Root {
         CommitInfo info = new CommitInfo(
                 session.toString(),
                 getCommitSubject(session),
-                moveInfo, message);
+                moveTracker, message);
         base = store.merge(builder, getCommitHook(hook, info), info);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
             permissionProvider.get().refresh();
         }
-        moveInfo.clear();
+        moveTracker.clear();
     }
 
     /**

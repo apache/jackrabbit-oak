@@ -55,20 +55,20 @@ class PermissionValidator extends DefaultValidator {
 
     private final long permission;
 
-    PermissionValidator(Tree parentBefore, Tree parentAfter,
-                        PermissionProvider permissionProvider,
-                        PermissionValidatorProvider provider) {
-        this.parentBefore = parentBefore;
-        this.parentAfter = parentAfter;
+    PermissionValidator(@Nonnull Tree rootTreeBefore, @Nonnull Tree rootTreeAfter,
+                        @Nonnull PermissionProvider permissionProvider,
+                        @Nonnull PermissionValidatorProvider provider) {
+        this.parentBefore = rootTreeBefore;
+        this.parentAfter = rootTreeAfter;
         this.parentPermission = permissionProvider.getTreePermission(parentBefore, TreePermission.EMPTY);
 
         this.permissionProvider = permissionProvider;
         this.provider = provider;
 
-        permission = Permissions.getPermission(getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
+        permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
     }
 
-    private PermissionValidator(Tree parentBefore, Tree parentAfter,
+    PermissionValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter,
                         @Nullable TreePermission parentPermission,
                         @Nonnull PermissionValidator parentValidator) {
         this.parentBefore = parentBefore;
@@ -79,7 +79,7 @@ class PermissionValidator extends DefaultValidator {
         provider = parentValidator.provider;
 
         if (Permissions.NO_PERMISSION == parentValidator.permission) {
-            this.permission = Permissions.getPermission(getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
+            this.permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
         } else {
             this.permission = parentValidator.permission;
         }
@@ -101,7 +101,7 @@ class PermissionValidator extends DefaultValidator {
             String childName = ChildOrderDiff.firstReordered(before, after);
             if (childName != null) {
                 Tree child = parentAfter.getChild(childName);
-                checkPermissions(child, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
+                checkPermissions(parentAfter, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
             } // else: no re-order but only internal update
         } else if (isImmutableProperty(name)) {
             // parent node has been removed and and re-added as
@@ -149,14 +149,31 @@ class PermissionValidator extends DefaultValidator {
         return checkPermissions(child, true, Permissions.REMOVE_NODE);
     }
 
-    //------------------------------------------------------------< private >---
-    private Validator nextValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter, @Nonnull TreePermission treePermission) {
-        Validator validator = new PermissionValidator(parentBefore, parentAfter, treePermission, this);
-        return new VisibleValidator(validator, true, false);
+    //-------------------------------------------------< internal / private >---
+    @Nonnull
+    PermissionValidator createValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter,
+                                        @Nullable TreePermission parentPermission,
+                                        @Nonnull PermissionValidator parentValidator) {
+        return new PermissionValidator(parentBefore, parentAfter, parentPermission, parentValidator);
     }
 
-    private Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
-                                       long defaultPermission) throws CommitFailedException {
+    @CheckForNull
+    Tree getParentAfter() {
+        return parentAfter;
+    }
+
+    @CheckForNull
+    Tree getParentBefore() {
+        return parentBefore;
+    }
+
+    @Nonnull
+    TreePermission getParentPermission() {
+        return parentPermission;
+    }
+
+    Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
+                               long defaultPermission) throws CommitFailedException {
         long toTest = getPermission(tree, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
             if (!permissionProvider.getRepositoryPermission().isGranted(toTest)) {
@@ -172,8 +189,8 @@ class PermissionValidator extends DefaultValidator {
                 return null;
             } else {
                 return (isBefore) ?
-                    nextValidator(tree, null, tp) :
-                    nextValidator(null, tree, tp);
+                        nextValidator(tree, null, tp) :
+                        nextValidator(null, tree, tp);
             }
         }
     }
@@ -198,18 +215,12 @@ class PermissionValidator extends DefaultValidator {
         }
     }
 
-    @CheckForNull
-    private static String getPath(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
-        String path = null;
-        if (parentBefore != null) {
-            path = parentBefore.getPath();
-        } else if (parentAfter != null) {
-            path = parentAfter.getPath();
-        }
-        return path;
+    private Validator nextValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter, @Nonnull TreePermission treePermission) {
+        Validator validator = createValidator(parentBefore, parentAfter, treePermission, this);
+        return new VisibleValidator(validator, true, false);
     }
 
-    public long getPermission(@Nonnull Tree tree, long defaultPermission) {
+    private long getPermission(@Nonnull Tree tree, long defaultPermission) {
         if (permission != Permissions.NO_PERMISSION) {
             return permission;
         }
@@ -226,7 +237,7 @@ class PermissionValidator extends DefaultValidator {
         return perm;
     }
 
-    public long getPermission(@Nonnull Tree parent, @Nonnull PropertyState propertyState, long defaultPermission) {
+    private long getPermission(@Nonnull Tree parent, @Nonnull PropertyState propertyState, long defaultPermission) {
         if (permission != Permissions.NO_PERMISSION) {
             return permission;
         }
@@ -271,7 +282,7 @@ class PermissionValidator extends DefaultValidator {
         return perm;
     }
 
-    public boolean noTraverse(long permission, long defaultPermission) {
+    private boolean noTraverse(long permission, long defaultPermission) {
         if (defaultPermission == Permissions.REMOVE_NODE && provider.requiresJr2Permissions(Permissions.REMOVE_NODE)) {
             return false;
         } else {
