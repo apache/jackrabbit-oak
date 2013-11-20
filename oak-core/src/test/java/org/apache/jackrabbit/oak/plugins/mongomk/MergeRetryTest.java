@@ -30,10 +30,12 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Test for OAK-1198
+ * Test for conflicts introduced by commit hook, which can be overcome by
+ * retrying BranchState.merge().
  */
 public class MergeRetryTest {
 
@@ -57,8 +59,11 @@ public class MergeRetryTest {
         }
     });
 
+    /**
+     * Test for OAK-1198
+     */
     @Test
-    public void retryOnConflict() throws Exception {
+    public void retryInMemory() throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
 
@@ -80,6 +85,48 @@ public class MergeRetryTest {
         } finally {
             mk1.dispose();
             mk2.dispose();
+        }
+    }
+
+    /**
+     * Test for OAK-1202
+     */
+    @Ignore
+    @Test
+    public void retryPersisted() throws Exception {
+        MemoryDocumentStore ds = new MemoryDocumentStore();
+        MemoryBlobStore bs = new MemoryBlobStore();
+
+        MongoMK mk1 = createMK(1, 1000, ds, bs);
+        MongoMK mk2 = createMK(2, 1000, ds, bs);
+
+        try {
+            NodeStore ns1 = new KernelNodeStore(mk1);
+            NodeStore ns2 = new KernelNodeStore(mk2);
+
+            NodeBuilder builder1 = ns1.getRoot().builder();
+            createTree(builder1.child("bar"), 2);
+
+            NodeBuilder builder2 = ns2.getRoot().builder();
+            createTree(builder2.child("qux"), 2);
+
+            ns1.merge(builder1, HOOK, null);
+            ns2.merge(builder2, HOOK, null);
+        } finally {
+            mk1.dispose();
+            mk2.dispose();
+        }
+    }
+
+    private void createTree(NodeBuilder node, int level) {
+        if (level-- > 0) {
+            for (int i = 0; i < 10; i++) {
+                NodeBuilder child = node.child("node-" + i);
+                for (int p = 0; p < 10; p++) {
+                    child.setProperty("p-" + p, "value");
+                }
+                createTree(child, level);
+            }
         }
     }
 
