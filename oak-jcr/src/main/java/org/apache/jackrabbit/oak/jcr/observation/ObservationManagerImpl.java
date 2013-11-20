@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeProcessor;
 import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
 import org.apache.jackrabbit.oak.plugins.observation.FilterProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +66,7 @@ public class ObservationManagerImpl implements ObservationManager {
 
     private final SessionDelegate sessionDelegate;
     private final ReadOnlyNodeTypeManager ntMgr;
+    private final PermissionProvider permissionProvider;
     private final NamePathMapper namePathMapper;
     private final Whiteboard whiteboard;
 
@@ -81,10 +83,12 @@ public class ObservationManagerImpl implements ObservationManager {
      */
     public ObservationManagerImpl(
             SessionDelegate sessionDelegate, ReadOnlyNodeTypeManager nodeTypeManager,
+            PermissionProvider permissionProvider,
             NamePathMapper namePathMapper, Whiteboard whiteboard) {
 
         this.sessionDelegate = sessionDelegate;
         this.ntMgr = nodeTypeManager;
+        this.permissionProvider = permissionProvider;
         this.namePathMapper = namePathMapper;
         this.whiteboard = whiteboard;
     }
@@ -124,7 +128,7 @@ public class ObservationManagerImpl implements ObservationManager {
                 }
             };
             processor = new ChangeProcessor(
-                    sessionDelegate.getContentSession(), namePathMapper, tracker, filterProvider);
+                    sessionDelegate.getContentSession(), permissionProvider, namePathMapper, tracker, filterProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {

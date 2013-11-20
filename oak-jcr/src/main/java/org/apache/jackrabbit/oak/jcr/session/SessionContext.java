@@ -96,6 +96,7 @@ public class SessionContext implements NamePathMapper {
     private SessionImpl session = null;
     private WorkspaceImpl workspace = null;
 
+    private PermissionProvider permissionProvider;
     private AccessControlManager accessControlManager;
     private AccessManager accessManager;
     private PrincipalManager principalManager;
@@ -257,6 +258,7 @@ public class SessionContext implements NamePathMapper {
             observationManager = new ObservationManagerImpl(
                 delegate,
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
+                getPermissionProvider(),
                 namePathMapper, whiteboard);
         }
         return observationManager;
@@ -351,10 +353,7 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     public AccessManager getAccessManager() throws RepositoryException {
         if (accessManager == null) {
-            PermissionProvider pp = checkNotNull(securityProvider)
-                    .getConfiguration(AuthorizationConfiguration.class)
-                    .getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
-            accessManager = new AccessManager(delegate, pp);
+            accessManager = new AccessManager(delegate, getPermissionProvider());
         }
         return accessManager;
     }
@@ -411,4 +410,15 @@ public class SessionContext implements NamePathMapper {
         return securityProvider.getConfiguration(clss);
     }
 
+    private PermissionProvider getPermissionProvider() {
+        // FIXME: review whether 'auto-refresh' should rather be made on a wrapping
+        //        permission provider instead of doing this in the access manager
+        //        since this permission provider is also passed to the observation manager.
+        if (permissionProvider == null) {
+            permissionProvider = checkNotNull(securityProvider)
+                    .getConfiguration(AuthorizationConfiguration.class)
+                    .getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
+        }
+        return permissionProvider;
+    }
 }
