@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
@@ -113,12 +111,6 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     }
 
     private PermissionProvider getPermissionProvider() {
-        Subject subject = commitInfo.getSubject();
-        Set<PermissionProvider> pps = subject.getPublicCredentials(PermissionProvider.class);
-        if (pps.isEmpty()) {
-            throw new IllegalStateException("Unable to validate permissions; no permission provider associated with the commit call.");
-        } else {
-            return pps.iterator().next();
-        }
+        return commitInfo.getPermissionProvider();
     }
 }

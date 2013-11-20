@@ -19,13 +19,11 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import java.util.Iterator;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 
 import static com.google.common.base.Objects.toStringHelper;
 
@@ -38,7 +36,9 @@ public class CommitInfo {
 
     private final String sessionId;
 
-    private final Subject subject;
+    private final String userId;
+
+    private final PermissionProvider permissionProvider;
 
     private final String message;
 
@@ -50,14 +50,18 @@ public class CommitInfo {
      * Creates a commit info for the given session and user.
      *
      * @param sessionId session identifier
-     * @param subject Subject identifying the user
+     * @param userId The user id.
+     * @param permissionProvider The permission provider associated with the
+     * root that is committing changes.
      * @param moveTracker Information regarding move operations associated with this commit.
      * @param message message attached to this commit, or {@code null}
      */
-    public CommitInfo(@Nonnull String sessionId, @Nonnull Subject subject,
+    public CommitInfo(@Nonnull String sessionId, @Nullable String userId,
+                      @Nonnull PermissionProvider permissionProvider,
                       @Nonnull MoveTracker moveTracker, @Nullable String message) {
         this.sessionId = sessionId;
-        this.subject = subject;
+        this.userId = (userId == null) ? OAK_UNKNOWN : userId;
+        this.permissionProvider = permissionProvider;
         this.message = message;
         this.moveTracker = moveTracker;
     }
@@ -75,22 +79,17 @@ public class CommitInfo {
      */
     @Nonnull
     public String getUserId() {
-        Iterator<AuthInfo> it = subject.getPublicCredentials(AuthInfo.class).iterator();
-        String userId = null;
-        if (it.hasNext()) {
-            userId = it.next().getUserID();
-        }
-        return (userId == null) ? OAK_UNKNOWN : userId;
-    }
-
-    @Nonnull
-    public Subject getSubject() {
-        return subject;
+        return userId;
     }
 
     @Nonnull
     public MoveTracker getMoveTracker() {
         return moveTracker;
+    }
+
+    @Nonnull
+    public PermissionProvider getPermissionProvider() {
+        return permissionProvider;
     }
 
     /**
@@ -112,11 +111,9 @@ public class CommitInfo {
     public String toString() {
         return toStringHelper(this)
                 .add("sessionId", sessionId)
-                .add("userId", getUserId())
+                .add("userId", userId)
                 .add("userData", message)
                 .add("date", date)
-                .add("moveTracker", moveTracker)
                 .toString();
     }
-
 }
