@@ -475,6 +475,13 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
 
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+
+            if (pr.first == null && pr.last == null) {
+                // ignore property existence checks, Lucene can't to 'property
+                // is not null' queries (OAK-1208)
+                continue;
+            }
+
             String name = pr.propertyName;
             if (name.contains("/")) {
                 // lucene cannot handle child-level property restrictions
