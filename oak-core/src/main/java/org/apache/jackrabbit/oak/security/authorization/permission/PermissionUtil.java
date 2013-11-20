@@ -92,4 +92,15 @@ public final class PermissionUtil implements PermissionConstants {
         // TODO: deal with hidden properties
         return tree.getType();
     }
+
+    @CheckForNull
+    public static String getPath(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
+        String path = null;
+        if (parentBefore != null) {
+            path = parentBefore.getPath();
+        } else if (parentAfter != null) {
+            path = parentAfter.getPath();
+        }
+        return path;
+    }
 }

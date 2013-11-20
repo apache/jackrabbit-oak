@@ -18,19 +18,25 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Permission evaluation tests for move operations.
  */
-@Ignore("OAK-710 : permission validator doesn't detect move")
-public class MoveTest extends AbstractEvaluationTest {
+public abstract class AbstractMoveTest extends AbstractEvaluationTest {
 
-    private String nodePath3;
+    protected String nodePath3;
+
+    protected String destPath;
+    protected String siblingDestPath;
+
+    protected Privilege[] modifyChildCollection;
 
     @Override
     @Before
@@ -38,50 +44,31 @@ public class MoveTest extends AbstractEvaluationTest {
         super.setUp();
 
         Node node3 = superuser.getNode(childNPath).addNode(nodeName3);
+        node3.setProperty("movedProp", "val");
         nodePath3 = node3.getPath();
         superuser.save();
         testSession.refresh(false);
+
+        destPath = path + "/destination";
+        siblingDestPath = siblingPath + "/destination";
+
+        modifyChildCollection = privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_REMOVE_CHILD_NODES});
     }
 
-    @Test
-    public void testSessionMove() throws Exception {
-        String destPath = path + '/' + nodeName1;
+    abstract protected void move(String source, String dest) throws RepositoryException;
+    abstract protected void move(String source, String dest, Session session) throws RepositoryException;
 
+    @Test
+    public void testMove() throws Exception {
         // give 'add_child_nodes' and 'nt-management' privilege
         // -> not sufficient privileges for a move
-        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        allow(path, privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
         try {
-            testSession.move(childNPath, destPath);
-            testSession.save();
-            fail("Move requires addChildNodes and removeChildNodes privilege.");
-        } catch (AccessDeniedException e) {
-            // success.
-        }
-
-        // add 'remove_child_nodes' at 'path
-        // -> not sufficient for a move since 'remove_node' privilege is missing
-        //    on the move-target
-        allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
-        try {
-            testSession.move(childNPath, destPath);
-            testSession.save();
-            fail("Move requires addChildNodes and removeChildNodes privilege.");
-        } catch (AccessDeniedException e) {
-            // success.
-        }
-
-        // allow 'remove_node' at childNPath
-        // -> now move must succeed
-        allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
-        testSession.move(childNPath, destPath);
-        testSession.save();
-
-        // withdraw  'add_child_nodes' privilege on former src-parent
-        // -> moving child-node back must fail
-        deny(path, privilegesFromName(Privilege.JCR_ADD_CHILD_NODES));
-        try {
-            testSession.move(destPath, childNPath);
-            testSession.save();
+            move(childNPath, destPath);
             fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
@@ -89,45 +76,89 @@ public class MoveTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testWorkspaceMove() throws Exception {
-        String destPath = path + '/' + nodeName1;
+    public void testMove2() throws Exception {
+        // grant 'add_child_nodes', 'remove_child_nodes' at 'path'
+        // -> not sufficient for a move since 'remove_node' privilege is missing
+        //    on the move-target
+        allow(path, modifyChildCollection);
+        try {
+            move(childNPath, destPath);
+            fail("Move requires addChildNodes and removeChildNodes privilege.");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+    }
 
-        // give 'add_child_nodes', 'nt-mgmt' privilege
-        // -> not sufficient privileges for a move.
-        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES,
+    @Test
+    public void testMove2b() throws Exception {
+        // grant 'add_child_nodes', 'remove_child_nodes' and 'nt_mgt' at 'path'
+        // -> not sufficient for a move since 'remove_node' privilege is missing
+        //    on the move-target
+        allow(path, privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_REMOVE_CHILD_NODES,
                 Privilege.JCR_NODE_TYPE_MANAGEMENT}));
         try {
-            testSession.getWorkspace().move(childNPath, destPath);
+            move(childNPath, destPath);
             fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
         }
+    }
 
-        // add 'remove_child_nodes' at 'path
-        // -> no sufficient for a move since 'remove_node' privilege is missing
-        //    on the move-target
-        allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
-        try {
-            testSession.getWorkspace().move(childNPath, destPath);
-            fail("Move requires addChildNodes and removeChildNodes privilege.");
-        } catch (AccessDeniedException e) {
-            // success.
-        }
+    @Test
+    public void testMove3() throws Exception {
+        allow(path, privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_REMOVE_CHILD_NODES,
+                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
 
         // allow 'remove_node' at childNPath
         // -> now move must succeed
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
-        testSession.getWorkspace().move(childNPath, destPath);
+
+        move(childNPath, destPath);
+    }
+
+    @Test
+    public void testMove4() throws Exception {
+        allow(path, privilegesFromName(PrivilegeConstants.REP_WRITE));
+        move(childNPath, destPath);
 
         // withdraw  'add_child_nodes' privilege on former src-parent
         // -> moving child-node back must fail
         deny(path, privilegesFromName(Privilege.JCR_ADD_CHILD_NODES));
+
         try {
-            testSession.getWorkspace().move(destPath, childNPath);
+            move(destPath, childNPath);
             fail("Move requires addChildNodes and removeChildNodes privilege.");
         } catch (AccessDeniedException e) {
             // success.
         }
+    }
+
+    @Test
+    public void testMissingJcrAddChildNodesAtDestParent() throws Exception {
+        allow(path, privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_REMOVE_CHILD_NODES}));
+        try {
+            move(childNPath, siblingDestPath);
+            fail("Move requires addChildNodes privilege at dest parent");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+    }
+
+    @Test
+    public void testDifferentDestParent() throws Exception {
+        allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
+        allow(siblingPath, privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT
+        }));
+        allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
+
+        move(childNPath, siblingDestPath);
     }
 
     @Test
@@ -145,8 +176,7 @@ public class MoveTest extends AbstractEvaluationTest {
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
 
-        superuser.move(childNPath, movedChildNPath);
-        superuser.save();
+        move(childNPath, movedChildNPath, superuser);
 
         // expected behavior:
         // the AC-content present on childNode is still enforced both on
@@ -170,8 +200,7 @@ public class MoveTest extends AbstractEvaluationTest {
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
 
-        superuser.move(childNPath, movedChildNPath);
-        superuser.save();
+        move(childNPath, movedChildNPath, superuser);
 
         // expected behavior:
         // the AC-content present on node3 is still enforced
@@ -191,8 +220,7 @@ public class MoveTest extends AbstractEvaluationTest {
         // move the ancestor node
         String movedPath = path + "/movedNode";
 
-        superuser.move(nodePath3, movedPath);
-        superuser.save();
+        move(nodePath3, movedPath, superuser);
 
         // expected behavior:
         // due to move node3 should not e visible any more
@@ -212,8 +240,7 @@ public class MoveTest extends AbstractEvaluationTest {
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
 
-        superuser.move(childNPath, movedChildNPath);
-        superuser.save();
+        move(childNPath, movedChildNPath, superuser);
 
         assertFalse(testSession.nodeExists(movedNode3Path));
         assertHasPrivileges(movedNode3Path, readPrivileges, false);
@@ -230,8 +257,7 @@ public class MoveTest extends AbstractEvaluationTest {
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
 
-        superuser.move(childNPath, movedChildNPath);
-        superuser.save();
+        move(childNPath, movedChildNPath, superuser);
 
         assertFalse(testSession.nodeExists(movedNode3Path));
         assertHasPrivileges(movedNode3Path, readPrivileges, false);

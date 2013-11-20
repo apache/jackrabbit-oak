@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.MoveInfo;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -48,6 +48,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     private final long jr2Permissions;
 
     private final CommitInfo commitInfo;
+    private final MoveTracker moveTracker;
 
     private ReadOnlyNodeTypeManager ntMgr;
     private Context acCtx;
@@ -62,6 +63,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         jr2Permissions = Permissions.getPermissions(compatValue);
 
         this.commitInfo = commitInfo;
+        moveTracker = commitInfo.getMoveTracker();
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -71,10 +73,14 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         ntMgr = ReadOnlyNodeTypeManager.getInstance(after);
 
         PermissionProvider pp = getPermissionProvider();
-        // TODO
-        MoveInfo moveInfo = commitInfo.getMoveInfo();
+        ImmutableTree treeBefore = createTree(before);
+        ImmutableTree treeAfter = createTree(after);
 
-        return new PermissionValidator(createTree(before), createTree(after), pp, this);
+        if (moveTracker.isEmpty()) {
+            return new PermissionValidator(treeBefore, treeAfter, pp, this);
+        } else {
+            return new MoveAwarePermissionValidator(treeBefore, treeAfter, pp, this, moveTracker);
+        }
     }
 
     //--------------------------------------------------------------------------
