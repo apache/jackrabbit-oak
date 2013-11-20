@@ -30,8 +30,11 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filte
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TODO NodeTypeFilter...
- * TODO Clarify: filter applies to parent
+ * {@code EventTypeFilter} filters based on the node type of the
+ * <em>associated parent node</em> as defined by
+ * {@link javax.jcr.observation.ObservationManager#addEventListener(
+        javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean)
+        ObservationManager.addEventListener()}.
  */
 public class NodeTypeFilter implements Filter {
     private final ImmutableTree beforeTree;
@@ -39,6 +42,15 @@ public class NodeTypeFilter implements Filter {
     private final ReadOnlyNodeTypeManager ntManager;
     private final String[] ntNames;
 
+    /**
+     * Create a new {@code Filter} instance that includes an event when the type of the
+     * associated parent node is of one of the node types in {@code ntNames}.
+     *
+     * @param beforeTree  associated parent before state
+     * @param afterTree   associated parent after state
+     * @param ntManager   node type manager used to determine type inhabitation
+     * @param ntNames     node type names to match
+     */
     public NodeTypeFilter(@Nonnull ImmutableTree beforeTree, @Nonnull ImmutableTree afterTree,
             @Nonnull ReadOnlyNodeTypeManager ntManager, @Nonnull String[] ntNames) {
         this.beforeTree = checkNotNull(beforeTree);
@@ -90,13 +102,6 @@ public class NodeTypeFilter implements Filter {
 
     //------------------------------------------------------------< private >---
 
-    /**
-     * Checks whether to include an event based on the type of the associated
-     * parent node and the node type filter.
-     *
-     * @return whether to include the event based on the type of the associated
-     *         parent node.
-     */
     private boolean includeByType() {
         ImmutableTree associatedParent = afterTree.exists()
             ? afterTree

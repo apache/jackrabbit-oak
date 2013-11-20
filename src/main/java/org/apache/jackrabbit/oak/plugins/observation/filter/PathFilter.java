@@ -30,8 +30,10 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filte
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TODO PathFilter...
- * TODO Clarify: filter applies to parent
+ * {@code EventTypeFilter} filters based on the path of the <em>associated parent node</em> as
+ * defined by {@link javax.jcr.observation.ObservationManager#addEventListener(
+        javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean)
+        ObservationManager.addEventListener()}.
  */
 public class PathFilter implements Filter {
     private final ImmutableTree beforeTree;
@@ -39,6 +41,15 @@ public class PathFilter implements Filter {
     private final String path;
     private final boolean deep;
 
+    /**
+     * Create a new {@code Filter} instance that includes an event when the path of the
+     * associated parent node matches the one of this filter or - when the {@code deep}
+     * flag is set - is a descendant of the path of this filter.
+     *
+     * @param beforeTree  associated parent before state
+     * @param afterTree   associated parent after state
+     * @param path        path to match
+     */
     public PathFilter(@Nonnull ImmutableTree beforeTree, @Nonnull ImmutableTree afterTree,
             @Nonnull String path, boolean deep) {
         this.beforeTree = checkNotNull(beforeTree);
