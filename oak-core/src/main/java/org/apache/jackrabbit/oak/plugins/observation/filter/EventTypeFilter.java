@@ -26,11 +26,23 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filte
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TODO EventTypeFilter...
+ * {@code EventTypeFilter} filters based on event types as defined
+ * by {@link javax.jcr.observation.ObservationManager#addEventListener(
+        javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean)
+        ObservationManager.addEventListener()}.
  */
 public class EventTypeFilter implements Filter {
     private final int eventTypes;
 
+    /**
+     * Create a new {@code Filter} instance that includes all events matching
+     * the {@code eventTypes} bit mask. That is, a given event is included if
+     * the corresponding bit in {@code eventType} is set.
+     *
+     * @param eventTypes  bit mask encoding the types of events to include
+     *
+     * @see Event
+     */
     public EventTypeFilter(int eventTypes) {
         this.eventTypes = eventTypes;
     }
