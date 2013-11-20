@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Set;
 
 abstract class CacheInvalidator {
-    static final Logger LOG = LoggerFactory.getLogger(HierarchicalInvalidator.class);
+    static final Logger LOG = LoggerFactory.getLogger(CacheInvalidator.class);
 
     public abstract InvalidationResult invalidateCache();
 
