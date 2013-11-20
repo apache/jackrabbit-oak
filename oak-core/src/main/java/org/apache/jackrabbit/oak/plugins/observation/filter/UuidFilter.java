@@ -30,14 +30,25 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filte
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TODO UuidFilter
- * TODO Clarify: filter applies to parent
+ * {@code EventTypeFilter} filters based on the uuid of the
+ * <em>associated parent node</em> as defined by
+ * {@link javax.jcr.observation.ObservationManager#addEventListener(
+        javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean)
+        ObservationManager.addEventListener()}.
  */
 public class UuidFilter implements Filter {
     private final NodeState before;
     private final NodeState after;
     private final String[] uuids;
 
+    /**
+     * Create a new {@code Filter} instance that includes an event when the uuid of the
+     * associated parent node matches one of the uuids of this filter.
+     *
+     * @param before  associated parent before state
+     * @param after   associated parent after state
+     * @param uuids   uuids to match
+     */
     public UuidFilter(@Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull String[] uuids) {
         this.before = checkNotNull(before);
