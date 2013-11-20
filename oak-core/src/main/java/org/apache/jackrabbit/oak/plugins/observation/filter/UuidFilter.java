@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.LazyValue;
 
 /**
  * {@code EventTypeFilter} filters based on the uuid of the
@@ -40,6 +41,32 @@ public class UuidFilter implements Filter {
     private final NodeState before;
     private final NodeState after;
     private final String[] uuids;
+
+    private final LazyValue<Boolean> include = new LazyValue<Boolean>() {
+        @Override
+        protected Boolean createValue() {
+            if (uuids.length == 0) {
+                return false;
+            }
+
+            NodeState associatedParent = after.exists()
+                ? after
+                : before;
+
+            PropertyState uuidProperty = associatedParent.getProperty(JcrConstants.JCR_UUID);
+            if (uuidProperty == null) {
+                return false;
+            }
+
+            String parentUuid = uuidProperty.getValue(Type.STRING);
+            for (String uuid : uuids) {
+                if (parentUuid.equals(uuid)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
 
     /**
      * Create a new {@code Filter} instance that includes an event when the uuid of the
@@ -58,22 +85,22 @@ public class UuidFilter implements Filter {
 
     @Override
     public boolean includeAdd(PropertyState after) {
-        return includeByUuid();
+        return include.get();
     }
 
     @Override
     public boolean includeChange(PropertyState before, PropertyState after) {
-        return includeByUuid();
+        return include.get();
     }
 
     @Override
     public boolean includeDelete(PropertyState before) {
-        return includeByUuid();
+        return include.get();
     }
 
     @Override
     public boolean includeAdd(String name, NodeState after) {
-        return includeByUuid();
+        return include.get();
     }
 
     @Override
@@ -83,42 +110,17 @@ public class UuidFilter implements Filter {
 
     @Override
     public boolean includeDelete(String name, NodeState before) {
-        return includeByUuid();
+        return include.get();
     }
 
     @Override
     public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-        return includeByUuid();
+        return include.get();
     }
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
         return new UuidFilter(before, after, uuids);
-    }
-
-    //------------------------------------------------------------< private >---
-
-    private boolean includeByUuid() {
-        if (uuids.length == 0) {
-            return false;
-        }
-
-        NodeState associatedParent = after.exists()
-            ? after
-            : before;
-
-        PropertyState uuidProperty = associatedParent.getProperty(JcrConstants.JCR_UUID);
-        if (uuidProperty == null) {
-            return false;
-        }
-
-        String parentUuid = uuidProperty.getValue(Type.STRING);
-        for (String uuid : uuids) {
-            if (parentUuid.equals(uuid)) {
-                return true;
-            }
-        }
-        return false;
     }
 
 }

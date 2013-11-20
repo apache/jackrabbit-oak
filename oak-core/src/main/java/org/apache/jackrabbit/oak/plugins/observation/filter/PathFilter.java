@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 import javax.annotation.Nonnull;
 
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.LazyValue;
 
 /**
  * {@code EventTypeFilter} filters based on the path of the <em>associated parent node</em> as
@@ -40,6 +42,22 @@ public class PathFilter implements Filter {
     private final ImmutableTree afterTree;
     private final String path;
     private final boolean deep;
+
+    private final LazyValue<Boolean> include = new LazyValue<Boolean>() {
+        @Override
+        protected Boolean createValue() {
+            String associatedParentPath = afterTree.exists()
+                    ? afterTree.getPath()
+                    : beforeTree.getPath();
+
+            boolean equalPaths = path.equals(associatedParentPath);
+            if (!deep) {
+                return equalPaths;
+            } else {
+                return equalPaths || isAncestor(path, associatedParentPath);
+            }
+        }
+    };
 
     /**
      * Create a new {@code Filter} instance that includes an event when the path of the
@@ -60,75 +78,52 @@ public class PathFilter implements Filter {
 
     @Override
     public boolean includeAdd(PropertyState after) {
-        return includeByPath();
+        return include.get();
     }
 
     @Override
     public boolean includeChange(PropertyState before, PropertyState after) {
-        return includeByPath();
+        return include.get();
     }
 
     @Override
     public boolean includeDelete(PropertyState before) {
-        return includeByPath();
+        return include.get();
     }
 
     @Override
     public boolean includeAdd(String name, NodeState after) {
-        return includeByPath();
+        return include.get();
     }
 
     @Override
     public boolean includeChange(String name, NodeState before, NodeState after) {
-        return includeByPath();
+        return include.get();
     }
 
     @Override
     public boolean includeDelete(String name, NodeState before) {
-        return includeByPath();
+        return include.get();
     }
 
     @Override
     public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-        return includeByPath();
+        return include.get();
     }
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
-        if (includeChildren(name)) {
+        String associatedParentPath = afterTree.exists()
+            ? PathUtils.concat(afterTree.getPath(), name)
+            : PathUtils.concat(beforeTree.getPath(), name);
+
+        if (isAncestor(associatedParentPath, path) ||
+                path.equals(associatedParentPath) ||
+                deep && isAncestor(path, associatedParentPath)) {
             return new PathFilter(beforeTree, afterTree.getChild(name), path, deep);
         } else {
             return null;
         }
     }
-
-    //------------------------------------------------------------< private >---
-
-    private boolean includeByPath() {
-        String path = afterTree.exists()
-            ? afterTree.getPath()
-            : beforeTree.getPath();
-
-        boolean equalPaths = this.path.equals(path);
-        if (!deep && !equalPaths) {
-            return false;
-        }
-
-        if (deep && !(PathUtils.isAncestor(this.path, path) || equalPaths)) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean includeChildren(String name) {
-        String path = afterTree.exists()
-            ? PathUtils.concat(afterTree.getPath(), name)
-            : PathUtils.concat(beforeTree.getPath(), name);
-
-        return PathUtils.isAncestor(path, this.path) ||
-                path.equals((this.path)) ||
-                deep && PathUtils.isAncestor(this.path, path);
-    }
-
 
 }

@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.LazyValue;
 
 /**
  * {@code EventTypeFilter} filters based on the node type of the
@@ -41,6 +42,22 @@ public class NodeTypeFilter implements Filter {
     private final ImmutableTree afterTree;
     private final ReadOnlyNodeTypeManager ntManager;
     private final String[] ntNames;
+
+    private final LazyValue<Boolean> include = new LazyValue<Boolean>() {
+        @Override
+        protected Boolean createValue() {
+            ImmutableTree associatedParent = afterTree.exists()
+                    ? afterTree
+                    : beforeTree;
+
+            for (String ntName : ntNames) {
+                if (ntManager.isNodeType(associatedParent, ntName)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
 
     /**
      * Create a new {@code Filter} instance that includes an event when the type of the
@@ -61,22 +78,22 @@ public class NodeTypeFilter implements Filter {
 
     @Override
     public boolean includeAdd(PropertyState after) {
-        return includeByType();
+        return include.get();
     }
 
     @Override
     public boolean includeChange(PropertyState before, PropertyState after) {
-        return includeByType();
+        return include.get();
     }
 
     @Override
     public boolean includeDelete(PropertyState before) {
-        return includeByType();
+        return include.get();
     }
 
     @Override
     public boolean includeAdd(String name, NodeState after) {
-        return includeByType();
+        return include.get();
     }
 
     @Override
@@ -86,33 +103,18 @@ public class NodeTypeFilter implements Filter {
 
     @Override
     public boolean includeDelete(String name, NodeState before) {
-        return includeByType();
+        return include.get();
     }
 
     @Override
     public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-        return includeByType();
+        return include.get();
     }
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
         return new NodeTypeFilter(
                 beforeTree.getChild(name), afterTree.getChild(name), ntManager, ntNames);
-    }
-
-    //------------------------------------------------------------< private >---
-
-    private boolean includeByType() {
-        ImmutableTree associatedParent = afterTree.exists()
-            ? afterTree
-            : beforeTree;
-
-        for (String ntName : ntNames) {
-            if (ntManager.isNodeType(associatedParent, ntName)) {
-                return true;
-            }
-        }
-        return false;
     }
 
 }
