@@ -187,15 +187,15 @@ abstract class CacheInvalidator {
                 final boolean hasMore = pitr.hasNext();
 
                 //Change in level or last element
-                if ((hasMore && tn.level() != pitr.peek().level())
-                        ||
-                        (!hasMore && !sameLevelNodes.isEmpty())) {
+                if (!sameLevelNodes.isEmpty() &&
+                        ((hasMore && tn.level() != pitr.peek().level()) || !hasMore )) {
 
                     QueryBuilder query = QueryBuilder.start(Document.ID)
                             .in(sameLevelNodes.keySet());
 
                     //Fetch lastRev and modCount for each such nodes
                     DBCursor cursor = nodes.find(query.get(), keys);
+                    LOG.debug("Checking for changed nodes at level {} with {} paths",tn.level(),sameLevelNodes.size());
                     result.queryCount++;
                     for (DBObject obj : cursor) {
 
