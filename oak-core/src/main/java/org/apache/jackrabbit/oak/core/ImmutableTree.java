@@ -90,7 +90,7 @@ public final class ImmutableTree extends AbstractTree {
     /**
      * Underlying node state
      */
-    final NodeState state;
+    private final NodeState state;
 
     private final ParentProvider parentProvider;
     private final TreeTypeProvider typeProvider;
@@ -250,7 +250,10 @@ public final class ImmutableTree extends AbstractTree {
         return "ImmutableTree '" + getName() + "':" + state.toString();
     }
 
-    //------------------------------------------------------------< internal >---
+    //--------------------------------------------------------------------------
+    public NodeState unwrap() {
+        return state;
+    }
 
     public int getType() {
         if (type == TreeTypeProvider.TYPE_NONE) {
