@@ -234,7 +234,7 @@ abstract class CacheInvalidator {
             }
 
             result.timeTaken = System.currentTimeMillis() - startTime;
-            LOG.info("Cache invalidation details - {}", result);
+            LOG.debug("Cache invalidation details - {}", result);
 
             //TODO collect the list of ids which are invalidated such that entries for only those
             //ids are removed from the Document Children Cache
