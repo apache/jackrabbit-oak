@@ -33,6 +33,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventTypeFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.NodeTypeFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PathFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UuidFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 
 /**
  * Provider for a filter filtering observation events according to a certain criterion.
@@ -92,7 +94,8 @@ public class FilterProvider {
             && (includeClusterExternal || !isExternal(info));
     }
 
-    public Filter getFilter(ImmutableTree beforeTree, ImmutableTree afterTree) {
+    public Filter getFilter(ImmutableTree beforeTree, ImmutableTree afterTree,
+            TreePermission treePermission) {
         List<Filter> filters = Lists.<Filter>newArrayList(
                 new PathFilter(beforeTree, afterTree, path, deep));
 
@@ -119,7 +122,7 @@ public class FilterProvider {
             }
         }
 
-        // TODO add filter based on access rights of the reading session. See OAK-1163
+        filters.add(new ACFilter(beforeTree, afterTree, treePermission));
         return Filters.all(filters.toArray(new Filter[filters.size()]));
     }
 
