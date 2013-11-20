@@ -169,6 +169,7 @@ public final class KernelNodeState extends AbstractNodeState {
                         path, revision, 0, 0, MAX_CHILD_NODE_NAMES,
                         "{\"properties\":[\"*\",\":hash\",\":id\"]}");
 
+                checkNotNull(json,"No node found at path [%s] for revision [%s]",path,revision);
                 JsopReader reader = new JsopTokenizer(json);
                 reader.read('{');
                 properties = new LinkedHashMap<String, PropertyState>();
