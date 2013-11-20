@@ -46,6 +46,8 @@ import org.apache.jackrabbit.oak.plugins.mongomk.Node.Children;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * A MicroKernel implementation that stores the data in a MongoDB.
  */
@@ -192,7 +194,9 @@ public class MongoMK implements MicroKernel {
 
         if (from == null || to == null) {
             // TODO implement correct behavior if the node does't/didn't exist
-            throw new MicroKernelException("Diff is only supported if the node exists in both cases");
+            String msg = String.format("Diff is only supported if the node exists in both cases. " +
+                    "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",path,fromRev, from != null, toRev, to != null);
+            throw new MicroKernelException(msg);
         }
         JsopWriter w = new JsopStream();
         for (String p : from.getPropertyNames()) {
@@ -311,6 +315,8 @@ public class MongoMK implements MicroKernel {
                 // a change is detected if the node changed recently,
                 // even if the revisions are well in the past
                 // if this is a problem it would need to be changed
+                checkNotNull(n1, "Node at [%s] not found for fromRev [%s]", n, fromRev);
+                checkNotNull(n2, "Node at [%s] not found for toRev [%s]", n, toRev);
                 if (!n1.getId().equals(n2.getId())) {
                     w.tag('^').key(n).object().endObject().newline();
                 }
