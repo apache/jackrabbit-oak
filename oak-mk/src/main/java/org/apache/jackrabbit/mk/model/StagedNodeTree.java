@@ -142,6 +142,9 @@ public class StagedNodeTree {
      *                   or if another error occurs
      */
     public void add(String parentNodePath, String nodeName, JsonObject nodeData) throws Exception {
+        if (nodeName.isEmpty()) {
+            throw new Exception("cannot add a node with an empty name");
+        }
         StagedNode parent = getStagedNode(parentNodePath, true);
         if (parent.getChildNodeEntry(nodeName) != null) {
             throw new Exception("there's already a child node with name '" + nodeName + "'");
@@ -180,6 +183,9 @@ public class StagedNodeTree {
      * @throws Exception if another error occurs
      */
     public void setProperty(String nodePath, String propName, String propValue) throws Exception {
+        if (propName.isEmpty()) {
+            throw new Exception("cannot set a property with an empty name");
+        }
         StagedNode node = getStagedNode(nodePath, true);
 
         Map<String, String> properties = node.getProperties();
