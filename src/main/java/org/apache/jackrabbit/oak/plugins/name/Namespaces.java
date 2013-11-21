@@ -126,6 +126,7 @@ public class Namespaces implements NamespaceConstants {
         }
 
         NodeBuilder data = namespaces.setChildNode(NSDATA);
+        data.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
         data.setProperty(NSDATA_PREFIXES, prefixes, Type.STRINGS);
         data.setProperty(NSDATA_URIS, uris, Type.STRINGS);
         for (Entry<String, String> e : reverse.entrySet()) {
