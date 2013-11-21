@@ -415,7 +415,7 @@ public class MicroKernelImplTest {
                 rev, mk.commit("/", "", rev, null));
     }
 
-    @Test(expected = MicroKernelException.class)
+    @Test(expected = Throwable.class)
     public void foo() {
         mk.commit("", "+\"/x\":{}", null, null);
         mk.commit("", "+\"/x/\":{}", null, null);
