@@ -404,7 +404,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                 throws CommitFailedException {
             try {
                 CommitFailedException ex = null;
-                for (long backoff = 1; backoff < maximumBackoff; backoff *= 2) {
+                for (long backoff = 100; backoff < maximumBackoff; backoff *= 2) {
                     if (ex != null) {
                         try {
                             Thread.sleep(backoff, RANDOM.nextInt(1000000));
