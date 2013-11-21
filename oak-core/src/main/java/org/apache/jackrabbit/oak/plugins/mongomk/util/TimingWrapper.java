@@ -267,6 +267,21 @@ public class TimingWrapper implements MicroKernel {
         }
     }
 
+    @Nonnull
+    @Override
+    public String reset(@Nonnull String branchRevisionId,
+                        @Nonnull String ancestorRevisionId)
+            throws MicroKernelException {
+        try {
+            long start = now();
+            String result = mk.reset(branchRevisionId, ancestorRevisionId);
+            updateAndLogTimes("reset", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
     private static RuntimeException convert(Exception e) {
         if (e instanceof RuntimeException) {
             return (RuntimeException) e;

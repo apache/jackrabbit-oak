@@ -1295,6 +1295,45 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
+    public void resetToCurrentBranchHead() {
+        String rev = mk.branch(null);
+        rev = addNodes(rev, "/foo");
+        String reset = mk.reset(rev, rev);
+        assertTrue(mk.diff(rev, reset, "/", -1).length() == 0);
+    }
+
+    @Test
+    public void resetTrunk() {
+        String rev = addNodes(null, "/foo");
+        try {
+            mk.reset(rev, rev);
+            fail("MicroKernelException expected");
+        } catch (MicroKernelException expected) {}
+    }
+
+    @Test
+    public void resetNonAncestor() {
+        String rev = mk.getHeadRevision();
+        addNodes(null, "/foo");
+        String branch = mk.branch(null);
+        branch = addNodes(branch, "/bar");
+        try {
+            mk.reset(branch, rev);
+            fail("MicroKernelException expected");
+        } catch (MicroKernelException expected) {}
+    }
+
+    @Test
+    public void resetBranch() {
+        String branch = mk.branch(null);
+        branch = addNodes(branch, "/foo");
+        String head = addNodes(branch, "/bar");
+        assertNodesExist(head, "/bar");
+        head = mk.reset(head, branch);
+        assertNodesNotExist(head, "/bar");
+    }
+
+    @Test
     public void testSmallBlob() {
         testBlobs(1024, 1024);
     }

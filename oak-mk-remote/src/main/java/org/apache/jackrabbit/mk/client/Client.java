@@ -321,6 +321,26 @@ public class Client implements MicroKernel {
         throw new UnsupportedOperationException();
     }
 
+    @Nonnull
+    @Override
+    public String reset(@Nonnull String branchRevisionId,
+                        @Nonnull String ancestorRevisionId)
+            throws MicroKernelException {
+
+        Request request = null;
+
+        try {
+            request = createRequest("reset");
+            request.addParameter("branch_revision_id", branchRevisionId);
+            request.addParameter("ancestor_revision_id", ancestorRevisionId);
+            return request.getString();
+        } catch (IOException e) {
+            throw toMicroKernelException(e);
+        } finally {
+            IOUtils.closeQuietly(request);
+        }
+    }
+
     @Override
     public long getLength(String blobId) throws MicroKernelException {
         Request request = null;

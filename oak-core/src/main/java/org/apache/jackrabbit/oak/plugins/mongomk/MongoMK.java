@@ -449,6 +449,22 @@ public class MongoMK implements MicroKernel {
         return nodeStore.rebase(r, base).toString();
     }
 
+    @Nonnull
+    @Override
+    public String reset(@Nonnull String branchRevisionId,
+                        @Nonnull String ancestorRevisionId)
+            throws MicroKernelException {
+        Revision branch = Revision.fromString(branchRevisionId);
+        if (!branch.isBranch()) {
+            throw new MicroKernelException("Not a branch revision: " + branchRevisionId);
+        }
+        Revision ancestor = Revision.fromString(ancestorRevisionId);
+        if (!ancestor.isBranch()) {
+            throw new MicroKernelException("Not a branch revision: " + ancestorRevisionId);
+        }
+        return nodeStore.reset(branch, ancestor).toString();
+    }
+
     @Override
     public long getLength(String blobId) throws MicroKernelException {
         try {
