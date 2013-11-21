@@ -182,4 +182,12 @@ public abstract class MongoMKTestBase {
         }
         return val;
     }
+
+    protected String addNodes(String rev, String...nodes) {
+        String newRev = rev;
+        for (String node : nodes) {
+            newRev = getMicroKernel().commit("", "+\"" + node + "\":{}", newRev, "");
+        }
+        return newRev;
+    }
 }

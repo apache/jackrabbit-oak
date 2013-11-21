@@ -16,15 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import java.io.IOException;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -42,22 +38,6 @@ public class MongoNodeStoreBranch
      * TODO: fall back to pessimistic approach? how does this work in a cluster?
      */
     private static final int MERGE_RETRIES = 10;
-
-    private final BlobSerializer blobs = new BlobSerializer() {
-        @Override
-        public String serialize(Blob blob) {
-            if (blob instanceof MongoBlob) {
-                return blob.toString();
-            }
-            String id;
-            try {
-                id = store.createBlob(blob.getNewStream()).toString();
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-            return id;
-        }
-    };
 
     public MongoNodeStoreBranch(MongoNodeStore store,
                                 MongoNodeState base) {
@@ -92,7 +72,8 @@ public class MongoNodeStoreBranch
         MongoNodeState state = persist(new Changes() {
             @Override
             public void with(Commit c) {
-                toPersist.compareAgainstBaseState(base, new CommitDiff(c, blobs));
+                toPersist.compareAgainstBaseState(base,
+                        new CommitDiff(c, store.getBlobSerializer()));
             }
         }, base, info);
         if (base.isBranch()) {

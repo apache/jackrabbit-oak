@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
@@ -218,6 +219,25 @@ public final class MongoNodeStore
      * The MongoDB blob store.
      */
     private final BlobStore blobStore;
+
+    /**
+     * The BlobSerializer.
+     */
+    private final BlobSerializer blobSerializer = new BlobSerializer() {
+        @Override
+        public String serialize(Blob blob) {
+            if (blob instanceof MongoBlob) {
+                return blob.toString();
+            }
+            String id;
+            try {
+                id = createBlob(blob.getNewStream()).toString();
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+            return id;
+        }
+    };
 
     public MongoNodeStore(MongoMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
@@ -758,6 +778,46 @@ public final class MongoNodeStore
     }
 
     @Nonnull
+    Revision reset(@Nonnull Revision branchHead, @Nonnull Revision ancestor) {
+        checkNotNull(branchHead);
+        checkNotNull(ancestor);
+        Branch b = getBranches().getBranch(branchHead);
+        if (b == null) {
+            throw new MicroKernelException("Empty branch cannot be reset");
+        }
+        if (!b.containsCommit(ancestor)) {
+            throw new MicroKernelException(ancestor + " is not " +
+                    "an ancestor revision of " + branchHead);
+        }
+        Revision rev;
+        boolean success = false;
+        Commit commit = newCommit(branchHead);
+        try {
+            // apply reverse diff
+            getRoot(ancestor).compareAgainstBaseState(getRoot(branchHead),
+                    new CommitDiff(commit, getBlobSerializer()));
+            UpdateOp rootOp = commit.getUpdateOperationForNode("/");
+            // clear collisions
+            Iterator<Revision> it = b.getCommits().tailSet(ancestor).iterator();
+            // first revision is the ancestor
+            // do not clear collision for this revision
+            it.next();
+            while (it.hasNext()) {
+                NodeDocument.unsetCollision(rootOp, it.next());
+            }
+            rev = apply(commit);
+            success = true;
+        } finally {
+            if (!success) {
+                canceled(commit);
+            } else {
+                done(commit, true, null);
+            }
+        }
+        return rev;
+    }
+
+    @Nonnull
     Revision merge(@Nonnull Revision branchHead, @Nullable CommitInfo info) {
         Branch b = getBranches().getBranch(branchHead);
         Revision base = branchHead;
@@ -1193,6 +1253,10 @@ public final class MongoNodeStore
 
     public BlobStore getBlobStore() {
         return blobStore;
+    }
+
+    BlobSerializer getBlobSerializer() {
+        return blobSerializer;
     }
     
 }
