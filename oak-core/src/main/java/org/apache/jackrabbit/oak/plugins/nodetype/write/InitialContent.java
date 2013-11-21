@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
@@ -90,7 +90,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         NodeState base = builder.getNodeState();
         NodeStore store = new MemoryNodeStore(base);
         BuiltInNodeTypes.register(new SystemRoot(store, new EditorHook(
-                new CompositeEditorProvider(new NamespaceValidatorProvider(),
+                new CompositeEditorProvider(new NamespaceEditorProvider(),
                         new RegistrationEditorProvider()))));
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));

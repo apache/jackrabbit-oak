@@ -40,7 +40,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
     protected ContentSession createContentSession() {
         return new Oak(store).with(new OpenSecurityProvider())
                 .with(new InitialContent())
-                .with(new NamespaceValidatorProvider()).createContentSession();
+                .with(new NamespaceEditorProvider()).createContentSession();
     }
 
     @Test
