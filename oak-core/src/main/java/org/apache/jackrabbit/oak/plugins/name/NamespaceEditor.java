@@ -44,7 +44,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * TODO document
  */
-class NamespaceValidator extends DefaultEditor {
+class NamespaceEditor extends DefaultEditor {
 
     private final NodeBuilder builder;
 
@@ -52,7 +52,7 @@ class NamespaceValidator extends DefaultEditor {
 
     private final NodeState namespaces;
 
-    public NamespaceValidator(NodeState root, NodeBuilder builder) {
+    public NamespaceEditor(NodeState root, NodeBuilder builder) {
         this.namespaces = root.getChildNode(JCR_SYSTEM).getChildNode(
                 REP_NAMESPACES);
         this.builder = builder;

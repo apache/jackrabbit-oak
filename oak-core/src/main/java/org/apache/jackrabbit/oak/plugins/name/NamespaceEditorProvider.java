@@ -35,12 +35,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 @Component
 @Service(EditorProvider.class)
-public class NamespaceValidatorProvider implements EditorProvider {
+public class NamespaceEditorProvider implements EditorProvider {
 
     @Override
     public Editor getRootEditor(NodeState before, NodeState after,
             NodeBuilder builder) throws CommitFailedException {
-        return new SubtreeEditor(new NamespaceValidator(before, builder), JCR_SYSTEM, REP_NAMESPACES);
+        return new SubtreeEditor(new NamespaceEditor(before, builder), JCR_SYSTEM, REP_NAMESPACES);
     }
 
 }
