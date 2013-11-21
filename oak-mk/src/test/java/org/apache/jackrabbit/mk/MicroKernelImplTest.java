@@ -415,7 +415,6 @@ public class MicroKernelImplTest {
                 rev, mk.commit("/", "", rev, null));
     }
 
-    @Ignore("OAK-552")  // FIXME OAK-552
     @Test(expected = MicroKernelException.class)
     public void foo() {
         mk.commit("", "+\"/x\":{}", null, null);
