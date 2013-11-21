@@ -555,6 +555,24 @@ public interface MicroKernel {
     String /*revisionId */ rebase(@Nonnull String branchRevisionId, String newBaseRevisionId)
         throws MicroKernelException;
 
+    /**
+     * Resets the branch identified by {@code branchRevisionId} to an ancestor
+     * branch commit identified by {@code ancestorRevisionId}.
+     *
+     * @param branchRevisionId id of the private branch revision
+     * @param ancestorRevisionId id of the ancestor commit to reset the branch to.
+     * @return the id of the new head of the branch. This may not necessarily
+     *         be the same as {@code ancestorRevisionId}. An implementation is
+     *         free to create a new id for the reset branch.
+     * @throws MicroKernelException if {@code branchRevisionId} doesn't exist,
+     *                              if it's not a branch revision, if {@code ancestorRevisionId}
+     *                              is not a revision on that branch or if another error occurs.
+     */
+    @Nonnull
+    String /* revisionId */ reset(@Nonnull String branchRevisionId,
+                                  @Nonnull String ancestorRevisionId)
+            throws MicroKernelException;
+
     //--------------------------------------------------< BLOB READ/WRITE ops >
 
     /**

@@ -519,6 +519,29 @@ public class NodeStoreKernel implements MicroKernel {
         throw new UnsupportedOperationException();
     }
 
+    @Nonnull
+    @Override
+    public synchronized String reset(@Nonnull String branchRevisionId,
+                                     @Nonnull String ancestorRevisionId)
+            throws MicroKernelException {
+        Revision revision = getRevision(branchRevisionId);
+        if (revision.branch == null) {
+            throw new MicroKernelException(
+                    "Branch not found: " + branchRevisionId);
+        }
+        Revision ancestor = getRevision(ancestorRevisionId);
+        while (!ancestor.id.equals(revision.id)) {
+            revision = revision.base;
+            if (revision.branch == null) {
+                throw new MicroKernelException(ancestorRevisionId + " is not " +
+                        "an ancestor revision of " + branchRevisionId);
+            }
+        }
+        Revision r = new Revision(ancestor);
+        revisions.put(r.id, r);
+        return r.id;
+    }
+
     @Override
     public long getLength(String blobId) throws MicroKernelException {
         Blob blob = blobs.get(blobId);

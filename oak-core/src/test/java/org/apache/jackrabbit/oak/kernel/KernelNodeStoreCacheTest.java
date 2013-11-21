@@ -250,6 +250,14 @@ public class KernelNodeStoreCacheTest {
             return kernel.rebase(branchRevisionId, newBaseRevisionId);
         }
 
+        @Nonnull
+        @Override
+        public String reset(@Nonnull String branchRevisionId,
+                            @Nonnull String ancestorRevisionId)
+                throws MicroKernelException {
+            return kernel.reset(branchRevisionId, ancestorRevisionId);
+        }
+
         @Override
         public long getLength(String blobId) throws MicroKernelException {
             return kernel.getLength(blobId);

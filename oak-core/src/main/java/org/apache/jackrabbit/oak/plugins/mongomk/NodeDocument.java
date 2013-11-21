@@ -843,6 +843,11 @@ public class NodeDocument extends Document {
         checkNotNull(op).unsetMapEntry(REVISIONS, checkNotNull(revision));
     }
 
+    public static void unsetCollision(@Nonnull UpdateOp op,
+                                      @Nonnull Revision revision) {
+        checkNotNull(op).unsetMapEntry(COLLISIONS, checkNotNull(revision));
+    }
+
     public static void setLastRev(@Nonnull UpdateOp op,
                                   @Nonnull Revision revision) {
         checkNotNull(op).setMapEntry(LAST_REV,

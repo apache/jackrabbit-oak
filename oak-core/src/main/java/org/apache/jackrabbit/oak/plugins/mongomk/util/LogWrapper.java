@@ -261,6 +261,22 @@ public class LogWrapper<T extends MicroKernel> implements MicroKernel {
         }
     }
 
+    @Nonnull
+    @Override
+    public String reset(@Nonnull String branchRevisionId,
+                        @Nonnull String ancestorRevisionId)
+            throws MicroKernelException {
+        try {
+            logMethod("reset", branchRevisionId, ancestorRevisionId);
+            String result = mk.reset(branchRevisionId, ancestorRevisionId);
+            logResult(result);
+            return result;
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
     private void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder("mk");
         buff.append(id).append('.').append(methodName).append('(');
