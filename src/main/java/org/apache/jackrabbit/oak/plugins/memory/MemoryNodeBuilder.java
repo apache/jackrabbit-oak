@@ -323,6 +323,20 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
+    /**
+     * This implementation has the same semantics as adding this node
+     * with name {@code newName} as a new child of {@code newParent} followed
+     * by removing this node. As a consequence this implementation allows
+     * moving this node into the subtree rooted here, the result of which
+     * is the same as removing this node.
+     * <p>
+     * See also {@link NodeBuilder#moveTo(NodeBuilder, String) the general contract}
+     * for {@code MoveTo}.
+     *
+     * @param newParent  builder for the new parent.
+     * @param newName  name of this child at the new parent
+     * @return  {@code true} on success, {@code false} otherwise
+     */
     @Override
     public boolean moveTo(NodeBuilder newParent, String newName) {
         checkNotNull(newParent);
@@ -339,7 +353,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 remove();
                 return true;
             } else {
-                // Move to descendant
                 return false;
             }
         }

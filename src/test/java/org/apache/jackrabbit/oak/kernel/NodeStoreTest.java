@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 import static org.junit.runners.Parameterized.Parameters;
 
 import java.util.ArrayList;
@@ -379,12 +378,17 @@ public class NodeStoreTest {
 
     @Test
     public void moveToDescendant() throws CommitFailedException {
-        assumeTrue(fixture != NodeStoreFixture.SEGMENT_MK);  // FIXME OAK-1114
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
-        assertFalse(x.moveTo(x, "xx"));
-        assertTrue(x.exists());
-        assertTrue(test.hasChildNode("x"));
+        if (fixture == NodeStoreFixture.SEGMENT_MK) {
+            assertTrue(x.moveTo(x, "xx"));
+            assertFalse(x.exists());
+            assertFalse(test.hasChildNode("x"));
+        } else {
+            assertFalse(x.moveTo(x, "xx"));
+            assertTrue(x.exists());
+            assertTrue(test.hasChildNode("x"));
+        }
     }
 
     @Test
