@@ -110,7 +110,9 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
                         new String[]{NT_REP_AUTHORIZABLE});
             }
             if (!index.hasChild("members")) {
-                IndexUtils.createIndexDefinition(index, "members", false, new String[]{UserConstants.REP_MEMBERS}, null);
+                IndexUtils.createIndexDefinition(index, "members", false,
+                        new String[]{UserConstants.REP_MEMBERS},
+                        new String[]{NT_REP_MEMBER_REFERENCES});
             }
 
             ConfigurationParameters params = userConfiguration.getParameters();
