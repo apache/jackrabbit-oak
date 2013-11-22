@@ -18,9 +18,9 @@
 Oak Documentation
 =================
 
-The Oak documentation lives as Markdown files in `src/site/markdown` such that it easy to view
-e.g. from GitHub. Alternatively the Maven site plugin can be used to build and deploy a web site
-as follows:
+The Oak documentation lives as Markdown files in `src/site/markdown` such
+that it easy to view e.g. from GitHub. Alternatively the Maven site plugin
+can be used to build and deploy a web site as follows:
 
 From the reactor use
 
@@ -37,10 +37,10 @@ Then deploy the site to `http://jackrabbit.apache.org/oak/docs/` using
     mvn site-deploy
 
 Finally review the site at `http://jackrabbit.apache.org/oak/docs/index.html`.
-To skip the final commit use `-Dscmpublish.skipCheckin=true`. You can then review
-all pending changes in `oak-doc/target/scmpublish-checkout` and follow up with
-`svn commit` manually.
+To skip the final commit use `-Dscmpublish.skipCheckin=true`. You can then
+review all pending changes in `oak-doc/target/scmpublish-checkout` and follow
+up with `svn commit` manually.
 
-
-Every committer should be able to deploy the site. No fiddling with credentials needed since
-deployment is done via svn commit to `https://svn.apache.org/repos/asf/jackrabbit/site/live/oak/docs`.
+Every committer should be able to deploy the site. No fiddling with
+credentials needed since deployment is done via svn commit to
+`https://svn.apache.org/repos/asf/jackrabbit/site/live/oak/docs`.
