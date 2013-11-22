@@ -208,12 +208,20 @@ public interface NodeBuilder {
     boolean remove();
 
     /**
-     * Move this child to a new parent with a new name.
+     * Move this child to a new parent with a new name. When the move succeeded this
+     * builder has been moved to {@code newParent} as child {@code newName}. Otherwise neither
+     * this builder nor {@code newParent} are modified.
+     * <p>
      * The move succeeds if both, this builder and {@code newParent} exist, there is no child with
      * {@code newName} at {@code newParent} and {@code newParent} is not in the subtree of this
      * builder.
-     * After a successful move {@code exists()} on this builder returns {@code false}, otherwise
-     * {@code true}.
+     * <p>
+     * The move fails if the this builder or {@code newParent} does not exist or if there is
+     * already a child {@code newName} at {@code newParent}.
+     * <p>
+     * For all remaining cases (e.g. moving a builder into its own subtree) it is left
+     * to the implementation whether the move succeeds or fails as long as the state of the
+     * involved builder stays consistent.
      *
      * @param newParent  builder for the new parent.
      * @param newName  name of this child at the new parent
