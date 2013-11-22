@@ -29,6 +29,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.util.AbstractLazyIterator;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
@@ -134,7 +135,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         return ret;
     }
 
-    private final class EntryIterator extends AbstractEntryIterator {
+    private final class EntryIterator extends AbstractLazyIterator<PermissionEntry> {
 
         private final EntryPredicate predicate;
 
@@ -150,8 +151,9 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         }
 
         @Override
-        protected void seekNext() {
-            for (next = null; next == null;) {
+        protected PermissionEntry getNext() {
+            PermissionEntry next = null;
+            while (next == null) {
                 if (nextEntries.hasNext()) {
                     PermissionEntry pe = nextEntries.next();
                     if (predicate.apply(pe)) {
@@ -165,6 +167,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
                     path = PermissionUtil.getParentPathOrNull(path);
                 }
             }
+            return next;
         }
     }
 }

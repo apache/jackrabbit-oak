@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -534,7 +535,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         }
     }
 
-    private static final class LazyIterator extends AbstractEntryIterator {
+    private static final class LazyIterator extends AbstractLazyIterator<PermissionEntry> {
 
         private final TreePermissionImpl treePermission;
         private final boolean isUser;
@@ -555,8 +556,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         }
 
         @Override
-        protected void seekNext() {
-            for (next = null; next == null;) {
+        protected PermissionEntry getNext() {
+            PermissionEntry next = null;
+            while (next == null) {
                 if (nextEntries.hasNext()) {
                     PermissionEntry pe = nextEntries.next();
                     if (predicate.apply(pe)) {
@@ -572,6 +574,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     tp = tp.parent;
                 }
             }
+            return next;
         }
     }
 
