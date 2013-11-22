@@ -549,7 +549,8 @@ public class SegmentWriter {
     }
 
     public SegmentBlob writeBlob(Blob blob) throws IOException {
-        if (blob instanceof SegmentBlob) {
+        if (blob instanceof SegmentBlob
+                && store == ((SegmentBlob) blob).getSegment().store) {
             return (SegmentBlob) blob;
         } else {
             return writeStream(blob.getNewStream());
@@ -565,7 +566,7 @@ public class SegmentWriter {
      * @throws IOException if the stream could not be read
      */
     public SegmentBlob writeStream(InputStream stream) throws IOException {
-        RecordId id = SegmentStream.getRecordIdIfAvailable(stream);
+        RecordId id = SegmentStream.getRecordIdIfAvailable(stream, store);
         if (id == null) {
             boolean threw = true;
             try {
