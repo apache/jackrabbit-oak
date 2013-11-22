@@ -94,7 +94,19 @@ depending on the number of group members. If the number of members is low they
 are store as _weak references_ in a `rep:members` multi value property. This is
 similar to Jackrabbit 2.x. If the number of members is high the user manager
 will create an intermediate node list to reduce the size of the multi value properties
-below a `rep:membersList` node (see section
+below a `rep:membersList` node.
+
+###### Relevant new node types
+    [rep:Group] > rep:Authorizable, rep:MemberReferences
+      + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated */
+      + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected VERSION
+    
+    [rep:MemberReferences]
+      - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
+    
+    
+    [rep:MemberReferencesList]
+      + * (rep:MemberReferences) = rep:MemberReferences protected COPY
 
 ###### Example Group with few members
 *(irrelevant properties excluded)*
@@ -120,9 +132,9 @@ below a `rep:membersList` node (see section
         "jcr:primaryType": "rep:Group",
         "rep:principalName": "employees",
         "rep:membersList": {
-            "jcr:primaryType": "rep:MembersList",
+            "jcr:primaryType": "rep:MemberReferencesList",
             "0": {
-                "jcr:primaryType": "rep:Members",
+                "jcr:primaryType": "rep:MemberReferences",
                 "rep:members": [
                     "429bbd5b-46a6-3c3d-808b-5fd4219d5c4d",
                     "ca58c408-fe06-357e-953c-2d23ffe1e096",
@@ -131,7 +143,7 @@ below a `rep:membersList` node (see section
             },
             ...
             "341": {
-                "jcr:primaryType": "rep:Members",
+                "jcr:primaryType": "rep:MemberReferences",
                 "rep:members": [
                     "fdd1547a-b19a-3154-90da-1eae8c2c3504",
                     "65c3084e-abfc-3719-8223-72c6cb9a3d6f",

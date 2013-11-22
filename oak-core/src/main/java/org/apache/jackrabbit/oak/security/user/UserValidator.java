@@ -186,7 +186,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         MembershipProvider mp = provider.getMembershipProvider();
         for (String memberContentId : memberRefs) {
             Tree memberTree = mp.getByContentID(memberContentId, AuthorizableType.GROUP);
-            if (memberTree != null && mp.isCyclicMembership(memberTree, groupContentId)) {
+            if (memberTree != null && mp.isMember(memberTree, groupContentId, true)) {
                 throw constraintViolation(31, "Cyclic group membership detected in group" + UserUtil.getAuthorizableId(parentAfter));
             }
         }

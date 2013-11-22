@@ -700,18 +700,33 @@
   - rep:password (STRING) protected
   - rep:disabled (STRING) protected
 
-[rep:Group] > rep:Authorizable
-  + rep:members (rep:Members) = rep:Members multiple protected VERSION /* FIXME: SNS definition */
-  - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
+[rep:Group] > rep:Authorizable, rep:MemberReferences
+  + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated since oak 1.0 (remove?) */
+  + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected VERSION /* @since oak 1.0 */
 
 [rep:AuthorizableFolder] > nt:hierarchyNode
   + * (rep:Authorizable) = rep:User VERSION
   + * (rep:AuthorizableFolder) = rep:AuthorizableFolder VERSION
 
+/*
+ * @deprecated since oak 1.0
+ */
 [rep:Members]
   orderable
-  + * (rep:Members) = rep:Members protected multiple /* FIXME: SNS definition */
-  - * (WEAKREFERENCE) protected < 'rep:Authorizable' /* FIXME: OAK-482 */
+  + * (rep:Members) = rep:Members protected multiple
+  - * (WEAKREFERENCE) protected < 'rep:Authorizable'
+
+/**
+ * @since oak 1.0
+ */
+[rep:MemberReferences]
+  - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
+
+/**
+ * @since oak 1.0
+ */
+[rep:MemberReferencesList]
+  + * (rep:MemberReferences) = rep:MemberReferences protected COPY
 
 // -----------------------------------------------------------------------------
 // Privilege Management

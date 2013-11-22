@@ -136,7 +136,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         if (newMember.isGroup()) {
             MembershipProvider mProvider = getMembershipProvider();
             String contentId = mProvider.getContentID(getTree());
-            if (mProvider.isCyclicMembership(newMember.getTree(), contentId)) {
+            if (mProvider.isMember(newMember.getTree(), contentId, true)) {
                 // found cyclic group membership
                 return true;
             }

@@ -31,7 +31,11 @@ public interface UserConstants {
     String NT_REP_AUTHORIZABLE_FOLDER = "rep:AuthorizableFolder";
     String NT_REP_USER = "rep:User";
     String NT_REP_GROUP = "rep:Group";
+    @Deprecated
     String NT_REP_MEMBERS = "rep:Members";
+    String NT_REP_MEMBER_REFERENCES_LIST = "rep:MemberReferencesList";
+    String NT_REP_MEMBER_REFERENCES = "rep:MemberReferences";
+
     String MIX_REP_IMPERSONATABLE = "rep:Impersonatable";
 
     String REP_PRINCIPAL_NAME = "rep:principalName";
@@ -39,6 +43,7 @@ public interface UserConstants {
     String REP_PASSWORD = "rep:password";
     String REP_DISABLED = "rep:disabled";
     String REP_MEMBERS = "rep:members";
+    String REP_MEMBERS_LIST = "rep:membersList";
     String REP_IMPERSONATORS = "rep:impersonators";
 
     Collection<String> GROUP_PROPERTY_NAMES = ImmutableSet.of(
@@ -55,7 +60,13 @@ public interface UserConstants {
             REP_IMPERSONATORS
     );
 
-    Collection<String> NODE_TYPE_NAMES = ImmutableSet.of(NT_REP_AUTHORIZABLE, NT_REP_USER, NT_REP_GROUP, NT_REP_MEMBERS);
+    /**
+     * TODO: remove?
+     */
+    Collection<String> NODE_TYPE_NAMES = ImmutableSet.of(
+            NT_REP_AUTHORIZABLE, NT_REP_USER, NT_REP_GROUP, NT_REP_MEMBERS,
+            NT_REP_MEMBER_REFERENCES, NT_REP_MEMBER_REFERENCES_LIST
+    );
 
     /**
      * Configuration option defining the ID of the administrator user.
@@ -129,7 +140,10 @@ public interface UserConstants {
      *     <li>define maximum number of member properties within a given
      *     node structure</li>
      * </ul>
+     *
+     * @deprecated since oak 1.0
      */
+    @Deprecated
     String PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE = "groupMembershipSplitSize";
 
     /**

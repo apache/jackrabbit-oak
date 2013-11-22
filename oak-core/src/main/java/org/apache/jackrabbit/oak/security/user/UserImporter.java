@@ -314,7 +314,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return true;
 
         } else if (REP_MEMBERS.equals(propName)) {
-            if (!a.isGroup() || !isValid(def, NT_REP_GROUP, true)) {
+            if (!a.isGroup() || !isValid(def, NT_REP_MEMBER_REFERENCES, true)) {
                 return false;
             }
             // since group-members are references to user/groups that potentially
@@ -543,7 +543,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
                 for (Membership.Member member : nonExisting) {
-                    membershipProvider.addMember(groupTree, member.name, member.contentId);
+                    // TODO: check. was: membershipProvider.addMember(groupTree, member.name, member.contentId);
+                    membershipProvider.addMember(groupTree, member.contentId);
                 }
             }
         }
