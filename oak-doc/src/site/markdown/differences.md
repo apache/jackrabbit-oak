@@ -136,6 +136,29 @@ Observation
   reported event though they stem from separate commits (`Session.save()`).
 
 
+Binary streams
+--------------
+
+In Jackrabbit 2 binary values were often (though not always) stored in
+or spooled into a file in the local file system, and methods like
+`Value.getStream()` would thus be backed by `FileInputStream` instances.
+As a result the `available()` method of the stream would typically return
+the full count of remaining bytes, regardless of whether the next `read()`
+call would block to wait for disk IO.
+
+In Oak binaries are typically stored in an external database or (with the
+TarMK) using a custom data structure in the local file system. The streams
+returned by Oak are therefore custom `InputStream` subclasses that implement
+the `available()` method based on whether the next `read()` call will return
+immediately or if it needs to block to wait for the underlying IO operations.
+
+This difference may affect some clients that make the incorrect assumption
+that the `available()` method will always return the number of remaining
+bytes in the stream, or that the return value is zero only at the end of the
+stream. Neither assumption is correctly based on the `InputStream` API
+contract, so such client code needs to be fixed to avoid problems with Oak.
+
+
 Same name siblings
 ------------------
 
