@@ -36,7 +36,6 @@ import static org.junit.Assert.fail;
 public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
      
     @Test
-    @Ignore // FIXME OAK-709 - see TODO in SecureNodeBuilder.exists()
     public void testShadowInvisibleNode() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);
         setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.JCR_ALL);

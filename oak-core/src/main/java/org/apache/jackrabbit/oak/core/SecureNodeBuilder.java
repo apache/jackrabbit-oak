@@ -126,17 +126,24 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override
     public boolean exists() {
-        return getTreePermission().canRead() && builder.exists(); // TODO: isNew()?
+        return builder.exists()
+                && (builder.isReplaced() || getTreePermission().canRead());
     }
 
     @Override
     public boolean isNew() {
-        return builder.isNew(); // TODO: might disclose hidden content
+        return builder.isNew()
+                || (builder.isReplaced() && !getTreePermission().canRead());
     }
 
     @Override
     public boolean isModified() {
         return builder.isModified();
+    }
+
+    @Override
+    public boolean isReplaced() {
+        return builder.isReplaced() && !isNew();
     }
 
     public void baseChanged() {
@@ -165,7 +172,8 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
-        if (property != null && getTreePermission().canRead(property)) {
+        if (property != null
+                && (getTreePermission().canRead(property) || isNew())) {
             return property;
         } else {
             return null;
@@ -179,7 +187,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override
     public synchronized long getPropertyCount() {
-        if (getTreePermission().canReadProperties()) {
+        if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getPropertyCount();
         } else {
             return size(filter(
@@ -190,7 +198,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        if (getTreePermission().canReadProperties()) {
+        if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getProperties();
         } else {
             return filter(

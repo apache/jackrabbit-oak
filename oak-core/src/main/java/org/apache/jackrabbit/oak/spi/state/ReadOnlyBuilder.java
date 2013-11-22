@@ -60,6 +60,11 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return false;
     }
 
+    @Override
+    public boolean isReplaced() {
+        return false;
+    }
+
     @Override @Nonnull
     public NodeState getNodeState() {
         return state;

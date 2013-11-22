@@ -423,7 +423,6 @@ public class WriteTest extends AbstractEvaluationTest {
     }
 
     @Test
-    @Ignore("OAK-869") // FIXME: OAK-869
     public void testWriteOnParentWithNoReadePriv() throws Exception {
         Node a = superuser.getNode(path).addNode("a");
         allow(path, testUser.getPrincipal(), readWritePrivileges);
