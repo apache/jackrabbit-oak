@@ -140,7 +140,10 @@ class MutableNodeState extends AbstractNodeState {
         }
 
         return false;
+    }
 
+    boolean isReplaced(NodeState before) {
+        return base != before;
     }
 
     /**
