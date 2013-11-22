@@ -269,6 +269,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean isReplaced() {
+        return head().isReplaced();
+    }
+
+    @Override
     public long getChildNodeCount(long max) {
         return head().getCurrentNodeState().getChildNodeCount(max);
     }
@@ -534,6 +539,15 @@ public class MemoryNodeBuilder implements NodeBuilder {
          */
         public abstract boolean isModified();
 
+        /**
+         * Check whether the associated builder represents a node that
+         * used to exist but was replaced with other content.
+         *
+         * @return  {@code true} for a replaced node
+         */
+        public abstract boolean isReplaced();
+
+
     }
 
     private class UnconnectedHead extends Head {
@@ -585,6 +599,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         @Override
+        public boolean isReplaced() {
+            return false;
+        }
+
+        @Override
         public String toString() {
             return toStringHelper(this).add("path", getPath()).toString();
         }
@@ -630,6 +649,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         @Override
         public boolean isModified() {
             return state.isModified(base());
+        }
+
+        @Override
+        public boolean isReplaced() {
+            return state.isReplaced(base());
         }
 
         @Override

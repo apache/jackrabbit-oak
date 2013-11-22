@@ -114,6 +114,15 @@ public interface NodeBuilder {
     boolean isModified();
 
     /**
+     * Check whether this builder represents a node that used to exist but
+     * was then replaced with other content, for example as a result of
+     * a {@link #setChildNode(String)} call.
+     *
+     * @return {@code true} for a replaced node
+     */
+    boolean isReplaced();
+
+    /**
      * Returns the current number of child nodes.
      * <p>
      * If an implementation does know the exact value, it returns it (even if
