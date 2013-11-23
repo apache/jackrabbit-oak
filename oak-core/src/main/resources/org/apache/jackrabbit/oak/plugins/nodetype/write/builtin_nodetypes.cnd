@@ -702,7 +702,7 @@
 
 [rep:Group] > rep:Authorizable, rep:MemberReferences
   + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated since oak 1.0 (remove?) */
-  + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected VERSION /* @since oak 1.0 */
+  + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected COPY /* @since oak 1.0 */
 
 [rep:AuthorizableFolder] > nt:hierarchyNode
   + * (rep:Authorizable) = rep:User VERSION

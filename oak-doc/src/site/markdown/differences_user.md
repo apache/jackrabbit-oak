@@ -87,24 +87,21 @@ leave nodes carry the actual values in residual properties which name is the
 principal name of the member.
 
 ###### Behavior as of OAK 1.0
-**NOTE**: The following section is not valid until [OAK-482] is fixed.
-
 As of Oak the user manager automatically chooses an appropriate storage structure
 depending on the number of group members. If the number of members is low they
-are store as _weak references_ in a `rep:members` multi value property. This is
+are stored as _weak references_ in a `rep:members` multi value property. This is
 similar to Jackrabbit 2.x. If the number of members is high the user manager
-will create an intermediate node list to reduce the size of the multi value properties
-below a `rep:membersList` node.
+will limit the size of the multi value properties and create overflow 
+`rep:MemberReferences` nodes below a `rep:membersList` node to hold the extra members.
 
 ###### Relevant new node types
     [rep:Group] > rep:Authorizable, rep:MemberReferences
       + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated */
-      + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected VERSION
+      + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected COPY
     
     [rep:MemberReferences]
       - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
-    
-    
+
     [rep:MemberReferencesList]
       + * (rep:MemberReferences) = rep:MemberReferences protected COPY
 
@@ -160,8 +157,7 @@ below a `rep:membersList` node.
 **TODO**
 
 ###### Importing Group Members
-
-**TODO**
+Importing group members through the import methods in `javax.jcr.Session` or `javax.jcr.Workspace` is storage agnostic and supports both, property based and node based, strategies and is backward compatible to content exported from Jackrabbit 2.x. The group member lists that are modified during an import are internally processed using the normal user manager APIs. This implies that the node structure after the import might not be the same as the one represented in the input.
 
 #### 2. Builtin Users
 The setup of builtin user and group accounts is triggered by the configured `WorkspaceInitializer` associated with the user management configuration (see Configuration section below). 
