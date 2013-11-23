@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ -->
+<sv:node sv:name="te" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:sv="http://www.jcp.org/jcr/sv/1.0" xmlns:rep="internal">
+    <sv:property sv:name="jcr:primaryType" sv:type="Name">
+        <sv:value>rep:AuthorizableFolder</sv:value>
+    </sv:property>
+    <sv:property sv:name="jcr:created" sv:type="Date">
+        <sv:value>2010-08-17T18:22:20.086+02:00</sv:value>
+    </sv:property>
+    <sv:property sv:name="jcr:createdBy" sv:type="String">
+        <sv:value>admin</sv:value>
+    </sv:property>
+    <sv:node sv:name="testGroup">
+        <sv:property sv:name="jcr:primaryType" sv:type="Name">
+            <sv:value>rep:Group</sv:value>
+        </sv:property>
+        <sv:property sv:name="jcr:uuid" sv:type="String">
+            <sv:value>9628ffae-cf05-3138-8185-2cb572d50d45</sv:value>
+        </sv:property>
+        <sv:property sv:name="rep:authorizableId" sv:type="String">
+            <sv:value>testGroup</sv:value>
+        </sv:property>
+        <sv:property sv:name="rep:members" sv:type="WeakReference" sv:multiple="true">
+            <sv:value>c500b58d-122a-3651-9c69-8b889a8a4771</sv:value>
+            <sv:value>41da76f0-fc3e-362a-a939-e634bfb6a342</sv:value>
+            <sv:value>58dd024d-49e1-31b8-ba5d-307f09f32734</sv:value>
+            <sv:value>1e4332f6-5a7a-3210-b5fb-fb92c7c60cce</sv:value>
+            <sv:value>8147e2c0-496d-3139-bd3c-270a5c38ed61</sv:value>
+            <sv:value>16de10fc-1a6e-37be-904b-98149c59be61</sv:value>
+            <sv:value>9eb9c70d-8cc7-3fd7-a4ea-cf72baccbda9</sv:value>
+            <sv:value>9a936f54-ceff-3813-9eba-fd21984efcf4</sv:value>
+            <sv:value>c0e0dc6f-d819-3002-8d63-457be98d49a9</sv:value>
+            <sv:value>0201fef7-9e1e-3591-99ec-8e59316f0ebe</sv:value>
+        </sv:property>
+        <sv:property sv:name="rep:principalName" sv:type="String">
+            <sv:value>testGroup</sv:value>
+        </sv:property>
+        <sv:node sv:name="rep:membersList">
+            <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                <sv:value>rep:MemberReferencesList</sv:value>
+            </sv:property>
+            <sv:node sv:name="2">
+                <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                    <sv:value>rep:MemberReferences</sv:value>
+                </sv:property>
+                <sv:property sv:name="rep:members" sv:type="WeakReference" sv:multiple="true">
+                    <sv:value>eb77c895-1f85-3773-8319-107db7724f11</sv:value>
+                    <sv:value>8849464c-b258-35fa-be8b-7a359b9cf8e3</sv:value>
+                </sv:property>
+            </sv:node>
+            <sv:node sv:name="1">
+                <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                    <sv:value>rep:MemberReferences</sv:value>
+                </sv:property>
+                <sv:property sv:name="rep:members" sv:type="WeakReference" sv:multiple="true">
+                    <sv:value>3af48592-d994-3bf2-95f9-88fb28dbf8d5</sv:value>
+                    <sv:value>ad343536-960c-3174-a3d2-3cc158c73744</sv:value>
+                    <sv:value>0fe78623-affa-37c3-a3f9-590a3d7768a5</sv:value>
+                    <sv:value>e894c8df-ff21-3a11-868c-ba0ffc5d9319</sv:value>
+                    <sv:value>ad27e5aa-a85e-3029-9f67-708d4bcf98d5</sv:value>
+                    <sv:value>68998346-b32c-3a44-be30-d06900bd3960</sv:value>
+                    <sv:value>bfe23c2a-4192-3a58-a069-f7704cd175cd</sv:value>
+                    <sv:value>c35f1878-b031-3a24-afc5-9e40d9ae8bea</sv:value>
+                    <sv:value>23b1169e-f21b-3ddb-af16-7b8a9c263440</sv:value>
+                    <sv:value>c901d17b-3bac-3eed-9bbf-202248498374</sv:value>
+                </sv:property>
+            </sv:node>
+            <sv:node sv:name="0">
+                <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                    <sv:value>rep:MemberReferences</sv:value>
+                </sv:property>
+                <sv:property sv:name="rep:members" sv:type="WeakReference" sv:multiple="true">
+                    <sv:value>6ec4eb9b-0c42-3a29-85e0-539358298001</sv:value>
+                    <sv:value>3c3571ab-d4c0-348e-ad03-7b97ea918c83</sv:value>
+                    <sv:value>b8bf28e6-9d56-36a0-85bb-3fbb66833d70</sv:value>
+                    <sv:value>df5c506a-e67e-3aff-b656-a8f86e546988</sv:value>
+                    <sv:value>b95d03cb-8bb4-33a9-a478-824283694f86</sv:value>
+                    <sv:value>9d4527e5-08ab-3202-96e4-e9a0e19c9668</sv:value>
+                    <sv:value>5b4845ea-74b9-34f2-b8cd-e56ff2711ec9</sv:value>
+                    <sv:value>2ddec13b-8a3f-3032-a260-dbe7a9573186</sv:value>
+                    <sv:value>37e3159c-9c7b-3469-af83-2d50c4231ccf</sv:value>
+                    <sv:value>e44b91bd-0b22-3803-ae2c-4917880d27a5</sv:value>
+                </sv:property>
+            </sv:node>
+        </sv:node>
+    </sv:node>
+
+    <sv:node sv:name="shrimps">
+        <sv:property sv:name="jcr:primaryType" sv:type="Name">
+            <sv:value>rep:Group</sv:value>
+        </sv:property>
+        <sv:property sv:name="jcr:uuid" sv:type="String">
+            <sv:value>08429aec-6f09-30db-8c83-1a2a57fc760c</sv:value>
+        </sv:property>
+        <sv:property sv:name="rep:authorizableId" sv:type="String">
+            <sv:value>shrimps</sv:value>
+        </sv:property>
+        <sv:property sv:name="rep:members" sv:type="WeakReference" sv:multiple="true">
+            <sv:value>c500b58d-122a-3651-9c69-8b889a8a4771</sv:value>
+            <sv:value>41da76f0-fc3e-362a-a939-e634bfb6a342</sv:value>
+            <sv:value>58dd024d-49e1-31b8-ba5d-307f09f32734</sv:value>
+            <sv:value>1e4332f6-5a7a-3210-b5fb-fb92c7c60cce</sv:value>
+            <sv:value>8147e2c0-496d-3139-bd3c-270a5c38ed61</sv:value>
+            <sv:value>16de10fc-1a6e-37be-904b-98149c59be61</sv:value>
+            <sv:value>9eb9c70d-8cc7-3fd7-a4ea-cf72baccbda9</sv:value>
+            <sv:value>9a936f54-ceff-3813-9eba-fd21984efcf4</sv:value>
+            <sv:value>c0e0dc6f-d819-3002-8d63-457be98d49a9</sv:value>
+            <sv:value>0201fef7-9e1e-3591-99ec-8e59316f0ebe</sv:value>
+        </sv:property>
+        <sv:property sv:name="rep:principalName" sv:type="String">
+            <sv:value>shrimps</sv:value>
+        </sv:property>
+        <sv:node sv:name="rep:membersList">
+            <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                <sv:value>rep:MemberReferencesList</sv:value>
+            </sv:property>
+            <sv:node sv:name="2">
+                <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                    <sv:value>rep:MemberReferences</sv:value>
+                </sv:property>
+                <sv:property sv:name="rep:members" sv:type="WeakReference" sv:multiple="true">
+                    <sv:value>eb77c895-1f85-3773-8319-107db7724f11</sv:value>
+                    <sv:value>8849464c-b258-35fa-be8b-7a359b9cf8e3</sv:value>
+                </sv:property>
+            </sv:node>
+            <sv:node sv:name="1">
+                <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                    <sv:value>rep:MemberReferences</sv:value>
+                </sv:property>
+                <sv:property sv:name="rep:members" sv:type="WeakReference" sv:multiple="true">
+                    <sv:value>3af48592-d994-3bf2-95f9-88fb28dbf8d5</sv:value>
+                    <sv:value>ad343536-960c-3174-a3d2-3cc158c73744</sv:value>
+                    <sv:value>0fe78623-affa-37c3-a3f9-590a3d7768a5</sv:value>
+                    <sv:value>e894c8df-ff21-3a11-868c-ba0ffc5d9319</sv:value>
+                    <sv:value>ad27e5aa-a85e-3029-9f67-708d4bcf98d5</sv:value>
+                    <sv:value>68998346-b32c-3a44-be30-d06900bd3960</sv:value>
+                    <sv:value>bfe23c2a-4192-3a58-a069-f7704cd175cd</sv:value>
+                    <sv:value>c35f1878-b031-3a24-afc5-9e40d9ae8bea</sv:value>
+                    <sv:value>23b1169e-f21b-3ddb-af16-7b8a9c263440</sv:value>
+                    <sv:value>c901d17b-3bac-3eed-9bbf-202248498374</sv:value>
+                </sv:property>
+            </sv:node>
+            <sv:node sv:name="0">
+                <sv:property sv:name="jcr:primaryType" sv:type="Name">
+                    <sv:value>rep:MemberReferences</sv:value>
+                </sv:property>
+                <sv:property sv:name="rep:members" sv:type="WeakReference" sv:multiple="true">
+                    <sv:value>6ec4eb9b-0c42-3a29-85e0-539358298001</sv:value>
+                    <sv:value>3c3571ab-d4c0-348e-ad03-7b97ea918c83</sv:value>
+                    <sv:value>b8bf28e6-9d56-36a0-85bb-3fbb66833d70</sv:value>
+                    <sv:value>df5c506a-e67e-3aff-b656-a8f86e546988</sv:value>
+                    <sv:value>b95d03cb-8bb4-33a9-a478-824283694f86</sv:value>
+                    <sv:value>9d4527e5-08ab-3202-96e4-e9a0e19c9668</sv:value>
+                    <sv:value>5b4845ea-74b9-34f2-b8cd-e56ff2711ec9</sv:value>
+                    <sv:value>2ddec13b-8a3f-3032-a260-dbe7a9573186</sv:value>
+                    <sv:value>37e3159c-9c7b-3469-af83-2d50c4231ccf</sv:value>
+                    <sv:value>e44b91bd-0b22-3803-ae2c-4917880d27a5</sv:value>
+                </sv:property>
+            </sv:node>
+        </sv:node>
+    </sv:node>
+</sv:node>

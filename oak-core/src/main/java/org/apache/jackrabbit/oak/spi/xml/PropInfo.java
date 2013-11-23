@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.xml;
 
 import java.util.Collections;
 import java.util.List;
+
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
@@ -121,6 +123,7 @@ public class PropInfo {
         }
     }
 
+    @CheckForNull
     public String getName() {
         return name;
     }
@@ -129,6 +132,7 @@ public class PropInfo {
         return type;
     }
 
+    @Nonnull
     public TextValue getTextValue() throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
             throw new RepositoryException("TODO");
@@ -136,10 +140,12 @@ public class PropInfo {
         return values.get(0);
     }
 
+    @Nonnull
     public List<? extends TextValue> getTextValues() {
         return values;
     }
 
+    @Nonnull
     public Value getValue(int targetType) throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
             throw new RepositoryException("TODO");
@@ -147,6 +153,7 @@ public class PropInfo {
         return values.get(0).getValue(targetType);
     }
 
+    @Nonnull
     public List<Value> getValues(int targetType) throws RepositoryException {
         if (values.isEmpty()) {
             return Collections.emptyList();
