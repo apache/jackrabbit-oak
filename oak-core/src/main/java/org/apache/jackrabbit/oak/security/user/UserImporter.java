@@ -21,10 +21,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
@@ -139,6 +140,13 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     private Membership currentMembership;
 
     /**
+     * map holding the processed memberships. this is needed as both, the property and the node importer, can provide
+     * memberships during processing. if both would be handled only via the reference tracker {@link Membership#process()}
+     * would remove the members from the property importer.
+     */
+    private Map<String, Membership> memberships = new HashMap<String, Membership>();
+
+    /**
      * Temporary store for the pw an imported new user to be able to call
      * the creation actions irrespective of the order of protected properties
      */
@@ -204,6 +212,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         userManager = new UserManagerImpl(root, namePathMapper, securityProvider);
         return true;
     }
+
     // -----------------------------------------< ProtectedPropertyImporter >---
     @Override
     public boolean handlePropInfo(Tree parent, PropInfo propInfo, PropertyDefinition def) throws RepositoryException {
@@ -320,9 +329,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             // since group-members are references to user/groups that potentially
             // are to be imported later on -> postpone processing to the end.
             // see -> process References
-            Membership membership = new Membership(a.getID());
-            membership.addMembers(propInfo.getTextValues());
-            referenceTracker.processedReference(membership);
+            getMembership(a.getID()).addMembers(propInfo.getTextValues());
             return true;
 
         } // else: cannot handle -> return false
@@ -333,6 +340,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     @Override
     public void processReferences() throws RepositoryException {
         checkInitialized();
+
+        // add all collected memberships to the reference tracker.
+        for (Membership m: memberships.values()) {
+            referenceTracker.processedReference(m);
+        }
+        memberships.clear();
 
         List<Object> processed = new ArrayList<Object>();
         for (Iterator<Object> it = referenceTracker.getProcessedReferences(); it.hasNext(); ) {
@@ -363,10 +376,19 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
                 return false;
             } else {
-                currentMembership = new Membership(auth.getID());
+                currentMembership = getMembership(auth.getID());
                 return true;
             }
-        } // else: parent node is not of type rep:Members
+        } else if (isMemberReferencesListNode(protectedParent)) {
+            Authorizable auth = userManager.getAuthorizable(protectedParent.getParent());
+            if (auth == null) {
+                log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
+                return false;
+            } else {
+                currentMembership = getMembership(auth.getID());
+                return true;
+            }
+        } // else: parent node is not of type rep:Members or rep:MemberReferencesList
 
         return false;
     }
@@ -375,15 +397,23 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     public void startChildInfo(NodeInfo childInfo, List<PropInfo> propInfos) throws RepositoryException {
         checkNotNull(currentMembership);
 
-        if (NT_REP_MEMBERS.equals(childInfo.getPrimaryTypeName())) {
+        String ntName = childInfo.getPrimaryTypeName();
+        //noinspection deprecation
+        if (NT_REP_MEMBERS.equals(ntName)) {
             for (PropInfo prop : propInfos) {
                 for (TextValue tv : prop.getTextValues()) {
-                    String name = namePathMapper.getJcrName(prop.getName());
-                    currentMembership.addMember(name, tv.getString());
+                    currentMembership.addMember(tv.getString());
+                }
+            }
+        } else if (NT_REP_MEMBER_REFERENCES.equals(ntName)) {
+            for (PropInfo prop : propInfos) {
+                if (REP_MEMBERS.equals(prop.getName())) {
+                    currentMembership.addMembers(prop.getTextValues());
                 }
             }
         } else {
-            log.warn("{} is not of type {}", childInfo.getName(), NT_REP_MEMBERS);
+            //noinspection deprecation
+            log.warn("{} is not of type " + NT_REP_MEMBERS + " or " + NT_REP_MEMBER_REFERENCES, childInfo.getName());
         }
     }
 
@@ -394,7 +424,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     @Override
     public void end(Tree protectedParent) throws RepositoryException {
-        referenceTracker.processedReference(currentMembership);
         currentMembership = null;
     }
 
@@ -412,6 +441,16 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         return userManager.getPrincipalManager();
     }
 
+    @Nonnull
+    private Membership getMembership(@Nonnull String authId) {
+        Membership membership = memberships.get(authId);
+        if (membership == null) {
+            membership = new Membership(authId);
+            memberships.put(authId, membership);
+        }
+        return membership;
+    }
+
     private void checkInitialized() {
         if (!initialized) {
             throw new IllegalStateException("Not initialized");
@@ -424,11 +463,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     private static boolean isMemberNode(@Nullable Tree tree) {
-        if (tree == null) {
-            return false;
-        } else {
-            return NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
-        }
+        //noinspection deprecation
+        return tree != null && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
+    }
+
+    private static boolean isMemberReferencesListNode(@Nullable Tree tree) {
+        return tree != null && NT_REP_MEMBER_REFERENCES_LIST.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     /**
@@ -466,19 +506,19 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     private final class Membership {
 
         private final String groupId;
-        private final List<Member> members = new LinkedList<Member>();
+        private final Set<String> members = new TreeSet<String>();
 
         Membership(String groupId) {
             this.groupId = groupId;
         }
 
-        void addMember(String name, String id) {
-            members.add(new Member(name, id));
+        void addMember(String id) {
+            members.add(id);
         }
 
         void addMembers(List<? extends TextValue> tvs) {
             for (TextValue tv : tvs) {
-                addMember(null, tv.getString());
+                addMember(tv.getString());
             }
         }
 
@@ -487,8 +527,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             if (a == null || !a.isGroup()) {
                 throw new RepositoryException(groupId + " does not represent a valid group.");
             }
-
             Group gr = (Group) a;
+
             // 1. collect members to add and to remove.
             Map<String, Authorizable> toRemove = new HashMap<String, Authorizable>();
             for (Iterator<Authorizable> declMembers = gr.getDeclaredMembers(); declMembers.hasNext(); ) {
@@ -497,11 +537,11 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             }
 
             List<Authorizable> toAdd = new ArrayList<Authorizable>();
-            List<Membership.Member> nonExisting = new ArrayList<Membership.Member>();
+            Set<String> nonExisting = new HashSet<String>();
 
-            for (Membership.Member memberEntry : members) {
-                String remapped = referenceTracker.get(memberEntry.contentId);
-                String memberContentId = (remapped == null) ? memberEntry.contentId : remapped;
+            for (String contentId : members) {
+                String remapped = referenceTracker.get(contentId);
+                String memberContentId = (remapped == null) ? contentId : remapped;
 
                 Authorizable member = null;
                 try {
@@ -519,7 +559,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                     handleFailure("New member of " + gr + ": No such authorizable (NodeID = " + memberContentId + ')');
                     if (importBehavior == ImportBehavior.BESTEFFORT) {
                         log.info("ImportBehavior.BESTEFFORT: Remember non-existing member for processing.");
-                        nonExisting.add(memberEntry);
+                        nonExisting.add(contentId);
                     }
                 }
             }
@@ -542,21 +582,10 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
-                for (Membership.Member member : nonExisting) {
+                for (String member : nonExisting) {
                     // TODO: check. was: membershipProvider.addMember(groupTree, member.name, member.contentId);
-                    membershipProvider.addMember(groupTree, member.contentId);
+                    membershipProvider.addMember(groupTree, member);
                 }
-            }
-        }
-
-        private class Member {
-            private final String name;
-            private final String contentId;
-
-            public Member(String name, String contentId) {
-                super();
-                this.name = name;
-                this.contentId = contentId;
             }
         }
     }
@@ -591,8 +620,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             // 1. collect principals to add and to remove.
             Map<String, Principal> toRemove = new HashMap<String, Principal>();
             for (PrincipalIterator pit = imp.getImpersonators(); pit.hasNext(); ) {
-                Principal princ = pit.nextPrincipal();
-                toRemove.put(princ.getName(), princ);
+                Principal p = pit.nextPrincipal();
+                toRemove.put(p.getName(), p);
             }
 
             List<String> toAdd = new ArrayList<String>();
@@ -604,9 +633,9 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             }
 
             // 2. adjust set of impersonators
-            for (Principal princicpal : toRemove.values()) {
-                if (!imp.revokeImpersonation(princicpal)) {
-                    String principalName = princicpal.getName();
+            for (Principal p : toRemove.values()) {
+                if (!imp.revokeImpersonation(p)) {
+                    String principalName = p.getName();
                     handleFailure("Failed to revoke impersonation for " + principalName + " on " + a);
                 }
             }

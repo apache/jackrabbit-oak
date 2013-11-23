@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -46,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 
@@ -141,8 +144,21 @@ public abstract class AbstractImportTest {
     }
 
     protected void doImport(String parentPath, String xml, int importUUIDBehavior) throws Exception {
-        InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-        adminSession.importXML(parentPath, in, importUUIDBehavior);
+        InputStream in;
+        if (xml.charAt(0) == '<') {
+            in = new ByteArrayInputStream(xml.getBytes());
+            // uncomment to dump include XMLs
+            // FileOutputStream out = new FileOutputStream(getTestXml());
+            // out.write(xml.getBytes());
+            // out.close();
+        } else {
+            in = getClass().getResourceAsStream(xml);
+        }
+        try {
+            adminSession.importXML(parentPath, in, importUUIDBehavior);
+        } finally {
+            in.close();
+        }
     }
 
     protected static void assertNotDeclaredMember(Group gr, String potentialID, Session session) throws RepositoryException {
@@ -152,5 +168,25 @@ public abstract class AbstractImportTest {
             Authorizable member = it.next();
             assertFalse(potentialID.equals(session.getNode(member.getPath()).getIdentifier()));
         }
+    }
+
+    private String getTestXml() {
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTraceElements) {
+            try {
+                Class<?> clazz = Class.forName(element.getClassName());
+                for (Method method : clazz.getMethods()){
+                    if(method.getName().equals(element.getMethodName())){
+                        if (method.getAnnotation(Test.class) != null) {
+                            return clazz.getSimpleName() + "-" + method.getName() + ".xml";
+                        }
+                    }
+
+                }
+            } catch (Exception e) {
+                //  oops do something here
+            }
+        }
+        throw new IllegalArgumentException("no import xml given.");
     }
 }

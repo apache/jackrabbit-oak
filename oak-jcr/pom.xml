@@ -114,7 +114,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleAcContent       <!-- OAK-920 -->
 
       <!-- User Management -->
-      org.apache.jackrabbit.oak.jcr.security.user.MemberNodeImportTest                               <!-- OAK-414, OAK-482 -->
       org.apache.jackrabbit.oak.jcr.security.user.RefreshTest#testAuthorizableGetProperty            <!-- OAK-1124 -->
 
       <!-- Query -->
