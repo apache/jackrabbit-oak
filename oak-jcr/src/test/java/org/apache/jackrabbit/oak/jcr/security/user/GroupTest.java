@@ -182,6 +182,20 @@ public class GroupTest extends AbstractUserTest {
     }
 
     @Test
+    public void testGetDeclaredMembersWithMemberRemoved() throws RepositoryException {
+        String uid = user.getID();
+        user.remove();
+        superuser.save();
+        user = null;
+
+        Iterator<Authorizable> it = group.getDeclaredMembers();
+        while (it.hasNext()) {
+            Authorizable a = it.next();
+            assertFalse(uid.equals(a.getID()));
+        }
+    }
+
+    @Test
     public void testAddMember() throws NotExecutableException, RepositoryException {
         User auth = getTestUser(superuser);
         Group newGroup = null;
