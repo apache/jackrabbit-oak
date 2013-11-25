@@ -175,6 +175,7 @@ public class PrincipalManagerTest extends AbstractJCRTest {
     }
 
     @Test
+    // FIXME See OAK-1218
     public void testMembers() {
         PrincipalIterator it = principalMgr.getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
         while (it.hasNext()) {
