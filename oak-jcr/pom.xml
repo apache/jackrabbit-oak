@@ -170,8 +170,6 @@
 
       <!-- Node Types -->
       org.apache.jackrabbit.oak.jcr.nodetype.MixinTest#testRemoveAddMixVersionable1                  <!-- OAK-1118 -->
-
-      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testMembers              <!-- OAK-1218 -->
     </known.issues>
   </properties>
 

@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
@@ -263,10 +263,10 @@ class MembershipProvider extends AuthorizableBaseProvider {
                         break;
                     } else {
                         String value = references.next();
-                        next = identifierManager.getPath(PropertyStates.createProperty("", value, Type.WEAKREFERENCE));
+                        next = identifierManager.getPath(PropertyValues.newWeakReference(value));
 
                         // filter by authorizable type, and/or get inherited members
-                        if (includeInherited || authorizableType != AuthorizableType.AUTHORIZABLE) {
+                        if (next != null && (includeInherited || authorizableType != AuthorizableType.AUTHORIZABLE)) {
                             Tree auth = getByPath(next);
                             AuthorizableType type = UserUtil.getType(auth);
 
