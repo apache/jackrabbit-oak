@@ -28,6 +28,7 @@ import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -175,7 +176,6 @@ public class PrincipalManagerTest extends AbstractJCRTest {
     }
 
     @Test
-    // FIXME See OAK-1218
     public void testMembers() {
         PrincipalIterator it = principalMgr.getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
         while (it.hasNext()) {
@@ -189,6 +189,34 @@ public class PrincipalManagerTest extends AbstractJCRTest {
                     Principal memb = en.nextElement();
                     assertTrue(principalMgr.hasPrincipal(memb.getName()));
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testMembers2() throws Exception {
+        Authorizable gr = null;
+        try {
+            gr = ((JackrabbitSession) superuser).getUserManager().createGroup(getClass().getName());
+            superuser.save();
+            PrincipalIterator it = principalMgr.getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
+            while (it.hasNext()) {
+                Principal p = it.nextPrincipal();
+                if (p.equals(principalMgr.getEveryone())) {
+                    continue;
+                }
+                if (isGroup(p)) {
+                    Enumeration<? extends Principal> en = ((java.security.acl.Group) p).members();
+                    while (en.hasMoreElements()) {
+                        Principal memb = en.nextElement();
+                        assertTrue(principalMgr.hasPrincipal(memb.getName()));
+                    }
+                }
+            }
+        } finally {
+            if (gr != null) {
+                gr.remove();
+                superuser.save();
             }
         }
     }

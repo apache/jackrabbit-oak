@@ -191,7 +191,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
                     }
             );
         } else {
-            Iterator oakPaths = getMembershipProvider().getMembers(getTree(), AuthorizableType.AUTHORIZABLE, includeInherited);
+            Iterator<String> oakPaths = getMembershipProvider().getMembers(getTree(), AuthorizableType.AUTHORIZABLE, includeInherited);
             if (oakPaths.hasNext()) {
                 AuthorizableIterator iterator = AuthorizableIterator.create(oakPaths, userMgr, AuthorizableType.AUTHORIZABLE);
                 return new RangeIteratorAdapter(iterator, iterator.getSize());
