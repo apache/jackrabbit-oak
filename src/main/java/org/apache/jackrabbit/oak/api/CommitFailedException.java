@@ -99,6 +99,11 @@ public class CommitFailedException extends Exception {
     public static final String LABEL_EXISTS = "LabelExists";
 
     /**
+     * Type name for merge errors.
+     */
+    public static final String MERGE = "Merge";
+
+    /**
      * Unsupported operation or feature
      */
     public static final String UNSUPPORTED = "Unsupported";
