@@ -16,19 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.identifier;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.Iterators.emptyIterator;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.singletonIterator;
-import static com.google.common.collect.Iterators.transform;
-
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -53,6 +45,13 @@ import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.Iterators.emptyIterator;
+import static com.google.common.collect.Iterators.filter;
+import static com.google.common.collect.Iterators.singletonIterator;
+import static com.google.common.collect.Iterators.transform;
 
 /**
  * TODO document
@@ -172,6 +171,24 @@ public class IdentifierManager {
     }
 
     /**
+     * Returns the path of the tree references by the specified (weak)
+     * reference {@code PropertyState}.
+     *
+     * @param referenceValue A (weak) reference value.
+     * @return The tree with the given {@code identifier} or {@code null} if no
+     *         such tree exists or isn't accessible to the content session.
+     */
+    @CheckForNull
+    public String getPath(PropertyValue referenceValue) {
+        int type = referenceValue.getType().tag();
+        if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
+            return resolveUUID(referenceValue);
+        } else {
+            throw new IllegalArgumentException("Invalid value type");
+        }
+    }
+
+    /**
      * Searches all reference properties to the specified {@code tree} that match
      * the given name and node type constraints.
      *
@@ -274,8 +291,12 @@ public class IdentifierManager {
     }
 
     private String resolveUUID(PropertyState uuid) {
+        return resolveUUID(PropertyValues.create(uuid));
+    }
+
+    private String resolveUUID(PropertyValue uuid) {
         try {
-            Map<String, PropertyValue> bindings = Collections.singletonMap("id", PropertyValues.create(uuid));
+            Map<String, PropertyValue> bindings = Collections.singletonMap("id", uuid);
             Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
                     Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
