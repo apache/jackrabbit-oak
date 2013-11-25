@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
 /**
  * {@code NodeStoreBranch} based on {@link MicroKernel} branching and merging.
@@ -90,8 +91,21 @@ public class KernelNodeStoreBranch extends
 
     @Override
     protected KernelNodeState merge(KernelNodeState branchHead,
-                                    CommitInfo info) {
-        return store.merge(branchHead);
+                                    CommitInfo info)
+            throws CommitFailedException {
+        try {
+            return store.merge(branchHead);
+        } catch (MicroKernelException e) {
+            throw new CommitFailedException(MERGE, 1,
+                    "Failed to merge changes to the underlying MicroKernel", e);
+        }
+    }
+
+    @Nonnull
+    @Override
+    protected KernelNodeState reset(@Nonnull KernelNodeState branchHead,
+                                    @Nonnull KernelNodeState ancestor) {
+        return store.reset(branchHead, ancestor);
     }
 
     @Override
@@ -127,8 +141,7 @@ public class KernelNodeStoreBranch extends
         try {
             return super.merge(hook, info);
         } catch (MicroKernelException e) {
-            throw new CommitFailedException(
-                    "Kernel", 1,
+            throw new CommitFailedException(MERGE, 1,
                     "Failed to merge changes to the underlying MicroKernel", e);
         } finally {
             mergeLock.unlock();

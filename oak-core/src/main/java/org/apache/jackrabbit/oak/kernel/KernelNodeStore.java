@@ -264,4 +264,9 @@ public class KernelNodeStore implements NodeStore, Observable {
     KernelNodeState merge(KernelNodeState branchHead) {
         return getRootState(kernel.merge(branchHead.getRevision(), null));
     }
+
+    KernelNodeState reset(KernelNodeState branchHead, KernelNodeState ancestor) {
+        return getRootState(kernel.reset(
+                branchHead.getRevision(), ancestor.getRevision()));
+    }
 }
