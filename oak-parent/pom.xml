@@ -156,6 +156,7 @@
               <segment.db>${segment.db}</segment.db>
             </systemPropertyVariables>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <useFile>false</useFile>  <!-- FIXME remove again: put her to diagnose test failure on Buildbot -->
           </configuration>
         </plugin>
         <plugin>
