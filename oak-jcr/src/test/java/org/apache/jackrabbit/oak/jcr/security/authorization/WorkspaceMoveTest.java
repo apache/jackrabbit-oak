@@ -19,12 +19,9 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.junit.Ignore;
-
 /**
  * Permission evaluation tests for move operations.
  */
-@Ignore("OAK-710 : permission validator doesn't detect move")
 public class WorkspaceMoveTest extends AbstractMoveTest {
 
     @Override

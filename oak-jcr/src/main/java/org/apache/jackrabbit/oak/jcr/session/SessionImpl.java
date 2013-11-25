@@ -16,16 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.collect.Sets.newTreeSet;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.AccessControlException;
 import java.util.Collections;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -60,8 +56,8 @@ import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -69,6 +65,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
+
+import static com.google.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 /**
  * TODO document
@@ -362,8 +361,7 @@ public class SessionImpl implements JackrabbitSession {
 
             @Override
             public Void perform() throws RepositoryException {
-                sd.move(srcOakPath, destOakPath, true,
-                        sessionContext.getAccessManager());
+                sd.move(srcOakPath, destOakPath, true);
                 return null;
             }
         });

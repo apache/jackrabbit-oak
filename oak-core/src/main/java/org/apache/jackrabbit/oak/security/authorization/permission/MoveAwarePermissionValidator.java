@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.HashSet;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -33,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.util.Text;
 
 /**
  * MoveAwarePermissionValidator... TODO
@@ -50,9 +49,9 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         moveCtx = new MoveContext(moveTracker, rootTreeBefore, rootTreeAfter);
     }
 
-    MoveAwarePermissionValidator(@Nullable Tree parentBefore,
-                                 @Nullable Tree parentAfter,
-                                 @Nullable TreePermission parentPermission,
+    MoveAwarePermissionValidator(@Nullable ImmutableTree parentBefore,
+                                 @Nullable ImmutableTree parentAfter,
+                                 @Nonnull TreePermission parentPermission,
                                  @Nonnull PermissionValidator parentValidator) {
         super(parentBefore, parentAfter, parentPermission, parentValidator);
 
@@ -61,7 +60,10 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
     }
 
     @Override
-    PermissionValidator createValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter, @Nullable TreePermission parentPermission, @Nonnull PermissionValidator parentValidator) {
+    PermissionValidator createValidator(@Nullable ImmutableTree parentBefore,
+                                        @Nullable ImmutableTree parentAfter,
+                                        @Nonnull TreePermission parentPermission,
+                                        @Nonnull PermissionValidator parentValidator) {
         if (moveCtx.containsMove(parentBefore, parentAfter)) {
             return new MoveAwarePermissionValidator(parentBefore, parentAfter, parentPermission, parentValidator);
         } else {
@@ -69,9 +71,15 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         }
     }
 
-    private Validator visibleValidator(ImmutableTree source, ImmutableTree dest) {
-        TreePermission tp = getParentPermission().getChildPermission(source.getName(), source.unwrap());
-        Validator validator = super.createValidator(source, dest, tp, this);
+    private Validator visibleValidator(@Nonnull ImmutableTree source,
+                                       @Nonnull ImmutableTree dest) {
+        // TODO improve: avoid calculating the 'before' permissions in case the current parent permissions already point to the correct tree.
+        ImmutableTree parent = moveCtx.rootBefore.getTree("/");
+        TreePermission tp = getPermissionProvider().getTreePermission(parent, TreePermission.EMPTY);
+        for (String n : source.getPath().split("/")) {
+            tp = tp.getChildPermission(n, parent.getChild(n).unwrap());
+        }
+        Validator validator = createValidator(source, dest, tp, this);
         return new VisibleValidator(validator, true, false);
     }
 
@@ -95,14 +103,12 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
     }
 
     //--------------------------------------------------------------------------
-    private static final class MoveContext {
+    private final class MoveContext {
 
         private final MoveTracker moveTracker;
 
         private final ImmutableRoot rootBefore;
         private final ImmutableRoot rootAfter;
-
-        private final Set<ImmutableTree> processed = new HashSet<ImmutableTree>();
 
         private MoveContext(@Nonnull MoveTracker moveTracker,
                             @Nonnull ImmutableTree treeBefore,
@@ -120,52 +126,46 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
             // check permissions for adding the moved node at the target location.
             validator.checkPermissions(child, false, Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
 
-            if (processed.contains(child)) {
-                return true;
-            } else {
-                // FIXME: respect and properly handle move-operations in the subtree
-                String sourcePath = moveTracker.getOriginalSourcePath(child.getPath());
-                if (sourcePath != null) {
-                    ImmutableTree source = rootBefore.getTree(sourcePath);
-                    if (source.exists()) {
-                        return diff(source, child, validator);
-                    } // FIXME: else...
-                }
-                return false;
+            // FIXME: respect and properly handle move-operations in the subtree
+            String sourcePath = moveTracker.getOriginalSourcePath(child.getPath());
+            if (sourcePath != null) {
+                ImmutableTree source = rootBefore.getTree(sourcePath);
+                if (source.exists()) {
+                    ImmutableTree rootTree = rootBefore.getTree("/");
+                    TreePermission tp = getPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
+                    for (String seg : Text.explode(sourcePath, '/')) {
+                        tp = tp.getChildPermission(seg, rootTree.getChild(seg).unwrap());
+                    }
+                    return diff(source, child, validator);
+                } // FIXME: else...
             }
+            return false;
         }
 
         private boolean processDelete(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
             // check permissions for removing that node.
             validator.checkPermissions(child, true, Permissions.REMOVE_NODE);
 
-            if (processed.contains(child)) {
-                return true;
-            } else {
-                // FIXME: respect and properly handle move-operations in the subtree
-                String destPath = moveTracker.getDestPath(child.getPath());
-                if (destPath != null) {
-                    ImmutableTree dest = rootAfter.getTree(destPath);
-                    if (dest.exists()) {
-                        return diff(child, dest, validator);
-                    } // FIXME: else...
-                }
-
-                return false;
+            // FIXME: respect and properly handle move-operations in the subtree
+            String destPath = moveTracker.getDestPath(child.getPath());
+            if (destPath != null) {
+                ImmutableTree dest = rootAfter.getTree(destPath);
+                if (dest.exists()) {
+                    return diff(child, dest, validator);
+                } // FIXME: else...
             }
+
+            return false;
         }
 
         private boolean diff(ImmutableTree source, ImmutableTree dest,
                              MoveAwarePermissionValidator validator) throws CommitFailedException {
             Validator nextValidator = validator.visibleValidator(source, dest);
             CommitFailedException e = EditorDiff.process(nextValidator , source.unwrap(), dest.unwrap());
-            if (e == null) {
-                processed.add(source);
-                processed.add(dest);
-                return true;
-            } else {
+            if (e != null) {
                 throw e;
             }
+            return true;
         }
     }
 }
