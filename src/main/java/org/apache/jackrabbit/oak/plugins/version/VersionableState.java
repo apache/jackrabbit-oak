@@ -539,6 +539,10 @@ class VersionableState {
 
     private int getOPV(NodeBuilder parent, NodeBuilder child, String childName)
             throws RepositoryException {
+        // ignore hidden tree
+        if (childName.startsWith(":")) {
+            return IGNORE;
+        }
         ImmutableTree parentTree = new ImmutableTree(parent.getNodeState());
         NodeState childState;
         if (NT_FROZENNODE.equals(child.getName(JCR_PRIMARYTYPE))) {
