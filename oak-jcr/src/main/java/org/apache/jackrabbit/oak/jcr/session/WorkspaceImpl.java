@@ -16,12 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
@@ -55,6 +51,9 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * TODO document
@@ -186,8 +185,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
 
-        sessionDelegate.move(
-                srcOakPath, destOakPath, false, sessionContext.getAccessManager());
+        sessionDelegate.move(srcOakPath, destOakPath, false);
     }
 
     @Override

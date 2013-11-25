@@ -836,33 +836,4 @@ public class WriteTest extends AbstractEvaluationTest {
             superuser.save();
         }
     }
-
-    @Ignore("OAK-1115")
-    @Test
-    public void testMoveRemoveSubTree() throws Exception {
-        Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
-        superuser.save();
-
-        String subtreePath = subtree.getPath();
-
-        /* allow READ/WRITE privilege for testUser at 'path' */
-        allow(path, testUser.getPrincipal(), readWritePrivileges);
-        /* deny READ/REMOVE property privileges at subtree. */
-        deny(path, privilegesFromNames(new String[] {PrivilegeConstants.JCR_REMOVE_NODE}), createGlobRestriction("*/"+nodeName3));
-
-        assertTrue(testSession.nodeExists(childNPath));
-        assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
-        assertTrue(testSession.hasPermission(childNPath2, Session.ACTION_ADD_NODE));
-
-        testSession.move(childNPath, childNPath2 + "/dest");
-        Node dest = testSession.getNode(childNPath2 + "/dest");
-        dest.getNode(nodeName3).remove();
-
-        try {
-            testSession.save();
-            fail("Removing child node must be denied.");
-        } catch (AccessDeniedException e) {
-            // success
-        }
-    }
 }

@@ -16,14 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-
 import java.io.IOException;
 import java.util.List;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -39,7 +33,6 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -50,13 +43,17 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.FailingValidator;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeExcludingValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 /**
  * TODO document
@@ -379,12 +376,13 @@ public class SessionDelegate {
 
     /**
      * Move a node
+     *
      * @param srcPath  oak path to the source node to copy
      * @param destPath  oak path to the destination
      * @param transientOp  whether or not to perform the move in transient space
      * @throws RepositoryException
      */
-    public void move(String srcPath, String destPath, boolean transientOp, AccessManager accessManager)
+    public void move(String srcPath, String destPath, boolean transientOp)
             throws RepositoryException {
 
         Root moveRoot = transientOp ? root : contentSession.getLatestRoot();
@@ -407,8 +405,6 @@ public class SessionDelegate {
         if (!src.exists()) {
             throw new PathNotFoundException(srcPath);
         }
-
-        accessManager.checkPermissions(destPath, Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
 
         try {
             if (!moveRoot.move(srcPath, destPath)) {
