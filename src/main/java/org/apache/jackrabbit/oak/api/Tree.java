@@ -334,6 +334,11 @@ public interface Tree {
     void removeProperty(@Nonnull String name);
 
     /**
+     * Empty array of trees.
+     */
+    Tree[] EMPTY_ARRAY = new Tree[0];
+
+    /**
      * Mapping from a Tree instance to its name.
      */
     Function<Tree, String> GET_NAME =

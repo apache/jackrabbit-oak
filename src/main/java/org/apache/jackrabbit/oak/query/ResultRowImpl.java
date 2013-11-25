@@ -22,6 +22,7 @@ import java.util.Comparator;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.query.fulltext.SimpleExcerptProvider;
@@ -33,13 +34,13 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 public class ResultRowImpl implements ResultRow {
 
     private final Query query;
-    private final String[] paths;
+    private final Tree[] trees;
     private final PropertyValue[] values;
     private final PropertyValue[] orderValues;
 
-    ResultRowImpl(Query query, String[] paths, PropertyValue[] values, PropertyValue[] orderValues) {
+    ResultRowImpl(Query query, Tree[] trees, PropertyValue[] values, PropertyValue[] orderValues) {
         this.query = query;
-        this.paths = paths;
+        this.trees = trees;
         this.values = values;
         this.orderValues = orderValues;
     }
@@ -55,19 +56,29 @@ public class ResultRowImpl implements ResultRow {
 
     @Override
     public String getPath(String selectorName) {
-        if (selectorName == null) {
-            if (paths.length > 1) {
-                throw new IllegalArgumentException("More than one selector");
-            } else if (paths.length == 0) {
-                throw new IllegalArgumentException("This query does not have a selector");
-            }
-            return paths[0];
-        }
-        int index = query.getSelectorIndex(selectorName);
-        if (paths == null || index >= paths.length) {
+        Tree tree = getTree(selectorName);
+        if (tree != null) {
+            return tree.getPath();
+        } else {
             return null;
         }
-        return paths[index];
+    }
+
+    @Override
+    public Tree getTree(String selectorName) {
+        if (selectorName == null) {
+            if (trees.length > 1) {
+                throw new IllegalArgumentException("More than one selector");
+            } else if (trees.length == 0) {
+                throw new IllegalArgumentException("This query does not have a selector");
+            }
+            return trees[0];
+        }
+        int index = query.getSelectorIndex(selectorName);
+        if (trees == null || index >= trees.length) {
+            return null;
+        }
+        return trees[index];
     }
 
     @Override
@@ -125,7 +136,7 @@ public class ResultRowImpl implements ResultRow {
     @Override
     public int hashCode() {
         int result = 1;
-        result = 31 * result + Arrays.hashCode(paths);
+        result = 31 * result + Arrays.hashCode(getPaths());
         result = 31 * result + Arrays.hashCode(values);
         return result;
     }
@@ -140,12 +151,24 @@ public class ResultRowImpl implements ResultRow {
             return false;
         }
         ResultRowImpl other = (ResultRowImpl) obj;
-        if (!Arrays.equals(paths, other.paths)) {
+        if (!Arrays.equals(getPaths(), other.getPaths())) {
             return false;
         } else if (!Arrays.equals(values, other.values)) {
             return false;
         }
         return true;
+    }
+
+    private String[] getPaths() {
+        String[] paths = new String[trees.length];
+        for (int i = 0; i < trees.length; i++) {
+            if (trees[i] != null) {
+                paths[i] = trees[i].getPath();
+            } else {
+                paths[i] = null;
+            }
+        }
+        return paths;
     }
 
     public static Comparator<ResultRowImpl> getComparator(
