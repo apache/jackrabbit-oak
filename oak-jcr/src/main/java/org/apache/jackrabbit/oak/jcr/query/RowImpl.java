@@ -26,6 +26,7 @@ import javax.jcr.query.Row;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 import com.google.common.base.Joiner;
@@ -47,18 +48,18 @@ public class RowImpl implements Row {
 
     @Override
     public Node getNode() throws RepositoryException {
-        return result.getNode(getPath());
+        return getNode(null);
     }
 
     @Override
     public Node getNode(String selectorName) throws RepositoryException {
-        return result.getNode(getPath(selectorName));
+        return result.getNode(row.getTree(selectorName));
     }
 
     @Override
     public String getPath() throws RepositoryException {
         try {
-            return result.getLocalPath(row.getPath(pathSelector));
+            return row.getPath(pathSelector);
         } catch (IllegalArgumentException e) {
             throw new RepositoryException(e);
         }
@@ -67,7 +68,7 @@ public class RowImpl implements Row {
     @Override
     public String getPath(String selectorName) throws RepositoryException {
         try {
-            return result.getLocalPath(row.getPath(selectorName));
+            return row.getPath(selectorName);
         } catch (IllegalArgumentException e) {
             throw new RepositoryException(e);
         }

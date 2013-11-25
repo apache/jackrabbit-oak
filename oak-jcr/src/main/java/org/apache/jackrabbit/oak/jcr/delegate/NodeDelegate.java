@@ -96,7 +96,7 @@ public class NodeDelegate extends ItemDelegate {
     /** The underlying {@link org.apache.jackrabbit.oak.api.Tree} of this node. */
     private final Tree tree;
 
-    protected NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
+    public NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
         super(sessionDelegate);
         this.tree = tree;
     }

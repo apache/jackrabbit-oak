@@ -219,7 +219,7 @@ public class UnionQueryImpl implements Query {
             String plan = getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
-                    new String[0], 
+                    Tree.EMPTY_ARRAY,
                     new PropertyValue[] { PropertyValues.newString(plan)},
                     null);
             return Arrays.asList(r).iterator();

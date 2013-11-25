@@ -34,7 +34,7 @@ import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -69,16 +69,11 @@ public class QueryResultImpl implements QueryResult {
 
     private final SessionContext sessionContext;
     private final SessionDelegate sessionDelegate;
-    private final String pathFilter;
-    
+
     public QueryResultImpl(SessionContext sessionContext, Result result) {
         this.sessionContext = sessionContext;
         this.sessionDelegate = sessionContext.getSessionDelegate();
         this.result = result;
-
-        // TODO the path currently contains the workspace name
-        // TODO filter in oak-core once we support workspaces there
-        pathFilter = "/";
     }
 
     @Override
@@ -89,18 +84,6 @@ public class QueryResultImpl implements QueryResult {
     @Override
     public String[] getSelectorNames() {
         return result.getSelectorNames();
-    }
-
-    boolean includeRow(String path) {
-        if (path == null) {
-            // a row without path (explain,...)
-            return true;
-        }
-        if (PathUtils.isAncestor(pathFilter, path) || pathFilter.equals(path)) {
-            // a row within this workspace
-            return true;
-        }
-        return false;
     }
 
     @Override
@@ -122,21 +105,11 @@ public class QueryResultImpl implements QueryResult {
             }
 
             private void fetch() {
-                current = null;
-                while (it.hasNext()) {
-                    ResultRow r = it.next();
-                    boolean include = true;
-                    for (String s : getSelectorNames()) {
-                        String path = r.getPath(s);
-                        if (!includeRow(path)) {
-                            include = false;
-                            break;
-                        }
-                    }
-                    if (include) {
-                        current = new RowImpl(QueryResultImpl.this, r, pathSelector);
-                        return;
-                    }
+                if (it.hasNext()) {
+                    current = new RowImpl(
+                            QueryResultImpl.this, it.next(), pathSelector);
+                } else {
+                    current = null;
                 }
             }
 
@@ -174,19 +147,13 @@ public class QueryResultImpl implements QueryResult {
     }
 
     @CheckForNull
-    NodeImpl<? extends NodeDelegate> getNode(String path) throws RepositoryException {
-        if (path == null) {
+    NodeImpl<? extends NodeDelegate> getNode(Tree tree) throws RepositoryException {
+        if (tree != null && tree.exists()) {
+            NodeDelegate node = new NodeDelegate(sessionDelegate, tree);
+            return NodeImpl.createNode(node, sessionContext);
+        } else {
             return null;
         }
-        NodeDelegate d = sessionDelegate.getNode(path);
-        return d == null ? null : NodeImpl.createNode(d, sessionContext);
-    }
-
-    String getLocalPath(String path) {
-        if (path == null) {
-            return null;
-        }
-        return PathUtils.concat("/", PathUtils.relativize(pathFilter, path));
     }
 
     @Override
@@ -214,13 +181,14 @@ public class QueryResultImpl implements QueryResult {
                 current = null;
                 while (it.hasNext()) {
                     ResultRow r = it.next();
-                    String path = r.getPath(selectorName);
-                    if (includeRow(path)) {
+                    Tree tree = r.getTree(selectorName);
+                    if (tree != null && tree.exists()) {
                         try {
-                            current = getNode(getLocalPath(path));
+                            current = getNode(tree);
                             break;
                         } catch (RepositoryException e) {
-                            LOG.warn("Unable to fetch result node for path " + path, e);
+                            LOG.warn("Unable to fetch result node for path "
+                                     + tree.getPath(), e);
                         }
                     }
                 }
