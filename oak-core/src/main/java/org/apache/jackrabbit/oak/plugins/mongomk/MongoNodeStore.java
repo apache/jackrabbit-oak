@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -799,11 +800,11 @@ public final class MongoNodeStore
             UpdateOp rootOp = commit.getUpdateOperationForNode("/");
             // clear collisions
             Iterator<Revision> it = b.getCommits().tailSet(ancestor).iterator();
-            // first revision is the ancestor
+            // first revision is the ancestor (tailSet is inclusive)
             // do not clear collision for this revision
             it.next();
             while (it.hasNext()) {
-                NodeDocument.unsetCollision(rootOp, it.next());
+                NodeDocument.removeCollision(rootOp, it.next());
             }
             rev = apply(commit);
             success = true;
@@ -818,7 +819,8 @@ public final class MongoNodeStore
     }
 
     @Nonnull
-    Revision merge(@Nonnull Revision branchHead, @Nullable CommitInfo info) {
+    Revision merge(@Nonnull Revision branchHead, @Nullable CommitInfo info)
+            throws CommitFailedException {
         Branch b = getBranches().getBranch(branchHead);
         Revision base = branchHead;
         if (b != null) {
@@ -842,8 +844,8 @@ public final class MongoNodeStore
                     b.applyTo(getPendingModifications(), commit.getRevision());
                     getBranches().remove(b);
                 } else {
-                    // TODO: use non-MK exception type
-                    throw new MicroKernelException("Conflicting concurrent change. Update operation failed: " + op);
+                    throw new CommitFailedException(MERGE, 2,
+                            "Conflicting concurrent change. Update operation failed: " + op);
                 }
             } else {
                 // no commits in this branch -> do nothing

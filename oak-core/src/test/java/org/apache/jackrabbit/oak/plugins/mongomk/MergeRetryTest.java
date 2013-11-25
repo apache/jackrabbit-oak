@@ -91,7 +91,6 @@ public class MergeRetryTest {
     /**
      * Test for OAK-1202
      */
-    @Ignore
     @Test
     public void retryPersisted() throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();

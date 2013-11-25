@@ -21,6 +21,8 @@ import java.util.Random;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -105,8 +107,22 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      * @param branchHead the head of the branch to merge.
      * @param info the commit info or <code>null</code> if none available.
      * @return the result state of the merge.
+     * @throws CommitFailedException if the merge fails. The type of the
+     *                    exception will be {@code CommitFailedException.MERGE}.
      */
-    protected abstract N merge(N branchHead, CommitInfo info);
+    protected abstract N merge(N branchHead, CommitInfo info)
+            throws CommitFailedException;
+
+    /**
+     * Resets the branch head to the given ancestor on the same branch.
+     *
+     * @param branchHead the head of the branch to reset.
+     * @param ancestor the state of the branch to reset to.
+     * @return the state of the reset branch. This is not necessarily the same
+     *         instance as {@code ancestor} but is guaranteed to be equal to it.
+     */
+    @Nonnull
+    protected abstract N reset(@Nonnull N branchHead, @Nonnull N ancestor);
 
     /**
      * Persists the changes between <code>toPersist</code> and <code>base</code>
@@ -231,7 +247,30 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
     @Override
     public NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
             throws CommitFailedException {
-        return branchState.merge(checkNotNull(hook), info);
+        CommitFailedException ex = null;
+        for (long backoff = 100; backoff < maximumBackoff; backoff *= 2) {
+            if (ex != null) {
+                try {
+                    Thread.sleep(backoff, RANDOM.nextInt(1000000));
+                } catch (InterruptedException ie) {
+                    // ignore
+                    Thread.interrupted();
+                }
+            }
+            try {
+                return branchState.merge(checkNotNull(hook), info);
+            } catch (CommitFailedException e) {
+                ex = e;
+                // only retry on merge failures. these may be caused by
+                // changes introduce by a commit hook and may be resolved
+                // by a rebase and running the hook again
+                if (!e.isOfType(MERGE)) {
+                    throw e;
+                }
+            }
+        }
+        // if we get here retrying failed
+        throw ex;
     }
 
     @Override
@@ -294,7 +333,10 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
          * @param hook the commit hook to run.
          * @param info the associated commit info.
          * @return the result of the merge.
-         * @throws CommitFailedException if a commit hook rejected the changes.
+         * @throws CommitFailedException if a commit hook rejected the changes
+         *          or the actual merge operation failed. An implementation must
+         *          use the appropriate type in {@code CommitFailedException} to
+         *          indicate the cause of the exception.
          */
         @Nonnull
         abstract NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
@@ -403,31 +445,18 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         NodeState merge(@Nonnull CommitHook hook, CommitInfo info)
                 throws CommitFailedException {
             try {
-                CommitFailedException ex = null;
-                for (long backoff = 100; backoff < maximumBackoff; backoff *= 2) {
-                    if (ex != null) {
-                        try {
-                            Thread.sleep(backoff, RANDOM.nextInt(1000000));
-                        } catch (InterruptedException ie) {
-                            // ignore
-                            Thread.interrupted();
-                        }
-                    }
-                    rebase();
-                    dispatcher.contentChanged(base, null);
-                    NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-                    try {
-                        NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
-                        dispatcher.contentChanged(newHead, info);
-                        branchState = new Merged(base);
-                        return newHead;
-                    } catch (Exception e) {
-                        ex = new CommitFailedException(
-                                "Kernel", 1,
-                                "Failed to merge changes to the underlying store", e);
-                    }
+                rebase();
+                dispatcher.contentChanged(base, null);
+                NodeState toCommit = checkNotNull(hook).processCommit(base, head);
+                try {
+                    NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
+                    dispatcher.contentChanged(newHead, info);
+                    branchState = new Merged(base);
+                    return newHead;
+                } catch (Exception e) {
+                    throw new CommitFailedException(MERGE, 1,
+                            "Failed to merge changes to the underlying store", e);
                 }
-                throw ex;
             } finally {
                 dispatcher.contentChanged(getRoot(), null);
             }
@@ -442,7 +471,8 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      * <ul>
      *     <li>{@link Unmodified} on {@link #setRoot(NodeState)} if the new root is the same
      *         as the base of this branch.
-     *     <li>{@link Merged} on {@link #merge(CommitHook, CommitInfo)}</li>
+     *     <li>{@link ResetFailed} on failed reset in {@link #merge(CommitHook, CommitInfo)}</li>
+     *     <li>{@link Merged} on successful {@link #merge(CommitHook, CommitInfo)}</li>
      * </ul>
      */
     private class Persisted extends BranchState {
@@ -499,21 +529,31 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, CommitInfo info) throws CommitFailedException {
+        NodeState merge(@Nonnull CommitHook hook, CommitInfo info)
+                throws CommitFailedException {
             try {
                 rebase();
                 dispatcher.contentChanged(base, null);
                 NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-                if (toCommit.equals(base)) {
-                    branchState = new Merged(base);
-                    return base;
-                } else {
-                    head = AbstractNodeStoreBranch.this.persist(toCommit, head, info);
-                    NodeState newRoot = AbstractNodeStoreBranch.this.merge(head, info);
-                    dispatcher.contentChanged(newRoot, info);
-                    branchState = new Merged(base);
-                    return newRoot;
+                N newRoot = AbstractNodeStoreBranch.this.persist(toCommit, head, info);
+                boolean success = false;
+                try {
+                    newRoot = AbstractNodeStoreBranch.this.merge(newRoot, info);
+                    success = true;
+                } finally {
+                    if (!success) {
+                        try {
+                            AbstractNodeStoreBranch.this.reset(newRoot, head);
+                        } catch (Exception e) {
+                            CommitFailedException ex = new CommitFailedException(
+                                            OAK, 100, "Branch reset failed", e);
+                            branchState = new ResetFailed(base, ex);
+                        }
+                    }
                 }
+                branchState = new Merged(base);
+                dispatcher.contentChanged(newRoot, info);
+                return newRoot;
             } finally {
                 dispatcher.contentChanged(getRoot(), null);
             }
@@ -560,6 +600,54 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         @Nonnull
         NodeState merge(@Nonnull CommitHook hook, CommitInfo info) {
             throw new IllegalStateException("Branch has already been merged");
+        }
+    }
+
+    /**
+     * Instances of this class represent a branch with persisted changes and
+     * a failed attempt to reset changes.
+     * <p>
+     * Transitions to: none.
+     */
+    private class ResetFailed extends BranchState {
+
+        /**
+         * The exception of the failed reset.
+         */
+        private final CommitFailedException ex;
+
+        protected ResetFailed(N base, CommitFailedException e) {
+            super(base);
+            this.ex = e;
+        }
+
+        @Nonnull
+        @Override
+        NodeState getHead() {
+            throw new IllegalStateException("Branch with failed reset");
+        }
+
+        @Override
+        void setRoot(NodeState root) {
+            throw new IllegalStateException("Branch with failed reset");
+        }
+
+        @Override
+        void rebase() {
+            throw new IllegalStateException("Branch with failed reset");
+        }
+
+        /**
+         * Always throws the {@code CommitFailedException} passed to the
+         * constructor of this branch state.
+         *
+         * @throws CommitFailedException the exception of the failed reset.
+         */
+        @Nonnull
+        @Override
+        NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
+                throws CommitFailedException {
+            throw ex;
         }
     }
 

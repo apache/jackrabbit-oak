@@ -17,12 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -32,12 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class MongoNodeStoreBranch
         extends AbstractNodeStoreBranch<MongoNodeStore, MongoNodeState> {
-
-    /**
-     * TODO: what is a reasonable value?
-     * TODO: fall back to pessimistic approach? how does this work in a cluster?
-     */
-    private static final int MERGE_RETRIES = 10;
 
     public MongoNodeStoreBranch(MongoNodeStore store,
                                 MongoNodeState base) {
@@ -61,8 +52,17 @@ public class MongoNodeStoreBranch
     }
 
     @Override
-    protected MongoNodeState merge(MongoNodeState branchHead, CommitInfo info) {
+    protected MongoNodeState merge(MongoNodeState branchHead, CommitInfo info)
+            throws CommitFailedException {
         return store.getRoot(store.merge(branchHead.getRevision(), info));
+    }
+
+    @Nonnull
+    @Override
+    protected MongoNodeState reset(@Nonnull MongoNodeState branchHead,
+                                   @Nonnull MongoNodeState ancestor) {
+        return store.getRoot(store.reset(branchHead.getRevision(),
+                ancestor.getRevision())).setBranch();
     }
 
     @Override
@@ -104,25 +104,6 @@ public class MongoNodeStoreBranch
                 store.moveNode(source, target, c);
             }
         }, base, null);
-    }
-
-    //--------------------< AbstractNodeStoreBranch >---------------------------
-
-    @Nonnull
-    @Override
-    public NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
-            throws CommitFailedException {
-        MicroKernelException ex = null;
-        for (int i = 0; i < MERGE_RETRIES; i++) {
-            try {
-                return super.merge(hook, info);
-            } catch (MicroKernelException e) {
-                ex = e;
-            }
-        }
-        throw new CommitFailedException(
-                "Kernel", 1,
-                "Failed to merge changes to the underlying store", ex);
     }
 
     //------------------------------< internal >--------------------------------

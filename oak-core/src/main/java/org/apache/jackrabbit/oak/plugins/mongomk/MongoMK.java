@@ -37,6 +37,7 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.json.JsopWriter;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -434,7 +435,11 @@ public class MongoMK implements MicroKernel {
         if (!revision.isBranch()) {
             throw new MicroKernelException("Not a branch: " + branchRevisionId);
         }
-        return nodeStore.merge(revision, null).toString();
+        try {
+            return nodeStore.merge(revision, null).toString();
+        } catch (CommitFailedException e) {
+            throw new MicroKernelException(e.getMessage(), e);
+        }
     }
 
     @Override
