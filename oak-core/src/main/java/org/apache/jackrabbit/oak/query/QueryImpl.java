@@ -372,7 +372,7 @@ public class QueryImpl implements Query {
             String plan = getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
-                    new String[0], 
+                    Tree.EMPTY_ARRAY,
                     new PropertyValue[] { PropertyValues.newString(plan)},
                     null);
             return Arrays.asList(r).iterator();
@@ -396,7 +396,7 @@ public class QueryImpl implements Query {
             };
             ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
             ResultRowImpl r = new ResultRowImpl(this,
-                    new String[0],
+                    Tree.EMPTY_ARRAY,
                     new PropertyValue[] {
                             PropertyValues.newString("query"),
                             PropertyValues.newLong(rowIt.getReadCount())
@@ -405,7 +405,7 @@ public class QueryImpl implements Query {
             list.add(r);
             for (SelectorImpl selector : selectors) {
                 r = new ResultRowImpl(this,
-                        new String[0],
+                        Tree.EMPTY_ARRAY,
                         new PropertyValue[] {
                                 PropertyValues.newString(selector.getSelectorName()),
                                 PropertyValues.newLong(selector.getScanCount()),
@@ -516,10 +516,10 @@ public class QueryImpl implements Query {
 
     ResultRowImpl currentRow() {
         int selectorCount = selectors.size();
-        String[] paths = new String[selectorCount];
+        Tree[] trees = new Tree[selectorCount];
         for (int i = 0; i < selectorCount; i++) {
             SelectorImpl s = selectors.get(i);
-            paths[i] = s.currentPath();
+            trees[i] = s.currentTree();
         }
         int columnCount = columns.length;
         PropertyValue[] values = new PropertyValue[columnCount];
@@ -537,7 +537,7 @@ public class QueryImpl implements Query {
                 orderValues[i] = orderings[i].getOperand().currentProperty();
             }
         }
-        return new ResultRowImpl(this, paths, values, orderValues);
+        return new ResultRowImpl(this, trees, values, orderValues);
     }
 
     @Override

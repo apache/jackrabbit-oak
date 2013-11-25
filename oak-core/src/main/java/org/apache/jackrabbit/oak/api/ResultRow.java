@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.api;
  * A query result row.
  */
 public interface ResultRow {
-    
+
     /**
      * The path, assuming there is only one selector.
      * 
@@ -39,6 +39,16 @@ public interface ResultRow {
      *      or if there are multiple selectors but the passed selectorName is null
      */
     String getPath(String selectorName);
+
+    /**
+     * The tree for the given selector name.
+     *
+     * @param selectorName the selector name (null if there is only one selector)
+     * @return the tree
+     * @throws IllegalArgumentException if the selector was not found,
+     *      or if there are multiple selectors but the passed selectorName is null
+     */
+    Tree getTree(String selectorName);
 
     /**
      * The property value.
