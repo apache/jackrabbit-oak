@@ -251,9 +251,6 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     //--------------------------------------------------------------------------
-    public NodeState unwrap() {
-        return state;
-    }
 
     public int getType() {
         if (type == TreeTypeProvider.TYPE_NONE) {

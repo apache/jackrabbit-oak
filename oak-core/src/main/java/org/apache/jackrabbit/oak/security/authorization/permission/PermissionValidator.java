@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,9 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.ChildOrderDiff;
 import org.apache.jackrabbit.oak.util.TreeUtil;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * Validator implementation that checks for sufficient permission for all
@@ -185,7 +185,7 @@ class PermissionValidator extends DefaultValidator {
             }
             return null; // no need for further validation down the subtree
         } else {
-            TreePermission tp = parentPermission.getChildPermission(tree.getName(), tree.unwrap());
+            TreePermission tp = parentPermission.getChildPermission(tree.getName(), tree.getNodeState());
             if (!tp.isGranted(toTest)) {
                 throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
