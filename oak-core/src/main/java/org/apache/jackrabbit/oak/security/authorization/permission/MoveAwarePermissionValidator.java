@@ -77,7 +77,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         ImmutableTree parent = moveCtx.rootBefore.getTree("/");
         TreePermission tp = getPermissionProvider().getTreePermission(parent, TreePermission.EMPTY);
         for (String n : source.getPath().split("/")) {
-            tp = tp.getChildPermission(n, parent.getChild(n).unwrap());
+            tp = tp.getChildPermission(n, parent.getChild(n).getNodeState());
         }
         Validator validator = createValidator(source, dest, tp, this);
         return new VisibleValidator(validator, true, false);
@@ -134,7 +134,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
                     ImmutableTree rootTree = rootBefore.getTree("/");
                     TreePermission tp = getPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
                     for (String seg : Text.explode(sourcePath, '/')) {
-                        tp = tp.getChildPermission(seg, rootTree.getChild(seg).unwrap());
+                        tp = tp.getChildPermission(seg, rootTree.getChild(seg).getNodeState());
                     }
                     return diff(source, child, validator);
                 } // FIXME: else...
@@ -161,7 +161,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         private boolean diff(ImmutableTree source, ImmutableTree dest,
                              MoveAwarePermissionValidator validator) throws CommitFailedException {
             Validator nextValidator = validator.visibleValidator(source, dest);
-            CommitFailedException e = EditorDiff.process(nextValidator , source.unwrap(), dest.unwrap());
+            CommitFailedException e = EditorDiff.process(nextValidator , source.getNodeState(), dest.getNodeState());
             if (e != null) {
                 throw e;
             }
