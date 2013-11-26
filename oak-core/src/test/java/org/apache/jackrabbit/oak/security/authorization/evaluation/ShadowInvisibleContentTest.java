@@ -64,24 +64,23 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
     public void testShadowInvisibleProperty() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);
         setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
-        setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_ALTER_PROPERTIES);
 
         Root testRoot = getTestRoot();
         Tree a = testRoot.getTree("/a");
 
         // /a/x not visible to this session
         assertNull(a.getProperty("aProp"));
+        assertFalse(a.hasProperty("aProp"));
 
         // shadow /a/x with transient property of the same name
         a.setProperty("aProp", "aValue1");
         assertNotNull(a.getProperty("aProp"));
+        assertTrue(a.hasProperty("aProp"));
 
-        try {
-            testRoot.commit();
-            fail();
-        } catch (CommitFailedException e) {
-            assertTrue(e.isAccessViolation());
-        }
+        // after commit() normal access control again takes over!
+        testRoot.commit(); // does not fail since only read access is denied
+        assertNull(a.getProperty("aProp"));
+        assertFalse(a.hasProperty("aProp"));
     }
 
     @Test
