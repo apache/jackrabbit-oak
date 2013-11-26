@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeProcessor;
 import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
-import org.apache.jackrabbit.oak.plugins.observation.FilterProvider;
+import org.apache.jackrabbit.oak.plugins.observation.JcrFilterProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -110,7 +110,7 @@ public class ObservationManagerImpl implements ObservationManager {
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
         boolean includeExternal = !(listener instanceof ExcludeExternal);
-        FilterProvider filterProvider = new FilterProvider(ntMgr, eventTypes, oakPath(absPath), isDeep,
+        JcrFilterProvider filterProvider = new JcrFilterProvider(ntMgr, eventTypes, oakPath(absPath), isDeep,
                 uuid, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {

@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A {@code ChangeProcessor} generates observation {@link javax.jcr.observation.Event}s
- * based on a {@link FilterProvider filter} and delivers them to an {@link EventListener}.
+ * based on a {@link JcrFilterProvider filter} and delivers them to an {@link EventListener}.
  * <p>
  * After instantiation a {@code ChangeProcessor} must be started in order to start
  * delivering observation events and stopped to stop doing so.
@@ -66,7 +66,7 @@ public class ChangeProcessor implements Observer {
     private final NamePathMapper namePathMapper;
     private final ListenerTracker tracker;
     private final EventListener eventListener;
-    private final AtomicReference<FilterProvider> filterProvider;
+    private final AtomicReference<JcrFilterProvider> filterProvider;
 
     private Closeable observer;
     private Registration mbean;
@@ -76,21 +76,21 @@ public class ChangeProcessor implements Observer {
             ContentSession contentSession,
             PermissionProvider permissionProvider,
             NamePathMapper namePathMapper,
-            ListenerTracker tracker, FilterProvider filter) {
+            ListenerTracker tracker, JcrFilterProvider filter) {
         checkArgument(contentSession instanceof Observable);
         this.contentSession = contentSession;
         this.permissionProvider = permissionProvider;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
-        filterProvider = new AtomicReference<FilterProvider>(filter);
+        filterProvider = new AtomicReference<JcrFilterProvider>(filter);
     }
 
     /**
      * Set the filter for the events this change processor will generate.
      * @param filter
      */
-    public void setFilterProvider(FilterProvider filter) {
+    public void setFilterProvider(JcrFilterProvider filter) {
         filterProvider.set(filter);
     }
 
@@ -127,7 +127,7 @@ public class ChangeProcessor implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
-                FilterProvider provider = filterProvider.get();
+                JcrFilterProvider provider = filterProvider.get();
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
                     String path = namePathMapper.getOakPath(provider.getPath());
