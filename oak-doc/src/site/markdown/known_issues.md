@@ -61,10 +61,5 @@ Changes with respect to Jackrabbit-core are collected in [OAK-14]
       See [OAK-710](https://issues.apache.org/jira/browse/OAK-710)
 
 
-* User Management:
-    * Group membership stored in tree structure is not yet implemented
-      See [OAK-482](https://issues.apache.org/jira/browse/OAK-482)
-
-
 In some cases Oak throws Runtime exceptions instead of a properly typed exception. We are working
 on correcting this. Please do not work around this by adapting catch clauses in your application.
