@@ -31,7 +31,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.util.Text;
+
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * MoveAwarePermissionValidator... TODO
@@ -123,36 +124,31 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         }
 
         private boolean processAdd(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
-            // check permissions for adding the moved node at the target location.
-            validator.checkPermissions(child, false, Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
-
             // FIXME: respect and properly handle move-operations in the subtree
             String sourcePath = moveTracker.getOriginalSourcePath(child.getPath());
             if (sourcePath != null) {
                 ImmutableTree source = rootBefore.getTree(sourcePath);
                 if (source.exists()) {
-                    ImmutableTree rootTree = rootBefore.getTree("/");
-                    TreePermission tp = getPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
-                    for (String seg : Text.explode(sourcePath, '/')) {
-                        tp = tp.getChildPermission(seg, rootTree.getChild(seg).getNodeState());
-                    }
+                    // check permissions for adding the moved node at the target location.
+                    validator.checkPermissions(child, false, Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
+                    checkPermissions(source, Permissions.REMOVE_NODE);
                     return diff(source, child, validator);
-                } // FIXME: else...
+                }
             }
             return false;
         }
 
         private boolean processDelete(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
-            // check permissions for removing that node.
-            validator.checkPermissions(child, true, Permissions.REMOVE_NODE);
-
             // FIXME: respect and properly handle move-operations in the subtree
             String destPath = moveTracker.getDestPath(child.getPath());
             if (destPath != null) {
                 ImmutableTree dest = rootAfter.getTree(destPath);
                 if (dest.exists()) {
+                    // check permissions for removing that node.
+                    validator.checkPermissions(child, true, Permissions.REMOVE_NODE);
+                    checkPermissions(dest, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
                     return diff(child, dest, validator);
-                } // FIXME: else...
+                }
             }
 
             return false;
@@ -166,6 +162,12 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
                 throw e;
             }
             return true;
+        }
+
+        private void checkPermissions(@Nonnull Tree tree, long permissions) throws CommitFailedException {
+            if (!getPermissionProvider().isGranted(tree, null, permissions)) {
+                throw new CommitFailedException(ACCESS, 0, "Access denied");
+            }
         }
     }
 }
