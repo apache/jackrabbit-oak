@@ -27,7 +27,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
-import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -60,7 +61,7 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
     @Property(description="TarMK mode (64 for memory mapping, 32 for normal file access)")
     public static final String MODE = "tarmk.mode";
 
-    @Property(description="TarMK maximum file size")
+    @Property(description="TarMK maximum file size (MB)", intValue=256)
     public static final String SIZE = "tarmk.size";
 
     @Property(description="MongoDB host")
@@ -75,11 +76,9 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
     @Property(description="Cache size (MB)", intValue=200)
     public static final String CACHE = "cache";
 
-    private static final int MB = 1024 * 1024;
-
     private String name;
 
-    private Mongo mongo;
+    private MongoClient mongo;
 
     private SegmentStore store;
 
@@ -111,7 +110,7 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
 
             String size = lookup(context, SIZE);
             if (size == null) {
-                size = System.getProperty(SIZE, "268435456"); // 256MB
+                size = System.getProperty(SIZE, "256");
             }
 
             mongo = null;
@@ -123,8 +122,8 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
             String db = String.valueOf(properties.get(DB));
             int cache = Integer.parseInt(String.valueOf(properties.get(CACHE)));
 
-            mongo = new Mongo(host, port);
-            store = new MongoStore(mongo.getDB(db), cache * MB);
+            mongo = new MongoClient(host, port);
+            store = new MongoStore(mongo.getDB(db), cache);
         }
 
         delegate = new SegmentNodeStore(store);

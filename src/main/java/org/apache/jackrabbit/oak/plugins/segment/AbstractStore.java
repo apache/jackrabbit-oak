@@ -28,6 +28,8 @@ import com.google.common.cache.Cache;
 
 public abstract class AbstractStore implements SegmentStore {
 
+    protected static final int MB = 1024 * 1024;
+
     private final Cache<UUID, Segment> segments;
 
     /**
@@ -40,11 +42,15 @@ public abstract class AbstractStore implements SegmentStore {
 
     private final SegmentWriter writer = new SegmentWriter(this);
 
-    protected AbstractStore(int cacheSize) {
-        this.segments = CacheLIRS.newBuilder()
-                .weigher(Segment.WEIGHER)
-                .maximumWeight(cacheSize)
-                .build();
+    protected AbstractStore(int cacheSizeMB) {
+        if (cacheSizeMB > 0) {
+            this.segments = CacheLIRS.newBuilder()
+                    .weigher(Segment.WEIGHER)
+                    .maximumWeight(cacheSizeMB * MB)
+                    .build();
+        } else {
+            this.segments = null;
+        }
     }
 
     protected abstract Segment loadSegment(UUID id) throws Exception;
@@ -56,14 +62,26 @@ public abstract class AbstractStore implements SegmentStore {
 
     @Override
     public Segment readSegment(UUID id) {
-        Segment segment = segments.getIfPresent(id);
-        if (segment != null) {
-            return segment;
+        Segment segment = null;
+        if (segments != null) {
+            segment = segments.getIfPresent(id);
+            if (segment != null) {
+                return segment;
+            }
         }
 
         segment = getWriter().getCurrentSegment(id);
         if (segment != null) {
             return segment;
+        }
+
+        if (segments == null) {
+            // no caching, just load the segment directly
+            try {
+                return loadSegment(id);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to load segment " + id, e);
+            }
         }
 
         synchronized (this) {
@@ -111,7 +129,9 @@ public abstract class AbstractStore implements SegmentStore {
                 throw new RuntimeException("Interrupted", e);
             }
         }
-        segments.invalidate(segmentId);
+        if (segments != null) {
+            segments.invalidate(segmentId);
+        }
     }
 
     @Override
@@ -140,7 +160,9 @@ public abstract class AbstractStore implements SegmentStore {
             }
         }
         records.invalidateAll();
-        segments.invalidateAll();
+        if (segments != null) {
+            segments.invalidateAll();
+        }
     }
 
 }
