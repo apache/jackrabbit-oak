@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newBulkSegmentId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -33,7 +34,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -114,7 +114,7 @@ public class RecordTest {
     public void testListWithLotsOfReferences() { // OAK-1184
         List<RecordId> list = newArrayList();
         for (int i = 0; i < 1000; i++) {
-            list.add(new RecordId(UUID.randomUUID(), 0));
+            list.add(new RecordId(newBulkSegmentId(), 0));
         }
         writer.writeList(list);
     }
