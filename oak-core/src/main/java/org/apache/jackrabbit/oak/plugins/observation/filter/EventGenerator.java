@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import javax.annotation.CheckForNull;
@@ -180,9 +181,9 @@ public class EventGenerator implements MoveValidator {
      * @param filter  filter for filtering changes
      * @param listener  listener for listening to the filtered changes
      */
-    public EventGenerator(Filter filter, Listener listener) {
-        this.filter = filter;
-        this.listener = listener;
+    public EventGenerator(@Nonnull Filter filter, @Nonnull Listener listener) {
+        this.filter = checkNotNull(filter);
+        this.listener = checkNotNull(listener);
     }
 
     @Override
