@@ -299,6 +299,17 @@ public class RepositoryTest extends AbstractRepositoryTest {
             // expected.
         }
 
+        try {
+            getProperty("/foo[1]/bar[2]/jcr:primaryType");
+            fail("retrieving wrong SNS index should throw PathNotFoundException");
+        } catch (PathNotFoundException e) {
+            // expected.
+        }
+
+        assertTrue(getAdminSession().nodeExists("/foo[1]/bar[1]"));
+        assertTrue(getAdminSession().propertyExists("/foo[1]/bar[1]/jcr:primaryType"));
+        assertFalse(getAdminSession().nodeExists("/foo[1]/bar[2]"));
+        assertFalse(getAdminSession().propertyExists("/foo[1]/bar[2]/jcr:primaryType"));
     }
 
     @Test(expected = RepositoryException.class)
