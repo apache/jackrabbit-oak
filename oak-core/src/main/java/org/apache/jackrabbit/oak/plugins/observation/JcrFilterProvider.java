@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventTypeFilter;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.plugins.observation.filter.NodeTypeFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PathFilter;
@@ -46,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 /**
  * Provider for a filter filtering observation events according to a certain criterion.
  */
-public class JcrFilterProvider {
+public class JcrFilterProvider implements FilterProvider {
     private static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
             PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
 
@@ -89,11 +90,13 @@ public class JcrFilterProvider {
         this.includeClusterExternal = includeClusterExternal;
     }
 
+    @Override
     public boolean includeCommit(String sessionId, CommitInfo info) {
         return (includeSessionLocal || !isLocal(sessionId, info))
             && (includeClusterExternal || !isExternal(info));
     }
 
+    @Override
     public Filter getFilter(ImmutableTree beforeTree, ImmutableTree afterTree,
             TreePermission treePermission) {
         List<Filter> filters = Lists.<Filter>newArrayList(
@@ -126,6 +129,7 @@ public class JcrFilterProvider {
         return Filters.all(filters.toArray(new Filter[filters.size()]));
     }
 
+    @Override
     public String getPath() {
         return path;
     }
