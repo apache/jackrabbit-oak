@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventIterator;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -53,7 +54,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A {@code ChangeProcessor} generates observation {@link javax.jcr.observation.Event}s
- * based on a {@link JcrFilterProvider filter} and delivers them to an {@link EventListener}.
+ * based on a {@link FilterProvider filter} and delivers them to an {@link EventListener}.
  * <p>
  * After instantiation a {@code ChangeProcessor} must be started in order to start
  * delivering observation events and stopped to stop doing so.
@@ -66,7 +67,7 @@ public class ChangeProcessor implements Observer {
     private final NamePathMapper namePathMapper;
     private final ListenerTracker tracker;
     private final EventListener eventListener;
-    private final AtomicReference<JcrFilterProvider> filterProvider;
+    private final AtomicReference<FilterProvider> filterProvider;
 
     private Closeable observer;
     private Registration mbean;
@@ -76,21 +77,21 @@ public class ChangeProcessor implements Observer {
             ContentSession contentSession,
             PermissionProvider permissionProvider,
             NamePathMapper namePathMapper,
-            ListenerTracker tracker, JcrFilterProvider filter) {
+            ListenerTracker tracker, FilterProvider filter) {
         checkArgument(contentSession instanceof Observable);
         this.contentSession = contentSession;
         this.permissionProvider = permissionProvider;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
-        filterProvider = new AtomicReference<JcrFilterProvider>(filter);
+        filterProvider = new AtomicReference<FilterProvider>(filter);
     }
 
     /**
      * Set the filter for the events this change processor will generate.
      * @param filter
      */
-    public void setFilterProvider(JcrFilterProvider filter) {
+    public void setFilterProvider(FilterProvider filter) {
         filterProvider.set(filter);
     }
 
@@ -127,7 +128,7 @@ public class ChangeProcessor implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
-                JcrFilterProvider provider = filterProvider.get();
+                FilterProvider provider = filterProvider.get();
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
                     String path = namePathMapper.getOakPath(provider.getPath());
