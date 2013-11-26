@@ -843,6 +843,11 @@ public class NodeDocument extends Document {
         checkNotNull(op).unsetMapEntry(REVISIONS, checkNotNull(revision));
     }
 
+    public static void removeRevision(@Nonnull UpdateOp op,
+                                      @Nonnull Revision revision) {
+        checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));
+    }
+
     public static void removeCollision(@Nonnull UpdateOp op,
                                        @Nonnull Revision revision) {
         checkNotNull(op).removeMapEntry(COLLISIONS, checkNotNull(revision));
@@ -872,11 +877,21 @@ public class NodeDocument extends Document {
                 String.valueOf(commitRootDepth));
     }
 
+    public static void removeCommitRoot(@Nonnull UpdateOp op,
+                                        @Nonnull Revision revision) {
+        checkNotNull(op).removeMapEntry(COMMIT_ROOT, revision);
+    }
+
     public static void setDeleted(@Nonnull UpdateOp op,
                                   @Nonnull Revision revision,
                                   boolean deleted) {
         checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision),
                 String.valueOf(deleted));
+    }
+
+    public static void removeDeleted(@Nonnull UpdateOp op,
+                                     @Nonnull Revision revision) {
+        checkNotNull(op).removeMapEntry(DELETED, revision);
     }
 
     //----------------------------< internal >----------------------------------

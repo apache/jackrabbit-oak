@@ -457,13 +457,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
 
     //--------------------------< internal >------------------------------------
 
-    private String removeNodes(String rev, String...nodes) {
-        for (String node : nodes) {
-            rev = mk.commit("", "-\"" + node + "\"", rev, "");
-        }
-        return rev;
-    }
-
     private String setProp(String rev, String prop, Object value) {
         value = value == null? null : "\"" + value + "\"";
         return mk.commit("", "^\"" + prop + "\" : " + value, rev, "");

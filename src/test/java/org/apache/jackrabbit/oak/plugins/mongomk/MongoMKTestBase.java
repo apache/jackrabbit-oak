@@ -190,4 +190,11 @@ public abstract class MongoMKTestBase {
         }
         return newRev;
     }
+
+    protected String removeNodes(String rev, String... nodes) {
+        for (String node : nodes) {
+            rev = getMicroKernel().commit("", "-\"" + node + "\"", rev, null);
+        }
+        return rev;
+    }
 }
