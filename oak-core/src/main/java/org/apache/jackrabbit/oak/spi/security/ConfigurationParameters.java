@@ -97,8 +97,9 @@ public final class ConfigurationParameters implements Map<String, Object> {
             return EMPTY;
         }
         Map<String, Object> options = new HashMap<String, Object>(properties.size());
-        for (String name : properties.stringPropertyNames()) {
-            options.put(name, properties.getProperty(name));
+        for (Object name : properties.keySet()) {
+            final String key = name.toString();
+            options.put(key, properties.get(key));
         }
         return new ConfigurationParameters(options);
     }
