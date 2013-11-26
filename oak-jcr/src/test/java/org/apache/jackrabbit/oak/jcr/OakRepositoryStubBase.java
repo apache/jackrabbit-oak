@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.io.File;
+import java.io.IOException;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.Properties;
@@ -29,11 +31,17 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
 public class OakRepositoryStubBase extends RepositoryStub {
+
+    private static final int MAX_FILE_SIZE = 64 * 1024 * 1024;
+    private static final int CACHE_SIZE = 32 * 1024 * 1024;
+    private static final boolean MMAP =
+            System.getProperty("sun.arch.data.model", "32").equals("64");
 
     private final Repository repository;
 
@@ -42,13 +50,19 @@ public class OakRepositoryStubBase extends RepositoryStub {
      * 
      * @param settings repository settings
      */
-    public OakRepositoryStubBase(Properties settings) {
+    public OakRepositoryStubBase(Properties settings)
+            throws RepositoryException {
         super(settings);
 
-        String dir = "target/mk-tck-" + System.currentTimeMillis();
-        Jcr jcr = new Jcr(new MicroKernelImpl(dir));
-        preCreateRepository(jcr);
-        repository = jcr.createRepository();
+        try {
+            File dir = new File("target", "mk-tck-" + System.currentTimeMillis());
+            Jcr jcr = new Jcr(new SegmentNodeStore(
+                    new FileStore(dir, MAX_FILE_SIZE, CACHE_SIZE, MMAP)));
+            preCreateRepository(jcr);
+            repository = jcr.createRepository();
+        } catch (IOException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     protected void preCreateRepository(Jcr jcr) {
