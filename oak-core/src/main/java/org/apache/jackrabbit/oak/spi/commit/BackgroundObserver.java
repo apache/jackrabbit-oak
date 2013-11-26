@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
  * to just one change.
  */
 public class BackgroundObserver implements Observer {
-    private static final Logger log = LoggerFactory.getLogger(BackgroundObserver.class);
 
     private static class ContentChange {
         private final NodeState root;
@@ -144,14 +143,7 @@ public class BackgroundObserver implements Observer {
     public synchronized void stop() {
         queue.clear();
         queue.add(STOP);
-        try {
-            if (thread != Thread.currentThread()) {
-                thread.join();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("Thread interrupted while joining observation thread.", e);
-        }
+        // no need to join the thread; it will stop when encountering the STOP
     }
 
     //----------------------------------------------------------< Observer >--
