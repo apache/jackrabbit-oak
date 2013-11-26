@@ -55,7 +55,6 @@ import org.eclipse.jetty.servlet.ServletHolder;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 
 public class Main {
 
@@ -95,7 +94,7 @@ public class Main {
             } else {
                 System.out.println("TarMK " + args[0]);
                 File file = new File(args[0]);
-                FileStore store = new FileStore(file, 256 * 1024 * 1024, false);
+                FileStore store = new FileStore(file, 256, false);
                 try {
                     if (args.length == 1) {
                         Map<UUID, List<UUID>> idmap = Maps.newHashMap();
@@ -173,8 +172,7 @@ public class Main {
         RepositoryContext source = RepositoryContext.create(
                 RepositoryConfig.create(new File(olddir)));
         try {
-            FileStore store = new FileStore(
-                    new File(newdir), 256 * 1024 * 1024, true);
+            FileStore store = new FileStore(new File(newdir), 256, true);
             try {
                 NodeStore target = new SegmentNodeStore(store);
                 new RepositoryUpgrade(source, target).copy();

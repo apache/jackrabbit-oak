@@ -58,7 +58,7 @@ public class OakTarMKRepositoryStub extends RepositoryStub {
         try {
             File directory =
                     new File("target", "tarmk-" + System.currentTimeMillis());
-            this.store = new FileStore(directory, 1024 * 1024, false);
+            this.store = new FileStore(directory, 1, false);
             Jcr jcr = new Jcr(new Oak(new SegmentNodeStore(store)));
             this.repository = jcr.createRepository();
 

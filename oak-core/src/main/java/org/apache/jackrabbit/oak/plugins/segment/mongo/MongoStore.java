@@ -36,7 +36,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.Mongo;
 import com.mongodb.WriteConcern;
 
 public class MongoStore extends AbstractStore {
@@ -49,8 +48,8 @@ public class MongoStore extends AbstractStore {
 
     private final Map<String, Journal> journals = Maps.newHashMap();
 
-    public MongoStore(DB db, int cacheSize) {
-        super(cacheSize);
+    public MongoStore(DB db, int cacheSizeMB) {
+        super(cacheSizeMB);
         this.db = checkNotNull(db);
         this.segments = db.getCollection("segments");
         NodeBuilder builder = EMPTY_NODE.builder();
@@ -58,10 +57,6 @@ public class MongoStore extends AbstractStore {
         journals.put("root", new MongoJournal(
                 this, db.getCollection("journals"),
                 concern, builder.getNodeState()));
-    }
-
-    public MongoStore(Mongo mongo, int cacheSize) {
-        this(mongo.getDB("Oak"), cacheSize);
     }
 
     @Override

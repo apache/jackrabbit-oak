@@ -26,7 +26,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
+
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -50,7 +51,7 @@ public class OakSegmentMKRepositoryStub extends RepositoryStub {
     protected static final String DB =
             System.getProperty("segment.db", "SegmentMK");
 
-    private final Mongo connection;
+    private final MongoClient connection;
 
     private final Repository repository;
 
@@ -65,9 +66,9 @@ public class OakSegmentMKRepositoryStub extends RepositoryStub {
 
         Session session = null;
         try {
-            this.connection = new Mongo(HOST, PORT);
+            this.connection = new MongoClient(HOST, PORT);
             Jcr jcr = new Jcr(new Oak(new SegmentNodeStore(
-                    new MongoStore(connection.getDB(DB), 4 * 1024 * 1024))));
+                    new MongoStore(connection.getDB(DB), 4))));
             this.repository = jcr.createRepository();
 
             session = getRepository().login(superuser);
@@ -90,7 +91,7 @@ public class OakSegmentMKRepositoryStub extends RepositoryStub {
 
     public static boolean isAvailable() {
         try {
-            Mongo mongo = new Mongo(HOST, PORT);
+            MongoClient mongo = new MongoClient(HOST, PORT);
             try {
                 mongo.getDatabaseNames();
                 return true;

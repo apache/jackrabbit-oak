@@ -39,7 +39,7 @@ public class MemoryStore extends AbstractStore {
             Maps.newConcurrentMap();
 
     public MemoryStore(NodeState root) {
-        super(1024 * 1024);
+        super(0);
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("root", root);
         journals.put("root", new MemoryJournal(this, builder.getNodeState()));

@@ -38,8 +38,8 @@ import org.apache.jackrabbit.test.RepositoryStub;
 
 public class OakRepositoryStubBase extends RepositoryStub {
 
-    private static final int MAX_FILE_SIZE = 64 * 1024 * 1024;
-    private static final int CACHE_SIZE = 32 * 1024 * 1024;
+    private static final int MAX_FILE_SIZE = 64;
+    private static final int CACHE_SIZE = 32;
     private static final boolean MMAP =
             System.getProperty("sun.arch.data.model", "32").equals("64");
 

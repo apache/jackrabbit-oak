@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
 
-import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
 
 public abstract class OakRepositoryFixture implements RepositoryFixture {
 
@@ -161,17 +161,17 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
     }
 
     public static RepositoryFixture getSegment(
-            final String host, final int port, final int cacheSize) {
+            final String host, final int port, final int cacheSizeMB) {
         return new OakRepositoryFixture("Oak-Segment") {
             private SegmentStore[] stores;
-            private Mongo mongo;
+            private MongoClient mongo;
             @Override
             public Repository[] setUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
                 stores = new SegmentStore[cluster.length];
-                mongo = new Mongo(host, port);
+                mongo = new MongoClient(host, port);
                 for (int i = 0; i < cluster.length; i++) {
-                    stores[i] = new MongoStore(mongo.getDB(unique), cacheSize);
+                    stores[i] = new MongoStore(mongo.getDB(unique), cacheSizeMB);
                     Oak oak = new Oak(new SegmentNodeStore(stores[i]));
                     cluster[i] = new Jcr(oak).createRepository();
                 }
@@ -189,8 +189,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
     }
 
     public static RepositoryFixture getTar(
-            final File base,
-            final int maxFileSize, final int cacheSize, final boolean memoryMapping) {
+            final File base, final int maxFileSizeMB, final int cacheSizeMB,
+            final boolean memoryMapping) {
         return new OakRepositoryFixture("Oak-Tar") {
             private SegmentStore[] stores;
             @Override
@@ -199,7 +199,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 stores = new FileStore[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
                     stores[i] = new FileStore(
-                            new File(base, unique), maxFileSize, cacheSize, memoryMapping);
+                            new File(base, unique),
+                            maxFileSizeMB, cacheSizeMB, memoryMapping);
                     Oak oak = new Oak(new SegmentNodeStore(stores[i]));
                     cluster[i] = new Jcr(oak).createRepository();
                 }

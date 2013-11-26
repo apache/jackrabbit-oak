@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 public class FileStore extends AbstractStore {
 
-    private static final int DEFAULT_MEMORY_CACHE_SIZE = 1 << 28; // 256MB
+    private static final int DEFAULT_MEMORY_CACHE_SIZE = 256;
 
     private static final long JOURNAL_MAGIC = 0xdf36544212c0cb24L;
 
@@ -62,24 +62,24 @@ public class FileStore extends AbstractStore {
 
     private final Map<String, Journal> journals = newHashMap();
 
-    public FileStore(File directory, int maxFileSize, boolean memoryMapping)
+    public FileStore(File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
-        this(directory, maxFileSize, DEFAULT_MEMORY_CACHE_SIZE, memoryMapping);
+        this(directory, maxFileSizeMB, DEFAULT_MEMORY_CACHE_SIZE, memoryMapping);
     }
 
-    public FileStore(File directory, int maxFileSize, int cacheSize,
+    public FileStore(File directory, int maxFileSizeMB, int cacheSizeMB,
             boolean memoryMapping) throws IOException {
-        super(cacheSize);
+        super(cacheSizeMB);
         checkNotNull(directory).mkdirs();
         this.directory = directory;
-        this.maxFileSize = maxFileSize;
+        this.maxFileSize = maxFileSizeMB * MB;
         this.memoryMapping = memoryMapping;
 
         for (int i = 0; true; i++) {
             String name = String.format(FILE_NAME_FORMAT, "bulk", i);
             File file = new File(directory, name);
             if (file.isFile()) {
-                bulkFiles.add(new TarFile(file, maxFileSize, memoryMapping));
+                bulkFiles.add(new TarFile(file, maxFileSizeMB, memoryMapping));
             } else {
                 break;
             }
@@ -89,7 +89,7 @@ public class FileStore extends AbstractStore {
             String name = String.format(FILE_NAME_FORMAT, "data", i);
             File file = new File(directory, name);
             if (file.isFile()) {
-                dataFiles.add(new TarFile(file, maxFileSize, memoryMapping));
+                dataFiles.add(new TarFile(file, maxFileSizeMB, memoryMapping));
             } else {
                 break;
             }
