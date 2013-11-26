@@ -94,7 +94,7 @@ similar to Jackrabbit 2.x. If the number of members is high the user manager
 will limit the size of the multi value properties and create overflow 
 `rep:MemberReferences` nodes below a `rep:membersList` node to hold the extra members.
 
-###### Relevant new node types
+###### Relevant new and modified node types
     [rep:Group] > rep:Authorizable, rep:MemberReferences
       + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated */
       + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected COPY
@@ -195,9 +195,6 @@ In order to match the OAK repository configuration setup and additional interfac
 #### 4. Node Type Definitions
 The built-in node types related to user management tasks have been modified as follows:
 
-**TODO: updated according to resolution of OAK-482**
-
-
     [rep:Authorizable] > mix:referenceable, nt:hierarchyNode
       abstract
       + * (nt:base) = nt:unstructured VERSION
@@ -206,14 +203,23 @@ The built-in node types related to user management tasks have been modified as f
       - * (UNDEFINED)
       - * (UNDEFINED) multiple
 
-    [rep:Group] > rep:Authorizable
-      + rep:members (rep:Members) = rep:Members multiple protected VERSION /* FIXME: SNS definition */
+    [rep:Group] > rep:Authorizable, rep:MemberReferences
+      + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated */
+      + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected COPY
+
+    /** @since oak 1.0 */
+    [rep:MemberReferences]
       - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
 
+    /** @since oak 1.0 */
+    [rep:MemberReferencesList]
+      + * (rep:MemberReferences) = rep:MemberReferences protected COPY
+
+    /** @deprecated since oak 1.0 */
     [rep:Members]
       orderable
-      + * (rep:Members) = rep:Members protected multiple /* FIXME: SNS definition */
-      - * (WEAKREFERENCE) protected < 'rep:Authorizable' /* FIXME: OAK-482 */
+      + * (rep:Members) = rep:Members protected multiple
+      - * (WEAKREFERENCE) protected < 'rep:Authorizable'
 
 #### 5. API Extensions
 The OAK project introduces the following user management related public
