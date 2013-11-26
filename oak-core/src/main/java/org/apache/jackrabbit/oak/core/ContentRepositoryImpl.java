@@ -204,7 +204,8 @@ public class ContentRepositoryImpl implements ContentRepository {
                         valueFactory.createValue(PropertyType.TYPENAME_UNDEFINED)
                 }, false, true)
                 .put(NODE_TYPE_MANAGEMENT_RESIDUAL_DEFINITIONS_SUPPORTED, trueValue, true, true)
-                .put(NODE_TYPE_MANAGEMENT_SAME_NAME_SIBLINGS_SUPPORTED, trueValue, true, true)
+                // SNS are not supported (OAK-1224)
+                .put(NODE_TYPE_MANAGEMENT_SAME_NAME_SIBLINGS_SUPPORTED, falseValue, true, true)
                 .put(NODE_TYPE_MANAGEMENT_VALUE_CONSTRAINTS_SUPPORTED, trueValue, true, true)
                 .put(NODE_TYPE_MANAGEMENT_UPDATE_IN_USE_SUPORTED, falseValue, true, true)
                 .put(OPTION_ACCESS_CONTROL_SUPPORTED, trueValue, true, true)
@@ -218,7 +219,7 @@ public class ContentRepositoryImpl implements ContentRepository {
                 .put(OPTION_QUERY_SQL_SUPPORTED, falseValue, true, true)
                 .put(OPTION_RETENTION_SUPPORTED, falseValue, true, true)
                 .put(OPTION_SHAREABLE_NODES_SUPPORTED, falseValue, true, true)
-                 // todo: let plugin set the descriptor
+                // todo: let plugin set the descriptor
                 .put(OPTION_SIMPLE_VERSIONING_SUPPORTED, falseValue, true, true)
                 .put(OPTION_TRANSACTIONS_SUPPORTED, falseValue, true, true)
                 .put(OPTION_UNFILED_CONTENT_SUPPORTED, falseValue, true, true)
