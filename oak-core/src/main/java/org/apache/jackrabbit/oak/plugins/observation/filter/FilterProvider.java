@@ -47,19 +47,22 @@ public interface FilterProvider {
     boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info);
 
     /**
-     * TODO document
-     * @param beforeTree
-     * @param afterTree
-     * @param treePermission
-     * @return
+     * Factory method for creating a {@code Filter} for the passed before and after
+     * states and the given tree permissions of the reading session.
+     *
+     * @param beforeTree  before state
+     * @param afterTree   after state
+     * @param treePermission  tree permission of the corresponding tree of the reading session
+     * @return new {@code Filter} instance
      */
     @Nonnull
     Filter getFilter(@Nonnull ImmutableTree beforeTree, @Nonnull ImmutableTree afterTree,
             @Nonnull TreePermission treePermission);
 
     /**
-     * TODO document
-     * @return
+     * Path of the subtree to which the the filter returned by
+     * {@link #getFilter(ImmutableTree, ImmutableTree, TreePermission)} applies.
+     * @return path to which the filter applies.
      */
     @Nonnull
     String getPath();
