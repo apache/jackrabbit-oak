@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 class TarFile {
@@ -88,6 +89,10 @@ class TarFile {
 
             position += (1 + (size + BLOCK_SIZE - 1) / BLOCK_SIZE) * BLOCK_SIZE;
         }
+    }
+
+    Set<UUID> getUUIDs() {
+        return entries.keySet();
     }
 
     ByteBuffer readEntry(UUID id) throws IOException {
