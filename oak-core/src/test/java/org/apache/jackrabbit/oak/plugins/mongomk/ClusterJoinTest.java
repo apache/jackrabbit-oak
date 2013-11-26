@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

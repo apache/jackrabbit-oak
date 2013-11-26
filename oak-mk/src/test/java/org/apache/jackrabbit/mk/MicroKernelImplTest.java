@@ -16,20 +16,18 @@
  */
 package org.apache.jackrabbit.mk;
 
+import java.io.File;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
 public class MicroKernelImplTest {
     
