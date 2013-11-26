@@ -46,7 +46,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 /**
  * Provider for a filter filtering observation events according to a certain criterion.
  */
-public class FilterProvider {
+public class JcrFilterProvider {
     private static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
             PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
 
@@ -61,7 +61,7 @@ public class FilterProvider {
     private final boolean includeClusterExternal;
 
     /**
-     * Create a new instance of a {@code FilterProvider} for certain criteria
+     * Create a new instance of a {@code JcrFilterProvider} for certain criteria
      *
      * @param ntManager   node type manager
      * @param eventTypes  event types to include encoded as a bit mask
@@ -76,7 +76,7 @@ public class FilterProvider {
      *                                  Exclude otherwise.
      *
      * @see javax.jcr.observation.ObservationManager#addEventListener(javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean) */
-    public FilterProvider(ReadOnlyNodeTypeManager ntManager, int eventTypes, String path,
+    public JcrFilterProvider(ReadOnlyNodeTypeManager ntManager, int eventTypes, String path,
             boolean deep, String[] uuids, String[] nodeTypeName,
             boolean includeSessionLocal, boolean includeClusterExternal) {
         this.ntManager = ntManager;
