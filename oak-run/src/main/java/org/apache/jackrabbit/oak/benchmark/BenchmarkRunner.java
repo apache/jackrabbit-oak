@@ -90,9 +90,9 @@ public class BenchmarkRunner {
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB),
                 OakRepositoryFixture.getSegment(
-                        host.value(options), port.value(options), cacheSize * MB),
+                        host.value(options), port.value(options), cacheSize),
                 OakRepositoryFixture.getTar(
-                        base.value(options), 256 * MB, cacheSize * MB, mmap.value(options))
+                        base.value(options), 256, cacheSize, mmap.value(options))
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new LoginTest(),
