@@ -56,12 +56,22 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean isNew(String name) {
+        return false;
+    }
+
+    @Override
     public boolean isModified() {
         return false;
     }
 
     @Override
     public boolean isReplaced() {
+        return false;
+    }
+
+    @Override
+    public boolean isReplaced(String name) {
         return false;
     }
 

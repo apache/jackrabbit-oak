@@ -107,6 +107,14 @@ public interface NodeBuilder {
     boolean isNew();
 
     /**
+     * Check whether the named property is new, i.e. not present in the base state.
+     *
+     * @param name property name
+     * @return {@code true} for a new property
+     */
+    boolean isNew(String name);
+
+    /**
      * Check whether this builder represents a modified node, which has either modified properties
      * or removed or added child nodes.
      * @return  {@code true} for a modified node
@@ -121,6 +129,16 @@ public interface NodeBuilder {
      * @return {@code true} for a replaced node
      */
     boolean isReplaced();
+
+    /**
+     * Check whether the named property exists in the base state but is
+     * replaced with other content, for example as a result of
+     * a {@link #setProperty(PropertyState)} call.
+     *
+     * @param name property name
+     * @return {@code true} for a replaced property
+     */
+    boolean isReplaced(String name);
 
     /**
      * Returns the current number of child nodes.

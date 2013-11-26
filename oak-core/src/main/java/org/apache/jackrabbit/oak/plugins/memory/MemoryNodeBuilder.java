@@ -264,6 +264,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean isNew(String name) {
+        return hasProperty(name) && !getBaseState().hasProperty(name);
+    }
+
+    @Override
     public boolean isModified() {
         return head().isModified();
     }
@@ -271,6 +276,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public boolean isReplaced() {
         return head().isReplaced();
+    }
+
+    @Override
+    public boolean isReplaced(String name) {
+        return head().isReplaced(name);
     }
 
     @Override
@@ -547,6 +557,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
          */
         public abstract boolean isReplaced();
 
+        /**
+         * Check whether the named property is replaced.
+         *
+         * @param name property name
+         * @return {@code true} for a replaced property
+         */
+        public abstract boolean isReplaced(String name);
 
     }
 
@@ -604,6 +621,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         @Override
+        public boolean isReplaced(String name) {
+            return false;
+        }
+
+        @Override
         public String toString() {
             return toStringHelper(this).add("path", getPath()).toString();
         }
@@ -654,6 +676,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         @Override
         public boolean isReplaced() {
             return state.isReplaced(base());
+        }
+
+        @Override
+        public boolean isReplaced(String name) {
+            return state.isReplaced(base(), name);
         }
 
         @Override

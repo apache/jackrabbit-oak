@@ -61,20 +61,20 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
     }
 
     @Test
-    @Ignore  // TODO incomplete implementation of PermissionValidator.childNodeChanged()
     public void testShadowInvisibleProperty() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);
         setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
+        setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_ALTER_PROPERTIES);
 
         Root testRoot = getTestRoot();
         Tree a = testRoot.getTree("/a");
 
         // /a/x not visible to this session
-        assertNull(a.getProperty("x"));
+        assertNull(a.getProperty("aProp"));
 
         // shadow /a/x with transient property of the same name
-        a.setProperty("x", "xValue1");
-        assertNotNull(a.getProperty("x"));
+        a.setProperty("aProp", "aValue1");
+        assertNotNull(a.getProperty("aProp"));
 
         try {
             testRoot.commit();
