@@ -72,6 +72,7 @@ public class ChangeProcessor implements Observer {
     private Closeable observer;
     private Registration mbean;
     private NodeState previousRoot;
+    private boolean stopping;
 
     public ChangeProcessor(
             ContentSession contentSession,
@@ -117,6 +118,7 @@ public class ChangeProcessor implements Observer {
     public synchronized void stop() {
         checkState(observer != null, "Change processor not started");
         try {
+            stopping = true;
             mbean.unregister();
             observer.close();
         } catch (IOException e) {
@@ -140,7 +142,11 @@ public class ChangeProcessor implements Observer {
                             provider.getFilter(beforeTree, afterTree, treePermission),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
                     if (events.hasNext()) {
-                        eventListener.onEvent(new EventIteratorAdapter(events));
+                        synchronized (this) {
+                            if (!stopping) {
+                                eventListener.onEvent(new EventIteratorAdapter(events));
+                            }
+                        }
                     }
                 }
             } catch (Exception e) {
