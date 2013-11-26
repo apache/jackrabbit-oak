@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterators.concat;
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -92,14 +93,14 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
      * @param filter  filter for filtering changes
      * @param listener  listener for listening to the filtered changes
      */
-    public EventIterator(NodeState before, NodeState after, String path,
-            Filter filter, IterableListener<T> listener) {
+    public EventIterator(@Nonnull NodeState before, @Nonnull NodeState after,
+            @Nonnull String path, @Nonnull Filter filter, @Nonnull IterableListener<T> listener) {
         super(filter, listener);
-        this.before = before;
-        this.after = after;
-        this.path = path;
-        this.filter = filter;
-        this.listener = listener;
+        this.before = checkNotNull(before);
+        this.after = checkNotNull(after);
+        this.path = checkNotNull(path);
+        this.filter = checkNotNull(filter);
+        this.listener = checkNotNull(listener);
     }
 
     //------------------------------------------------------------< EventGenerator >---
