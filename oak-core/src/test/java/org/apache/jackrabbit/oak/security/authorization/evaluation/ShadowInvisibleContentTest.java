@@ -68,11 +68,11 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
         Root testRoot = getTestRoot();
         Tree a = testRoot.getTree("/a");
 
-        // /a/x not visible to this session
+        // /a/aProp not visible to this session
         assertNull(a.getProperty("aProp"));
         assertFalse(a.hasProperty("aProp"));
 
-        // shadow /a/x with transient property of the same name
+        // shadow /a/aProp with transient property of the same name
         a.setProperty("aProp", "aValue1");
         assertNotNull(a.getProperty("aProp"));
         assertTrue(a.hasProperty("aProp"));
@@ -84,27 +84,27 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
     }
 
     @Test
-    @Ignore // FIXME how do we handle the case where the shadowing item is the same as the shadowing item?
     public void testShadowInvisibleProperty2() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);
         setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
+        setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_ALTER_PROPERTIES);
 
         Root testRoot = getTestRoot();
         Tree a = testRoot.getTree("/a");
 
-        // /a/x not visible to this session
-        assertNull(a.getProperty("x"));
+        // /a/aProp not visible to this session
+        assertNull(a.getProperty("aProp"));
+        assertFalse(a.hasProperty("aProp"));
 
-        // shadow /a/x with transient property of the same name
-        a.setProperty("x", "xValue");
-        assertNotNull(a.getProperty("x"));
+        // shadow /a/aProp with transient property of the same name *and value*
+        a.setProperty("aProp", "aValue");
+        assertNotNull(a.getProperty("aProp"));
+        assertTrue(a.hasProperty("aProp"));
 
-        try {
-            testRoot.commit();
-            fail();
-        } catch (CommitFailedException e) {
-            assertTrue(e.isAccessViolation());
-        }
+        // after commit() normal access control again takes over
+        testRoot.commit(); // does not fail since no changes are detected, even when write access is denied
+        assertNull(a.getProperty("aProp"));
+        assertFalse(a.hasProperty("aProp"));
     }
 
     @Ignore("OAK-869") // FIXME: OAK-869
