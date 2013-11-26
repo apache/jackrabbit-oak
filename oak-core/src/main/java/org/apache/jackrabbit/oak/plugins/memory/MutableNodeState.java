@@ -146,6 +146,11 @@ class MutableNodeState extends AbstractNodeState {
         return base != before;
     }
 
+    boolean isReplaced(NodeState before, String name) {
+        return before.hasProperty(name)
+                && (base != before || properties.containsKey(name));
+    }
+
     /**
      * Remove the child node with the given {@code name}.
      * @param name  name of the child node to remove
@@ -302,4 +307,5 @@ class MutableNodeState extends AbstractNodeState {
     public NodeBuilder builder() {
         throw new UnsupportedOperationException();
     }
+
 }
