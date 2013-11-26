@@ -19,14 +19,17 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -55,7 +58,7 @@ public class FileStore extends AbstractStore {
 
     private final LinkedList<TarFile> bulkFiles = newLinkedList();
 
-    private final LinkedList<TarFile> treeFiles = newLinkedList();
+    private final LinkedList<TarFile> dataFiles = newLinkedList();
 
     private final Map<String, Journal> journals = newHashMap();
 
@@ -86,14 +89,14 @@ public class FileStore extends AbstractStore {
             String name = String.format(FILE_NAME_FORMAT, "data", i);
             File file = new File(directory, name);
             if (file.isFile()) {
-                treeFiles.add(new TarFile(file, maxFileSize, memoryMapping));
+                dataFiles.add(new TarFile(file, maxFileSize, memoryMapping));
             } else {
                 break;
             }
         }
 
         Segment segment = getWriter().getDummySegment();
-        for (TarFile tar : treeFiles) {
+        for (TarFile tar : dataFiles) {
             ByteBuffer buffer = tar.readEntry(JOURNALS_UUID);
             if (buffer != null) {
                 checkState(JOURNAL_MAGIC == buffer.getLong());
@@ -118,6 +121,17 @@ public class FileStore extends AbstractStore {
         }
     }
 
+    public Iterable<UUID> getSegmentIds() {
+        List<UUID> ids = newArrayList();
+        for (TarFile file : dataFiles) {
+            ids.addAll(file.getUUIDs());
+        }
+        for (TarFile file : bulkFiles) {
+            ids.addAll(file.getUUIDs());
+        }
+        return ids;
+    }
+
     @Override
     public synchronized void close() {
         try {
@@ -126,10 +140,10 @@ public class FileStore extends AbstractStore {
                 file.close();
             }
             bulkFiles.clear();
-            for (TarFile file : treeFiles) {
+            for (TarFile file : dataFiles) {
                 file.close();
             }
-            treeFiles.clear();
+            dataFiles.clear();
             System.gc(); // for any memory-mappings that are no longer used
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -148,7 +162,7 @@ public class FileStore extends AbstractStore {
 
     @Override
     protected Segment loadSegment(UUID id) throws Exception {
-        for (TarFile file : treeFiles) {
+        for (TarFile file : dataFiles) {
             ByteBuffer buffer = file.readEntry(id);
             if (buffer != null) {
                 return new Segment(FileStore.this, id, buffer);
@@ -176,9 +190,9 @@ public class FileStore extends AbstractStore {
     private void writeEntry(
             UUID segmentId, byte[] buffer, int offset, int length)
             throws IOException {
-        LinkedList<TarFile> files = treeFiles;
+        LinkedList<TarFile> files = dataFiles;
         String base = "data";
-        if (length == Segment.MAX_SEGMENT_SIZE) {
+        if (isBulkSegmentId(segmentId)) {
             files = bulkFiles;
             base = "bulk";
         }

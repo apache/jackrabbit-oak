@@ -112,7 +112,7 @@ class OakDirectory extends Directory {
         // do nothing
     }
 
-    private static final int BLOB_SIZE = 10 * 1024; // > MongoMK inline limit
+    private static final int BLOB_SIZE = 32 * 1024; // > blob inline limit
 
     private static class OakIndexFile {
 

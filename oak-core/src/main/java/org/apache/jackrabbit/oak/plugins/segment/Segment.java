@@ -20,12 +20,16 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -92,7 +96,7 @@ public class Segment {
             new Weigher<UUID, Segment>() {
                 @Override
                 public int weigh(UUID key, Segment value) {
-                    return value.data.remaining();
+                    return value.size();
                 }
             };
 
@@ -109,15 +113,12 @@ public class Segment {
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
 
-        if (data.capacity() > 0
-                && data.capacity() < Segment.MAX_SEGMENT_SIZE) {
-            // so skip the header parts of a normal non-bulk, non-empty segment
-            int roots = data.getShort(data.position() + 1) & 0xffff;
-            int headerSize = 3 + roots * 3;
-            this.refposition = data.position() + align(headerSize);
-        } else {
-            this.refposition = data.position();
+        int refpos = data.position();
+        if (isDataSegmentId(uuid)) {
+            int roots = data.getShort(refpos + 1) & 0xffff;
+            refpos += align(3 + roots * 3);
         }
+        this.refposition = refpos;
     }
 
     /**
@@ -138,6 +139,25 @@ public class Segment {
 
     public UUID getSegmentId() {
         return uuid;
+    }
+
+    public List<UUID> getReferencedIds() {
+        if (isDataSegmentId(uuid)) {
+            int refcount = data.get(data.position()) & 0xff;
+            List<UUID> refs = newArrayListWithCapacity(refcount);
+            for (int i = 0; i < refcount; i++) {
+                refs.add(new UUID(
+                        data.getLong(refposition + i * 16),
+                        data.getLong(refposition + i * 16 + 8)));
+            }
+            return refs;
+        } else {
+            return emptyList();
+        }
+    }
+
+    public int size() {
+        return data.remaining();
     }
 
     byte readByte(int offset) {

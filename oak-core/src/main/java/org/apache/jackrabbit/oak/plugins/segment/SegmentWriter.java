@@ -33,6 +33,8 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newBulkSegmentId;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newDataSegmentId;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -96,7 +98,7 @@ public class SegmentWriter {
         }
     };
 
-    private UUID uuid = UUID.randomUUID();
+    private UUID uuid = newDataSegmentId();
 
     /**
      * Insertion-ordered map from the UUIDs of referenced segments to the
@@ -136,7 +138,7 @@ public class SegmentWriter {
     public SegmentWriter(SegmentStore store) {
         this.store = store;
         this.dummySegment =
-                new Segment(store, UUID.randomUUID(), ByteBuffer.allocate(0));
+                new Segment(store, newBulkSegmentId(), ByteBuffer.allocate(0));
     }
 
     private void writeSegmentHeader(ByteBuffer b) {
@@ -194,7 +196,7 @@ public class SegmentWriter {
 
             store.writeSegment(uuid, buffer, buffer.length - length, length);
 
-            uuid = UUID.randomUUID();
+            uuid = newDataSegmentId();
             refids.clear();
             roots.clear();
             length = 0;
@@ -581,7 +583,7 @@ public class SegmentWriter {
 
     private RecordId internalWriteStream(InputStream stream)
             throws IOException {
-        byte[] data = new byte[Segment.MAX_SEGMENT_SIZE];
+        byte[] data = new byte[MAX_SEGMENT_SIZE];
         int n = ByteStreams.read(stream, data, 0, data.length);
 
         // Special case for short binaries (up to about 16kB):
@@ -607,27 +609,18 @@ public class SegmentWriter {
         long length = n;
         List<RecordId> blockIds = newArrayListWithExpectedSize(n / 4096);
 
-        // Write full bulk segments
-        while (n == buffer.length) {
-            UUID id = UUID.randomUUID();
-            store.writeSegment(id, data, 0, data.length);
+        // Write the data to bulk segments and collect the list of block ids
+        while (n != 0) {
+            UUID id = newBulkSegmentId();
+            int len = align(n);
+            store.writeSegment(id, data, 0, len);
 
-            for (int i = 0; i < data.length; i += BLOCK_SIZE) {
-                blockIds.add(new RecordId(id, i));
+            for (int i = 0; i < n; i += BLOCK_SIZE) {
+                blockIds.add(new RecordId(id, data.length - len + i));
             }
 
             n = ByteStreams.read(stream, data, 0, data.length);
             length += n;
-        }
-
-
-        // Inline the remaining blocks in the current segments
-        for (int p = 0; p < n; p += BLOCK_SIZE) {
-            int size = Math.min(n - p, BLOCK_SIZE);
-            synchronized (this) {
-                blockIds.add(prepare(RecordType.BLOCK, size));
-                System.arraycopy(data, p, buffer, position, size);
-            }
         }
 
         return writeValueRecord(length, writeList(blockIds));

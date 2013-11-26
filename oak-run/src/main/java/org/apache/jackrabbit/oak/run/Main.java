@@ -16,9 +16,16 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.io.File;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.jcr.Repository;
@@ -33,6 +40,8 @@ import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -43,6 +52,10 @@ import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 
 public class Main {
 
@@ -75,17 +88,76 @@ public class Main {
                 System.err.println("usage: upgrade <olddir> <newdir>");
                 System.exit(1);
             }
-        } else if ("inspect".equals(command)) {
+        } else if ("tarmk".equals(command)) {
             if (args.length == 0) {
-                System.err.println("usage: inspect <path> [uuid...]");
+                System.err.println("usage: tarmk <path> [id...]");
                 System.exit(1);
             } else {
+                System.out.println("TarMK " + args[0]);
                 File file = new File(args[0]);
                 FileStore store = new FileStore(file, 256 * 1024 * 1024, false);
                 try {
-                    for (int i = 1; i < args.length; i++) {
-                        UUID uuid = UUID.fromString(args[i]);
-                        System.out.println(store.readSegment(uuid));
+                    if (args.length == 1) {
+                        Map<UUID, List<UUID>> idmap = Maps.newHashMap();
+
+                        int dataCount = 0;
+                        long dataSize = 0;
+                        int bulkCount = 0;
+                        long bulkSize = 0;
+                        for (UUID uuid : store.getSegmentIds()) {
+                            if (SegmentIdFactory.isDataSegmentId(uuid)) {
+                                Segment segment = store.readSegment(uuid);
+                                dataCount++;
+                                dataSize += segment.size();
+                                idmap.put(uuid, segment.getReferencedIds());
+                            } else if (SegmentIdFactory.isBulkSegmentId(uuid)) {
+                                bulkCount++;
+                                bulkSize += store.readSegment(uuid).size();
+                                idmap.put(uuid, Collections.<UUID>emptyList());
+                            }
+                        }
+                        System.out.println("Total size:");
+                        System.out.format(
+                                "%6dMB in %6d data segments%n",
+                                dataSize / (1024 * 1024), dataCount);
+                        System.out.format(
+                                "%6dMB in %6d bulk segments%n",
+                                bulkSize / (1024 * 1024), bulkCount);
+
+                        Set<UUID> garbage = newHashSet(idmap.keySet());
+                        Queue<UUID> queue = Queues.newArrayDeque();
+                        queue.add(store.getJournal("root").getHead().getSegmentId());
+                        while (!queue.isEmpty()) {
+                            UUID id = queue.remove();
+                            if (garbage.remove(id)) {
+                                queue.addAll(idmap.get(id));
+                            }
+                        }
+                        dataCount = 0;
+                        dataSize = 0;
+                        bulkCount = 0;
+                        bulkSize = 0;
+                        for (UUID uuid : garbage) {
+                            if (SegmentIdFactory.isDataSegmentId(uuid)) {
+                                dataCount++;
+                                dataSize += store.readSegment(uuid).size();
+                            } else if (SegmentIdFactory.isBulkSegmentId(uuid)) {
+                                bulkCount++;
+                                bulkSize += store.readSegment(uuid).size();
+                            }
+                        }
+                        System.out.println("Available for garbage collection:");
+                        System.out.format(
+                                "%6dkB in %6d data segments%n",
+                                dataSize / 1024, dataCount);
+                        System.out.format(
+                                "%6dMB in %6d bulk segments%n",
+                                bulkSize / (1024 * 1024), bulkCount);
+                    } else {
+                        for (int i = 1; i < args.length; i++) {
+                            UUID uuid = UUID.fromString(args[i]);
+                            System.out.println(store.readSegment(uuid));
+                        }
                     }
                 } finally {
                     store.close();
