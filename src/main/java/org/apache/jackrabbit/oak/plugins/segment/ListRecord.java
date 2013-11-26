@@ -21,7 +21,7 @@ import static com.google.common.base.Preconditions.checkElementIndex;
 
 class ListRecord extends Record {
 
-    static final int LEVEL_SIZE = 1 << 8; // 256
+    static final int LEVEL_SIZE = Segment.SEGMENT_REFERENCE_LIMIT;
 
     private final int size;
 
