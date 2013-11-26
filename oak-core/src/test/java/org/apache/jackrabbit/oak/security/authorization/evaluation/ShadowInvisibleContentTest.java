@@ -107,24 +107,27 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
         assertFalse(a.hasProperty("aProp"));
     }
 
-    @Ignore("OAK-869") // FIXME: OAK-869
     @Test
     public void testAddNodeCollidingWithInvisibleNode() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);
         setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.JCR_READ);
+        setupPermission("/a/b/c", testPrincipal, true, PrivilegeConstants.JCR_ALL);
 
         Root testRoot = getTestRoot();
         Tree a = testRoot.getTree("/a");
 
         assertFalse(a.getChild("b").exists());
-        new NodeUtil(a).addChild("b", JcrConstants.NT_UNSTRUCTURED);
+        assertTrue(a.getChild("b").getChild("c").exists());
 
-        try {
-            testRoot.commit();
-            fail();
-        } catch (CommitFailedException e) {
-            assertTrue(e.isConstraintViolation());
-        }
+        new NodeUtil(a).addChild("b", JcrConstants.NT_UNSTRUCTURED);
+        assertTrue(a.getChild("b").exists());
+        assertFalse(a.getChild("b").getChild("c").exists()); // now shadowed
+
+        // since we have write access, the old content gets replaced
+        testRoot.commit(); // note that also the deny-read ACL gets replaced
+
+        assertTrue(a.getChild("b").exists());
+        assertFalse(a.getChild("b").getChild("c").exists());
     }
 
 }
