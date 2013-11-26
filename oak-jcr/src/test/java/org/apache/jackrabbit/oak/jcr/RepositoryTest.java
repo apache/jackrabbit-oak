@@ -307,8 +307,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
 
         assertTrue(getAdminSession().nodeExists("/foo[1]/bar[1]"));
+        assertTrue(node.hasNode("bar[1]"));
+        assertTrue(node.hasProperty("bar[1]/jcr:primaryType"));
         assertTrue(getAdminSession().propertyExists("/foo[1]/bar[1]/jcr:primaryType"));
         assertFalse(getAdminSession().nodeExists("/foo[1]/bar[2]"));
+        assertFalse(node.hasNode("bar[2]"));
+        assertFalse(node.hasProperty("bar[2]/jcr:primaryType"));
         assertFalse(getAdminSession().propertyExists("/foo[1]/bar[2]/jcr:primaryType"));
     }
 
