@@ -137,6 +137,13 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     }
 
     @Override
+    public boolean isNew(String name) {
+        return builder.isNew(name)
+                || (builder.isReplaced(name)
+                        && !getTreePermission().canRead(builder.getProperty(name)));
+    }
+
+    @Override
     public boolean isModified() {
         return builder.isModified();
     }
@@ -144,6 +151,11 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     @Override
     public boolean isReplaced() {
         return builder.isReplaced() && !isNew();
+    }
+
+    @Override
+    public boolean isReplaced(String name) {
+        return builder.isReplaced(name) && !isNew(name);
     }
 
     public void baseChanged() {
@@ -173,7 +185,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
         if (property != null
-                && (getTreePermission().canRead(property) || isNew())) {
+                && new ReadablePropertyPredicate().apply(property)) {
             return property;
         } else {
             return null;
@@ -376,7 +388,8 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
         public boolean apply(@Nonnull PropertyState property) {
-            return getTreePermission().canRead(property);
+            return getTreePermission().canRead(property)
+                    || isNew(property.getName());
         }
     }
 
