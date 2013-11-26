@@ -111,7 +111,8 @@ public class ObservationManagerImpl implements ObservationManager {
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
         boolean includeExternal = !(listener instanceof ExcludeExternal);
-        FilterProvider filterProvider = new JcrFilterProvider(ntMgr, eventTypes, oakPath(absPath), isDeep,
+        String oakPath = namePathMapper.getOakPath(absPath);
+        FilterProvider filterProvider = new JcrFilterProvider(ntMgr, eventTypes, oakPath, isDeep,
                 uuid, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
@@ -171,10 +172,6 @@ public class ObservationManagerImpl implements ObservationManager {
     }
 
     //------------------------------------------------------------< private >---
-
-    private String oakPath(String jcrPath) {
-        return namePathMapper.getOakPath(jcrPath);
-    }
 
     /**
      * Validates the given node type names.

@@ -133,12 +133,11 @@ public class ChangeProcessor implements Observer {
                 FilterProvider provider = filterProvider.get();
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
-                    String path = namePathMapper.getOakPath(provider.getPath());
-                    ImmutableTree beforeTree = getTree(previousRoot, path);
-                    ImmutableTree afterTree = getTree(root, path);
+                    ImmutableTree beforeTree = getTree(previousRoot, provider.getPath());
+                    ImmutableTree afterTree = getTree(root, provider.getPath());
                     TreePermission treePermission = getTreePermission(afterTree);
                     EventIterator<Event> events = new EventIterator<Event>(
-                            beforeTree.getNodeState(), afterTree.getNodeState(), path,
+                            beforeTree.getNodeState(), afterTree.getNodeState(), provider.getPath(),
                             provider.getFilter(beforeTree, afterTree, treePermission),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
                     if (events.hasNext()) {
