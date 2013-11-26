@@ -230,7 +230,7 @@ public class SegmentWriter {
         int segmentSize = headerSize + refCount * 16 + recordSize + length;
         if (segmentSize > buffer.length - 1
                 || rootCount > 0xffff
-                || refCount > Segment.SEGMENT_REFERENCE_LIMIT) {
+                || refCount >= Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();
         }
 
