@@ -26,11 +26,14 @@ import static javax.jcr.observation.Event.PERSIST;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
 import java.util.List;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
@@ -38,8 +41,8 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filte
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventTypeFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
+import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.NodeTypeFilter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.PathFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UuidFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -99,8 +102,15 @@ public class JcrFilterProvider implements FilterProvider {
     @Override
     public Filter getFilter(ImmutableTree beforeTree, ImmutableTree afterTree,
             TreePermission treePermission) {
+
+        String relPath = PathUtils.relativize(afterTree.getPath(), path);
+        String pathPattern = deep
+            ? PathUtils.concat(relPath, STAR_STAR)
+            : PathUtils.concat(relPath, STAR);
+
         List<Filter> filters = Lists.<Filter>newArrayList(
-                new PathFilter(beforeTree, afterTree, path, deep));
+            new GlobbingPathFilter(beforeTree, afterTree, pathPattern)
+        );
 
         if ((ALL_EVENTS & eventTypes) == 0) {
             return Filters.excludeAll();
