@@ -19,7 +19,18 @@
 
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.size;
+import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
+import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
+import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
+
 import java.util.Iterator;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
@@ -31,16 +42,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.size;
-import static com.google.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
-import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
-import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 /**
  * {@code AbstractTree} provides default implementations for most
@@ -101,12 +102,16 @@ public abstract class AbstractTree implements Tree {
     /**
      * @return  {@code true} iff {@code getStatus() == Status.NEW}
      */
-    protected abstract boolean isNew();
+    protected boolean isNew() {
+        return nodeBuilder.isNew();
+    }
 
     /**
      * @return  {@code true} iff {@code getStatus() == Status.MODIFIED}
      */
-    protected abstract boolean isModified();
+    protected boolean isModified() {
+        return nodeBuilder.isModified();
+    }
 
     /**
      * @return {@code true} if this tree has orderable children;
@@ -186,9 +191,9 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public Status getStatus() {
-        if (isNew()) {
+        if (nodeBuilder.isNew()) {
             return NEW;
-        } else if (isModified()) {
+        } else if (nodeBuilder.isModified()) {
             return MODIFIED;
         } else {
             return EXISTING;
@@ -218,6 +223,19 @@ public abstract class AbstractTree implements Tree {
     @Override
     public long getPropertyCount() {
         return size(getProperties());
+    }
+
+    @Override
+    public Status getPropertyStatus(@Nonnull String name) {
+        if (!hasProperty(name)) {
+            return null;
+        } else if (nodeBuilder.isNew(name)) {
+            return NEW;
+        } else if (nodeBuilder.isReplaced(name)) {
+            return MODIFIED;
+        } else {
+            return EXISTING;
+        }
     }
 
     @Override

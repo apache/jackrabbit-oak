@@ -85,16 +85,6 @@ public class MutableTree extends AbstractTree {
         return new MutableTree(root, this, name, pendingMoves);
     }
 
-    @Override
-    protected boolean isNew() {
-        return nodeBuilder.isNew();
-    }
-
-    @Override
-    protected boolean isModified() {
-        return nodeBuilder.isModified();
-    }
-
     //------------------------------------------------------------< Tree >---
 
     @Override
@@ -150,19 +140,12 @@ public class MutableTree extends AbstractTree {
     public Status getPropertyStatus(String name) {
         beforeRead();
 
-        // make sure we don't expose information about a non-accessible property
-        if (!hasProperty(name)) {
-            return null;
-        }
-
-        // get status of this tree without checking for it's existence
-        Status nodeStatus = super.getStatus();
-        if (nodeStatus == NEW) {
-            return (super.hasProperty(name)) ? NEW : null;
-        }
         PropertyState head = super.getProperty(name);
         if (head == null) {
+            // make sure we don't expose information about a non-accessible property
             return null;
+        } else if (super.getStatus() == NEW) {
+            return NEW;
         }
 
         PropertyState base = getSecureBase().getProperty(name);
