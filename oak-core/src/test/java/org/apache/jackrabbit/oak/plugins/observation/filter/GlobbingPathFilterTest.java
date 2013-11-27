@@ -98,8 +98,8 @@ public class GlobbingPathFilterTest {
         ImmutableTree t = tree;
 
         for(String name : elements("a/b/c/d")) {
-            assertTrue(filter.includeAdd(name, t.getNodeState()));
             t = t.getChild(name);
+            assertTrue(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
             assertNotNull(filter);
         }
@@ -215,14 +215,14 @@ public class GlobbingPathFilterTest {
 
         for(int c = 0; c < 2; c++) {
             for(String name : elements("r/s/t/u")) {
-                assertFalse(filter.includeAdd(name, t.getNodeState()));
                 t = t.getChild(name);
+                assertFalse(filter.includeAdd(name, t.getNodeState()));
                 filter = filter.create(name, t.getNodeState(), t.getNodeState());
                 assertNotNull(filter);
             }
 
-            assertTrue(filter.includeAdd("v", t.getNodeState()));
             t = t.getChild("v");
+            assertTrue(filter.includeAdd("v", t.getNodeState()));
             filter = filter.create("v", t.getNodeState(), t.getNodeState());
             assertNotNull(filter);
         }
@@ -237,14 +237,14 @@ public class GlobbingPathFilterTest {
         ImmutableTree t = tree;
 
         for(String name : elements("r/s/t/u/v/r/s/t/u/v/r/s/t/u/v")) {
-            assertFalse(filter.includeAdd(name, t.getNodeState()));
             t = t.getChild(name);
+            assertFalse(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
             assertNotNull(filter);
         }
 
-        assertTrue(filter.includeAdd("w", t.getNodeState()));
         t = t.getChild("w");
+        assertTrue(filter.includeAdd("w", t.getNodeState()));
         filter = filter.create("w", t.getNodeState(), t.getNodeState());
         assertNotNull(filter);
     }
@@ -258,15 +258,15 @@ public class GlobbingPathFilterTest {
         ImmutableTree t = tree;
 
         for(String name : elements("r/s")) {
-            assertFalse(filter.includeAdd(name, t.getNodeState()));
             t = t.getChild(name);
+            assertFalse(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
             assertNotNull(filter);
         }
 
         for (String name: elements("t/u/v/r/s/t/u/v/r/s/t/u/v/w")) {
-            assertTrue(filter.includeAdd(name, t.getNodeState()));
             t = t.getChild(name);
+            assertTrue(filter.includeAdd(name, t.getNodeState()));
             filter = filter.create(name, t.getNodeState(), t.getNodeState());
             assertNotNull(filter);
         }
