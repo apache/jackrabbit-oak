@@ -21,7 +21,6 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -38,14 +37,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 public class SegmentNodeState extends Record implements NodeState {
-
-    static boolean fastEquals(NodeState a, NodeState b) {
-        return a instanceof SegmentNodeState
-                && b instanceof SegmentNodeState
-                && Objects.equal(
-                        ((SegmentNodeState) a).getRecordId(),
-                        ((SegmentNodeState) b).getRecordId());
-    }
 
     private RecordId templateId = null;
 
@@ -265,8 +256,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @Nonnull
     public SegmentRootBuilder builder() {
-        // TODO: avoid the Segment.store reference
-        return new SegmentRootBuilder(this, getSegment().store.getWriter());
+        return new SegmentRootBuilder(this, getStore().getWriter());
     }
 
     @Override
@@ -294,7 +284,8 @@ public class SegmentNodeState extends Record implements NodeState {
             return true;
         } else if (object instanceof SegmentNodeState) {
             SegmentNodeState that = (SegmentNodeState) object;
-            if (getRecordId().equals(that.getRecordId())) {
+            if (getRecordId().equals(that.getRecordId())
+                    && getStore() == that.getStore()) {
                 return true;
             } else {
                 Template template = getTemplate();

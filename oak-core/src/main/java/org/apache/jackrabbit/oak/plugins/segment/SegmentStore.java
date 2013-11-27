@@ -43,4 +43,15 @@ public interface SegmentStore {
 
     <T> T getRecord(RecordId id, Callable<T> loader);
 
+    /**
+     * Checks whether the given object is a record of the given type and
+     * is stored in this segment store.
+     *
+     * @param object possible record object
+     * @param type record type
+     * @return {@code true} if the object is a record of the given type
+     *         from this store, {@code false} otherwise
+     */
+    boolean isInstance(Object object, Class<? extends Record> type);
+
 }

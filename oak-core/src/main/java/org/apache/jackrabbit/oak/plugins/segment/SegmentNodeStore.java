@@ -41,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import com.google.common.base.Objects;
+
 public class SegmentNodeStore implements NodeStore, Observable {
 
     static final String ROOT = "root";
@@ -127,13 +129,22 @@ public class SegmentNodeStore implements NodeStore, Observable {
     private NodeState rebase(@Nonnull NodeBuilder builder, NodeState newBase) {
         checkArgument(builder instanceof SegmentNodeBuilder);
         NodeState oldBase = builder.getBaseState();
-        if (!SegmentNodeState.fastEquals(oldBase, newBase)) {
+        if (!fastEquals(oldBase, newBase)) {
             NodeState head = builder.getNodeState();
             ((SegmentNodeBuilder) builder).reset(newBase);
             head.compareAgainstBaseState(oldBase, new ConflictAnnotatingRebaseDiff(builder));
         }
         return builder.getNodeState();
     }
+
+    private boolean fastEquals(Object a, Object b) {
+        return store.isInstance(a, Record.class)
+                && store.isInstance(b, Record.class)
+                && Objects.equal(
+                        ((Record) a).getRecordId(),
+                        ((Record) b).getRecordId());
+    }
+
 
     @Override @Nonnull
     public NodeState reset(@Nonnull NodeBuilder builder) {
