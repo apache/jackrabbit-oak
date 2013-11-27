@@ -165,4 +165,10 @@ public abstract class AbstractStore implements SegmentStore {
         }
     }
 
+    @Override
+    public boolean isInstance(Object object, Class<? extends Record> type) {
+        assert Record.class.isAssignableFrom(type);
+        return type.isInstance(object) && ((Record) object).getStore() == this;
+    }
+
 }

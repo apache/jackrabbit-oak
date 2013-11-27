@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -100,7 +102,7 @@ public class Segment {
                 }
             };
 
-    final SegmentStore store; // TODO: should be private
+    private final SegmentStore store;
 
     private final UUID uuid;
 
@@ -135,6 +137,16 @@ public class Segment {
         int pos = data.limit() - MAX_SEGMENT_SIZE + offset;
         checkState(pos >= data.position());
         return pos;
+    }
+
+    /**
+     * Returns the store that contains this segment.
+     *
+     * @return containing segment store
+     */
+    @Nonnull
+    SegmentStore getStore() {
+        return store;
     }
 
     public UUID getSegmentId() {

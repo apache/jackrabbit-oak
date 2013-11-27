@@ -551,8 +551,7 @@ public class SegmentWriter {
     }
 
     public SegmentBlob writeBlob(Blob blob) throws IOException {
-        if (blob instanceof SegmentBlob
-                && store == ((SegmentBlob) blob).getSegment().store) {
+        if (store.isInstance(blob, SegmentBlob.class)) {
             return (SegmentBlob) blob;
         } else {
             return writeStream(blob.getNewStream());
@@ -755,7 +754,7 @@ public class SegmentWriter {
     }
 
     public SegmentNodeState writeNode(NodeState state) {
-        if (state instanceof SegmentNodeState) {
+        if (store.isInstance(state, SegmentNodeState.class)) {
             return (SegmentNodeState) state;
         }
 
@@ -764,7 +763,7 @@ public class SegmentWriter {
         if (state instanceof ModifiedNodeState) {
             after = (ModifiedNodeState) state;
             NodeState base = after.getBaseState();
-            if (base instanceof SegmentNodeState) {
+            if (store.isInstance(base, SegmentNodeState.class)) {
                 before = (SegmentNodeState) base;
             }
         }
@@ -823,14 +822,14 @@ public class SegmentWriter {
             String name = pt.getName();
             PropertyState property = state.getProperty(name);
 
-            if (property instanceof SegmentPropertyState) {
+            if (store.isInstance(property, SegmentPropertyState.class)) {
                 ids.add(((SegmentPropertyState) property).getRecordId());
             } else {
                 Map<String, RecordId> previousValues = emptyMap();
                 if (before != null) {
                     // reuse previously stored property values, if possible
                     PropertyState beforeProperty = before.getProperty(name);
-                    if (beforeProperty instanceof SegmentPropertyState
+                    if (store.isInstance(beforeProperty, SegmentPropertyState.class)
                             && beforeProperty.isArray()
                             && beforeProperty.getType() != Type.BINARIES) {
                         SegmentPropertyState segmentProperty =
