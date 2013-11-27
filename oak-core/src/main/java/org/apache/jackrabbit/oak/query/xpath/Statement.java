@@ -58,18 +58,27 @@ public class Statement {
         }
         if (where instanceof OrCondition) {
             OrCondition or = (OrCondition) where;
-            Statement s1 = new Statement();
-            s1.columnSelector = columnSelector;
-            s1.selectors = selectors;
-            s1.columnList = columnList;
-            s1.where = or.left;
-            Statement s2 = new Statement();
-            s2.columnSelector = columnSelector;
-            s2.selectors = selectors;
-            s2.columnList = columnList;
-            s2.where = or.right;
-            s2.xpathQuery = xpathQuery;
-            return new UnionStatement(s1, s2);
+            if (or.getCommonLeftPart() != null) {
+                // @x = 1 or @x = 2 
+                // is automatically converted to 
+                // @x in (1, 2)
+                // within the query engine
+            } else {
+                // @x = 1 or @y = 2
+                // or similar
+                Statement s1 = new Statement();
+                s1.columnSelector = columnSelector;
+                s1.selectors = selectors;
+                s1.columnList = columnList;
+                s1.where = or.left;
+                Statement s2 = new Statement();
+                s2.columnSelector = columnSelector;
+                s2.selectors = selectors;
+                s2.columnList = columnList;
+                s2.where = or.right;
+                s2.xpathQuery = xpathQuery;
+                return new UnionStatement(s1, s2);
+            }
         }
         return this;
     }
