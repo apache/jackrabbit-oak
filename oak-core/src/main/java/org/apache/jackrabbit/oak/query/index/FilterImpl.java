@@ -251,6 +251,13 @@ public class FilterImpl implements Filter {
         PropertyValue oldLast = x.last;
         switch (op) {
         case EQUAL:
+            if (x.first != null && x.last == x.first && x.firstIncluding && x.lastIncluding) {
+                // there is already an equality condition on this property
+                // we will keep this, as it could be a multi-valued property
+                // (unlike in databases, "x = 1 and x = 2" can match a node
+                // if x is a multi-valued property with value "{1, 2}")
+                return;
+            }
             x.first = maxValue(oldFirst, v);
             x.firstIncluding = x.first == oldFirst ? x.firstIncluding : true;
             x.last = minValue(oldLast, v);

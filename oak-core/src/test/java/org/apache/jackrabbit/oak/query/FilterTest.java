@@ -28,9 +28,11 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
+/**
+ * Test filter conditions.
+ */
 public class FilterTest {
 
     private final NodeState types = INITIAL_CONTENT.getChildNode(JCR_SYSTEM)
@@ -45,7 +47,6 @@ public class FilterTest {
     }
 
     @Test
-    @Ignore("OAK-1108")
     public void mvp() throws Exception {
         // this can refer to a multi-valued property
         Filter f = createFilter("//*[(@prop = 'aaa' and @prop = 'bbb' and @prop = 'ccc')]");
