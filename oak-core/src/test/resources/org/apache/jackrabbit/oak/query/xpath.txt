@@ -23,6 +23,20 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# union and in(..)
+
+xpath2sql //*[@x = 1 or @x = 2]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [x] = 1 or [x] = 2 /* xpath: //*[@x = 1 or @x = 2] */
+
+xpath2sql //*[@x = 1 or @x = 2 or @x = 3]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [x] = 1 or [x] = 2 or [x] = 3 /* xpath: //*[@x = 1 or @x = 2 or @x = 3] */
+
+xpath2sql //*[@x = 1 or @y = 2]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [x] = 1 union select [jcr:path], [jcr:score], * from [nt:base] as a where [y] = 2 /* xpath: //*[@x = 1 or @y = 2] */
+
+xpath2sql //*[@x = 1 or @x = 2 or @y = 3]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [x] = 1 or [x] = 2 union select [jcr:path], [jcr:score], * from [nt:base] as a where [y] = 3 /* xpath: //*[@x = 1 or @x = 2 or @y = 3] */
+
 # xpath name escaping
 
 xpath2sql //My_x0020_Documents

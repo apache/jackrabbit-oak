@@ -147,6 +147,19 @@ abstract class Expression {
         int getPrecedence() {
             return precedence;
         }
+        
+        /**
+         * Get the left-hand-side expression for equality conditions. 
+         * For example, for x=1, it is x. If it is not equality, return null.
+         * 
+         * @return the left-hand-side expression, or null
+         */        
+        public String getCommonLeftPart() {
+            if (!"=".equals(operator)) {
+                return null;
+            }
+            return left.toString();
+        }
     
         @Override
         public String toString() {
@@ -210,6 +223,25 @@ abstract class Expression {
 
         OrCondition(Expression left, Expression right) {
             super(left, "or", right, Expression.PRECEDENCE_OR);
+        }
+
+        /**
+         * Get the left-hand-side expression if it is the same for
+         * both sides. For example, for x=1 or x=2, it is x,
+         * but for x=1 or y=2, it is null
+         * 
+         * @return the left-hand-side expression, or null
+         */
+        @Override
+        public String getCommonLeftPart() {
+            if (left instanceof Condition && right instanceof Condition) {
+                String l = ((Condition) left).getCommonLeftPart();
+                String r = ((Condition) right).getCommonLeftPart();
+                if (l != null && r != null && l.equals(r)) {
+                    return l;
+                }
+            }
+            return null;
         }
         
     }
