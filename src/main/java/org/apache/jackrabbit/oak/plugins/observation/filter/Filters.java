@@ -34,6 +34,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * This utility class provides common {@link Filter} instances
  */
 public final class Filters {
+    private static final ConstantFilter INCLUDE_ALL = new ConstantFilter(true);
+    private static final ConstantFilter EXCLUDE_ALL = new ConstantFilter(false);
+
     private Filters() {
     }
 
@@ -61,188 +64,200 @@ public final class Filters {
      * @return  Filter that includes everything
      */
     public static Filter includeAll() {
-        return new ConstantFilter(true);
+        return INCLUDE_ALL;
     }
 
     /**
      * @return  Filter that excludes everything
      */
     public static Filter excludeAll() {
-        return new ConstantFilter(false);
+        return EXCLUDE_ALL;
     }
 
     private static Filter any(final List<Filter> filters) {
-        return new Filter() {
-            @Override
-            public boolean includeAdd(PropertyState after) {
-                for (Filter filter : filters) {
-                    if (filter.includeAdd(after)) {
-                        return true;
+        if (filters.isEmpty()) {
+            return EXCLUDE_ALL;
+        } else if (filters.size() == 1) {
+            return filters.get(0);
+        } else {
+            return new Filter() {
+                @Override
+                public boolean includeAdd(PropertyState after) {
+                    for (Filter filter : filters) {
+                        if (filter.includeAdd(after)) {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
 
-            @Override
-            public boolean includeChange(PropertyState before, PropertyState after) {
-                for (Filter filter : filters) {
-                    if (filter.includeChange(before, after)) {
-                        return true;
+                @Override
+                public boolean includeChange(PropertyState before, PropertyState after) {
+                    for (Filter filter : filters) {
+                        if (filter.includeChange(before, after)) {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
 
-            @Override
-            public boolean includeDelete(PropertyState before) {
-                for (Filter filter : filters) {
-                    if (filter.includeDelete(before)) {
-                        return true;
+                @Override
+                public boolean includeDelete(PropertyState before) {
+                    for (Filter filter : filters) {
+                        if (filter.includeDelete(before)) {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
 
-            @Override
-            public boolean includeAdd(String name, NodeState after) {
-                for (Filter filter : filters) {
-                    if (filter.includeAdd(name, after)) {
-                        return true;
+                @Override
+                public boolean includeAdd(String name, NodeState after) {
+                    for (Filter filter : filters) {
+                        if (filter.includeAdd(name, after)) {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
 
-            @Override
-            public boolean includeChange(String name, NodeState before, NodeState after) {
-                for (Filter filter : filters) {
-                    if (filter.includeChange(name, before, after)) {
-                        return true;
+                @Override
+                public boolean includeChange(String name, NodeState before, NodeState after) {
+                    for (Filter filter : filters) {
+                        if (filter.includeChange(name, before, after)) {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
 
-            @Override
-            public boolean includeDelete(String name, NodeState before) {
-                for (Filter filter : filters) {
-                    if (filter.includeDelete(name, before)) {
-                        return true;
+                @Override
+                public boolean includeDelete(String name, NodeState before) {
+                    for (Filter filter : filters) {
+                        if (filter.includeDelete(name, before)) {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
 
-            @Override
-            public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-                for (Filter filter : filters) {
-                    if (filter.includeMove(sourcePath, destPath, moved)) {
-                        return true;
+                @Override
+                public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
+                    for (Filter filter : filters) {
+                        if (filter.includeMove(sourcePath, destPath, moved)) {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
 
-            @Override
-            public Filter create(String name, NodeState before, NodeState after) {
-                List<Filter> childFilters = Lists.newArrayList();
-                for (Filter filter : filters) {
-                    Filter childFilter = filter.create(name, before, after);
-                    if (childFilter != null) {
-                        childFilters.add(childFilter);
+                @Override
+                public Filter create(String name, NodeState before, NodeState after) {
+                    List<Filter> childFilters = Lists.newArrayList();
+                    for (Filter filter : filters) {
+                        Filter childFilter = filter.create(name, before, after);
+                        if (childFilter != null) {
+                            childFilters.add(childFilter);
+                        }
                     }
+                    return any(childFilters);
                 }
-                return any(childFilters);
-            }
-        };
+            };
+        }
     }
 
     private static Filter all(final List<Filter> filters) {
-        return new Filter() {
-            @Override
-            public boolean includeAdd(PropertyState after) {
-                for (Filter filter : filters) {
-                    if (!filter.includeAdd(after)) {
-                        return false;
+        if (filters.isEmpty()) {
+            return INCLUDE_ALL;
+        } else if (filters.size() == 1) {
+            return filters.get(0);
+        } else {
+            return new Filter() {
+                @Override
+                public boolean includeAdd(PropertyState after) {
+                    for (Filter filter : filters) {
+                        if (!filter.includeAdd(after)) {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
 
-            @Override
-            public boolean includeChange(PropertyState before, PropertyState after) {
-                for (Filter filter : filters) {
-                    if (!filter.includeChange(before, after)) {
-                        return false;
+                @Override
+                public boolean includeChange(PropertyState before, PropertyState after) {
+                    for (Filter filter : filters) {
+                        if (!filter.includeChange(before, after)) {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
 
-            @Override
-            public boolean includeDelete(PropertyState before) {
-                for (Filter filter : filters) {
-                    if (!filter.includeDelete(before)) {
-                        return false;
+                @Override
+                public boolean includeDelete(PropertyState before) {
+                    for (Filter filter : filters) {
+                        if (!filter.includeDelete(before)) {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
 
-            @Override
-            public boolean includeAdd(String name, NodeState after) {
-                for (Filter filter : filters) {
-                    if (!filter.includeAdd(name, after)) {
-                        return false;
+                @Override
+                public boolean includeAdd(String name, NodeState after) {
+                    for (Filter filter : filters) {
+                        if (!filter.includeAdd(name, after)) {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
 
-            @Override
-            public boolean includeChange(String name, NodeState before, NodeState after) {
-                for (Filter filter : filters) {
-                    if (!filter.includeChange(name, before, after)) {
-                        return false;
+                @Override
+                public boolean includeChange(String name, NodeState before, NodeState after) {
+                    for (Filter filter : filters) {
+                        if (!filter.includeChange(name, before, after)) {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
 
-            @Override
-            public boolean includeDelete(String name, NodeState before) {
-                for (Filter filter : filters) {
-                    if (!filter.includeDelete(name, before)) {
-                        return false;
+                @Override
+                public boolean includeDelete(String name, NodeState before) {
+                    for (Filter filter : filters) {
+                        if (!filter.includeDelete(name, before)) {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
 
-            @Override
-            public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-                for (Filter filter : filters) {
-                    if (!filter.includeMove(sourcePath, destPath, moved)) {
-                        return false;
+                @Override
+                public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
+                    for (Filter filter : filters) {
+                        if (!filter.includeMove(sourcePath, destPath, moved)) {
+                            return false;
+                        }
                     }
+                    return true;
                 }
-                return true;
-            }
 
-            @Override
-            public Filter create(String name, NodeState before, NodeState after) {
-                List<Filter> childFilters = Lists.newArrayList();
-                for (Filter filter : filters) {
-                    Filter childFilter = filter.create(name, before, after);
-                    if (childFilter == null) {
-                        return null;
-                    } else {
-                        childFilters.add(childFilter);
+                @Override
+                public Filter create(String name, NodeState before, NodeState after) {
+                    List<Filter> childFilters = Lists.newArrayList();
+                    for (Filter filter : filters) {
+                        Filter childFilter = filter.create(name, before, after);
+                        if (childFilter == null) {
+                            return null;
+                        } else {
+                            childFilters.add(childFilter);
+                        }
                     }
+                    return all(childFilters);
                 }
-                return all(childFilters);
-            }
-        };
+            };
+        }
     }
 
     private static class ConstantFilter implements Filter {
