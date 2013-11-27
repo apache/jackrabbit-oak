@@ -28,6 +28,7 @@ import javax.jcr.Binary;
 import javax.jcr.Credentials;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
+import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.Session;
@@ -123,6 +124,7 @@ public class RepositoryUpgradeTest {
             properties.setProperty("double", Math.PI);
             properties.setProperty("long", 9876543210L);
             properties.setProperty("reference", referenceable);
+            properties.setProperty("weak_reference", session.getValueFactory().createValue(referenceable, true));
             properties.setProperty("string", "test");
             properties.setProperty("multiple", "a,b,c".split(","));
             session.save();
@@ -215,6 +217,23 @@ public class RepositoryUpgradeTest {
             assertEquals(
                     "/referenceable",
                     properties.getProperty("reference").getNode().getPath());
+            PropertyIterator refs = session.getNode("/referenceable").getReferences();
+            assertTrue(refs.hasNext());
+            assertEquals(properties.getPath() + "/reference", refs.nextProperty().getPath());
+            assertFalse(refs.hasNext());
+            assertEquals(
+                    PropertyType.WEAKREFERENCE,
+                    properties.getProperty("weak_reference").getType());
+            assertEquals(
+                    identifier,
+                    properties.getProperty("weak_reference").getString());
+            assertEquals(
+                    "/referenceable",
+                    properties.getProperty("weak_reference").getNode().getPath());
+            PropertyIterator weakRefs = session.getNode("/referenceable").getWeakReferences();
+            assertTrue(weakRefs.hasNext());
+            assertEquals(properties.getPath() + "/weak_reference", weakRefs.nextProperty().getPath());
+            assertFalse(weakRefs.hasNext());
             assertEquals(
                     PropertyType.STRING,
                     properties.getProperty("string").getType());
