@@ -160,6 +160,12 @@ public class NodeDocument extends Document {
 
     private final long time = System.currentTimeMillis();
 
+    /**
+     * Comparator for maps with {@link Revision} keys. The maps are ordered
+     * descending, newest revisions first!
+     */
+    private final Comparator<Revision> comparator = Collections.reverseOrder(new StableRevisionComparator());
+
     NodeDocument(@Nonnull DocumentStore store) {
         this.store = checkNotNull(store);
     }
@@ -712,20 +718,7 @@ public class NodeDocument extends Document {
             if (map.isEmpty()) {
                 previous = EMPTY_RANGE_MAP;
             } else {
-                SortedMap<Revision, Range> transformed = new TreeMap<Revision, Range>(
-                        new Comparator<Revision>() {
-                            @Override
-                            public int compare(Revision o1, Revision o2) {
-                                // in reverse order!
-                                int c = o2.compareRevisionTime(o1);
-                                if (c == 0) {
-                                    c = o1.getClusterId() < o2.getClusterId()
-                                            ? -1
-                                            : (o1.getClusterId() == o2.getClusterId() ? 0 : 1);
-                                }
-                                return c;
-                            }
-                        });
+                SortedMap<Revision, Range> transformed = new TreeMap<Revision, Range>(comparator);
                 for (Map.Entry<Revision, String> entry : map.entrySet()) {
                     Revision high = entry.getKey();
                     Revision low = Revision.fromString(entry.getValue());
