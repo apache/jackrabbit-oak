@@ -139,6 +139,7 @@ public class MutableTree extends AbstractTree {
     @Override
     public Status getPropertyStatus(String name) {
         beforeRead();
+        // FIXME use super.getPropertyStatus here. See OAK-1232
 
         PropertyState head = super.getProperty(name);
         if (head == null) {
