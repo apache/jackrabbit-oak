@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.util.Text;
 
 /**
@@ -39,7 +41,8 @@ public interface AuthorizableNodeName {
      * @param authorizableId The ID of the authorizable to be created.
      * @return A valid node name.
      */
-    String generateNodeName(String authorizableId);
+    @Nonnull
+    String generateNodeName(@Nonnull String authorizableId);
 
     /**
      * Default implementation of the {@code AuthorizableNodeName} interface
@@ -50,7 +53,8 @@ public interface AuthorizableNodeName {
     final class Default implements AuthorizableNodeName {
 
         @Override
-        public String generateNodeName(String authorizableId) {
+        @Nonnull
+        public String generateNodeName(@Nonnull String authorizableId) {
             return Text.escapeIllegalJcrChars(authorizableId);
         }
     }
