@@ -107,6 +107,9 @@ public class RepositoryUpgradeTest {
             Node referenceable =
                 root.addNode("referenceable", "test:unstructured");
             referenceable.addMixin(NodeType.MIX_REFERENCEABLE);
+            Node referenceable2 =
+                root.addNode("referenceable2", "test:unstructured");
+            referenceable2.addMixin(NodeType.MIX_REFERENCEABLE);
             session.save();
             identifier = referenceable.getIdentifier();
 
@@ -125,6 +128,8 @@ public class RepositoryUpgradeTest {
             properties.setProperty("long", 9876543210L);
             properties.setProperty("reference", referenceable);
             properties.setProperty("weak_reference", session.getValueFactory().createValue(referenceable, true));
+            properties.setProperty("mv_reference", new Value[]{session.getValueFactory().createValue(referenceable2, false)});
+            properties.setProperty("mv_weak_reference", new Value[]{session.getValueFactory().createValue(referenceable2, true)});
             properties.setProperty("string", "test");
             properties.setProperty("multiple", "a,b,c".split(","));
             session.save();
@@ -221,6 +226,12 @@ public class RepositoryUpgradeTest {
             assertTrue(refs.hasNext());
             assertEquals(properties.getPath() + "/reference", refs.nextProperty().getPath());
             assertFalse(refs.hasNext());
+
+            PropertyIterator refs2 = session.getNode("/referenceable2").getReferences();
+            assertTrue(refs2.hasNext());
+            assertEquals(properties.getPath() + "/mv_reference", refs2.nextProperty().getPath());
+            assertFalse(refs2.hasNext());
+
             assertEquals(
                     PropertyType.WEAKREFERENCE,
                     properties.getProperty("weak_reference").getType());
@@ -234,6 +245,10 @@ public class RepositoryUpgradeTest {
             assertTrue(weakRefs.hasNext());
             assertEquals(properties.getPath() + "/weak_reference", weakRefs.nextProperty().getPath());
             assertFalse(weakRefs.hasNext());
+            PropertyIterator weakRefs2 = session.getNode("/referenceable2").getWeakReferences();
+            assertTrue(weakRefs2.hasNext());
+            assertEquals(properties.getPath() + "/mv_weak_reference", weakRefs2.nextProperty().getPath());
+            assertFalse(weakRefs2.hasNext());
             assertEquals(
                     PropertyType.STRING,
                     properties.getProperty("string").getType());
