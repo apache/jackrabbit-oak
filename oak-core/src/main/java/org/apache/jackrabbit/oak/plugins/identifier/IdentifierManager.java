@@ -218,7 +218,7 @@ public class IdentifierManager {
             Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
                     Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
-            return findPaths(result, uuid, propertyName, nodeTypeNames);
+            return findPaths(result, uuid, propertyName, nodeTypeNames, weak ? Type.WEAKREFERENCE : Type.REFERENCE);
         } catch (ParseException e) {
             log.error("query failed", e);
             return Collections.emptySet();
@@ -226,7 +226,7 @@ public class IdentifierManager {
     }
 
     private Iterable<String> findPaths(final Result result, final String uuid, final String propertyName,
-            final String[] nodeTypeNames) {
+            final String[] nodeTypeNames, final Type<?> propertyType) {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
@@ -242,14 +242,16 @@ public class IdentifierManager {
                     class PropertyToPath implements Function<PropertyState, String> {
                         @Override
                         public String apply(PropertyState pState) {
-                            if (pState.isArray()) {
-                                for (String value : pState.getValue(Type.STRINGS)) {
-                                    if (uuid.equals(value)) {
-                                        return PathUtils.concat(rowPath, pState.getName());
+                            if (pState.getType() == propertyType) {
+                                if (pState.isArray()) {
+                                    for (String value : pState.getValue(Type.STRINGS)) {
+                                        if (uuid.equals(value)) {
+                                            return PathUtils.concat(rowPath, pState.getName());
+                                        }
                                     }
+                                } else if (uuid.equals(pState.getValue(Type.STRING))) {
+                                    return PathUtils.concat(rowPath, pState.getName());
                                 }
-                            } else if (uuid.equals(pState.getValue(Type.STRING))) {
-                                return PathUtils.concat(rowPath, pState.getName());
                             }
                             return null;
                         }
