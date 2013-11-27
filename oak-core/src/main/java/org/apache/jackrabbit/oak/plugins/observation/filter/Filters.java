@@ -20,6 +20,8 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter.EXCLUDE_ALL;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter.INCLUDE_ALL;
 
 import java.util.List;
 
@@ -34,8 +36,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * This utility class provides common {@link Filter} instances
  */
 public final class Filters {
-    private static final ConstantFilter INCLUDE_ALL = new ConstantFilter(true);
-    private static final ConstantFilter EXCLUDE_ALL = new ConstantFilter(false);
 
     private Filters() {
     }
@@ -260,51 +260,4 @@ public final class Filters {
         }
     }
 
-    private static class ConstantFilter implements Filter {
-        private final boolean include;
-
-        private ConstantFilter(boolean include) {
-            this.include = include;
-        }
-
-        @Override
-        public boolean includeAdd(PropertyState after) {
-            return include;
-        }
-
-        @Override
-        public boolean includeChange(PropertyState before, PropertyState after) {
-            return include;
-        }
-
-        @Override
-        public boolean includeDelete(PropertyState before) {
-            return include;
-        }
-
-        @Override
-        public boolean includeAdd(String name, NodeState after) {
-            return include;
-        }
-
-        @Override
-        public boolean includeChange(String name, NodeState before, NodeState after) {
-            return include;
-        }
-
-        @Override
-        public boolean includeDelete(String name, NodeState before) {
-            return include;
-        }
-
-        @Override
-        public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-            return include;
-        }
-
-        @Override
-        public Filter create(String name, NodeState before, NodeState after) {
-            return include ? this : null;
-        }
-    }
 }
