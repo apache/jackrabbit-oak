@@ -78,6 +78,16 @@ class Record {
     }
 
     /**
+     * Returns the store that contains this record.
+     *
+     * @return containing segment store
+     */
+    @Nonnull
+    protected SegmentStore getStore() {
+        return segment.getStore();
+    }
+
+    /**
      * Returns the segment that contains this record.
      *
      * @return segment that contains this record
