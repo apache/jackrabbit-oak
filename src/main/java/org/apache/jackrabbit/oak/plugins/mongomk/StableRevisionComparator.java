@@ -30,7 +30,7 @@ import java.util.Comparator;
  * Revisions are first ordered by timestamp, then counter and finally cluster
  * node id.
  */
-class StableRevisionComparator implements Comparator<Revision> {
+public class StableRevisionComparator implements Comparator<Revision> {
 
     @Override
     public int compare(Revision o1, Revision o2) {

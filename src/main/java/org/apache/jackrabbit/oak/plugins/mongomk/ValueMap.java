@@ -71,6 +71,11 @@ class ValueMap {
                     public Iterator<Map.Entry<Revision, String>> nextIterator() {
                         return docs.hasNext() ? docs.next().getLocalMap(property).entrySet().iterator() : null;
                     }
+
+                    @Override
+                    public String description() {
+                        return "Revisioned values for property " + doc.getId() + "/" + property + ":";
+                    }
                 };
             }
 
