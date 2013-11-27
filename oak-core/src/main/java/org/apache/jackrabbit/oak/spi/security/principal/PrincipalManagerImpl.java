@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.principal;
+package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import javax.annotation.CheckForNull;
@@ -30,11 +30,11 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 /**
  * Default implementation of the {@code PrincipalManager} interface.
  */
-class PrincipalManagerImpl implements PrincipalManager {
+public class PrincipalManagerImpl implements PrincipalManager {
 
     private final PrincipalProvider principalProvider;
 
-    PrincipalManagerImpl(@Nonnull PrincipalProvider principalProvider) {
+    public PrincipalManagerImpl(@Nonnull PrincipalProvider principalProvider) {
         this.principalProvider = principalProvider;
     }
 

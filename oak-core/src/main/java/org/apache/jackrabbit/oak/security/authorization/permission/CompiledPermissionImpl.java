@@ -58,7 +58,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterators.concat;
 
 /**
@@ -385,7 +384,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         String versionablePath = null;
         Tree t = versionStoreTree;
         while (t.exists() && !t.isRoot() && !VersionConstants.VERSION_STORE_ROOT_NAMES.contains(t.getName())) {
-            String ntName = checkNotNull(TreeUtil.getPrimaryTypeName(t));
+            String ntName = TreeUtil.getPrimaryTypeName(t);
             if (VersionConstants.JCR_FROZENNODE.equals(t.getName()) && t != versionStoreTree) {
                 relPath = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
             } else if (JcrConstants.NT_VERSIONHISTORY.equals(ntName)) {
