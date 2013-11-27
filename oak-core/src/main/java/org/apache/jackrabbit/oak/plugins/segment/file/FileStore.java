@@ -118,6 +118,7 @@ public class FileStore extends AbstractStore {
             NodeBuilder builder = EMPTY_NODE.builder();
             builder.setChildNode("root", EMPTY_NODE);
             journals.put("root", new FileJournal(this, builder.getNodeState()));
+            writeJournals();
         }
     }
 
