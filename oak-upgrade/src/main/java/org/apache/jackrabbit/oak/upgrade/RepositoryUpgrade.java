@@ -278,8 +278,8 @@ public class RepositoryUpgrade {
             // TODO: default hooks?
             CommitHook hook = new CompositeHook(
                     new EditorHook(new RegistrationEditorProvider()),
-                    new EditorHook(new ReferenceEditorProvider()),
-                    new EditorHook(new GroupEditorProvider())
+                    new EditorHook(new GroupEditorProvider()),
+                    new EditorHook(new ReferenceEditorProvider())
             );
             target.merge(builder, hook, null);
         } catch (Exception e) {

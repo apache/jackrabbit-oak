@@ -79,6 +79,7 @@ class GroupEditor extends DefaultEditor {
         ascend();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Editor childNodeAdded(String name, NodeState after) throws CommitFailedException {
         if (!descend(name)) {
@@ -98,8 +99,7 @@ class GroupEditor extends DefaultEditor {
             }
             currentGroup = new EditorGroup(state.path);
             currentGroup.addMembers(after.getProperty(UserConstants.REP_MEMBERS));
-        } else //noinspection deprecation
-            if (UserConstants.NT_REP_MEMBERS.equals(nt)) {
+        } else if (UserConstants.NT_REP_MEMBERS.equals(nt)) {
             if (currentGroup == null) {
                 log.warn("rep:Members detected outside of a rep:Group. ignoring {}", state.path);
             } else {
