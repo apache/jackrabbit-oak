@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -32,15 +31,11 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.AbstractLazyIterator;
-import org.apache.jackrabbit.oak.util.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-
-import static org.apache.jackrabbit.oak.api.Type.NAME;
 
 /**
  * {@code MembershipProvider} implementation storing group membership information
@@ -55,6 +50,9 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
  * size of the multi value properties below a {@link #REP_MEMBERS_LIST} node. The provider will maintain a number of
  * sub nodes of type {@link #NT_REP_MEMBER_REFERENCES} that again store the member references in a {@link #REP_MEMBERS}
  * property.
+ *
+ * Note that the writing of the members is done in {@link MembershipWriter} so that the logic can be re-used by the
+ * migration code.
  *
  * The current implementation uses a fixed threshold value of {@link #getMembershipSizeThreshold()} before creating
  * {@link #NT_REP_MEMBER_REFERENCES} sub nodes.
@@ -108,10 +106,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
     private static final Logger log = LoggerFactory.getLogger(MembershipProvider.class);
 
-    /**
-     * size of the membership threshold after which a new overflow node is created.
-     */
-    private int membershipSizeThreshold = 100;
+    private final MembershipWriter writer = new MembershipWriter();
 
     /**
      * Creates a new membership provider
@@ -120,6 +115,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     MembershipProvider(Root root, ConfigurationParameters config) {
         super(root, config);
+
     }
 
     /**
@@ -127,7 +123,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return the size of the membership property threshold.
      */
     int getMembershipSizeThreshold() {
-        return membershipSizeThreshold;
+        return writer.getMembershipSizeThreshold();
     }
 
     /**
@@ -135,7 +131,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @param membershipSizeThreshold the size of the membership property threshold
      */
     void setMembershipSizeThreshold(int membershipSizeThreshold) {
-        this.membershipSizeThreshold = membershipSizeThreshold;
+        writer.setMembershipSizeThreshold(membershipSizeThreshold);
     }
 
     /**
@@ -334,7 +330,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @throws RepositoryException if an error occurs
      */
     boolean addMember(Tree groupTree, Tree newMemberTree) throws RepositoryException {
-        return addMember(groupTree, getContentID(newMemberTree));
+        return writer.addMember(groupTree, getContentID(newMemberTree));
     }
 
     /**
@@ -345,63 +341,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @throws RepositoryException if an error occurs
      */
     boolean addMember(Tree groupTree, String memberContentId) throws RepositoryException {
-        // check all possible rep:members properties for the new member and also find the one with the least values
-        Tree membersList = groupTree.getChild(REP_MEMBERS_LIST);
-        Iterator<Tree> trees = Iterators.concat(
-                Iterators.singletonIterator(groupTree),
-                membersList.getChildren().iterator()
-        );
-        int bestCount = membershipSizeThreshold;
-        PropertyState bestProperty = null;
-        Tree bestTree = null;
-        while (trees.hasNext()) {
-            Tree t = trees.next();
-            PropertyState refs = t.getProperty(REP_MEMBERS);
-            if (refs != null) {
-                int numRefs = 0;
-                for (String ref: refs.getValue(Type.WEAKREFERENCES)) {
-                    if (ref.equals(memberContentId)) {
-                        return false;
-                    }
-                    numRefs++;
-                }
-                if (numRefs < bestCount) {
-                    bestCount = numRefs;
-                    bestProperty = refs;
-                    bestTree = t;
-                }
-            }
-        }
-
-        PropertyBuilder<String> propertyBuilder;
-        if (bestProperty == null) {
-            // we don't have a good candidate to store the new member.
-            // so there are no members at all or all are full
-            if (!groupTree.hasProperty(REP_MEMBERS)) {
-                bestTree = groupTree;
-            } else {
-                if (!membersList.exists()) {
-                    membersList = groupTree.addChild(REP_MEMBERS_LIST);
-                    membersList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST, NAME);
-                    bestTree = membersList.addChild("0");
-                } else {
-                    // keep node names linear
-                    int i=0;
-                    String name = String.valueOf(i);
-                    while (membersList.hasChild(name)) {
-                        name = String.valueOf(++i);
-                    }
-                    bestTree = membersList.addChild(name);
-                }
-                bestTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES, NAME);
-            }
-            propertyBuilder = PropertyUtil.getPropertyBuilder(Type.WEAKREFERENCE, REP_MEMBERS, true);
-        } else {
-            propertyBuilder = PropertyUtil.getPropertyBuilder(Type.WEAKREFERENCE, bestProperty);
-        }
-        propertyBuilder.addValue(memberContentId);
-        bestTree.setProperty(propertyBuilder.getPropertyState());
-        return true;
+        return writer.addMember(groupTree, memberContentId);
     }
 
     /**
@@ -412,35 +352,12 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return {@code true} if the member was removed.
      */
     boolean removeMember(Tree groupTree, Tree memberTree) {
-        String memberContentId = getContentID(memberTree);
-        Tree membersList = groupTree.getChild(REP_MEMBERS_LIST);
-        Iterator<Tree> trees = Iterators.concat(
-                Iterators.singletonIterator(groupTree),
-                membersList.getChildren().iterator()
-        );
-        while (trees.hasNext()) {
-            Tree t = trees.next();
-            PropertyState refs = t.getProperty(REP_MEMBERS);
-            if (refs != null) {
-                PropertyBuilder<String> prop = PropertyUtil.getPropertyBuilder(Type.WEAKREFERENCE, refs);
-                if (prop.hasValue(memberContentId)) {
-                    prop.removeValue(memberContentId);
-                    if (prop.isEmpty()) {
-                        if (t == groupTree) {
-                            t.removeProperty(REP_MEMBERS);
-                        } else {
-                            t.remove();
-                        }
-                    } else {
-                        t.setProperty(prop.getPropertyState());
-                    }
-                    return true;
-                }
-            }
+        if (writer.removeMember(groupTree, getContentID(memberTree))) {
+            return true;
+        } else {
+            log.debug("Authorizable {} was not member of {}", memberTree.getName(), groupTree.getName());
+            return false;
         }
-        // nothing changed
-        log.debug("Authorizable {} was not member of {}", memberTree.getName(), groupTree.getName());
-        return false;
     }
 
     /**
