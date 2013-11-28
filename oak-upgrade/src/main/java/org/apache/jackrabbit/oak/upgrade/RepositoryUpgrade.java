@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QItemDefinition;
 import org.apache.jackrabbit.spi.QNodeDefinition;
@@ -190,7 +191,8 @@ public class RepositoryUpgrade {
             // TODO: default hooks?
             CommitHook hook = new CompositeHook(
                     new EditorHook(new RegistrationEditorProvider()),
-                    new EditorHook(new ReferenceEditorProvider())
+                    new EditorHook(new ReferenceEditorProvider()),
+                    new EditorHook(new GroupEditorProvider())
             );
             target.merge(builder, hook, null);
         } catch (Exception e) {
