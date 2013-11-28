@@ -167,7 +167,7 @@ public final class PropertyValues {
             }
             if (!p1.isArray() && p2.isArray()) {
                 return contains(p2.getValue(Type.BINARIES),
-                        p2.getValue(Type.BINARY));
+                        p1.getValue(Type.BINARY));
             }
             break;
         default:
@@ -182,6 +182,53 @@ public final class PropertyValues {
         }
         // both arrays or both single values
         return p1.compareTo(p2) == 0;
+
+    }
+
+    public static boolean notMatch(PropertyValue p1, PropertyValue p2) {
+        if (p1.getType().tag() != p2.getType().tag()) {
+            return true;
+        }
+
+        switch (p1.getType().tag()) {
+        case PropertyType.BINARY:
+            if (p1.isArray() && !p2.isArray()) {
+                if (p1.count() > 1) {
+                    // a value can not possibly match multiple distinct values
+                    return true;
+                }
+                return !contains(p1.getValue(Type.BINARIES),
+                        p2.getValue(Type.BINARY));
+            }
+            if (!p1.isArray() && p2.isArray()) {
+                if (p2.count() > 1) {
+                    // a value can not possibly match multiple distinct values
+                    return true;
+                }
+                return !contains(p2.getValue(Type.BINARIES),
+                        p1.getValue(Type.BINARY));
+            }
+            break;
+        default:
+            if (p1.isArray() && !p2.isArray()) {
+                if (p1.count() > 1) {
+                    // a value can not possibly match multiple distinct values
+                    return true;
+                }
+                return !contains(p1.getValue(Type.STRINGS),
+                        p2.getValue(Type.STRING));
+            }
+            if (!p1.isArray() && p2.isArray()) {
+                if (p2.count() > 1) {
+                    // a value can not possibly match multiple distinct values
+                    return true;
+                }
+                return !contains(p2.getValue(Type.STRINGS),
+                        p1.getValue(Type.STRING));
+            }
+        }
+        // both arrays or both single values
+        return p1.compareTo(p2) != 0;
 
     }
 

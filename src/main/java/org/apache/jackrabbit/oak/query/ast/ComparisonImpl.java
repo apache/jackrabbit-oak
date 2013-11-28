@@ -118,7 +118,7 @@ public class ComparisonImpl extends ConstraintImpl {
         case EQUAL:
             return PropertyValues.match(p1, p2);
         case NOT_EQUAL:
-            return !PropertyValues.match(p1, p2);
+            return PropertyValues.notMatch(p1, p2);
         case GREATER_OR_EQUAL:
             return p1.compareTo(p2) >= 0;
         case GREATER_THAN:
