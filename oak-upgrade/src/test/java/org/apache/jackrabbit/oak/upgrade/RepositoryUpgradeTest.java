@@ -38,7 +38,6 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -164,7 +163,6 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
         }
     }
 
-    @Ignore("OAK-1235")
     @Test
     public void verifyReplacedBuiltinNodeTypes() throws Exception {
         Session session = createAdminSession();

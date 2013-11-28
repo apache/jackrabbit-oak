@@ -33,7 +33,6 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -83,7 +82,6 @@ public class RepositoryGroupMemberUpgradeTest extends AbstractRepositoryUpgradeT
         }
     }
 
-    @Ignore("OAK-1235")
     @Test
     public void verifyGroupNodeTypes() throws Exception {
         JackrabbitSession session = createAdminSession();
@@ -128,7 +126,6 @@ public class RepositoryGroupMemberUpgradeTest extends AbstractRepositoryUpgradeT
         }
     }
 
-    @Ignore("OAK-1235")
     @Test
     public void verifyMemberOf() throws Exception {
         JackrabbitSession session = createAdminSession();

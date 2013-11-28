@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
@@ -38,8 +39,10 @@ import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -57,6 +60,8 @@ import org.apache.jackrabbit.spi.QValue;
 import org.apache.jackrabbit.spi.QValueConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
@@ -117,6 +122,85 @@ public class RepositoryUpgrade {
      * Target node store.
      */
     private final NodeStore target;
+
+    /**
+     * the set of oak built-in nodetypes
+     * todo: load from file or from repo
+     */
+    private static final Set<String> BUILT_IN_NODE_TYPES = ImmutableSet.of(
+            "mix:created",
+            "mix:etag",
+            "mix:language",
+            "mix:lastModified",
+            "mix:lifecycle",
+            "mix:lockable",
+            "mix:mimeType",
+            "mix:referenceable",
+            "mix:shareable",
+            "mix:simpleVersionable",
+            "mix:title",
+            "mix:versionable",
+            "nt:activity",
+            "nt:address",
+            "nt:base",
+            "nt:childNodeDefinition",
+            "nt:configuration",
+            "nt:file",
+            "nt:folder",
+            "nt:frozenNode",
+            "nt:hierarchyNode",
+            "nt:linkedFile",
+            "nt:nodeType",
+            "nt:propertyDefinition",
+            "nt:query",
+            "nt:resource",
+            "nt:unstructured",
+            "nt:version",
+            "nt:versionHistory",
+            "nt:versionLabels",
+            "nt:versionedChild",
+            "oak:childNodeDefinition",
+            "oak:childNodeDefinitions",
+            "oak:namedChildNodeDefinitions",
+            "oak:namedPropertyDefinitions",
+            "oak:nodeType",
+            "oak:propertyDefinition",
+            "oak:propertyDefinitions",
+            "oak:queryIndexDefinition",
+            "oak:unstructured",
+            "rep:ACE",
+            "rep:ACL",
+            "rep:AccessControl",
+            "rep:AccessControllable",
+            "rep:Activities",
+            "rep:Authorizable",
+            "rep:AuthorizableFolder",
+            "rep:Configurations",
+            "rep:DenyACE",
+            "rep:GrantACE",
+            "rep:Group",
+            "rep:Impersonatable",
+            "rep:MemberReferences",
+            "rep:MemberReferencesList",
+            "rep:Members",
+            "rep:MergeConflict",
+            "rep:PermissionStore",
+            "rep:Permissions",
+            "rep:Policy",
+            "rep:PrincipalAccessControl",
+            "rep:Privilege",
+            "rep:Privileges",
+            "rep:RepoAccessControllable",
+            "rep:Restrictions",
+            "rep:RetentionManageable",
+            "rep:Token",
+            "rep:User",
+            "rep:VersionReference",
+            "rep:nodeTypes",
+            "rep:root",
+            "rep:system",
+            "rep:versionStorage"
+    );
 
     /**
      * Copies the contents of the repository in the given source directory
@@ -183,6 +267,9 @@ public class RepositoryUpgrade {
         try {
             NodeBuilder builder = target.getRoot().builder();
 
+            // init target repository first
+            new InitialContent().initialize(builder);
+
             Map<Integer, String> idxToPrefix = copyNamespaces(builder);
             copyNodeTypes(builder);
             copyVersionStore(builder, idxToPrefix);
@@ -223,7 +310,7 @@ public class RepositoryUpgrade {
         Map<Integer, String> idxToPrefix = newHashMap();
 
         NodeBuilder system = root.child(JCR_SYSTEM);
-        NodeBuilder namespaces = Namespaces.createStandardMappings(system);
+        NodeBuilder namespaces = system.child(NamespaceConstants.REP_NAMESPACES);
 
         Properties registry = loadProperties("/namespaces/ns_reg.properties");
         Properties indexes  = loadProperties("/namespaces/ns_idx.properties");
@@ -292,8 +379,14 @@ public class RepositoryUpgrade {
 
         logger.info("Copying registered node types");
         for (Name name : sourceRegistry.getRegisteredNodeTypes()) {
+            // skip built-in nodetypes (OAK-1235)
+            String oakName = getOakName(name);
+            if (BUILT_IN_NODE_TYPES.contains(oakName)) {
+                logger.info("skipping built-on nodetype: {}", name);
+                continue;
+            }
             QNodeTypeDefinition def = sourceRegistry.getNodeTypeDef(name);
-            NodeBuilder type = types.child(getOakName(name));
+            NodeBuilder type = types.child(oakName);
             copyNodeType(def, type);
         }
     }
