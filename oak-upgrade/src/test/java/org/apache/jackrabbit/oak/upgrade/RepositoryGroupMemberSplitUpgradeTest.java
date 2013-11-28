@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import java.io.InputStream;
 
+import org.junit.Ignore;
+import org.junit.Test;
+
 public class RepositoryGroupMemberSplitUpgradeTest extends RepositoryGroupMemberUpgradeTest {
 
     private static final String REPO_CONFIG = "repository-groupmembersplit.xml";
@@ -31,6 +34,13 @@ public class RepositoryGroupMemberSplitUpgradeTest extends RepositoryGroupMember
 
     @Override
     public int getNumUsers() {
-        return 50;
+        return 20;
+    }
+
+    @Ignore("OAK-1222")
+    @Test
+    @Override
+    public void verifyMemberOf() throws Exception {
+        super.verifyMemberOf();
     }
 }
