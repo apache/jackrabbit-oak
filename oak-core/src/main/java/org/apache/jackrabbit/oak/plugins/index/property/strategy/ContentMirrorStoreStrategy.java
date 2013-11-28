@@ -343,20 +343,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
          * The current depth (number of parent nodes).
          */
         int depth;
-        
-        /**
-         * The total number of child nodes per node, for those nodes that were
-         * fully traversed and do have child nodes. This value is used to
-         * calculate the average width.
-         */
-        long widthTotal;
-        
-        /**
-         * The number of nodes that were fully traversed and do have child
-         * nodes. This value is used to calculate the average width.
-         */
-        int widthCount;
-        
+
         /**
          * The sum of the depth of all matching nodes. This value is used to
          * calculate the average depth.
@@ -375,19 +362,11 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
             if (count < maxCount) {
                 depth++;
-                int width = 0;
-                boolean finished = true;
                 for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                     if (count >= maxCount) {
-                        finished = false;
                         break;
                     }
-                    width++;
                     visit(entry.getNodeState());
-                }
-                if (finished && width > 0) {
-                    widthTotal += width;
-                    widthCount++;
                 }
                 depth--;
             }
@@ -415,15 +394,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 return count;
             }
             double averageDepth = (int) (depthTotal / count);
-            double averageWidth = 2;
-            if (widthCount > 0) {
-                averageWidth = (int) (widthTotal / widthCount);
-            }
-            // calculate with an average width of at least 2
-            averageWidth = Math.max(2, averageWidth);
-            // the number of estimated matches is calculated as the
-            // of a estimated
-            long estimatedNodes = (long) Math.pow(averageWidth, 2 * averageDepth);
+            // the number of estimated matches is higher
+            // the higher the average depth of the first hits
+            long estimatedNodes = (long) (count * Math.pow(1.1, averageDepth));
             estimatedNodes = Math.min(estimatedNodes, Integer.MAX_VALUE);
             return Math.max(count, (int) estimatedNodes);
         }
