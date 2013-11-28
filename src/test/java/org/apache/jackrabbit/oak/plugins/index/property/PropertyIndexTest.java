@@ -105,7 +105,6 @@ public class PropertyIndexTest {
     }
 
     @Test
-    @Ignore("OAK-1155")
     public void costMaxEstimation() throws Exception {
         NodeState root = EmptyNodeState.EMPTY_NODE;
 
@@ -116,20 +115,20 @@ public class PropertyIndexTest {
         NodeState before = builder.getNodeState();
 
         // 100 nodes in the index:
-        // with a single level /content cost is 6250000
-        // adding a second level /content/data cost jumps to 1.544804416E9
+        // with a single level /content cost is 121
+        // adding a second level /content/data cost is133
 
         // 101 nodes in the index:
-        // with a single level /content cost is 100
-        // adding a second level /content/data stays at 100
+        // with a single level /content cost is 121
+        // adding a second level /content/data cost is 133
 
-        // 100 nodes, 12 levels deep, cost is 2.147483647E9
-        // 101 nodes, 12 levels deep, cost is 6.7108864E7
+        // 100 nodes, 12 levels deep, cost is 345
+        // 101 nodes, 12 levels deep, cost is 345
 
         // threshold for estimation (PropertyIndexLookup.MAX_COST) is at 100
-        int nodes = 100;
+        int nodes = 101;
         int levels = 12;
-
+        
         NodeBuilder data = builder;
         for (int i = 0; i < levels; i++) {
             data = data.child("l" + i);
