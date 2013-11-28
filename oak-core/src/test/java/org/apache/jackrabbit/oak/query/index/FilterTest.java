@@ -48,12 +48,18 @@ public class FilterTest {
         assertEquals("..2]", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
         assertEquals("[1..2]", f.getPropertyRestriction("x").toString());
+        
+        // further narrowing will not change the restriction, 
+        // to account for multi-valued properties
         f.restrictProperty("x", Operator.GREATER_THAN, one);
-        assertEquals("(1..2]", f.getPropertyRestriction("x").toString());
+        assertEquals("[1..2]", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.LESS_THAN, two);
-        assertEquals("(1..2)", f.getPropertyRestriction("x").toString());
+        assertEquals("[1..2]", f.getPropertyRestriction("x").toString());
+
+        // this should replace the range with an equality
+        // (which is faster, and correct even when using multi-valued properties)
         f.restrictProperty("x", Operator.EQUAL, two);
-        assertTrue(f.isAlwaysFalse());
+        assertEquals("2", f.getPropertyRestriction("x").toString());
 
         f = new FilterImpl();
         f.restrictProperty("x", Operator.EQUAL, one);
@@ -64,22 +70,31 @@ public class FilterTest {
         assertEquals("1", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.LESS_OR_EQUAL, one);
         assertEquals("1", f.getPropertyRestriction("x").toString());
+        
+        // further narrowing will not change the restriction, 
+        // to account for multi-valued properties
         f.restrictProperty("x", Operator.GREATER_THAN, one);
-        assertTrue(f.isAlwaysFalse());
+        assertEquals("1", f.getPropertyRestriction("x").toString());
 
         f = new FilterImpl();
         f.restrictProperty("x", Operator.EQUAL, one);
         assertEquals("1", f.getPropertyRestriction("x").toString());
+
+        // further narrowing will not change the restriction, 
+        // to account for multi-valued properties
         f.restrictProperty("x", Operator.LESS_THAN, one);
-        assertTrue(f.isAlwaysFalse());
+        assertEquals("1", f.getPropertyRestriction("x").toString());
 
         f = new FilterImpl();
         f.restrictProperty("x", Operator.NOT_EQUAL, null);
         assertEquals("", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.LESS_THAN, one);
         assertEquals("..1)", f.getPropertyRestriction("x").toString());
+        
+        // this should replace the range with an equality
+        // (which is faster, and correct even when using multi-valued properties)
         f.restrictProperty("x", Operator.EQUAL, two);
-        assertTrue(f.isAlwaysFalse());
+        assertEquals("2", f.getPropertyRestriction("x").toString());
 
     }
 

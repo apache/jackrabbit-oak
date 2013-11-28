@@ -16,6 +16,7 @@ package org.apache.jackrabbit.oak.query.index;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -69,5 +70,90 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         assertQuery("//*[jcr:contains(., 'testFullTextTermNameFile.txt')]",
                 "xpath",
                 ImmutableList.of("/content/testFullTextTermNameFile.txt"));
+    }
+
+    @Test
+    public void testMultiNotEqual() throws Exception {
+        Tree c = root.getTree("/").addChild("content");
+
+        c.addChild("one").setProperty("prop", "value");
+        c.addChild("two").setProperty("prop",
+                ImmutableList.of("aaa", "value", "bbb"), Type.STRINGS);
+        c.addChild("three").setProperty("prop",
+                ImmutableList.of("aaa", "bbb", "ccc"), Type.STRINGS);
+        root.commit();
+
+        assertQuery("//*[@prop != 'value']", "xpath",
+                ImmutableList.of("/content/two", "/content/three"));
+    }
+
+    @Test
+    public void testMultiAndEquals() throws Exception {
+        Tree c = root.getTree("/").addChild("content");
+
+        c.addChild("one").setProperty("prop", "aaa");
+        c.addChild("two").setProperty("prop",
+                ImmutableList.of("aaa", "bbb", "ccc"), Type.STRINGS);
+        c.addChild("three").setProperty("prop", ImmutableList.of("aaa", "bbb"),
+                Type.STRINGS);
+        root.commit();
+
+        assertQuery("//*[(@prop = 'aaa' and @prop = 'bbb' and @prop = 'ccc')]",
+                "xpath", ImmutableList.of("/content/two"));
+    }
+
+    @Test
+    public void testMultiAndLike() throws Exception {
+        Tree c = root.getTree("/").addChild("content");
+
+        c.addChild("one").setProperty("prop", "aaaBoom");
+        c.addChild("two").setProperty("prop",
+                ImmutableList.of("aaaBoom", "bbbBoom", "cccBoom"), Type.STRINGS);
+        c.addChild("three").setProperty("prop", ImmutableList.of("aaaBoom", "bbbBoom"),
+                Type.STRINGS);
+        root.commit();
+
+        assertQuery("//*[(jcr:like(@prop, 'aaa%') and jcr:like(@prop, 'bbb%') and jcr:like(@prop, 'ccc%'))]",
+                "xpath", ImmutableList.of("/content/two"));
+    }
+
+    @Test
+    public void testSubPropertyMultiAndEquals() throws Exception {
+        Tree c = root.getTree("/").addChild("content");
+
+        c.addChild("one").addChild("child").setProperty("prop", "aaa");
+        c.addChild("two")
+                .addChild("child")
+                .setProperty("prop", ImmutableList.of("aaa", "bbb", "ccc"),
+                        Type.STRINGS);
+        c.addChild("three")
+                .addChild("child")
+                .setProperty("prop", ImmutableList.of("aaa", "bbb"),
+                        Type.STRINGS);
+        root.commit();
+
+        assertQuery(
+                "//*[(child/@prop = 'aaa' and child/@prop = 'bbb' and child/@prop = 'ccc')]",
+                "xpath", ImmutableList.of("/content/two"));
+    }
+
+    @Test
+    public void testSubPropertyMultiAndLike() throws Exception {
+        Tree c = root.getTree("/").addChild("content");
+
+        c.addChild("one").addChild("child").setProperty("prop", "aaaBoom");
+        c.addChild("two")
+                .addChild("child")
+                .setProperty("prop", ImmutableList.of("aaaBoom", "bbbBoom", "cccBoom"),
+                        Type.STRINGS);
+        c.addChild("three")
+                .addChild("child")
+                .setProperty("prop", ImmutableList.of("aaaBoom", "bbbBoom"),
+                        Type.STRINGS);
+        root.commit();
+
+        assertQuery(
+                "//*[(jcr:like(child/@prop, 'aaa%') and jcr:like(child/@prop, 'bbb%') and jcr:like(child/@prop, 'ccc%'))]",
+                "xpath", ImmutableList.of("/content/two"));
     }
 }
