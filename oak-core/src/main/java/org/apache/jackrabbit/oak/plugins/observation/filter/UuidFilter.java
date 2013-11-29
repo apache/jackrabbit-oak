@@ -105,7 +105,7 @@ public class UuidFilter implements Filter {
 
     @Override
     public boolean includeChange(String name, NodeState before, NodeState after) {
-        return true;
+        return include.get();
     }
 
     @Override
