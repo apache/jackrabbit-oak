@@ -33,6 +33,7 @@ import java.util.List;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.NodeTypeFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UuidFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 
 /**
@@ -63,6 +65,7 @@ public class JcrFilterProvider implements FilterProvider {
     private final String[] ntNames;
     private final boolean includeSessionLocal;
     private final boolean includeClusterExternal;
+    private final PermissionProvider permissionProvider;
 
     /**
      * Create a new instance of a {@code JcrFilterProvider} for certain criteria
@@ -78,11 +81,12 @@ public class JcrFilterProvider implements FilterProvider {
      *                                  Exclude otherwise.
      * @param includeClusterExternal    include cluster external events if {@code true}.
      *                                  Exclude otherwise.
-     *
+     * @param permissionProvider        permission provider to evaluate events against
      * @see javax.jcr.observation.ObservationManager#addEventListener(javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean) */
     public JcrFilterProvider(ReadOnlyNodeTypeManager ntManager, int eventTypes, String path,
             boolean deep, String[] uuids, String[] nodeTypeName,
-            boolean includeSessionLocal, boolean includeClusterExternal) {
+            boolean includeSessionLocal, boolean includeClusterExternal,
+            PermissionProvider permissionProvider) {
         this.ntManager = ntManager;
         this.eventTypes = eventTypes;
         this.path = path;
@@ -91,6 +95,7 @@ public class JcrFilterProvider implements FilterProvider {
         this.ntNames = nodeTypeName;
         this.includeSessionLocal = includeSessionLocal;
         this.includeClusterExternal = includeClusterExternal;
+        this.permissionProvider = permissionProvider;
     }
 
     @Override
@@ -100,9 +105,7 @@ public class JcrFilterProvider implements FilterProvider {
     }
 
     @Override
-    public Filter getFilter(ImmutableTree beforeTree, ImmutableTree afterTree,
-            TreePermission treePermission) {
-
+    public Filter getFilter(ImmutableTree beforeTree, ImmutableTree afterTree) {
         String relPath = PathUtils.relativize(afterTree.getPath(), path);
         String pathPattern = deep
             ? PathUtils.concat(relPath, STAR_STAR)
@@ -135,7 +138,7 @@ public class JcrFilterProvider implements FilterProvider {
             }
         }
 
-        filters.add(new ACFilter(beforeTree, afterTree, treePermission));
+        filters.add(new ACFilter(beforeTree, afterTree, getTreePermission(afterTree)));
         return Filters.all(filters.toArray(new Filter[filters.size()]));
     }
 
@@ -158,6 +161,12 @@ public class JcrFilterProvider implements FilterProvider {
     }
 
     //------------------------------------------------------------< private >---
+
+    private TreePermission getTreePermission(Tree tree) {
+        return tree.isRoot()
+                ? permissionProvider.getTreePermission(tree, TreePermission.EMPTY)
+                : permissionProvider.getTreePermission(tree, getTreePermission(tree.getParent()));
+    }
 
     private static boolean isLocal(String sessionId, CommitInfo info) {
         return info != null && Objects.equal(info.getSessionId(), sessionId);
