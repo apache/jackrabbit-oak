@@ -57,6 +57,7 @@ import com.google.common.util.concurrent.ForwardingListenableFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
@@ -68,11 +69,13 @@ public class ObservationTest extends AbstractRepositoryTest {
     public static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
             PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     private static final String TEST_NODE = "test_node";
+    private static final String REFERENCEABLE_NODE = "\"referenceable\"";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final String TEST_TYPE = "mix:test";
 
     private Session observingSession;
     private ObservationManager observationManager;
+    private String test_uuid;
 
     public ObservationTest(NodeStoreFixture fixture) {
         super(fixture);
@@ -90,6 +93,9 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         Node n = session.getRootNode().addNode(TEST_NODE);
         n.addMixin(TEST_TYPE);
+        Node refNode = n.addNode(REFERENCEABLE_NODE);
+        refNode.addMixin(JcrConstants.MIX_REFERENCEABLE);
+        test_uuid = refNode.getProperty(JcrConstants.JCR_UUID).getString();
 
         session.save();
 
@@ -201,6 +207,30 @@ public class ObservationTest extends AbstractRepositoryTest {
             missing = listener.getMissing(2, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        }
+        finally {
+            observationManager.removeEventListener(listener);
+        }
+    }
+
+    @Test
+    public void uuidFilter() throws RepositoryException, InterruptedException, ExecutionException {
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, ALL_EVENTS, "/", true,
+                new String[]{test_uuid}, null, false);
+
+        try {
+            Node nonRefNode = getNode(TEST_PATH);
+            Node refNode = nonRefNode.getNode(REFERENCEABLE_NODE);
+
+            nonRefNode.addNode("n");
+            listener.expect(refNode.addNode("r").getPath(), NODE_ADDED);
+            getAdminSession().save();
+
+            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            List<Event> unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
         }
         finally {
