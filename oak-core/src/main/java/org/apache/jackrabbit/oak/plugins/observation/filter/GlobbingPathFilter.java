@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 
 import javax.annotation.Nonnull;
 
@@ -114,8 +113,8 @@ public class GlobbingPathFilter implements Filter {
     }
 
     @Override
-    public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-        return includeItem(getName(destPath));
+    public boolean includeMove(String sourcePath, String name, NodeState moved) {
+        return includeItem(name);
     }
 
     @Override

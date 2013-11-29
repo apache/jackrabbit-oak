@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class DefaultMoveValidator extends DefaultValidator implements MoveValidator {
     @Override
-    public void move(String sourcePath, String destPath, NodeState moved) throws CommitFailedException {
+    public void move(String name, String sourcePath, NodeState moved) throws CommitFailedException {
         // do nothing
     }
 

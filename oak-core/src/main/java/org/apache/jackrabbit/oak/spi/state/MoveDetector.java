@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -53,15 +52,9 @@ public class MoveDetector implements Validator {
     public static final String SOURCE_PATH = ":source-path";
 
     private final MoveValidator moveValidator;
-    private final String path;
-
-    public MoveDetector(MoveValidator moveValidator, String path) {
-        this.moveValidator = moveValidator;
-        this.path = path;
-    }
 
     public MoveDetector(MoveValidator moveValidator) {
-        this(moveValidator, "/");
+        this.moveValidator = moveValidator;
     }
 
     @Override
@@ -94,13 +87,12 @@ public class MoveDetector implements Validator {
         PropertyState sourceProperty = after.getProperty(SOURCE_PATH);
         if (sourceProperty != null) {
             String sourcePath = sourceProperty.getValue(STRING);
-            String destPath = concat(path, name);
-            moveValidator.move(sourcePath, destPath, after);
+            moveValidator.move(name, sourcePath, after);
         }
         MoveValidator childDiff = moveValidator.childNodeAdded(name, after);
         return childDiff == null
                 ? null
-                : new MoveDetector(childDiff, concat(path, name));
+                : new MoveDetector(childDiff);
     }
 
     @Override
@@ -108,7 +100,7 @@ public class MoveDetector implements Validator {
         MoveValidator childDiff = moveValidator.childNodeChanged(name, before, after);
         return childDiff == null
                 ? null
-                : new MoveDetector(childDiff, concat(path, name));
+                : new MoveDetector(childDiff);
     }
 
     @Override
@@ -116,6 +108,6 @@ public class MoveDetector implements Validator {
         MoveValidator childDiff = moveValidator.childNodeDeleted(name, before);
         return childDiff == null
                 ? null
-                : new MoveDetector(childDiff, concat(path, name));
+                : new MoveDetector(childDiff);
     }
 }

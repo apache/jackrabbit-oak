@@ -27,7 +27,6 @@ import static javax.jcr.observation.Event.NODE_REMOVED;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.core.AbstractTree.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
@@ -121,8 +120,9 @@ class JcrListener implements IterableListener<Event> {
     }
 
     @Override
-    public void nodeMoved(String sourcePath, String destPath, NodeState moved) {
-        events.add(createEvent(NODE_MOVED, afterTree.getChild(getName(destPath)),
+    public void nodeMoved(String sourcePath, String name, NodeState moved) {
+        String destPath = PathUtils.concat(afterTree.getPath(), name);
+        events.add(createEvent(NODE_MOVED, afterTree.getChild(name),
                 ImmutableMap.of(
                         "srcAbsPath", namePathMapper.getJcrPath(sourcePath),
                         "destAbsPath", namePathMapper.getJcrPath(destPath))));

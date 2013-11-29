@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.spi.state;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -150,40 +152,47 @@ public class MoveDetectorTest {
     }
 
     private static class FindSingleMove extends DefaultMoveValidator {
+        private final String path;
         private final String sourcePath;
         private final String destPath;
+        private final AtomicReference<Boolean> found;
 
-        private boolean found;
-
-        private FindSingleMove(String sourcePath, String destPath) {
+        private FindSingleMove(String sourcePath, String destPath, String path,
+                AtomicReference<Boolean> found) {
             this.sourcePath = sourcePath;
             this.destPath = destPath;
+            this.path = path;
+            this.found = found;
+        }
+
+        public FindSingleMove(String sourcePath, String destPath) {
+            this(sourcePath, destPath, "/", new AtomicReference<Boolean>(false));
         }
 
         @Override
-        public void move(String sourcePath, String destPath, NodeState moved) throws CommitFailedException {
-            if (found) {
+        public void move(String name, String sourcePath, NodeState moved) throws CommitFailedException {
+            if (found()) {
                 throw new CommitFailedException("Test", 0, "There should only be a single move operation");
             }
 
             assertEquals(this.sourcePath, sourcePath);
-            assertEquals(this.destPath, destPath);
-            found = true;
+            assertEquals(this.destPath, PathUtils.concat(path, name));
+            found.set(true);
         }
 
         @Override
         public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) {
-            return this;
+            return new FindSingleMove(sourcePath, destPath, PathUtils.concat(path, name), found);
         }
 
         public boolean found() {
-            return found;
+            return found.get();
         }
     }
 
     private static class AssertNoMove extends DefaultMoveValidator {
         @Override
-        public void move(String sourcePath, String destPath, NodeState moved) throws CommitFailedException {
+        public void move(String name, String sourcePath, NodeState moved) throws CommitFailedException {
             throw new CommitFailedException("Test", 0, "There should be no move operation");
         }
 
