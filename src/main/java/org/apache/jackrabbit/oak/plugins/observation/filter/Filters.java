@@ -142,9 +142,9 @@ public final class Filters {
                 }
 
                 @Override
-                public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
+                public boolean includeMove(String sourcePath, String name, NodeState moved) {
                     for (Filter filter : filters) {
-                        if (filter.includeMove(sourcePath, destPath, moved)) {
+                        if (filter.includeMove(sourcePath, name, moved)) {
                             return true;
                         }
                     }
@@ -234,9 +234,9 @@ public final class Filters {
                 }
 
                 @Override
-                public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
+                public boolean includeMove(String sourcePath, String name, NodeState moved) {
                     for (Filter filter : filters) {
-                        if (!filter.includeMove(sourcePath, destPath, moved)) {
+                        if (!filter.includeMove(sourcePath, name, moved)) {
                             return false;
                         }
                     }

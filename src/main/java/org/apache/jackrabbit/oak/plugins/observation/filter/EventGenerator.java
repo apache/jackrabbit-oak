@@ -92,11 +92,11 @@ public class EventGenerator implements MoveValidator {
         /**
          * Include a moved node
          * @param sourcePath  source path of the move operation
-         * @param destPath  destination path of the move operation
-         * @param moved the moved node
+         * @param name        name of the moved node
+         * @param moved       the moved node
          * @return  {@code true} if the node should be included
          */
-        boolean includeMove(String sourcePath, String destPath, NodeState moved);
+        boolean includeMove(String sourcePath, String name, NodeState moved);
 
         /**
          * Factory for creating a filter instance for the given child node
@@ -159,10 +159,10 @@ public class EventGenerator implements MoveValidator {
         /**
          * Notification for a moved node
          * @param sourcePath  source of the moved node
-         * @param destPath  destination of the moved node
-         * @param moved  moved node
+         * @param name        name of the moved node
+         * @param moved       moved node
          */
-        void nodeMoved(String sourcePath, String destPath, NodeState moved);
+        void nodeMoved(String sourcePath, String name, NodeState moved);
 
         /**
          * Factory for creating a filter instance for the given child node
@@ -187,9 +187,9 @@ public class EventGenerator implements MoveValidator {
     }
 
     @Override
-    public void move(String sourcePath, String destPath, NodeState moved) throws CommitFailedException {
-        if (filter.includeMove(sourcePath, destPath, moved)) {
-            listener.nodeMoved(sourcePath, destPath, moved);
+    public void move(String name, String sourcePath, NodeState moved) throws CommitFailedException {
+        if (filter.includeMove(sourcePath, name, moved)) {
+            listener.nodeMoved(sourcePath, name, moved);
         }
     }
 
