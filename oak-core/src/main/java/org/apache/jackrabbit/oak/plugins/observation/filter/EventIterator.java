@@ -29,7 +29,6 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.MoveDetector;
@@ -48,7 +47,6 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
 
     private final NodeState before;
     private final NodeState after;
-    private final String path;
 
     private final Filter filter;
     private final IterableListener<T> listener;
@@ -60,7 +58,7 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
         protected Iterator<T> createValue() {
             CommitFailedException e = EditorDiff.process(
                     new VisibleEditor(
-                        new MoveDetector(EventIterator.this, path)),
+                        new MoveDetector(EventIterator.this)),
                     before, after);
 
             if (e != null) {
@@ -89,16 +87,14 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
      *
      * @param before  before state
      * @param after   after state
-     * @parem path    common path to the before and after states
      * @param filter  filter for filtering changes
      * @param listener  listener for listening to the filtered changes
      */
     public EventIterator(@Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull String path, @Nonnull Filter filter, @Nonnull IterableListener<T> listener) {
+            @Nonnull Filter filter, @Nonnull IterableListener<T> listener) {
         super(filter, listener);
         this.before = checkNotNull(before);
         this.after = checkNotNull(after);
-        this.path = checkNotNull(path);
         this.filter = checkNotNull(filter);
         this.listener = checkNotNull(listener);
     }
@@ -110,7 +106,7 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
         Filter childFilter = filter.create(name, before, after);
         if (childFilter != null) {
             childEvents.add(new EventIterator<T>(
-                    before, after, PathUtils.concat(path, name),
+                    before, after,
                     childFilter,
                     listener.create(name, before, after)));
         }

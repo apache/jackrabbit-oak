@@ -34,11 +34,12 @@ public interface MoveValidator extends Validator {
      * Called when a moved node has been detected.
      *
      * @param sourcePath  path of the node before the move
-     * @param destPath    path of the node after the move
-     * @param moved       the moved node state
+     * @param name        name of the node after the move
+     * @param moved       the node state moved here
      * @throws CommitFailedException  if validation fails.
+     * remove
      */
-    void move(String sourcePath, String destPath, NodeState moved) throws CommitFailedException;
+    void move(String name, String sourcePath, NodeState moved) throws CommitFailedException;
 
     @Override
     @CheckForNull

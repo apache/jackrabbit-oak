@@ -24,7 +24,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -84,8 +83,8 @@ public class ACFilter implements Filter {
     }
 
     @Override
-    public boolean includeMove(String sourcePath, String destPath, NodeState moved) {
-        return treePermission.getChildPermission(PathUtils.getName(destPath), moved).canRead();
+    public boolean includeMove(String sourcePath, String name, NodeState moved) {
+        return treePermission.getChildPermission(name, moved).canRead();
     }
 
     @Override
