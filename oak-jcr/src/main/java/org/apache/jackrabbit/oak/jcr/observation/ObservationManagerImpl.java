@@ -113,7 +113,7 @@ public class ObservationManagerImpl implements ObservationManager {
         boolean includeExternal = !(listener instanceof ExcludeExternal);
         String oakPath = namePathMapper.getOakPath(absPath);
         FilterProvider filterProvider = new JcrFilterProvider(ntMgr, eventTypes, oakPath, isDeep,
-                uuid, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal);
+                uuid, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal, permissionProvider);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
             log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filterProvider);
@@ -130,7 +130,7 @@ public class ObservationManagerImpl implements ObservationManager {
                 }
             };
             processor = new ChangeProcessor(
-                    sessionDelegate.getContentSession(), permissionProvider, namePathMapper, tracker, filterProvider);
+                    sessionDelegate.getContentSession(), namePathMapper, tracker, filterProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {

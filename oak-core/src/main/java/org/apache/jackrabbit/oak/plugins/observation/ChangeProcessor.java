@@ -34,7 +34,6 @@ import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -43,8 +42,6 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -63,7 +60,6 @@ public class ChangeProcessor implements Observer {
     private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
 
     private final ContentSession contentSession;
-    private final PermissionProvider permissionProvider;
     private final NamePathMapper namePathMapper;
     private final ListenerTracker tracker;
     private final EventListener eventListener;
@@ -76,12 +72,10 @@ public class ChangeProcessor implements Observer {
 
     public ChangeProcessor(
             ContentSession contentSession,
-            PermissionProvider permissionProvider,
             NamePathMapper namePathMapper,
             ListenerTracker tracker, FilterProvider filter) {
         checkArgument(contentSession instanceof Observable);
         this.contentSession = contentSession;
-        this.permissionProvider = permissionProvider;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
@@ -135,10 +129,9 @@ public class ChangeProcessor implements Observer {
                 if (provider.includeCommit(contentSession.toString(), info)) {
                     ImmutableTree beforeTree = getTree(previousRoot, provider.getPath());
                     ImmutableTree afterTree = getTree(root, provider.getPath());
-                    TreePermission treePermission = getTreePermission(afterTree);
                     EventIterator<Event> events = new EventIterator<Event>(
                             beforeTree.getNodeState(), afterTree.getNodeState(), provider.getPath(),
-                            provider.getFilter(beforeTree, afterTree, treePermission),
+                            provider.getFilter(beforeTree, afterTree),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
                     if (events.hasNext()) {
                         synchronized (this) {
@@ -159,7 +152,4 @@ public class ChangeProcessor implements Observer {
         return new ImmutableRoot(nodeState).getTree(path);
     }
 
-    private TreePermission getTreePermission(Tree tree) {
-        return permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
-    }
 }
