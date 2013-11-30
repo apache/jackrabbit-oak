@@ -50,6 +50,8 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest#testMoveNodesOrderingSupportedByParent <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
 
+      org.apache.jackrabbit.oak.jcr.ReferencesTest#testWeakReferencesAddLater <!-- OAK-1242 -->
+
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked
       org.apache.jackrabbit.test.api.lock.LockTest#testParentChildDeepLock
