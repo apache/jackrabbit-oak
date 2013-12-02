@@ -487,7 +487,9 @@ public class Commit {
             throw new IllegalArgumentException("path: " + path);
         }
         while (true) {
-            modifiedNodes.add(path);
+            if (!modifiedNodes.add(path)) {
+                break;
+            }
             if (PathUtils.denotesRoot(path)) {
                 break;
             }
