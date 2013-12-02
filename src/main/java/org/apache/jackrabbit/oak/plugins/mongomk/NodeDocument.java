@@ -130,7 +130,7 @@ public class NodeDocument extends Document {
     /**
      * The last revision. Key: machine id, value: revision.
      */
-    static final String LAST_REV = "_lastRev";
+    private static final String LAST_REV = "_lastRev";
 
     /**
      * Flag indicating that there are child nodes present. Its just used as a hint.
@@ -205,24 +205,30 @@ public class NodeDocument extends Document {
     }
 
     /**
-     * Mark this instance as up-to-date wrt state in persistence store
+     * Mark this instance as up-to-date (matches the state in persistence
+     * store).
+     * 
      * @param checkTime time at which the check was performed
      */
-    public void markUptodate(long checkTime){
-        this.lastCheckTime.set(checkTime);
+    public void markUpToDate(long checkTime) {
+        lastCheckTime.set(checkTime);
     }
 
     /**
      * Returns true if the document has already been checked for consistency
-     * in current cycle
+     * in current cycle.
+     * 
      * @param lastCheckTime time at which current cycle started
+     * @return if the document was checked
      */
-    public boolean isUptodate(long lastCheckTime){
+    public boolean isUpToDate(long lastCheckTime) {
         return lastCheckTime <= this.lastCheckTime.get();
     }
 
     /**
-     * Returns the last time when this object was checked for consistency
+     * Returns the last time when this object was checked for consistency.
+     * 
+     * @return the last check time
      */
     public long getLastCheckTime() {
         return lastCheckTime.get();

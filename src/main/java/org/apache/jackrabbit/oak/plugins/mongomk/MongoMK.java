@@ -196,7 +196,8 @@ public class MongoMK implements MicroKernel {
         if (from == null || to == null) {
             // TODO implement correct behavior if the node does't/didn't exist
             String msg = String.format("Diff is only supported if the node exists in both cases. " +
-                    "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",path,fromRev, from != null, toRev, to != null);
+                    "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
+                    path, fromRev, from != null, toRev, to != null);
             throw new MicroKernelException(msg);
         }
         JsopWriter w = new JsopStream();

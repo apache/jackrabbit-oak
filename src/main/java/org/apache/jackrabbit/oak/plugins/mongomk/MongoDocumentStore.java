@@ -277,7 +277,7 @@ public class MongoDocumentStore implements DocumentStore {
                             Number modCount = doc.getModCount();
                             if (cachedModCount == null || modCount == null) {
                                 throw new IllegalStateException(
-                                        "Missing " + NodeDocument.MOD_COUNT);
+                                        "Missing " + Document.MOD_COUNT);
                             }
                             if (modCount.longValue() > cachedModCount.longValue()) {
                                 nodesCache.put(id, (NodeDocument) doc);
