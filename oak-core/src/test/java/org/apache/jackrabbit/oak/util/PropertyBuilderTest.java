@@ -69,8 +69,8 @@ public class PropertyBuilderTest {
         builder.setScalar();
         try {
             builder.getPropertyState();
-        }
-        catch (IllegalStateException expected) {
+        } catch (IllegalStateException expected) {
+            // success
         }
 
         builder.removeValue("one");
@@ -92,8 +92,7 @@ public class PropertyBuilderTest {
         builder.setScalar();
         try {
             builder.getPropertyState();
-        }
-        catch (IllegalStateException expected) {
+        } catch (IllegalStateException expected) {
         }
 
         builder.removeValue(date1);
