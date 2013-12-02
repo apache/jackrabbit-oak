@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * providing default implementation which correspond to a property
  * without any value.
  */
-abstract class EmptyPropertyState extends AbstractPropertyState {
+public abstract class EmptyPropertyState extends AbstractPropertyState {
 
     private final String name;
 

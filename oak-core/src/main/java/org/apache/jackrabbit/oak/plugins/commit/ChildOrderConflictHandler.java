@@ -22,10 +22,9 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.AbstractTree;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
+import org.apache.jackrabbit.oak.util.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
 /**
  * This conflict handler instance takes care of properly merging conflicts
@@ -77,8 +76,7 @@ public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
 
     private static void merge(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
         Set<String> theirOrder = Sets.newHashSet(theirs.getValue(Type.STRINGS));
-        PropertyBuilder<String> merged = MemoryPropertyBuilder.array(Type.STRING)
-                .assignFrom(theirs);
+        PropertyBuilder<String> merged = PropertyBuilder.array(Type.STRING).assignFrom(theirs);
 
         // Append child node names from ours that are not in theirs
         for (String ourChild : ours.getValue(Type.STRINGS)) {
