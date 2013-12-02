@@ -530,12 +530,10 @@ public class RepositoryUpgrade {
         NamespaceRegistry nr =source.getNamespaceRegistry();
 
         NodeBuilder system = root.child(JCR_SYSTEM);
-        system.setChildNode(
-                JCR_VERSIONSTORAGE,
-                new JackrabbitNodeState(pm, nr, VERSION_STORAGE_NODE_ID));
-        system.setChildNode(
-                "jcr:activities",
-                new JackrabbitNodeState(pm, nr, ACTIVITIES_NODE_ID));
+        system.setChildNode(JCR_VERSIONSTORAGE, new JackrabbitNodeState(
+                pm, nr, VERSION_STORAGE_NODE_ID));
+        system.setChildNode("jcr:activities", new JackrabbitNodeState(
+                pm, nr, ACTIVITIES_NODE_ID));
     }   
 
     private void copyWorkspaces(

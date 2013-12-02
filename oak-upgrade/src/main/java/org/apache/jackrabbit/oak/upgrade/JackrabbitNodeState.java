@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -50,8 +51,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.Path;
 import org.apache.jackrabbit.util.ISO8601;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class JackrabbitNodeState extends AbstractNodeState {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(JackrabbitNodeState.class);
 
     /**
      * Source persistence manager.
@@ -63,27 +69,25 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final NamespaceRegistry registry;
 
-    private final NodeId id;
+    private final NodeState state;
 
-    private NodeState state = null;
-
-    JackrabbitNodeState(
+    private JackrabbitNodeState(
             PersistenceManager source, NamespaceRegistry registry,
-            NodeId id) {
+            NodeState state) {
         this.source = source;
         this.registry = registry;
-        this.id = id;
+        this.state = state;
     }
 
-    private NodeState getState() {
-        if (state == null) {
-            try {
-                state = source.load(id);
-            } catch (ItemStateException e) {
-                throw new IllegalStateException(e);
-            }
+    JackrabbitNodeState(
+            PersistenceManager source, NamespaceRegistry registry, NodeId id) {
+        this.source = source;
+        this.registry = registry;
+        try {
+            this.state = source.load(id);
+        } catch (ItemStateException e) {
+            throw new IllegalStateException("Unable to access node " + id, e);
         }
-        return state;
     }
 
     //---------------------------------------------------------< NodeState >--
@@ -96,19 +100,21 @@ class JackrabbitNodeState extends AbstractNodeState {
     @Override
     public Iterable<org.apache.jackrabbit.oak.api.PropertyState> getProperties() {
         List<org.apache.jackrabbit.oak.api.PropertyState> properties = newArrayList();
-        for (Name name : getState().getPropertyNames()) {
+        for (Name name : state.getPropertyNames()) {
+            String oakName = createName(name);
             try {
-                PropertyState property = source.load(new PropertyId(id, name));
+                PropertyState property = source.load(
+                        new PropertyId(state.getNodeId(), name));
                 int type = property.getType();
                 if (property.isMultiValued()) {
                     properties.add(createProperty(
-                            createName(name), type, property.getValues()));
+                            oakName, type, property.getValues()));
                 } else {
                     properties.add(createProperty(
-                            createName(name), type, property.getValues()[0]));
+                            oakName, type, property.getValues()[0]));
                 }
             } catch (Exception e) {
-                throw new IllegalStateException(e);
+                warn("Unable to access property " + oakName, e);
             }
         }
         return properties;
@@ -127,20 +133,19 @@ class JackrabbitNodeState extends AbstractNodeState {
     @Override
     public Iterable<MemoryChildNodeEntry> getChildNodeEntries() {
         List<MemoryChildNodeEntry> entries = newArrayList();
-        for (ChildNodeEntry entry : getState().getChildNodeEntries()) {
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            String name = createName(entry.getName());
+            int index = entry.getIndex();
+            if (index > 1) {
+                name = name + '[' + index + ']';
+            }
+
             try {
-                String name = createName(entry.getName());
-                int index = entry.getIndex();
-                if (index > 1) {
-                    name = name + '[' + index + ']';
-                }
-
-                JackrabbitNodeState state = new JackrabbitNodeState(
-                        source, registry, entry.getId());
-
-                entries.add(new MemoryChildNodeEntry(name, state));
-            } catch (RepositoryException e) {
-                throw new IllegalStateException(e);
+                JackrabbitNodeState child = new JackrabbitNodeState(
+                        source, registry, source.load(entry.getId()));
+                entries.add(new MemoryChildNodeEntry(name, child));
+            } catch (ItemStateException e) {
+                warn("Unable to access child entry " + name, e);
             }
         }
         return entries;
@@ -287,7 +292,8 @@ class JackrabbitNodeState extends AbstractNodeState {
                 try {
                     return value.getLength();
                 } catch (RepositoryException e) {
-                    throw new IllegalStateException(e);
+                    warn("Unable to access blob length", e);
+                    return 0;
                 }
             }
             @Override
@@ -295,19 +301,25 @@ class JackrabbitNodeState extends AbstractNodeState {
                 try {
                     return value.getStream();
                 } catch (RepositoryException e) {
-                    throw new IllegalStateException(e);
+                    warn("Unable to access blob contents", e);
+                    return new ByteArrayInputStream(new byte[0]);
                 }
             }
         };
     }
 
-    private String createName(Name name) throws RepositoryException {
+    private String createName(Name name) {
         String uri = name.getNamespaceURI();
         String local = name.getLocalName();
         if (uri == null || uri.isEmpty()) {
             return local;
         } else {
-            return registry.getPrefix(uri) + ":" + local;
+            try {
+                return registry.getPrefix(uri) + ":" + local;
+            } catch (RepositoryException e) {
+                warn("Unable to create Oak name from " + name, e);
+                return "{" + uri + "}" + local;
+            }
         }
     }
 
@@ -332,11 +344,19 @@ class JackrabbitNodeState extends AbstractNodeState {
             } else if (element.denotesCurrent()) {
                 builder.append('.');
             } else {
-                throw new RepositoryException(
-                        "Unknown path element: " + element);
+                warn("Unknown element in path: " + path);
+                builder.append(element.getString());
             }
         }
         return builder.toString();
+    }
+
+    private void warn(String message) {
+        log.warn(message);
+    }
+
+    private void warn(String message, Throwable cause) {
+        log.warn(message, cause);
     }
 
 }
