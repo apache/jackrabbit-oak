@@ -67,7 +67,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     @Override @Nonnull
     public synchronized NodeState getHead() {
-        return head.getChildNode(ROOT);
+        return new SegmentRootState(head);
     }
 
     @Override

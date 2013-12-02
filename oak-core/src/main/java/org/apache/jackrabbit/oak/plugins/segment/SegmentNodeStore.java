@@ -139,19 +139,21 @@ public class SegmentNodeStore implements NodeStore, Observable {
     @Override @Nonnull
     public NodeState getRoot() {
         refreshHead(false);
-        return head.getChildNode(ROOT);
+        return new SegmentRootState(head);
     }
 
     @Override
     public NodeState merge(
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
             @Nullable CommitInfo info) throws CommitFailedException {
-        checkArgument(builder instanceof SegmentNodeBuilder);
         checkNotNull(commitHook);
-        SegmentNodeState base = head;
-        rebase(builder, base.getChildNode(ROOT)); // TODO: can we avoid this?
+
+        NodeState base = builder.getBaseState();
+        checkArgument(store.isInstance(base, SegmentRootState.class));
+        SegmentNodeState root = ((SegmentRootState) base).getRootState();
+
         SegmentNodeStoreBranch branch = new SegmentNodeStoreBranch(
-                this, store.getWriter(), base, maximumBackoff);
+                this, store.getWriter(), root, maximumBackoff);
         branch.setRoot(builder.getNodeState());
         NodeState merged = branch.merge(commitHook, info);
         ((SegmentNodeBuilder) builder).reset(merged);
@@ -164,7 +166,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     private NodeState rebase(@Nonnull NodeBuilder builder, NodeState newBase) {
-        checkArgument(builder instanceof SegmentNodeBuilder);
+        checkArgument(builder instanceof SegmentRootBuilder);
         NodeState oldBase = builder.getBaseState();
         if (!fastEquals(oldBase, newBase)) {
             NodeState head = builder.getNodeState();
@@ -185,7 +187,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override @Nonnull
     public NodeState reset(@Nonnull NodeBuilder builder) {
-        checkArgument(builder instanceof SegmentNodeBuilder);
+        checkArgument(builder instanceof SegmentRootBuilder);
         NodeState state = getRoot();
         ((SegmentNodeBuilder) builder).reset(state);
         return state;
