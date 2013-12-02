@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -53,7 +54,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     private final ChangeDispatcher changeDispatcher;
 
-    private SegmentNodeState head;
+    volatile SegmentNodeState head;
+
+    private boolean inLocalCommit = false;
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
@@ -73,23 +76,58 @@ public class SegmentNodeStore implements NodeStore, Observable {
         this.maximumBackoff = max;
     }
 
-    synchronized SegmentNodeState getHead() {
-        head = new SegmentNodeState(
-                store.getWriter().getDummySegment(), journal.getHead());
-        return head;
+    /**
+     * Refreshes the head state. Does nothing if a concurrent local commit is
+     * in progress, as that commit will automatically refresh the head state.
+     *
+     * @param commit whether this refresh is a part of a local commit
+     */
+    private synchronized void refreshHead(boolean commit) {
+        if (commit || !inLocalCommit) {
+            RecordId id = journal.getHead();
+            if (!id.equals(head.getRecordId())) {
+                head = new SegmentNodeState(
+                        store.getWriter().getDummySegment(), id);
+                changeDispatcher.contentChanged(head.getChildNode(ROOT), null);
+            }
+        }
     }
 
-    boolean setHead(SegmentNodeState base, SegmentNodeState head, CommitInfo info) {
-        changeDispatcher.contentChanged(base.getChildNode(ROOT), null);
+    private synchronized void refreshHeadInCommit(boolean start)
+            throws InterruptedException {
+        if (start) {
+            while (inLocalCommit) {
+                wait();
+            }
+            inLocalCommit = true;
+        } else {
+            checkState(inLocalCommit);
+        }
+
+        try {
+            refreshHead(true);
+        } finally {
+            if (!start) {
+                inLocalCommit = false;
+                notifyAll();
+            }
+        }
+    }
+
+    boolean setHead(
+            SegmentNodeState base, SegmentNodeState head, CommitInfo info)
+            throws InterruptedException {
+        refreshHeadInCommit(true);
         try {
             if (journal.setHead(base.getRecordId(), head.getRecordId())) {
+                this.head = head;
                 changeDispatcher.contentChanged(head.getChildNode(ROOT), info);
                 return true;
             } else {
                 return false;
             }
         } finally {
-            changeDispatcher.contentChanged(getRoot(), null);
+            refreshHeadInCommit(false);
         }
     }
 
@@ -99,22 +137,21 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     @Override @Nonnull
-    public synchronized NodeState getRoot() {
-        return getHead().getChildNode(ROOT);
+    public NodeState getRoot() {
+        refreshHead(false);
+        return head.getChildNode(ROOT);
     }
 
     @Override
-    public synchronized NodeState merge(
-            @Nonnull NodeBuilder builder,
-            @Nonnull CommitHook commitHook,
-            @Nullable CommitInfo info)
-            throws CommitFailedException {
+    public NodeState merge(
+            @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
+            @Nullable CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof SegmentNodeBuilder);
         checkNotNull(commitHook);
-        SegmentNodeState head = getHead();
-        rebase(builder, head.getChildNode(ROOT)); // TODO: can we avoid this?
+        SegmentNodeState base = head;
+        rebase(builder, base.getChildNode(ROOT)); // TODO: can we avoid this?
         SegmentNodeStoreBranch branch = new SegmentNodeStoreBranch(
-                this, store.getWriter(), head, maximumBackoff);
+                this, store.getWriter(), base, maximumBackoff);
         branch.setRoot(builder.getNodeState());
         NodeState merged = branch.merge(commitHook, info);
         ((SegmentNodeBuilder) builder).reset(merged);
@@ -163,7 +200,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public synchronized String checkpoint(long lifetime) {
         checkArgument(lifetime > 0);
         // TODO: Guard the checkpoint from garbage collection
-        return getHead().getRecordId().toString();
+        return head.getRecordId().toString();
     }
 
     @Override @CheckForNull
