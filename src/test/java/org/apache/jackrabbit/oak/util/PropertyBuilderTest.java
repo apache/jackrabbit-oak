@@ -14,28 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.memory;
+package org.apache.jackrabbit.oak.util;
 
 import java.util.Arrays;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.util.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MultiLongPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class MemoryPropertyBuilderTest {
+public class PropertyBuilderTest {
 
     @Test
     public void testStringProperty() {
         PropertyBuilder builder = PropertyBuilder.scalar(Type.STRING);
         builder.setName("foo").setValue("bar");
-        assertEquals(StringPropertyState.stringProperty("foo", "bar"),
+        Assert.assertEquals(StringPropertyState.stringProperty("foo", "bar"),
                 builder.getPropertyState());
 
         builder.setArray();
-        assertEquals(MultiStringPropertyState.stringProperty("foo", Arrays.asList("bar")),
+        Assert.assertEquals(MultiStringPropertyState.stringProperty("foo", Arrays.asList("bar")),
                 builder.getPropertyState());
     }
 
@@ -43,11 +49,11 @@ public class MemoryPropertyBuilderTest {
     public void testLongProperty() {
         PropertyBuilder builder = PropertyBuilder.scalar(Type.LONG);
         builder.setName("foo").setValue(42L);
-        assertEquals(LongPropertyState.createLongProperty("foo", 42L),
+        Assert.assertEquals(LongPropertyState.createLongProperty("foo", 42L),
                 builder.getPropertyState());
 
         builder.setArray();
-        assertEquals(MultiLongPropertyState.createLongProperty("foo", Arrays.asList(42L)),
+        Assert.assertEquals(MultiLongPropertyState.createLongProperty("foo", Arrays.asList(42L)),
                 builder.getPropertyState());
     }
 
@@ -80,7 +86,7 @@ public class MemoryPropertyBuilderTest {
         builder.setName("foo")
                 .addValue(date1)
                 .addValue(date2);
-        assertEquals(MultiGenericPropertyState.dateProperty("foo", Arrays.asList(date1, date2)),
+        Assert.assertEquals(MultiGenericPropertyState.dateProperty("foo", Arrays.asList(date1, date2)),
                 builder.getPropertyState());
 
         builder.setScalar();
@@ -91,7 +97,7 @@ public class MemoryPropertyBuilderTest {
         }
 
         builder.removeValue(date1);
-        assertEquals(GenericPropertyState.dateProperty("foo", date2),
+        Assert.assertEquals(GenericPropertyState.dateProperty("foo", date2),
                 builder.getPropertyState());
     }
 
