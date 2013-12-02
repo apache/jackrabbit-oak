@@ -58,7 +58,7 @@ abstract class CacheInvalidator {
 
     static class InvalidationResult {
         int invalidationCount;
-        int uptodateCount;
+        int upToDateCount;
         int cacheSize;
         long timeTaken;
         int queryCount;
@@ -68,7 +68,7 @@ abstract class CacheInvalidator {
         public String toString() {
             return "InvalidationResult{" +
                     "invalidationCount=" + invalidationCount +
-                    ", uptodateCount=" + uptodateCount +
+                    ", upToDateCount=" + upToDateCount +
                     ", cacheSize=" + cacheSize +
                     ", timeTaken=" + timeTaken +
                     ", queryCount=" + queryCount +
@@ -114,17 +114,17 @@ abstract class CacheInvalidator {
             QueryBuilder query = QueryBuilder.start(Document.ID)
                     .in(cacheMap.keySet());
 
-            //Fetch only the lastRev map and id
-            final BasicDBObject keys = new BasicDBObject(NodeDocument.ID, 1);
-            keys.put(NodeDocument.MOD_COUNT, 1);
+            // Fetch only the lastRev map and id
+            final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
+            keys.put(Document.MOD_COUNT, 1);
 
-            //Fetch lastRev for each such node
+            // Fetch lastRev for each such node
             DBCursor cursor = nodes.find(query.get(), keys);
             result.queryCount++;
             for (DBObject obj : cursor) {
                 result.cacheEntriesProcessedCount++;
-                String id = (String) obj.get(NodeDocument.ID);
-                Number modCount = (Number) obj.get(NodeDocument.MOD_COUNT);
+                String id = (String) obj.get(Document.ID);
+                Number modCount = (Number) obj.get(Document.MOD_COUNT);
 
                 NodeDocument cachedDoc = documentStore.getIfCached(Collection.NODES, id);
                 if (cachedDoc != null
@@ -132,7 +132,7 @@ abstract class CacheInvalidator {
                     documentStore.invalidateCache(Collection.NODES, id);
                     result.invalidationCount++;
                 } else {
-                    result.uptodateCount++;
+                    result.upToDateCount++;
                 }
             }
             return result;
@@ -141,6 +141,14 @@ abstract class CacheInvalidator {
 
 
     private static class HierarchicalInvalidator extends CacheInvalidator {
+        
+        private static final TreeTraverser<TreeNode> TRAVERSER = new TreeTraverser<TreeNode>() {
+            @Override
+            public Iterable<TreeNode> children(TreeNode root) {
+                return root.children();
+            }
+        };
+
         private final DBCollection nodes;
         private final MongoDocumentStore documentStore;
 
@@ -155,65 +163,67 @@ abstract class CacheInvalidator {
             Map<String, NodeDocument> cacheMap = documentStore.getCache();
             TreeNode root = constructTreeFromPaths(cacheMap.keySet());
 
-            //Invalidation stats
+            // Invalidation stats
             result.cacheSize = cacheMap.size();
 
-            //Time at which the check is started. All NodeDocuments which
-            //are found to be uptodate would be marked touched at this time
+            // Time at which the check is started. All NodeDocuments which
+            // are found to be up-to-date would be marked touched at this time
             final long startTime = System.currentTimeMillis();
 
             Iterator<TreeNode> treeItr = TRAVERSER.breadthFirstTraversal(root).iterator();
             PeekingIterator<TreeNode> pitr = Iterators.peekingIterator(treeItr);
             Map<String, TreeNode> sameLevelNodes = Maps.newHashMap();
 
-            //Fetch only the lastRev map and id
-            final BasicDBObject keys = new BasicDBObject(NodeDocument.ID, 1);
-            keys.put(NodeDocument.MOD_COUNT, 1);
+            // Fetch only the lastRev map and id
+            final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
+            keys.put(Document.MOD_COUNT, 1);
 
             while (pitr.hasNext()) {
                 final TreeNode tn = pitr.next();
 
-                //Root node would already have been processed
-                //Allows us to save on the extra query for /
-                if(tn.isRoot()){
+                // Root node would already have been processed
+                // Allows us to save on the extra query for /
+                if (tn.isRoot()) {
                     tn.markUptodate(startTime);
                     continue;
                 }
 
-                //Collect nodes at same level in tree if
-                //they are not uptodate.
+                // Collect nodes at same level in tree if
+                // they are not up-to-date.
                 if (tn.isUptodate(startTime)) {
-                    result.uptodateCount++;
+                    result.upToDateCount++;
                 } else {
                     sameLevelNodes.put(tn.getId(), tn);
                 }
 
                 final boolean hasMore = pitr.hasNext();
 
-                //Change in level or last element
+                // Change in level or last element
                 if (!sameLevelNodes.isEmpty() &&
-                        ((hasMore && tn.level() != pitr.peek().level()) || !hasMore )) {
+                        ((hasMore && tn.level() != pitr.peek().level()) || !hasMore)) {
 
                     QueryBuilder query = QueryBuilder.start(Document.ID)
                             .in(sameLevelNodes.keySet());
 
-                    //Fetch lastRev and modCount for each such nodes
+                    // Fetch lastRev and modCount for each such nodes
                     DBCursor cursor = nodes.find(query.get(), keys);
-                    LOG.debug("Checking for changed nodes at level {} with {} paths",tn.level(),sameLevelNodes.size());
+                    LOG.debug(
+                            "Checking for changed nodes at level {} with {} paths",
+                            tn.level(), sameLevelNodes.size());
                     result.queryCount++;
                     for (DBObject obj : cursor) {
 
                         result.cacheEntriesProcessedCount++;
 
-                        Number latestModCount = (Number) obj.get(NodeDocument.MOD_COUNT);
-                        String id = (String) obj.get(NodeDocument.ID);
+                        Number latestModCount = (Number) obj.get(Document.MOD_COUNT);
+                        String id = (String) obj.get(Document.ID);
 
                         final TreeNode tn2 = sameLevelNodes.get(id);
                         NodeDocument cachedDoc = tn2.getDocument();
                         if (cachedDoc != null) {
                             boolean noChangeInModCount = Objects.equal(latestModCount, cachedDoc.getModCount());
                             if (noChangeInModCount) {
-                                result.uptodateCount++;
+                                result.upToDateCount++;
                                 tn2.markUptodate(startTime);
                             } else {
                                 result.invalidationCount++;
@@ -221,12 +231,12 @@ abstract class CacheInvalidator {
                             }
                         }
 
-                        //Remove the processed nodes
+                        // Remove the processed nodes
                         sameLevelNodes.remove(tn2.getId());
                     }
 
-                    //NodeDocument present in cache but not in database
-                    //Remove such nodes from cache
+                    // NodeDocument present in cache but not in database
+                    // Remove such nodes from cache
                     if (!sameLevelNodes.isEmpty()) {
                         for (TreeNode leftOverNodes : sameLevelNodes.values()) {
                             leftOverNodes.invalidate();
@@ -240,8 +250,8 @@ abstract class CacheInvalidator {
             result.timeTaken = System.currentTimeMillis() - startTime;
             LOG.debug("Cache invalidation details - {}", result);
 
-            //TODO collect the list of ids which are invalidated such that entries for only those
-            //ids are removed from the Document Children Cache
+            // TODO collect the list of ids which are invalidated such that entries for only those
+            // ids are removed from the Document Children Cache
 
             return result;
         }
@@ -257,14 +267,6 @@ abstract class CacheInvalidator {
             }
             return root;
         }
-
-        private static TreeTraverser<TreeNode> TRAVERSER = new TreeTraverser<TreeNode>() {
-            @Override
-            public Iterable<TreeNode> children(TreeNode root) {
-                return root.children();
-            }
-        };
-
 
         private class TreeNode {
             private final String name;
@@ -336,9 +338,9 @@ abstract class CacheInvalidator {
                 if (doc != null) {
                     return doc.isUpToDate(time);
                 } else {
-                    //If doc is not present in cache then its already
-                    //uptodate i.e. no further consistency check required
-                    //for this document
+                    // If doc is not present in cache then its already
+                    // up-to-date i.e. no further consistency check required
+                    // for this document
                     return true;
                 }
             }
@@ -356,21 +358,21 @@ abstract class CacheInvalidator {
                 return id;
             }
 
-            private void markUptodate(long cacheCheckTime, NodeDocument uptodateRoot) {
+            private void markUptodate(long cacheCheckTime, NodeDocument upToDateRoot) {
                 for (TreeNode tn : children.values()) {
-                    tn.markUptodate(cacheCheckTime, uptodateRoot);
+                    tn.markUptodate(cacheCheckTime, upToDateRoot);
                 }
-                ///Update the parent after child
-                markUptodate(getId(), cacheCheckTime, uptodateRoot);
+                // Update the parent after child
+                markUptodate(getId(), cacheCheckTime, upToDateRoot);
             }
 
-            private void markUptodate(String key, long time, NodeDocument uptodateRoot) {
+            private void markUptodate(String key, long time, NodeDocument upToDateRoot) {
                 NodeDocument doc = documentStore.getIfCached(Collection.NODES, key);
 
                 if (doc == null) {
                     return;
                 }
-                //Only mark the cachedDoc uptodate if
+                // Only mark the cachedDoc up-to-date if
                 // 1. it got created i.e. cached document creation
                 //    time is greater or same as the time of the root node on which markUptodate
                 //    is invoked. As in typical cache population child node would be added
@@ -378,11 +380,11 @@ abstract class CacheInvalidator {
                 //    If the creation time is less then it means that parent got replaced/updated later
                 //    and hence its _lastRev property would not truly reflect the state of child nodes
                 //    present in cache
-                // 2. OR Check if both documents have been marked uptodate in last cycle. As in that case
+                // 2. OR Check if both documents have been marked up-to-date in last cycle. As in that case
                 //    previous cycle would have done the required checks
 
-                if (doc.getCreated() >= uptodateRoot.getCreated()
-                        || doc.getLastCheckTime() == uptodateRoot.getLastCheckTime()) {
+                if (doc.getCreated() >= upToDateRoot.getCreated()
+                        || doc.getLastCheckTime() == upToDateRoot.getLastCheckTime()) {
                     doc.markUpToDate(time);
                 }
             }

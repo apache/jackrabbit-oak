@@ -115,6 +115,12 @@ public class Commit {
         diff.newline();
     }
     
+    /**
+     * Update the "lastRev" and "modified" properties for the specified node
+     * document.
+     * 
+     * @param path the path
+     */
     public void touchNode(String path) {
         UpdateOp op = getUpdateOperationForNode(path);
         NodeDocument.setLastRev(op, revision);
