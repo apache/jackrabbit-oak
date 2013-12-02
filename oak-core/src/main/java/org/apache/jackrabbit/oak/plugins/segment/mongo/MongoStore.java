@@ -26,6 +26,8 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -89,7 +91,7 @@ public class MongoStore extends AbstractStore {
         segments.insert(segment, concern);
     }
 
-    @Override
+    @Override @Nonnull
     protected Segment loadSegment(UUID segmentId) {
         DBObject id = new BasicDBObject("_id", segmentId.toString());
         DBObject fields = new BasicDBObject(of("data", 1));

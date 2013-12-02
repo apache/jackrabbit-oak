@@ -17,10 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isDataSegmentId;
 
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 
@@ -53,7 +57,8 @@ public abstract class AbstractStore implements SegmentStore {
         }
     }
 
-    protected abstract Segment loadSegment(UUID id) throws Exception;
+    @Nonnull
+    protected abstract Segment loadSegment(UUID id);
 
     @Override
     public SegmentWriter getWriter() {
@@ -62,30 +67,24 @@ public abstract class AbstractStore implements SegmentStore {
 
     @Override
     public Segment readSegment(UUID id) {
-        Segment segment = null;
-        if (segments != null) {
-            segment = segments.getIfPresent(id);
-            if (segment != null) {
-                return segment;
-            }
+        if (isBulkSegmentId(id)) {
+            return loadSegment(id);
         }
 
-        segment = getWriter().getCurrentSegment(id);
+        Segment segment = getWriter().getCurrentSegment(id);
         if (segment != null) {
             return segment;
         }
 
         if (segments == null) {
-            // no caching, just load the segment directly
-            try {
-                return loadSegment(id);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to load segment " + id, e);
-            }
+            // no in-memory cache, load the segment directly
+            return loadSegment(id);
         }
 
         synchronized (this) {
+            // check if the segment is already cached
             segment = segments.getIfPresent(id);
+            // ... or currently being loaded
             while (segment == null && currentlyLoading.contains(id)) {
                 try {
                     wait(); // for another thread to load the segment
@@ -95,29 +94,23 @@ public abstract class AbstractStore implements SegmentStore {
                 segment = segments.getIfPresent(id);
             }
             if (segment != null) {
+                // found the segment in the cache
                 return segment;
             }
+            // not yet cached, so start let others know that we're loading it
             currentlyLoading.add(id);
         }
 
         try {
             segment = loadSegment(id);
-            if (segment == null) {
-                throw new IllegalStateException("Unable to find segment " + id);
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to load segment " + id, e);
+            segments.put(id, segment);
+            return segment;
         } finally {
             synchronized (this) {
-                if (segment != null) {
-                    segments.put(id, segment);
-                }
                 currentlyLoading.remove(id);
                 notifyAll();
             }
         }
-
-        return segment;
     }
 
     @Override
