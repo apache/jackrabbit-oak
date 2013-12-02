@@ -18,6 +18,23 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Collections;
+import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PropertyBuilder;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -30,25 +47,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
-
-import java.util.Collections;
-import java.util.Set;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
 public class MutableTree extends AbstractTree {
 
@@ -197,7 +195,7 @@ public class MutableTree extends AbstractTree {
             if (parent.hasOrderableChildren()) {
                 // FIXME (OAK-842) child order not updated when parent is not accessible
                 parent.nodeBuilder.setProperty(
-                        MemoryPropertyBuilder.copy(STRING, parent.nodeBuilder.getProperty(OAK_CHILD_ORDER))
+                        PropertyBuilder.copy(STRING, parent.nodeBuilder.getProperty(OAK_CHILD_ORDER))
                                 .removeValue(name)
                                 .getPropertyState()
                 );
@@ -216,7 +214,7 @@ public class MutableTree extends AbstractTree {
             nodeBuilder.setChildNode(name);
             if (hasOrderableChildren()) {
                 nodeBuilder.setProperty(
-                        MemoryPropertyBuilder.copy(STRING, nodeBuilder.getProperty(OAK_CHILD_ORDER))
+                        PropertyBuilder.copy(STRING, nodeBuilder.getProperty(OAK_CHILD_ORDER))
                                 .addValue(name)
                                 .getPropertyState());
             }
@@ -386,8 +384,7 @@ public class MutableTree extends AbstractTree {
         for (String name : nodeBuilder.getChildNodeNames()) {
             names.add(name);
         }
-        PropertyBuilder<String> builder = MemoryPropertyBuilder.array(
-                STRING, OAK_CHILD_ORDER);
+        PropertyBuilder builder = PropertyBuilder.array(STRING, OAK_CHILD_ORDER);
         builder.setValues(names);
         nodeBuilder.setProperty(builder.getPropertyState());
     }

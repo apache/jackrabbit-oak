@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.AbstractLazyIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterators;
 
 /**
  * {@code MembershipProvider} implementation storing group membership information
@@ -115,7 +113,6 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     MembershipProvider(Root root, ConfigurationParameters config) {
         super(root, config);
-
     }
 
     /**

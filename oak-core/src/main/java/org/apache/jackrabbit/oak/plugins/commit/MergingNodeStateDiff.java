@@ -16,6 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.AbstractTree;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.ConflictType;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PropertyBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.CONFLICT;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
@@ -26,24 +43,6 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_NO
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PROPERTY;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
-
-import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.AbstractTree;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.ConflictType;
-import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * MergingNodeStateDiff... TODO
@@ -238,7 +237,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         target.setChildNode(name, state);
         PropertyState childOrder = target.getProperty(AbstractTree.OAK_CHILD_ORDER);
         if (childOrder != null) {
-            PropertyBuilder<String> builder = MemoryPropertyBuilder.copy(Type.STRING, childOrder);
+            PropertyBuilder builder = PropertyBuilder.copy(Type.STRING, childOrder);
             builder.addValue(name);
             target.setProperty(builder.getPropertyState());
         }
@@ -248,7 +247,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         target.getChildNode(name).remove();
         PropertyState childOrder = target.getProperty(AbstractTree.OAK_CHILD_ORDER);
         if (childOrder != null) {
-            PropertyBuilder<String> builder = MemoryPropertyBuilder.copy(Type.STRING, childOrder);
+            PropertyBuilder builder = PropertyBuilder.copy(Type.STRING, childOrder);
             builder.removeValue(name);
             target.setProperty(builder.getPropertyState());
         }
