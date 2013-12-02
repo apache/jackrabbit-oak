@@ -173,6 +173,11 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
+    public Iterable<String> getStrings(String name) {
+        return AbstractNodeState.getStrings(this, name);
+    }
+
+    @Override
     public String getName(String name) {
         return AbstractNodeState.getName(this, name);
     }

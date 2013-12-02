@@ -207,6 +207,24 @@ public interface NodeState {
     String getString(String name);
 
     /**
+     * Returns the string values of the named property. The implementation
+     * is equivalent to the following code, but may be optimized.
+     * <pre>
+     * PropertyState property = state.getProperty(name);
+     * if (property != null && property.getType() == Type.STRINGS) {
+     *     return property.getValue(Type.STRINGS);
+     * } else {
+     *     return Collections.emptyList();
+     * }
+     * </pre>
+     *
+     * @param name property name
+     * @return string values of the named property, or an empty collection
+     */
+    @Nonnull
+    Iterable<String> getStrings(@Nonnull String name);
+
+    /**
      * Returns the name value of the named property. The implementation
      * is equivalent to the following code, but may be optimized.
      * <pre>

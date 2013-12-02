@@ -80,6 +80,11 @@ public final class EmptyNodeState implements NodeState {
         return null;
     }
 
+    @Override
+    public Iterable<String> getStrings(String name) {
+        return emptyList();
+    }
+
     @Override @CheckForNull
     public String getName(@Nonnull String name) {
         return null;
