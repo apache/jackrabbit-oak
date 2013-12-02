@@ -109,7 +109,7 @@ public class MembershipWriter {
                 }
                 bestTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES, NAME);
             }
-            propertyBuilder = PropertyBuilder.create(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS, true);
+            propertyBuilder = PropertyBuilder.array(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS);
         } else {
             propertyBuilder = PropertyBuilder.copy(Type.WEAKREFERENCE, bestProperty);
         }
@@ -174,7 +174,7 @@ public class MembershipWriter {
         int numNodes = 0;
         for (String ref: members) {
             if (prop == null) {
-                prop = PropertyBuilder.create(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS, true);
+                prop = PropertyBuilder.array(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS);
             }
             prop.addValue(ref);
             count++;
