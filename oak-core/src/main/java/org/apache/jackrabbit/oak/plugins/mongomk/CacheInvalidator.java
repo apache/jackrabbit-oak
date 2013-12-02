@@ -334,7 +334,7 @@ abstract class CacheInvalidator {
             public boolean isUptodate(long time) {
                 NodeDocument doc = documentStore.getIfCached(Collection.NODES, id);
                 if (doc != null) {
-                    return doc.isUptodate(time);
+                    return doc.isUpToDate(time);
                 } else {
                     //If doc is not present in cache then its already
                     //uptodate i.e. no further consistency check required
@@ -383,7 +383,7 @@ abstract class CacheInvalidator {
 
                 if (doc.getCreated() >= uptodateRoot.getCreated()
                         || doc.getLastCheckTime() == uptodateRoot.getLastCheckTime()) {
-                    doc.markUptodate(time);
+                    doc.markUpToDate(time);
                 }
             }
 
