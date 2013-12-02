@@ -100,6 +100,10 @@ public class Utils {
                 size += 8;
             } else if (o instanceof Map) {
                 size += 8 + estimateMemoryUsage((Map<String, Object>) o);
+            } else if (o == null) {
+                // zero
+            } else {
+                throw new IllegalArgumentException("Can't estimate memory usage of " + o);
             }
         }
 
