@@ -80,9 +80,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.PropertyUtil;
+import org.apache.jackrabbit.oak.util.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
@@ -506,7 +505,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             if (mixins == null) {
                 tree.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(mixinName), Type.NAMES);
             } else {
-                PropertyBuilder pb = PropertyUtil.getPropertyBuilder(Type.NAME, mixins);
+                PropertyBuilder pb = PropertyBuilder.copy(Type.NAME, mixins);
                 pb.addValue(mixinName);
                 tree.setProperty(pb.getPropertyState());
             }

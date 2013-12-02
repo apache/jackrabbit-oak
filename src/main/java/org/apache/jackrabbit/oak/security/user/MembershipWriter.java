@@ -27,8 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
-import org.apache.jackrabbit.oak.util.PropertyUtil;
+import org.apache.jackrabbit.oak.util.PropertyBuilder;
 
 import com.google.common.collect.Iterators;
 
@@ -110,9 +109,9 @@ public class MembershipWriter {
                 }
                 bestTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES, NAME);
             }
-            propertyBuilder = PropertyUtil.getPropertyBuilder(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS, true);
+            propertyBuilder = PropertyBuilder.create(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS, true);
         } else {
-            propertyBuilder = PropertyUtil.getPropertyBuilder(Type.WEAKREFERENCE, bestProperty);
+            propertyBuilder = PropertyBuilder.copy(Type.WEAKREFERENCE, bestProperty);
         }
         propertyBuilder.addValue(memberContentId);
         bestTree.setProperty(propertyBuilder.getPropertyState());
@@ -136,7 +135,7 @@ public class MembershipWriter {
             Tree t = trees.next();
             PropertyState refs = t.getProperty(UserConstants.REP_MEMBERS);
             if (refs != null) {
-                PropertyBuilder<String> prop = PropertyUtil.getPropertyBuilder(Type.WEAKREFERENCE, refs);
+                PropertyBuilder<String> prop = PropertyBuilder.copy(Type.WEAKREFERENCE, refs);
                 if (prop.hasValue(memberContentId)) {
                     prop.removeValue(memberContentId);
                     if (prop.isEmpty()) {
@@ -175,7 +174,7 @@ public class MembershipWriter {
         int numNodes = 0;
         for (String ref: members) {
             if (prop == null) {
-                prop = PropertyUtil.getPropertyBuilder(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS, true);
+                prop = PropertyBuilder.create(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS, true);
             }
             prop.addValue(ref);
             count++;

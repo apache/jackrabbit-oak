@@ -27,8 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
-import org.apache.jackrabbit.oak.util.PropertyUtil;
+import org.apache.jackrabbit.oak.util.PropertyBuilder;
 import org.apache.jackrabbit.util.Text;
 
 /**
@@ -66,9 +65,9 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
 
                 PropertyBuilder<String> propertyBuilder;
                 if (aggregates == null) {
-                    propertyBuilder = PropertyUtil.getPropertyBuilder(Type.NAME, REP_AGGREGATES, true);
+                    propertyBuilder = PropertyBuilder.create(Type.NAME, REP_AGGREGATES, true);
                 } else {
-                    propertyBuilder = PropertyUtil.getPropertyBuilder(Type.NAME, aggregates);
+                    propertyBuilder = PropertyBuilder.copy(Type.NAME, aggregates);
                 }
                 if (!propertyBuilder.hasValue(name)) {
                     propertyBuilder.addValue(name);
