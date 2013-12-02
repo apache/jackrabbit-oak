@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA_PREFIXES;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAMESPACES;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -34,7 +40,11 @@ public class NameValidatorProvider extends ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new NameValidator(after);
+        return new NameValidator(newHashSet(after
+                .getChildNode(JCR_SYSTEM)
+                .getChildNode(REP_NAMESPACES)
+                .getChildNode(NSDATA)
+                .getString(NSDATA_PREFIXES)));
     }
 
 }

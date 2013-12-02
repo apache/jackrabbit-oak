@@ -20,7 +20,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -34,10 +33,6 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 class NameValidator extends DefaultValidator {
 
     private final Set<String> prefixes;
-
-    public NameValidator(NodeState root) {
-        this.prefixes = Namespaces.getNamespacePrefixesAsSet(new ImmutableTree(root));
-    }
 
     NameValidator(Set<String> prefixes) {
         this.prefixes = prefixes;

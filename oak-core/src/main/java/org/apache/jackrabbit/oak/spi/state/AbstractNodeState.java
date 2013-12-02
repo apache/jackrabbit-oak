@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -72,6 +73,15 @@ public abstract class AbstractNodeState implements NodeState {
             return property.getValue(STRING);
         } else {
             return null;
+        }
+    }
+
+    public static Iterable<String> getStrings(NodeState state, String name) {
+        PropertyState property = state.getProperty(name);
+        if (property != null && property.getType() == STRINGS) {
+            return property.getValue(STRINGS);
+        } else {
+            return emptyList();
         }
     }
 
@@ -213,6 +223,11 @@ public abstract class AbstractNodeState implements NodeState {
     @Override
     public String getString(String name) {
         return getString(this, name);
+    }
+
+    @Override
+    public Iterable<String> getStrings(String name) {
+        return getStrings(this, name);
     }
 
     @Override @CheckForNull
