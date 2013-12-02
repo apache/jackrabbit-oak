@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -41,9 +44,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiLongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * {@code PropertyBuilder} for building in memory {@code PropertyState} instances.
@@ -73,7 +73,7 @@ public class PropertyBuilder<T> {
      * @param type  type of the {@code PropertyState} instances to be built.
      * @return {@code PropertyBuilder} for {@code type}
      */
-    public static <T> PropertyBuilder scalar(Type<T> type) {
+    public static <T> PropertyBuilder<T> scalar(Type<T> type) {
         return new PropertyBuilder<T>(type);
     }
 
@@ -83,7 +83,7 @@ public class PropertyBuilder<T> {
      * @param type  type of the {@code PropertyState} instances to be built.
      * @return {@code PropertyBuilder} for {@code type}
      */
-    public static <T> PropertyBuilder array(Type<T> type) {
+    public static <T> PropertyBuilder<T> array(Type<T> type) {
         return new PropertyBuilder<T>(type).setArray();
     }
 
@@ -99,7 +99,7 @@ public class PropertyBuilder<T> {
      * @param name  initial name
      * @return {@code PropertyBuilder} for {@code type}
      */
-    public static <T> PropertyBuilder scalar(Type<T> type, String name) {
+    public static <T> PropertyBuilder<T> scalar(Type<T> type, String name) {
         return scalar(type).setName(name);
     }
 
@@ -115,7 +115,7 @@ public class PropertyBuilder<T> {
      * @param name  initial name
      * @return {@code PropertyBuilder} for {@code type}
      */
-    public static <T> PropertyBuilder array(Type<T> type, String name) {
+    public static <T> PropertyBuilder<T> array(Type<T> type, String name) {
         return scalar(type).setName(name).setArray();
     }
 
@@ -132,29 +132,8 @@ public class PropertyBuilder<T> {
      * @param property  initial name and values
      * @return {@code PropertyBuilder} for {@code type}
      */
-    public static <T> PropertyBuilder copy(Type<T> type, PropertyState property) {
+    public static <T> PropertyBuilder<T> copy(Type<T> type, PropertyState property) {
         return scalar(type).assignFrom(property);
-    }
-
-    /**
-     * Create a new {@code PropertyBuilder} from the specified parameters. Depending
-     * on the {@code isArray} flag this corresponds to
-     * <pre>{@link #array(org.apache.jackrabbit.oak.api.Type, String)}</pre> or
-     * <pre>{@link #scalar(org.apache.jackrabbit.oak.api.Type, String)}</pre>.
-     *
-     *
-     *
-     * @param type type of the {@code PropertyState} instances to be built.
-     * @param name the name of the state to be built.
-     * @param isArray
-     * @return {@code PropertyBuilder} for {@code type}.
-     */
-    public static <T> PropertyBuilder create(@Nonnull Type<T> type, @Nonnull String name, boolean isArray) {
-        if (isArray) {
-            return array(type, name);
-        } else {
-            return scalar(type, name);
-        }
     }
 
     public String getName() {
@@ -238,7 +217,7 @@ public class PropertyBuilder<T> {
 
     @SuppressWarnings("unchecked")
     @Nonnull
-    public PropertyBuilder assignFrom(PropertyState property) {
+    public PropertyBuilder<T> assignFrom(PropertyState property) {
         if (property != null) {
             setName(property.getName());
             if (property.isArray()) {
@@ -253,56 +232,56 @@ public class PropertyBuilder<T> {
     }
 
     @Nonnull
-    public PropertyBuilder setName(String name) {
+    public PropertyBuilder<T> setName(String name) {
         this.name = name;
         return this;
     }
 
     @Nonnull
-    public PropertyBuilder setArray() {
+    public PropertyBuilder<T> setArray() {
         isArray = true;
         return this;
     }
 
     @Nonnull
-    public PropertyBuilder setScalar() {
+    public PropertyBuilder<T> setScalar() {
         isArray = false;
         return this;
     }
 
     @Nonnull
-    public PropertyBuilder setValue(T value) {
+    public PropertyBuilder<T> setValue(T value) {
         values.clear();
         values.add(value);
         return this;
     }
 
     @Nonnull
-    public PropertyBuilder addValue(T value) {
+    public PropertyBuilder<T> addValue(T value) {
         values.add(value);
         return this;
     }
 
     @Nonnull
-    public PropertyBuilder setValue(T value, int index) {
+    public PropertyBuilder<T> setValue(T value, int index) {
         values.set(index, value);
         return this;
     }
 
     @Nonnull
-    public PropertyBuilder setValues(Iterable<T> values) {
+    public PropertyBuilder<T> setValues(Iterable<T> values) {
         this.values = Lists.newArrayList(values);
         return this;
     }
 
     @Nonnull
-    public PropertyBuilder removeValue(int index) {
+    public PropertyBuilder<T> removeValue(int index) {
         values.remove(index);
         return this;
     }
 
     @Nonnull
-    public PropertyBuilder removeValue(Object value) {
+    public PropertyBuilder<T> removeValue(Object value) {
         values.remove(value);
         return this;
     }

@@ -65,7 +65,7 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
 
                 PropertyBuilder<String> propertyBuilder;
                 if (aggregates == null) {
-                    propertyBuilder = PropertyBuilder.create(Type.NAME, REP_AGGREGATES, true);
+                    propertyBuilder = PropertyBuilder.array(Type.NAME, REP_AGGREGATES);
                 } else {
                     propertyBuilder = PropertyBuilder.copy(Type.NAME, aggregates);
                 }
