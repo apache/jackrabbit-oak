@@ -57,6 +57,33 @@ public class QueryTest extends AbstractRepositoryTest {
     }
     
     @Test
+    public void unicode() throws Exception {
+        Session session = getAdminSession();
+        Node content = session.getRootNode().addNode("test");
+        String[][] list = {
+                {"three", "äöü"}, 
+                {"two", "123456789"}, 
+                {"one", "㍠㍡㍢㍣㍤㍥㍦㍧㍨㍩"}, 
+        };
+        for (String[] pair : list) {
+            content.addNode(pair[0]).setProperty("prop", 
+                    "propValue testSearch " + pair[1] + " data");
+        }
+        session.save();
+        for (String[] pair : list) {
+            String query = "//*[jcr:contains(., '" + pair[1] + "')]";
+            QueryResult r = session.getWorkspace().
+                    getQueryManager().createQuery(
+                    query, "xpath").execute();
+            NodeIterator it = r.getNodes();
+            assertTrue(it.hasNext());
+            String path = it.nextNode().getPath();
+            assertEquals("/test/" + pair[0], path);
+            assertFalse(it.hasNext());
+        }        
+    }
+    
+    @Test
     public void relativeNotExistsProperty() throws Exception {
         Session session = getAdminSession();
         Node content = session.getRootNode().addNode("test");
