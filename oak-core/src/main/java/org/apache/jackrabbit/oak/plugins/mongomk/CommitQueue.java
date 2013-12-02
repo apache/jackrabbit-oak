@@ -52,9 +52,10 @@ class CommitQueue {
 
     Commit createCommit(Revision base) {
         synchronized (this) {
-            Commit c = new Commit(store, base, store.newRevision());
-            commits.put(c.getRevision(), new Entry(c));
-            LOG.debug("created commit {}", c.getRevision());
+            Revision rev = store.newRevision();
+            Commit c = new Commit(store, base, rev);
+            commits.put(rev, new Entry(rev));
+            LOG.debug("created commit {}", rev);
             return c;
         }
     }
@@ -124,25 +125,45 @@ class CommitQueue {
 
     private void notifyHead() {
         if (!commits.isEmpty()) {
-            LOG.debug("count down for {}", commits.firstKey());
-            commits.get(commits.firstKey()).latch.countDown();
+            LOG.debug("release {}", commits.firstKey());
+            commits.get(commits.firstKey()).release();
         }
     }
 
+    /**
+     * An entry in the commit queue.
+     */
     private static final class Entry {
 
-        final Commit commit;
-        final CountDownLatch latch;
+        /**
+         * The revision of the commit (used for debugging).
+         */
+        private final Revision revision;
+        
+        /**
+         * The latch. Initially set to 1, so that release() needs to be called
+         * once for await() to continue.
+         */
+        private final CountDownLatch latch = new CountDownLatch(1);
 
-        Entry(Commit commit) {
-            this.commit = commit;
-            this.latch = new CountDownLatch(1);
+        Entry(Revision revision) {
+            this.revision = revision;
         }
 
+        /**
+         * Release all threads that are waiting.
+         */
+        void release() {
+            latch.countDown();
+        }
+
+        /**
+         * Wait for the latch to be released.
+         */
         void await() {
             for (;;) {
                 try {
-                    LOG.debug("awaiting {}", commit.getRevision());
+                    LOG.debug("awaiting {}", revision);
                     latch.await();
                     break;
                 } catch (InterruptedException e) {

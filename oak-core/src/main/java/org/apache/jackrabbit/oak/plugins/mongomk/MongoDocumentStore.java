@@ -566,7 +566,7 @@ public class MongoDocumentStore implements DocumentStore {
         return cacheStats;
     }
 
-    Map<String,NodeDocument> getCache(){
+    Map<String, NodeDocument> getCache() {
         return Collections.unmodifiableMap(nodesCache.asMap());
     }
 

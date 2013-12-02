@@ -39,7 +39,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("ds.debug", "true"));
 
-    private final DocumentStore store;
+    final DocumentStore store;
 
     public LoggingDocumentStoreWrapper(DocumentStore store) {
         this.store = store;
