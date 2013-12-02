@@ -107,7 +107,7 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
         assertFalse(a.hasProperty("aProp"));
     }
 
-    @Test
+    @Test @Ignore("OAK-1247")
     public void testAddNodeCollidingWithInvisibleNode() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);
         setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.JCR_READ);
