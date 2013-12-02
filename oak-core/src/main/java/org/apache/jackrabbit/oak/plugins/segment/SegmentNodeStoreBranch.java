@@ -79,7 +79,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public synchronized void rebase() {
-        SegmentNodeState newBase = store.getHead();
+        SegmentNodeState newBase = store.head;
         if (!base.getRecordId().equals(newBase.getRecordId())) {
             NodeBuilder builder = newBase.builder();
             head.getChildNode(ROOT).compareAgainstBaseState(
@@ -137,9 +137,9 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     }
 
     private synchronized void pessimisticMerge(CommitHook hook, long timeout, CommitInfo info)
-            throws CommitFailedException {
+            throws CommitFailedException, InterruptedException {
         while (true) {
-            SegmentNodeState before = store.getHead();
+            SegmentNodeState before = store.head;
             long now = System.currentTimeMillis();
             if (before.hasProperty("token")
                     && before.getLong("timeout") >= now) {
