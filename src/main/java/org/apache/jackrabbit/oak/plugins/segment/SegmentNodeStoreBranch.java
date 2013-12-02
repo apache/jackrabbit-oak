@@ -99,33 +99,34 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
         // use exponential backoff in case of concurrent commits
         for (long backoff = 1; backoff < maximumBackoff; backoff *= 2) {
+            rebase(); // rebase to latest head, a no-op if already there
+
             long start = System.nanoTime();
 
-            // apply commit hooks on the rebased changes
-            NodeBuilder builder = head.builder();
-            builder.setChildNode(ROOT, hook.processCommit(
-                    base.getChildNode(ROOT), head.getChildNode(ROOT)));
-            SegmentNodeState newHead = writer.writeNode(builder.getNodeState());
-
-            // use optimistic locking to update the journal
             if (base.hasProperty("token")
                     && base.getLong("timeout") >= System.currentTimeMillis()) {
                 // someone else has a pessimistic lock on the journal,
                 // so we should not try to commit anything
-            } else if (store.setHead(base, newHead, info)) {
-                base = newHead;
-                head = newHead;
-                return -1;
+            } else {
+                // apply commit hooks on the rebased changes
+                NodeBuilder builder = head.builder();
+                builder.setChildNode(ROOT, hook.processCommit(
+                        base.getChildNode(ROOT), head.getChildNode(ROOT)));
+                SegmentNodeState newHead = writer.writeNode(builder.getNodeState());
+
+                // use optimistic locking to update the journal
+                if (store.setHead(base, newHead, info)) {
+                    base = newHead;
+                    head = newHead;
+                    return -1;
+                }
             }
 
             // someone else was faster, so restore state and retry later
             base = originalBase;
             head = originalHead;
 
-            Thread.sleep(backoff, RANDOM.nextInt(1000000));
-
-            // rebase to latest head before trying again
-            rebase();
+            RANDOM.wait(backoff, RANDOM.nextInt(1000000));
 
             long stop = System.nanoTime();
             if (stop - start > timeout) {
@@ -136,7 +137,8 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         return MILLISECONDS.convert(timeout, NANOSECONDS);
     }
 
-    private synchronized void pessimisticMerge(CommitHook hook, long timeout, CommitInfo info)
+    private synchronized void pessimisticMerge(
+            CommitHook hook, long timeout, CommitInfo info)
             throws CommitFailedException, InterruptedException {
         while (true) {
             SegmentNodeState before = store.head;
@@ -144,7 +146,9 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             if (before.hasProperty("token")
                     && before.getLong("timeout") >= now) {
                 // locked by someone else, wait until unlocked or expired
-                // TODO: explicit sleep needed to avoid spinning?
+                RANDOM.wait(
+                        Math.min(before.getLong("timeout") - now, 1000),
+                        RANDOM.nextInt(1000000));
             } else {
                 // attempt to acquire the lock
                 NodeBuilder builder = before.builder();
@@ -188,14 +192,18 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             throws CommitFailedException {
         checkNotNull(hook);
         if (base != head) {
-            try {
-                long timeout = optimisticMerge(hook, info);
-                if (timeout >= 0) {
-                    pessimisticMerge(hook, timeout, info);
+            synchronized (RANDOM) {
+                try {
+                    long timeout = optimisticMerge(hook, info);
+                    if (timeout >= 0) {
+                        pessimisticMerge(hook, timeout, info);
+                    }
+                } catch (InterruptedException e) {
+                    throw new CommitFailedException(
+                            "Segment", 1, "Commit interrupted", e);
+                } finally {
+                    RANDOM.notifyAll();
                 }
-            } catch (InterruptedException e) {
-                throw new CommitFailedException(
-                        "Segment", 1, "Commit interrupted", e);
             }
         }
         return getHead();
