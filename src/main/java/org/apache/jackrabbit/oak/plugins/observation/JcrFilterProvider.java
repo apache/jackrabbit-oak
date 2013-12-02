@@ -43,8 +43,10 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventTypeFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.NodeTypeFilter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.UuidFilter;
+import org.apache.jackrabbit.oak.plugins.observation.filter.NodeTypePredicate;
+import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
+import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter;
+import org.apache.jackrabbit.oak.plugins.observation.filter.UuidPredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -125,8 +127,8 @@ public class JcrFilterProvider implements FilterProvider {
             if (uuids.length == 0) {
                 return Filters.excludeAll();
             } else {
-                filters.add(new UuidFilter(
-                        beforeTree.getNodeState(), afterTree.getNodeState(), uuids));
+                filters.add(new UniversalFilter(beforeTree, afterTree,
+                        Selectors.PARENT, new UuidPredicate(uuids)));
             }
         }
 
@@ -134,7 +136,8 @@ public class JcrFilterProvider implements FilterProvider {
             if (ntNames.length == 0) {
                 return Filters.excludeAll();
             } else {
-                filters.add(new NodeTypeFilter(beforeTree, afterTree, ntManager, ntNames));
+                filters.add(new UniversalFilter(beforeTree, afterTree,
+                        Selectors.PARENT, new NodeTypePredicate(ntManager, ntNames)));
             }
         }
 
