@@ -648,7 +648,7 @@ public final class MongoNodeStore
     }
 
     @CheckForNull
-    private Node readNode(String path, Revision readRevision) {
+    Node readNode(String path, Revision readRevision) {
         String id = Utils.getIdFromPath(path);
         Revision lastRevision = getPendingModifications().get(path);
         NodeDocument doc = store.find(Collection.NODES, id);
