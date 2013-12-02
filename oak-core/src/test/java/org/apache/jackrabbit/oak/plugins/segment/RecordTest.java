@@ -164,7 +164,7 @@ public class RecordTest {
         RecordId hello = writer.writeString("Hello, World!");
 
         StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < 100000; i++) {
+        for (int i = 0; i < 2 * Segment.MAX_SEGMENT_SIZE + 1000; i++) {
             builder.append((char) ('0' + i % 10));
         }
         RecordId large = writer.writeString(builder.toString());
