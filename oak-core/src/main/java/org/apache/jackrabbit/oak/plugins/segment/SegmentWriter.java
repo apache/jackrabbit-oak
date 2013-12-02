@@ -36,7 +36,6 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newBulkSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newDataSegmentId;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -473,6 +472,23 @@ public class SegmentWriter {
         return valueId;
     }
 
+    private synchronized RecordId writeValueRecord(int length, byte[] data) {
+        checkArgument(length < Segment.MEDIUM_LIMIT);
+        RecordId id;
+        if (length < Segment.SMALL_LIMIT) {
+            id = prepare(RecordType.VALUE, 1 + length);
+            buffer[position++] = (byte) length;
+        } else {
+            id = prepare(RecordType.VALUE, 2 + length);
+            int len = (length - Segment.SMALL_LIMIT) | 0x8000;
+            buffer[position++] = (byte) (len >> 8);
+            buffer[position++] = (byte) len;
+        }
+        System.arraycopy(data, 0, buffer, position, length);
+        position += length;
+        return id;
+    }
+
     /**
      * Writes a block record containing the given block of bytes.
      *
@@ -535,19 +551,47 @@ public class SegmentWriter {
      * @return value record identifier
      */
     public RecordId writeString(String string) {
+        byte[] data;
+
         synchronized (strings) {
             RecordId id = strings.get(string);
-            if (id == null) {
-                byte[] data = string.getBytes(Charsets.UTF_8);
-                try {
-                    id = writeStream(new ByteArrayInputStream(data)).getRecordId();
-                } catch (IOException e) {
-                    throw new IllegalStateException("Unexpected IOException", e);
-                }
-                strings.put(string, id);
+            if (id != null) {
+                return id;
             }
-            return id;
+
+            data = string.getBytes(Charsets.UTF_8);
+            if (data.length < Segment.MEDIUM_LIMIT) {
+                id = writeValueRecord(data.length, data);
+
+                // only cache short strings to avoid excessive memory use
+                strings.put(string, id);
+
+                return id;
+            }
         }
+
+        int pos = 0;
+        List<RecordId> blockIds = newArrayListWithExpectedSize(
+                data.length / BLOCK_SIZE + 1);
+
+        // write as many full bulk segments as possible
+        while (pos + MAX_SEGMENT_SIZE <= data.length) {
+            UUID uuid = newBulkSegmentId();
+            store.writeSegment(uuid, data, pos, MAX_SEGMENT_SIZE);
+            for (int i = 0; i < MAX_SEGMENT_SIZE; i += BLOCK_SIZE) {
+                blockIds.add(new RecordId(uuid, i));
+            }
+            pos += MAX_SEGMENT_SIZE;
+        }
+
+        // inline the remaining data as block records
+        while (pos < data.length) {
+            int len = Math.min(BLOCK_SIZE, data.length - pos);
+            blockIds.add(writeBlock(data, pos, len));
+            pos += len;
+        }
+
+        return writeValueRecord(data.length, writeList(blockIds));
     }
 
     public SegmentBlob writeBlob(Blob blob) throws IOException {
@@ -588,25 +632,12 @@ public class SegmentWriter {
         // Special case for short binaries (up to about 16kB):
         // store them directly as small- or medium-sized value records
         if (n < Segment.MEDIUM_LIMIT) {
-            synchronized (this) {
-                RecordId id;
-                if (n < Segment.SMALL_LIMIT) {
-                    id = prepare(RecordType.VALUE, 1 + n);
-                    buffer[position++] = (byte) n;
-                } else {
-                    id = prepare(RecordType.VALUE, 2 + n);
-                    int len = (n - Segment.SMALL_LIMIT) | 0x8000;
-                    buffer[position++] = (byte) (len >> 8);
-                    buffer[position++] = (byte) len;
-                }
-                System.arraycopy(data, 0, buffer, position, n);
-                position += n;
-                return id;
-            }
+            return writeValueRecord(n, data);
         }
 
         long length = n;
-        List<RecordId> blockIds = newArrayListWithExpectedSize(n / 4096);
+        List<RecordId> blockIds =
+                newArrayListWithExpectedSize(2 * n / BLOCK_SIZE);
 
         // Write the data to bulk segments and collect the list of block ids
         while (n != 0) {
