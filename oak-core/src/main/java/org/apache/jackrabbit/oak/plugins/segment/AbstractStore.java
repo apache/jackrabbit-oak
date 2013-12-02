@@ -91,8 +91,8 @@ public abstract class AbstractStore implements SegmentStore {
             segment = segments.getIfPresent(id);
             // ... or currently being loaded
             while (segment == null && currentlyLoading.contains(id)) {
+                currentlyWaiting++;
                 try {
-                    currentlyWaiting++;
                     wait(); // for another thread to load the segment
                 } catch (InterruptedException e) {
                     throw new RuntimeException("Interrupted", e);
