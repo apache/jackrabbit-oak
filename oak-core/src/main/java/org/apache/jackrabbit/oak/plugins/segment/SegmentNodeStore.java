@@ -56,7 +56,16 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     volatile SegmentNodeState head;
 
+    /**
+     * Whether a thread is currently processing a local commit.
+     */
     private boolean inLocalCommit = false;
+
+    /**
+     * Number of threads waiting to make a local commit.
+     * Used to avoid extra {@link #notifyAll()} calls when nobody is waiting.
+     */
+    private long waitingToCommit = 0;
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
@@ -97,7 +106,12 @@ public class SegmentNodeStore implements NodeStore, Observable {
             throws InterruptedException {
         if (start) {
             while (inLocalCommit) {
-                wait();
+                waitingToCommit++;
+                try {
+                    wait();
+                } finally {
+                    waitingToCommit--;
+                }
             }
             inLocalCommit = true;
         } else {
@@ -109,7 +123,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
         } finally {
             if (!start) {
                 inLocalCommit = false;
-                notifyAll();
+                if (waitingToCommit > 0) {
+                    notifyAll();
+                }
             }
         }
     }
