@@ -114,7 +114,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         assertEquals(2, result.invalidationCount);
 
         //All excluding /a and /a/d would be updated. Also we exclude / from processing
-        assertEquals(totalPaths - 3, result.uptodateCount);
+        assertEquals(totalPaths - 3, result.upToDateCount);
 
         //3 queries would be fired for [/] [/a] [/a/b, /a/c, /a/d]
         assertEquals(2, result.queryCount);
@@ -145,7 +145,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         assertEquals(2, result.invalidationCount);
 
         //All excluding /a and /a/d would be updated
-        assertEquals(totalPaths - 2, result.uptodateCount);
+        assertEquals(totalPaths - 2, result.upToDateCount);
 
         //Only one query would be fired
         assertEquals(1, result.queryCount);
