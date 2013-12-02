@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.core;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
@@ -30,6 +29,7 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -38,10 +38,14 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.GenericDescriptors;
 
@@ -174,7 +178,8 @@ public class ContentRepositoryImpl implements ContentRepository {
         final ValueFactory valueFactory = new SimpleValueFactory();
         final Value trueValue = valueFactory.createValue(true);
         final Value falseValue = valueFactory.createValue(false);
-        return new GenericDescriptors()
+
+        GenericDescriptors gd = new GenericDescriptors()
                 .put(IDENTIFIER_STABILITY, valueFactory.createValue(Repository.IDENTIFIER_STABILITY_METHOD_DURATION), true, true)
                 .put(LEVEL_1_SUPPORTED, trueValue, true, true)
                 .put(LEVEL_2_SUPPORTED, trueValue, true, true)
@@ -246,6 +251,21 @@ public class ContentRepositoryImpl implements ContentRepository {
                 .put(SPEC_NAME_DESC, valueFactory.createValue("Content Repository for Java Technology API"), true, true)
                 .put(SPEC_VERSION_DESC, valueFactory.createValue("2.0"), true, true)
                 .put(WRITE_SUPPORTED, trueValue, true, true);
+        // jackrabbit API specific descriptors
+        gd.put(JackrabbitRepository.OPTION_USER_MANAGEMENT_SUPPORTED, falseValue, true, false);
+        gd.put(JackrabbitRepository.OPTION_PRINCIPAL_MANAGEMENT_SUPPORTED, falseValue, true, false);
+        gd.put(JackrabbitRepository.OPTION_PRIVILEGE_MANAGEMENT_SUPPORTED, falseValue, true, false);
+        for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
+            String name = sc.getName();
+            if (UserConfiguration.NAME.equals(name)) {
+                gd.put(JackrabbitRepository.OPTION_USER_MANAGEMENT_SUPPORTED, trueValue, true, false);
+            } else if (PrincipalConfiguration.NAME.equals(name)) {
+                gd.put(JackrabbitRepository.OPTION_PRINCIPAL_MANAGEMENT_SUPPORTED, trueValue, true, false);
+            } else if (PrivilegeConfiguration.NAME.equals(name)) {
+                gd.put(JackrabbitRepository.OPTION_PRIVILEGE_MANAGEMENT_SUPPORTED, trueValue, true, false);
+            }
+        }
+        return gd;
     }
 
     /**
