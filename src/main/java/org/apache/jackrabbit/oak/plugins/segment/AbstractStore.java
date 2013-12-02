@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isDataSegmentId;
 
 import java.util.Set;
 import java.util.UUID;
@@ -40,6 +39,12 @@ public abstract class AbstractStore implements SegmentStore {
      * Identifiers of the segments that are currently being loaded.
      */
     private final Set<UUID> currentlyLoading = newHashSet();
+
+    /**
+     * Number of threads that are currently waiting for segments to be loaded.
+     * Used to avoid extra {@link #notifyAll()} calls when nobody is waiting.
+     */
+    private int currentlyWaiting = 0;
 
     private final Cache<RecordId, Object> records =
             CacheLIRS.newBuilder().maximumSize(1000).build();
@@ -87,9 +92,12 @@ public abstract class AbstractStore implements SegmentStore {
             // ... or currently being loaded
             while (segment == null && currentlyLoading.contains(id)) {
                 try {
+                    currentlyWaiting++;
                     wait(); // for another thread to load the segment
                 } catch (InterruptedException e) {
                     throw new RuntimeException("Interrupted", e);
+                } finally {
+                    currentlyWaiting--;
                 }
                 segment = segments.getIfPresent(id);
             }
@@ -108,7 +116,9 @@ public abstract class AbstractStore implements SegmentStore {
         } finally {
             synchronized (this) {
                 currentlyLoading.remove(id);
-                notifyAll();
+                if (currentlyWaiting > 0) {
+                    notifyAll();
+                }
             }
         }
     }
