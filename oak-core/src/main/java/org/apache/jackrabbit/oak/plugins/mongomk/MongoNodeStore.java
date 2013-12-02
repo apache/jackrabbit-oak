@@ -106,6 +106,11 @@ public final class MongoNodeStore
     private static final int REMEMBER_REVISION_ORDER_MILLIS = 60 * 60 * 1000;
 
     /**
+     * The maximum number of document to update at once in a multi update.
+     */
+    static final int BACKGROUND_MULTI_UPDATE_LIMIT = 10000;
+
+    /**
      * The MongoDB store (might be used by multiple MongoMKs).
      */
     protected final DocumentStore store;
@@ -1182,9 +1187,13 @@ public final class MongoNodeStore
                 // use multi update when possible
                 ids.add(Utils.getIdFromPath(p));
             }
-            // update if this is the last path or
-            // revision is not equal to last revision
-            if (i + 1 >= paths.size() || size == ids.size()) {
+            // call update if any of the following is true:
+            // - this is the last path
+            // - revision is not equal to last revision (size of ids didn't change)
+            // - the update limit is reached
+            if (i + 1 >= paths.size()
+                    || size == ids.size()
+                    || ids.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
                 store.update(Collection.NODES, ids, updateOp);
                 for (String id : ids) {
                     unsavedLastRevisions.remove(Utils.getPathFromId(id));
