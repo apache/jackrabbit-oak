@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
@@ -161,20 +163,32 @@ public class FileStore extends AbstractStore {
         return journal;
     }
 
-    @Override
-    protected Segment loadSegment(UUID id) throws Exception {
+    @Override @Nonnull
+    protected Segment loadSegment(UUID id) {
         for (TarFile file : dataFiles) {
-            ByteBuffer buffer = file.readEntry(id);
-            if (buffer != null) {
-                return new Segment(FileStore.this, id, buffer);
+            try {
+                ByteBuffer buffer = file.readEntry(id);
+                if (buffer != null) {
+                    return new Segment(FileStore.this, id, buffer);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Failed to access data file " + file, e);
             }
         }
+
         for (TarFile file : bulkFiles) {
-            ByteBuffer buffer = file.readEntry(id);
-            if (buffer != null) {
-                return new Segment(FileStore.this, id, buffer);
+            try {
+                ByteBuffer buffer = file.readEntry(id);
+                if (buffer != null) {
+                    return new Segment(FileStore.this, id, buffer);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Failed to access bulk file " + file, e);
             }
         }
+
         throw new IllegalStateException("Segment " + id + " not found");
     }
 
