@@ -35,7 +35,7 @@ class Record {
      * {@link #getSegment()} method is first called to prevent the potentially
      * costly pre-loading of segments that might actually not be needed.
      */
-    private Segment segment;
+    private volatile Segment segment;
 
     /**
      * Identifier of the segment that contains this record. The value of
@@ -43,7 +43,7 @@ class Record {
      * get updated by the {@link #getSegment()} method to indicate that
      * lazy initialization has happened.
      */
-    private UUID uuid;
+    private volatile UUID uuid;
 
     /**
      * Segment offset of this record.
@@ -106,7 +106,7 @@ class Record {
      *
      * @return record identifier
      */
-    public synchronized RecordId getRecordId() {
+    public RecordId getRecordId() {
         return new RecordId(uuid, offset);
     }
 

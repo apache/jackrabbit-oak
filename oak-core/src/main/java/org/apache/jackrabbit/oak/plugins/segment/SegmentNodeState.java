@@ -38,24 +38,28 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 
 public class SegmentNodeState extends Record implements NodeState {
 
-    private RecordId templateId = null;
+    private volatile RecordId templateId = null;
 
-    private Template template = null;
+    private volatile Template template = null;
 
     public SegmentNodeState(Segment segment, RecordId id) {
         super(segment, id);
     }
 
     RecordId getTemplateId() {
-        getTemplate(); // force loading of the template
+        if (templateId == null) {
+            // no problem if updated concurrently,
+            // as each concurrent thread will just get the same value
+            templateId = getSegment().readRecordId(getOffset(0));
+        }
         return templateId;
     }
 
-    synchronized Template getTemplate() {
+    Template getTemplate() {
         if (template == null) {
-            Segment segment = getSegment();
-            templateId = segment.readRecordId(getOffset(0));
-            template = segment.readTemplate(templateId);
+            // no problem if updated concurrently,
+            // as each concurrent thread will just get the same value
+            template = getSegment().readTemplate(getTemplateId());
         }
         return template;
     }
