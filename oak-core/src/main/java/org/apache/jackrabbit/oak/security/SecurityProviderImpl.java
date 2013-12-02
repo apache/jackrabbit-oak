@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Arrays;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
@@ -61,14 +61,13 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
-        Set<SecurityConfiguration> scs = new HashSet<SecurityConfiguration>();
-        scs.add(getAuthenticationConfiguration());
-        scs.add(getAuthorizationConfiguration());
-        scs.add(getUserConfiguration());
-        scs.add(getPrincipalConfiguration());
-        scs.add(getPrivilegeConfiguration());
-        scs.add(getTokenConfiguration());
-        return scs;
+        return Arrays.asList(
+                getAuthenticationConfiguration(),
+                getAuthorizationConfiguration(),
+                getUserConfiguration(),
+                getPrincipalConfiguration(),
+                getPrivilegeConfiguration(),
+                getTokenConfiguration());
     }
 
     @Nonnull
