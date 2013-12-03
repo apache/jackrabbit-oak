@@ -26,8 +26,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -36,10 +34,11 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -69,7 +68,9 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
 
     private SegmentStore store;
 
-    private NodeStore delegate;
+    private SegmentNodeStore delegate;
+
+    private ObserverTracker observerTracker;
 
     private synchronized NodeStore getDelegate() {
         assert delegate != null : "service must be activated when used";
@@ -103,6 +104,8 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
                 Integer.parseInt(size), "64".equals(mode));
 
         delegate = new SegmentNodeStore(store);
+        observerTracker = new ObserverTracker(delegate);
+        observerTracker.start(context.getBundleContext());
     }
 
     private static String lookup(ComponentContext context, String property) {
@@ -117,6 +120,7 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
 
     @Deactivate
     public synchronized void deactivate() {
+        observerTracker.stop();
         delegate = null;
 
         store.close();
@@ -127,7 +131,6 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
 
     @Override
     public Closeable addObserver(Observer observer) {
-        Preconditions.checkState(delegate instanceof Observable);
         return ((Observable) getDelegate()).addObserver(observer);
     }
 

@@ -18,16 +18,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.mongodb.DB;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
@@ -39,10 +43,6 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mongodb.DB;
-
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 /**
  * The OSGi service to start/stop a MongoNodeStore instance.
@@ -76,6 +76,7 @@ public class MongoNodeStoreService {
 
     private ServiceRegistration reg;
     private MongoNodeStore store;
+    private ObserverTracker observerTracker;
     private final List<Registration> registrations = new ArrayList<Registration>();
 
     @Activate
@@ -101,7 +102,7 @@ public class MongoNodeStoreService {
         store = mk.getNodeStore();
 
         registerJMXBeans(mk, context);
-
+        observerTracker = new ObserverTracker(store);
         reg = context.registerService(NodeStore.class.getName(), store, new Properties());
     }
 
@@ -151,6 +152,7 @@ public class MongoNodeStoreService {
 
     @Deactivate
     private void deactivate() {
+        observerTracker.stop();
         for (Registration r : registrations) {
             r.unregister();
         }

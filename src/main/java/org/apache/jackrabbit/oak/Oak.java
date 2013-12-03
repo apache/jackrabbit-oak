@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +30,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.management.JMException;
@@ -53,6 +59,8 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -67,9 +75,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -80,6 +87,7 @@ import static com.google.common.collect.Lists.newArrayList;
  * @since Oak 0.6
  */
 public class Oak {
+    private static final Logger LOG = LoggerFactory.getLogger(Oak.class);
 
     /**
      * Constant for the default workspace name
@@ -152,6 +160,7 @@ public class Oak {
         @Override
         public <T> Registration register(
                 Class<T> type, T service, Map<?, ?> properties) {
+            Closeable subscription = null;
             Future<?> future = null;
             if (executor != null && type == Runnable.class) {
                 Runnable runnable = (Runnable) service;
@@ -169,6 +178,8 @@ public class Oak {
                                 runnable, period, period, TimeUnit.SECONDS);
                     }
                 }
+            } else if (type == Observer.class && store instanceof Observable) {
+                subscription = ((Observable) store).addObserver((Observer) service);
             }
 
             ObjectName objectName = null;
@@ -188,6 +199,7 @@ public class Oak {
 
             final Future<?> f = future;
             final ObjectName on = objectName;
+            final Closeable sub = subscription;
             return new Registration() {
                 @Override
                 public void unregister() {
@@ -199,6 +211,13 @@ public class Oak {
                             mbeanServer.unregisterMBean(on);
                         } catch (JMException e) {
                             // ignore
+                        }
+                    }
+                    if (sub != null) {
+                        try {
+                            sub.close();
+                        } catch (IOException e) {
+                            LOG.warn("Unexpected IOException while unsubscribing observer", e);
                         }
                     }
                 }
