@@ -44,7 +44,7 @@ public class NameValidatorProvider extends ValidatorProvider {
                 .getChildNode(JCR_SYSTEM)
                 .getChildNode(REP_NAMESPACES)
                 .getChildNode(NSDATA)
-                .getString(NSDATA_PREFIXES)));
+                .getStrings(NSDATA_PREFIXES)));
     }
 
 }
