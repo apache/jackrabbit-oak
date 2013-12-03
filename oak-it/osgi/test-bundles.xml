@@ -30,6 +30,7 @@
       <includes>
         <include>javax.jcr:jcr</include>
         <include>com.google.guava:guava</include>
+        <include>commons-codec:commons-codec</include>
         <include>org.apache.jackrabbit:jackrabbit-api</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:oak-commons</include>
