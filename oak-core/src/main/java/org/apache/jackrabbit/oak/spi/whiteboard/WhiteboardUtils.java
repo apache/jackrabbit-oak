@@ -29,12 +29,21 @@ public class WhiteboardUtils {
     private static final AtomicLong COUNTER = new AtomicLong();
 
     public static Registration scheduleWithFixedDelay(
-            Whiteboard whiteboard, Runnable runnable, long delay) {
+            Whiteboard whiteboard, Runnable runnable, long delayInSeconds) {
+        return scheduleWithFixedDelay(whiteboard, runnable, delayInSeconds, false);
+    }
+
+    public static Registration scheduleWithFixedDelay(
+            Whiteboard whiteboard, Runnable runnable, long delayInSeconds, boolean runOnSingleClusterNode) {
+        ImmutableMap.Builder<String,Object> builder = ImmutableMap.<String,Object>builder()
+                .put("scheduler.period", delayInSeconds)
+                .put("scheduler.concurrent", false);
+        if (runOnSingleClusterNode) {
+            //Make use of feature while running in Sling SLING-2979
+            builder.put("scheduler.runOn", "SINGLE");
+        }
         return whiteboard.register(
-                Runnable.class, runnable, ImmutableMap.builder()
-                    .put("scheduler.period", delay)
-                    .put("scheduler.concurrent", false)
-                    .build());
+                Runnable.class, runnable, builder.build());
     }
 
     public static <T> Registration registerMBean(

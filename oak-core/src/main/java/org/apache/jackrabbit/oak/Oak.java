@@ -406,7 +406,7 @@ public class Oak {
 
         if (asyncIndexing) {
             Runnable task = new AsyncIndexUpdate("async", store, indexEditors);
-            WhiteboardUtils.scheduleWithFixedDelay(whiteboard, task, 5);
+            WhiteboardUtils.scheduleWithFixedDelay(whiteboard, task, 5, true);
         }
 
         // FIXME: OAK-810 move to proper workspace initialization
