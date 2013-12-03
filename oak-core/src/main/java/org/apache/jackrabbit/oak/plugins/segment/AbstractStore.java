@@ -86,14 +86,14 @@ public abstract class AbstractStore implements SegmentStore {
             return loadSegment(id);
         }
 
-        synchronized (this) {
+        synchronized (segments) {
             // check if the segment is already cached
             segment = segments.getIfPresent(id);
             // ... or currently being loaded
             while (segment == null && currentlyLoading.contains(id)) {
                 currentlyWaiting++;
                 try {
-                    wait(); // for another thread to load the segment
+                    segments.wait(); // for another thread to load the segment
                 } catch (InterruptedException e) {
                     throw new RuntimeException("Interrupted", e);
                 } finally {
@@ -111,29 +111,34 @@ public abstract class AbstractStore implements SegmentStore {
 
         try {
             segment = loadSegment(id);
-            segments.put(id, segment);
-            return segment;
         } finally {
-            synchronized (this) {
+            synchronized (segments) {
+                if (segment != null) {
+                    segments.put(id, segment);
+                }
                 currentlyLoading.remove(id);
                 if (currentlyWaiting > 0) {
-                    notifyAll();
+                    segments.notifyAll();
                 }
             }
         }
+
+        return segment;
     }
 
     @Override
-    public synchronized void deleteSegment(UUID segmentId) {
-        while (currentlyLoading.contains(segmentId)) {
-            try {
-                wait(); // for another thread to finish loading the segment
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Interrupted", e);
-            }
-        }
+    public void deleteSegment(UUID segmentId) {
         if (segments != null) {
-            segments.invalidate(segmentId);
+            synchronized (segments) {
+                while (currentlyLoading.contains(segmentId)) {
+                    try {
+                        segments.wait(); // for concurrent load to finish
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException("Interrupted", e);
+                    }
+                }
+                segments.invalidate(segmentId);
+            }
         }
     }
 
@@ -154,17 +159,19 @@ public abstract class AbstractStore implements SegmentStore {
     }
 
     @Override
-    public synchronized void close() {
-        while (!currentlyLoading.isEmpty()) {
-            try {
-                wait(); // for other threads to finish loading segments
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Interrupted", e);
-            }
-        }
+    public void close() {
         records.invalidateAll();
         if (segments != null) {
-            segments.invalidateAll();
+            synchronized (segments) {
+                while (!currentlyLoading.isEmpty()) {
+                    try {
+                        segments.wait(); // for concurrent loads to finish
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException("Interrupted", e);
+                    }
+                }
+                segments.invalidateAll();
+            }
         }
     }
 
