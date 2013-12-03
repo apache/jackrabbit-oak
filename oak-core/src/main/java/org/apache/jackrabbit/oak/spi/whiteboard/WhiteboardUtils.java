@@ -16,13 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyMap;
+
 import java.util.Hashtable;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.Nonnull;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 
 public class WhiteboardUtils {
 
@@ -60,6 +65,13 @@ public class WhiteboardUtils {
         } catch (MalformedObjectNameException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    public static Registration registerObserver(
+            @Nonnull Whiteboard whiteboard,
+            @Nonnull Observer observer) {
+        return checkNotNull(whiteboard)
+                .register(Observer.class, checkNotNull(observer), emptyMap());
     }
 
 }
