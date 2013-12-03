@@ -108,7 +108,7 @@ public class OSGiIT {
     @Test
     public void testRepository() throws RepositoryException {
         System.out.println(repository);
-        System.out.println(repository.login().getRootNode());
+        System.out.println(repository.getDescriptor(Repository.REP_NAME_DESC));
     }
 
 }

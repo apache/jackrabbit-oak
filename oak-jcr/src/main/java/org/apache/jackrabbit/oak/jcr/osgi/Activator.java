@@ -24,25 +24,23 @@ import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.osgi.OsgiEditorProvider;
+import org.apache.jackrabbit.oak.osgi.OsgiIndexEditorProvider;
+import org.apache.jackrabbit.oak.osgi.OsgiIndexProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
-import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.plugins.version.VersionEditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -54,27 +52,59 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private BundleContext context;
 
-    private Whiteboard whiteboard;
-
-    private SecurityProvider securityProvider = new OpenSecurityProvider(); // TODO review
-
     private ServiceTracker tracker;
 
     private final Map<ServiceReference, ServiceRegistration> services =
             new HashMap<ServiceReference, ServiceRegistration>();
+
+    private final OsgiEditorProvider editorProvider =
+            new OsgiEditorProvider();
+
+    private final OsgiIndexEditorProvider indexEditorProvider =
+            new OsgiIndexEditorProvider();
+
+    private final OsgiIndexProvider indexProvider =
+            new OsgiIndexProvider();
+
+    // TODO should not be hardcoded
+    private final SecurityProvider securityProvider =
+            new SecurityProviderImpl(buildSecurityConfig());
+
+    private static ConfigurationParameters buildSecurityConfig() {
+        Map<String, Object> userConfig = new HashMap<String, Object>();
+        userConfig.put(UserConstants.PARAM_GROUP_PATH, "/home/groups");
+        userConfig.put(UserConstants.PARAM_USER_PATH, "/home/users");
+        userConfig.put(UserConstants.PARAM_DEFAULT_DEPTH, 1);
+        userConfig.put(AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_ALL});
+        userConfig.put(AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_READ});
+        userConfig.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT);
+
+        Map<String, Object> config = new HashMap<String, Object>();
+        config.put(
+                UserConfiguration.NAME,
+                ConfigurationParameters.of(userConfig));
+        return ConfigurationParameters.of(config);
+    }
 
     //-----------------------------------------------------< BundleActivator >--
 
     @Override
     public void start(BundleContext bundleContext) throws Exception {
         context = bundleContext;
-        whiteboard = new OsgiWhiteboard(context);
         tracker = new ServiceTracker(context, NodeStore.class.getName(), this);
         tracker.open();
+
+        editorProvider.start(bundleContext);
+        indexEditorProvider.start(bundleContext);
+        indexProvider.start(bundleContext);
     }
 
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
+        indexProvider.stop();
+        indexEditorProvider.stop();
+        editorProvider.stop();
+
         tracker.close();
     }
 
@@ -84,23 +114,16 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public Object addingService(ServiceReference reference) {
         Object service = context.getService(reference);
         if (service instanceof NodeStore) {
-            // FIXME: get most of these plugins through OSGi
+            Whiteboard whiteboard = new OsgiWhiteboard(context);
+
             ContentRepository cr = new Oak((NodeStore) service)
                 .with(new InitialContent())
                 .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
-                .with(new EditorHook(new VersionEditorProvider()))
                 .with(whiteboard)
                 .with(securityProvider)
-                .with(new NameValidatorProvider())
-                .with(new NamespaceEditorProvider())
-                .with(new TypeEditorProvider())
-                .with(new RegistrationEditorProvider())
-                .with(new ConflictValidatorProvider())
-                .with(new ReferenceEditorProvider())
-                .with(new ReferenceIndexProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(new PropertyIndexProvider())
-                .with(new NodeTypeIndexProvider())
+                .with(editorProvider)
+                .with(indexEditorProvider)
+                .with(indexProvider)
                 .withAsyncIndexing()
                 .createContentRepository();
 
