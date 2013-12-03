@@ -27,7 +27,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -38,11 +38,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * determining whether to include or to exclude the respective event.
  */
 public class UniversalFilter implements Filter {
-    private final ImmutableTree beforeTree;
-    private final ImmutableTree afterTree;
+    private final Tree beforeTree;
+    private final Tree afterTree;
 
     private final Selector selector;
-    private final Predicate<ImmutableTree> predicate;
+    private final Predicate<Tree> predicate;
 
     /**
      * Create a new instance of an universal filter rooted at the passed trees.
@@ -53,10 +53,10 @@ public class UniversalFilter implements Filter {
      * @param predicate       predicate for determining whether to include or to exclude an event
      */
     public UniversalFilter(
-            @Nonnull ImmutableTree beforeRootTree,
-            @Nonnull ImmutableTree afterRootTree,
+            @Nonnull Tree beforeRootTree,
+            @Nonnull Tree afterRootTree,
             @Nonnull Selector selector,
-            @Nonnull Predicate<ImmutableTree> predicate) {
+            @Nonnull Predicate<Tree> predicate) {
         this.predicate = checkNotNull(predicate);
         this.beforeTree = checkNotNull(beforeRootTree);
         this.afterTree = checkNotNull(afterRootTree);
@@ -79,7 +79,7 @@ public class UniversalFilter implements Filter {
          * @return a tree instance for basing the filtering criterion (predicate) upon
          */
         @Nonnull
-        ImmutableTree select(@Nonnull UniversalFilter filter,
+        Tree select(@Nonnull UniversalFilter filter,
                 @CheckForNull PropertyState before, @CheckForNull PropertyState after);
 
         /**
@@ -92,21 +92,21 @@ public class UniversalFilter implements Filter {
          * @return a tree instance for basing the filtering criterion (predicate) upon
          */
         @Nonnull
-        ImmutableTree select(@Nonnull UniversalFilter filter, @Nonnull String name,
+        Tree select(@Nonnull UniversalFilter filter, @Nonnull String name,
                 @Nonnull NodeState before, @Nonnull NodeState after);
     }
 
     /**
      * @return  before tree this filter acts upon
      */
-    public ImmutableTree getBeforeTree() {
+    public Tree getBeforeTree() {
         return beforeTree;
     }
 
     /**
      * @return  after tree this filter acts upon
      */
-    public ImmutableTree getAfterTree() {
+    public Tree getAfterTree() {
         return afterTree;
     }
 

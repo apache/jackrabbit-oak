@@ -35,7 +35,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
@@ -107,7 +106,7 @@ public class JcrFilterProvider implements FilterProvider {
     }
 
     @Override
-    public Filter getFilter(ImmutableTree beforeTree, ImmutableTree afterTree) {
+    public Filter getFilter(Tree beforeTree, Tree afterTree) {
         String relPath = PathUtils.relativize(afterTree.getPath(), path);
         String pathPattern = deep
             ? PathUtils.concat(relPath, STAR_STAR)
