@@ -124,20 +124,27 @@ public class SegmentNodeStore implements NodeStore, Observable {
         checkArgument(store.isInstance(base, SegmentRootState.class));
         SegmentNodeState root = ((SegmentRootState) base).getRootState();
 
-        SegmentNodeStoreBranch branch =
-                new SegmentNodeStoreBranch(root, builder.getNodeState());
-        NodeState merged = branch.merge(commitHook, info);
-        ((SegmentNodeBuilder) builder).reset(merged);
-        return merged;
+        try {
+            commitSemaphore.acquire();
+            try {
+                Commit commit = new Commit(
+                        root, builder.getNodeState(), commitHook, info);
+                NodeState merged = commit.execute();
+                ((SegmentNodeBuilder) builder).reset(merged);
+                return merged;
+            } finally {
+                commitSemaphore.release();
+            }
+        } catch (InterruptedException e) {
+            throw new CommitFailedException(
+                    "Segment", 2, "Merge interrupted", e);
+        }
     }
 
     @Override @Nonnull
     public NodeState rebase(@Nonnull NodeBuilder builder) {
-        return rebase(builder, getRoot());
-    }
-
-    private NodeState rebase(@Nonnull NodeBuilder builder, NodeState newBase) {
         checkArgument(builder instanceof SegmentRootBuilder);
+        NodeState newBase = getRoot();
         NodeState oldBase = builder.getBaseState();
         if (!fastEquals(oldBase, newBase)) {
             NodeState head = builder.getNodeState();
@@ -184,37 +191,39 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return root.getChildNode(ROOT);
     }
 
-    private static final Random RANDOM = new Random();
+    private class Commit {
 
-    private class SegmentNodeStoreBranch {
+        private final Random random = new Random();
 
         private SegmentNodeState base;
 
         private SegmentNodeState head;
 
-        SegmentNodeStoreBranch(SegmentNodeState base, NodeState head) {
-            this.base = base;
+        private final CommitHook hook;
+
+        private final CommitInfo info;
+
+        Commit(@Nonnull SegmentNodeState base, @Nonnull NodeState head,
+                @Nonnull CommitHook hook, @Nullable CommitInfo info) {
+            this.base = checkNotNull(base);
             SegmentRootBuilder builder = base.builder();
-            builder.setChildNode(ROOT, head);
+            builder.setChildNode(ROOT, checkNotNull(head));
             this.head = builder.getNodeState();
+
+            this.hook = checkNotNull(hook);
+            this.info = info;
         }
 
         private boolean setHead(
-                SegmentNodeState base, SegmentNodeState head, CommitInfo info)
-                throws InterruptedException {
-            commitSemaphore.acquire();
-            try {
+                SegmentNodeState base, SegmentNodeState head, CommitInfo info) {
+            refreshHead();
+            if (journal.setHead(base.getRecordId(), head.getRecordId())) {
+                this.head = head;
+                changeDispatcher.contentChanged(head.getChildNode(ROOT), info);
                 refreshHead();
-                if (journal.setHead(base.getRecordId(), head.getRecordId())) {
-                    this.head = head;
-                    changeDispatcher.contentChanged(head.getChildNode(ROOT), info);
-                    refreshHead();
-                    return true;
-                } else {
-                    return false;
-                }
-            } finally {
-                commitSemaphore.release();
+                return true;
+            } else {
+                return false;
             }
         }
 
@@ -267,7 +276,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 base = originalBase;
                 head = originalHead;
 
-                RANDOM.wait(backoff, RANDOM.nextInt(1000000));
+                Thread.sleep(backoff, random.nextInt(1000000));
 
                 long stop = System.nanoTime();
                 if (stop - start > timeout) {
@@ -287,9 +296,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 if (before.hasProperty("token")
                         && before.getLong("timeout") >= now) {
                     // locked by someone else, wait until unlocked or expired
-                    RANDOM.wait(
+                    Thread.sleep(
                             Math.min(before.getLong("timeout") - now, 1000),
-                            RANDOM.nextInt(1000000));
+                            random.nextInt(1000000));
                 } else {
                     // attempt to acquire the lock
                     NodeBuilder builder = before.builder();
@@ -328,22 +337,12 @@ public class SegmentNodeStore implements NodeStore, Observable {
         }
 
         @Nonnull
-        SegmentRootState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
-                throws CommitFailedException {
-            checkNotNull(hook);
+        SegmentRootState execute()
+                throws CommitFailedException, InterruptedException {
             if (base != head) {
-                synchronized (RANDOM) {
-                    try {
-                        long timeout = optimisticMerge(hook, info);
-                        if (timeout >= 0) {
-                            pessimisticMerge(hook, timeout, info);
-                        }
-                    } catch (InterruptedException e) {
-                        throw new CommitFailedException(
-                                "Segment", 1, "Commit interrupted", e);
-                    } finally {
-                        RANDOM.notifyAll();
-                    }
+                long timeout = optimisticMerge(hook, info);
+                if (timeout >= 0) {
+                    pessimisticMerge(hook, timeout, info);
                 }
             }
             return new SegmentRootState(head);
