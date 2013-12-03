@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class FileStore extends AbstractStore {
 
@@ -66,11 +67,16 @@ public class FileStore extends AbstractStore {
 
     public FileStore(File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
-        this(directory, maxFileSizeMB, DEFAULT_MEMORY_CACHE_SIZE, memoryMapping);
+        this(directory, EMPTY_NODE, maxFileSizeMB, DEFAULT_MEMORY_CACHE_SIZE, memoryMapping);
     }
 
     public FileStore(File directory, int maxFileSizeMB, int cacheSizeMB,
             boolean memoryMapping) throws IOException {
+        this(directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping);
+    }
+
+    public FileStore(File directory, NodeState initial, int maxFileSizeMB,
+            int cacheSizeMB, boolean memoryMapping) throws IOException {
         super(cacheSizeMB);
         checkNotNull(directory).mkdirs();
         this.directory = directory;
@@ -118,7 +124,7 @@ public class FileStore extends AbstractStore {
 
         if (!journals.containsKey("root")) {
             NodeBuilder builder = EMPTY_NODE.builder();
-            builder.setChildNode("root", EMPTY_NODE);
+            builder.setChildNode("root", initial);
             journals.put("root", new FileJournal(this, builder.getNodeState()));
             writeJournals();
         }
