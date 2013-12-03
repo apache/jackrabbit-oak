@@ -117,8 +117,7 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
     public static boolean isMongoDBAvailable() {
         MongoConnection connection = null;
         try {
-            connection = new MongoConnection(HOST, PORT, DB);
-            connection.getDB().command(new BasicDBObject("ping", 1));
+            connection = createConnection(DB);
             return true;
         } catch (Exception e) {
             return false;
@@ -127,6 +126,20 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
                 connection.close();
             }
         }
+    }
+
+    static MongoConnection createConnection(String db) throws Exception {
+        boolean success = false;
+        MongoConnection con = new MongoConnection(HOST, PORT, db);
+        try {
+            con.getDB().command(new BasicDBObject("ping", 1));
+            success = true;
+        } finally {
+            if (!success) {
+                con.close();
+            }
+        }
+        return con;
     }
 
     /**
