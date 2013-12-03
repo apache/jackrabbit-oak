@@ -79,6 +79,11 @@ import org.slf4j.LoggerFactory;
  */
 public final class MongoNodeStore
         implements NodeStore, RevisionContext, Observable {
+    
+    /**
+     * The maximum number of document to update at once in a multi update.
+     */
+    static final int BACKGROUND_MULTI_UPDATE_LIMIT = 10000;
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoNodeStore.class);
 
@@ -104,11 +109,6 @@ public final class MongoNodeStore
      * nodes, in milliseconds. The default is one hour.
      */
     private static final int REMEMBER_REVISION_ORDER_MILLIS = 60 * 60 * 1000;
-
-    /**
-     * The maximum number of document to update at once in a multi update.
-     */
-    static final int BACKGROUND_MULTI_UPDATE_LIMIT = 10000;
 
     /**
      * The MongoDB store (might be used by multiple MongoMKs).

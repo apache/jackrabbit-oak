@@ -27,6 +27,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.MongoException;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
 
@@ -68,7 +69,11 @@ public class MongoBlobStore extends AbstractBlobStore {
         mongoBlob.setLastMod(System.currentTimeMillis());
         // TODO check the return value
         // TODO verify insert is fast if the entry already exists
-        getBlobCollection().insert(mongoBlob);
+        try {
+            getBlobCollection().insert(mongoBlob);
+        } catch (MongoException.DuplicateKey e) {
+            // the same block was already stored before: ignore
+        } 
     }
 
     @Override
