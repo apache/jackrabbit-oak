@@ -63,7 +63,8 @@ public class MongoMK implements MicroKernel {
     /**
      * Enable the LIRS cache.
      */
-    static final boolean LIRS_CACHE = Boolean.parseBoolean(System.getProperty("oak.mongoMK.lirsCache", "false"));
+    static final boolean LIRS_CACHE = Boolean.parseBoolean(
+            System.getProperty("oak.mongoMK.lirsCache", "false"));
 
     /**
      * Enable fast diff operations.
