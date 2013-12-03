@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -32,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class SelectorTest {
-    public static final Predicate<ImmutableTree> ALL = alwaysTrue();
+    public static final Predicate<Tree> ALL = alwaysTrue();
 
     private final NodeState root; {
         NodeBuilder builder = EMPTY_NODE.builder();
