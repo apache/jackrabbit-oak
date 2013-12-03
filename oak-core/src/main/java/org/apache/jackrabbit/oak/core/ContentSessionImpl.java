@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,9 +28,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
@@ -43,7 +39,7 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
  */
-class ContentSessionImpl implements ContentSession, Observable {
+class ContentSessionImpl implements ContentSession {
 
     private static final Logger log = LoggerFactory.getLogger(ContentSessionImpl.class);
 
@@ -68,7 +64,6 @@ class ContentSessionImpl implements ContentSession, Observable {
                               @Nonnull NodeStore store,
                               @Nonnull CommitHook hook,
                               @Nonnull QueryIndexProvider indexProvider) {
-        checkArgument(store instanceof Observable);
         this.loginContext = loginContext;
         this.securityProvider = securityProvider;
         this.workspaceName = workspaceName;
@@ -116,11 +111,6 @@ class ContentSessionImpl implements ContentSession, Observable {
             	return ContentSessionImpl.this;
             }
         };
-    }
-
-    @Override
-    public Closeable addObserver(Observer observer) {
-        return ((Observable) store).addObserver(observer);
     }
 
     //-----------------------------------------------------------< Closable >---

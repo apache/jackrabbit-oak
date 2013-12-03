@@ -42,7 +42,6 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -58,7 +57,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -250,11 +248,6 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     public ObservationManager getObservationManager() throws UnsupportedRepositoryOperationException {
         if (observationManager == null) {
-            ContentSession contentSession = getSessionDelegate().getContentSession();
-            if (!(contentSession instanceof Observable)) {
-                throw new UnsupportedRepositoryOperationException("Observation not supported for session " + contentSession);
-            }
-
             observationManager = new ObservationManagerImpl(
                 delegate,
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
