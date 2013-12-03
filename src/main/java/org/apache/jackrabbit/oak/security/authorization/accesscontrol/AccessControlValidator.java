@@ -228,7 +228,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             } catch (AccessControlException e) {
                 throw accessViolation(10, "Invalid privilege " + privilegeName);
             } catch (RepositoryException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException("Failed to read privileges", e);
             }
         }
     }
