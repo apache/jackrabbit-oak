@@ -28,7 +28,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
@@ -207,91 +206,6 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             }
         }
         return getHead();
-    }
-
-    @Override
-    public boolean move(String source, String target) {
-        if (PathUtils.isAncestor(source, target)) {
-            return false;
-        } else if (source.equals(target)) {
-            return true;
-        }
-
-        NodeBuilder builder = getHead().builder();
-
-        NodeBuilder targetBuilder = builder;
-        String targetParent = PathUtils.getParentPath(target);
-        for (String name : PathUtils.elements(targetParent)) {
-            if (targetBuilder.hasChildNode(name)) {
-                targetBuilder = targetBuilder.child(name);
-            } else {
-                return false;
-            }
-        }
-        String targetName = PathUtils.getName(target);
-        if (targetBuilder.hasChildNode(targetName)) {
-            return false;
-        }
-
-        NodeBuilder sourceBuilder = builder;
-        String sourceParent = PathUtils.getParentPath(source);
-        for (String name : PathUtils.elements(sourceParent)) {
-            if (sourceBuilder.hasChildNode(name)) {
-                sourceBuilder = sourceBuilder.child(name);
-            } else {
-                return false;
-            }
-        }
-        String sourceName = PathUtils.getName(source);
-        if (!sourceBuilder.hasChildNode(sourceName)) {
-            return false;
-        }
-
-        NodeState sourceState = sourceBuilder.child(sourceName).getNodeState();
-        targetBuilder.setChildNode(targetName, sourceState);
-        sourceBuilder.getChildNode(sourceName).remove();
-
-        setRoot(builder.getNodeState());
-        return true;
-    }
-
-    @Override
-    public boolean copy(String source, String target) {
-        NodeBuilder builder = getHead().builder();
-
-        NodeBuilder targetBuilder = builder;
-        String targetParent = PathUtils.getParentPath(target);
-        for (String name : PathUtils.elements(targetParent)) {
-            if (targetBuilder.hasChildNode(name)) {
-                targetBuilder = targetBuilder.child(name);
-            } else {
-                return false;
-            }
-        }
-        String targetName = PathUtils.getName(target);
-        if (targetBuilder.hasChildNode(targetName)) {
-            return false;
-        }
-
-        NodeBuilder sourceBuilder = builder;
-        String sourceParent = PathUtils.getParentPath(source);
-        for (String name : PathUtils.elements(sourceParent)) {
-            if (sourceBuilder.hasChildNode(name)) {
-                sourceBuilder = sourceBuilder.child(name);
-            } else {
-                return false;
-            }
-        }
-        String sourceName = PathUtils.getName(source);
-        if (!sourceBuilder.hasChildNode(sourceName)) {
-            return false;
-        }
-
-        NodeState sourceState = sourceBuilder.child(sourceName).getNodeState();
-        targetBuilder.setChildNode(targetName, sourceState);
-
-        setRoot(builder.getNodeState());
-        return true;
     }
 
     @Override

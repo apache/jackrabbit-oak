@@ -62,26 +62,6 @@ public interface NodeStoreBranch {
     void setRoot(NodeState newRoot);
 
     /**
-     * Moves a node in this private branch.
-     *
-     * @param source source path
-     * @param target target path
-     * @return  {@code true} iff the move succeeded
-     * @throws IllegalStateException if the branch is already merged
-     */
-    boolean move(String source, String target);
-
-    /**
-     * Copies a node in this private branch.
-     *
-     * @param source source path
-     * @param target target path
-     * @return  {@code true} iff the copy succeeded
-     * @throws IllegalStateException if the branch is already merged
-     */
-    boolean copy(String source, String target);
-
-    /**
      * Merges the changes in this branch to the main content tree.
      * Merging is done by rebasing the changes in this branch on top of
      * the current head revision followed by a fast forward merge.
