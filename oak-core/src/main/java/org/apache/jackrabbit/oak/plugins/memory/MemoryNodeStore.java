@@ -212,16 +212,6 @@ public class MemoryNodeStore implements NodeStore {
         }
 
         @Override
-        public boolean copy(String source, String target) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean move(String source, String target) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public void rebase() {
             throw new UnsupportedOperationException();
         }

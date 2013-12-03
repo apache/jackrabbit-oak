@@ -199,7 +199,14 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         branchState.setRoot(checkNotNull(newRoot));
     }
 
-    @Override
+    /**
+     * Moves a node in this private branch.
+     *
+     * @param source source path
+     * @param target target path
+     * @return  {@code true} iff the move succeeded
+     * @throws IllegalStateException if the branch is already merged
+     */
     public boolean move(String source, String target) {
         if (PathUtils.isAncestor(checkNotNull(source), checkNotNull(target))) {
             return false;
@@ -224,7 +231,14 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         return true;
     }
 
-    @Override
+    /**
+     * Copies a node in this private branch.
+     *
+     * @param source source path
+     * @param target target path
+     * @return  {@code true} iff the copy succeeded
+     * @throws IllegalStateException if the branch is already merged
+     */
     public boolean copy(String source, String target) {
         if (!getNode(checkNotNull(source)).exists()) {
             // source does not exist
