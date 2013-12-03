@@ -29,6 +29,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.QueryBuilder;
+import com.mongodb.ReadPreference;
 import com.mongodb.WriteResult;
 
 /**
@@ -160,7 +161,19 @@ public class MongoBlobStore extends AbstractBlobStore {
 
     private MongoBlob getBlob(String id, long lastMod) {
         DBObject query = getBlobQuery(id, lastMod);
-        return (MongoBlob) getBlobCollection().findOne(query);
+        
+        // try the secondary first
+        // TODO add a configuration option for whether to try reading from secondary
+        ReadPreference pref = ReadPreference.secondaryPreferred();
+        DBObject fields = new BasicDBObject();
+        fields.put(MongoBlob.KEY_DATA, 1);
+        MongoBlob blob = (MongoBlob) getBlobCollection().findOne(query, fields, pref);
+        if (blob == null) {
+            // not found in the secondary: try the primary
+            pref = ReadPreference.primary();
+            blob = (MongoBlob) getBlobCollection().findOne(query, fields, pref);
+        }
+        return blob;
     }
 
     private static DBObject getBlobQuery(String id, long lastMod) {
