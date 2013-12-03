@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-class SegmentRootBuilder extends SegmentNodeBuilder {
+public class SegmentRootBuilder extends SegmentNodeBuilder {
 
     /**
      * Number of content updates that need to happen before the updates
