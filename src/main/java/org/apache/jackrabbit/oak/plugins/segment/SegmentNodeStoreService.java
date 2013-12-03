@@ -27,7 +27,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
-import com.mongodb.MongoClient;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -39,7 +38,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -55,30 +53,19 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
     @Property(description="The unique name of this instance")
     public static final String NAME = "name";
 
-    @Property(description="TarMK directory (if unset, use MongoDB)")
+    @Property(description="TarMK directory")
     public static final String DIRECTORY = "repository.home";
 
-    @Property(description="TarMK mode (64 for memory mapping, 32 for normal file access)")
+    @Property(description="TarMK mode (64 for memory mapping, 32 for normal file access)", value="64")
     public static final String MODE = "tarmk.mode";
 
     @Property(description="TarMK maximum file size (MB)", intValue=256)
     public static final String SIZE = "tarmk.size";
 
-    @Property(description="MongoDB host")
-    public static final String HOST = "host";
-
-    @Property(description="MongoDB host", intValue=27017)
-    public static final String PORT = "port";
-
-    @Property(description="MongoDB database", value="Oak")
-    public static final String DB = "db";
-
-    @Property(description="Cache size (MB)", intValue=200)
+    @Property(description="Cache size (MB)", intValue=256)
     public static final String CACHE = "cache";
 
     private String name;
-
-    private MongoClient mongo;
 
     private SegmentStore store;
 
@@ -95,36 +82,25 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
         Dictionary<?, ?> properties = context.getProperties();
         name = "" + properties.get(NAME);
 
-        String host = lookup(context, HOST);
-        if (host == null) {
-            String directory = lookup(context, DIRECTORY);
-            if (directory == null) {
-                directory = "tarmk";
-            }
-
-            String mode = lookup(context, MODE);
-            if (mode == null) {
-                mode = System.getProperty(MODE,
-                        System.getProperty("sun.arch.data.model", "32"));
-            }
-
-            String size = lookup(context, SIZE);
-            if (size == null) {
-                size = System.getProperty(SIZE, "256");
-            }
-
-            mongo = null;
-            store = new FileStore(
-                    new File(directory),
-                    Integer.parseInt(size), "64".equals(mode));
-        } else {
-            int port = Integer.parseInt(String.valueOf(properties.get(PORT)));
-            String db = String.valueOf(properties.get(DB));
-            int cache = Integer.parseInt(String.valueOf(properties.get(CACHE)));
-
-            mongo = new MongoClient(host, port);
-            store = new MongoStore(mongo.getDB(db), cache);
+        String directory = lookup(context, DIRECTORY);
+        if (directory == null) {
+            directory = "tarmk";
         }
+
+        String mode = lookup(context, MODE);
+        if (mode == null) {
+            mode = System.getProperty(MODE,
+                    System.getProperty("sun.arch.data.model", "32"));
+        }
+
+        String size = lookup(context, SIZE);
+        if (size == null) {
+            size = System.getProperty(SIZE, "256");
+        }
+
+        store = new FileStore(
+                new File(directory),
+                Integer.parseInt(size), "64".equals(mode));
 
         delegate = new SegmentNodeStore(store);
     }
@@ -144,9 +120,7 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
         delegate = null;
 
         store.close();
-        if (mongo != null) {
-            mongo.close();
-        }
+        store = null;
     }
 
     //------------------------------------------------------------< Observable >---
