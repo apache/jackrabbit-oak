@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.Semaphore;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -57,15 +57,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
     volatile SegmentNodeState head;
 
     /**
-     * Whether a thread is currently processing a local commit.
+     * Semaphore that controls access to the {@link #head} variable.
+     * Only a single local commit is allowed at a time. When such
+     * a commit is in progress, no external updates will be seen.
      */
-    private boolean inLocalCommit = false;
-
-    /**
-     * Number of threads waiting to make a local commit.
-     * Used to avoid extra {@link #notifyAll()} calls when nobody is waiting.
-     */
-    private long waitingToCommit = 0;
+    private final Semaphore commitSemaphore = new Semaphore(1);
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
@@ -88,62 +84,32 @@ public class SegmentNodeStore implements NodeStore, Observable {
     /**
      * Refreshes the head state. Does nothing if a concurrent local commit is
      * in progress, as that commit will automatically refresh the head state.
-     *
-     * @param commit whether this refresh is a part of a local commit
      */
-    private synchronized void refreshHead(boolean commit) {
-        if (commit || !inLocalCommit) {
-            RecordId id = journal.getHead();
-            if (!id.equals(head.getRecordId())) {
-                head = new SegmentNodeState(
-                        store.getWriter().getDummySegment(), id);
-                changeDispatcher.contentChanged(head.getChildNode(ROOT), null);
-            }
-        }
-    }
-
-    private synchronized void refreshHeadInCommit(boolean start)
-            throws InterruptedException {
-        if (start) {
-            while (inLocalCommit) {
-                waitingToCommit++;
-                try {
-                    wait();
-                } finally {
-                    waitingToCommit--;
-                }
-            }
-            inLocalCommit = true;
-        } else {
-            checkState(inLocalCommit);
-        }
-
-        try {
-            refreshHead(true);
-        } finally {
-            if (!start) {
-                inLocalCommit = false;
-                if (waitingToCommit > 0) {
-                    notifyAll();
-                }
-            }
+    private void refreshHead() {
+        RecordId id = journal.getHead();
+        if (!id.equals(head.getRecordId())) {
+            head = new SegmentNodeState(
+                    store.getWriter().getDummySegment(), id);
+            changeDispatcher.contentChanged(head.getChildNode(ROOT), null);
         }
     }
 
     boolean setHead(
             SegmentNodeState base, SegmentNodeState head, CommitInfo info)
             throws InterruptedException {
-        refreshHeadInCommit(true);
+        commitSemaphore.acquire();
         try {
+            refreshHead();
             if (journal.setHead(base.getRecordId(), head.getRecordId())) {
                 this.head = head;
                 changeDispatcher.contentChanged(head.getChildNode(ROOT), info);
+                refreshHead();
                 return true;
             } else {
                 return false;
             }
         } finally {
-            refreshHeadInCommit(false);
+            commitSemaphore.release();
         }
     }
 
@@ -154,7 +120,13 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override @Nonnull
     public NodeState getRoot() {
-        refreshHead(false);
+        if (commitSemaphore.tryAcquire()) {
+            try {
+                refreshHead();
+            } finally {
+                commitSemaphore.release();
+            }
+        }
         return new SegmentRootState(head);
     }
 
