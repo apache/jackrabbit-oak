@@ -18,11 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
@@ -40,7 +37,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventIterator;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -65,8 +61,8 @@ public class ChangeProcessor implements Observer {
     private final EventListener eventListener;
     private final AtomicReference<FilterProvider> filterProvider;
 
-    private Closeable observer;
-    private Registration mbean;
+    private Registration observerSubscription;
+    private Registration mBeanSubscription;
     private NodeState previousRoot;
     private boolean stopping;
 
@@ -74,7 +70,6 @@ public class ChangeProcessor implements Observer {
             ContentSession contentSession,
             NamePathMapper namePathMapper,
             ListenerTracker tracker, FilterProvider filter) {
-        checkArgument(contentSession instanceof Observable);
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
@@ -97,11 +92,10 @@ public class ChangeProcessor implements Observer {
      * @throws IllegalStateException if started already
      */
     public synchronized void start(Whiteboard whiteboard) {
-        checkState(observer == null, "Change processor started already");
-        observer = ((Observable) contentSession).addObserver(this);
-        mbean = WhiteboardUtils.registerMBean(whiteboard, EventListenerMBean.class,
+        checkState(observerSubscription == null, "Change processor started already");
+        observerSubscription = WhiteboardUtils.registerObserver(whiteboard, this);
+        mBeanSubscription = WhiteboardUtils.registerMBean(whiteboard, EventListenerMBean.class,
                 tracker.getListenerMBean(), "EventListener", tracker.toString());
-
     }
 
     /**
@@ -110,14 +104,10 @@ public class ChangeProcessor implements Observer {
      * @throws IllegalStateException if not yet started or stopped already
      */
     public synchronized void stop() {
-        checkState(observer != null, "Change processor not started");
-        try {
-            stopping = true;
-            mbean.unregister();
-            observer.close();
-        } catch (IOException e) {
-            log.error("Error while stopping change listener", e);
-        }
+        checkState(observerSubscription != null, "Change processor not started");
+        stopping = true;
+        mBeanSubscription.unregister();
+        observerSubscription.unregister();
     }
 
     @Override
