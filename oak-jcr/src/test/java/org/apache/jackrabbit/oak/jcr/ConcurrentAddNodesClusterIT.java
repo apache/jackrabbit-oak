@@ -16,11 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -48,7 +53,9 @@ public class ConcurrentAddNodesClusterIT {
 
     private static final int NUM_CLUSTER_NODES = 3;
     private static final int NODE_COUNT = 100;
+    private static final int LOOP_COUNT = 10;
     private static final String PROP_NAME = "testcount";
+    private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
 
     private List<MongoMK> mks = new ArrayList<MongoMK>();
     private List<Thread> workers = new ArrayList<Thread>();
@@ -62,12 +69,6 @@ public class ConcurrentAddNodesClusterIT {
     public void before() throws Exception {
         dropDB();
         initRepository();
-        for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
-            MongoMK mk = new MongoMK.Builder()
-                    .setMongoDB(createConnection().getDB())
-                    .setClusterId(i + 1).open();
-            mks.add(mk);
-        }
     }
 
     @After
@@ -79,8 +80,15 @@ public class ConcurrentAddNodesClusterIT {
     }
 
     @Test
-    public void addNodes() throws Exception {
-        Map<String, Exception> exceptions = Collections.synchronizedMap(new HashMap<String, Exception>());
+    public void addNodesConcurrent() throws Exception {
+        for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
+            MongoMK mk = new MongoMK.Builder()
+                    .setMongoDB(createConnection().getDB())
+                    .setClusterId(i + 1).open();
+            mks.add(mk);
+        }
+        Map<String, Exception> exceptions = Collections.synchronizedMap(
+                new HashMap<String, Exception>());
         for (int i = 0; i < mks.size(); i++) {
             MongoMK mk = mks.get(i);
             Repository repo = new Jcr(mk).createRepository();
@@ -96,6 +104,50 @@ public class ConcurrentAddNodesClusterIT {
             // System.out.println("exception in thread " + entry.getKey());
             throw entry.getValue();
         }
+    }
+
+    @Test
+    public void addNodes() throws Exception {
+        for (int i = 0; i < 2; i++) {
+            MongoMK mk = new MongoMK.Builder()
+                    .setMongoDB(createConnection().getDB())
+                    .setAsyncDelay(0)
+                    .setClusterId(i + 1).open();
+            mks.add(mk);
+        }
+        final MongoMK mk1 = mks.get(0);
+        final MongoMK mk2 = mks.get(1);
+        Repository r1 = new Jcr(mk1).createRepository();
+        Repository r2 = new Jcr(mk2).createRepository();
+
+        Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        Session s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
+
+        ensureIndex(s1.getRootNode(), PROP_NAME);
+        syncMKs(1);
+        ensureIndex(s2.getRootNode(), PROP_NAME);
+
+        Map<String, Exception> exceptions = Collections.synchronizedMap(
+                new HashMap<String, Exception>());
+        createNodes(s1, "testroot-1", 1, 1, exceptions);
+        syncMKs(1);
+        createNodes(s2, "testroot-2", 1, 1, exceptions);
+
+        for (Map.Entry<String, Exception> entry : exceptions.entrySet()) {
+            throw entry.getValue();
+        }
+    }
+
+    private void syncMKs(int delay) {
+        EXECUTOR.schedule(new Callable<Object>() {
+            @Override
+            public Object call() throws Exception {
+                for (MongoMK mk : mks) {
+                    runBackgroundOps(mk);
+                }
+                return null;
+            }
+        }, delay, TimeUnit.SECONDS);
     }
 
     private static MongoConnection createConnection() throws Exception {
@@ -144,7 +196,13 @@ public class ConcurrentAddNodesClusterIT {
         }
     }
 
-    private static final class Worker implements Runnable {
+    private static void runBackgroundOps(MongoMK mk) throws Exception {
+        Method m = MongoMK.class.getDeclaredMethod("runBackgroundOperations");
+        m.setAccessible(true);
+        m.invoke(mk);
+    }
+
+    private final class Worker implements Runnable {
 
         private final Repository repo;
         private final Map<String, Exception> exceptions;
@@ -162,21 +220,30 @@ public class ConcurrentAddNodesClusterIT {
                 ensureIndex(session.getRootNode(), PROP_NAME);
 
                 String nodeName = "testroot-" + Thread.currentThread().getName();
-                Node root = session.getRootNode().addNode(nodeName, "nt:unstructured");
-                for (int i = 0; i < NODE_COUNT; i++) {
-                    Node node = root.addNode(PROP_NAME + i, "nt:unstructured");
-                    for (int j = 0; j < NODE_COUNT; j++) {
-                        Node child = node.addNode("node" + j, "nt:unstructured");
-                        child.setProperty(PROP_NAME, j);
-                    }
-                    if (!exceptions.isEmpty()) {
-                        break;
-                    }
-                    session.save();
-                }
+                createNodes(session, nodeName, LOOP_COUNT, NODE_COUNT, exceptions);
             } catch (Exception e) {
                 exceptions.put(Thread.currentThread().getName(), e);
             }
+        }
+    }
+
+    private void createNodes(Session session,
+                             String nodeName,
+                             int loopCount,
+                             int nodeCount,
+                             Map<String, Exception> exceptions)
+            throws RepositoryException {
+        Node root = session.getRootNode().addNode(nodeName, "nt:unstructured");
+        for (int i = 0; i < loopCount; i++) {
+            Node node = root.addNode("testnode" + i, "nt:unstructured");
+            for (int j = 0; j < nodeCount; j++) {
+                Node child = node.addNode("node" + j, "nt:unstructured");
+                child.setProperty(PROP_NAME, j);
+            }
+            if (!exceptions.isEmpty()) {
+                break;
+            }
+            session.save();
         }
     }
 }
