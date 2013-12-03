@@ -34,6 +34,8 @@ import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.Configuration;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
+import org.ops4j.pax.exam.options.CompositeOption;
+import org.ops4j.pax.exam.options.DefaultCompositeOption;
 import org.ops4j.pax.exam.options.SystemPropertyOption;
 import org.ops4j.pax.exam.options.UrlProvisionOption;
 import org.osgi.framework.Bundle;
@@ -52,30 +54,21 @@ public class OSGiIT {
                 mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.4.0" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
-                jarBundle("jcr.jar"),
-                jarBundle("guava.jar"),
-                jarBundle("commons-codec.jar"),
-                jarBundle("jackrabbit-api.jar"),
-                jarBundle("jackrabbit-jcr-commons.jar"),
-                jarBundle("oak-commons.jar"),
-                jarBundle("oak-mk-api.jar"),
-                jarBundle("oak-mk.jar"),
-                jarBundle("oak-mk-remote.jar"),
-                jarBundle("oak-core.jar"),
-                jarBundle("oak-lucene.jar"),
-                jarBundle("oak-jcr.jar"),
-                jarBundle("tika-core.jar"));
+                jarBundles());
     }
 
     private String getConfigDir(){
         return new File(new File("src", "test"), "config").getAbsolutePath();
     }
 
-    private UrlProvisionOption jarBundle(String jar)
-            throws MalformedURLException {
-        File target = new File("target");
-        File bundles = new File(target, "test-bundles");
-        return bundle(new File(bundles, jar).toURI().toURL().toString());
+    private Option jarBundles() throws MalformedURLException {
+        DefaultCompositeOption composite = new DefaultCompositeOption();
+        for (File bundle : new File("target", "test-bundles").listFiles()) {
+            if (bundle.getName().endsWith(".jar") && bundle.isFile()) {
+                composite.add(bundle(bundle.toURI().toURL().toString()));
+            }
+        }
+        return composite;
     }
 
     @Inject
