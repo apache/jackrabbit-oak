@@ -33,9 +33,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
-class SegmentNodeStoreBranch implements NodeStoreBranch {
+class SegmentNodeStoreBranch {
 
     private static final Random RANDOM = new Random();
 
@@ -59,25 +58,13 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         this.maximumBackoff = maximumBackoff;
     }
 
-    @Override @Nonnull
-    public NodeState getBase() {
-        return base.getChildNode(ROOT);
-    }
-
-    @Override @Nonnull
-    public synchronized NodeState getHead() {
-        return new SegmentRootState(head);
-    }
-
-    @Override
-    public synchronized void setRoot(NodeState newRoot) {
+    void setRoot(NodeState newRoot) {
         NodeBuilder builder = head.builder();
         builder.setChildNode(ROOT, newRoot);
         head = writer.writeNode(builder.getNodeState());
     }
 
-    @Override
-    public synchronized void rebase() {
+    private void rebase() {
         SegmentNodeState newBase = store.head;
         if (!base.getRecordId().equals(newBase.getRecordId())) {
             NodeBuilder builder = newBase.builder();
@@ -89,7 +76,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         }
     }
 
-    private synchronized long optimisticMerge(CommitHook hook, CommitInfo info)
+    private long optimisticMerge(CommitHook hook, CommitInfo info)
             throws CommitFailedException, InterruptedException {
         long timeout = 1;
 
@@ -136,7 +123,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         return MILLISECONDS.convert(timeout, NANOSECONDS);
     }
 
-    private synchronized void pessimisticMerge(
+    private void pessimisticMerge(
             CommitHook hook, long timeout, CommitInfo info)
             throws CommitFailedException, InterruptedException {
         while (true) {
@@ -185,9 +172,8 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         }
     }
 
-    @Override @Nonnull
-    public synchronized NodeState merge(
-            @Nonnull CommitHook hook, @Nullable CommitInfo info)
+    @Nonnull
+    SegmentRootState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
             throws CommitFailedException {
         checkNotNull(hook);
         if (base != head) {
@@ -205,11 +191,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
                 }
             }
         }
-        return getHead();
+        return new SegmentRootState(head);
     }
 
-    @Override
-    public String toString() {
-        return getHead().toString();
-    }
 }
