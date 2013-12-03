@@ -51,6 +51,7 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
 
       org.apache.jackrabbit.oak.jcr.ReferencesTest#testWeakReferencesAddLater <!-- OAK-1242 -->
+      org.apache.jackrabbit.oak.jcr.ReferencesTest#testMVReferencesAltering <!-- OAK-1257 -->
 
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked
