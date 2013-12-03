@@ -22,17 +22,16 @@ import static java.lang.Double.POSITIVE_INFINITY;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.WEAK_REF_NAME;
 import static org.apache.jackrabbit.oak.spi.query.Cursors.newPathCursor;
 
 import java.util.ArrayList;
 
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -55,7 +54,7 @@ class ReferenceIndex implements QueryIndex {
 
     @Override
     public String getIndexName() {
-        return "reference";
+        return NAME;
     }
 
     @Override
@@ -92,18 +91,15 @@ class ReferenceIndex implements QueryIndex {
         return newPathCursor(new ArrayList<String>());
     }
 
-    private static Cursor lookup(NodeState state, String uuid,
+    private static Cursor lookup(NodeState root, String uuid,
             final String name, String index) {
-        String path = getIdManager(state).resolveUUID(uuid);
-        NodeState child = state;
-        for (String p : elements(path)) {
-            child = child.getChildNode(p);
-        }
-        if (!child.exists()) {
+        NodeState indexRoot = root.getChildNode(INDEX_DEFINITIONS_NAME)
+                .getChildNode(NAME);
+        if (!indexRoot.exists()) {
             return newPathCursor(new ArrayList<String>());
         }
         Iterable<String> paths = STORE.query(new FilterImpl(), index + "("
-                + uuid + ")", child, index, null);
+                + uuid + ")", indexRoot, index, null);
 
         if (!"*".equals(name)) {
             paths = filter(paths, new Predicate<String>() {
@@ -120,10 +116,6 @@ class ReferenceIndex implements QueryIndex {
             }
         });
         return newPathCursor(paths);
-    }
-
-    private static IdentifierManager getIdManager(NodeState state) {
-        return new IdentifierManager(new ImmutableRoot(state));
     }
 
     @Override
