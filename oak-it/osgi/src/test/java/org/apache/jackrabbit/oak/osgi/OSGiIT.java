@@ -28,22 +28,24 @@ import java.net.URISyntaxException;
 
 import javax.inject.Inject;
 
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
-import org.ops4j.pax.exam.junit.Configuration;
-import org.ops4j.pax.exam.junit.JUnit4TestRunner;
-import org.ops4j.pax.exam.options.CompositeOption;
+import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.options.DefaultCompositeOption;
 import org.ops4j.pax.exam.options.SystemPropertyOption;
-import org.ops4j.pax.exam.options.UrlProvisionOption;
+import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
+import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 
-@RunWith(JUnit4TestRunner.class)
+@RunWith(PaxExam.class)
+@ExamReactorStrategy(PerClass.class)
 public class OSGiIT {
 
     @Configuration
@@ -83,10 +85,19 @@ public class OSGiIT {
 
     @Test
     public void listServices() throws InvalidSyntaxException {
-        for (ServiceReference<?> reference
+        for (ServiceReference reference
                 : context.getAllServiceReferences(null, null)) {
             System.out.println(reference);
         }
+    }
+
+    @Inject
+    private NodeStore store;
+
+    @Test
+    public void testNodeStore() {
+        System.out.println(store);
+        // System.out.println(store.getRoot());
     }
 
 }
