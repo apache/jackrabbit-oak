@@ -28,6 +28,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -55,20 +56,20 @@ public class RelativePathSelector implements Selector {
 
     @Nonnull
     @Override
-    public ImmutableTree select(@Nonnull UniversalFilter filter,
+    public Tree select(@Nonnull UniversalFilter filter,
             @CheckForNull PropertyState before, @CheckForNull PropertyState after) {
         return select(selector.select(filter, before, after));
     }
 
     @Nonnull
     @Override
-    public ImmutableTree select(@Nonnull UniversalFilter filter,
+    public Tree select(@Nonnull UniversalFilter filter,
             @Nonnull String name, @Nonnull NodeState before, @Nonnull NodeState after) {
         return select(selector.select(filter, name, before, after));
     }
 
-    private ImmutableTree select(ImmutableTree parent) {
-        ImmutableTree tree = parent;
+    private Tree select(Tree parent) {
+        Tree tree = parent;
         for (String name : elements(path)) {
             if (denotesParent(name)) {
                 tree = tree.isRoot() ? MISSING_TREE : tree.getParent();

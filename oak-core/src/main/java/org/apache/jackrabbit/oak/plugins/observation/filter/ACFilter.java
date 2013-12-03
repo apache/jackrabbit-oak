@@ -24,7 +24,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,8 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * {@code EventTypeFilter} filters based on the access rights of the observing session.
  */
 public class ACFilter implements Filter {
-    private final ImmutableTree beforeTree;
-    private final ImmutableTree afterTree;
+    private final Tree beforeTree;
+    private final Tree afterTree;
     private final TreePermission treePermission;
 
     /**
@@ -45,7 +45,7 @@ public class ACFilter implements Filter {
      * @param afterTree   after state of the node being filtered
      * @param treePermission  tree permission for the node being filtered
      */
-    public ACFilter(@Nonnull ImmutableTree beforeTree, @Nonnull ImmutableTree afterTree,
+    public ACFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree,
             @Nonnull TreePermission treePermission) {
         this.beforeTree = checkNotNull(beforeTree);
         this.afterTree = checkNotNull(afterTree);

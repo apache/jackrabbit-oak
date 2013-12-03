@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
@@ -54,11 +54,11 @@ public interface FilterProvider {
      * @return new {@code Filter} instance
      */
     @Nonnull
-    Filter getFilter(@Nonnull ImmutableTree beforeTree, @Nonnull ImmutableTree afterTree);
+    Filter getFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree);
 
     /**
      * Path of the subtree to which the the filter returned by
-     * {@link #getFilter(ImmutableTree, ImmutableTree)} applies.
+     * {@link #getFilter(Tree, Tree)} applies.
      * @return path to which the filter applies.
      */
     @Nonnull

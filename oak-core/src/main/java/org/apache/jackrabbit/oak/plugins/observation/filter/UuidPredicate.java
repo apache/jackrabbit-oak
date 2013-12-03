@@ -26,8 +26,8 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 
 /**
  * A predicate for matching against a list of UUIDs. This predicate holds
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
  * property and the value of that property matches any of the UUIDs that
  * has been passed to the predicate's constructor.
  */
-public class UuidPredicate implements Predicate<ImmutableTree> {
+public class UuidPredicate implements Predicate<Tree> {
     private final String[] uuids;
 
     /**
@@ -46,7 +46,7 @@ public class UuidPredicate implements Predicate<ImmutableTree> {
     }
 
     @Override
-    public boolean apply(ImmutableTree tree) {
+    public boolean apply(Tree tree) {
         if (uuids.length == 0) {
             return false;
         }

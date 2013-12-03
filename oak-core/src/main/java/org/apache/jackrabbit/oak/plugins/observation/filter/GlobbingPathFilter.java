@@ -28,7 +28,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -62,13 +62,13 @@ public class GlobbingPathFilter implements Filter {
     public static final String STAR = "*";
     public static final String STAR_STAR = "**";
 
-    private final ImmutableTree beforeTree;
-    private final ImmutableTree afterTree;
+    private final Tree beforeTree;
+    private final Tree afterTree;
     private final ImmutableList<String> pattern;
 
     private GlobbingPathFilter(
-            @Nonnull ImmutableTree beforeTree,
-            @Nonnull ImmutableTree afterTree,
+            @Nonnull Tree beforeTree,
+            @Nonnull Tree afterTree,
             @Nonnull Iterable<String> pattern) {
         this.beforeTree = checkNotNull(beforeTree);
         this.afterTree = checkNotNull(afterTree);
@@ -76,8 +76,8 @@ public class GlobbingPathFilter implements Filter {
     }
 
     public GlobbingPathFilter(
-            @Nonnull ImmutableTree beforeTree,
-            @Nonnull ImmutableTree afterTree,
+            @Nonnull Tree beforeTree,
+            @Nonnull Tree afterTree,
             @Nonnull String pattern) {
         this(beforeTree, afterTree, elements(pattern));
     }

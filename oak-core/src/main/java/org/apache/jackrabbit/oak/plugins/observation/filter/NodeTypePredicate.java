@@ -24,7 +24,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 
 /**
@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
  * of any of the node types whose names has been passed to the predicate's
  * constructor.
  */
-public class NodeTypePredicate implements Predicate<ImmutableTree> {
+public class NodeTypePredicate implements Predicate<Tree> {
     private final ReadOnlyNodeTypeManager ntManager;
     private final String[] ntNames;
 
@@ -49,7 +49,7 @@ public class NodeTypePredicate implements Predicate<ImmutableTree> {
     }
 
     @Override
-    public boolean apply(ImmutableTree tree) {
+    public boolean apply(Tree tree) {
         for (String ntName : ntNames) {
             if (ntManager.isNodeType(tree, ntName)) {
                 return true;
