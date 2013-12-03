@@ -32,6 +32,7 @@ import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -58,6 +59,12 @@ public class AsyncIndexUpdate implements Runnable {
     private static final CommitFailedException CONCURRENT_UPDATE = new CommitFailedException(
             "Async", 1, "Concurrent update detected");
 
+    /**
+     * Timeout in minutes after which an async job would be considered as timed out. Another
+     * node in cluster would wait for timeout before taking over a running job
+     */
+    private static final int ASYNC_TIMEOUT = 15;
+
     private final String name;
 
     private final NodeStore store;
@@ -83,6 +90,11 @@ public class AsyncIndexUpdate implements Runnable {
         NodeState after = store.retrieve(checkpoint);
         if (after == null) {
             log.debug("Unable to retrieve checkpoint {}", checkpoint);
+            return;
+        }
+
+        if(isAlreadyRunning(store)){
+            log.debug("Async job found to be already running. Skipping");
             return;
         }
 
@@ -149,6 +161,34 @@ public class AsyncIndexUpdate implements Runnable {
         } catch (CommitFailedException e) {
             log.warn("Index status update {} failed", name, e);
         }
+    }
+
+    private boolean isAlreadyRunning(NodeStore store) {
+        NodeState indexState = store.getRoot().getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME);
+
+        //Probably the first run
+        if (!indexState.exists()) {
+            return false;
+        }
+
+        //Check if already running or timed out
+        if ("running".equals(indexState.getString("async-status"))) {
+            PropertyState startTime = indexState.getProperty("async-start");
+            Calendar start = Conversions.convert(startTime.getValue(Type.DATE)).toCalendar();
+            Calendar now = Calendar.getInstance();
+            long delta = now.getTimeInMillis() - start.getTimeInMillis();
+
+            //Check if the job has timed out and we need to take over
+            if (TimeUnit.MILLISECONDS.toMinutes(delta) > ASYNC_TIMEOUT) {
+                log.info("Async job found which stated on {} has timed out in {} minutes. " +
+                        "This node would take over the job.",
+                        startTime.getValue(Type.DATE), ASYNC_TIMEOUT);
+                return false;
+            }
+            return true;
+        }
+
+        return false;
     }
 
     private static void preAsyncRunStatus(NodeBuilder builder) {
