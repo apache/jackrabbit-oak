@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * This implementation tracks the number of pending changes and purges them to
@@ -56,7 +55,7 @@ class KernelRootBuilder extends MemoryNodeBuilder implements FastCopyMove {
     /**
      * Private branch used to hold pending changes exceeding {@link #UPDATE_LIMIT}
      */
-    private NodeStoreBranch branch;
+    private KernelNodeStoreBranch branch;
 
     /**
      * Number of updated not yet persisted to the private {@link #branch}

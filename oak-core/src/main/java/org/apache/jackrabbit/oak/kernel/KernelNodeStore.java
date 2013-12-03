@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
@@ -233,7 +232,7 @@ public class KernelNodeStore implements NodeStore, Observable {
         }
     }
 
-    NodeStoreBranch createBranch(KernelNodeState base) {
+    KernelNodeStoreBranch createBranch(KernelNodeState base) {
         return new KernelNodeStoreBranch(this, changeDispatcher, mergeLock, base);
     }
 
