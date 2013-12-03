@@ -38,6 +38,7 @@ import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
@@ -279,7 +280,7 @@ public class RepositoryUpgrade {
             CommitHook hook = new CompositeHook(
                     new EditorHook(new RegistrationEditorProvider()),
                     new EditorHook(new GroupEditorProvider()),
-                    new EditorHook(new ReferenceEditorProvider())
+                    new EditorHook(new IndexUpdateProvider(new ReferenceEditorProvider()))
             );
             target.merge(builder, hook, null);
         } catch (Exception e) {

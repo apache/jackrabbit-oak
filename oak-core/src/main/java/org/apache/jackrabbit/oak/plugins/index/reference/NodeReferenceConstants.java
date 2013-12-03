@@ -18,6 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.reference;
 
 public class NodeReferenceConstants {
 
+    public static final String NAME = "reference";
+
+    public static final String TYPE = "reference";
+
     public final static String REF_NAME = ":references";
 
     public final static String WEAK_REF_NAME = ":weakreferences";

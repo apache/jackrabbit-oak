@@ -85,6 +85,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
                     ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
             // the cost of using the property index for "@primaryType is not null" is very high
             nt.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.valueOf(Long.MAX_VALUE));
+            IndexUtils.createReferenceIndex(index);
         }
 
         NodeState base = builder.getNodeState();

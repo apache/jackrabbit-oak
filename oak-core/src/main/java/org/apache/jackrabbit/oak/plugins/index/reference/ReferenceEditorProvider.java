@@ -16,23 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
+import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.TYPE;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 @Component
-@Service(EditorProvider.class)
-public class ReferenceEditorProvider implements EditorProvider {
+@Service(IndexEditorProvider.class)
+public class ReferenceEditorProvider implements IndexEditorProvider {
 
     @Override
-    public Editor getRootEditor(NodeState before, NodeState after,
-            NodeBuilder builder) throws CommitFailedException {
-        return new VisibleEditor(new ReferenceEditor(builder));
+    public Editor getIndexEditor(String type, NodeBuilder definition,
+            NodeState root) {
+        if (TYPE.equals(type)) {
+            return new ReferenceEditor(definition, root);
+        }
+        return null;
     }
 
 }
