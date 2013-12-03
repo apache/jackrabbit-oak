@@ -16,18 +16,18 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import static org.ops4j.pax.exam.CoreOptions.bundle;
+import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
+import static org.ops4j.pax.exam.CoreOptions.systemProperties;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
-import javax.jcr.Repository;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.CoreOptions;
@@ -36,13 +36,10 @@ import org.ops4j.pax.exam.junit.Configuration;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
 import org.ops4j.pax.exam.options.SystemPropertyOption;
 import org.ops4j.pax.exam.options.UrlProvisionOption;
-
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.ops4j.pax.exam.CoreOptions.bundle;
-import static org.ops4j.pax.exam.CoreOptions.junitBundles;
-import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
-import static org.ops4j.pax.exam.CoreOptions.systemProperties;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 
 @RunWith(JUnit4TestRunner.class)
 public class OSGiIT {
@@ -57,6 +54,7 @@ public class OSGiIT {
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundle("jcr.jar"),
                 jarBundle("guava.jar"),
+                jarBundle("commons-codec.jar"),
                 jarBundle("jackrabbit-api.jar"),
                 jarBundle("jackrabbit-jcr-commons.jar"),
                 jarBundle("oak-commons.jar"),
@@ -81,33 +79,21 @@ public class OSGiIT {
     }
 
     @Inject
-    private MicroKernel kernel;
+    private BundleContext context;
 
     @Test
-    @Ignore("OAK-454")
-    public void testMicroKernel() {
-        assertNotNull(kernel);
-        assertTrue(Pattern.matches("[0-9a-f]+", kernel.getHeadRevision()));
+    public void listBundles() {
+        for (Bundle bundle : context.getBundles()) {
+            System.out.println(bundle);
+        }
     }
 
-    @Inject
-    private ContentRepository oakRepository;
-
     @Test
-    @Ignore("OAK-795")
-    public void testOakRepository() {
-        assertNotNull(oakRepository);
-        // TODO: try something with oakRepository
-    }
-
-    @Inject
-    private Repository jcrRepository;
-
-    @Test
-    @Ignore("OAK-795")
-    public void testJcrRepository() {
-        assertNotNull(jcrRepository);
-        // TODO: try something with jcrRepository
+    public void listServices() throws InvalidSyntaxException {
+        for (ServiceReference<?> reference
+                : context.getAllServiceReferences(null, null)) {
+            System.out.println(reference);
+        }
     }
 
 }
