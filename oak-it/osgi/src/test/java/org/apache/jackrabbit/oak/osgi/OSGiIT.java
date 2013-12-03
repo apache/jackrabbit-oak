@@ -27,6 +27,8 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
 import javax.inject.Inject;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
@@ -97,7 +99,16 @@ public class OSGiIT {
     @Test
     public void testNodeStore() {
         System.out.println(store);
-        // System.out.println(store.getRoot());
+        System.out.println(store.getRoot());
+    }
+
+    @Inject
+    private Repository repository;
+
+    @Test
+    public void testRepository() throws RepositoryException {
+        System.out.println(repository);
+        System.out.println(repository.login().getRootNode());
     }
 
 }

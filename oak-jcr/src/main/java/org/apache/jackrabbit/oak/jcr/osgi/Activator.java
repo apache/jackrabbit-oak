@@ -22,9 +22,25 @@ import java.util.Properties;
 
 import javax.jcr.Repository;
 
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.version.VersionEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleActivator;
@@ -53,8 +69,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public void start(BundleContext bundleContext) throws Exception {
         context = bundleContext;
         whiteboard = new OsgiWhiteboard(context);
-        tracker = new ServiceTracker(
-                context, ContentRepository.class.getName(), this);
+        tracker = new ServiceTracker(context, NodeStore.class.getName(), this);
         tracker.open();
     }
 
@@ -68,11 +83,30 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     @Override
     public Object addingService(ServiceReference reference) {
         Object service = context.getService(reference);
-        if (service instanceof ContentRepository) {
-            ContentRepository repository = (ContentRepository) service;
+        if (service instanceof NodeStore) {
+            // FIXME: get most of these plugins through OSGi
+            ContentRepository cr = new Oak((NodeStore) service)
+                .with(new InitialContent())
+                .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
+                .with(new EditorHook(new VersionEditorProvider()))
+                .with(whiteboard)
+                .with(securityProvider)
+                .with(new NameValidatorProvider())
+                .with(new NamespaceEditorProvider())
+                .with(new TypeEditorProvider())
+                .with(new RegistrationEditorProvider())
+                .with(new ConflictValidatorProvider())
+                .with(new ReferenceEditorProvider())
+                .with(new ReferenceIndexProvider())
+                .with(new PropertyIndexEditorProvider())
+                .with(new PropertyIndexProvider())
+                .with(new NodeTypeIndexProvider())
+                .withAsyncIndexing()
+                .createContentRepository();
+
             services.put(reference, context.registerService(
                     Repository.class.getName(),
-                    new OsgiRepository(repository, whiteboard, securityProvider),
+                    new OsgiRepository(cr, whiteboard, securityProvider),
                     new Properties()));
             return service;
         } else {
