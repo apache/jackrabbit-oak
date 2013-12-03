@@ -24,8 +24,6 @@ import java.util.Properties;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
@@ -61,9 +59,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
     private ServiceTracker microKernelTracker;
 
     private Whiteboard whiteboard;
-
-    // see OAK-795 for a reason why the nodeStore tracker is disabled
-    // private ServiceTracker nodeStoreTracker;
 
     private final OsgiIndexProvider indexProvider = new OsgiIndexProvider();
 
@@ -106,16 +101,12 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
         microKernelTracker = new ServiceTracker(context, MicroKernel.class.getName(), this);
         microKernelTracker.open();
-        // nodeStoreTracker = new ServiceTracker(
-        // context, NodeStore.class.getName(), this);
-        // nodeStoreTracker.open();
 
         registerSecurityProvider();
     }
 
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
-        // nodeStoreTracker.close();
         microKernelTracker.close();
         indexProvider.stop();
         indexEditorProvider.stop();
@@ -144,19 +135,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
                     new Properties()));
             registrations.add(registerMBean(whiteboard, CacheStatsMBean.class,
                 store.getCacheStats(), CacheStatsMBean.TYPE, store.getCacheStats().getName()));
-        } else if (service instanceof NodeStore) {
-            NodeStore store = (NodeStore) service;
-            OakInitializer.initialize(store, repositoryInitializerTracker, indexEditorProvider);
-            Oak oak = new Oak(store)
-                .with(securityProvider)
-                .with(validatorProvider)
-                .with(indexProvider)
-                .with(whiteboard)
-                .with(indexEditorProvider);
-            services.put(reference, context.registerService(
-                    ContentRepository.class.getName(),
-                    oak.createContentRepository(),
-                    new Properties()));
         }
         return service;
     }
