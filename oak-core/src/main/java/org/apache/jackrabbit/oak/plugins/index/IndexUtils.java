@@ -39,6 +39,7 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -117,6 +118,12 @@ public class IndexUtils {
             entry.setNames(DECLARING_NODE_TYPES, declaringNodeTypeNames);
         }
         entry.setNames(PROPERTY_NAMES, propertyNames);
+    }
+
+    public static void createReferenceIndex(@Nonnull NodeBuilder index) {
+        index.child(NodeReferenceConstants.NAME)
+                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                .setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE);
     }
 
     public static boolean isIndexNodeType(NodeState state) {
