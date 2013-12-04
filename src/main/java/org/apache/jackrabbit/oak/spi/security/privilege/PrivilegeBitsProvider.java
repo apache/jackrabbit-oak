@@ -141,9 +141,12 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     public Set<String> getPrivilegeNames(PrivilegeBits privilegeBits) {
         if (privilegeBits == null || privilegeBits.isEmpty()) {
             return Collections.emptySet();
-        } else if (bitsToNames.containsKey(privilegeBits)) {
+        }
+
+        PrivilegeBits pb = privilegeBits.unmodifiable();
+        if (bitsToNames.containsKey(pb)) {
             // matches all built-in aggregates and single built-in privileges
-            return bitsToNames.get(privilegeBits);
+            return bitsToNames.get(pb);
         } else {
             Tree privilegesTree = getPrivilegesTree();
             if (!privilegesTree.exists()) {
@@ -157,14 +160,14 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             }
 
             Set<String> privilegeNames;
-            if (bitsToNames.containsKey(privilegeBits)) {
-                privilegeNames = bitsToNames.get(privilegeBits);
+            if (bitsToNames.containsKey(pb)) {
+                privilegeNames = bitsToNames.get(pb);
             } else {
                 privilegeNames = new HashSet<String>();
                 Set<String> aggregates = new HashSet<String>();
                 for (Tree child : privilegesTree.getChildren()) {
                     PrivilegeBits bits = PrivilegeBits.getInstance(child);
-                    if (privilegeBits.includes(bits)) {
+                    if (pb.includes(bits)) {
                         privilegeNames.add(child.getName());
                         if (child.hasProperty(REP_AGGREGATES)) {
                             aggregates.addAll(PrivilegeUtil.readDefinition(child).getDeclaredAggregateNames());
@@ -172,7 +175,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                     }
                 }
                 privilegeNames.removeAll(aggregates);
-                bitsToNames.put(privilegeBits.unmodifiable(), ImmutableSet.copyOf(privilegeNames));
+                bitsToNames.put(pb, ImmutableSet.copyOf(privilegeNames));
             }
             return privilegeNames;
         }
