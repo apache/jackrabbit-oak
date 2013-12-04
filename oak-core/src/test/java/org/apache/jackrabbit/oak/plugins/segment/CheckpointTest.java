@@ -48,9 +48,6 @@ public class CheckpointTest {
         String cp = store.checkpoint(TimeUnit.HOURS.toMillis(1));
         assertNotNull("Checkpoint must not be null", cp);
 
-        NodeState root = store.head;
-        assertTrue("Checkpoint doesn't exist", root.getChildNode(cp).exists());
-
         NodeState cpns = store.retrieve(cp);
         assertNotNull(cpns);
         if (exists) {

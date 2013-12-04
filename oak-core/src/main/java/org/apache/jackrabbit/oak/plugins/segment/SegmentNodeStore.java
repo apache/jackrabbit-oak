@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -57,7 +58,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     private final ChangeDispatcher changeDispatcher;
 
-    volatile SegmentNodeState head;
+    /**
+     * Local copy of the head of the journal associated with this store.
+     */
+    private volatile SegmentNodeState head;
 
     /**
      * Semaphore that controls access to the {@link #head} variable.
@@ -78,6 +82,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     public SegmentNodeStore(SegmentStore store) {
         this(store, "root");
+    }
+
+    public SegmentNodeStore() {
+        this(new MemoryStore(), "root");
     }
 
     void setMaximumBackoff(long max) {
