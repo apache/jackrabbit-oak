@@ -221,8 +221,8 @@ public class FileStore extends AbstractStore {
             public boolean setHead(RecordId base, RecordId head) {
                 synchronized (FileStore.this) {
                     if (base.equals(FileStore.this.head)) {
+                        updated = !head.equals(FileStore.this.head);
                         FileStore.this.head = head;
-                        updated = true;
                         return true;
                     } else {
                         return false;
