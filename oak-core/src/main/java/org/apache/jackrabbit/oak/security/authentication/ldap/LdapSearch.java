@@ -17,13 +17,15 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 
 public interface LdapSearch {
 
-    boolean findUser(LdapUser user);
+    boolean findUser(@Nonnull LdapUser user);
 
-    Set<LdapGroup> findGroups(LdapUser user);
+    @Nonnull
+    Set<LdapGroup> findGroups(@Nonnull LdapUser user);
 
-    void authenticate(LdapUser user) throws LoginException;
+    boolean authenticate(@Nonnull LdapUser user) throws LoginException;
 }

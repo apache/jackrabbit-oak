@@ -74,8 +74,14 @@ public final class LdapLoginModule extends ExternalLoginModule {
     public boolean login() throws LoginException {
         ldapUser = getExternalUser();
         if (ldapUser != null && search.findUser(ldapUser)) {
-            search.authenticate(ldapUser);
-            success = true;
+            if (search.authenticate(ldapUser)) {
+                success = true;
+                log.debug("Adding Credentials to shared state.");
+                sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
+
+                log.debug("Adding login name to shared state.");
+                sharedState.put(SHARED_KEY_LOGIN_NAME, ldapUser.getId());
+            }
         }
         return success;
     }
