@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentRootBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -64,7 +64,7 @@ public class FileStoreBackup {
             Journal root = backup.getJournal("root");
             SegmentNodeState state = new SegmentNodeState(backup.getWriter()
                     .getDummySegment(), root.getHead());
-            SegmentRootBuilder builder = state.builder();
+            SegmentNodeBuilder builder = state.builder();
             current.compareAgainstBaseState(state,
                     new ApplyDiff(builder.child("root")));
             root.setHead(state.getRecordId(), builder.getNodeState()
