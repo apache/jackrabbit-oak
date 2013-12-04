@@ -193,7 +193,7 @@ class SegmentPropertyState extends Record implements PropertyState {
     @Override
     public boolean equals(Object object) {
         // optimize for common cases
-        if (this == object) {
+        if (this == object) { // don't use fastEquals here due to value sharing
             return true;
         } else if (object instanceof SegmentPropertyState) {
             SegmentPropertyState that = (SegmentPropertyState) object;

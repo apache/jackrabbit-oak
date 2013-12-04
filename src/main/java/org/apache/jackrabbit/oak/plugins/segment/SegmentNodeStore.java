@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.plugins.segment.Record.fastEquals;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -353,18 +353,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
             return head.getChildNode(ROOT);
         }
 
-    }
-
-    private static boolean fastEquals(Object a, Object b) {
-        return a instanceof Record && fastEquals((Record) a, b);
-    }
-
-    private static boolean fastEquals(Record a, Object b) {
-        return b instanceof Record && fastEquals(a, (Record) b);
-    }
-
-    private static boolean fastEquals(Record a, Record b) {
-        return equal(a.getRecordId(), b.getRecordId());
     }
 
 }
