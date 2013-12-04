@@ -28,12 +28,15 @@ class MappedAccess implements FileAccess {
 
     private final MappedByteBuffer buffer;
 
+    private boolean updated = false;
+
     MappedAccess(File file, int length) throws IOException {
         RandomAccessFile f = new RandomAccessFile(file, "rw");
         try {
             long l = f.length();
             if (l == 0) { // it's a new file
                 l = length;
+                updated = true;
             }
             buffer = f.getChannel().map(READ_WRITE, 0, l);
         } finally {
@@ -55,16 +58,21 @@ class MappedAccess implements FileAccess {
     }
 
     @Override
-    public void write(int position, byte[] b, int offset, int length)
+    public synchronized void write(
+            int position, byte[] b, int offset, int length)
             throws IOException {
         ByteBuffer entry = buffer.duplicate();
         entry.position(position);
         entry.put(b, offset, length);
+        updated = true;
     }
 
     @Override
-    public void flush() {
-        buffer.force();
+    public synchronized void flush() {
+        if (updated) {
+            buffer.force();
+            updated = false;
+        }
     }
 
     @Override
