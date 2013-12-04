@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -163,6 +164,22 @@ public class Revision {
     public String toString() {
         return (branch ? "b" : "") + 'r' + Long.toHexString(timestamp) + '-' +
                 Integer.toHexString(counter) + '-' + Integer.toHexString(clusterId);
+    }
+    
+    public String toReadableString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("revision: \"").append(toString()).append("\"");
+        buff.append(", clusterId: ").append(clusterId);
+        buff.append(", time: \"").
+            append((new Timestamp(timestamp) + "00").substring(0, 23)).
+            append("\"");
+        if (counter > 0) {
+            buff.append(", counter: ").append(counter);
+        }
+        if (branch) {
+            buff.append(", branch: true");
+        }
+        return buff.toString();
     }
     
     /**
