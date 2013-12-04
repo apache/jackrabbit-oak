@@ -359,7 +359,7 @@ public final class MongoNodeStore
     }
 
     @Nonnull
-    DocumentStore getDocumentStore() {
+    public DocumentStore getDocumentStore() {
         return store;
     }
 
