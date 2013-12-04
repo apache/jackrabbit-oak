@@ -20,12 +20,18 @@ package org.apache.jackrabbit.oak.plugins.backup;
 
 import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -95,4 +101,45 @@ public class FileStoreBackupTest {
                 .with(new InitialContent()).createContentRepository();
     }
 
+    @Test
+    public void testSharedContent() throws Exception {
+        FileStore source = new FileStore(src, 256, false);
+
+        NodeStore store = new SegmentNodeStore(source);
+
+        // ~60k
+        Blob blob = new StringBasedBlob(RandomStringUtils.random(10240));
+
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder c1 = builder.child("test-backup");
+        c1.setProperty("blob", blob);
+        NodeBuilder c2 = builder.child("test-backup2");
+        c2.setProperty("blob", blob);
+        store.merge(builder, EmptyHook.INSTANCE, null);
+
+        FileStoreBackup.backup(store, destination);
+        compare(store, destination);
+        source.close();
+
+        Map<String, Long> expected = new HashMap<String, Long>();
+        for (File f : src.listFiles()) {
+            if (f.getName().endsWith(".tar")) {
+                expected.put(f.getName(), f.length());
+            }
+        }
+
+        for (File f : destination.listFiles()) {
+            if(!f.getName().endsWith(".tar")){
+                continue;
+            }
+            assertTrue(f.getName() + " is missing from the backup",
+                    expected.containsKey(f.getName()));
+            assertTrue(
+                    f.getName() + " is expected to have size < "
+                            + expected.get(f.getName()) + " actually is "
+                            + f.length(),
+                    f.length() <= expected.get(f.getName()));
+        }
+
+    }
 }
