@@ -231,6 +231,20 @@ final class MongoNodeState extends AbstractNodeState {
      * @return new property state
      */
     PropertyState readProperty(String name, JsopReader reader) {
+        return readProperty(name, store, reader);
+    }
+    
+    /**
+     * FIXME: copied from KernelNodeState.
+     *
+     * Read a {@code PropertyState} from a {@link JsopReader}.
+     * 
+     * @param name the name of the property state
+     * @param store the store 
+     * @param reader the reader
+     * @return new property state
+     */    
+    public static PropertyState readProperty(String name, MongoNodeStore store, JsopReader reader) {
         if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
             try {
@@ -268,12 +282,27 @@ final class MongoNodeState extends AbstractNodeState {
     /**
      * FIXME: copied from KernelNodeState.
      *
-     * Read a multi valued {@code PropertyState} from a {@link JsopReader}
-     * @param name  The name of the property state
-     * @param reader  The reader
+     * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
+     * 
+     * @param name the name of the property state
+     * @param reader the reader
      * @return new property state
      */
     PropertyState readArrayProperty(String name, JsopReader reader) {
+        return readArrayProperty(name, store, reader);
+    }
+    
+    /**
+     * FIXME: copied from KernelNodeState.
+     *
+     * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
+     * 
+     * @param name the name of the property state
+     * @param store the store 
+     * @param reader the reader
+     * @return new property state
+     */
+    public static PropertyState readArrayProperty(String name, MongoNodeStore store, JsopReader reader) {
         int type = PropertyType.STRING;
         List<Object> values = Lists.newArrayList();
         while (!reader.matches(']')) {

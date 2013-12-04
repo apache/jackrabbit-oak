@@ -38,11 +38,6 @@ class MongoRootBuilder extends MongoNodeBuilder {
     private static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 1000);
 
     /**
-     * The underlying store
-     */
-    private final MongoNodeStore store;
-
-    /**
      * The base state of this builder, possibly non-existent if this builder
      * represents a new node that didn't yet exist in the base content tree.
      * This differs from the base state of super since the latter one reflects
@@ -62,9 +57,8 @@ class MongoRootBuilder extends MongoNodeBuilder {
     private int updates;
 
     MongoRootBuilder(MongoNodeState base, MongoNodeStore store) {
-        super(checkNotNull(base));
+        super(store, checkNotNull(base));
         this.base = base;
-        this.store = store;
         this.branch = store.createBranch(base);
     }
 
@@ -154,4 +148,5 @@ class MongoRootBuilder extends MongoNodeBuilder {
         super.reset(branch.getHead());
         updates = 0;
     }
+
 }
