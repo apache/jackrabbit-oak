@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -24,14 +28,22 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * A node builder implementation for MongoMK.
  */
 class MongoNodeBuilder extends MemoryNodeBuilder {
+    
+    /**
+     * The underlying store
+     */
+    protected final MongoNodeStore store;
+
     private NodeState base;
 
-    protected MongoNodeBuilder(MongoNodeState base) {
+    protected MongoNodeBuilder(MongoNodeStore store, MongoNodeState base) {
         super(base);
+        this.store = store;
     }
 
-    private MongoNodeBuilder(MongoNodeBuilder parent, String name) {
+    private MongoNodeBuilder(MongoNodeStore store, MongoNodeBuilder parent, String name) {
         super(parent, name);
+        this.store = store;
     }
 
     @Override
@@ -44,7 +56,7 @@ class MongoNodeBuilder extends MemoryNodeBuilder {
 
     @Override
     protected MongoNodeBuilder createChildBuilder(String name) {
-        return new MongoNodeBuilder(this, name);
+        return new MongoNodeBuilder(store, this, name);
     }
 
     @Override
@@ -61,4 +73,11 @@ class MongoNodeBuilder extends MemoryNodeBuilder {
         }
         return super.moveTo(newParent, newName);
     }
+    
+    
+    @Override
+    public Blob createBlob(InputStream stream) throws IOException {
+        return store.createBlob(stream);
+    }
+    
 }
