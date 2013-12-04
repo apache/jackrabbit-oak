@@ -83,19 +83,18 @@ public class SegmentWriter {
 
     private final SegmentStore store;
 
-    private final Map<String, RecordId> strings = new LinkedHashMap<String, RecordId>(1500, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Entry<String, RecordId> eldest) {
-            return size() > 1000;
-        }
-    };
-
-    private final Map<Template, RecordId> templates = new LinkedHashMap<Template, RecordId>(1500, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Entry<Template, RecordId> eldest) {
-            return size() > 1000;
-        }
-    };
+    /**
+     * Cache of recently stored string and template records, used to
+     * avoid storing duplicates of frequently occurring data.
+     * Should only be accessed from synchronized blocks to prevent corruption.
+     */
+    private final Map<Object, RecordId> records =
+        new LinkedHashMap<Object, RecordId>(15000, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Entry<Object, RecordId> e) {
+                return size() > 10000;
+            }
+        };
 
     private UUID uuid = newDataSegmentId();
 
@@ -549,21 +548,23 @@ public class SegmentWriter {
      * @return value record identifier
      */
     public RecordId writeString(String string) {
-        byte[] data;
-
-        synchronized (strings) {
-            RecordId id = strings.get(string);
+        synchronized (this) {
+            RecordId id = records.get(string);
             if (id != null) {
-                return id;
+                return id; // shortcut if the same string was recently stored
             }
+        }
 
-            data = string.getBytes(Charsets.UTF_8);
-            if (data.length < Segment.MEDIUM_LIMIT) {
-                id = writeValueRecord(data.length, data);
+        byte[] data = string.getBytes(Charsets.UTF_8);
 
-                // only cache short strings to avoid excessive memory use
-                strings.put(string, id);
-
+        if (data.length < Segment.MEDIUM_LIMIT) {
+            // only cache short strings to avoid excessive memory use
+            synchronized (this) {
+                RecordId id = records.get(string);
+                if (id == null) {
+                    id = writeValueRecord(data.length, data);
+                    records.put(string, id);
+                }
                 return id;
             }
         }
@@ -699,87 +700,86 @@ public class SegmentWriter {
         }
     }
 
-    public RecordId writeTemplate(Template template) {
+    public synchronized RecordId writeTemplate(Template template) {
         checkNotNull(template);
-        synchronized (templates) {
-            RecordId id = templates.get(template);
-            if (id == null) {
-                Collection<RecordId> ids = Lists.newArrayList();
-                int head = 0;
 
-                RecordId primaryId = null;
-                PropertyState primaryType = template.getPrimaryType();
-                if (primaryType != null) {
-                    head |= 1 << 31;
-                    primaryId = writeString(primaryType.getValue(NAME));
-                    ids.add(primaryId);
-                }
-
-                List<RecordId> mixinIds = null;
-                PropertyState mixinTypes = template.getMixinTypes();
-                if (mixinTypes != null) {
-                    head |= 1 << 30;
-                    mixinIds = Lists.newArrayList();
-                    for (String mixin : mixinTypes.getValue(NAMES)) {
-                        mixinIds.add(writeString(mixin));
-                    }
-                    ids.addAll(mixinIds);
-                    checkState(mixinIds.size() < (1 << 10));
-                    head |= mixinIds.size() << 18;
-                }
-
-                RecordId childNameId = null;
-                String childName = template.getChildName();
-                if (childName == Template.ZERO_CHILD_NODES) {
-                    head |= 1 << 29;
-                } else if (childName == Template.MANY_CHILD_NODES) {
-                    head |= 1 << 28;
-                } else {
-                    childNameId = writeString(childName);
-                    ids.add(childNameId);
-                }
-
-                PropertyTemplate[] properties = template.getPropertyTemplates();
-                RecordId[] propertyNames = new RecordId[properties.length];
-                byte[] propertyTypes = new byte[properties.length];
-                for (int i = 0; i < properties.length; i++) {
-                    propertyNames[i] = writeString(properties[i].getName());
-                    Type<?> type = properties[i].getType();
-                    if (type.isArray()) {
-                        propertyTypes[i] = (byte) -type.tag();
-                    } else {
-                        propertyTypes[i] = (byte) type.tag();
-                    }
-                }
-                ids.addAll(Arrays.asList(propertyNames));
-                checkState(propertyNames.length < (1 << 18));
-                head |= propertyNames.length;
-
-                synchronized (this) {
-                    id = prepare(
-                            RecordType.TEMPLATE, 4 + propertyTypes.length, ids);
-                    writeInt(head);
-                    if (primaryId != null) {
-                        writeRecordId(primaryId);
-                    }
-                    if (mixinIds != null) {
-                        for (RecordId mixinId : mixinIds) {
-                            writeRecordId(mixinId);
-                        }
-                    }
-                    if (childNameId != null) {
-                        writeRecordId(childNameId);
-                    }
-                    for (int i = 0; i < propertyNames.length; i++) {
-                        writeRecordId(propertyNames[i]);
-                        buffer[position++] = propertyTypes[i];
-                    }
-                }
-
-                templates.put(template, id);
-            }
-            return id;
+        RecordId id = records.get(template);
+        if (id != null) {
+            return id; // shortcut if the same template was recently stored
         }
+
+        Collection<RecordId> ids = Lists.newArrayList();
+        int head = 0;
+
+        RecordId primaryId = null;
+        PropertyState primaryType = template.getPrimaryType();
+        if (primaryType != null) {
+            head |= 1 << 31;
+            primaryId = writeString(primaryType.getValue(NAME));
+            ids.add(primaryId);
+        }
+
+        List<RecordId> mixinIds = null;
+        PropertyState mixinTypes = template.getMixinTypes();
+        if (mixinTypes != null) {
+            head |= 1 << 30;
+            mixinIds = Lists.newArrayList();
+            for (String mixin : mixinTypes.getValue(NAMES)) {
+                mixinIds.add(writeString(mixin));
+            }
+            ids.addAll(mixinIds);
+            checkState(mixinIds.size() < (1 << 10));
+            head |= mixinIds.size() << 18;
+        }
+
+        RecordId childNameId = null;
+        String childName = template.getChildName();
+        if (childName == Template.ZERO_CHILD_NODES) {
+            head |= 1 << 29;
+        } else if (childName == Template.MANY_CHILD_NODES) {
+            head |= 1 << 28;
+        } else {
+            childNameId = writeString(childName);
+            ids.add(childNameId);
+        }
+
+        PropertyTemplate[] properties = template.getPropertyTemplates();
+        RecordId[] propertyNames = new RecordId[properties.length];
+        byte[] propertyTypes = new byte[properties.length];
+        for (int i = 0; i < properties.length; i++) {
+            propertyNames[i] = writeString(properties[i].getName());
+            Type<?> type = properties[i].getType();
+            if (type.isArray()) {
+                propertyTypes[i] = (byte) -type.tag();
+            } else {
+                propertyTypes[i] = (byte) type.tag();
+            }
+        }
+        ids.addAll(Arrays.asList(propertyNames));
+        checkState(propertyNames.length < (1 << 18));
+        head |= propertyNames.length;
+
+        id = prepare(RecordType.TEMPLATE, 4 + propertyTypes.length, ids);
+        writeInt(head);
+        if (primaryId != null) {
+            writeRecordId(primaryId);
+        }
+        if (mixinIds != null) {
+            for (RecordId mixinId : mixinIds) {
+                writeRecordId(mixinId);
+            }
+        }
+        if (childNameId != null) {
+            writeRecordId(childNameId);
+        }
+        for (int i = 0; i < propertyNames.length; i++) {
+            writeRecordId(propertyNames[i]);
+            buffer[position++] = propertyTypes[i];
+        }
+
+        records.put(template, id);
+
+        return id;
     }
 
     public SegmentNodeState writeNode(NodeState state) {
