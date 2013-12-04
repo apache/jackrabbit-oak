@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.directory.server.constants.ServerDNConstants;
@@ -84,27 +82,13 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
         }
     }
 
-    @Override
-    protected Configuration getConfiguration() {
-        return new Configuration() {
-            @Override
-            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-                return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(
-                                LdapLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                                options)
-                };
-            }
-        };
-    }
-
     @Before
     public void before() throws Exception {
         super.before();
 
         if (!USE_COMMON_LDAP_FIXTURE) {
             LDAP_SERVER.setUp();
+            createLdapFixture();
         }
 
         options.put(LdapSettings.KEY_HOST, "127.0.0.1");
@@ -150,11 +134,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testLoginFailed() throws Exception {
-
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
-
         try {
             ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]));
             cs.close();
@@ -168,11 +147,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testSyncCreateUser() throws Exception {
-
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
-
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
 
         ContentSession cs = null;
@@ -195,10 +169,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
     @Test
     public void testSyncCreateGroup() throws Exception {
 
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
-
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_GROUP);
 
         ContentSession cs = null;
@@ -218,10 +188,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testSyncCreateUserAndGroups() throws Exception {
-
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
 
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.CREATE_USER, SyncMode.CREATE_GROUP});
 
@@ -247,10 +213,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
     @Test
     public void testNoSync() throws Exception {
 
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
-
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, "");
 
         ContentSession cs = null;
@@ -270,10 +232,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testDefaultSync() throws Exception {
-
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
 
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, null);
 
@@ -303,10 +261,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
     @Test
     public void testSyncUpdate() throws Exception {
 
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
-
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.UPDATE);
 
         // create user upfront in order to test update mode
@@ -332,10 +286,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testSyncUpdateAndGroups() throws Exception {
-
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
 
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.UPDATE, SyncMode.CREATE_GROUP});
 
@@ -365,23 +315,16 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
     @Ignore
     @Test
     public void testConcurrentLogin() throws Exception {
-
         concurrentLogin(false);
     }
 
     @Ignore
     @Test
     public void testConcurrentLoginSameGroup() throws Exception {
-
         concurrentLogin(true);
     }
 
     private void concurrentLogin(boolean sameGroup) throws Exception {
-
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            createLdapFixture();
-        }
-
         final List<Exception> exceptions = new ArrayList<Exception>();
         List<Thread> workers = new ArrayList<Thread>();
         for (int i = 0; i < CONCURRENT_LOGINS; i++) {
