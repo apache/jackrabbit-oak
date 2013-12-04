@@ -143,7 +143,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override @Nonnull
     public NodeState rebase(@Nonnull NodeBuilder builder) {
-        checkArgument(builder instanceof SegmentRootBuilder);
+        checkArgument(builder instanceof SegmentNodeBuilder);
         NodeState newBase = getRoot();
         NodeState oldBase = builder.getBaseState();
         if (!fastEquals(oldBase, newBase)) {
@@ -164,7 +164,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override @Nonnull
     public NodeState reset(@Nonnull NodeBuilder builder) {
-        checkArgument(builder instanceof SegmentRootBuilder);
+        checkArgument(builder instanceof SegmentNodeBuilder);
         NodeState state = getRoot();
         ((SegmentNodeBuilder) builder).reset(state);
         return state;
@@ -189,7 +189,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     SegmentNodeState ns = head;
                     RecordId ri = head.getRecordId();
 
-                    SegmentRootBuilder builder = ns.builder();
+                    SegmentNodeBuilder builder = ns.builder();
                     NodeBuilder cp = builder.child(name);
                     cp.setProperty("timestamp", System.currentTimeMillis()
                             + lifetime);
@@ -234,7 +234,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         Commit(@Nonnull SegmentNodeState base, @Nonnull NodeState head,
                 @Nonnull CommitHook hook, @Nullable CommitInfo info) {
             this.base = checkNotNull(base);
-            SegmentRootBuilder builder = base.builder();
+            SegmentNodeBuilder builder = base.builder();
             builder.setChildNode(ROOT, checkNotNull(head));
             this.head = builder.getNodeState();
 

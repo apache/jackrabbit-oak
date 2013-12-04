@@ -17,20 +17,54 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-class SegmentNodeBuilder extends MemoryNodeBuilder {
+public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
-    protected SegmentNodeBuilder(SegmentNodeState base) {
+    /**
+     * Number of content updates that need to happen before the updates
+     * are automatically purged to the underlying segments.
+     */
+    private static final int UPDATE_LIMIT =
+            Integer.getInteger("update.limit", 10000);
+
+    private long updateCount = 0;
+
+    private final SegmentStore store;
+
+    SegmentNodeBuilder(SegmentNodeState base) {
         super(base);
+        this.store = base.getStore();
     }
 
-    private SegmentNodeBuilder(SegmentNodeBuilder parent, String name) {
-        super(parent, name);
+    //-------------------------------------------------< MemoryNodeBuilder >--
+
+    @Override
+    protected void updated() {
+        updateCount++;
+        if (updateCount > UPDATE_LIMIT) {
+            getNodeState();
+        }
+    }
+
+    //-------------------------------------------------------< NodeBuilder >--
+
+    @Override
+    public SegmentNodeState getBaseState() {
+        // guaranteed to be a SegmentNodeState
+        return (SegmentNodeState) super.getBaseState();
     }
 
     @Override
-    protected SegmentNodeBuilder createChildBuilder(String name) {
-        return new SegmentNodeBuilder(this, name);
+    public SegmentNodeState getNodeState() {
+        NodeState state = super.getNodeState();
+        if (!store.isInstance(state, SegmentNodeState.class)) {
+            state = store.getWriter().writeNode(state);
+            set(state);
+            updateCount = 0;
+        }
+        // guaranteed to be a SegmentNodeState from the same store as the base
+        return (SegmentNodeState) state;
     }
 
 }
