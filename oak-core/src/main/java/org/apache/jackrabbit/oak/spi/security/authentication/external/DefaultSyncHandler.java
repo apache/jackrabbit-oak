@@ -111,7 +111,7 @@ public class DefaultSyncHandler implements SyncHandler {
     @CheckForNull
     private User createUser(ExternalUser externalUser) throws RepositoryException, SyncException {
         if (mode.contains(SyncMode.MODE_CREATE_USER)) {
-            User user = userManager.createUser(externalUser.getId(), externalUser.getPassword(), externalUser.getPrincipal(), null);
+            User user = userManager.createUser(externalUser.getId(), null, externalUser.getPrincipal(), null);
             syncAuthorizable(externalUser, user);
             return user;
         } else {
