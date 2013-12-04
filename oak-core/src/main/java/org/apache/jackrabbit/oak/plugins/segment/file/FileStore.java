@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
 
@@ -30,7 +30,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -63,7 +62,13 @@ public class FileStore extends AbstractStore {
 
     private final RandomAccessFile journalFile;
 
-    private final Map<String, RecordId> journals = newConcurrentMap();
+    private volatile RecordId head;
+
+    private volatile boolean updated = false;
+
+    private volatile boolean alive = true;
+
+    private final Thread flushThread;
 
     public FileStore(File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
@@ -103,46 +108,64 @@ public class FileStore extends AbstractStore {
             }
         }
 
+        head = null;
         journalFile = new RandomAccessFile(
                 new File(directory, JOURNAL_FILE_NAME), "rw");
         String line = journalFile.readLine();
         while (line != null) {
             int space = line.indexOf(' ');
             if (space != -1) {
-                String name = line.substring(space + 1);
-                RecordId id = RecordId.fromString(line.substring(0, space));
-                journals.put(name, id);
+                head = RecordId.fromString(line.substring(0, space));
             }
             line = journalFile.readLine();
         }
 
-        if (!journals.containsKey("root")) {
+        if (head == null) {
             NodeBuilder builder = EMPTY_NODE.builder();
             builder.setChildNode("root", initial);
             SegmentNodeState root =
                     getWriter().writeNode(builder.getNodeState());
-            journals.put("root", root.getRecordId());
-            journalFile.writeBytes(root.getRecordId() + " root\n");
+            head = root.getRecordId();
+            updated = true;
         }
-    }
 
-    RecordId getHead(String name) {
-        return journals.get(name);
-    }
-
-    synchronized boolean setHead(String name, RecordId base, RecordId head) {
-        if (base.equals(journals.get(name))) {
-            getWriter().flush();
-            try {
-                journalFile.writeBytes(head + " " + name + "\n");
-                journals.put(name, head);
-                return true;
-            } catch (IOException e) {
-                throw new IllegalStateException(
-                        "Failed to update journal " + name, e);
+        this.flushThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    synchronized (flushThread) {
+                        flushThread.wait(1000);
+                        while (alive) {
+                            flush();
+                            flushThread.wait(5000);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    // stop flushing
+                }
             }
-        } else {
-            return false;
+        });
+        flushThread.setName("TarMK flush thread " + directory);
+        flushThread.setDaemon(true);
+        flushThread.setPriority(Thread.MIN_PRIORITY);
+        flushThread.start();
+    }
+
+    private synchronized void flush() {
+        if (updated) {
+            try {
+                getWriter().flush();
+                for (TarFile file : bulkFiles) {
+                    file.flush();
+                }
+                for (TarFile file : dataFiles) {
+                    file.flush();
+                }
+                journalFile.writeBytes(head + " root\n");
+                journalFile.getChannel().force(false);
+            } catch (IOException e) {
+                e.printStackTrace(); // FIXME
+            }
         }
     }
 
@@ -161,6 +184,13 @@ public class FileStore extends AbstractStore {
     public synchronized void close() {
         try {
             super.close();
+
+            alive = false;
+            synchronized (flushThread) {
+                flushThread.notify();
+            }
+            flushThread.join();
+            flush();
 
             journalFile.close();
 
@@ -181,12 +211,29 @@ public class FileStore extends AbstractStore {
 
     @Override
     public Journal getJournal(String name) {
-        synchronized (journals) {
-            if (journals.containsKey(name)) {
-                journals.put(name, journals.get("root"));
+        checkArgument("root".equals(name)); // only root supported for now
+        return new Journal() {
+            @Override
+            public RecordId getHead() {
+                return head;
             }
-        }
-        return new FileJournal(this, name);
+            @Override
+            public boolean setHead(RecordId base, RecordId head) {
+                synchronized (FileStore.this) {
+                    if (base.equals(FileStore.this.head)) {
+                        FileStore.this.head = head;
+                        updated = true;
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+            @Override
+            public void merge() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     @Override @Nonnull
