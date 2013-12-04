@@ -22,16 +22,15 @@ import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -41,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class FileStoreBackupTest {
@@ -101,14 +101,14 @@ public class FileStoreBackupTest {
                 .with(new InitialContent()).createContentRepository();
     }
 
-    @Test
+    @Test @Ignore("OAK-1159 duplicate content")
     public void testSharedContent() throws Exception {
         FileStore source = new FileStore(src, 256, false);
 
         NodeStore store = new SegmentNodeStore(source);
 
-        // ~60k
-        Blob blob = new StringBasedBlob(RandomStringUtils.random(10240));
+        // ~100k
+        Blob blob = store.createBlob(new ByteArrayInputStream(new byte[100000]));
 
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder c1 = builder.child("test-backup");
@@ -135,7 +135,7 @@ public class FileStoreBackupTest {
             assertTrue(f.getName() + " is missing from the backup",
                     expected.containsKey(f.getName()));
             assertTrue(
-                    f.getName() + " is expected to have size < "
+                    f.getName() + " is expected to have size <= "
                             + expected.get(f.getName()) + " actually is "
                             + f.length(),
                     f.length() <= expected.get(f.getName()));

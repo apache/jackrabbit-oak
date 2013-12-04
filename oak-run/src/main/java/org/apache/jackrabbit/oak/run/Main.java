@@ -158,8 +158,8 @@ public class Main {
                         }
                         System.out.println("Available for garbage collection:");
                         System.out.format(
-                                "%6dkB in %6d data segments%n",
-                                dataSize / 1024, dataCount);
+                                "%6dMB in %6d data segments%n",
+                                dataSize / (1024 * 1024), dataCount);
                         System.out.format(
                                 "%6dMB in %6d bulk segments%n",
                                 bulkSize / (1024 * 1024), bulkCount);
