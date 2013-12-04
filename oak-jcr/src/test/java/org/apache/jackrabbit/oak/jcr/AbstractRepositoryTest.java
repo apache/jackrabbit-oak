@@ -44,6 +44,15 @@ import org.junit.runners.Parameterized;
 @Ignore("This abstract base class does not have any tests")
 public abstract class AbstractRepositoryTest {
 
+    protected NodeStoreFixture fixture;
+    private NodeStore nodeStore;
+    private Repository repository;
+    private Session adminSession;
+
+    public AbstractRepositoryTest(NodeStoreFixture fixture) {
+        this.fixture = fixture;
+    }
+
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
         Object[][] fixtures = new Object[][] {
@@ -55,17 +64,8 @@ public abstract class AbstractRepositoryTest {
         return Arrays.asList(fixtures);
     }
 
-    protected NodeStoreFixture fixture;
-    private NodeStore nodeStore = null;
-    private Repository repository = null;
-    private Session adminSession = null;
-
-    public AbstractRepositoryTest(NodeStoreFixture fixture) {
-        this.fixture = fixture;
-    }
-
     @After
-    public void logout() throws RepositoryException {
+    public void logout() {
         // release session field
         if (adminSession != null) {
             adminSession.logout();
@@ -78,7 +78,7 @@ public abstract class AbstractRepositoryTest {
         }
     }
 
-    protected Repository getRepository() throws RepositoryException {
+    protected Repository getRepository() {
         if (repository == null) {
             nodeStore = fixture.createNodeStore();
             repository  = new Jcr(nodeStore).createRepository();

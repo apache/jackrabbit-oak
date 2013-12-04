@@ -25,9 +25,12 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import com.mongodb.DB;
 
 /**
  * NodeStore fixture for parametrized tests.
@@ -50,6 +53,23 @@ public abstract class NodeStoreFixture {
         public NodeStore createNodeStore() {
             return new CloseableNodeStore(new MongoMK.Builder().open());
         }
+        
+        @Override
+        public NodeStore createNodeStore(int clusterNodeId) {
+            String host = "localhost";
+            int port = 27017;
+            String db = "oak";
+            MongoConnection connection;
+            try {
+                connection = new MongoConnection(host, port, db);
+                DB mongoDB = connection.getDB();
+                MongoMK mk = new MongoMK.Builder()
+                                .setMongoDB(mongoDB).open();
+                return new CloseableNodeStore(mk);
+            } catch (Exception e) {
+                return null;
+            }
+        }
 
         @Override
         public void dispose(NodeStore nodeStore) {
@@ -67,6 +87,22 @@ public abstract class NodeStoreFixture {
         @Override
         public NodeStore createNodeStore() {
             return new MongoMK.Builder().getNodeStore();
+        }
+        
+        @Override
+        public NodeStore createNodeStore(int clusterNodeId) {
+            String host = "localhost";
+            int port = 27017;
+            String db = "oak";
+            MongoConnection connection;
+            try {
+                connection = new MongoConnection(host, port, db);
+                DB mongoDB = connection.getDB();
+                return new MongoMK.Builder()
+                                .setMongoDB(mongoDB).getNodeStore();
+            } catch (Exception e) {
+                return null;
+            }
         }
 
         @Override
@@ -89,6 +125,16 @@ public abstract class NodeStoreFixture {
     };
 
     public abstract NodeStore createNodeStore();
+
+    /**
+     * Create a new cluster node that is attached to the same backend storage.
+     * 
+     * @param clusterNodeId the cluster node id
+     * @return the node store, or null if clustering is not supported
+     */
+    public NodeStore createNodeStore(int clusterNodeId) {
+        return null;
+    }
 
     public abstract void dispose(NodeStore nodeStore);
 
