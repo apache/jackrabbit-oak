@@ -16,47 +16,33 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import java.io.IOException;
-
+import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
-import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryJournal;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-class FileJournal extends MemoryJournal {
+class FileJournal implements Journal {
 
     private final FileStore store;
 
-    FileJournal(FileStore store, NodeState head) {
-        super(store, head);
-        this.store = store;
-    }
+    private final String name;
 
-    FileJournal(FileStore store, String parent) {
-        super(store, parent);
+    FileJournal(FileStore store, String name) {
         this.store = store;
+        this.name = name;
     }
 
     @Override
-    public synchronized boolean setHead(RecordId base, RecordId head) {
-        if (super.setHead(base, head)) { // flushes the segment if needed
-            try {
-                store.writeJournals();
-                return true;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            return false;
-        }
+    public RecordId getHead() {
+        return store.getHead(name);
     }
 
     @Override
-    public synchronized void merge() {
-        super.merge();
-        try {
-            store.writeJournals();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public boolean setHead(RecordId base, RecordId head) {
+        return store.setHead(name, base, head);
     }
+
+    @Override
+    public void merge() {
+        throw new UnsupportedOperationException();
+    }
+
 }
