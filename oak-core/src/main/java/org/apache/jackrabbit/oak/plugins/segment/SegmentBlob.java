@@ -46,14 +46,12 @@ class SegmentBlob extends Record implements Blob {
 
     @Override
     public boolean equals(Object object) {
-        if (object instanceof SegmentBlob) {
-            SegmentBlob that = (SegmentBlob) object;
-            if (getRecordId().equals(that.getRecordId())) {
-                return true;
-            }
+        if (object == this || fastEquals(this, object)) {
+            return true;
+        } else {
+            return object instanceof Blob
+                    && AbstractBlob.equal(this, (Blob) object);
         }
-        return object instanceof Blob
-                && AbstractBlob.equal(this, (Blob) object);
     }
 
     @Override

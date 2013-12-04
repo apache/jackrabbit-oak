@@ -29,6 +29,18 @@ import javax.annotation.Nonnull;
  */
 class Record {
 
+    static boolean fastEquals(Object a, Object b) {
+        return a instanceof Record && fastEquals((Record) a, b);
+    }
+
+    static boolean fastEquals(Record a, Object b) {
+        return b instanceof Record && fastEquals(a, (Record) b);
+    }
+
+    static boolean fastEquals(Record a, Record b) {
+        return equal(a.uuid, b.uuid) && a.offset == b.offset;
+    }
+
     /**
      * The segment that contains this record, or initially some other segment
      * in the same store. The reference is lazily updated when the

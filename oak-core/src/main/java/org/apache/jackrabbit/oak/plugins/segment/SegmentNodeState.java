@@ -270,17 +270,16 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        if (base == this) {
+        if (this == base || fastEquals(this, base)) {
              return true; // no changes
         } else if (base == EMPTY_NODE || !base.exists()) { // special case
             return getTemplate().compareAgainstEmptyState(
                     getSegment(), getRecordId(), diff);
         } else if (base instanceof SegmentNodeState) {
             SegmentNodeState that = (SegmentNodeState) base;
-            return getRecordId().equals(that.getRecordId())
-                || getTemplate().compareAgainstBaseState(
-                        getSegment(), getRecordId(), that.getTemplate(),
-                        that.getSegment(), that.getRecordId(), diff);
+            return getTemplate().compareAgainstBaseState(
+                    getSegment(), getRecordId(), that.getTemplate(),
+                    that.getSegment(), that.getRecordId(), diff);
         } else {
             // fallback
             return AbstractNodeState.compareAgainstBaseState(this, base, diff);
@@ -289,24 +288,18 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public boolean equals(Object object) {
-        if (this == object) {
+        if (this == object || fastEquals(this, object)) {
             return true;
         } else if (object instanceof SegmentNodeState) {
             SegmentNodeState that = (SegmentNodeState) object;
-            if (getRecordId().equals(that.getRecordId())
-                    && getStore() == that.getStore()) {
-                return true;
-            } else {
-                Template template = getTemplate();
-                return template.equals(that.getTemplate())
-                        && template.compare(
-                                getSegment(), getRecordId(),
-                                that.getSegment(), that.getRecordId());
-            }
-        } else if (object instanceof NodeState){
-            return AbstractNodeState.equals(this, (NodeState) object); // TODO
+            Template template = getTemplate();
+            return template.equals(that.getTemplate())
+                    && template.compare(
+                            getSegment(), getRecordId(),
+                            that.getSegment(), that.getRecordId());
         } else {
-            return false;
+            return object instanceof NodeState
+                    && AbstractNodeState.equals(this, (NodeState) object); // TODO
         }
     }
 

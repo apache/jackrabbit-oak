@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.Record.fastEquals;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
 import java.util.Arrays;
@@ -245,7 +246,7 @@ public class Template {
             // TODO: Leverage the HAMT data structure for the comparison
             MapRecord thisMap = getChildNodeMap(thisSegment, thisId);
             MapRecord thatMap = getChildNodeMap(thatSegment, thatId);
-            if (thisMap.getRecordId().equals(thatMap.getRecordId())) {
+            if (fastEquals(thisMap, thatMap)) {
                 return true; // shortcut
             } else if (thisMap.size() != thatMap.size()) {
                 return false; // shortcut
@@ -473,18 +474,6 @@ public class Template {
         return true;
     }
 
-
-    private boolean fastEquals(NodeState a, NodeState b) {
-        if (a == b) {
-            return true;
-        } else if (a instanceof SegmentNodeState
-                && b instanceof SegmentNodeState) {
-            return ((SegmentNodeState) a).getRecordId().equals(
-                    ((SegmentNodeState) b).getRecordId());
-        } else {
-            return false;
-        }
-    }
 
     private boolean compareProperties(
             PropertyState before, PropertyState after, NodeStateDiff diff) {
