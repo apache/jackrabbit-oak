@@ -224,7 +224,7 @@ public class JndiLdapSearch implements LdapSearch {
     }
 
     @Override
-    public void authenticate(LdapUser user) throws LoginException {
+    public boolean authenticate(LdapUser user) throws LoginException {
         try {
             Hashtable<String,String> env = new Hashtable<String,String>(ldapEnvironment);
             env.put(Context.SECURITY_PRINCIPAL, user.getDN());
@@ -232,6 +232,7 @@ public class JndiLdapSearch implements LdapSearch {
             //TODO
             env.put(Context.SECURITY_AUTHENTICATION, "simple");
             new InitialDirContext(env).close();
+            return true;
         } catch (NamingException e) {
             throw new LoginException("Could not create initial LDAP context for user " + user.getDN() + ": " + e.getMessage());
         }
