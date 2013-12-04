@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -85,6 +86,16 @@ public class Main {
                 upgrade(args[0], args[1]);
             } else {
                 System.err.println("usage: upgrade <olddir> <newdir>");
+                System.exit(1);
+            }
+        } else if ("backup".equals(command)) {
+            if (args.length == 2) {
+                FileStore store = new FileStore(new File(args[0]), 256, false);
+                FileStoreBackup.backup(
+                        new SegmentNodeStore(store), new File(args[1]));
+                store.close();
+            } else {
+                System.err.println("usage: backup <repository> <backup>");
                 System.exit(1);
             }
         } else if ("tarmk".equals(command)) {
