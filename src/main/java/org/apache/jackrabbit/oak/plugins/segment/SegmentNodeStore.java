@@ -143,22 +143,33 @@ public class SegmentNodeStore implements NodeStore, Observable {
     @Override @Nonnull
     public NodeState rebase(@Nonnull NodeBuilder builder) {
         checkArgument(builder instanceof SegmentNodeBuilder);
-        NodeState newBase = getRoot();
-        NodeState oldBase = builder.getBaseState();
-        if (!fastEquals(oldBase, newBase)) {
-            NodeState head = builder.getNodeState();
-            ((SegmentNodeBuilder) builder).reset(newBase);
-            head.compareAgainstBaseState(oldBase, new ConflictAnnotatingRebaseDiff(builder));
+
+        SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
+        checkArgument(store == snb.getBaseState().getStore());
+
+        NodeState root = getRoot();
+        SegmentNodeState before = snb.getBaseState();
+        if (!fastEquals(before, root)) {
+            SegmentNodeState after = snb.getNodeState();
+            snb.reset(root);
+            after.compareAgainstBaseState(
+                    before, new ConflictAnnotatingRebaseDiff(snb));
         }
-        return builder.getNodeState();
+
+        return snb.getNodeState();
     }
 
     @Override @Nonnull
     public NodeState reset(@Nonnull NodeBuilder builder) {
         checkArgument(builder instanceof SegmentNodeBuilder);
-        NodeState state = getRoot();
-        ((SegmentNodeBuilder) builder).reset(state);
-        return state;
+
+        SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
+        checkArgument(store == snb.getBaseState().getStore());
+
+        NodeState root = getRoot();
+        snb.reset(root);
+
+        return root;
     }
 
     @Override
