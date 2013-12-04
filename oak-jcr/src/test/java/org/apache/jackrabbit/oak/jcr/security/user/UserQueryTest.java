@@ -34,6 +34,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
@@ -602,7 +603,22 @@ public class UserQueryTest extends AbstractUserTest {
 
         Iterator<User> expected = Iterators.singletonIterator(elephant);
         assertTrue(result.hasNext());
-        assertSameElements(result, expected);
+        assertSameElements(expected, result);
+    }
+
+    @Test
+    public void testAdminImpersonation() throws Exception {
+        final String adminPrincipalName = userMgr.getAuthorizable(superuser.getUserID()).getPrincipal().getName();
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.
+                        impersonates(adminPrincipalName));
+            }
+        });
+
+        Iterator<Authorizable> expected = userMgr.findAuthorizables("rep:principalName", null, UserManager.SEARCH_TYPE_USER);
+        assertTrue(result.hasNext());
+        assertSameElements(expected, result);
     }
 
     @Test

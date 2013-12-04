@@ -99,7 +99,7 @@ public class UserQueryManager {
         }
 
         StringBuilder statement = new StringBuilder();
-        ConditionVisitor visitor = new XPathConditionVisitor(statement, namePathMapper);
+        ConditionVisitor visitor = new XPathConditionVisitor(statement, namePathMapper, userManager);
 
         String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(builder.getSelectorType(), config));
         String ntName = namePathMapper.getJcrName(QueryUtil.getNodeTypeName(builder.getSelectorType()));
