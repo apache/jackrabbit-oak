@@ -89,7 +89,7 @@ public class NodeDocument extends Document {
     /**
      * Revision collision markers set by commits with modifications, which
      * overlap with un-merged branch commits.
-     * Key: revision, value:
+     * Key: revision, value: always true
      */
     static final String COLLISIONS = "_collisions";
 
@@ -103,7 +103,8 @@ public class NodeDocument extends Document {
 
     /**
      * The list of revision to root commit depth mappings to find out if a
-     * revision is actually committed.
+     * revision is actually committed. Depth 0 means the commit is in the root node,
+     * depth 1 means one node below the root, and so on.
      */
     private static final String COMMIT_ROOT = "_commitRoot";
 
@@ -112,6 +113,10 @@ public class NodeDocument extends Document {
      * this node). This property is only set if multiple documents per node
      * exist. This is the case when a node is updated very often in a short
      * time, such that the document gets very big.
+     * <p>
+     * Key: high revision
+     * <p>
+     * Value: low revision
      */
     private static final String PREVIOUS = "_prev";
 
@@ -122,13 +127,22 @@ public class NodeDocument extends Document {
 
     /**
      * The list of recent revisions for this node, where this node is the
-     * root of the commit. Key: revision, value: true or the base revision of an
-     * un-merged branch commit.
+     * root of the commit. 
+     * <p>
+     * Key: revision.
+     * <p>
+     * Value: "c" for a regular (non-branch) commit, 
+     * "c-" + base revision of the successfully merged branch commit,
+     * "b" + base revision of an un-merged branch commit
      */
     private static final String REVISIONS = "_revisions";
 
     /**
-     * The last revision. Key: machine id, value: revision.
+     * The last revision. 
+     * <p>
+     * Key: machine id, in the form "r0-0-1".
+     * <p>
+     * Value: the revision.
      */
     private static final String LAST_REV = "_lastRev";
 

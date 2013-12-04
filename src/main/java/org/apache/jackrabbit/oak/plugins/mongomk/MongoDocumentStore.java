@@ -328,8 +328,9 @@ public class MongoDocumentStore implements DocumentStore {
             Number modCount = null;
             T cachedDoc = null;
             if (collection == Collection.NODES) {
-                //noinspection unchecked
-                cachedDoc = (T) nodesCache.getIfPresent(updateOp.getId());
+                @SuppressWarnings("unchecked")
+                T doc = (T) nodesCache.getIfPresent(updateOp.getId());
+                cachedDoc = doc;
                 if (cachedDoc != null) {
                     modCount = cachedDoc.getModCount();
                 }
@@ -585,9 +586,10 @@ public class MongoDocumentStore implements DocumentStore {
         if (collection != Collection.NODES) {
             return null;
         }
-        return (T) nodesCache.getIfPresent(key);
+        @SuppressWarnings("unchecked")
+        T doc = (T) nodesCache.getIfPresent(key);
+        return doc;
     }
-
 
     /**
      * Applies an update to the nodes cache. This method does not acquire
