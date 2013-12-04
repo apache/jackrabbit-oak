@@ -186,7 +186,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     @Override @Nonnull
-    public synchronized String checkpoint(long lifetime) {
+    public String checkpoint(long lifetime) {
         checkArgument(lifetime > 0);
         String name = UUID.randomUUID().toString();
 
@@ -221,7 +221,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     @Override @CheckForNull
-    public synchronized NodeState retrieve(@Nonnull String checkpoint) {
+    public NodeState retrieve(@Nonnull String checkpoint) {
         NodeState cp = head.getChildNode(checkpoint).getChildNode(ROOT);
         if (cp.exists()) {
             return cp;
