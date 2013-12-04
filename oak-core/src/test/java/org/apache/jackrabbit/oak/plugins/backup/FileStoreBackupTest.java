@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.backup;
 
 import static org.apache.commons.io.FileUtils.deleteQuietly;
-import static org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup.CACHE_SIZE;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -59,7 +58,9 @@ public class FileStoreBackupTest {
 
     @Test
     public void testBackup() throws Exception {
-        NodeStore store = newSegmentNodeStore(src);
+        FileStore source = new FileStore(src, 256, false);
+
+        NodeStore store = new SegmentNodeStore(source);
         init(store);
 
         // initial content
@@ -70,19 +71,23 @@ public class FileStoreBackupTest {
         addTestContent(store);
         FileStoreBackup.backup(store, destination);
         compare(store, destination);
+
+        source.close();
     }
 
     private static void addTestContent(NodeStore store)
             throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test-backup");
+        builder.child("root"); // make sure we don't backup the super-root
         store.merge(builder, EmptyHook.INSTANCE, null);
     }
 
     private static void compare(NodeStore store, File destination)
             throws IOException {
-        NodeStore backup = newSegmentNodeStore(destination);
-        assertEquals(store.getRoot(), backup.getRoot());
+        FileStore backup = new FileStore(destination, 256, false);
+        assertEquals(store.getRoot(), new SegmentNodeStore(backup).getRoot());
+        backup.close();
     }
 
     private static void init(NodeStore store) {
@@ -90,9 +95,4 @@ public class FileStoreBackupTest {
                 .with(new InitialContent()).createContentRepository();
     }
 
-    private static SegmentNodeStore newSegmentNodeStore(File file)
-            throws IOException {
-        return new SegmentNodeStore(new FileStore(file, CACHE_SIZE, CACHE_SIZE,
-                true));
-    }
 }

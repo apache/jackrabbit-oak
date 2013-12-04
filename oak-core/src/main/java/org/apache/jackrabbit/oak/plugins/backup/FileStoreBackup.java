@@ -39,7 +39,7 @@ public class FileStoreBackup {
 
     private static final long DEFAULT_LIFETIME = TimeUnit.HOURS.toMillis(1);
 
-    static int CACHE_SIZE = 256;
+    static int MAX_FILE_SIZE = 256;
 
     public static void backup(NodeStore store, File destination)
             throws IOException {
@@ -49,32 +49,44 @@ public class FileStoreBackup {
         String checkpoint = store.checkpoint(DEFAULT_LIFETIME);
         NodeState current = store.retrieve(checkpoint);
         if (current == null) {
-            log.debug("Unable to retrieve checkpoint {}", checkpoint);
-            return;
+            // unable to retrieve the checkpoint; use root state instead
+            current = store.getRoot();
         }
 
         // 2. init filestore
-        destination.mkdirs();
-        FileStore backup = null;
+        FileStore backup = new FileStore(destination, MAX_FILE_SIZE, false);
         try {
-            backup = new FileStore(destination, current, CACHE_SIZE,
-                    CACHE_SIZE, false);
+            Journal journal = backup.getJournal("root");
 
-            // TODO optimize incremental backup
-            Journal root = backup.getJournal("root");
-            SegmentNodeState state = new SegmentNodeState(backup.getWriter()
-                    .getDummySegment(), root.getHead());
+            SegmentNodeState state = new SegmentNodeState(
+                    backup.getWriter().getDummySegment(), journal.getHead());
             SegmentNodeBuilder builder = state.builder();
-            current.compareAgainstBaseState(state,
-                    new ApplyDiff(builder.child("root")));
-            root.setHead(state.getRecordId(), builder.getNodeState()
-                    .getRecordId());
 
-        } finally {
-            if (backup != null) {
-                backup.close();
+            String beforeCheckpoint = state.getString("checkpoint");
+            if (beforeCheckpoint == null) {
+                // 3.1 no stored checkpoint, so do the initial full backup
+                builder.setChildNode("root", current);
+            } else {
+                // 3.2 try to retrieve the previously backed up checkpoint
+                NodeState before = store.retrieve(beforeCheckpoint);
+                if (before != null) {
+                    // the previous checkpoint is no longer available,
+                    // so use the backed up state as the basis of the
+                    // incremental backup diff
+                    before = state.getChildNode("root");
+                }
+                current.compareAgainstBaseState(
+                        before, new ApplyDiff(builder.child("root")));
             }
-            log.debug("Backup done in {} ms.", System.currentTimeMillis() - s);
+            builder.setProperty("checkpoint", checkpoint);
+
+            // 4. commit the backup
+            journal.setHead(
+                    state.getRecordId(), builder.getNodeState().getRecordId());
+        } finally {
+            backup.close();
         }
+
+        log.debug("Backup done in {} ms.", System.currentTimeMillis() - s);
     }
 }
