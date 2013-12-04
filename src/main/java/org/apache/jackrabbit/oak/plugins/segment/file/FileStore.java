@@ -16,17 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,11 +47,9 @@ public class FileStore extends AbstractStore {
 
     private static final int DEFAULT_MEMORY_CACHE_SIZE = 256;
 
-    private static final long JOURNAL_MAGIC = 0xdf36544212c0cb24L;
-
-    static final UUID JOURNALS_UUID = new UUID(0, 0);
-
     private static final String FILE_NAME_FORMAT = "%s%05d.tar";
+
+    private static final String JOURNAL_FILE_NAME = "journal.log";
 
     private final File directory;
 
@@ -63,7 +61,9 @@ public class FileStore extends AbstractStore {
 
     private final LinkedList<TarFile> dataFiles = newLinkedList();
 
-    private final Map<String, Journal> journals = newHashMap();
+    private final RandomAccessFile journalFile;
+
+    private final Map<String, RecordId> journals = newConcurrentMap();
 
     public FileStore(File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
@@ -103,30 +103,46 @@ public class FileStore extends AbstractStore {
             }
         }
 
-        Segment segment = getWriter().getDummySegment();
-        for (TarFile tar : dataFiles) {
-            ByteBuffer buffer = tar.readEntry(JOURNALS_UUID);
-            if (buffer != null) {
-                checkState(JOURNAL_MAGIC == buffer.getLong());
-                int count = buffer.getInt();
-                for (int i = 0; i < count; i++) {
-                    byte[] b = new byte[buffer.getInt()];
-                    buffer.get(b);
-                    String name = new String(b, UTF_8);
-                    RecordId recordId = new RecordId(
-                            new UUID(buffer.getLong(), buffer.getLong()),
-                            buffer.getInt());
-                    journals.put(name, new FileJournal(
-                            this, new SegmentNodeState(segment, recordId)));
-                }
+        journalFile = new RandomAccessFile(
+                new File(directory, JOURNAL_FILE_NAME), "rw");
+        String line = journalFile.readLine();
+        while (line != null) {
+            int space = line.indexOf(' ');
+            if (space != -1) {
+                String name = line.substring(space + 1);
+                RecordId id = RecordId.fromString(line.substring(0, space));
+                journals.put(name, id);
             }
+            line = journalFile.readLine();
         }
 
         if (!journals.containsKey("root")) {
             NodeBuilder builder = EMPTY_NODE.builder();
             builder.setChildNode("root", initial);
-            journals.put("root", new FileJournal(this, builder.getNodeState()));
-            writeJournals();
+            SegmentNodeState root =
+                    getWriter().writeNode(builder.getNodeState());
+            journals.put("root", root.getRecordId());
+            journalFile.writeBytes(root.getRecordId() + " root\n");
+        }
+    }
+
+    RecordId getHead(String name) {
+        return journals.get(name);
+    }
+
+    synchronized boolean setHead(String name, RecordId base, RecordId head) {
+        if (base.equals(journals.get(name))) {
+            getWriter().flush();
+            try {
+                journalFile.writeBytes(head + " " + name + "\n");
+                journals.put(name, head);
+                return true;
+            } catch (IOException e) {
+                throw new IllegalStateException(
+                        "Failed to update journal " + name, e);
+            }
+        } else {
+            return false;
         }
     }
 
@@ -145,6 +161,9 @@ public class FileStore extends AbstractStore {
     public synchronized void close() {
         try {
             super.close();
+
+            journalFile.close();
+
             for (TarFile file : bulkFiles) {
                 file.close();
             }
@@ -153,6 +172,7 @@ public class FileStore extends AbstractStore {
                 file.close();
             }
             dataFiles.clear();
+
             System.gc(); // for any memory-mappings that are no longer used
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -160,13 +180,13 @@ public class FileStore extends AbstractStore {
     }
 
     @Override
-    public synchronized Journal getJournal(final String name) {
-        Journal journal = journals.get(name);
-        if (journal == null) {
-            journal = new FileJournal(this, "root");
-            journals.put(name, journal);
+    public Journal getJournal(String name) {
+        synchronized (journals) {
+            if (journals.containsKey(name)) {
+                journals.put(name, journals.get("root"));
+            }
         }
-        return journal;
+        return new FileJournal(this, name);
     }
 
     @Override @Nonnull
@@ -231,28 +251,6 @@ public class FileStore extends AbstractStore {
     public void deleteSegment(UUID segmentId) {
         // TODO: implement
         super.deleteSegment(segmentId);
-    }
-
-    synchronized void writeJournals() throws IOException {
-        int size = 8 + 4;
-        for (String name : journals.keySet()) {
-            size += 4 + name.getBytes(UTF_8).length + 16 + 4;
-        }
-
-        ByteBuffer buffer = ByteBuffer.allocate(size);
-        buffer.putLong(JOURNAL_MAGIC);
-        buffer.putInt(journals.size());
-        for (Map.Entry<String, Journal> entry : journals.entrySet()) {
-            byte[] name = entry.getKey().getBytes(UTF_8);
-            buffer.putInt(name.length);
-            buffer.put(name);
-            RecordId head = entry.getValue().getHead();
-            buffer.putLong(head.getSegmentId().getMostSignificantBits());
-            buffer.putLong(head.getSegmentId().getLeastSignificantBits());
-            buffer.putInt(head.getOffset());
-        }
-
-        writeEntry(JOURNALS_UUID, buffer.array(), 0, size);
     }
 
 }
