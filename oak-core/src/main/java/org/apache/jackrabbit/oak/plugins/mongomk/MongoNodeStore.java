@@ -1301,4 +1301,8 @@ public final class MongoNodeStore
         return blobSerializer;
     }
     
+    Iterator<Blob> getReferencedBlobsIterator() {
+        return new BlobReferenceIterator(this);
+    }
+    
 }
