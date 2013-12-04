@@ -18,7 +18,12 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 
 /**
@@ -28,10 +33,13 @@ class XPathConditionVisitor implements ConditionVisitor {
 
     private final StringBuilder statement;
     private final NamePathMapper namePathMapper;
+    private final UserManager userMgr;
 
-    XPathConditionVisitor(StringBuilder statement, NamePathMapper namePathMapper) {
+    XPathConditionVisitor(StringBuilder statement, NamePathMapper namePathMapper,
+                          UserManager userMgr) {
         this.statement = statement;
         this.namePathMapper = namePathMapper;
+        this.userMgr = userMgr;
     }
 
     //---------------------------------------------------< ConditionVisitor >---
@@ -79,9 +87,27 @@ class XPathConditionVisitor implements ConditionVisitor {
 
     @Override
     public void visit(Condition.Impersonation condition) {
-        statement.append("@rep:impersonators='")
-                .append(condition.getName())
-                .append('\'');
+        String principalName = condition.getName();
+        boolean isAdmin = false;
+        try {
+            Authorizable authorizable = userMgr.getAuthorizable(new PrincipalImpl(principalName));
+            isAdmin = authorizable != null && !authorizable.isGroup() && ((User) authorizable).isAdmin();
+        } catch (RepositoryException e) {
+            // unable to retrieve authorizable
+        }
+        if (isAdmin) {
+            statement.append('@')
+                    .append(namePathMapper.getJcrName(JcrConstants.JCR_PRIMARYTYPE))
+                    .append("='")
+                    .append(namePathMapper.getJcrName(UserConstants.NT_REP_USER))
+                    .append('\'');
+        } else {
+            statement.append('@')
+                    .append(namePathMapper.getJcrName(UserConstants.REP_IMPERSONATORS))
+                    .append("='")
+                    .append(condition.getName())
+                    .append('\'');
+        }
     }
 
     @Override
