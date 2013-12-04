@@ -111,6 +111,8 @@ public class DefaultSyncHandler implements SyncHandler {
     @CheckForNull
     private User createUser(ExternalUser externalUser) throws RepositoryException, SyncException {
         if (mode.contains(SyncMode.MODE_CREATE_USER)) {
+            // sync user without password.
+            // TODO: what intermediate path to use for the user creation?
             User user = userManager.createUser(externalUser.getId(), null, externalUser.getPrincipal(), null);
             syncAuthorizable(externalUser, user);
             return user;
@@ -122,6 +124,7 @@ public class DefaultSyncHandler implements SyncHandler {
     @CheckForNull
     private Group createGroup(ExternalGroup externalGroup) throws RepositoryException, SyncException {
         if (mode.contains(SyncMode.MODE_CREATE_GROUPS)) {
+            // TODO: what intermediate path to use for the group creation?
             Group group = userManager.createGroup(externalGroup.getId(), externalGroup.getPrincipal(), null);
             syncAuthorizable(externalGroup, group);
             return group;
