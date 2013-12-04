@@ -20,8 +20,6 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
@@ -102,13 +100,17 @@ public class Segment {
                 }
             };
 
+    private static final UUID[] NO_REFS = new UUID[0];
+
     private final SegmentStore store;
 
     private final UUID uuid;
 
+    private final UUID[] refids;
+
     private final ByteBuffer data;
 
-    private final int refposition;
+    private final boolean current;
 
     public Segment(SegmentStore store, UUID uuid, ByteBuffer data) {
         this.store = checkNotNull(store);
@@ -117,10 +119,28 @@ public class Segment {
 
         int refpos = data.position();
         if (isDataSegmentId(uuid)) {
+            int refs = data.get(refpos) & 0xff;
             int roots = data.getShort(refpos + 1) & 0xffff;
             refpos += align(3 + roots * 3);
+            refids = new UUID[refs];
+            for (int i = 0; i < refs; i++) {
+                refids[i] = new UUID(
+                        data.getLong(refpos + i * 16),
+                        data.getLong(refpos + i * 16 + 8));
+            }
+        } else {
+            refids = NO_REFS;
         }
-        this.refposition = refpos;
+
+        this.current = false;
+    }
+
+    Segment(SegmentStore store, UUID uuid, UUID[] refids, ByteBuffer data) {
+        this.store = checkNotNull(store);
+        this.uuid = checkNotNull(uuid);
+        this.refids = checkNotNull(refids);
+        this.data = checkNotNull(data);
+        this.current = true;
     }
 
     /**
@@ -154,18 +174,7 @@ public class Segment {
     }
 
     public List<UUID> getReferencedIds() {
-        if (isDataSegmentId(uuid)) {
-            int refcount = data.get(data.position()) & 0xff;
-            List<UUID> refs = newArrayListWithCapacity(refcount);
-            for (int i = 0; i < refcount; i++) {
-                refs.add(new UUID(
-                        data.getLong(refposition + i * 16),
-                        data.getLong(refposition + i * 16 + 8)));
-            }
-            return refs;
-        } else {
-            return emptyList();
-        }
+        return Arrays.asList(refids);
     }
 
     public int size() {
@@ -226,8 +235,7 @@ public class Segment {
         UUID refid;
         int refpos = data.get(pos) & 0xff;
         if (refpos != 0xff) {
-            refpos = refposition + refpos * 16;
-            refid = new UUID(data.getLong(refpos), data.getLong(refpos + 8));
+            refid = refids[refpos];
         } else {
             refid = uuid;
         }
@@ -412,27 +420,26 @@ public class Segment {
         StringWriter string = new StringWriter();
         PrintWriter writer = new PrintWriter(string);
 
-        int pos = refposition;
-        int refcount = data.get(data.position()) & 0xff;
-        int rootcount = data.getShort(data.position() + 1) &0xffff;
-        int length =
-                data.capacity() - (align(3 + rootcount * 3) + refcount * 16);
+        int rootcount = 0;
+        int length = data.remaining();
+        if (!current) {
+            rootcount = data.getShort(data.position() + 1) &0xffff;
+            length -= (align(3 + rootcount * 3) + refids.length * 16);
+        }
 
         writer.format(
                 "Segment %s (%d bytes, %d ref%s, %d root%s)%n",
                 uuid, length,
-                refcount, (refcount != 1 ? "s" : ""),
+                refids.length, (refids.length != 1 ? "s" : ""),
                 rootcount, (rootcount != 1 ? "s" : ""));
         writer.println("--------------------------------------------------------------------------");
-        if (refcount > 0) {
-            for (int i = 0; i < refcount; i++) {
-                UUID id = new UUID(data.getLong(pos), data.getLong(pos + 8));
-                writer.format("reference %02x: %s%n", i, id);
-                pos += 16;
+        if (refids.length > 0) {
+            for (int i = 0; i < refids.length; i++) {
+                writer.format("reference %02x: %s%n", i, refids[i]);
             }
             writer.println("--------------------------------------------------------------------------");
         }
-        pos = data.limit() - ((length + 15) & ~15);
+        int pos = data.limit() - ((length + 15) & ~15);
         while (pos < data.limit()) {
             writer.format("%04x: ", (MAX_SEGMENT_SIZE - data.limit() + pos) >> RECORD_ALIGN_BITS);
             for (int i = 0; i < 16; i++) {

@@ -116,7 +116,7 @@ public class SegmentWriter {
      * The segment write buffer, filled from the end to the beginning
      * (see OAK-629).
      */
-    private final byte[] buffer = new byte[MAX_SEGMENT_SIZE];
+    private byte[] buffer = new byte[MAX_SEGMENT_SIZE];
 
     /**
      * The number of bytes already written (or allocated). Counted from
@@ -168,12 +168,12 @@ public class SegmentWriter {
     public synchronized Segment getCurrentSegment(UUID id) {
         if (equal(id, uuid)) {
             if (currentSegment == null) {
-                int header = align(3 + roots.size() * 3) + 16 * refids.size();
-                ByteBuffer b = ByteBuffer.allocate(header + length);
-                writeSegmentHeader(b);
-                b.put(buffer, buffer.length - length, length);
-                b.rewind();
-                currentSegment = new Segment(store, uuid, b);
+                ByteBuffer b = ByteBuffer.wrap(buffer);
+                b.position(buffer.length - length);
+                currentSegment = new Segment(
+                        store, uuid,
+                        refids.keySet().toArray(new UUID[refids.size()]),
+                        b);
             }
             return currentSegment;
         } else {
@@ -196,6 +196,7 @@ public class SegmentWriter {
             store.writeSegment(uuid, buffer, buffer.length - length, length);
 
             uuid = newDataSegmentId();
+            buffer = new byte[MAX_SEGMENT_SIZE];
             refids.clear();
             roots.clear();
             length = 0;
@@ -221,10 +222,7 @@ public class SegmentWriter {
             }
         }
         int refCount = refids.size() + segmentIds.size();
-
-        Set<RecordId> rootIds = newHashSet(roots.keySet());
-        rootIds.removeAll(ids);
-        int rootCount = rootIds.size() + 1;
+        int rootCount = roots.size() + 1;
 
         int recordSize = Segment.align(size + ids.size() * Segment.RECORD_ID_BYTES);
         int headerSize = Segment.align(3 + rootCount * 3);

@@ -179,8 +179,13 @@ class TarFile {
         return true;
     }
 
-    void close() throws IOException {
+    public void flush() throws IOException {
         access.flush();
+    }
+
+
+    void close() throws IOException {
+        flush();
         access.close();
     }
 
