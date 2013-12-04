@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Collections;
 import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
@@ -34,9 +35,6 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class ExternalLoginModule extends AbstractLoginModule {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModule.class);
 
     public static final String PARAM_SYNC_MODE = "syncMode";
@@ -58,7 +56,7 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
      *
      * @return
      */
-    @Nonnull
+    @CheckForNull
     protected abstract ExternalUser getExternalUser();
 
     /**
@@ -132,8 +130,9 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
             } else {
                 syncMode = SyncMode.fromObject(smValue);
             }
-            if (handler.initialize(userManager, root, syncMode, options)) {
-                handler.sync(getExternalUser());
+            ExternalUser eu = getExternalUser();
+            if (eu != null && handler.initialize(userManager, root, syncMode, options)) {
+                handler.sync(eu);
                 root.commit();
                 return true;
             } else {

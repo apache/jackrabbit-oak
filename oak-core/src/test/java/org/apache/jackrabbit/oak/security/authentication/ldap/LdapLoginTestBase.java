@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
@@ -26,11 +28,16 @@ import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncMode;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -38,6 +45,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -157,6 +166,9 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
             Authorizable user = userManager.getAuthorizable(USER_ID);
             assertNotNull(user);
             assertTrue(user.hasProperty(USER_PROP));
+            Tree userTree = cs.getLatestRoot().getTree(user.getPath());
+            assertFalse(userTree.hasProperty(UserConstants.REP_PASSWORD));
+
             assertNull(userManager.getAuthorizable(GROUP_DN));
         } finally {
             if (cs != null) {
@@ -312,13 +324,107 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
         }
     }
 
-    @Ignore
+    @Test
+    public void testLoginSetsAuthInfo() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PWD.toCharArray());
+            sc.setAttribute("attr", "val");
+
+            cs = login(sc);
+            AuthInfo ai = cs.getAuthInfo();
+
+            assertEquals(USER_ID, ai.getUserID());
+            assertEquals("val", ai.getAttribute("attr"));
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testPrincipalsFromAuthInfo() throws Exception {
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
+
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PWD.toCharArray());
+            sc.setAttribute("attr", "val");
+
+            cs = login(sc);
+            AuthInfo ai = cs.getAuthInfo();
+
+            root.refresh();
+            PrincipalProvider pp = getSecurityProvider().getConfiguration(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT);
+            Set<? extends Principal> expected = pp.getPrincipals(USER_ID);
+            assertEquals(2, expected.size());
+            assertEquals(expected, ai.getPrincipals());
+
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testPrincipalsFromAuthInfo2() throws Exception {
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.CREATE_USER, SyncMode.CREATE_GROUP});
+
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PWD.toCharArray());
+            sc.setAttribute("attr", "val");
+
+            cs = login(sc);
+            AuthInfo ai = cs.getAuthInfo();
+
+            root.refresh();
+            PrincipalProvider pp = getSecurityProvider().getConfiguration(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT);
+            Set<? extends Principal> expected = pp.getPrincipals(USER_ID);
+            assertEquals(3, expected.size());
+            assertEquals(expected, ai.getPrincipals());
+
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testReLogin() throws Exception {
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
+
+        ContentSession cs = null;
+        try {
+            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+
+            root.refresh();
+            Authorizable user = userManager.getAuthorizable(USER_ID);
+            assertNotNull(user);
+            assertFalse(root.getTree(user.getPath()).hasProperty(UserConstants.REP_PASSWORD));
+
+            cs.close();
+            // login again
+            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+            assertEquals(USER_ID, cs.getAuthInfo().getUserID());
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
+    }
+
+    @Ignore // FIXME
     @Test
     public void testConcurrentLogin() throws Exception {
         concurrentLogin(false);
     }
 
-    @Ignore
+    @Ignore // FIXME
     @Test
     public void testConcurrentLoginSameGroup() throws Exception {
         concurrentLogin(true);
