@@ -51,8 +51,8 @@ differences:
 * `QueryBuilder#setScope(String groupID, boolean declaredOnly)` now also works properly
   for the everyone group (see [OAK-949])
 * `QueryBuilder#impersonates(String principalName)` works properly for the admin
-  and system principal which are specially treated in the implementation of
-  the `Impersonation` interface (see [OAK-1183]).
+  principal which are specially treated in the implementation of the `Impersonation`
+  interface (see [OAK-1183]).
 
 ##### Autosave Behavior
 Due to the nature of the UserManager (see above) we decided to drop the auto-save
