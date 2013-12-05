@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -279,12 +280,13 @@ public class RepositoryUpgrade {
             copyWorkspaces(builder, idxToPrefix);
 
             // TODO: default hooks?
-            CommitHook hook = new EditorHook(new CompositeEditorProvider(
-                    new RegistrationEditorProvider(),
-                    new GroupEditorProvider(),
-                    new IndexUpdateProvider(new CompositeIndexEditorProvider(
-                            new ReferenceEditorProvider(),
-                            new PropertyIndexEditorProvider()))));
+            CommitHook hook = new CompositeHook(
+                    new EditorHook(new GroupEditorProvider()),
+                    new EditorHook(new CompositeEditorProvider(
+                            new RegistrationEditorProvider(),
+                            new IndexUpdateProvider(new CompositeIndexEditorProvider(
+                                    new ReferenceEditorProvider(),
+                                    new PropertyIndexEditorProvider())))));
             target.merge(builder, hook, null);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
