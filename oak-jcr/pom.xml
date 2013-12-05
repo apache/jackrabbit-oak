@@ -77,6 +77,8 @@
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName           <!-- Uses SNS -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove <!-- Uses SNS -->
       org.apache.jackrabbit.core.observation.ReorderTest                                           <!-- Uses SNS -->
+        
+      org.apache.jackrabbit.oak.jcr.observation.ObservationRefreshTest <!-- [tripod] currently too slow...will fix soon -->
 
       <!-- Versioning -->
       org.apache.jackrabbit.test.api.version.VersionTest#testUpdate
