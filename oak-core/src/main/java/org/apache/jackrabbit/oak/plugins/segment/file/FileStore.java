@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
 
@@ -31,6 +32,7 @@ import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 
 import javax.annotation.Nonnull;
 
@@ -41,8 +43,12 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileStore extends AbstractStore {
+
+    private static final Logger log = LoggerFactory.getLogger(FileStore.class);
 
     private static final int DEFAULT_MEMORY_CACHE_SIZE = 256;
 
@@ -66,9 +72,17 @@ public class FileStore extends AbstractStore {
 
     private volatile boolean updated = false;
 
-    private volatile boolean alive = true;
-
+    /**
+     * The background flush thread. Automatically flushes the TarMK state
+     * once every five seconds.
+     */
     private final Thread flushThread;
+
+    /**
+     * Synchronization aid used by the background flush thread to stop itself
+     * as soon as the {@link #close()} method is called.
+     */
+    private final CountDownLatch timeToClose = new CountDownLatch(1);
 
     public FileStore(File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
@@ -133,39 +147,37 @@ public class FileStore extends AbstractStore {
             @Override
             public void run() {
                 try {
-                    synchronized (flushThread) {
-                        flushThread.wait(1000);
-                        while (alive) {
+                    timeToClose.await(1, SECONDS);
+                    while (timeToClose.getCount() > 0) {
+                        try {
                             flush();
-                            flushThread.wait(5000);
+                        } catch (IOException e) {
+                            log.warn("Failed to flush TarMK state", e);
                         }
+                        timeToClose.await(5, SECONDS);
                     }
                 } catch (InterruptedException e) {
-                    // stop flushing
+                    log.warn("TarMK flush thread interrupted");
                 }
             }
         });
-        flushThread.setName("TarMK flush thread " + directory);
+        flushThread.setName("TarMK flush thread: " + directory);
         flushThread.setDaemon(true);
         flushThread.setPriority(Thread.MIN_PRIORITY);
         flushThread.start();
     }
 
-    private synchronized void flush() {
+    public synchronized void flush() throws IOException {
         if (updated) {
-            try {
-                getWriter().flush();
-                for (TarFile file : bulkFiles) {
-                    file.flush();
-                }
-                for (TarFile file : dataFiles) {
-                    file.flush();
-                }
-                journalFile.writeBytes(head + " root\n");
-                journalFile.getChannel().force(false);
-            } catch (IOException e) {
-                e.printStackTrace(); // FIXME
+            getWriter().flush();
+            for (TarFile file : bulkFiles) {
+                file.flush();
             }
+            for (TarFile file : dataFiles) {
+                file.flush();
+            }
+            journalFile.writeBytes(head + " root\n");
+            journalFile.getChannel().force(false);
         }
     }
 
@@ -185,10 +197,7 @@ public class FileStore extends AbstractStore {
         try {
             super.close();
 
-            alive = false;
-            synchronized (flushThread) {
-                flushThread.notify();
-            }
+            timeToClose.countDown();
             flushThread.join();
             flush();
 
