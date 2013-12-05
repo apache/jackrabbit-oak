@@ -198,7 +198,7 @@ public class MemoryDocumentStore implements DocumentStore {
         }
     }
 
-    private static boolean checkConditions(Document doc,
+    public static boolean checkConditions(Document doc,
                                            UpdateOp update) {
         for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
             Operation op = change.getValue();
