@@ -69,7 +69,7 @@ public final class UpdateOp {
         return id;
     }
     
-    boolean isNew() {
+    public boolean isNew() {
         return isNew;
     }
     
