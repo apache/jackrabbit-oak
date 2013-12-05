@@ -38,14 +38,16 @@ import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -277,11 +279,12 @@ public class RepositoryUpgrade {
             copyWorkspaces(builder, idxToPrefix);
 
             // TODO: default hooks?
-            CommitHook hook = new CompositeHook(
-                    new EditorHook(new RegistrationEditorProvider()),
-                    new EditorHook(new GroupEditorProvider()),
-                    new EditorHook(new IndexUpdateProvider(new ReferenceEditorProvider()))
-            );
+            CommitHook hook = new EditorHook(new CompositeEditorProvider(
+                    new RegistrationEditorProvider(),
+                    new GroupEditorProvider(),
+                    new IndexUpdateProvider(new CompositeIndexEditorProvider(
+                            new ReferenceEditorProvider(),
+                            new PropertyIndexEditorProvider()))));
             target.merge(builder, hook, null);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
