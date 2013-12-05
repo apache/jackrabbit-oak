@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -43,6 +42,7 @@ import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.test.api.util.Text;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static javax.jcr.observation.Event.NODE_ADDED;
@@ -99,6 +99,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
         observingSession.logout();
     }
 
+    @Ignore("OAK-1267") // FIXME: OAK-1267
     @Test
     public void observation() throws RepositoryException, InterruptedException, ExecutionException {
         final MyListener listener = new MyListener();
