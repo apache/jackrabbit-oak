@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.12
+Release Notes -- Apache Jackrabbit Oak -- Version 0.13
 
 Introduction
 ------------
@@ -10,42 +10,64 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.12 is to alpha-level software. Use at your own risk.
+Jackrabbit Oak 0.13 is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.12
+Changes in Oak 0.13
 -------------------
 
 New Features
 
-  [OAK-1203] Reset branch to previous commit
-  [OAK-1210] Update Mongo Java Driver version to 2.11.3
+  [OAK-1159] Backup and restore
 
 Improvements
 
-  [OAK-1114] Clarify NodeBuilder.moveTo() contract
-  [OAK-1134] IdentifierManager.getReferences() does not scale
-  [OAK-1198] Retry InMemory merge
-  [OAK-1202] Retry Persisted merge
-  [OAK-1212] InMemory merge retries too aggressive
+  [OAK-632] SegmentMK: Efficient updates of flat nodes
+  [OAK-372] Integrate PropertyBuilder with NodeBuilder
+  [OAK-760] MongoBlobStore: read from a secondary member when possible
+  [OAK-762] MongoMK: automatic unique cluster id with few bits
+  [OAK-856] Use in-memory MongoMK instead of MicroKernelImpl for tests
+  [OAK-908] Performance measurement
+  [OAK-1116] XPath queries: use indexes for queries with "or" conditions
+  [OAK-1152] SegmentMK: Improved debuggability
+  [OAK-1190] Limit size of batch update in background write
+  [OAK-1201] Implement jackrabbit api specific descriptors
+  [OAK-1207] Change OakRepositoryStubBase to use NodeStore setup
+  [OAK-1222] Migration of Group Members stored in tree structure
+  [OAK-1246] Make AsynchIndexUpdate task to run only on a single node in a cluster
+  [OAK-1248] Return early in Commit.markChanged() when parent is already marked
+  [OAK-1249] Fine-grained locking in SegmentMK commits
+  [OAK-1252] Lazy privilege access in AccessControlValidator
+  [OAK-1253] Faster SecurityProviderImpl.getConfigurations()
 
 Bugs
 
-  [OAK-482] Group members stored in a rep:members tree
-  [OAK-685] Enforce referential integrity for referenceable nodes
-  [OAK-869] Runtime exception while adding node
-  [OAK-1130] Performance issues with MutableTree
-  [OAK-1137] Node.getReferences() is slow due to missing property index
-  [OAK-1187] Parallel execution of various access control related benchmarks fail on MongoMK
-  [OAK-1189] Blob instances do no adhere to contract
-  [OAK-1195] Unable to move referenced mode
-  [OAK-1199] Parallel execution of DescendantSearchTest and SimpleSearchTest fail with MongoMK
-  [OAK-1208] Lucene Index should ignore property existence checks
-  [OAK-1213] Namespaces index node oak:namespaces should have a primary type
-  [OAK-1218] NPE in PrincipalManagerTest#testMembers
-  [OAK-1219] VersionEditor must ignore hidden items
+  [OAK-781] Clarify / fix effects of MISSING_NODE as base state of NodeBuilder
+  [OAK-795] Osgi init issues
+  [OAK-913] Query: relative fulltext conditions return the wrong result
+  [OAK-928] Read access is enforced on NEW items
+  [OAK-1075] XPath query failures for mvps
+  [OAK-1108] Query constraints marked as invalid in the case of an mvp
+  [OAK-1155] PropertyIndex cost calculation is faulty
+  [OAK-1176] ObservationTest#observationDispose fails every now and then
+  [OAK-1183] UserQuery: Impersonators Constraint does not work for admin user
+  [OAK-1184] Uploading large number of files to single folder fails.
+  [OAK-1191] Integration testcase fail with Segment MongoStore implementaion
+  [OAK-1216] Path parsing must support SNS indexes, irrespective of SNS support
+  [OAK-1224] Repository descriptor "node.type.management.same.name.siblings.supported" should be false
+  [OAK-1225] Session.nodeExists("/foo/bar[2]") must not throw PathNotFoundException
+  [OAK-1227] Node.hasNode("foo[2]") must not throw PathNotFoundException
+  [OAK-1234] Node.getReferences() also returns weak references on same node
+  [OAK-1235] Upgrade should not overwrite new oak specific builtin nodetypes
+  [OAK-1242] Weak reference targets added after the reference property are not indexed
+  [OAK-1243] Upgrade fails if source repository is broken
+  [OAK-1250] Guard against invalid/missing checkpoints
+  [OAK-1256] Dead code in PrivilegeBitsProvider#getPrivilegeNames
+  [OAK-1257] Adding a new reference to an existing MV property deletes the back references of the old ones
+  [OAK-1259] Failures in ReferencesTest
+
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 0.11 release.
+all the changes included up to the Apache Jackrabbit Oak 0.12 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
