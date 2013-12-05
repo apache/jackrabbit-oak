@@ -61,9 +61,9 @@ public class QueryTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         Node content = session.getRootNode().addNode("test");
         String[][] list = {
-                {"three", "äöü"}, 
+                {"three", "\u00e4\u00f6\u00fc"}, 
                 {"two", "123456789"}, 
-                {"one", "㍠㍡㍢㍣㍤㍥㍦㍧㍨㍩"}, 
+                {"one", "\u3360\u3361\u3362\u3363\u3364\u3365\u3366\u3367\u3368\u3369"}, 
         };
         for (String[] pair : list) {
             content.addNode(pair[0]).setProperty("prop", 
