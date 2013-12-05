@@ -152,7 +152,8 @@ public class FileStore extends AbstractStore {
                         try {
                             flush();
                         } catch (IOException e) {
-                            log.warn("Failed to flush TarMK state", e);
+                            log.warn("Failed to flush the TarMK at" +
+                                    FileStore.this.directory, e);
                         }
                         timeToClose.await(5, SECONDS);
                     }
@@ -193,28 +194,38 @@ public class FileStore extends AbstractStore {
     }
 
     @Override
-    public synchronized void close() {
+    public void close() {
         try {
-            super.close();
-
+            // avoid deadlocks while joining the flush thread
             timeToClose.countDown();
-            flushThread.join();
-            flush();
-
-            journalFile.close();
-
-            for (TarFile file : bulkFiles) {
-                file.close();
+            try {
+                flushThread.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Interrupted while joining the TarMK flush thread", e);
             }
-            bulkFiles.clear();
-            for (TarFile file : dataFiles) {
-                file.close();
-            }
-            dataFiles.clear();
 
-            System.gc(); // for any memory-mappings that are no longer used
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            synchronized (this) {
+                super.close();
+
+                flush();
+
+                journalFile.close();
+
+                for (TarFile file : bulkFiles) {
+                    file.close();
+                }
+                bulkFiles.clear();
+                for (TarFile file : dataFiles) {
+                    file.close();
+                }
+                dataFiles.clear();
+
+                System.gc(); // for any memory-mappings that are no longer used
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Failed to close the TarMK at " + directory, e);
         }
     }
 
