@@ -45,10 +45,10 @@ class NodeTypeIndexLookup implements JcrConstants {
      * @return <code>true</code> if a node type index exists; <code>false</code>
      *         otherwise.
      */
-    public boolean isIndexed(String path) {
+    public boolean isIndexed(String path, Filter f) {
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
-        if (lookup.isIndexed(JCR_PRIMARYTYPE, path, null)
-                && lookup.isIndexed(JCR_MIXINTYPES, path, null)) {
+        if (lookup.isIndexed(JCR_PRIMARYTYPE, path, f)
+                && lookup.isIndexed(JCR_MIXINTYPES, path, f)) {
             return true;
         }
 
@@ -62,13 +62,13 @@ class NodeTypeIndexLookup implements JcrConstants {
 
         NodeState child = root.getChildNode(path.substring(0, slash));
         return new NodeTypeIndexLookup(child).isIndexed(
-                path.substring(slash));
+                path.substring(slash), f);
     }
 
     public double getCost(Filter filter) {
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
-        return lookup.getCost(null, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes()))
-                + lookup.getCost(null, JCR_MIXINTYPES, newName(filter.getMixinTypes()));
+        return lookup.getCost(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes()))
+                + lookup.getCost(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()));
     }
 
     /**

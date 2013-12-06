@@ -48,7 +48,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             return Double.POSITIVE_INFINITY;
         }
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root);
-        if (lookup.isIndexed(filter.getPath())) {
+        if (lookup.isIndexed(filter.getPath(), filter)) {
             return lookup.getCost(filter);
         } else {
             return Double.POSITIVE_INFINITY;
@@ -58,7 +58,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
     @Override
     public Cursor query(Filter filter, NodeState root) {
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root);
-        if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath())) {
+        if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath(), filter)) {
             throw new IllegalStateException(
                     "NodeType index is used even when no index is available for filter " + filter);
         }
