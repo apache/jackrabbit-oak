@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.plugins.mongomk.Collection;
 import org.apache.jackrabbit.oak.plugins.mongomk.Document;
 import org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.mongomk.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.mongomk.Revision;
 import org.apache.jackrabbit.oak.plugins.mongomk.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp;
@@ -50,11 +49,33 @@ import org.json.simple.parser.ParseException;
 
 public class SQLDocumentStore implements DocumentStore {
 
+    /**
+     * Creates a {@linkplain SQLDocumentStore} instance using an embedded H2
+     * database.
+     */
     public SQLDocumentStore() {
         try {
-            initialize(new File("."));
+            File dbDir = new File(".", "db");
+            if (!dbDir.exists()) {
+                dbDir.mkdirs();
+            }
+
+            String jdbcurl = "jdbc:h2:" + dbDir.getCanonicalPath() + "/revs";
+            initialize(jdbcurl, "sa", "");
         } catch (Exception ex) {
-            throw new RuntimeException(ex);
+            throw new MicroKernelException("initializing SQL document store", ex);
+        }
+    }
+
+    /**
+     * Creates a {@linkplain SQLDocumentStore} instance using the provided JDBC
+     * connection information.
+     */
+    public SQLDocumentStore(String jdbcurl, String username, String password) {
+        try {
+            initialize(jdbcurl, username, password);
+        } catch (Exception ex) {
+            throw new MicroKernelException("initializing SQL document store", ex);
         }
     }
 
@@ -136,16 +157,13 @@ public class SQLDocumentStore implements DocumentStore {
 
     private Connection connection;
 
-    private void initialize(File homeDir) throws Exception {
-        File dbDir = new File(homeDir, "db");
-        if (!dbDir.exists()) {
-            dbDir.mkdirs();
-        }
-
-        String jdbcuri = "jdbc:h2:" + dbDir.getCanonicalPath() + "/revs";
-        connection = DriverManager.getConnection(jdbcuri, "sa", "");
+    private void initialize(String jdbcurl, String username, String password) throws Exception {
+        connection = DriverManager.getConnection(jdbcurl, username, password);
         connection.setAutoCommit(false);
         Statement stmt = connection.createStatement();
+
+        // statement below needed while this is tested as a drop-in for the
+        // memory document store
         stmt.execute("drop table if exists CLUSTERNODES");
         stmt.execute("drop table if exists NODES");
         stmt.execute("create table if not exists CLUSTERNODES(ID varchar primary key, MODIFIED bigint, DATA varchar)");
