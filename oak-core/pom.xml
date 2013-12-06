@@ -99,7 +99,8 @@
               org.apache.felix.jaas.boot
             </DynamicImport-Package>
             <Embed-Dependency>
-              org.apache.sling.commons.osgi;inline=org/apache/sling/commons/osgi/PropertiesUtil.class
+              org.apache.sling.commons.osgi;inline=org/apache/sling/commons/osgi/PropertiesUtil.class,
+              json-simple;inline=true
             </Embed-Dependency>
           </instructions>
         </configuration>
