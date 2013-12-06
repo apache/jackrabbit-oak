@@ -94,7 +94,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>2.3.7</version>
+          <version>2.4.0</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
           <configuration>
@@ -111,7 +111,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-scr-plugin</artifactId>
-          <version>1.9.0</version>
+          <version>1.15.0</version>
           <executions>
             <execution>
               <id>generate-scr-scrdescriptor</id>
@@ -275,14 +275,14 @@
         <version>4.2.0</version>
       </dependency>
       <dependency>
-        <groupId>biz.aQute</groupId>
+        <groupId>biz.aQute.bnd</groupId>
         <artifactId>bndlib</artifactId>
-        <version>1.50.0</version>
+        <version>2.2.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr.annotations</artifactId>
-        <version>1.7.0</version>
+        <version>1.9.6</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
