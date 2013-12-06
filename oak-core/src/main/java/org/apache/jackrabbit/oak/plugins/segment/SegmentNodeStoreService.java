@@ -16,15 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Dictionary;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -32,22 +29,18 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.osgi.service.component.ComponentContext;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(NodeStore.class)
-public class SegmentNodeStoreService implements NodeStore, Observable {
+public class SegmentNodeStoreService extends ProxyNodeStore
+        implements Observable {
 
     @Property(description="The unique name of this instance")
     public static final String NAME = "name";
@@ -72,8 +65,9 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
 
     private ObserverTracker observerTracker;
 
-    private synchronized NodeStore getDelegate() {
-        assert delegate != null : "service must be activated when used";
+    @Override
+    protected synchronized SegmentNodeStore getNodeStore() {
+        checkState(delegate != null, "service must be activated when used");
         return delegate;
     }
 
@@ -131,55 +125,14 @@ public class SegmentNodeStoreService implements NodeStore, Observable {
 
     @Override
     public Closeable addObserver(Observer observer) {
-        return ((Observable) getDelegate()).addObserver(observer);
-    }
-
-
-    //---------------------------------------------------------< NodeStore >--
-
-    @Override @Nonnull
-    public NodeState getRoot() {
-        return getDelegate().getRoot();
-    }
-
-    @Nonnull
-    @Override
-    public NodeState merge(
-            @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nullable CommitInfo info) throws CommitFailedException {
-        return getDelegate().merge(builder, commitHook, info);
-    }
-
-    @Override
-    public NodeState rebase(@Nonnull NodeBuilder builder) {
-        return getDelegate().rebase(builder);
-    }
-
-    @Override
-    public NodeState reset(@Nonnull NodeBuilder builder) {
-        return getDelegate().reset(builder);
-    }
-
-    @Override
-    public Blob createBlob(InputStream stream) throws IOException {
-        return getDelegate().createBlob(stream);
-    }
-
-    @Override @Nonnull
-    public String checkpoint(long lifetime) {
-        return getDelegate().checkpoint(lifetime);
-    }
-
-    @Override @CheckForNull
-    public NodeState retrieve(@Nonnull String checkpoint) {
-        return getDelegate().retrieve(checkpoint);
+        return getNodeStore().addObserver(observer);
     }
 
     //------------------------------------------------------------< Object >--
 
     @Override
-    public synchronized String toString() {
-        return name + ": " + super.toString();
+    public String toString() {
+        return name + ": " + delegate;
     }
 
 }
