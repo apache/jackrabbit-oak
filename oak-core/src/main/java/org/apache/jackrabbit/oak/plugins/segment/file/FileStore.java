@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
@@ -40,7 +41,6 @@ import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -68,9 +68,16 @@ public class FileStore extends AbstractStore {
 
     private final RandomAccessFile journalFile;
 
-    private volatile RecordId head;
+    /**
+     * The latest head of the root journal.
+     */
+    private final AtomicReference<RecordId> head;
 
-    private volatile boolean updated = false;
+    /**
+     * The persisted head of the root journal, used to determine whether the
+     * latest {@link #head} value should be written to the disk.
+     */
+    private RecordId persistedHead = null;
 
     /**
      * The background flush thread. Automatically flushes the TarMK state
@@ -94,7 +101,8 @@ public class FileStore extends AbstractStore {
         this(directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping);
     }
 
-    public FileStore(File directory, NodeState initial, int maxFileSizeMB,
+    public FileStore(
+            final File directory, NodeState initial, int maxFileSizeMB,
             int cacheSizeMB, boolean memoryMapping) throws IOException {
         super(cacheSizeMB);
         checkNotNull(directory).mkdirs();
@@ -122,25 +130,24 @@ public class FileStore extends AbstractStore {
             }
         }
 
-        head = null;
         journalFile = new RandomAccessFile(
                 new File(directory, JOURNAL_FILE_NAME), "rw");
         String line = journalFile.readLine();
         while (line != null) {
             int space = line.indexOf(' ');
             if (space != -1) {
-                head = RecordId.fromString(line.substring(0, space));
+                persistedHead = RecordId.fromString(line.substring(0, space));
             }
             line = journalFile.readLine();
         }
 
-        if (head == null) {
+        if (persistedHead != null) {
+            head = new AtomicReference<RecordId>(persistedHead);
+        } else {
             NodeBuilder builder = EMPTY_NODE.builder();
             builder.setChildNode("root", initial);
-            SegmentNodeState root =
-                    getWriter().writeNode(builder.getNodeState());
-            head = root.getRecordId();
-            updated = true;
+            head = new AtomicReference<RecordId>(
+                    getWriter().writeNode(builder.getNodeState()).getRecordId());
         }
 
         this.flushThread = new Thread(new Runnable() {
@@ -153,7 +160,7 @@ public class FileStore extends AbstractStore {
                             flush();
                         } catch (IOException e) {
                             log.warn("Failed to flush the TarMK at" +
-                                    FileStore.this.directory, e);
+                                    directory, e);
                         }
                         timeToClose.await(5, SECONDS);
                     }
@@ -169,7 +176,8 @@ public class FileStore extends AbstractStore {
     }
 
     public synchronized void flush() throws IOException {
-        if (updated) {
+        RecordId id = head.get();
+        if (!id.equals(persistedHead)) {
             getWriter().flush();
             for (TarFile file : bulkFiles) {
                 file.flush();
@@ -177,8 +185,9 @@ public class FileStore extends AbstractStore {
             for (TarFile file : dataFiles) {
                 file.flush();
             }
-            journalFile.writeBytes(head + " root\n");
+            journalFile.writeBytes(id + " root\n");
             journalFile.getChannel().force(false);
+            persistedHead = id;
         }
     }
 
@@ -235,19 +244,12 @@ public class FileStore extends AbstractStore {
         return new Journal() {
             @Override
             public RecordId getHead() {
-                return head;
+                return head.get();
             }
             @Override
-            public boolean setHead(RecordId base, RecordId head) {
-                synchronized (FileStore.this) {
-                    if (base.equals(FileStore.this.head)) {
-                        updated = !head.equals(FileStore.this.head);
-                        FileStore.this.head = head;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
+            public boolean setHead(RecordId before, RecordId after) {
+                RecordId id = head.get();
+                return id.equals(before) && head.compareAndSet(id, after);
             }
             @Override
             public void merge() {

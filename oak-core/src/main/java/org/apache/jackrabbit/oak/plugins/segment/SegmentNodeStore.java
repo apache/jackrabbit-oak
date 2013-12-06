@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -61,7 +62,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     /**
      * Local copy of the head of the journal associated with this store.
      */
-    private volatile SegmentNodeState head;
+    private final AtomicReference<SegmentNodeState> head;
 
     /**
      * Semaphore that controls access to the {@link #head} variable.
@@ -75,8 +76,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public SegmentNodeStore(SegmentStore store, String journal) {
         this.store = store;
         this.journal = store.getJournal(journal);
-        this.head = new SegmentNodeState(
-                store.getWriter().getDummySegment(), this.journal.getHead());
+        this.head = new AtomicReference<SegmentNodeState>(new SegmentNodeState(
+                store.getWriter().getDummySegment(), this.journal.getHead()));
         this.changeDispatcher = new ChangeDispatcher(getRoot());
     }
 
@@ -93,15 +94,16 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     /**
-     * Refreshes the head state. Does nothing if a concurrent local commit is
-     * in progress, as that commit will automatically refresh the head state.
+     * Refreshes the head state. Should only be called while holding a
+     * permit from the {@link #commitSemaphore}.
      */
     private void refreshHead() {
         RecordId id = journal.getHead();
-        if (!id.equals(head.getRecordId())) {
-            head = new SegmentNodeState(
+        if (!id.equals(head.get().getRecordId())) {
+            SegmentNodeState state = new SegmentNodeState(
                     store.getWriter().getDummySegment(), id);
-            changeDispatcher.contentChanged(head.getChildNode(ROOT), null);
+            head.set(state);
+            changeDispatcher.contentChanged(state.getChildNode(ROOT), null);
         }
     }
 
@@ -119,7 +121,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 commitSemaphore.release();
             }
         }
-        return head.getChildNode(ROOT);
+        return head.get().getChildNode(ROOT);
     }
 
     @Override
@@ -196,14 +198,14 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 try {
                     refreshHead();
 
-                    SegmentNodeState ns = head;
-                    RecordId ri = head.getRecordId();
+                    SegmentNodeState state = head.get();
+                    RecordId ri = state.getRecordId();
 
-                    SegmentNodeBuilder builder = ns.builder();
+                    SegmentNodeBuilder builder = state.builder();
                     NodeBuilder cp = builder.child(name);
                     cp.setProperty("timestamp", System.currentTimeMillis()
                             + lifetime);
-                    cp.setChildNode(ROOT, ns.getChildNode(ROOT));
+                    cp.setChildNode(ROOT, state.getChildNode(ROOT));
 
                     if (journal.setHead(ri, builder.getNodeState()
                             .getRecordId())) {
@@ -222,7 +224,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override @CheckForNull
     public NodeState retrieve(@Nonnull String checkpoint) {
-        NodeState cp = head.getChildNode(checkpoint).getChildNode(ROOT);
+        NodeState cp = head.get().getChildNode(checkpoint).getChildNode(ROOT);
         if (cp.exists()) {
             return cp;
         }
@@ -252,13 +254,13 @@ public class SegmentNodeStore implements NodeStore, Observable {
         }
 
         private boolean setHead(SegmentNodeBuilder builder) {
-            SegmentNodeState base = builder.getBaseState();
-            SegmentNodeState head = builder.getNodeState();
+            SegmentNodeState before = builder.getBaseState();
+            SegmentNodeState after = builder.getNodeState();
 
             refreshHead();
-            if (journal.setHead(base.getRecordId(), head.getRecordId())) {
-                SegmentNodeStore.this.head = head;
-                changeDispatcher.contentChanged(head.getChildNode(ROOT), info);
+            if (journal.setHead(before.getRecordId(), after.getRecordId())) {
+                head.set(after);
+                changeDispatcher.contentChanged(after.getChildNode(ROOT), info);
                 refreshHead();
                 return true;
             } else {
@@ -267,8 +269,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
         }
 
         private SegmentNodeBuilder prepare() throws CommitFailedException {
-            SegmentNodeBuilder builder = head.builder();
-            if (fastEquals(before, head.getChildNode(ROOT))) {
+            SegmentNodeState state = head.get();
+            SegmentNodeBuilder builder = state.builder();
+            if (fastEquals(before, state.getChildNode(ROOT))) {
                 // use a shortcut when there are no external changes
                 builder.setChildNode(ROOT, hook.processCommit(before, after));
             } else {
@@ -293,8 +296,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 long start = System.nanoTime();
 
                 refreshHead();
-                if (head.hasProperty("token")
-                        && head.getLong("timeout") >= currentTimeMillis()) {
+                SegmentNodeState state = head.get();
+                if (state.hasProperty("token")
+                        && state.getLong("timeout") >= currentTimeMillis()) {
                     // someone else has a pessimistic lock on the journal,
                     // so we should not try to commit anything yet
                 } else {
@@ -321,15 +325,16 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 throws CommitFailedException, InterruptedException {
             while (true) {
                 long now = currentTimeMillis();
-                if (head.hasProperty("token")
-                        && head.getLong("timeout") >= now) {
+                SegmentNodeState state = head.get();
+                if (state.hasProperty("token")
+                        && state.getLong("timeout") >= now) {
                     // locked by someone else, wait until unlocked or expired
                     Thread.sleep(
-                            Math.min(head.getLong("timeout") - now, 1000),
+                            Math.min(state.getLong("timeout") - now, 1000),
                             random.nextInt(1000000));
                 } else {
                     // attempt to acquire the lock
-                    SegmentNodeBuilder builder = head.builder();
+                    SegmentNodeBuilder builder = state.builder();
                     builder.setProperty("token", UUID.randomUUID().toString());
                     builder.setProperty("timeout", now + timeout);
 
@@ -358,7 +363,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     pessimisticMerge(timeout);
                 }
             }
-            return head.getChildNode(ROOT);
+            return head.get().getChildNode(ROOT);
         }
 
     }
