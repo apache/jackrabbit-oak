@@ -21,8 +21,8 @@ New Features
 
 Improvements
 
-  [OAK-632] SegmentMK: Efficient updates of flat nodes
   [OAK-372] Integrate PropertyBuilder with NodeBuilder
+  [OAK-632] SegmentMK: Efficient updates of flat nodes
   [OAK-760] MongoBlobStore: read from a secondary member when possible
   [OAK-762] MongoMK: automatic unique cluster id with few bits
   [OAK-856] Use in-memory MongoMK instead of MicroKernelImpl for tests
@@ -33,6 +33,9 @@ Improvements
   [OAK-1201] Implement jackrabbit api specific descriptors
   [OAK-1207] Change OakRepositoryStubBase to use NodeStore setup
   [OAK-1222] Migration of Group Members stored in tree structure
+  [OAK-1228] Update jackrabbit dependency to 2.7.3
+  [OAK-1229] XPath queries of the form [@x=1 or @x=2] should not use union
+  [OAK-1236] Query: optimize for sling's i18n support
   [OAK-1246] Make AsynchIndexUpdate task to run only on a single node in a cluster
   [OAK-1248] Return early in Commit.markChanged() when parent is already marked
   [OAK-1249] Fine-grained locking in SegmentMK commits
@@ -45,6 +48,7 @@ Bugs
   [OAK-795] Osgi init issues
   [OAK-913] Query: relative fulltext conditions return the wrong result
   [OAK-928] Read access is enforced on NEW items
+  [OAK-1045] Query finds transient Items
   [OAK-1075] XPath query failures for mvps
   [OAK-1108] Query constraints marked as invalid in the case of an mvp
   [OAK-1155] PropertyIndex cost calculation is faulty
@@ -53,6 +57,7 @@ Bugs
   [OAK-1184] Uploading large number of files to single folder fails.
   [OAK-1191] Integration testcase fail with Segment MongoStore implementaion
   [OAK-1216] Path parsing must support SNS indexes, irrespective of SNS support
+  [OAK-1220] SessionMoveTest.testMoveAndRemoveSubTree3 fails with SegmentMK+FileStore
   [OAK-1224] Repository descriptor "node.type.management.same.name.siblings.supported" should be false
   [OAK-1225] Session.nodeExists("/foo/bar[2]") must not throw PathNotFoundException
   [OAK-1227] Node.hasNode("foo[2]") must not throw PathNotFoundException
@@ -60,11 +65,15 @@ Bugs
   [OAK-1235] Upgrade should not overwrite new oak specific builtin nodetypes
   [OAK-1242] Weak reference targets added after the reference property are not indexed
   [OAK-1243] Upgrade fails if source repository is broken
+  [OAK-1245] Fulltext conditions for special characters
   [OAK-1250] Guard against invalid/missing checkpoints
   [OAK-1256] Dead code in PrivilegeBitsProvider#getPrivilegeNames
   [OAK-1257] Adding a new reference to an existing MV property deletes the back references of the old ones
+  [OAK-1258] QueryTest.unicode() fails on some platforms
   [OAK-1259] Failures in ReferencesTest
-
+  [OAK-1262] observation event is triggered but session sees old content
+  [OAK-1269] NodeType index doesn't respect the declaringNodeTypes setting
+  [OAK-1270] Revisit full-text queries in case of multiple tokens
 
 In addition to the above-mentioned changes, this release contains
 all the changes included up to the Apache Jackrabbit Oak 0.12 release.
