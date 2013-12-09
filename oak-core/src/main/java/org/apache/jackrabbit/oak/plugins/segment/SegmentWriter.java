@@ -139,7 +139,7 @@ public class SegmentWriter {
                 new Segment(store, newBulkSegmentId(), ByteBuffer.allocate(0));
     }
 
-    private synchronized void writeSegmentHeader(ByteBuffer b) {
+    private void writeSegmentHeader(ByteBuffer b) {
         int p = b.position();
 
         b.put((byte) refids.size());
@@ -184,34 +184,16 @@ public class SegmentWriter {
         return dummySegment;
     }
 
-    /**
-     * Flushes the current segment to the underlying store, and starts
-     * writing a new segment. This method is carefully synchronized to avoid
-     * a deadlock with the flush thread of the underlying segment store.
-     * The internal variables ({@link #buffer}, etc.) of this class are
-     * read and updated within a synchronization block, but the actual
-     * writing of the segment is done outside of that block to allow
-     * concurrent writing of transient changes and to avoid a deadlock with
-     * the flush thread that calls this method when already holding the
-     * lock on the underlying segment store.
-     */
-    public void flush() {
-        int n;
-        byte[] b;
-        UUID id;
+    public synchronized void flush() {
+        if (length > 0) {
+            length += align(3 + roots.size() * 3) + refids.size() * 16;
 
-        synchronized (this) {
-            if (length == 0) {
-                return; // do nothing if there is no content to flush
-            }
+            ByteBuffer b = ByteBuffer.wrap(
+                    buffer, buffer.length - length, length);
+            writeSegmentHeader(b);
 
-            // prepare the segment to be written
-            n = align(3 + roots.size() * 3) + refids.size() * 16 + length;
-            b = buffer;
-            id = uuid;
-            writeSegmentHeader(ByteBuffer.wrap(b, b.length - n, n));
+            store.writeSegment(uuid, buffer, buffer.length - length, length);
 
-            // prepare a new segment for use by any new transient changes
             uuid = newDataSegmentId();
             buffer = new byte[MAX_SEGMENT_SIZE];
             refids.clear();
@@ -220,27 +202,13 @@ public class SegmentWriter {
             position = buffer.length;
             currentSegment = null;
         }
-
-        // must be outside the synchronization block to avoid a deadlock
-        store.writeSegment(id, b, b.length - n, n);
     }
 
     private RecordId prepare(RecordType type, int size) {
         return prepare(type, size, Collections.<RecordId>emptyList());
     }
 
-    /**
-     * Prepares the space for the record described in the given arguments.
-     * This method should be called as the first thing within a synchronization
-     * block that then proceeds to write the prepared record before leaving
-     * the synchronization.
-     *
-     * @param type type of the record
-     * @param size number of bytes in the record, excluding the record ids
-     * @param ids ids of the other records referenced by the record
-     * @return id of the record being created
-     */
-    private synchronized RecordId prepare(
+    private RecordId prepare(
             RecordType type, int size, Collection<RecordId> ids) {
         checkArgument(size >= 0);
         checkNotNull(ids);
