@@ -162,7 +162,7 @@ public final class UpdateOp {
      * @param property the key
      * @param value the increment
      */
-    void increment(@Nonnull String property, long value) {
+    public void increment(@Nonnull String property, long value) {
         Operation op = new Operation();
         op.type = Operation.Type.INCREMENT;
         op.value = value;
