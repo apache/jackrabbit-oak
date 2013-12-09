@@ -162,6 +162,15 @@ public class LuceneIndexTest {
                 LuceneIndex.tokenize("first. second", analyzer));
         assertEquals(ImmutableList.of("first", "second"),
                 LuceneIndex.tokenize("first.second", analyzer));
+
+        assertEquals(ImmutableList.of("hello", "world"),
+                LuceneIndex.tokenize("hello-world", analyzer));
+        assertEquals(ImmutableList.of("hello", "wor*"),
+                LuceneIndex.tokenize("hello-wor*", analyzer));
+        assertEquals(ImmutableList.of("*llo", "world"),
+                LuceneIndex.tokenize("*llo-world", analyzer));
+        assertEquals(ImmutableList.of("*llo", "wor*"),
+                LuceneIndex.tokenize("*llo-wor*", analyzer));
     }
 
 }
