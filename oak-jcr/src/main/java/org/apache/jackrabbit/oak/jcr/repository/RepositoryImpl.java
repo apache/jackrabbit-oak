@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.repository;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.Map;
 
@@ -47,8 +49,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.util.GenericDescriptors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * TODO document
@@ -324,7 +324,6 @@ public class RepositoryImpl implements JackrabbitRepository {
                 : new RefreshStrategy[] {
                 new Once(false),
                 new Timed(refreshInterval),
-                new LogOnce(60),
                 new ThreadSynchronising(threadSaveCount)});
     }
 
