@@ -16,35 +16,50 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
 import com.mongodb.DB;
 
 /**
  * A set of simple cluster tests.
  */
 public class ClusterTest {
-    
+
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
-    
+
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
-    
+
     @Test
     public void threeNodes() throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
         MongoMK.Builder builder;
-        
+
         builder = new MongoMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         MongoMK mk1 = builder.setClusterId(1).open();
@@ -68,7 +83,7 @@ public class ClusterTest {
         mk2.backgroundRead();
         mk3.backgroundWrite();
         mk3.backgroundRead();
-        
+
         mk2.commit("/", "^\"test/x\":1", null, null);
         String n3 = mk3.getNodes("/test", mk3.getHeadRevision(), 0, 0, 10, null);
         // mk3 didn't see the previous change yet; 
@@ -115,7 +130,7 @@ public class ClusterTest {
         c2 = ClusterNodeInfo.getInstance(store, "m1", null);
         assertEquals(1, c2.getId());
     }
-    
+
     @Test
     public void openCloseOpen() {
         MemoryDocumentStore ds = new MemoryDocumentStore();
@@ -125,7 +140,7 @@ public class ClusterTest {
         mk1.commit("/", "+\"a\": {}", null, null);
         mk1.commit("/", "-\"a\"", null, null);
         mk1.runBackgroundOperations();
-        
+
         MongoMK mk2 = createMK(2, 0, ds, bs);
         mk2.commit("/", "+\"a\": {}", null, null);
         mk2.commit("/", "-\"a\"", null, null);
@@ -149,8 +164,8 @@ public class ClusterTest {
         mk3.dispose();
         mk4.dispose();
         mk5.dispose();
-    }    
-    
+    }
+
     @Test
     public void clusterNodeId() {
         MongoMK mk1 = createMK(0);
@@ -159,8 +174,8 @@ public class ClusterTest {
         assertEquals(2, mk2.getClusterInfo().getId());
         mk1.dispose();
         mk2.dispose();
-    }    
-    
+    }
+
     @Test
     public void clusterBranchInVisibility() throws InterruptedException {
         MongoMK mk1 = createMK(1);
@@ -178,55 +193,105 @@ public class ClusterTest {
         MongoMK mk2 = createMK(2);
         String nodes = mk2.getNodes("/", null, 0, 0, 100, null);
         assertEquals("{\"branchVisible\":{},\"regular\":{},\":childNodeCount\":2}", nodes);
-        
+
         mk2.dispose();
     }
-    
+
+    /**
+     * Test for OAK-1254
+     */
+    @Ignore
+    @Test
+    public void clusterBranchRebase() throws Exception {
+        MongoMK mk1 = createMK(1, 0);
+        mk1.commit("/", "+\"test\":{}", null, null);
+        mk1.runBackgroundOperations();
+        MongoMK mk2 = createMK(2, 0);
+        MongoMK mk3 = createMK(3, 0);
+
+        KernelNodeStore ns3 = new KernelNodeStore(mk3);
+        // the next line is required for the test even if it
+        // just reads from the node store. do not remove!
+        traverse(ns3.getRoot(), "/");
+
+        String b3 = mk3.branch(null);
+        b3 = mk3.commit("/", "+\"mk3\":{}", b3, null);
+        assertTrue(mk3.nodeExists("/test", b3));
+
+        mk2.commit("/", "+\"test/mk21\":{}", null, null);
+        mk2.runBackgroundOperations();
+
+        mk3.runBackgroundOperations(); // pick up changes from mk2
+        String base3 = mk3.getHeadRevision();
+
+        assertFalse(mk3.nodeExists("/test/mk21", b3));
+        b3 = mk3.rebase(b3, base3);
+
+        mk2.commit("/", "+\"test/mk22\":{}", null, null);
+        mk2.runBackgroundOperations();
+
+        mk3.runBackgroundOperations(); // pick up changes from mk2
+
+        NodeState base = ns3.retrieve(base3); // branch base
+        assertNotNull(base);
+        NodeState branchHead = ns3.retrieve(b3);
+        assertNotNull(branchHead);
+        TrackingDiff diff = new TrackingDiff();
+        branchHead.compareAgainstBaseState(base, diff);
+        assertEquals(1, diff.added.size());
+        assertEquals(Sets.newHashSet("/mk3"), diff.added);
+        assertEquals(new HashSet<String>(), diff.deleted);
+
+        mk1.dispose();
+        mk2.dispose();
+        mk3.dispose();
+    }
+
     @Test
     public void clusterNodeInfo() {
         MemoryDocumentStore store = new MemoryDocumentStore();
         ClusterNodeInfo c1, c2, c3, c4;
-        
+
         c1 = ClusterNodeInfo.getInstance(store, "m1", null);
         assertEquals(1, c1.getId());
         c1.dispose();
-        
+
         // get the same id
         c1 = ClusterNodeInfo.getInstance(store, "m1", null);
         assertEquals(1, c1.getId());
         c1.dispose();
-        
+
         // now try to add another one:
         // must get a new id
         c2 = ClusterNodeInfo.getInstance(store, "m2", null);
         assertEquals(2, c2.getId());
-        
+
         // a different machine
         c3 = ClusterNodeInfo.getInstance(store, "m3", "/a");
         assertEquals(3, c3.getId());
-        
+
         c2.dispose();
         c3.dispose();
-        
+
         c3 = ClusterNodeInfo.getInstance(store, "m3", "/a");
         assertEquals(3, c3.getId());
 
         c3.dispose();
-        
+
         c4 = ClusterNodeInfo.getInstance(store, "m3", "/b");
         assertEquals(4, c4.getId());
 
         c1.dispose();
     }
-    
+
     @Test
     public void conflict() {
         MongoMK mk1 = createMK(1, 0);
         MongoMK mk2 = createMK(2, 0);
-        
+
         String m1r0 = mk1.getHeadRevision();
         String m2r0 = mk2.getHeadRevision();
-        
+
         mk1.commit("/", "+\"test\":{}", m1r0, null);
         try {
             mk2.commit("/", "+\"test\":{}", m2r0, null);
@@ -241,29 +306,29 @@ public class ClusterTest {
         String n1 = mk1.getNodes("/", mk1.getHeadRevision(), 0, 0, 10, null);
         String n2 = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 10, null);
         assertEquals(n1, n2);
-        
+
         mk1.dispose();
         mk2.dispose();
     }
-    
+
     @Test
     public void revisionVisibility() throws InterruptedException {
         MongoMK mk1 = createMK(1);
         MongoMK mk2 = createMK(2);
-        
+
         String m2h;
         m2h = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 2, null);
         assertEquals("{\":childNodeCount\":0}", m2h);
         String oldHead = mk2.getHeadRevision();
-        
+
         mk1.commit("/", "+\"test\":{}", null, null);
         String m1h = mk1.getNodes("/", mk1.getHeadRevision(), 0, 0, 2, null);
         assertEquals("{\"test\":{},\":childNodeCount\":1}", m1h);
-        
+
         // not available yet...
         assertEquals("{\":childNodeCount\":0}", m2h);
         m2h = mk2.getNodes("/test", mk2.getHeadRevision(), 0, 0, 2, null);
-        
+
         // the delay is 10 ms - wait at most 1000 millis
         for (int i = 0; i < 100; i++) {
             Thread.sleep(10);
@@ -275,23 +340,23 @@ public class ClusterTest {
             }
             break;
         }
-        
+
         // so now it should be available
         m2h = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 5, null);
         assertEquals("{\"test\":{},\":childNodeCount\":1}", m2h);
-        
+
         mk1.dispose();
         mk2.dispose();
-    }    
-    
+    }
+
     @Test
     public void rollbackAfterConflict() {
         MongoMK mk1 = createMK(1);
         MongoMK mk2 = createMK(2);
-        
+
         String m1r0 = mk1.getHeadRevision();
         String m2r0 = mk2.getHeadRevision();
-        
+
         mk1.commit("/", "+\"test\":{}", m1r0, null);
         try {
             mk2.commit("/", "+\"a\": {} +\"test\":{}", m2r0, null);
@@ -300,7 +365,7 @@ public class ClusterTest {
             // expected
         }
         mk2.commit("/", "+\"a\": {}", null, null);
-        
+
         mk1.dispose();
         mk2.dispose();
     }
@@ -311,7 +376,7 @@ public class ClusterTest {
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
-        }                    
+        }
     }
 
     private MongoMK createMK(int clusterId) {
@@ -335,9 +400,63 @@ public class ClusterTest {
     }
 
     private MongoMK createMK(int clusterId, int asyncDelay,
-                           DocumentStore ds, BlobStore bs) {
+                             DocumentStore ds, BlobStore bs) {
         return new MongoMK.Builder().setDocumentStore(ds).setBlobStore(bs)
                 .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
     }
 
+    private void traverse(NodeState node, String path) {
+        System.out.println("traversing: " + path);
+        for (ChildNodeEntry child : node.getChildNodeEntries()) {
+            traverse(child.getNodeState(), PathUtils.concat(path, child.getName()));
+        }
+    }
+
+    private static class TrackingDiff extends DefaultNodeStateDiff {
+
+        final String path;
+        final Set<String> added;
+        final Set<String> deleted;
+        final Set<String> modified;
+
+        TrackingDiff() {
+            this("/", new HashSet<String>(),
+                    new HashSet<String>(), new HashSet<String>());
+        }
+
+        private TrackingDiff(String path,
+                             Set<String> added,
+                             Set<String> deleted,
+                             Set<String> modified) {
+            this.path = path;
+            this.added = added;
+            this.deleted = deleted;
+            this.modified = modified;
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            String p = PathUtils.concat(path, name);
+            added.add(p);
+            return after.compareAgainstBaseState(EMPTY_NODE,
+                    new TrackingDiff(p, added, deleted, modified));
+        }
+
+        @Override
+        public boolean childNodeChanged(String name,
+                                        NodeState before,
+                                        NodeState after) {
+            String p = PathUtils.concat(path, name);
+            modified.add(p);
+            return after.compareAgainstBaseState(before,
+                    new TrackingDiff(p, added, deleted, modified));
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            String p = PathUtils.concat(path, name);
+            deleted.add(p);
+            return MISSING_NODE.compareAgainstBaseState(before, new TrackingDiff(p, added, deleted, modified));
+        }
+    }
 }
