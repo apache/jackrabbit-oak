@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
@@ -105,7 +107,12 @@ class PropertyIndexEditor implements IndexEditor {
         this.definition = definition;
 
         // get property names
-        this.propertyNames = newHashSet(definition.getNames(PROPERTY_NAMES));
+        PropertyState names = definition.getProperty(PROPERTY_NAMES);
+        if (names.count() == 1) { // OAK-1273: optimize for the common case
+            this.propertyNames = singleton(names.getValue(NAME, 0));
+        } else {
+            this.propertyNames = newHashSet(names.getValue(NAMES));
+        }
 
         // get declaring types, and all their subtypes
         // TODO: should we reindex when type definitions change?
