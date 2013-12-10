@@ -17,11 +17,19 @@
 package org.apache.jackrabbit.oak.osgi;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -30,37 +38,73 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfi
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.ComponentContext;
 
-/**
- * OsgiSecurityProvider... TODO
- */
-public class OsgiSecurityProvider extends AbstractServiceTracker<SecurityConfiguration> implements SecurityProvider {
+@Component
+@Service
+public class OsgiSecurityProvider implements SecurityProvider {
 
-    @Reference(bind = "bindAuthorizationConfiguration")
+    @Reference(bind = "bindAuthorizationConfiguration",
+            cardinality = ReferenceCardinality.MANDATORY_UNARY, // FIXME OAK-1268
+            policyOption = ReferencePolicyOption.GREEDY)
     private AuthorizationConfiguration authorizationConfiguration;
 
-    @Reference(bind = "bindAuthenticationConfiguration")
+    @Reference(bind = "bindAuthenticationConfiguration",
+            cardinality = ReferenceCardinality.MANDATORY_UNARY,
+            policyOption = ReferencePolicyOption.GREEDY)
     private AuthenticationConfiguration authenticationConfiguration;
 
-    @Reference(bind = "bindPrivilegeConfiguration")
+    @Reference(bind = "bindPrivilegeConfiguration",
+            cardinality = ReferenceCardinality.MANDATORY_UNARY,
+            policyOption = ReferencePolicyOption.GREEDY)
     private PrivilegeConfiguration privilegeConfiguration;
 
-    @Reference(bind = "bindUserConfiguration")
+    @Reference(bind = "bindUserConfiguration",
+            cardinality = ReferenceCardinality.MANDATORY_UNARY,
+            policyOption = ReferencePolicyOption.GREEDY)
     private UserConfiguration userConfiguration;
 
+    @Reference(referenceInterface = PrincipalConfiguration.class,
+            bind = "bindPrincipalConfiguration",
+            unbind = "unbindPrincipalConfiguration",
+            cardinality = ReferenceCardinality.MANDATORY_MULTIPLE,
+            policyOption = ReferencePolicyOption.GREEDY)
     private CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(this);
+
+    @Reference(referenceInterface = TokenConfiguration.class,
+            bind = "bindTokenConfiguration",
+            unbind = "unbindTokenConfiguration",
+            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+            policyOption = ReferencePolicyOption.GREEDY)
     private CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
 
-    private ConfigurationParameters config;
+    private final OsgiAuthorizableActionProvider authorizableActionProvider = new OsgiAuthorizableActionProvider();
+    private final OsgiRestrictionProvider restrictionProvider = new OsgiRestrictionProvider();
 
-    public OsgiSecurityProvider(@Nonnull ConfigurationParameters config) {
-        super(SecurityConfiguration.class);
-        this.config = config;
+    private final ConfigurationParameters config;
+
+    public OsgiSecurityProvider() {
+        Map<String, Object> userMap = ImmutableMap.of(
+                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
+                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT); // TODO
+
+        Map<String, OsgiRestrictionProvider> authorizMap = ImmutableMap.of(
+                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
+        );
+
+        config = ConfigurationParameters.of(ImmutableMap.of(
+                UserConfiguration.NAME, ConfigurationParameters.of(userMap),
+                AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)
+        ));
     }
 
     //---------------------------------------------------< SecurityProvider >---
@@ -112,29 +156,21 @@ public class OsgiSecurityProvider extends AbstractServiceTracker<SecurityConfigu
         }
     }
 
-    //-------------------------------------------< ServiceTrackerCustomizer >---
-    @Override
-    public Object addingService(ServiceReference reference) {
-        Object service = super.addingService(reference);
-        if (service instanceof TokenConfiguration) {
-            tokenConfiguration.addConfiguration((TokenConfiguration) service);
-        } else if (service instanceof PrincipalConfiguration) {
-            principalConfiguration.addConfiguration((PrincipalConfiguration) service);
-        }
-        return service;
+//----------------------------------------------------< SCR Integration >---
+    @Activate
+    protected void activate(ComponentContext context) throws Exception {
+        BundleContext bundleContext = context.getBundleContext();
+
+        authorizableActionProvider.start(bundleContext);
+        restrictionProvider.start(bundleContext);
     }
 
-    @Override
-    public void removedService(ServiceReference reference, Object service) {
-        super.removedService(reference, service);
-        if (service instanceof TokenConfiguration) {
-            tokenConfiguration.removeConfiguration((TokenConfiguration) service);
-        } else if (service instanceof PrincipalConfiguration) {
-            principalConfiguration.removeConfiguration((PrincipalConfiguration) service);
-        }
+    @Deactivate
+    protected void deactivate() throws Exception {
+        authorizableActionProvider.stop();
+        restrictionProvider.stop();
     }
 
-    //--------------------------------------------------------------------------
     protected void bindAuthorizationConfiguration(@Nonnull ServiceReference reference) {
         authorizationConfiguration = (AuthorizationConfiguration) initConfiguration(reference);
     }
@@ -149,6 +185,28 @@ public class OsgiSecurityProvider extends AbstractServiceTracker<SecurityConfigu
 
     protected void bindPrivilegeConfiguration(@Nonnull ServiceReference reference) {
         privilegeConfiguration = (PrivilegeConfiguration) initConfiguration(reference);
+    }
+
+    protected void bindPrincipalConfiguration(@Nonnull ServiceReference reference) {
+        principalConfiguration.addConfiguration((PrincipalConfiguration) initConfiguration(reference));
+    }
+
+    protected void unbindPrincipalConfiguration(@Nonnull ServiceReference reference) {
+        Object pc = reference.getBundle().getBundleContext().getService(reference);
+        if (pc instanceof PrincipalConfiguration) {
+            principalConfiguration.removeConfiguration((PrincipalConfiguration) pc);
+        }
+    }
+
+    protected void bindTokenConfiguration(@Nonnull ServiceReference reference) {
+        tokenConfiguration.addConfiguration((TokenConfiguration) initConfiguration(reference));
+    }
+
+    protected void unbindTokenConfiguration(@Nonnull ServiceReference reference) {
+        Object tc = reference.getBundle().getBundleContext().getService(reference);
+        if (tc instanceof TokenConfiguration) {
+            tokenConfiguration.removeConfiguration((TokenConfiguration) tc);
+        }
     }
 
     private Object initConfiguration(@Nonnull ServiceReference reference) {

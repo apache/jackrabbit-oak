@@ -56,9 +56,6 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     public void addConfiguration(@Nonnull T configuration) {
         configurations.add(configuration);
-        if (configuration instanceof ConfigurationBase) {
-            ((ConfigurationBase) configuration).setSecurityProvider(securityProvider);
-        }
     }
 
     public void removeConfiguration(@Nonnull T configuration) {
