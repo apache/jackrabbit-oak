@@ -53,8 +53,8 @@ public class OsgiSecurityProvider extends AbstractServiceTracker<SecurityConfigu
     @Reference(bind = "bindUserConfiguration")
     private UserConfiguration userConfiguration;
 
-    private CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration();
-    private CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration();
+    private CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(this);
+    private CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
 
     private ConfigurationParameters config;
 
@@ -117,9 +117,9 @@ public class OsgiSecurityProvider extends AbstractServiceTracker<SecurityConfigu
     public Object addingService(ServiceReference reference) {
         Object service = super.addingService(reference);
         if (service instanceof TokenConfiguration) {
-            tokenConfiguration.addConfiguration((TokenConfiguration) service, this);
+            tokenConfiguration.addConfiguration((TokenConfiguration) service);
         } else if (service instanceof PrincipalConfiguration) {
-            principalConfiguration.addConfiguration((PrincipalConfiguration) service, this);
+            principalConfiguration.addConfiguration((PrincipalConfiguration) service);
         }
         return service;
     }

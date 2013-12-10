@@ -47,15 +47,17 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     private final List<T> configurations = new ArrayList<T>();
 
     private final String name;
+    private final SecurityProvider securityProvider;
 
-    public CompositeConfiguration(String name) {
+    public CompositeConfiguration(@Nonnull String name, @Nonnull SecurityProvider securityProvider) {
         this.name = name;
+        this.securityProvider = securityProvider;
     }
 
-    public void addConfiguration(@Nonnull T configuration, @Nonnull SecurityProvider sp) {
+    public void addConfiguration(@Nonnull T configuration) {
         configurations.add(configuration);
         if (configuration instanceof ConfigurationBase) {
-            ((ConfigurationBase) configuration).setSecurityProvider(sp);
+            ((ConfigurationBase) configuration).setSecurityProvider(securityProvider);
         }
     }
 
@@ -63,8 +65,12 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         configurations.remove(configuration);
     }
 
-    public List<T> getConfigurations() {
+    protected List<T> getConfigurations() {
         return ImmutableList.copyOf(configurations);
+    }
+
+    protected SecurityProvider getSecurityProvider() {
+        return securityProvider;
     }
 
     //----------------------------------------------< SecurityConfiguration >---
