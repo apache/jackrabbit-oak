@@ -406,7 +406,7 @@ public class MongoDocumentStore implements DocumentStore {
             UpdateOp update = updateOps.get(i);
             update.increment(Document.MOD_COUNT, 1);
             T target = collection.newDocument(this);
-            MemoryDocumentStore.applyChanges(target, update, comparator);
+            UpdateUtils.applyChanges(target, update, comparator);
             docs.add(target);
             for (Entry<Key, Operation> entry : update.getChanges().entrySet()) {
                 Key k = entry.getKey();
@@ -613,7 +613,7 @@ public class MongoDocumentStore implements DocumentStore {
                 oldDoc.seal();
             }
             String key = updateOp.getId();
-            MemoryDocumentStore.applyChanges(newDoc, updateOp, comparator);
+            UpdateUtils.applyChanges(newDoc, updateOp, comparator);
             newDoc.seal();
 
             NodeDocument cached = addToCache(newDoc);

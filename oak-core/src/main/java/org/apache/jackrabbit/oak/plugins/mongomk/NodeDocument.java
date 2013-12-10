@@ -713,8 +713,7 @@ public class NodeDocument extends Document {
             }
             // check size of old document
             NodeDocument oldDoc = new NodeDocument(store);
-            MemoryDocumentStore.applyChanges(oldDoc, old,
-                    context.getRevisionComparator());
+            UpdateUtils.applyChanges(oldDoc, old, context.getRevisionComparator());
             // only split if half of the data can be moved to old document
             if (oldDoc.getMemory() > getMemory() * SPLIT_RATIO) {
                 splitOps.add(old);
