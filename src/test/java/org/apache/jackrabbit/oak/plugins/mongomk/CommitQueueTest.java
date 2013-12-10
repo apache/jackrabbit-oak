@@ -75,8 +75,7 @@ public class CommitQueueTest {
                 public void run() {
                     try {
                         for (int i = 0; i < COMMITS_PER_WRITER; i++) {
-                            Revision base = store.getHeadRevision();
-                            Commit c = queue.createCommit(base);
+                            Revision rev = queue.createRevision();
                             try {
                                 Thread.sleep(0, random.nextInt(1000));
                             } catch (InterruptedException e) {
@@ -84,10 +83,10 @@ public class CommitQueueTest {
                             }
                             if (random.nextInt(5) == 0) {
                                 // cancel 20% of the commits
-                                queue.canceled(c);
+                                queue.canceled(rev);
                             } else {
                                 boolean isBranch = random.nextInt(5) == 0;
-                                queue.done(c, isBranch, null);
+                                queue.done(rev, isBranch, null);
                             }
                         }
                     } catch (Exception e) {

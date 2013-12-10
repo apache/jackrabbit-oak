@@ -39,9 +39,7 @@ public class MongoUtils {
     protected static Exception exception;
 
     /**
-     * Get a connection if available. If not available, null is returned. If
-     * called again, the same connection is returned, or null is returned if
-     * there was an error.
+     * Get a connection if available. If not available, null is returned.
      * 
      * @return the connection or null
      */

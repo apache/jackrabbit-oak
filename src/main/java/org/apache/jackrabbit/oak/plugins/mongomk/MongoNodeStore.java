@@ -394,7 +394,36 @@ public final class MongoNodeStore
         boolean success = false;
         Commit c;
         try {
-            c = commitQueue.createCommit(base);
+            c = new Commit(this, base, commitQueue.createRevision());
+            success = true;
+        } finally {
+            if (!success) {
+                backgroundOperationLock.readLock().unlock();
+            }
+        }
+        return c;
+    }
+
+    /**
+     * Creates a new merge commit. The caller must acknowledge the commit either with
+     * {@link #done(Commit, boolean, CommitInfo)} or {@link #canceled(Commit)},
+     * depending on the result of the commit.
+     *
+     * @param base the base revision for the commit or <code>null</code> if the
+     *             commit should use the current head revision as base.
+     * @param numBranchCommits the number of branch commits to merge.
+     * @return a new merge commit.
+     */
+    @Nonnull
+    MergeCommit newMergeCommit(@Nullable Revision base, int numBranchCommits) {
+        if (base == null) {
+            base = headRevision;
+        }
+        backgroundOperationLock.readLock().lock();
+        boolean success = false;
+        MergeCommit c;
+        try {
+            c = new MergeCommit(this, base, commitQueue.createRevisions(numBranchCommits));
             success = true;
         } finally {
             if (!success) {
@@ -406,7 +435,7 @@ public final class MongoNodeStore
 
     void done(@Nonnull Commit c, boolean isBranch, @Nullable CommitInfo info) {
         try {
-            commitQueue.done(c, isBranch, info);
+            commitQueue.done(c.getRevision(), isBranch, info);
         } finally {
             backgroundOperationLock.readLock().unlock();
         }
@@ -414,7 +443,7 @@ public final class MongoNodeStore
 
     void canceled(Commit c) {
         try {
-            commitQueue.canceled(c);
+            commitQueue.canceled(c.getRevision());
         } finally {
             backgroundOperationLock.readLock().unlock();
         }
@@ -862,16 +891,18 @@ public final class MongoNodeStore
         if (b != null) {
             base = b.getBase(branchHead);
         }
+        int numBranchCommits = b != null ? b.getCommits().size() : 1;
         boolean success = false;
-        Commit commit = newCommit(base);
+        MergeCommit commit = newMergeCommit(base, numBranchCommits);
         try {
             // make branch commits visible
             UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
             NodeDocument.setModified(op, commit.getRevision());
             if (b != null) {
-                String commitTag = "c-" + commit.getRevision().toString();
+                Iterator<Revision> mergeCommits = commit.getMergeRevisions().iterator();
                 for (Revision rev : b.getCommits()) {
                     rev = rev.asTrunkRevision();
+                    String commitTag = "c-" + mergeCommits.next();
                     NodeDocument.setRevision(op, rev, commitTag);
                     op.containsMapEntry(NodeDocument.COLLISIONS, rev, false);
                 }
