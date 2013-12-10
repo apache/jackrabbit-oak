@@ -79,7 +79,7 @@ class Collision {
         // their commit wins, we have to mark ourRev
         NodeDocument newDoc = Collection.NODES.newDocument(store);
         document.deepCopy(newDoc);
-        MemoryDocumentStore.applyChanges(newDoc, ourOp, context.getRevisionComparator());
+        UpdateUtils.applyChanges(newDoc, ourOp, context.getRevisionComparator());
         if (!markCommitRoot(newDoc, ourRev, store)) {
             throw new MicroKernelException("Unable to annotate our revision "
                     + "with collision marker. Our revision: " + ourRev

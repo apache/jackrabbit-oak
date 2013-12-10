@@ -39,10 +39,10 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.Collection;
 import org.apache.jackrabbit.oak.plugins.mongomk.Document;
 import org.apache.jackrabbit.oak.plugins.mongomk.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.mongomk.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.Revision;
 import org.apache.jackrabbit.oak.plugins.mongomk.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.mongomk.UpdateUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -180,7 +180,7 @@ public class SQLDocumentStore implements DocumentStore {
             for (UpdateOp update : updates) {
                 T doc = collection.newDocument(this);
                 update.increment("_modCount", 1);
-                MemoryDocumentStore.applyChanges(doc, update, comparator);
+                UpdateUtils.applyChanges(doc, update, comparator);
                 writeDocument(collection, doc, null, true);
             }
             // FIXME to be atomic
@@ -202,11 +202,11 @@ public class SQLDocumentStore implements DocumentStore {
         } else {
             oldDoc.deepCopy(doc);
         }
-        if (checkConditions && !MemoryDocumentStore.checkConditions(doc, update)) {
+        if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
             return null;
         }
         update.increment("_modCount", 1);
-        MemoryDocumentStore.applyChanges(doc, update, comparator);
+        UpdateUtils.applyChanges(doc, update, comparator);
         writeDocument(collection, doc, oldDoc != null ? (Long) oldDoc.get("_modCount") : null, oldDoc == null);
         doc.seal();
 
@@ -225,7 +225,7 @@ public class SQLDocumentStore implements DocumentStore {
                 T doc = fromString(collection, in);
                 Long oldmodcount = (Long) doc.get("_modCount");
                 update.increment("_modCount", 1);
-                MemoryDocumentStore.applyChanges(doc, update, comparator);
+                UpdateUtils.applyChanges(doc, update, comparator);
                 String data = asString(doc);
                 Long modified = (Long) doc.get("_modified");
                 Long modcount = (Long) doc.get("_modCount");

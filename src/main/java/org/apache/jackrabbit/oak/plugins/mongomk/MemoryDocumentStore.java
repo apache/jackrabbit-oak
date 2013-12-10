@@ -20,9 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
@@ -33,10 +30,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Key;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and
@@ -185,11 +178,11 @@ public class MemoryDocumentStore implements DocumentStore {
             } else {
                 oldDoc.deepCopy(doc);
             }
-            if (checkConditions && !checkConditions(doc, update)) {
+            if (checkConditions && ! UpdateUtils.checkConditions(doc, update)) {
                 return null;
             }
             // update the document
-            applyChanges(doc, update, comparator);
+            UpdateUtils.applyChanges(doc, update, comparator);
             doc.seal();
             map.put(update.id, doc);
             return oldDoc;
@@ -198,98 +191,6 @@ public class MemoryDocumentStore implements DocumentStore {
         }
     }
 
-    public static boolean checkConditions(Document doc,
-                                           UpdateOp update) {
-        for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
-            Operation op = change.getValue();
-            if (op.type == Operation.Type.CONTAINS_MAP_ENTRY) {
-                Key k = change.getKey();
-                Revision r = k.getRevision();
-                if (r == null) {
-                    throw new IllegalStateException(
-                            "CONTAINS_MAP_ENTRY must not contain null revision");
-                }
-                Object value = doc.get(k.getName());
-                if (value == null) {
-                    if (Boolean.TRUE.equals(op.value)) {
-                        return false;
-                    }
-                } else {
-                    if (value instanceof Map) {
-                        Map<?, ?> map = (Map<?, ?>) value;
-                        if (Boolean.TRUE.equals(op.value)) {
-                            if (!map.containsKey(r)) {
-                                return false;
-                            }
-                        } else {
-                            if (map.containsKey(r)) {
-                                return false;
-                            }
-                        }
-                    } else {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-
-    /**
-     * Apply the changes to the in-memory document.
-     * 
-     * @param doc the target document.
-     * @param update the changes to apply.
-     * @param comparator the revision comparator.
-     */
-    public static void applyChanges(@Nonnull Document doc,
-                                    @Nonnull UpdateOp update,
-                                    @Nonnull Comparator<Revision> comparator) {
-        for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
-            Key k = e.getKey();
-            Operation op = e.getValue();
-            switch (op.type) {
-            case SET: {
-                doc.put(k.toString(), op.value);
-                break;
-            }
-            case INCREMENT: {
-                Object old = doc.get(k.toString());
-                Long x = (Long) op.value;
-                if (old == null) {
-                    old = 0L;
-                }
-                doc.put(k.toString(), ((Long) old) + x);
-                break;
-            }
-            case SET_MAP_ENTRY: {
-                Object old = doc.get(k.getName());
-                @SuppressWarnings("unchecked")
-                Map<Revision, Object> m = (Map<Revision, Object>) old;
-                if (m == null) {
-                    m = new TreeMap<Revision, Object>(comparator);
-                    doc.put(k.getName(), m);
-                }
-                m.put(k.getRevision(), op.value);
-                break;
-            }
-            case REMOVE_MAP_ENTRY: {
-                Object old = doc.get(k.getName());
-                @SuppressWarnings("unchecked")
-                Map<Revision, Object> m = (Map<Revision, Object>) old;
-                if (m != null) {
-                    m.remove(k.getRevision());
-                }
-                break;
-            }
-            case CONTAINS_MAP_ENTRY:
-                // no effect
-                break;
-            }
-        }
-    }
-    
     @Override
     public <T extends Document> boolean create(Collection<T> collection,
                                                List<UpdateOp> updateOps) {
