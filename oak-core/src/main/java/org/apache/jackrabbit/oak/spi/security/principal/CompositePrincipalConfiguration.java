@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
 /**
  * {@link PrincipalConfiguration} that combines different principal provider
@@ -31,8 +32,8 @@ import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
  */
 public final class CompositePrincipalConfiguration extends CompositeConfiguration<PrincipalConfiguration> implements PrincipalConfiguration {
 
-    public CompositePrincipalConfiguration() {
-        super(PrincipalConfiguration.NAME);
+    public CompositePrincipalConfiguration(@Nonnull SecurityProvider securityProvider) {
+        super(PrincipalConfiguration.NAME, securityProvider);
     }
 
     @Nonnull
