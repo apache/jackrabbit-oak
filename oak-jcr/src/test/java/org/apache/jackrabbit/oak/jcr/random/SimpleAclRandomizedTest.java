@@ -21,12 +21,15 @@ import java.util.Random;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Session;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.junit.Assert;
-import org.junit.Test;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
 
+@Ignore("OAK-884")
 public class SimpleAclRandomizedTest extends AbstractRandomizedTest {
 
     private  int depth;
