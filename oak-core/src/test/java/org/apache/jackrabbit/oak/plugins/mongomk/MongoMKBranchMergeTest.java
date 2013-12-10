@@ -441,20 +441,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
         }
     }
 
-    @Test
-    public void branchReadAfterMerge() {
-        String branchRev = mk.branch(null);
-        String branchRev1 = mk.commit("/", "+\"foo\":{}", branchRev, null);
-        String branchRev2 = mk.commit("/", "+\"bar\":{}", branchRev1, null);
-        mk.merge(branchRev2, null);
-
-        assertNodesExist(branchRev2, "/foo");
-        assertNodesExist(branchRev2, "/bar");
-
-        assertNodesExist(branchRev1, "/foo");
-        assertNodesNotExist(branchRev1, "/bar");
-    }
-
     //--------------------------< internal >------------------------------------
 
     private String setProp(String rev, String prop, Object value) {

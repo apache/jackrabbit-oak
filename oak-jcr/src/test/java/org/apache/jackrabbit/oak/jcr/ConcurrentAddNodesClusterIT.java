@@ -45,10 +45,12 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Concurrently add nodes with multiple sessions on multiple cluster nodes.
  */
-@Ignore("OAK-1254")
 public class ConcurrentAddNodesClusterIT {
 
     private static final int NUM_CLUSTER_NODES = 3;
@@ -79,6 +81,7 @@ public class ConcurrentAddNodesClusterIT {
         dropDB();
     }
 
+    @Ignore("OAK-1254")
     @Test
     public void addNodesConcurrent() throws Exception {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
@@ -138,6 +141,118 @@ public class ConcurrentAddNodesClusterIT {
         }
     }
 
+    @Test
+    public void addNodes2() throws Exception {
+        for (int i = 0; i < 3; i++) {
+            MongoMK mk = new MongoMK.Builder()
+                    .setMongoDB(createConnection().getDB())
+                    .setAsyncDelay(0)
+                    .setClusterId(i + 1).open();
+            mks.add(mk);
+        }
+        final MongoMK mk1 = mks.get(0);
+        final MongoMK mk2 = mks.get(1);
+        final MongoMK mk3 = mks.get(2);
+        Repository r1 = new Jcr(mk1).createRepository();
+        Repository r2 = new Jcr(mk2).createRepository();
+        Repository r3 = new Jcr(mk3).createRepository();
+
+        Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        Session s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        Session s3 = r3.login(new SimpleCredentials("admin", "admin".toCharArray()));
+
+        ensureIndex(s1.getRootNode(), PROP_NAME);
+        syncMKs(1);
+        ensureIndex(s2.getRootNode(), PROP_NAME);
+        ensureIndex(s3.getRootNode(), PROP_NAME);
+
+        // begin test
+
+        Node root2 = s2.getRootNode().addNode("testroot-Worker-2", "nt:unstructured");
+        createNodes(root2, "testnode0");
+        s2.save();
+
+        createNodes(root2, "testnode1");
+
+        runBackgroundOps(mk1);
+        runBackgroundOps(mk3);
+        runBackgroundOps(mk2); // publish 'testroot-Worker-2/testnode0'
+
+        Node root3 = s3.getRootNode().addNode("testroot-Worker-3", "nt:unstructured");
+        createNodes(root3, "testnode0");
+
+        s2.save();
+        createNodes(root2, "testnode2");
+
+        runBackgroundOps(mk1); // sees 'testroot-Worker-2/testnode0'
+        runBackgroundOps(mk3); // sees 'testroot-Worker-2/testnode0'
+        runBackgroundOps(mk2); // publish 'testroot-Worker-2/testnode1'
+
+        // subsequent read on mk3 will read already published docs from mk2
+        s3.save();
+        createNodes(root3, "testnode1");
+
+        Node root1 = s1.getRootNode().addNode("testroot-Worker-1", "nt:unstructured");
+        createNodes(root1, "testnode0");
+
+        s2.save();
+        createNodes(root2, "testnode3");
+
+        runBackgroundOps(mk1);
+        runBackgroundOps(mk3);
+        runBackgroundOps(mk2);
+
+        s1.save();
+        createNodes(root1, "testnode1");
+
+        s3.save();
+        createNodes(root3, "testnode2");
+
+        runBackgroundOps(mk1);
+
+        s1.save();
+    }
+
+    @Test
+    public void rebaseVisibility() throws Exception {
+        for (int i = 0; i < 2; i++) {
+            MongoMK mk = new MongoMK.Builder()
+                    .setMongoDB(createConnection().getDB())
+                    .setAsyncDelay(0)
+                    .setClusterId(i + 1).open();
+            mks.add(mk);
+        }
+        final MongoMK mk1 = mks.get(0);
+        final MongoMK mk2 = mks.get(1);
+        Repository r1 = new Jcr(mk1).createRepository();
+        Repository r2 = new Jcr(mk2).createRepository();
+
+        Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        Session s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
+
+        Node root1 = s1.getRootNode().addNode("session-1");
+        s1.save();
+        Node root2 = s2.getRootNode().addNode("session-2");
+        s2.save();
+
+        runBackgroundOps(mk1);
+        runBackgroundOps(mk2);
+        runBackgroundOps(mk1);
+
+        createNodes(root1, "nodes");
+
+        createNodes(root2, "nodes");
+        s2.save();
+
+        runBackgroundOps(mk2);
+        runBackgroundOps(mk1);
+
+        assertFalse(s1.getRootNode().hasNode("session-2/nodes"));
+
+        s1.refresh(true);
+        assertTrue(s1.getRootNode().hasNode("session-2/nodes"));
+    }
+
     private void syncMKs(int delay) {
         EXECUTOR.schedule(new Callable<Object>() {
             @Override
@@ -193,6 +308,7 @@ public class ConcurrentAddNodesClusterIT {
             root.getSession().save();
         } catch (RepositoryException e) {
             // created by other thread -> ignore
+            root.getSession().refresh(false);
         }
     }
 
@@ -244,6 +360,15 @@ public class ConcurrentAddNodesClusterIT {
                 break;
             }
             session.save();
+        }
+    }
+
+    private void createNodes(Node parent, String child)
+            throws RepositoryException {
+        Node node = parent.addNode(child, "nt:unstructured");
+        for (int i = 0; i < NODE_COUNT; i++) {
+            Node c = node.addNode("node" + i, "nt:unstructured");
+            c.setProperty(PROP_NAME, i);
         }
     }
 }

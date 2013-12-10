@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -200,7 +199,6 @@ public class ClusterTest {
     /**
      * Test for OAK-1254
      */
-    @Ignore
     @Test
     public void clusterBranchRebase() throws Exception {
         MongoMK mk1 = createMK(1, 0);
@@ -406,7 +404,6 @@ public class ClusterTest {
     }
 
     private void traverse(NodeState node, String path) {
-        System.out.println("traversing: " + path);
         for (ChildNodeEntry child : node.getChildNodeEntries()) {
             traverse(child.getNodeState(), PathUtils.concat(path, child.getName()));
         }

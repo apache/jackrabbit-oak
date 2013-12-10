@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -497,27 +496,27 @@ public class NodeDocument extends Document {
         if (lastModified != null) {
             lastRevs.put(context.getClusterId(), lastModified);
         }
-        // filter out revisions newer than branch base
+        Revision branchBase = null;
         if (branch != null) {
-            Revision base = branch.getBase(readRevision);
-            for (Iterator<Revision> it = lastRevs.values().iterator(); it
-                    .hasNext();) {
-                Revision r = it.next();
-                if (isRevisionNewer(context, r, base)) {
-                    it.remove();
-                }
-            }
+            branchBase = branch.getBase(readRevision);
         }
         for (Revision r : lastRevs.values()) {
             // ignore if newer than readRevision
             if (isRevisionNewer(context, r, readRevision)) {
                 // the node has a _lastRev which is newer than readRevision
-                // this means we don't know when if this node was
+                // this means we don't know when this node was
                 // modified by an operation on a descendant node between
                 // current lastRevision and readRevision. therefore we have
                 // to stay on the safe side and use readRevision
                 lastRevision = readRevision;
                 continue;
+            } else if (branchBase != null && isRevisionNewer(context, r, branchBase)) {
+                // readRevision is on a branch and the node has a
+                // _lastRev which is newer than the base of the branch
+                // we cannot use this _lastRev because it is not visible
+                // from this branch. highest possible revision of visible
+                // changes is the base of the branch
+                r = branchBase;
             }
             if (isRevisionNewer(context, r, lastRevision)) {
                 lastRevision = r;
@@ -528,7 +527,7 @@ public class NodeDocument extends Document {
             // -> possibly overlay with unsaved last revs from branch
             Revision r = branch.getUnsavedLastRevision(path, readRevision);
             if (r != null) {
-                lastRevision = r;
+                lastRevision = r.asBranchRevision();
             }
         }
         n.setLastRevision(lastRevision);
@@ -1060,11 +1059,22 @@ public class NodeDocument extends Document {
         Revision latestRev = null;
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
             Revision propRev = entry.getKey();
-            if (min != null && isRevisionNewer(context, min, propRev)) {
+            // resolve revision
+            NodeDocument commitRoot = getCommitRoot(propRev);
+            if (commitRoot == null) {
+                continue;
+            }
+            String commitValue = commitRoot.getCommitValue(propRev);
+            if (commitValue == null) {
+                continue;
+            }
+            if (min != null && isRevisionNewer(context, min,
+                    Utils.resolveCommitRevision(propRev, commitValue))) {
                 continue;
             }
             if (isValidRevision(context, propRev, readRevision, validRevisions)) {
-                latestRev = propRev;
+                // TODO: need to check older revisions as well?
+                latestRev = Utils.resolveCommitRevision(propRev, commitValue);
                 value = entry.getValue();
                 break;
             }

@@ -223,10 +223,12 @@ public class Commit {
             } else {
                 NodeDocument.setCommitRoot(op, revision, commitRootDepth);
                 if (op.isNew()) {
-                    // for new nodes we can safely set _lastRev on insert.
-                    // for existing nodes the _lastRev is updated by the
-                    // background thread to avoid concurrent updates
-                    NodeDocument.setLastRev(op, revision);
+                    if (baseBranchRevision == null) {
+                        // for new non-branch nodes we can safely set _lastRev on
+                        // insert. for existing nodes the _lastRev is updated by
+                        // the background thread to avoid concurrent updates
+                        NodeDocument.setLastRev(op, revision);
+                    }
                     newNodes.add(op);
                 } else {
                     changedNodes.add(op);

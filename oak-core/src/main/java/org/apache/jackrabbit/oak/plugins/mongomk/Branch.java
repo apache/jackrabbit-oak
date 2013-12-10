@@ -97,7 +97,9 @@ class Branch {
         checkArgument(!checkNotNull(base).isBranch(), "Not a trunk revision: %s", base);
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(head, last) > 0);
-        commits.put(head, new BranchCommit(base));
+        BranchCommit bc = new BranchCommit(base);
+        bc.getModifications().put("/", head);
+        commits.put(head, bc);
     }
 
     /**
