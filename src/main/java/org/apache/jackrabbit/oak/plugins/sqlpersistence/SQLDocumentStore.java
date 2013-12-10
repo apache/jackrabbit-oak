@@ -53,16 +53,11 @@ public class SQLDocumentStore implements DocumentStore {
 
     /**
      * Creates a {@linkplain SQLDocumentStore} instance using an embedded H2
-     * database.
+     * database in in-memory mode.
      */
     public SQLDocumentStore() {
         try {
-            File dbDir = new File(".", "db");
-            if (!dbDir.exists()) {
-                dbDir.mkdirs();
-            }
-
-            String jdbcurl = "jdbc:h2:" + dbDir.getCanonicalPath() + "/revs";
+            String jdbcurl = "jdbc:h2:mem:oaknodes";
             initialize(jdbcurl, "sa", "");
         } catch (Exception ex) {
             throw new MicroKernelException("initializing SQL document store", ex);
@@ -166,10 +161,6 @@ public class SQLDocumentStore implements DocumentStore {
         connection.setAutoCommit(false);
         Statement stmt = connection.createStatement();
 
-        // statement below needed while this is tested as a drop-in for the
-        // memory document store
-        stmt.execute("drop table if exists CLUSTERNODES");
-        stmt.execute("drop table if exists NODES");
         stmt.execute("create table if not exists CLUSTERNODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
         stmt.execute("create table if not exists NODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
     }
