@@ -93,7 +93,8 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         // one remaining in the local deleted map
         assertEquals(1, deleted.size());
         for (Revision rev : revisions) {
-            assertTrue("document should contain revision " + rev, doc.containsRevision(rev));
+            assertTrue("document should contain revision (or have revision in commit root path):" + rev, doc.containsRevision(rev)
+                    || doc.getCommitRootPath(rev) != null);
             assertTrue(doc.isCommitted(rev));
         }
         Node node = ns.getNode("/foo", Revision.fromString(head));
