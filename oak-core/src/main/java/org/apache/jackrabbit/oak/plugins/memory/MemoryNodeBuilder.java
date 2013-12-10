@@ -417,40 +417,22 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean getBoolean(String name) {
-        PropertyState property = getProperty(name);
-        return property != null
-                && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
+        return head().getCurrentNodeState().getBoolean(checkNotNull(name));
     }
 
     @Override @CheckForNull
     public String getString(@Nonnull String name) {
-        PropertyState property = getProperty(name);
-        if (property != null && property.getType() == STRING) {
-            return property.getValue(STRING);
-        } else {
-            return null;
-        }
+        return head().getCurrentNodeState().getString(checkNotNull(name));
     }
 
     @Override @CheckForNull
     public String getName(@Nonnull String name) {
-        PropertyState property = getProperty(name);
-        if (property != null && property.getType() == NAME) {
-            return property.getValue(NAME);
-        } else {
-            return null;
-        }
+        return head().getCurrentNodeState().getName(checkNotNull(name));
     }
 
-    @Override
+    @Override @Nonnull
     public Iterable<String> getNames(@Nonnull String name) {
-        PropertyState property = getProperty(name);
-        if (property != null && property.getType() == NAMES) {
-            return property.getValue(NAMES);
-        } else {
-            return emptyList();
-        }
+        return head().getCurrentNodeState().getNames(checkNotNull(name));
     }
 
     @Override
