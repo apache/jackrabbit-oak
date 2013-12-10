@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 
 import javax.annotation.Nonnull;
@@ -50,64 +53,76 @@ class CommitQueue {
         this.dispatcher = dispatcher;
     }
 
-    Commit createCommit(Revision base) {
+    @Nonnull
+    Revision createRevision() {
+        return createRevisions(1).first();
+    }
+
+    @Nonnull
+    SortedSet<Revision> createRevisions(int num) {
+        checkArgument(num > 0);
+        SortedSet<Revision> revs = new TreeSet<Revision>(
+                new StableRevisionComparator());
+        Revision rev = null;
         synchronized (this) {
-            Revision rev = store.newRevision();
-            Commit c = new Commit(store, base, rev);
+            for (int i = 0; i < num; i++) {
+                rev = store.newRevision();
+                revs.add(rev);
+            }
             commits.put(rev, new Entry(rev));
-            LOG.debug("created commit {}", rev);
-            return c;
         }
+        LOG.debug("created commit {}", rev);
+        return revs;
     }
 
-    void done(@Nonnull Commit c, boolean isBranch, @Nullable CommitInfo info) {
-        checkNotNull(c);
+    void done(@Nonnull Revision rev, boolean isBranch, @Nullable CommitInfo info) {
+        checkNotNull(rev);
         if (isBranch) {
-            removeCommit(c);
+            removeCommit(rev);
         } else {
-            afterTrunkCommit(c, info);
+            afterTrunkCommit(rev, info);
         }
     }
 
-    void canceled(@Nonnull Commit c) {
-        removeCommit(c);
+    void canceled(@Nonnull Revision rev) {
+        removeCommit(rev);
     }
 
     //------------------------< internal >--------------------------------------
 
-    private void removeCommit(@Nonnull Commit c) {
+    private void removeCommit(@Nonnull Revision rev) {
         // simply remove and notify next head if any
         synchronized (this) {
-            boolean wasHead = commits.firstKey().equals(c.getRevision());
-            commits.remove(c.getRevision());
-            LOG.debug("removed commit {}, wasHead={}", c.getRevision(), wasHead);
+            boolean wasHead = commits.firstKey().equals(rev);
+            commits.remove(rev);
+            LOG.debug("removed commit {}, wasHead={}", rev, wasHead);
             if (wasHead) {
                 notifyHead();
             }
         }
     }
 
-    private void afterTrunkCommit(Commit c, CommitInfo info) {
+    private void afterTrunkCommit(Revision rev, CommitInfo info) {
         assert !commits.isEmpty();
 
         boolean isHead;
         Entry commitEntry;
         synchronized (this) {
-            isHead = commits.firstKey().equals(c.getRevision());
-            commitEntry = commits.get(c.getRevision());
+            isHead = commits.firstKey().equals(rev);
+            commitEntry = commits.get(rev);
         }
         if (!isHead) {
-            LOG.debug("not head: {}, waiting...", c.getRevision());
+            LOG.debug("not head: {}, waiting...", rev);
             commitEntry.await();
         }
         synchronized (this) {
-            commits.remove(c.getRevision());
+            commits.remove(rev);
             try {
-                LOG.debug("removed {}, head is now {}", c.getRevision(), commits.isEmpty() ? null : commits.firstKey());
+                LOG.debug("removed {}, head is now {}", rev, commits.isEmpty() ? null : commits.firstKey());
                 // remember before revision
                 Revision before = store.getHeadRevision();
                 // update head revision
-                store.setHeadRevision(c.getRevision());
+                store.setHeadRevision(rev);
                 NodeState root = store.getRoot();
                 // TODO: correct?
                 dispatcher.contentChanged(store.getRoot(before), null);
