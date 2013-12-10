@@ -19,12 +19,27 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.DATE;
+import static org.apache.jackrabbit.oak.api.Type.DECIMAL;
+import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.PATH;
+import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.URI;
+import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -101,35 +116,31 @@ class SegmentPropertyState extends Record implements PropertyState {
 
     @Override @Nonnull @SuppressWarnings("unchecked")
     public <T> T getValue(Type<T> type) {
-        if (type.isArray()) {
-            final int count = count();
-            final Type<?> base = type.getBaseType();
-            return (T) new Iterable<Object>() {
-                @Override
-                public Iterator<Object> iterator() {
-                    return new Iterator<Object>() {
-                        private int index = 0;
-                        @Override
-                        public boolean hasNext() {
-                            return index < count;
-                        }
-                        @Override
-                        public Object next() {
-                            if (hasNext()) {
-                                return getValue(base, index++);
-                            } else {
-                                throw new NoSuchElementException();
-                            }
-                        }
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
+        Segment segment = getSegment();
+        if (isArray()) {
+            checkState(type.isArray());
+            ListRecord values = getValueList(segment);
+            if (values.size() == 0) {
+                return (T) emptyList();
+            } else if (values.size() == 1) {
+                return (T) singletonList(getValue(
+                        segment, values.getEntry(0), type.getBaseType()));
+            } else {
+                Type<?> base = type.getBaseType();
+                List<Object> list = newArrayListWithCapacity(values.size());
+                for (RecordId id : values.getEntries()) {
+                    list.add(getValue(segment, id, base));
                 }
-            };
+                return (T) list;
+            }
         } else {
-            return getValue(type, 0);
+            RecordId id = getRecordId();
+            if (type.isArray()) {
+                return (T) singletonList(
+                        getValue(segment, id, type.getBaseType()));
+            } else {
+                return getValue(segment, id, type);
+            }
         }
     }
 
@@ -138,7 +149,7 @@ class SegmentPropertyState extends Record implements PropertyState {
         return size(0);
     }
 
-    @Override @Nonnull @SuppressWarnings("unchecked")
+    @Override @Nonnull
     public <T> T getValue(Type<T> type, int index) {
         checkNotNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");
@@ -146,36 +157,38 @@ class SegmentPropertyState extends Record implements PropertyState {
         Segment segment = getSegment();
         ListRecord values = getValueList(segment);
         checkElementIndex(index, values.size());
+        return getValue(segment, values.getEntry(index), type);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T getValue(Segment segment, RecordId id, Type<T> type) {
+        if (type == BINARY) {
+            return (T) new SegmentBlob(segment, id); // load binaries lazily
+        }
+
+        String value = segment.readString(id);
+        if (type == STRING || type == URI || type == DATE
+                || type == NAME || type == PATH
+                || type == REFERENCE || type == WEAKREFERENCE) {
+            return (T) value; // no conversion needed for string types
+        }
 
         Type<?> base = getType();
         if (base.isArray()) {
             base = base.getBaseType();
         }
-
-        RecordId valueId = values.getEntry(index);
-        if (type == Type.BINARY) {
-            return (T) new SegmentBlob(segment, valueId);
+        Converter converter = Conversions.convert(value, base);
+        if (type == BOOLEAN) {
+            return (T) Boolean.valueOf(converter.toBoolean());
+        } else if (type == DECIMAL) {
+            return (T) converter.toDecimal();
+        } else if (type == DOUBLE) {
+            return (T) Double.valueOf(converter.toDouble());
+        } else if (type == LONG) {
+            return (T) Long.valueOf(converter.toLong());
         } else {
-            String value = segment.readString(valueId);
-            if (type == Type.STRING || type == Type.URI || type == Type.DATE
-                    || type == Type.NAME || type == Type.PATH
-                    || type == Type.REFERENCE || type == Type.WEAKREFERENCE) {
-                return (T) value;
-            } else {
-                Converter converter = Conversions.convert(value, base);
-                if (type == Type.BOOLEAN) {
-                    return (T) Boolean.valueOf(converter.toBoolean());
-                } else if (type == Type.DECIMAL) {
-                    return (T) converter.toDecimal();
-                } else if (type == Type.DOUBLE) {
-                    return (T) Double.valueOf(converter.toDouble());
-                } else if (type == Type.LONG) {
-                    return (T) Long.valueOf(converter.toLong());
-                } else {
-                    throw new UnsupportedOperationException(
-                            "Unknown type: " + type);
-                }
-            }
+            throw new UnsupportedOperationException(
+                    "Unknown type: " + type);
         }
     }
 
