@@ -16,16 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newTreeSet;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -69,6 +64,10 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newTreeSet;
+
 /**
  * Instances of this class are passed to all JCR implementation classes
  * (e.g. {@code SessionImpl}, {@code NodeImpl}, etc.) and provide access to
@@ -77,9 +76,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SessionContext implements NamePathMapper {
 
-    /** Logger instance */
-    private static final Logger log =
-            LoggerFactory.getLogger(SessionContext.class);
+    private static final Logger log = LoggerFactory.getLogger(SessionContext.class);
 
     private final Repository repository;
     private final SecurityProvider securityProvider;
