@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -139,48 +138,6 @@ public class IndexUtils {
         PropertyState type = state.getProperty(TYPE_PROPERTY_NAME);
         return type != null && !type.isArray()
                 && type.getValue(Type.STRING).equals(typeIn);
-    }
-
-    public static String getString(NodeBuilder builder, String name) {
-        PropertyState property = builder.getProperty(name);
-        if (property != null && property.getType() == STRING) {
-            return property.getValue(STRING);
-        }
-        if (property != null && property.getType() == NAME) {
-            return property.getValue(NAME);
-        }
-        return null;
-    }
-
-    public static String getString(NodeState state, String name) {
-        PropertyState property = state.getProperty(name);
-        if (property != null && property.getType() == STRING) {
-            return property.getValue(STRING);
-        }
-        if (property != null && property.getType() == NAME) {
-            return property.getValue(NAME);
-        }
-        return null;
-    }
-
-    public static boolean getBoolean(NodeBuilder builder, String name) {
-        PropertyState property = builder.getProperty(name);
-        return property != null && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
-    }
-
-    public static boolean getBoolean(NodeState state, String name) {
-        PropertyState property = state.getProperty(name);
-        return property != null && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
-    }
-
-    public static NodeBuilder getChildOrNull(NodeBuilder node, String name) {
-        if (node != null && node.hasChildNode(name)) {
-            return node.child(name);
-        } else {
-            return null;
-        }
     }
 
 }

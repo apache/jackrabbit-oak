@@ -146,6 +146,11 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override @CheckForNull
+    public String getString(@Nonnull String name) {
+        return state.getString(name);
+    }
+
+    @Override @CheckForNull
     public String getName(@Nonnull String name) {
         return state.getName(name);
     }
