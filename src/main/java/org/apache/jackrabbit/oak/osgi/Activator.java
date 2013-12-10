@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
@@ -30,21 +29,12 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.OsgiRepositoryInitializer.RepositoryInitializerObserver;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceFactory;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
@@ -68,18 +58,11 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     private final OsgiRepositoryInitializer repositoryInitializerTracker = new OsgiRepositoryInitializer();
 
-    private final OsgiAuthorizableActionProvider authorizableActionProvider = new OsgiAuthorizableActionProvider();
-
-    private final OsgiRestrictionProvider restrictionProvider = new OsgiRestrictionProvider();
-
-    private final OsgiSecurityProvider securityProvider;
-
     private final Map<ServiceReference, ServiceRegistration> services = new HashMap<ServiceReference, ServiceRegistration>();
 
     private final List<Registration> registrations = new ArrayList<Registration>();
 
     public Activator() {
-        securityProvider = new OsgiSecurityProvider(getSecurityConfig());
     }
 
     //----------------------------------------------------< BundleActivator >---
@@ -95,14 +78,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         repositoryInitializerTracker.setObserver(this);
         repositoryInitializerTracker.start(bundleContext);
 
-        authorizableActionProvider.start(bundleContext);
-        restrictionProvider.start(bundleContext);
-        securityProvider.start(bundleContext);
-
         microKernelTracker = new ServiceTracker(context, MicroKernel.class.getName(), this);
         microKernelTracker.open();
-
-        registerSecurityProvider();
     }
 
     @Override
@@ -112,9 +89,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         indexEditorProvider.stop();
         validatorProvider.stop();
         repositoryInitializerTracker.stop();
-        authorizableActionProvider.stop();
-        restrictionProvider.stop();
-        securityProvider.stop();
 
         for(Registration r : registrations){
             r.unregister();
@@ -163,44 +137,5 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
                         indexEditorProvider);
             }
         }
-    }
-
-    //------------------------------------------------------------< private >---
-    private ConfigurationParameters getSecurityConfig() {
-        Map<String, Object> userMap = ImmutableMap.of(
-                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
-                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT); // TODO
-
-        Map<String, OsgiRestrictionProvider> authorizMap = ImmutableMap.of(
-                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
-        );
-
-        ConfigurationParameters securityConfig = ConfigurationParameters.of(ImmutableMap.of(
-                UserConfiguration.NAME, ConfigurationParameters.of(userMap),
-                AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)
-        ));
-        return securityConfig;
-    }
-
-    private void registerSecurityProvider() {
-        ServiceFactory sf = new ServiceFactory() {
-            @Override
-            public Object getService(Bundle bundle, ServiceRegistration serviceRegistration) {
-                return securityProvider;
-            }
-
-            @Override
-            public void ungetService(Bundle bundle, ServiceRegistration serviceRegistration, Object o) {
-                // nothing to do
-            }
-        };
-        final ServiceRegistration r = context.registerService(SecurityProvider.class.getName(), sf, null);
-        registrations.add(new Registration() {
-            @Override
-            public void unregister() {
-                r.unregister();
-
-            }
-        });
     }
 }

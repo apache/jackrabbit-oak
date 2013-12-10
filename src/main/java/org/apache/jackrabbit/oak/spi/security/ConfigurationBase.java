@@ -49,7 +49,7 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
 
     public void setSecurityProvider(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        config = securityProvider.getParameters(getName());
+        config = ConfigurationParameters.of(securityProvider.getParameters(getName()), config);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
