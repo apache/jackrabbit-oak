@@ -23,11 +23,13 @@ import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
@@ -421,7 +423,17 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 && property.getValue(BOOLEAN);
     }
 
-    @Override
+    @Override @CheckForNull
+    public String getString(@Nonnull String name) {
+        PropertyState property = getProperty(name);
+        if (property != null && property.getType() == STRING) {
+            return property.getValue(STRING);
+        } else {
+            return null;
+        }
+    }
+
+    @Override @CheckForNull
     public String getName(@Nonnull String name) {
         PropertyState property = getProperty(name);
         if (property != null && property.getType() == NAME) {

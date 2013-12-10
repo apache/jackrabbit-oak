@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
@@ -208,11 +207,11 @@ public class LuceneIndexEditor implements IndexEditor {
             Document doc, PropertyState property, NodeState state) {
         Metadata metadata = new Metadata();
         if (JCR_DATA.equals(property.getName())) {
-            String type = getString(state, JcrConstants.JCR_MIMETYPE);
+            String type = state.getString(JcrConstants.JCR_MIMETYPE);
             if (type != null) { // not mandatory
                 metadata.set(Metadata.CONTENT_TYPE, type);
             }
-            String encoding = getString(state, JcrConstants.JCR_ENCODING);
+            String encoding = state.getString(JcrConstants.JCR_ENCODING);
             if (encoding != null) { // not mandatory
                 metadata.set(Metadata.CONTENT_ENCODING, encoding);
             }

@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -237,13 +236,13 @@ public class LuceneIndex implements FulltextQueryIndex {
         if (def == null) {
             return false;
         }
-        String type = getString(def, PERSISTENCE_NAME);
+        String type = def.getString(PERSISTENCE_NAME);
         if (type == null || PERSISTENCE_OAK.equalsIgnoreCase(type)) {
             return getIndexDataNode(def) != null;
         }
 
         if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
-            return getString(def, PERSISTENCE_PATH) != null;
+            return def.getString(PERSISTENCE_PATH) != null;
         }
 
         return false;
@@ -255,7 +254,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             return null;
         }
 
-        String type = getString(def, PERSISTENCE_NAME);
+        String type = def.getString(PERSISTENCE_NAME);
         if (type == null || PERSISTENCE_OAK.equalsIgnoreCase(type)) {
             NodeState index = getIndexDataNode(def);
             if (index == null) {
@@ -265,7 +264,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
 
         if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
-            String fs = getString(def, PERSISTENCE_PATH);
+            String fs = def.getString(PERSISTENCE_PATH);
             if (fs == null) {
                 return null;
             }
@@ -288,7 +287,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             NodeState ns = entry.getNodeState();
-            if (TYPE_LUCENE.equals(getString(ns, TYPE_PROPERTY_NAME))) {
+            if (TYPE_LUCENE.equals(ns.getString(TYPE_PROPERTY_NAME))) {
                 return ns;
             }
         }
