@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -67,7 +66,7 @@ public class LuceneIndexEditorContext {
 
     private static Directory newIndexDirectory(NodeBuilder definition)
             throws IOException {
-        String path = getString(definition, PERSISTENCE_PATH);
+        String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
             return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME));
         } else {
