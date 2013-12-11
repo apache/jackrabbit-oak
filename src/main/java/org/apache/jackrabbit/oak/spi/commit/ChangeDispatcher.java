@@ -37,9 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * notifications for all changes reported to this instance.
  */
 public class ChangeDispatcher implements Observable, Observer {
-    // TODO make the queue size configurable
-    private static final int QUEUE_SIZE = 8192;
-
     private final CompositeObserver observers = new CompositeObserver();
 
     @Nonnull
@@ -55,23 +52,23 @@ public class ChangeDispatcher implements Observable, Observer {
 
     /**
      * Register a new {@link Observer} for receiving notifications about changes reported to
-     * this change dispatcher. Changes are reported asynchronously. Clients need to
-     * call {@link java.io.Closeable#close()} close} on the returned {@code Closeable} instance
-     * to stop receiving notifications.
+     * this change dispatcher. Changes are reported synchronously and clients need to ensure
+     * to no block any length of time (e.g. by relaying through a {@link BackgroundObserver}).
+     * <p>
+     * Clients need to call {@link java.io.Closeable#close()} close} on the returned
+     * {@code Closeable} instance to stop receiving notifications.
      *
      * @return  a {@link Closeable} instance
      */
     @Override
     @Nonnull
-    public Closeable addObserver(Observer observer) {
-        final BackgroundObserver backgroundObserver = new BackgroundObserver(observer, QUEUE_SIZE);
-        backgroundObserver.contentChanged(root, null);
-        observers.addObserver(backgroundObserver);
+    public Closeable addObserver(final Observer observer) {
+        observer.contentChanged(root, null);
+        observers.addObserver(observer);
         return new Closeable() {
             @Override
             public void close() {
-                backgroundObserver.stop();
-                observers.removeObserver(backgroundObserver);
+                observers.removeObserver(observer);
             }
         };
     }
