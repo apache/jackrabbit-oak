@@ -23,9 +23,9 @@ import java.util.Properties;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.whiteboard.OsgiWhiteboard;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;

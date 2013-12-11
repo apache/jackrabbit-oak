@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.whiteboard;
+package org.apache.jackrabbit.oak.osgi;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -24,6 +24,8 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
