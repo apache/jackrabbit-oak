@@ -16,27 +16,23 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import java.util.Map;
+import java.util.List;
 
-public interface Whiteboard {
-
-    /**
-     * Publishes the given service to the whiteboard. Use the returned
-     * registration object to unregister the service.
-     *
-     * @param type type of the service
-     * @param service service instance
-     * @param properties service properties
-     * @return service registration
-     */
-    <T> Registration register(Class<T> type, T service, Map<?, ?> properties);
+/**
+ * Tracker for whiteboard services.
+ */
+public interface Tracker<T> {
 
     /**
-     * Starts tracking services of the given type.
+     * Returns the currently available services of the tracked type.
      *
-     * @param type type of the services to track
-     * @return service tracker
+     * @return available services
      */
-    <T> Tracker<T> track(Class<T> type);
+    List<T> getServices();
+
+    /**
+     * Stops tracking.
+     */
+    void stop();
 
 }

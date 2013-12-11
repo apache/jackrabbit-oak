@@ -24,11 +24,7 @@ import java.util.Properties;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.osgi.OsgiRepositoryInitializer.RepositoryInitializerObserver;
-import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -41,7 +37,7 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
-public class Activator implements BundleActivator, ServiceTrackerCustomizer, RepositoryInitializerObserver {
+public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private BundleContext context;
 
@@ -54,8 +50,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
     private final OsgiIndexEditorProvider indexEditorProvider = new OsgiIndexEditorProvider();
 
     private final OsgiEditorProvider validatorProvider = new OsgiEditorProvider();
-
-    private final OsgiRepositoryInitializer repositoryInitializerTracker = new OsgiRepositoryInitializer();
 
     private final Map<ServiceReference, ServiceRegistration> services = new HashMap<ServiceReference, ServiceRegistration>();
 
@@ -71,11 +65,9 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         context = bundleContext;
         whiteboard = new OsgiWhiteboard(bundleContext);
 
-        indexProvider.start(bundleContext);
-        indexEditorProvider.start(bundleContext);
-        validatorProvider.start(bundleContext);
-        repositoryInitializerTracker.setObserver(this);
-        repositoryInitializerTracker.start(bundleContext);
+        indexProvider.start(whiteboard);
+        indexEditorProvider.start(whiteboard);
+        validatorProvider.start(whiteboard);
 
         microKernelTracker = new ServiceTracker(context, MicroKernel.class.getName(), this);
         microKernelTracker.open();
@@ -87,7 +79,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         indexProvider.stop();
         indexEditorProvider.stop();
         validatorProvider.stop();
-        repositoryInitializerTracker.stop();
 
         for(Registration r : registrations){
             r.unregister();
@@ -123,18 +114,4 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         context.ungetService(reference);
     }
 
-    //----------------------------------------< RepositoryInitializerObserver >---
-
-    @Override
-    public void newRepositoryInitializer(RepositoryInitializer ri) {
-        List<ServiceReference> mkRefs = new ArrayList<ServiceReference>(services.keySet());
-        for (ServiceReference ref : mkRefs) {
-            Object service = context.getService(ref);
-            if (service instanceof ContentRepositoryImpl) {
-                ContentRepositoryImpl repository = (ContentRepositoryImpl) service;
-                OakInitializer.initialize(repository.getNodeStore(), ri,
-                        indexEditorProvider);
-            }
-        }
-    }
 }

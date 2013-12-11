@@ -17,17 +17,21 @@
 package org.apache.jackrabbit.oak.osgi;
 
 import java.util.List;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.CompositeActionProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 
 /**
  * OsgiAuthorizableActionProvider... TODO
  */
-public class OsgiAuthorizableActionProvider extends AbstractServiceTracker<AuthorizableActionProvider> implements AuthorizableActionProvider {
+public class OsgiAuthorizableActionProvider
+        extends AbstractServiceTracker<AuthorizableActionProvider>
+        implements AuthorizableActionProvider {
 
     public OsgiAuthorizableActionProvider() {
         super(AuthorizableActionProvider.class);
