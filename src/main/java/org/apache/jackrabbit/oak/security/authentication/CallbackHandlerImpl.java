@@ -41,16 +41,16 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.Repository
  * <li>{@link RepositoryCallback}</li>
  * </ul>
  */
-public class CallbackHandlerImpl implements CallbackHandler {
+class CallbackHandlerImpl implements CallbackHandler {
 
     private final Credentials credentials;
     private final String workspaceName;
     private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
 
-    public CallbackHandlerImpl(Credentials credentials, String workspaceName,
-                               ContentRepository contentRepository,
-                               SecurityProvider securityProvider) {
+    CallbackHandlerImpl(Credentials credentials, String workspaceName,
+                        ContentRepository contentRepository,
+                        SecurityProvider securityProvider) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.contentRepository = contentRepository;
