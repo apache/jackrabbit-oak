@@ -30,9 +30,11 @@ import javax.annotation.Nonnull;
 
 import com.google.common.io.Closeables;
 import com.google.common.io.Closer;
+
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
@@ -40,7 +42,7 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 public class ObserverTracker implements ServiceTrackerCustomizer {
     private final Map<ServiceReference, Closeable> subscriptions = newHashMap();
-    private final OsgiExecutor osgiExecutor = new OsgiExecutor();
+    private final WhiteboardExecutor executor = new WhiteboardExecutor();
     private final Observable observable;
 
     private BundleContext bundleContext;
@@ -53,7 +55,7 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
     public void start(@Nonnull BundleContext bundleContext) {
         checkState(this.bundleContext == null);
         this.bundleContext = checkNotNull(bundleContext);
-        osgiExecutor.start(bundleContext);
+        executor.start(new OsgiWhiteboard(bundleContext));
         observerTracker = new ServiceTracker(bundleContext, Observer.class.getName(), this);
         observerTracker.open();
     }
@@ -61,7 +63,7 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
     public void stop() {
         checkState(this.bundleContext != null);
         observerTracker.close();
-        osgiExecutor.stop();
+        executor.stop();
     }
 
     //------------------------< ServiceTrackerCustomizer >----------------------
@@ -73,7 +75,7 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
         if (service instanceof Observer) {
             Closer subscription = Closer.create();
             BackgroundObserver observer = subscription.register(
-                    new BackgroundObserver((Observer) service, osgiExecutor));
+                    new BackgroundObserver((Observer) service, executor));
             subscription.register(
                     observable.addObserver(observer));
             subscriptions.put(reference, subscription);
