@@ -21,7 +21,7 @@ import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.union;
+import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -37,6 +37,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 /**
  * Inheritance-aware node type predicate for {@link NodeState node states}.
@@ -45,9 +46,13 @@ import com.google.common.base.Predicate;
  */
 public class TypePredicate implements Predicate<NodeState> {
 
-    private final Set<String> primaryTypes = newHashSet();
+    private final NodeState root;
 
-    private final Set<String> mixinTypes = newHashSet();
+    private final Iterable<String> names;
+
+    private Set<String> primaryTypes = null;
+
+    private Set<String> mixinTypes = null;
 
     /**
      * Creates a predicate for checking whether a node state is an instance of
@@ -58,10 +63,7 @@ public class TypePredicate implements Predicate<NodeState> {
      * @param name Oak name of the node type to check for
      */
     public TypePredicate(@Nonnull NodeState root, @Nonnull String name) {
-        NodeState types = checkNotNull(root)
-                .getChildNode(JCR_SYSTEM)
-                .getChildNode(JCR_NODE_TYPES);
-        addNodeType(types, checkNotNull(name));
+        this(root, singleton(name));
     }
 
     /**
@@ -74,12 +76,8 @@ public class TypePredicate implements Predicate<NodeState> {
      */
     public TypePredicate(
             @Nonnull NodeState root, @Nonnull Iterable<String> names) {
-        NodeState types = checkNotNull(root)
-                .getChildNode(JCR_SYSTEM)
-                .getChildNode(JCR_NODE_TYPES);
-        for (String name : checkNotNull(names)) {
-            addNodeType(types, name);
-        }
+        this.root = root;
+        this.names = names;
     }
 
     private void addNodeType(NodeState types, String name) {
@@ -101,6 +99,18 @@ public class TypePredicate implements Predicate<NodeState> {
 
     @Override
     public boolean apply(NodeState input) {
+        if (primaryTypes == null) {
+            // lazy initialization of the sets of matching type names
+            primaryTypes = newHashSet();
+            mixinTypes = newHashSet();
+            NodeState types = checkNotNull(root)
+                    .getChildNode(JCR_SYSTEM)
+                    .getChildNode(JCR_NODE_TYPES);
+            for (String name : checkNotNull(names)) {
+                addNodeType(types, name);
+            }
+        }
+
         return primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))
                 || any(input.getNames(JCR_MIXINTYPES), in(mixinTypes));
     }
@@ -109,7 +119,7 @@ public class TypePredicate implements Predicate<NodeState> {
 
     @Override
     public String toString() {
-        return union(primaryTypes, mixinTypes).toString();
+        return Iterables.toString(names);
     }
 
 }
