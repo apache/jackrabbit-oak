@@ -24,10 +24,7 @@ import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.osgi.OsgiEditorProvider;
 import org.apache.jackrabbit.oak.osgi.OsgiExecutor;
-import org.apache.jackrabbit.oak.osgi.OsgiIndexEditorProvider;
-import org.apache.jackrabbit.oak.osgi.OsgiIndexProvider;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
@@ -40,6 +37,9 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardEditorProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardIndexEditorProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardIndexProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.osgi.framework.BundleActivator;
@@ -58,14 +58,14 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     private final Map<ServiceReference, ServiceRegistration> services =
             new HashMap<ServiceReference, ServiceRegistration>();
 
-    private final OsgiEditorProvider editorProvider =
-            new OsgiEditorProvider();
+    private final WhiteboardEditorProvider editorProvider =
+            new WhiteboardEditorProvider();
 
-    private final OsgiIndexEditorProvider indexEditorProvider =
-            new OsgiIndexEditorProvider();
+    private final WhiteboardIndexEditorProvider indexEditorProvider =
+            new WhiteboardIndexEditorProvider();
 
-    private final OsgiIndexProvider indexProvider =
-            new OsgiIndexProvider();
+    private final WhiteboardIndexProvider indexProvider =
+            new WhiteboardIndexProvider();
 
     private final OsgiExecutor executor = new OsgiExecutor();
 

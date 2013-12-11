@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.osgi;
+package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.Set;
 
@@ -30,17 +30,16 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 
 /**
- * {@link RestrictionProvider} implementation that combines all available OSGi
- * restriction providers.
+ * Dynamic {@link RestrictionProvider} based on the available
+ * whiteboard services.
  */
-public class OsgiRestrictionProvider
+public class WhiteboardRestrictionProvider
         extends AbstractServiceTracker<RestrictionProvider>
         implements RestrictionProvider {
 
-    public OsgiRestrictionProvider() {
+    public WhiteboardRestrictionProvider() {
         super(RestrictionProvider.class);
     }
 
