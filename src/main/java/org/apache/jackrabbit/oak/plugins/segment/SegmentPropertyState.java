@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -37,18 +48,6 @@ import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.URI;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
-
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
-
-import org.apache.jackrabbit.oak.api.AbstractPropertyState;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.value.Conversions;
-import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 class SegmentPropertyState extends Record implements PropertyState {
 
