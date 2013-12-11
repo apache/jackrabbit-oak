@@ -22,7 +22,6 @@ import java.util.Collections;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.AbstractPropertyState;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
