@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 public interface SegmentStore {
 
@@ -40,8 +39,6 @@ public interface SegmentStore {
     void deleteSegment(UUID segmentId);
 
     void close();
-
-    <T> T getRecord(RecordId id, Callable<T> loader);
 
     /**
      * Checks whether the given object is a record of the given type and
