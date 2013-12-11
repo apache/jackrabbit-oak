@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.random;
 
+import java.io.File;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -52,7 +54,9 @@ public abstract class AbstractRandomizedTest {
 
     @Before
     public void setUp() throws Exception {
-        jackrabbitRepository = JcrUtils.getRepository();
+        System.setProperty("derby.stream.error.file", "target/derby.log");
+        jackrabbitRepository = JcrUtils.getRepository(
+                new File("target", "jackrabbit").toURI().toURL().toString());
         oakRepository = new Jcr().createRepository();
 
         writeSessions.add((JackrabbitSession) jackrabbitRepository.login(new SimpleCredentials("admin", "admin".toCharArray())));
