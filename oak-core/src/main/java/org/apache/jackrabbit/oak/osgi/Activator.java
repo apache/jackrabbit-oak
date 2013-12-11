@@ -45,18 +45,10 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private Whiteboard whiteboard;
 
-    private final OsgiIndexProvider indexProvider = new OsgiIndexProvider();
-
-    private final OsgiIndexEditorProvider indexEditorProvider = new OsgiIndexEditorProvider();
-
-    private final OsgiEditorProvider validatorProvider = new OsgiEditorProvider();
-
-    private final Map<ServiceReference, ServiceRegistration> services = new HashMap<ServiceReference, ServiceRegistration>();
+    private final Map<ServiceReference, ServiceRegistration> services =
+            new HashMap<ServiceReference, ServiceRegistration>();
 
     private final List<Registration> registrations = new ArrayList<Registration>();
-
-    public Activator() {
-    }
 
     //----------------------------------------------------< BundleActivator >---
 
@@ -65,10 +57,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         context = bundleContext;
         whiteboard = new OsgiWhiteboard(bundleContext);
 
-        indexProvider.start(whiteboard);
-        indexEditorProvider.start(whiteboard);
-        validatorProvider.start(whiteboard);
-
         microKernelTracker = new ServiceTracker(context, MicroKernel.class.getName(), this);
         microKernelTracker.open();
     }
@@ -76,11 +64,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
         microKernelTracker.close();
-        indexProvider.stop();
-        indexEditorProvider.stop();
-        validatorProvider.stop();
 
-        for(Registration r : registrations){
+        for (Registration r : registrations) {
             r.unregister();
         }
     }

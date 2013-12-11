@@ -48,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardRestrictionProvider;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.ComponentContext;
 
@@ -89,8 +91,8 @@ public class OsgiSecurityProvider implements SecurityProvider {
             policyOption = ReferencePolicyOption.GREEDY)
     private CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
 
-    private final OsgiAuthorizableActionProvider authorizableActionProvider = new OsgiAuthorizableActionProvider();
-    private final OsgiRestrictionProvider restrictionProvider = new OsgiRestrictionProvider();
+    private final WhiteboardAuthorizableActionProvider authorizableActionProvider = new WhiteboardAuthorizableActionProvider();
+    private final WhiteboardRestrictionProvider restrictionProvider = new WhiteboardRestrictionProvider();
 
     private final ConfigurationParameters config;
 
@@ -99,7 +101,7 @@ public class OsgiSecurityProvider implements SecurityProvider {
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
                 UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT); // TODO
 
-        Map<String, OsgiRestrictionProvider> authorizMap = ImmutableMap.of(
+        Map<String, WhiteboardRestrictionProvider> authorizMap = ImmutableMap.of(
                 AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
         );
 

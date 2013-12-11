@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.osgi;
+package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import javax.annotation.CheckForNull;
 
@@ -26,17 +26,16 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 
 /**
- * This editor provider combines all editors of all available OSGi editor
- * providers.
+ * Dynamic {@link EditorProvider} based on the available
+ * whiteboard services.
  */
-public class OsgiEditorProvider
+public class WhiteboardEditorProvider
         extends AbstractServiceTracker<EditorProvider>
         implements EditorProvider {
 
-    public OsgiEditorProvider() {
+    public WhiteboardEditorProvider() {
         super(EditorProvider.class);
     }
 

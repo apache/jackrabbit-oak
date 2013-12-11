@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.osgi;
+package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.List;
 
@@ -24,16 +24,16 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.CompositeActionProvider;
-import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 
 /**
- * OsgiAuthorizableActionProvider... TODO
+ * Dynamic {@link AuthorizableActionProvider} based on the available
+ * whiteboard services.
  */
-public class OsgiAuthorizableActionProvider
+public class WhiteboardAuthorizableActionProvider
         extends AbstractServiceTracker<AuthorizableActionProvider>
         implements AuthorizableActionProvider {
 
-    public OsgiAuthorizableActionProvider() {
+    public WhiteboardAuthorizableActionProvider() {
         super(AuthorizableActionProvider.class);
     }
 

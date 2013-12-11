@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.osgi;
+package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.List;
 
@@ -26,17 +26,16 @@ import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 
 /**
- * This index provider combines all indexes of all available OSGi index
- * providers.
+ * Dynamic {@link QueryIndexProvider} based on the available
+ * whiteboard services.
  */
-public class OsgiIndexProvider
+public class WhiteboardIndexProvider
         extends AbstractServiceTracker<QueryIndexProvider>
         implements QueryIndexProvider {
 
-    public OsgiIndexProvider() {
+    public WhiteboardIndexProvider() {
         super(QueryIndexProvider.class);
     }
 
