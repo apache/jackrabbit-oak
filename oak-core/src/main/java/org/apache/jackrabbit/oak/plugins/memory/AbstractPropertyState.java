@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.plugins.memory;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 
 /**
- * Abstract base class for {@link PropertyState} implementations. This
+ * Abstract base class for {@link org.apache.jackrabbit.oak.api.PropertyState} implementations. This
  * class provides default implementations of basic {@link Object} methods,
  * for consistency across all property states.
  */
