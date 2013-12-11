@@ -20,6 +20,7 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
@@ -29,7 +30,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nonnull;
 
@@ -111,6 +112,18 @@ public class Segment {
     private final ByteBuffer data;
 
     private final boolean current;
+
+    /**
+     * String records read from segment. Used to avoid duplicate
+     * copies and repeated parsing of the same strings.
+     */
+    private final ConcurrentMap<Integer, String> strings = newConcurrentMap();
+
+    /**
+     * Template records read from segment. Used to avoid duplicate
+     * copies and repeated parsing of the same templates.
+     */
+    private final ConcurrentMap<Integer, Template> templates = newConcurrentMap();
 
     public Segment(SegmentStore store, UUID uuid, ByteBuffer data) {
         this.store = checkNotNull(store);
@@ -256,15 +269,19 @@ public class Segment {
     }
 
     String readString(final RecordId id) {
-        return store.getRecord(id, new Callable<String>() {
-            @Override
-            public String call() {
-                return getSegment(id).readString(id.getOffset());
-            }
-        });
+        return getSegment(id).readString(id.getOffset());
     }
 
-    String readString(int offset) {
+    private String readString(int offset) {
+        String string = strings.get(offset);
+        if (string == null) {
+            string = loadString(offset);
+            strings.putIfAbsent(offset, string); // only keep the first copy
+        }
+        return string;
+    }
+
+    private String loadString(int offset) {
         int pos = pos(offset, 1);
         long length = internalReadLength(pos);
         if (length < SMALL_LIMIT) {
@@ -300,15 +317,19 @@ public class Segment {
     }
 
     Template readTemplate(final RecordId id) {
-        return store.getRecord(id, new Callable<Template>() {
-            @Override
-            public Template call() {
-                return getSegment(id).readTemplate(id.getOffset());
-            }
-        });
+        return getSegment(id).readTemplate(id.getOffset());
     }
 
-    Template readTemplate(int offset) {
+    private Template readTemplate(int offset) {
+        Template template = templates.get(offset);
+        if (template == null) {
+            template = loadTemplate(offset);
+            templates.putIfAbsent(offset, template); // only keep the first copy
+        }
+        return template;
+    }
+
+    private Template loadTemplate(int offset) {
         int head = readInt(offset);
         boolean hasPrimaryType = (head & (1 << 31)) != 0;
         boolean hasMixinTypes = (head & (1 << 30)) != 0;
