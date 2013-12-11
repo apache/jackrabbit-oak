@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code LoginContextProvider}
  */
-public class LoginContextProviderImpl implements LoginContextProvider {
+class LoginContextProviderImpl implements LoginContextProvider {
 
     private static final Logger log = LoggerFactory.getLogger(LoginContextProviderImpl.class);
 
@@ -46,9 +46,9 @@ public class LoginContextProviderImpl implements LoginContextProvider {
     private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
 
-    public LoginContextProviderImpl(String appName, Configuration configuration,
-                                    ContentRepository contentRepository,
-                                    SecurityProvider securityProvider) {
+    LoginContextProviderImpl(String appName, Configuration configuration,
+                             ContentRepository contentRepository,
+                             SecurityProvider securityProvider) {
         this.appName = appName;
         this.configuration = configuration;
         this.contentRepository = contentRepository;
