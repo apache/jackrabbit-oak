@@ -25,7 +25,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -77,6 +76,6 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
                 indexes.add(e);
             }
         }
-        return VisibleEditor.wrap(CompositeEditor.compose(indexes));
+        return CompositeEditor.compose(indexes);
     }
 }
