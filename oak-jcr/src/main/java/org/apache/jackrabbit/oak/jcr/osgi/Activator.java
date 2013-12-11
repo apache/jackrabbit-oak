@@ -24,7 +24,6 @@ import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.osgi.OsgiExecutor;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardEditorProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardIndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardIndexProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
@@ -67,7 +67,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     private final WhiteboardIndexProvider indexProvider =
             new WhiteboardIndexProvider();
 
-    private final OsgiExecutor executor = new OsgiExecutor();
+    private final WhiteboardExecutor executor = new WhiteboardExecutor();
 
     // TODO should not be hardcoded
     private final SecurityProvider securityProvider =
@@ -101,7 +101,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         editorProvider.start(whiteboard);
         indexEditorProvider.start(whiteboard);
         indexProvider.start(whiteboard);
-        executor.start(bundleContext);
+        executor.start(whiteboard);
     }
 
     @Override
