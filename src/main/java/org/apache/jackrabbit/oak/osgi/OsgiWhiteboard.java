@@ -16,18 +16,23 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Arrays.asList;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.util.tracker.ServiceTracker;
 
 /**
  * OSGi-based whiteboard implementation.
@@ -43,6 +48,11 @@ public class OsgiWhiteboard implements Whiteboard {
     @Override
     public <T> Registration register(
             Class<T> type, T service, Map<?, ?> properties) {
+        checkNotNull(type);
+        checkNotNull(service);
+        checkNotNull(properties);
+        checkArgument(type.isInstance(service));
+
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
         for (Map.Entry<?, ?> entry : properties.entrySet()) {
             dictionary.put(entry.getKey(), entry.getValue());
@@ -54,6 +64,24 @@ public class OsgiWhiteboard implements Whiteboard {
             @Override
             public void unregister() {
                 registration.unregister();
+            }
+        };
+    }
+
+    @Override
+    public <T> Tracker<T> track(Class<T> type) {
+        checkNotNull(type);
+        final ServiceTracker tracker =
+                new ServiceTracker(context, type.getName(), null);
+        tracker.open();
+        return new Tracker<T>() {
+            @Override @SuppressWarnings("unchecked")
+            public List<T> getServices() {
+                return (List<T>) asList(tracker.getServices());
+            }
+            @Override
+            public void stop() {
+                tracker.close();
             }
         };
     }
