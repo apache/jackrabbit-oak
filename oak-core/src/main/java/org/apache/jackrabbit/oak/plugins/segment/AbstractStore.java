@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkS
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import javax.annotation.Nonnull;
 
@@ -45,9 +44,6 @@ public abstract class AbstractStore implements SegmentStore {
      * Used to avoid extra {@link #notifyAll()} calls when nobody is waiting.
      */
     private int currentlyWaiting = 0;
-
-    private final Cache<RecordId, Object> records =
-            CacheLIRS.newBuilder().maximumSize(1000).build();
 
     private final SegmentWriter writer = new SegmentWriter(this);
 
@@ -143,24 +139,7 @@ public abstract class AbstractStore implements SegmentStore {
     }
 
     @Override
-    public <T> T getRecord(RecordId id, Callable<T> loader) {
-        @SuppressWarnings("unchecked")
-        T record = (T) records.getIfPresent(id);
-        if (record == null) {
-            try {
-                record = loader.call();
-                records.put(id, record);
-            } catch (Exception e) {
-                throw new IllegalStateException(
-                        "Failed to load record " + id, e);
-            }
-        }
-        return record;
-    }
-
-    @Override
     public void close() {
-        records.invalidateAll();
         if (segments != null) {
             synchronized (segments) {
                 while (!currentlyLoading.isEmpty()) {
