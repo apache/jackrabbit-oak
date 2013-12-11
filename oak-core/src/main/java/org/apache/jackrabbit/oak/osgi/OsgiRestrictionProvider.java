@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.osgi;
 
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -29,12 +30,15 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 
 /**
  * {@link RestrictionProvider} implementation that combines all available OSGi
  * restriction providers.
  */
-public class OsgiRestrictionProvider  extends AbstractServiceTracker<RestrictionProvider> implements RestrictionProvider {
+public class OsgiRestrictionProvider
+        extends AbstractServiceTracker<RestrictionProvider>
+        implements RestrictionProvider {
 
     public OsgiRestrictionProvider() {
         super(RestrictionProvider.class);

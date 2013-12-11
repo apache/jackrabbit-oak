@@ -24,13 +24,15 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 
 /**
  * This IndexEditor provider combines all index editors of all available OSGi
  * IndexEditor providers.
  */
-public class OsgiIndexEditorProvider extends
-        AbstractServiceTracker<IndexEditorProvider> implements IndexEditorProvider {
+public class OsgiIndexEditorProvider
+        extends AbstractServiceTracker<IndexEditorProvider>
+        implements IndexEditorProvider {
 
     public OsgiIndexEditorProvider() {
         super(IndexEditorProvider.class);

@@ -44,6 +44,7 @@ import javax.security.auth.login.LoginException;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Closer;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -77,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
@@ -191,10 +193,13 @@ public class Oak {
         return getValue(properties, name, type, null);
     }
 
-    private Whiteboard whiteboard = new Whiteboard() {
+    private Whiteboard whiteboard = new DefaultWhiteboard() {
         @Override
         public <T> Registration register(
                 Class<T> type, T service, Map<?, ?> properties) {
+            final Registration registration =
+                    super.register(type, service, properties);
+
             final Closer observerSubscription = Closer.create();
             Future<?> future = null;
             if (scheduledExecutor != null && type == Runnable.class) {
@@ -257,6 +262,8 @@ public class Oak {
                     } catch (IOException e) {
                         LOG.warn("Unexpected IOException while unsubscribing observer", e);
                     }
+
+                    registration.unregister();
                 }
             };
         }

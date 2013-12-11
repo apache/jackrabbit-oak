@@ -45,8 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * {@code InitialContent} implements a {@link RepositoryInitializer} and
  * registers built-in node types when the micro kernel becomes available.
  */
-@Component
-@Service(RepositoryInitializer.class)
 public class InitialContent implements RepositoryInitializer, NodeTypeConstants {
 
     public static final NodeState INITIAL_CONTENT = createInitialContent();

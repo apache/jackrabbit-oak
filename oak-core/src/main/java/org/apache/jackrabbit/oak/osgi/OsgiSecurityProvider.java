@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.osgi;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -45,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.osgi.framework.BundleContext;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.ComponentContext;
 
@@ -159,10 +161,9 @@ public class OsgiSecurityProvider implements SecurityProvider {
 //----------------------------------------------------< SCR Integration >---
     @Activate
     protected void activate(ComponentContext context) throws Exception {
-        BundleContext bundleContext = context.getBundleContext();
-
-        authorizableActionProvider.start(bundleContext);
-        restrictionProvider.start(bundleContext);
+        Whiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        authorizableActionProvider.start(whiteboard);
+        restrictionProvider.start(whiteboard);
     }
 
     @Deactivate

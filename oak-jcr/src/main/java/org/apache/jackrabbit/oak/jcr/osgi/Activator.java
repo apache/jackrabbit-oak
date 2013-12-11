@@ -97,9 +97,10 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         tracker = new ServiceTracker(context, NodeStore.class.getName(), this);
         tracker.open();
 
-        editorProvider.start(bundleContext);
-        indexEditorProvider.start(bundleContext);
-        indexProvider.start(bundleContext);
+        Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
+        editorProvider.start(whiteboard);
+        indexEditorProvider.start(whiteboard);
+        indexProvider.start(whiteboard);
         executor.start(bundleContext);
     }
 
