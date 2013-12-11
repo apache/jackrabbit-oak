@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.oak.plugins.mongomk.Revision.RevisionComparator;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -133,7 +134,7 @@ public class RevisionTest {
         assertEquals(-1, comp.compare(r2c1, r2c2));
         assertEquals(-1, comp.compare(r3c1, r3c2));
 
-        // now we declare r2+r3 of c1 to be after r2+r3 of c2
+        // now we declare r1+r2 of c1 to be after r1+r2 of c2
         comp.add(r2c1, new Revision(0x20, 0, 0));
         comp.add(r2c2, new Revision(0x10, 0, 0));
 
@@ -185,4 +186,21 @@ public class RevisionTest {
 
     }
 
+    @Ignore
+    @Test
+    public void clusterCompare() {
+        RevisionComparator comp = new RevisionComparator(1);
+
+        // sequence of revisions as added to comparator later
+        Revision r1c1 = new Revision(0x10, 0, 1);
+        Revision r1c2 = new Revision(0x20, 0, 2);
+        Revision r2c1 = new Revision(0x30, 0, 1);
+
+        comp.add(r1c1, new Revision(0x10, 0, 0));
+        comp.add(r2c1, new Revision(0x20, 0, 0));
+
+        // there's no range for r1c2 and must
+        // be considered in the past
+        assertTrue(comp.compare(r1c2, r2c1) < 0);
+    }
 }
