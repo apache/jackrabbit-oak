@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -76,27 +78,26 @@ class PropertyIndexEditor implements IndexEditor {
 
     private final Set<String> propertyNames;
 
+    /** Type predicate, or {@code null} if there are no type restrictions */
     private final Predicate<NodeState> typePredicate;
 
-    private final boolean unique;
-
+    /**
+     * Keys to check for uniqueness, or {@code null} for no uniqueness checks.
+     */
     private final Set<String> keysToCheckForUniqueness;
 
     /**
-     * Flag to indicate whether individual property changes should
-     * be tracked for this node.
+     * Flag to indicate whether the type of this node may have changed.
      */
-    private boolean trackChanges;
+    private boolean typeChanged;
 
     /**
-     * Matching property value keys from the before state,
-     * or {@code null} if this node is not indexed.
+     * Matching property value keys from the before state. Lazily initialized.
      */
     private Set<String> beforeKeys;
 
     /**
-     * Matching property value keys from the after state,
-     * or {@code null} if this node is not indexed.
+     * Matching property value keys from the after state. Lazily initialized.
      */
     private Set<String> afterKeys;
 
@@ -120,15 +121,13 @@ class PropertyIndexEditor implements IndexEditor {
             this.typePredicate = new TypePredicate(
                     root, definition.getNames(DECLARING_NODE_TYPES));
         } else {
-            this.typePredicate = NodeState.EXISTS;
+            this.typePredicate = null;
         }
 
         // keep track of modified keys for uniqueness checks
         if (definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME)) {
-            unique = true;
             this.keysToCheckForUniqueness = newHashSet();
         } else {
-            unique = false;
             this.keysToCheckForUniqueness = null;
         }
     }
@@ -140,7 +139,6 @@ class PropertyIndexEditor implements IndexEditor {
         this.definition = parent.definition;
         this.propertyNames = parent.propertyNames;
         this.typePredicate = parent.typePredicate;
-        this.unique = parent.unique;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
     }
 
@@ -154,42 +152,38 @@ class PropertyIndexEditor implements IndexEditor {
         return path;
     }
 
-    private static void addValueKeys(Set<String> keys, PropertyState property) {
-        if (property.getType().tag() != PropertyType.BINARY) {
+    /**
+     * Adds the encoded values of the given property to the given set.
+     * If the given set is uninitialized, i.e. {@code null}, then a new
+     * set is created for any values to be added. The set, possibly newly
+     * initialized, is returned.
+     *
+     * @param keys set of encoded values, or {@code null}
+     * @param property property whose values are to be added to the set
+     * @return set of encoded values, possibly initialized
+     */
+    private static Set<String> addValueKeys(
+            Set<String> keys, PropertyState property) {
+        if (property.getType().tag() != PropertyType.BINARY
+                && property.count() > 0) {
+            if (keys == null) {
+                keys = newHashSet();
+            }
             keys.addAll(encode(PropertyValues.create(property)));
         }
+        return keys;
     }
 
-    private static void addMatchingKeys(
-            Set<String> keys, NodeState state, Iterable<String> propertyNames) {
+    private static Set<String> getMatchingKeys(
+            NodeState state, Iterable<String> propertyNames) {
+        Set<String> keys = null;
         for (String propertyName : propertyNames) {
             PropertyState property = state.getProperty(propertyName);
             if (property != null) {
-                addValueKeys(keys, property);
+                keys = addValueKeys(keys, property);
             }
         }
-    }
-
-    @Override
-    public void enter(NodeState before, NodeState after)
-            throws CommitFailedException {
-        boolean beforeMatches = typePredicate.apply(before);
-        boolean afterMatches  = typePredicate.apply(after);
-
-        if (beforeMatches || afterMatches) {
-            beforeKeys = newHashSet();
-            afterKeys = newHashSet();
-        }
- 
-        if (beforeMatches && afterMatches) {
-            trackChanges = true;
-        } else if (beforeMatches) {
-            // all matching values should be removed from the index
-            addMatchingKeys(beforeKeys, before, propertyNames);
-        } else if (afterMatches) {
-            // all matching values should be added to the index
-            addMatchingKeys(afterKeys, after, propertyNames);
-        }
+        return keys;
     }
 
     private static IndexStoreStrategy getStrategy(boolean unique) {
@@ -197,20 +191,54 @@ class PropertyIndexEditor implements IndexEditor {
     }
 
     @Override
+    public void enter(NodeState before, NodeState after) {
+        typeChanged = (typePredicate == null); // disables property name checks
+        beforeKeys = null;
+        afterKeys = null;
+    }
+
+    @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (beforeKeys != null) {
-            Set<String> sharedKeys = newHashSet(beforeKeys);
-            sharedKeys.retainAll(afterKeys);
+        // apply the type restrictions
+        if (typePredicate != null) {
+            if (typeChanged) {
+                // possible type change, so ignore diff results and
+                // just load all matching values from both states
+                beforeKeys = getMatchingKeys(before, propertyNames);
+                afterKeys = getMatchingKeys(after, propertyNames);
+            }
+            if (beforeKeys != null && !typePredicate.apply(before)) {
+                // the before state doesn't match the type, so clear its values
+                beforeKeys = null;
+            }
+            if (afterKeys != null && !typePredicate.apply(after)) {
+                // the after state doesn't match the type, so clear its values
+                afterKeys = null;
+            }
+        }
 
-            beforeKeys.removeAll(sharedKeys);
-            afterKeys.removeAll(sharedKeys);
+        // if any changes were detected, update the index accordingly
+        if (beforeKeys != null || afterKeys != null) {
+            // first make sure that both the before and after sets are non-null
+            if (beforeKeys == null
+                    || (typePredicate != null && !typePredicate.apply(before))) {
+                beforeKeys = newHashSet();
+            } else if (afterKeys == null) {
+                afterKeys = newHashSet();
+            } else {
+                // both before and after matches found, remove duplicates
+                Set<String> sharedKeys = newHashSet(beforeKeys);
+                sharedKeys.retainAll(afterKeys);
+                beforeKeys.removeAll(sharedKeys);
+                afterKeys.removeAll(sharedKeys);
+            }
 
             if (!beforeKeys.isEmpty() || !afterKeys.isEmpty()) {
                 NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
-
-                getStrategy(unique).update(index, getPath(), beforeKeys, afterKeys);
-                if (unique) {
+                getStrategy(keysToCheckForUniqueness != null).update(
+                        index, getPath(), beforeKeys, afterKeys);
+                if (keysToCheckForUniqueness != null) {
                     keysToCheckForUniqueness.addAll(afterKeys);
                 }
             }
@@ -221,9 +249,10 @@ class PropertyIndexEditor implements IndexEditor {
             definition.child(INDEX_CONTENT_NODE_NAME);
 
             // check uniqueness constraints when leaving the root
-            if (unique && !keysToCheckForUniqueness.isEmpty()) {
+            if (keysToCheckForUniqueness != null
+                    && !keysToCheckForUniqueness.isEmpty()) {
                 NodeState indexMeta = definition.getNodeState();
-                IndexStoreStrategy s = getStrategy(unique);
+                IndexStoreStrategy s = getStrategy(true);
                 for (String key : keysToCheckForUniqueness) {
                     if (s.count(indexMeta, singleton(key), 2) > 1) {
                         throw new CommitFailedException(
@@ -235,25 +264,35 @@ class PropertyIndexEditor implements IndexEditor {
         }
     }
 
+    private boolean isTypeProperty(String name) {
+        return JCR_PRIMARYTYPE.equals(name) || JCR_MIXINTYPES.equals(name);
+    }
+
     @Override
     public void propertyAdded(PropertyState after) {
-        if (trackChanges && propertyNames.contains(after.getName())) {
-            addValueKeys(afterKeys, after);
+        String name = after.getName();
+        typeChanged = typeChanged || isTypeProperty(name);
+        if (propertyNames.contains(name)) {
+            afterKeys = addValueKeys(afterKeys, after);
         }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        if (trackChanges && propertyNames.contains(after.getName())) {
-            addValueKeys(beforeKeys, before);
-            addValueKeys(afterKeys, after);
+        String name = after.getName();
+        typeChanged = typeChanged || isTypeProperty(name);
+        if (propertyNames.contains(name)) {
+            beforeKeys = addValueKeys(beforeKeys, before);
+            afterKeys = addValueKeys(afterKeys, after);
         }
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        if (trackChanges && propertyNames.contains(before.getName())) {
-            addValueKeys(beforeKeys, before);
+        String name = before.getName();
+        typeChanged = typeChanged || isTypeProperty(name);
+        if (propertyNames.contains(name)) {
+            beforeKeys = addValueKeys(beforeKeys, before);
         }
     }
 
