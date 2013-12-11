@@ -167,6 +167,9 @@ public class MongoDocumentStore implements DocumentStore {
             if (doc != null) {
                 if (maxCacheAge == Integer.MAX_VALUE ||
                         System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                    if (doc == NodeDocument.NULL) {
+                        return null;
+                    }
                     return (T) doc;
                 }
             }
