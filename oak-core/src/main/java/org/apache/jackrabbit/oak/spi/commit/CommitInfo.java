@@ -19,13 +19,14 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-
-import static com.google.common.base.Objects.toStringHelper;
 
 /**
  * Commit info instances associate some meta data with a commit.
@@ -59,11 +60,11 @@ public class CommitInfo {
     public CommitInfo(@Nonnull String sessionId, @Nullable String userId,
                       @Nonnull PermissionProvider permissionProvider,
                       @Nonnull MoveTracker moveTracker, @Nullable String message) {
-        this.sessionId = sessionId;
+        this.sessionId = checkNotNull(sessionId);
         this.userId = (userId == null) ? OAK_UNKNOWN : userId;
-        this.permissionProvider = permissionProvider;
+        this.permissionProvider = checkNotNull(permissionProvider);
+        this.moveTracker = checkNotNull(moveTracker);
         this.message = message;
-        this.moveTracker = moveTracker;
     }
 
     /**

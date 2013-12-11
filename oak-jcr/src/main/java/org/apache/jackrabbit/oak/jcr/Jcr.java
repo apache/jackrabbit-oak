@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.Nonnull;
@@ -144,6 +145,12 @@ public class Jcr {
 
     @Nonnull
     public final Jcr with(@Nonnull ScheduledExecutorService executor) {
+        oak.with(checkNotNull(executor));
+        return this;
+    }
+
+    @Nonnull
+    public final Jcr with(@Nonnull Executor executor) {
         oak.with(checkNotNull(executor));
         return this;
     }
