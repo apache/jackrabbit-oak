@@ -29,6 +29,8 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import com.google.common.io.Closeables;
+import com.google.common.io.Closer;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.osgi.framework.BundleContext;
@@ -37,11 +39,12 @@ import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 public class ObserverTracker implements ServiceTrackerCustomizer {
-    private final Observable observable;
     private final Map<ServiceReference, Closeable> subscriptions = newHashMap();
+    private final OsgiExecutor osgiExecutor = new OsgiExecutor();
+    private final Observable observable;
 
     private BundleContext bundleContext;
-    private ServiceTracker tracker;
+    private ServiceTracker observerTracker;
 
     public ObserverTracker(@Nonnull Observable observable) {
         this.observable = checkNotNull(observable);
@@ -50,13 +53,15 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
     public void start(@Nonnull BundleContext bundleContext) {
         checkState(this.bundleContext == null);
         this.bundleContext = checkNotNull(bundleContext);
-        tracker = new ServiceTracker(bundleContext, Observer.class.getName(), this);
-        tracker.open();
+        osgiExecutor.start(bundleContext);
+        observerTracker = new ServiceTracker(bundleContext, Observer.class.getName(), this);
+        observerTracker.open();
     }
 
     public void stop() {
         checkState(this.bundleContext != null);
-        tracker.close();
+        observerTracker.close();
+        osgiExecutor.stop();
     }
 
     //------------------------< ServiceTrackerCustomizer >----------------------
@@ -66,7 +71,11 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
         Object service = bundleContext.getService(reference);
 
         if (service instanceof Observer) {
-            Closeable subscription = observable.addObserver((Observer) service);
+            Closer subscription = Closer.create();
+            BackgroundObserver observer = subscription.register(
+                    new BackgroundObserver((Observer) service, osgiExecutor));
+            subscription.register(
+                    observable.addObserver(observer));
             subscriptions.put(reference, subscription);
             return service;
         } else {
@@ -82,8 +91,10 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
 
     @Override
     public void removedService(ServiceReference reference, Object service) {
-        Closeables.closeQuietly(subscriptions.get(reference));
-        bundleContext.ungetService(reference);
+        if (subscriptions.containsKey(reference)) {
+            Closeables.closeQuietly(subscriptions.get(reference));
+            bundleContext.ungetService(reference);
+        }
     }
 
 }

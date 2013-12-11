@@ -25,6 +25,7 @@ import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.osgi.OsgiEditorProvider;
+import org.apache.jackrabbit.oak.osgi.OsgiExecutor;
 import org.apache.jackrabbit.oak.osgi.OsgiIndexEditorProvider;
 import org.apache.jackrabbit.oak.osgi.OsgiIndexProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
@@ -66,6 +67,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     private final OsgiIndexProvider indexProvider =
             new OsgiIndexProvider();
 
+    private final OsgiExecutor executor = new OsgiExecutor();
+
     // TODO should not be hardcoded
     private final SecurityProvider securityProvider =
             new SecurityProviderImpl(buildSecurityConfig());
@@ -97,10 +100,12 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         editorProvider.start(bundleContext);
         indexEditorProvider.start(bundleContext);
         indexProvider.start(bundleContext);
+        executor.start(bundleContext);
     }
 
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
+        executor.stop();
         indexProvider.stop();
         indexEditorProvider.stop();
         editorProvider.stop();
@@ -125,6 +130,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
                 .with(indexEditorProvider)
                 .with(indexProvider)
                 .withAsyncIndexing()
+                .with(executor)
                 .createContentRepository();
 
             services.put(reference, context.registerService(
