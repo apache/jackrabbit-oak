@@ -1,27 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
+
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Queues.newArrayBlockingQueue;
 
+import java.io.Closeable;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,7 +50,31 @@ import org.slf4j.LoggerFactory;
  * the background observer thread has yet to process are automatically merged
  * to just one change.
  */
-public class BackgroundObserver implements Observer {
+public class BackgroundObserver implements Observer, Closeable {
+    /**
+     * Signal for the background thread to stop processing changes.
+     */
+    private static final ContentChange STOP = new ContentChange(null, null);
+
+    /**
+     * The receiving observer being notified off the background thread.
+     */
+    private final Observer observer;
+
+    /**
+     * Executor used to dispatch events
+     */
+    private final Executor executor;
+
+    /**
+     * Handler for uncaught exception on the background thread
+     */
+    private final UncaughtExceptionHandler exceptionHandler;
+
+    /**
+     * The queue of content changes to be processed.
+     */
+    private final BlockingQueue<ContentChange> queue;
 
     private static class ContentChange {
         private final NodeState root;
@@ -54,82 +86,82 @@ public class BackgroundObserver implements Observer {
     }
 
     /**
-     * Signal for the background thread to stop processing changes.
-     */
-    private static final ContentChange STOP = new ContentChange(null, null);
-
-    private static Logger getLogger(@Nonnull Observer observer) {
-        return LoggerFactory.getLogger(checkNotNull(observer).getClass());
-    }
-
-    /**
-     * The queue of content changes to be processed.
-     */
-    private final BlockingQueue<ContentChange> queue;
-
-    /**
      * The content change that was last added to the queue.
      * Used to compact external changes.
      */
-    private ContentChange last = null;
+    private ContentChange last;
 
     /**
      * Flag to indicate that some content changes were dropped because
      * the queue was full.
      */
-    private boolean full = false;
+    private boolean full;
 
     /**
-     * The background thread used to process changes.
+     * Current background task
      */
-    private final Thread thread;
+    private volatile ListenableFutureTask currentTask = ListenableFutureTask.completed();
+
+    /**
+     * Completion handler: set the current task to the next task and schedules that one
+     * on the background thread.
+     */
+    private final Runnable completionHandler = new Runnable() {
+        Callable<Void> task = new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                try {
+                    ContentChange change = queue.poll();
+                    while (change != null && change != STOP) {
+                        observer.contentChanged(change.root, change.info);
+                        change = queue.poll();
+                    }
+                } catch (Throwable t) {
+                    exceptionHandler.uncaughtException(Thread.currentThread(), t);
+                }
+                return null;
+            }
+        };
+
+        @Override
+        public void run() {
+            currentTask = new ListenableFutureTask(task);
+            executor.execute(currentTask);
+        }
+    };
+
+    /**
+     * {@code true} after this observer has been stopped
+     */
+    private volatile boolean stopped;
 
     public BackgroundObserver(
-            @Nonnull final Observer observer, int queueLength,
+            @Nonnull Observer observer,
+            @Nonnull Executor executor,
+            int queueLength,
             @Nonnull UncaughtExceptionHandler exceptionHandler) {
-        checkNotNull(observer);
-        checkArgument(queueLength > 0);
-        checkNotNull(exceptionHandler);
-
+        this.observer = checkNotNull(observer);
+        this.executor = checkNotNull(executor);
+        this.exceptionHandler = checkNotNull(exceptionHandler);
         this.queue = newArrayBlockingQueue(queueLength);
-
-        this.thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    while (true) {
-                        ContentChange change = queue.take();
-                        if (change == STOP) {
-                            return;
-                        }
-                        observer.contentChanged(change.root, change.info);
-                    }
-                } catch (InterruptedException e) {
-                    getLogger(observer).warn(
-                            "Event processing interrupted for " + observer, e);
-                }
-            }
-        });
-        thread.setName(observer.toString());
-        thread.setPriority(Thread.MIN_PRIORITY);
-        thread.setDaemon(true);
-        thread.setUncaughtExceptionHandler(exceptionHandler);
-        thread.start();
     }
 
     public BackgroundObserver(
-            @Nonnull final Observer observer, int queueLength) {
-        this(observer, queueLength, new UncaughtExceptionHandler() {
+            @Nonnull final Observer observer,
+            @Nonnull Executor executor,
+            int queueLength) {
+        this(observer, executor, queueLength, new UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                getLogger(observer).error(
-                        "Uncaught exception in " + observer, e);
+                getLogger(observer).error("Uncaught exception in " + observer, e);
             }
         });
     }
 
-    public BackgroundObserver(@Nonnull Observer observer) {
-        this(observer, 1000);
+    public BackgroundObserver(
+            @Nonnull Observer observer,
+            @Nonnull Executor executor) {
+        this(observer, executor, 1000);
     }
 
     /**
@@ -139,18 +171,25 @@ public class BackgroundObserver implements Observer {
      * middle of such a call, then that call is allowed to complete; i.e.
      * the thread is not forcibly interrupted. This method returns immediately
      * without blocking to wait for the thread to finish.
+     * <p>
+     * After a call to this method further calls to {@link #contentChanged(NodeState, CommitInfo)}
+     * will throw a {@code IllegalStateException}.
      */
-    public synchronized void stop() {
+    @Override
+    public synchronized void close() {
         queue.clear();
         queue.add(STOP);
-        // no need to join the thread; it will stop when encountering the STOP
+        stopped = true;
     }
 
     //----------------------------------------------------------< Observer >--
 
+    /**
+     * @throws IllegalStateException  if {@link #close()} has already been called.
+     */
     @Override
-    public synchronized void contentChanged(
-            @Nonnull NodeState root, @Nullable CommitInfo info) {
+    public synchronized void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+        checkState(!stopped);
         checkNotNull(root);
 
         if (info == null && last != null && last.info == null) {
@@ -181,13 +220,73 @@ public class BackgroundObserver implements Observer {
             // compacting of external changes shown above.
             last = change;
         }
+
+        // Set the completion handler on the currently running task. Multiple calls
+        // to onComplete are not a problem here since we always pass the same value.
+        // Thus there is no question as to which of the handlers will effectively run.
+        currentTask.onComplete(completionHandler);
     }
 
-    //------------------------------------------------------------< Object >--
+    //------------------------------------------------------------< internal >---
 
-    @Override
-    public String toString() {
-        return thread.getName() + " &";
+    private static Logger getLogger(@Nonnull Observer observer) {
+        return LoggerFactory.getLogger(checkNotNull(observer).getClass());
+    }
+
+    /**
+     * A future task with a on complete handler.
+     */
+    private static class ListenableFutureTask extends FutureTask<Void> {
+        private final AtomicBoolean ran = new AtomicBoolean(false);
+
+        private volatile Runnable task;
+
+        public ListenableFutureTask(Callable<Void> callable) {
+            super(callable);
+        }
+
+        public ListenableFutureTask(Runnable task) {
+            super(task, null);
+        }
+
+        /**
+         * Set the on complete handler. The handler will run exactly once after
+         * the task terminated. If the task has already terminated at the time of
+         * this method call the handler will execute immediately.
+         * <p>
+         * Note: there is no guarantee to which handler will run when the method
+         * is called multiple times with different arguments.
+         * @param task
+         */
+        public void onComplete(Runnable task) {
+            this.task = task;
+            if (isDone()) {
+                run(task);
+            }
+        }
+
+        @Override
+        protected void done() {
+            run(task);
+        }
+
+        private void run(Runnable runnable) {
+            if (runnable != null && ran.compareAndSet(false, true)) {
+                runnable.run();
+            }
+        }
+
+        private static final Runnable NOP = new Runnable() {
+            @Override
+            public void run() {
+            }
+        };
+
+        public static ListenableFutureTask completed() {
+            ListenableFutureTask f = new ListenableFutureTask(NOP);
+            f.run();
+            return f;
+        }
     }
 
 }
