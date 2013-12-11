@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.sqlpersistence;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -89,7 +88,7 @@ public class SQLDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, int limit) {
-        return query(collection, fromKey, toKey, null, 0, 0);
+        return query(collection, fromKey, toKey, null, 0, limit);
     }
 
     @Override
@@ -238,7 +237,7 @@ public class SQLDocumentStore implements DocumentStore {
             throw new RuntimeException("indexed property " + indexedProperty + " not supported");
         }
         try {
-            List<String> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue);
+            List<String> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
             for (String data : dbresult) {
                 T doc = fromString(collection, data);
                 doc.seal();
@@ -357,18 +356,25 @@ public class SQLDocumentStore implements DocumentStore {
     }
 
     private List<String> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
-            long startValue) throws SQLException {
+            long startValue, int limit) throws SQLException {
         String t = "select DATA from " + tableName + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
             t += " and MODIFIED >= ?";
         }
+        if (limit != Integer.MAX_VALUE) {
+            t += " limit ?";
+        }
         PreparedStatement stmt = connection.prepareStatement(t);
         List<String> result = new ArrayList<String>();
         try {
-            stmt.setString(1, minId);
-            stmt.setString(2, maxId);
+            int si = 1;
+            stmt.setString(si++, minId);
+            stmt.setString(si++, maxId);
             if (indexedProperty != null) {
-                stmt.setLong(3, startValue);
+                stmt.setLong(si++, startValue);
+            }
+            if (limit != Integer.MAX_VALUE) {
+                stmt.setInt(si++, limit);
             }
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
