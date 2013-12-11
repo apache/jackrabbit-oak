@@ -47,7 +47,7 @@ public final class PathUtils {
      * @return whether this is the root
      */
     public static boolean denotesRoot(String path) {
-        assert isValid(path);
+        assert isValid(path) : "Invalid path ["+path+"]";
 
         return denotesRootPath(path);
     }
@@ -79,7 +79,7 @@ public final class PathUtils {
      * @return true if it starts with a slash
      */
     public static boolean isAbsolute(String path) {
-        assert isValid(path);
+        assert isValid(path) : "Invalid path ["+path+"]";
 
         return isAbsolutePath(path);
     }
@@ -113,7 +113,7 @@ public final class PathUtils {
      */
     @Nonnull
     public static String getAncestorPath(String path, int nth) {
-        assert isValid(path);
+        assert isValid(path) : "Invalid path ["+path+"]";
 
         if (path.isEmpty() || denotesRootPath(path)
                 || nth <= 0) {
@@ -145,7 +145,7 @@ public final class PathUtils {
      */
     @Nonnull
     public static String getName(String path) {
-        assert isValid(path);
+        assert isValid(path) : "Invalid path ["+path+"]";
 
         if (path.isEmpty() || denotesRootPath(path)) {
             return "";
@@ -183,7 +183,7 @@ public final class PathUtils {
      * @return the number of elements
      */
     public static int getDepth(String path) {
-        assert isValid(path);
+        assert isValid(path) : "Invalid path ["+path+"]";
 
         if (path.isEmpty()) {
             return 0;
@@ -213,7 +213,7 @@ public final class PathUtils {
      */
     @Nonnull
     public static Iterable<String> elements(final String path) {
-        assert isValid(path);
+        assert isValid(path) : "Invalid path ["+path+"]";
 
         final Iterator<String> it = new Iterator<String>() {
             int pos = PathUtils.isAbsolute(path) ? 1 : 0;
@@ -270,7 +270,7 @@ public final class PathUtils {
      */
     @Nonnull
     public static String concat(String parentPath, String... relativePaths) {
-        assert isValid(parentPath);
+        assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
         int parentLen = parentPath.length();
         int size = relativePaths.length;
         StringBuilder buff = new StringBuilder(parentLen + size * 5);
@@ -301,8 +301,8 @@ public final class PathUtils {
      */
     @Nonnull
     public static String concat(String parentPath, String subPath) {
-        assert isValid(parentPath);
-        assert isValid(subPath);
+        assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
+        assert isValid(subPath) : "Invalid sub path ["+subPath+"]";
         // special cases
         if (parentPath.isEmpty()) {
             return subPath;
@@ -327,8 +327,8 @@ public final class PathUtils {
      * @return true if the path is an offspring of the ancestor
      */
     public static boolean isAncestor(String ancestor, String path) {
-        assert isValid(ancestor);
-        assert isValid(path);
+        assert isValid(ancestor) : "Invalid parent path ["+ancestor+"]";
+        assert isValid(path) : "Invalid path ["+ancestor+"]";
         if (ancestor.isEmpty() || path.isEmpty()) {
             return false;
         }
@@ -353,8 +353,8 @@ public final class PathUtils {
      */
     @Nonnull
     public static String relativize(String parentPath, String path) {
-        assert isValid(parentPath);
-        assert isValid(path);
+        assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
+        assert isValid(path) : "Invalid path ["+path+"]";
 
         if (parentPath.equals(path)) {
             return "";
@@ -379,7 +379,7 @@ public final class PathUtils {
      *         if not found
      */
     public static int getNextSlash(String path, int index) {
-        assert isValid(path);
+        assert isValid(path) : "Invalid path ["+path+"]";
 
         return path.indexOf('/', index);
     }
