@@ -137,7 +137,7 @@ public interface DocumentStore {
      * @param update the update operation
      * @return the old document or <code>null</code> if it didn't exist before.
      * @throws MicroKernelException if the operation failed.
-     */    
+     */
     @CheckForNull
     <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws MicroKernelException;
@@ -151,7 +151,8 @@ public interface DocumentStore {
      * @param <T> the document type
      * @param collection the collection
      * @param update the update operation with the condition
-     * @return the old document or <code>null</code> if the condition is not met.
+     * @return the old document or <code>null</code> if the condition is not met or
+     *         if the document wasn't found
      * @throws MicroKernelException if the operation failed.
      */
     @CheckForNull
