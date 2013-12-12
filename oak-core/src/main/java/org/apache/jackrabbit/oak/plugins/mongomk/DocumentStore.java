@@ -40,7 +40,7 @@ public interface DocumentStore {
      */
     @CheckForNull
     <T extends Document> T find(Collection<T> collection, String key);
-    
+
     /**
      * Get a document, ignoring the cache if the cached entry is older than the
      * specified time.
@@ -58,13 +58,15 @@ public interface DocumentStore {
 
     /**
      * Get a list of documents where the key is greater than a start value and
-     * less than an end value. The returned documents are immutable.
+     * less than an end value, sorted by the key.
+     * <p>
+     * The returned documents are immutable.
      * 
      * @param <T> the document type
      * @param collection the collection
      * @param fromKey the start value (excluding)
      * @param toKey the end value (excluding)
-     * @param limit the maximum number of entries to return
+     * @param limit the maximum number of entries to return (starting with the lowest key)
      * @return the list (possibly empty)
      */
     @Nonnull
@@ -72,7 +74,7 @@ public interface DocumentStore {
                                        String fromKey,
                                        String toKey,
                                        int limit);
-    
+
     /**
      * Get a list of documents where the key is greater than a start value and
      * less than an end value. The returned documents are immutable.
@@ -185,5 +187,4 @@ public interface DocumentStore {
      */
     @CheckForNull
     <T extends Document> T getIfCached(Collection<T> collection, String key);
-
 }
