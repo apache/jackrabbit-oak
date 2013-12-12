@@ -63,6 +63,8 @@ public class MongoDocumentStore implements DocumentStore {
     
     private static final boolean LOG_TIME = false;
 
+    private static final DBObject BY_ID_ASC = new BasicDBObject(Document.ID, 1);
+
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
     
@@ -261,7 +263,7 @@ public class MongoDocumentStore implements DocumentStore {
         DBObject query = queryBuilder.get();
         long start = start();
         try {
-            DBCursor cursor = dbCollection.find(query);
+            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
             List<T> list = new ArrayList<T>();
             for (int i = 0; i < limit && cursor.hasNext(); i++) {
                 DBObject o = cursor.next();
