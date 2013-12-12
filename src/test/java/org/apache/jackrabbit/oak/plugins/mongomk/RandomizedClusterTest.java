@@ -344,8 +344,6 @@ public class RandomizedClusterTest {
         if (conflictExpected) {
             ok = false;
             ex = "conflict expected";
-            // afterwards, this cluster node should synchronize
-            unseenChanges[mkId].clear();
         } else {
             ok = true;
         }

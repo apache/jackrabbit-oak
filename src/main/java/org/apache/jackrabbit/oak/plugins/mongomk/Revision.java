@@ -72,15 +72,53 @@ public class Revision {
     /**
      * Compare the time part of two revisions. If they contain the same time,
      * the counter is compared.
+     * <p>
+     * This method requires that both revisions are from the same cluster node.
      * 
+     * @param other the other revision
      * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
+     * @throws IllegalArgumentException if the cluster ids don't match
      */
     int compareRevisionTime(Revision other) {
+        if (clusterId != other.clusterId) {
+            throw new IllegalArgumentException(
+                    "Trying to compare revisions of different cluster ids: " + 
+                            this + " and " + other);
+        }
         int comp = timestamp < other.timestamp ? -1 : timestamp > other.timestamp ? 1 : 0;
         if (comp == 0) {
             comp = counter < other.counter ? -1 : counter > other.counter ? 1 : 0;
         }
         return comp;
+    }
+    
+    /**
+     * Compare the time part of two revisions. If they contain the same time,
+     * the counter is compared. If the counter is the same, the cluster ids are
+     * compared.
+     * 
+     * @param other the other revision
+     * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
+     */    
+    int compareRevisionTimeThenClusterId(Revision other) {
+        int comp = timestamp < other.timestamp ? -1 : timestamp > other.timestamp ? 1 : 0;
+        if (comp == 0) {
+            comp = counter < other.counter ? -1 : counter > other.counter ? 1 : 0;
+        }
+        if (comp == 0) {
+            comp = compareClusterId(other);
+        }
+        return comp;
+    }
+    
+    /**
+     * Compare the cluster node ids of both revisions.
+     * 
+     * @param other the other revision
+     * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
+     */
+    int compareClusterId(Revision other) {
+        return clusterId < other.clusterId ? -1 : clusterId > other.clusterId ? 1 : 0;
     }
     
     /**
@@ -298,9 +336,9 @@ public class Revision {
      */
     public static class RevisionComparator implements Comparator<Revision> {
 
-        private static final Revision NEWEST = new Revision(Long.MAX_VALUE, 0, 0);
+        static final Revision NEWEST = new Revision(Long.MAX_VALUE, 0, 0);
 
-        private static final Revision FUTURE = new Revision(Long.MAX_VALUE, Integer.MAX_VALUE, 0);
+        static final Revision FUTURE = new Revision(Long.MAX_VALUE, Integer.MAX_VALUE, 0);
         
         /**
          * The map of cluster instances to lists of revision ranges.
@@ -427,31 +465,45 @@ public class Revision {
             Revision range1 = getRevisionSeen(o1);
             Revision range2 = getRevisionSeen(o2);
             if (range1 == FUTURE && range2 == FUTURE) {
-                return o1.compareRevisionTime(o2);
+                return o1.compareRevisionTimeThenClusterId(o2);
             }
             if (range1 == null || range2 == null) {
-                return o1.compareRevisionTime(o2);
+                return o1.compareRevisionTimeThenClusterId(o2);
             }
-            int comp = range1.compareRevisionTime(range2);
+            int comp = range1.compareRevisionTimeThenClusterId(range2);
             if (comp != 0) {
                 return comp;
             }
             return Integer.signum(o1.getClusterId() - o2.getClusterId());
         }
-        
+
         /**
-         * Get the timestamp from the revision range, if found. If no range was
-         * found for this cluster instance, or if the revision is older than the
-         * earliest range, then 0 is returned. If the revision is newer than the
-         * newest range for this cluster instance, then Long.MAX_VALUE is
-         * returned.
-         * 
+         * Get the seen-at revision from the revision range.
+         * <p>
+         * <ul>
+         *     <li>
+         *         {@code null} if the revision is older than the earliest range
+         *     </li>
+         *     <li>
+         *         if the revision is newer than the lower bound of the newest
+         *         range, then {@link #NEWEST} is returned for a local cluster
+         *         revision and {@link #FUTURE} for a foreign cluster revision.
+         *     </li>
+         *     <li>
+         *         if the revision matches the lower seen-at bound of a range,
+         *         then this seen-at revision is returned.
+         *     </li>
+         *     <li>
+         *         otherwise the lower bound seen-at revision of next higher
+         *         range is returned.
+         *     </li>
+         * </ul>
+         *
          * @param r the revision
-         * @return the revision where it was seen, null if not found, 
-         *      the timestamp plus 1 second for new local revisions;
-         *      Long.MAX_VALUE for new non-local revisions (meaning 'in the future')
+         * @return the seen-at revision or {@code null} if the revision is older
+         *          than the earliest range.
          */
-        private Revision getRevisionSeen(Revision r) {
+        Revision getRevisionSeen(Revision r) {
             List<RevisionRange> list = map.get(r.getClusterId());
             if (list == null) {
                 if (r.getClusterId() != currentClusterNodeId) {
@@ -464,25 +516,27 @@ public class Revision {
             // search from latest backward
             // (binary search could be used, but we expect most queries
             // at the end of the list)
-            Revision result = null;
             for (int i = list.size() - 1; i >= 0; i--) {
                 RevisionRange range = list.get(i);
                 int compare = r.compareRevisionTime(range.revision);
-                if (compare > 0) {
+                if (compare == 0) {
+                    return range.seenAt;
+                } else if (compare > 0) {
                     if (i == list.size() - 1) {
                         // newer than the newest range
                         if (r.getClusterId() == currentClusterNodeId) {
                             // newer than all others, except for FUTURE
                             return NEWEST;
                         }
-                        // happenes in the future (not visible yet)
+                        // happens in the future (not visible yet)
                         return FUTURE;
+                    } else {
+                        // there is a newer range
+                        return list.get(i + 1).seenAt;
                     }
-                    break;
                 }
-                result = range.seenAt;
             }
-            return result;
+            return null;
         }
         
         @Override

@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.oak.plugins.mongomk.Revision.RevisionComparator;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -122,6 +122,9 @@ public class RevisionTest {
 
         RevisionComparator comp = new RevisionComparator(0);
 
+        Revision r0c1 = new Revision(0x010, 0, 1);
+        Revision r0c2 = new Revision(0x010, 0, 2);
+        
         Revision r1c1 = new Revision(0x110, 0, 1);
         Revision r2c1 = new Revision(0x120, 0, 1);
         Revision r3c1 = new Revision(0x130, 0, 1);
@@ -141,6 +144,8 @@ public class RevisionTest {
         assertEquals(
                 "1:\n r120-0-1:r20-0-0\n" +
                 "2:\n r200-0-2:r10-0-0\n", comp.toString());
+
+        assertEquals(-1, comp.compare(r0c1, r0c2));
 
         assertEquals(1, comp.compare(r1c1, r1c2));
         assertEquals(1, comp.compare(r2c1, r2c2));
@@ -186,10 +191,6 @@ public class RevisionTest {
 
     }
 
-    /**
-     * OAK-1274
-     */
-    @Ignore
     @Test
     public void clusterCompare() {
         RevisionComparator comp = new RevisionComparator(1);
@@ -198,12 +199,54 @@ public class RevisionTest {
         Revision r1c1 = new Revision(0x10, 0, 1);
         Revision r1c2 = new Revision(0x20, 0, 2);
         Revision r2c1 = new Revision(0x30, 0, 1);
-
+        Revision r2c2 = new Revision(0x40, 0, 2);
+        
         comp.add(r1c1, new Revision(0x10, 0, 0));
         comp.add(r2c1, new Revision(0x20, 0, 0));
 
-        // there's no range for r1c2 and must
-        // be considered in the past
+        // there's no range for c2, and therefore this
+        // revision must be considered to be in the future
+        assertTrue(comp.compare(r1c2, r2c1) > 0);
+        
+        // add a range for r2r2
+        comp.add(r2c2, new Revision(0x30, 0, 0));
+
+        // now there is a range for c2, but the revision is old,
+        // so it must be considered to be in the past
         assertTrue(comp.compare(r1c2, r2c1) < 0);
     }
+
+    @Test
+    public void revisionSeen() {
+        RevisionComparator comp = new RevisionComparator(1);
+
+        Revision r0 = new Revision(0x01, 0, 1);
+        Revision r1 = new Revision(0x10, 0, 1);
+        Revision r2 = new Revision(0x20, 0, 1);
+        Revision r21 = new Revision(0x21, 0, 1);
+        Revision r3 = new Revision(0x30, 0, 1);
+        Revision r4 = new Revision(0x40, 0, 1);
+        Revision r5 = new Revision(0x50, 0, 1);
+
+        comp.add(r1, new Revision(0x10, 0, 0));
+        comp.add(r2, new Revision(0x20, 0, 0));
+        comp.add(r3, new Revision(0x30, 0, 0));
+        comp.add(r4, new Revision(0x40, 0, 0));
+
+        // older than first range -> must return null
+        assertNull(comp.getRevisionSeen(r0));
+
+        // exact range start matches
+        assertEquals(new Revision(0x10, 0, 0), comp.getRevisionSeen(r1));
+        assertEquals(new Revision(0x20, 0, 0), comp.getRevisionSeen(r2));
+        assertEquals(new Revision(0x30, 0, 0), comp.getRevisionSeen(r3));
+        assertEquals(new Revision(0x40, 0, 0), comp.getRevisionSeen(r4));
+
+        // revision newer than most recent range -> NEWEST
+        assertEquals(RevisionComparator.NEWEST, comp.getRevisionSeen(r5));
+
+        // within a range -> must return lower bound of next higher range
+        assertEquals(new Revision(0x30, 0, 0), comp.getRevisionSeen(r21));
+    }
+    
 }
