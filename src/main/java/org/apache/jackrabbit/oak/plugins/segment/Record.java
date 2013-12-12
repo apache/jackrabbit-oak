@@ -38,7 +38,7 @@ class Record {
     }
 
     static boolean fastEquals(Record a, Record b) {
-        return equal(a.uuid, b.uuid) && a.offset == b.offset;
+        return a.offset == b.offset && equal(a.uuid, b.uuid);
     }
 
     /**
@@ -155,6 +155,23 @@ class Record {
     }
 
     //------------------------------------------------------------< Object >--
+
+    @Override
+    public boolean equals(Object object) {
+        if (object == this) {
+            return true;
+        } else if (object instanceof Record) {
+            Record that = (Record) object;
+            return offset == that.offset && uuid.equals(that.uuid);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return uuid.hashCode() ^ offset;
+    }
 
     @Override
     public String toString() {
