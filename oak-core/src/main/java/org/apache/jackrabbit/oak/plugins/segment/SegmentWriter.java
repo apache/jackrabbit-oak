@@ -29,6 +29,7 @@ import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -523,6 +524,42 @@ public class SegmentWriter {
     }
 
     public MapRecord writeMap(MapRecord base, Map<String, RecordId> changes) {
+        if (base != null && base.isDiff()) {
+            Segment segment = base.getSegment();
+            RecordId key = segment.readRecordId(base.getOffset(8));
+            String name = segment.readString(key);
+            if (!changes.containsKey(name)) {
+                changes.put(name, segment.readRecordId(base.getOffset(8, 1)));
+            }
+            base = new MapRecord(
+                    segment, segment.readRecordId(base.getOffset(8, 2)));
+        }
+
+        if (base != null && changes.size() == 1) {
+            Map.Entry<String, RecordId> change =
+                    changes.entrySet().iterator().next();
+            RecordId value = change.getValue();
+            if (value != null) {
+                MapEntry entry = base.getEntry(change.getKey());
+                if (entry != null) {
+                    if (value.equals(entry.getValue())) {
+                        return base;
+                    } else {
+                        synchronized (this) {
+                            RecordId id = prepare(RecordType.BRANCH, 8, asList(
+                                    entry.getKey(), value, base.getRecordId()));
+                            writeInt(-1);
+                            writeInt(entry.getHash());
+                            writeRecordId(entry.getKey());
+                            writeRecordId(value);
+                            writeRecordId(base.getRecordId());
+                            return new MapRecord(dummySegment, id);
+                        }
+                    }
+                }
+            }
+        }
+
         List<MapEntry> entries = Lists.newArrayList();
         for (Map.Entry<String, RecordId> entry : changes.entrySet()) {
             String key = entry.getKey();
