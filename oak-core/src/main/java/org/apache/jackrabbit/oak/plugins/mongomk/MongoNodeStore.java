@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1183,19 +1182,7 @@ public final class MongoNodeStore
         }
         ArrayList<String> paths = new ArrayList<String>(unsavedLastRevisions.getPaths());
         // sort by depth (high depth first), then path
-        Collections.sort(paths, new Comparator<String>() {
-
-            @Override
-            public int compare(String o1, String o2) {
-                int d1 = Utils.pathDepth(o1);
-                int d2 = Utils.pathDepth(o1);
-                if (d1 != d2) {
-                    return Integer.signum(d1 - d2);
-                }
-                return o1.compareTo(o2);
-            }
-
-        });
+        Collections.sort(paths, PathComparator.INSTANCE);
 
         UpdateOp updateOp = null;
         Revision lastRev = null;
@@ -1219,10 +1206,11 @@ public final class MongoNodeStore
                 ids.add(Utils.getIdFromPath(p));
             }
             // call update if any of the following is true:
-            // - this is the last path
+            // - this is the second-to-last or last path (update last path, the
+            //   root document, individually)
             // - revision is not equal to last revision (size of ids didn't change)
             // - the update limit is reached
-            if (i + 1 >= paths.size()
+            if (i + 2 >= paths.size()
                     || size == ids.size()
                     || ids.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
                 store.update(Collection.NODES, ids, updateOp);
