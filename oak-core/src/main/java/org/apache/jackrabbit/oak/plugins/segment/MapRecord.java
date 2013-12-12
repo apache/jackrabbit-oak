@@ -291,39 +291,13 @@ class MapRecord extends Record {
     private static boolean compare(
             MapRecord before, MapRecord after, MapDiff diff) {
         Segment beforeSegment = before.getSegment();
-        Segment afterSegment = after.getSegment();
         int beforeHead = beforeSegment.readInt(before.getOffset(0));
+
+        Segment afterSegment = after.getSegment();
         int afterHead = afterSegment.readInt(after.getOffset(0));
-        if (isBranch(getSize(beforeHead), getLevel(beforeHead))
-                && isBranch(getSize(afterHead), getLevel(afterHead))) {
-            MapRecord[] beforeBuckets = before.getBuckets();
-            MapRecord[] afterBuckets = after.getBuckets();
-            for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
-                if (Objects.equal(beforeBuckets[i], afterBuckets[i])) {
-                    // do nothing
-                } else if (beforeBuckets[i] == null) {
-                    MapRecord bucket = afterBuckets[i];
-                    for (MapEntry entry : bucket.getEntries()) {
-                        if (!diff.entryAdded(entry)) {
-                            return false;
-                        }
-                    }
-                } else if (afterBuckets[i] == null) {
-                    MapRecord bucket = beforeBuckets[i];
-                    for (MapEntry entry : bucket.getEntries()) {
-                        if (!diff.entryDeleted(entry)) {
-                            return false;
-                        }
-                    }
-                } else {
-                    MapRecord beforeBucket = beforeBuckets[i];
-                    MapRecord afterBucket = afterBuckets[i];
-                    if (!compare(beforeBucket, afterBucket, diff)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
+
+        if (isBranch(beforeHead) && isBranch(afterHead)) {
+            return compareBranch(before, after, diff);
         }
 
         Iterator<MapEntry> beforeEntries = before.getEntries().iterator();
@@ -355,12 +329,56 @@ class MapRecord extends Record {
         return true;
     }
 
+    /**
+     * Compares two map branches. Given the way the comparison algorithm
+     * works, the branches are always guaranteed to be at the same level
+     * with the same hash prefixes.
+     */
+    private static boolean compareBranch(
+            MapRecord before, MapRecord after, MapDiff diff) {
+        MapRecord[] beforeBuckets = before.getBuckets();
+        MapRecord[] afterBuckets = after.getBuckets();
+        for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
+            if (Objects.equal(beforeBuckets[i], afterBuckets[i])) {
+                // these buckets are equal (or both empty), so no changes
+            } else if (beforeBuckets[i] == null) {
+                // before bucket is empty, so all after entries were added
+                MapRecord bucket = afterBuckets[i];
+                for (MapEntry entry : bucket.getEntries()) {
+                    if (!diff.entryAdded(entry)) {
+                        return false;
+                    }
+                }
+            } else if (afterBuckets[i] == null) {
+                // after bucket is empty, so all before entries were deleted
+                MapRecord bucket = beforeBuckets[i];
+                for (MapEntry entry : bucket.getEntries()) {
+                    if (!diff.entryDeleted(entry)) {
+                        return false;
+                    }
+                }
+            } else {
+                // both before and after buckets exist; compare recursively
+                MapRecord beforeBucket = beforeBuckets[i];
+                MapRecord afterBucket = afterBuckets[i];
+                if (!compare(beforeBucket, afterBucket, diff)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private static int getSize(int head) {
         return head & ((1 << MapRecord.SIZE_BITS) - 1);
     }
 
     private static int getLevel(int head) {
         return head >>> MapRecord.SIZE_BITS;
+    }
+
+    private static boolean isBranch(int head) {
+        return isBranch(getSize(head), getLevel(head));
     }
 
     private static boolean isBranch(int size, int level) {
