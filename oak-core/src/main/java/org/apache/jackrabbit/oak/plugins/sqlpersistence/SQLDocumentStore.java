@@ -149,6 +149,9 @@ public class SQLDocumentStore implements DocumentStore {
 
     // implementation
 
+    private final String MODIFIED = "_modified";
+    private final String MODCOUNT = "_modCount";
+
     private static final Logger LOG = LoggerFactory.getLogger(SQLDocumentStore.class);
 
     private final Comparator<Revision> comparator = Collections.reverseOrder(new StableRevisionComparator());
@@ -171,9 +174,9 @@ public class SQLDocumentStore implements DocumentStore {
         try {
             for (UpdateOp update : updates) {
                 T doc = collection.newDocument(this);
-                update.increment("_modCount", 1);
+                update.increment(MODCOUNT, 1);
                 UpdateUtils.applyChanges(doc, update, comparator);
-                writeDocument(collection, doc, null, true);
+                insertDocument(collection, doc);
             }
             // FIXME to be atomic
             return true;
@@ -197,10 +200,15 @@ public class SQLDocumentStore implements DocumentStore {
         if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
             return null;
         }
-        update.increment("_modCount", 1);
+        update.increment(MODCOUNT, 1);
         UpdateUtils.applyChanges(doc, update, comparator);
-        writeDocument(collection, doc, oldDoc != null ? (Long) oldDoc.get("_modCount") : null, oldDoc == null);
         doc.seal();
+        if (oldDoc == null)  {
+            insertDocument(collection, doc);
+        }
+        else {
+            updateDocument(collection, doc, oldDoc != null ? (Long) oldDoc.get(MODCOUNT) : null);
+        }
 
         return oldDoc;
     }
@@ -215,12 +223,12 @@ public class SQLDocumentStore implements DocumentStore {
                     throw new MicroKernelException(tableName + " " + id + " not found");
                 }
                 T doc = fromString(collection, in);
-                Long oldmodcount = (Long) doc.get("_modCount");
-                update.increment("_modCount", 1);
+                Long oldmodcount = (Long) doc.get(MODCOUNT);
+                update.increment(MODCOUNT, 1);
                 UpdateUtils.applyChanges(doc, update, comparator);
                 String data = asString(doc);
-                Long modified = (Long) doc.get("_modified");
-                Long modcount = (Long) doc.get("_modCount");
+                Long modified = (Long) doc.get(MODIFIED);
+                Long modcount = (Long) doc.get(MODCOUNT);
                 dbUpdate(connection, tableName, id, modified, modcount, oldmodcount, data);
             }
             connection.commit();
@@ -233,8 +241,8 @@ public class SQLDocumentStore implements DocumentStore {
             String indexedProperty, long startValue, int limit) {
         String tableName = getTable(collection);
         List<T> result = new ArrayList<T>();
-        if (indexedProperty != null && !"_modified".equals(indexedProperty)) {
-            throw new RuntimeException("indexed property " + indexedProperty + " not supported");
+        if (indexedProperty != null && !MODIFIED.equals(indexedProperty)) {
+            throw new MicroKernelException("indexed property " + indexedProperty + " not supported");
         }
         try {
             List<String> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
@@ -320,17 +328,26 @@ public class SQLDocumentStore implements DocumentStore {
         }
     }
 
-    private <T extends Document> void writeDocument(Collection<T> collection, T document, Long oldmodcount, boolean insert) {
+    private <T extends Document> void updateDocument(Collection<T> collection, T document, Long oldmodcount) {
         String tableName = getTable(collection);
         try {
             String data = asString(document);
-            Long modified = (Long) document.get("_modified");
-            Long modcount = (Long) document.get("_modCount");
-            if (insert) {
-                dbInsert(connection, tableName, document.getId(), modified, modcount, data);
-            } else {
-                dbUpdate(connection, tableName, document.getId(), modified, modcount, oldmodcount, data);
-            }
+            Long modified = (Long) document.get(MODIFIED);
+            Long modcount = (Long) document.get(MODCOUNT);
+            dbUpdate(connection, tableName, document.getId(), modified, modcount, oldmodcount, data);
+            connection.commit();
+        } catch (SQLException ex) {
+            throw new MicroKernelException(ex);
+        }
+    }
+
+    private <T extends Document> void insertDocument(Collection<T> collection, T document) {
+        String tableName = getTable(collection);
+        try {
+            String data = asString(document);
+            Long modified = (Long) document.get(MODIFIED);
+            Long modcount = (Long) document.get(MODCOUNT);
+            dbInsert(connection, tableName, document.getId(), modified, modcount, data);
             connection.commit();
         } catch (SQLException ex) {
             throw new MicroKernelException(ex);
@@ -361,6 +378,7 @@ public class SQLDocumentStore implements DocumentStore {
         if (indexedProperty != null) {
             t += " and MODIFIED >= ?";
         }
+        t += " order by ID";
         if (limit != Integer.MAX_VALUE) {
             t += " limit ?";
         }
@@ -395,12 +413,13 @@ public class SQLDocumentStore implements DocumentStore {
         }
         PreparedStatement stmt = connection.prepareStatement(t);
         try {
-            stmt.setObject(1, modified, Types.BIGINT);
-            stmt.setObject(2, modcount, Types.BIGINT);
-            stmt.setString(3, data);
-            stmt.setString(4, id);
+            int si = 1;
+            stmt.setObject(si++, modified, Types.BIGINT);
+            stmt.setObject(si++, modcount, Types.BIGINT);
+            stmt.setString(si++, data);
+            stmt.setString(si++, id);
             if (oldmodcount != null) {
-                stmt.setObject(5, oldmodcount, Types.BIGINT);
+                stmt.setObject(si++, oldmodcount, Types.BIGINT);
             }
             int result = stmt.executeUpdate();
             if (result != 1) {
@@ -413,7 +432,7 @@ public class SQLDocumentStore implements DocumentStore {
         }
     }
 
-    private void dbInsert(Connection connection, String tableName, String id, Long modified, Long modcount, String data)
+    private boolean dbInsert(Connection connection, String tableName, String id, Long modified, Long modcount, String data)
             throws SQLException {
         PreparedStatement stmt = connection.prepareStatement("insert into " + tableName + " values(?, ?, ?, ?)");
         try {
@@ -421,17 +440,25 @@ public class SQLDocumentStore implements DocumentStore {
             stmt.setObject(2, modified, Types.BIGINT);
             stmt.setObject(3, modcount, Types.BIGINT);
             stmt.setString(4, data);
-            stmt.executeUpdate();
+            int result = stmt.executeUpdate();
+            if (result != 1) {
+                LOG.debug("DB insert failed for " + tableName + "/" + id);
+            }
+            return result == 1;
         } finally {
             stmt.close();
         }
     }
 
-    private void dbDelete(Connection connection, String tableName, String id) throws SQLException {
+    private boolean dbDelete(Connection connection, String tableName, String id) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement("delete from " + tableName + " where ID = ?");
         try {
             stmt.setString(1, id);
-            stmt.executeUpdate();
+            int result = stmt.executeUpdate();
+            if (result != 1) {
+                LOG.debug("DB delete failed for " + tableName + "/" + id);
+            }
+            return result == 1;
         } finally {
             stmt.close();
         }
