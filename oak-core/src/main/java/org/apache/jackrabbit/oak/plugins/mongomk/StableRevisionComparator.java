@@ -34,10 +34,6 @@ public class StableRevisionComparator implements Comparator<Revision> {
 
     @Override
     public int compare(Revision o1, Revision o2) {
-        int comp = o1.compareRevisionTime(o2);
-        if (comp != 0) {
-            return comp;
-        }
-        return Integer.signum(o1.getClusterId() - o2.getClusterId());
+        return o1.compareRevisionTimeThenClusterId(o2);
     }
 }
