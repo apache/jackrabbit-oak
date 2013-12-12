@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.highestOneBit;
@@ -29,35 +29,18 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 
 class MapRecord extends Record {
 
-    private static final long M = 0x5DEECE66DL;
-    private static final long A = 0xBL;
+    private static final int M = 0xDEECE66D;
+    private static final int A = 0xB;
     static final long HASH_MASK = 0xFFFFFFFFL;
 
     static int getHash(String name) {
-        return (int) (((name.hashCode() ^ M) * M + A) >> 16);
+        return (name.hashCode() ^ M) * M + A;
     }
-
-    private static final Function<MapRecord, Iterable<String>> GET_KEYS =
-            new Function<MapRecord, Iterable<String>>() {
-                @Override
-                public Iterable<String> apply(MapRecord input) {
-                    return input.getKeys();
-                }
-            };
-
-    private static final Function<MapRecord, Iterable<MapEntry>> GET_ENTRIES =
-            new Function<MapRecord, Iterable<MapEntry>>() {
-                @Override
-                public Iterable<MapEntry> apply(MapRecord input) {
-                    return input.getEntries();
-                }
-            };
 
     /**
      * Number of bits of the hash code to look at on each level of the trie.
@@ -100,17 +83,15 @@ class MapRecord extends Record {
         return !isBranch(getSize(head), getLevel(head));
     }
 
-    RecordId[] getBuckets() {
-        return getBuckets(getSegment());
-    }
-
-    private RecordId[] getBuckets(Segment segment) {
-        RecordId[] buckets = new RecordId[BUCKETS_PER_LEVEL];
+    MapRecord[] getBuckets() {
+        Segment segment = getSegment();
+        MapRecord[] buckets = new MapRecord[BUCKETS_PER_LEVEL];
         int bitmap = segment.readInt(getOffset(4));
         int ids = 0;
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
             if ((bitmap & (1 << i)) != 0) {
-                buckets[i] = segment.readRecordId(getOffset(8, ids++));
+                buckets[i] = new MapRecord(
+                        segment, segment.readRecordId(getOffset(8, ids++)));
             } else {
                 buckets[i] = null;
             }
@@ -132,8 +113,8 @@ class MapRecord extends Record {
     }
 
     int size() {
-        int head = getSegment().readInt(getOffset(0));
-        return getSize(head);
+        Segment segment = getSegment();
+        return getSize(segment.readInt(getOffset(0)));
     }
 
     MapEntry getEntry(String key) {
@@ -152,9 +133,9 @@ class MapRecord extends Record {
             // this is an intermediate branch record
             // check if a matching bucket exists, and recurse 
             int bitmap = segment.readInt(getOffset(4));
-            int mask = BUCKETS_PER_LEVEL - 1;
-            int shift = 32 - (level + 1) * LEVEL_BITS;
-            int index = (int) (hash >> shift) & mask;
+            int mask = (1 << BITS_PER_LEVEL) - 1;
+            int shift = 32 - (level + 1) * BITS_PER_LEVEL;
+            int index = (hash >> shift) & mask;
             int bit = 1 << index;
             if ((bitmap & bit) != 0) {
                 int ids = bitCount(bitmap & (bit - 1));
@@ -166,22 +147,35 @@ class MapRecord extends Record {
         }
 
         // this is a leaf record; scan the list to find a matching entry
-        int d = -1;
-        for (int i = 0; i < size && d < 0; i++) {
-            d = Long.valueOf(segment.readInt(getOffset(4 + i * 4)) & HASH_MASK)
-                    .compareTo(Long.valueOf(hash & HASH_MASK));
-            if (d == 0) {
+        long h = hash & HASH_MASK;
+        int p = 0;
+        long pH = 0;
+        int q = size - 1;
+        long qH = HASH_MASK;
+        while (p <= q) {
+            checkState(pH <= qH);
+            int i = p + (int) ((q - p) * (h - pH) / (qH - pH));
+            checkState(p <= i && i <= q);
+            long iH = segment.readInt(getOffset(4 + i * 4)) & HASH_MASK;
+            int diff = Long.valueOf(iH).compareTo(Long.valueOf(h));
+            if (diff == 0) {
                 RecordId keyId = segment.readRecordId(
-                        getOffset(4 + size * 4, i));
-                d = segment.readString(keyId).compareTo(key);
-                if (d == 0) {
+                        getOffset(4 + size * 4, i * 2));
+                diff = segment.readString(keyId).compareTo(key);
+                if (diff == 0) {
                     RecordId valueId = segment.readRecordId(
-                            getOffset(4 + size * 4, size + i));
+                            getOffset(4 + size * 4, i * 2 + 1));
                     return new MapEntry(segment, key, keyId, valueId);
                 }
             }
+            if (diff < 0) {
+                p = i + 1;
+                pH = iH;
+            } else {
+                q = i - 1;
+                qH = iH;
+            }
         }
-
         return null;
     }
 
@@ -196,12 +190,18 @@ class MapRecord extends Record {
 
         int level = getLevel(head);
         if (isBranch(size, level)) {
-            return concat(transform(getBucketList(segment), GET_KEYS));
+            List<MapRecord> buckets = getBucketList(segment);
+            List<Iterable<String>> keys =
+                    newArrayListWithCapacity(buckets.size());
+            for (MapRecord bucket : buckets) {
+                keys.add(bucket.getKeys());
+            }
+            return concat(keys);
         }
 
         RecordId[] ids = new RecordId[size];
         for (int i = 0; i < size; i++) {
-            ids[i] = segment.readRecordId(getOffset(4 + size * 4, i));
+            ids[i] = segment.readRecordId(getOffset(4 + size * 4, i * 2));
         }
 
         String[] keys = new String[size];
@@ -222,17 +222,20 @@ class MapRecord extends Record {
 
         int level = getLevel(head);
         if (isBranch(size, level)) {
-            return concat(transform(getBucketList(segment), GET_ENTRIES));
+            List<MapRecord> buckets = getBucketList(segment);
+            List<Iterable<MapEntry>> entries =
+                    newArrayListWithCapacity(buckets.size());
+            for (MapRecord bucket : buckets) {
+                entries.add(bucket.getEntries());
+            }
+            return concat(entries);
         }
 
         RecordId[] keys = new RecordId[size];
-        for (int i = 0; i < size; i++) {
-            keys[i] = segment.readRecordId(getOffset(4 + size * 4, i));
-        }
-
         RecordId[] values = new RecordId[size];
         for (int i = 0; i < size; i++) {
-            values[i] = segment.readRecordId(getOffset(4 + size * 4, size + i));
+            keys[i] = segment.readRecordId(getOffset(4 + size * 4, i * 2));
+            values[i] = segment.readRecordId(getOffset(4 + size * 4, i * 2 + 1));
         }
 
         MapEntry[] entries = new MapEntry[size];
@@ -293,32 +296,28 @@ class MapRecord extends Record {
         int afterHead = afterSegment.readInt(after.getOffset(0));
         if (isBranch(getSize(beforeHead), getLevel(beforeHead))
                 && isBranch(getSize(afterHead), getLevel(afterHead))) {
-            RecordId[] beforeBuckets = before.getBuckets(beforeSegment);
-            RecordId[] afterBuckets = after.getBuckets(afterSegment);
+            MapRecord[] beforeBuckets = before.getBuckets();
+            MapRecord[] afterBuckets = after.getBuckets();
             for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
                 if (Objects.equal(beforeBuckets[i], afterBuckets[i])) {
                     // do nothing
                 } else if (beforeBuckets[i] == null) {
-                    MapRecord bucket =
-                            new MapRecord(afterSegment, afterBuckets[i]);
+                    MapRecord bucket = afterBuckets[i];
                     for (MapEntry entry : bucket.getEntries()) {
                         if (!diff.entryAdded(entry)) {
                             return false;
                         }
                     }
                 } else if (afterBuckets[i] == null) {
-                    MapRecord bucket =
-                            new MapRecord(beforeSegment, beforeBuckets[i]);
+                    MapRecord bucket = beforeBuckets[i];
                     for (MapEntry entry : bucket.getEntries()) {
                         if (!diff.entryDeleted(entry)) {
                             return false;
                         }
                     }
                 } else {
-                    MapRecord beforeBucket =
-                            new MapRecord(beforeSegment, beforeBuckets[i]);
-                    MapRecord afterBucket =
-                            new MapRecord(afterSegment, afterBuckets[i]);
+                    MapRecord beforeBucket = beforeBuckets[i];
+                    MapRecord afterBucket = afterBuckets[i];
                     if (!compare(beforeBucket, afterBucket, diff)) {
                         return false;
                     }
