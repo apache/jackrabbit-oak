@@ -18,19 +18,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import com.mongodb.DB;
-
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientURI;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -41,9 +43,10 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 /**
  * The OSGi service to start/stop a MongoNodeStore instance.
@@ -53,58 +56,111 @@ import org.slf4j.LoggerFactory;
         description = "%oak.mongons.description",
         policy = ConfigurationPolicy.REQUIRE
 )
-public class MongoNodeStoreService {
-
-    private static final String DEFAULT_HOST = "localhost";
-    private static final int DEFAULT_PORT = 27017;
-    private static final String DEFAULT_DB = "oak";
+public class MongoNodeStoreService{
+    private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
+    private static final String DEFAULT_DB = "oak";
 
-    @Property(value = DEFAULT_HOST)
-    private static final String PROP_HOST = "host";
+    /**
+     * Name of framework property to configure Mongo Connection URI
+     */
+    private static final String FWK_PROP_URI = "oak.mongo.uri";
 
-    @Property(intValue = DEFAULT_PORT)
-    private static final String PROP_PORT = "port";
+    /**
+     * Name of framework property to configure Mongo Database name
+     * to use
+     */
+    private static final String FWK_PROP_DB = "oak.mongo.db";
+
+    //MongoMK would be done away with so better not
+    //to expose this setting in config ui
+    @Property(boolValue = false, propertyPrivate = true)
+    private static final String PROP_USE_MK = "useMK";
+
+    @Property(value = DEFAULT_URI)
+    private static final String PROP_URI = "mongouri";
 
     @Property(value = DEFAULT_DB)
     private static final String PROP_DB = "db";
 
     @Property(intValue = DEFAULT_CACHE)
     private static final String PROP_CACHE = "cache";
+
     private static final long MB = 1024 * 1024;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private ServiceRegistration reg;
+    private final List<Registration> registrations = new ArrayList<Registration>();
     private MongoNodeStore store;
     private ObserverTracker observerTracker;
-    private final List<Registration> registrations = new ArrayList<Registration>();
 
     @Activate
-    private void activate(BundleContext context, Map<String, ?> config)
-            throws Exception {
-        String host = PropertiesUtil.toString(config.get(PROP_HOST), DEFAULT_HOST);
-        int port = PropertiesUtil.toInteger(config.get(PROP_PORT), DEFAULT_PORT);
+    protected void activate(BundleContext context, Map<String, ?> config) throws Exception {
+        String uri = PropertiesUtil.toString(config.get(PROP_URI), DEFAULT_URI);
+        if(context.getProperty(FWK_PROP_URI) != null){
+            uri = context.getProperty(FWK_PROP_URI);
+        }
+
         String db = PropertiesUtil.toString(config.get(PROP_DB), DEFAULT_DB);
+        if(context.getProperty(FWK_PROP_DB) != null){
+            db = context.getProperty(FWK_PROP_DB);
+        }
+
         int cacheSize = PropertiesUtil.toInteger(config.get(PROP_CACHE), DEFAULT_CACHE);
+        boolean useMK = PropertiesUtil.toBoolean(config.get(PROP_USE_MK), false);
 
-        logger.info("Starting MongoDB NodeStore with host={}, port={}, db={}",
-                new Object[] {host, port, db});
+        MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
+        MongoClientURI mongoURI = new MongoClientURI(uri,builder);
 
-        MongoConnection connection = new MongoConnection(host, port, db);
-        DB mongoDB = connection.getDB();
+        if(logger.isInfoEnabled()){
+            //Take care around not logging the uri directly as it
+            //might contain passwords
+            String type = useMK ? "MicroKernel" : "NodeStore" ;
+            logger.info("Starting MongoDB {} with host={}, db={}",
+                    new Object[] {type,mongoURI.getHosts(), db});
+            logger.info("Mongo Connection details {}",MongoConnection.toString(mongoURI.getOptions()));
+        }
 
-        logger.info("Connected to database {}", mongoDB);
+        MongoClient client = new MongoClient(mongoURI);
+        DB mongoDB = client.getDB(db);
 
         MongoMK mk = new MongoMK.Builder()
                 .memoryCacheSize(cacheSize * MB)
                 .setMongoDB(mongoDB)
                 .open();
-        store = mk.getNodeStore();
+
+        logger.info("Connected to database {}", mongoDB);
 
         registerJMXBeans(mk, context);
-        observerTracker = new ObserverTracker(store);
-        reg = context.registerService(NodeStore.class.getName(), store, new Properties());
+        store = mk.getNodeStore();
+
+        if(useMK){
+            reg  = context.registerService(MicroKernel.class.getName(), mk, new Properties());
+        }else{
+            observerTracker = new ObserverTracker(store);
+            observerTracker.start(context);
+            reg = context.registerService(NodeStore.class.getName(), store, new Properties());
+        }
+    }
+
+    @Deactivate
+    protected void deactivate() {
+        if(observerTracker != null){
+            observerTracker.stop();
+        }
+
+        for (Registration r : registrations) {
+            r.unregister();
+        }
+
+        if (reg != null) {
+            reg.unregister();
+        }
+
+        if (store != null) {
+            store.dispose();
+        }
     }
 
     private void registerJMXBeans(MongoMK mk, BundleContext context) {
@@ -148,22 +204,6 @@ public class MongoNodeStoreService {
                             CacheStatsMBean.TYPE,
                             mds.getCacheStats().getName())
             );
-        }
-    }
-
-    @Deactivate
-    private void deactivate() {
-        observerTracker.stop();
-        for (Registration r : registrations) {
-            r.unregister();
-        }
-
-        if (reg != null) {
-            reg.unregister();
-        }
-
-        if (store != null) {
-            store.dispose();
         }
     }
 }
