@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk.util;
 
+import com.google.common.base.Objects;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -38,8 +39,7 @@ public class MongoConnection {
      * @throws Exception If an error occurred while trying to connect.
      */
     public MongoConnection(String host, int port, String database) throws Exception {
-        MongoClientOptions options = new MongoClientOptions.Builder().
-                threadsAllowedToBlockForConnectionMultiplier(100).build();
+        MongoClientOptions options = getDefaultBuilder().build();
         ServerAddress serverAddress = new ServerAddress(host, port);
         mongo = new MongoClient(serverAddress, options);
         db = mongo.getDB(database);
@@ -58,8 +58,35 @@ public class MongoConnection {
      * Closes the underlying Mongo instance
      */
     public void close() {
-        if (mongo != null) {
-            mongo.close();
-        }
+        mongo.close();
+    }
+
+    //--------------------------------------< Utility Methods >
+
+    /**
+     * Constructs a builder with default options set. These can be overridden later
+     *
+     * @return builder with default options set
+     */
+    public static MongoClientOptions.Builder getDefaultBuilder() {
+        return new MongoClientOptions.Builder()
+                .description("MongoConnection for Oak MongoMK")
+                .threadsAllowedToBlockForConnectionMultiplier(100);
+    }
+
+    public static String toString(MongoClientOptions opts){
+        return Objects.toStringHelper(opts)
+                .add("connectionsPerHost", opts.getConnectionsPerHost())
+                .add("connectTimeout", opts.getConnectTimeout())
+                .add("socketTimeout", opts.getSocketTimeout())
+                .add("socketKeepAlive", opts.isSocketKeepAlive())
+                .add("autoConnectRetry", opts.isAutoConnectRetry())
+                .add("maxAutoConnectRetryTime", opts.getMaxAutoConnectRetryTime())
+                .add("maxWaitTime", opts.getMaxWaitTime())
+                .add("threadsAllowedToBlockForConnectionMultiplier",
+                        opts.getThreadsAllowedToBlockForConnectionMultiplier())
+                .add("readPreference",opts.getReadPreference().getName())
+                .add("writeConcern", opts.getWriteConcern())
+                .toString();
     }
 }
