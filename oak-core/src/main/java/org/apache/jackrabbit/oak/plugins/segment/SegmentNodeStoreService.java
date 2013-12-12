@@ -48,7 +48,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Property(description="TarMK directory")
     public static final String DIRECTORY = "repository.home";
 
-    @Property(description="TarMK mode (64 for memory mapping, 32 for normal file access)", value="64")
+    @Property(description="TarMK mode (64 for memory mapping, 32 for normal file access)")
     public static final String MODE = "tarmk.mode";
 
     @Property(description="TarMK maximum file size (MB)", intValue=256)
