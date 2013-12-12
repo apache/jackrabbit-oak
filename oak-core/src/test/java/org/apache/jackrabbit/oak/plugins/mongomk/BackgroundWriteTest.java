@@ -47,6 +47,7 @@ public class BackgroundWriteTest {
         mk.runBackgroundOperations();
         Revision r = mk.getNodeStore().newRevision();
         UnsavedModifications pending = mk.getNodeStore().getPendingModifications();
+        paths.add("/");
         for (String p : paths) {
             pending.put(p, r);
         }
