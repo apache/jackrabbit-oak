@@ -156,7 +156,7 @@ public class SegmentSizeTest {
         SegmentNodeState state = writer.writeNode(builder.getNodeState());
         writer.flush();
         Segment segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(26752, Segment.WEIGHER.weigh(null, segment));
+        assertEquals(27508, Segment.WEIGHER.weigh(null, segment));
 
         writer.flush(); // force flushing of the previous segment
 
@@ -165,7 +165,7 @@ public class SegmentSizeTest {
         state = writer.writeNode(builder.getNodeState());
         writer.flush();
         segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(136, Segment.WEIGHER.weigh(null, segment));
+        assertEquals(484, Segment.WEIGHER.weigh(null, segment));
     }
 
     private int getSize(NodeBuilder builder) {

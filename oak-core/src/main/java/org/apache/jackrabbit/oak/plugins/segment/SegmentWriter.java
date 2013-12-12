@@ -23,11 +23,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.addAll;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.nCopies;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
@@ -60,7 +63,6 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
@@ -308,21 +310,19 @@ public class SegmentWriter {
             }
             for (MapEntry entry : array) {
                 writeRecordId(entry.getKey());
-            }
-            for (MapEntry entry : array) {
                 writeRecordId(entry.getValue());
             }
             return new MapRecord(dummySegment, id);
         }
     }
 
-    private MapRecord writeMapBranch(int level, int size, RecordId[] buckets) {
+    private MapRecord writeMapBranch(int level, int size, MapRecord[] buckets) {
         int bitmap = 0;
         List<RecordId> ids = Lists.newArrayListWithCapacity(buckets.length);
         for (int i = 0; i < buckets.length; i++) {
             if (buckets[i] != null) {
-                bitmap |= 1 << i;
-                ids.add(buckets[i]);
+                bitmap |= 1L << i;
+                ids.add(buckets[i].getRecordId());
             }
         }
 
@@ -347,117 +347,112 @@ public class SegmentWriter {
     }
 
     private synchronized MapRecord writeMapBucket(
-            RecordId baseId, Collection<MapEntry> entries, int level) {
-        int mask = MapRecord.BUCKETS_PER_LEVEL - 1;
-        int shift = 32 - (level + 1) * MapRecord.LEVEL_BITS;
-
+            MapRecord base, Collection<MapEntry> entries, int level) {
+        // when no changed entries, return the base map (if any) as-is
         if (entries == null || entries.isEmpty()) {
-            if (baseId != null) {
-                return dummySegment.readMap(baseId);
+            if (base != null) {
+                return base;
             } else if (level == 0) {
                 synchronized (this) {
-                    RecordId id = prepare(RecordType.LIST, 4);
+                    RecordId id = prepare(RecordType.LEAF, 4);
                     writeInt(0);
                     return new MapRecord(dummySegment, id);
                 }
             } else {
                 return null;
             }
-        } else if (baseId != null) {
-            // FIXME: messy code with lots of duplication
-            MapRecord base = dummySegment.readMap(baseId);
-            if (base.isLeaf()) {
-                Map<String, MapEntry> map = newHashMap();
-                for (MapEntry entry : base.getEntries()) {
-                    map.put(entry.getName(), entry);
-                }
-                for (MapEntry entry : entries) {
-                    if (entry.getValue() != null) {
-                        map.put(entry.getName(), entry);
-                    } else {
-                        map.remove(entry.getName());
-                    }
-                }
-                if (map.isEmpty()) {
-                    return null;
-                } else {
-                    return writeMapBucket(null, map.values(), level);
-                }
-            } else {
-                List<Collection<MapEntry>> buckets =
-                        Lists.newArrayListWithCapacity(BUCKETS_PER_LEVEL);
-                buckets.addAll(Collections.nCopies(
-                        BUCKETS_PER_LEVEL, (Collection<MapEntry>) null));
-                for (MapEntry entry : entries) {
-                    int bucketIndex = (entry.getHash() >> shift) & mask;
-                    Collection<MapEntry> bucket = buckets.get(bucketIndex);
-                    if (bucket == null) {
-                        bucket = Lists.newArrayList();
-                        buckets.set(bucketIndex, bucket);
-                    }
-                    bucket.add(entry);
-                }
+        }
 
-                int newSize = 0;
-                List<MapRecord> newBuckets = Lists.newArrayList();
-                RecordId[] bucketIds = base.getBuckets();
-                for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
-                    MapRecord newBucket = writeMapBucket(
-                            bucketIds[i], buckets.get(i), level + 1);
-                    if (newBucket != null) {
-                        newBuckets.add(newBucket);
-                        bucketIds[i] = newBucket.getRecordId();
-                        newSize += newBucket.size();
-                    } else {
-                        bucketIds[i] = null;
-                    }
-                }
-
-                // OAK-654: what if the updated map is smaller?
-                if (newSize > MapRecord.BUCKETS_PER_LEVEL) {
-                    return writeMapBranch(level, newSize, bucketIds);
-                } else if (newSize == 0) {
-                    if (level == 0) {
-                        synchronized (this) {
-                            RecordId id = prepare(RecordType.LIST, 4);
-                            writeInt(0);
-                            return new MapRecord(dummySegment, id);
-                        }
-                    } else {
-                        return null;
-                    }
-                } else if (newBuckets.size() == 1) {
-                    return newBuckets.iterator().next();
-                } else {
-                    List<MapEntry> list = Lists.newArrayList();
-                    for (MapRecord record : newBuckets) {
-                        Iterables.addAll(list, record.getEntries());
-                    }
-                    return writeMapLeaf(level, list);
-                }
-            }
-        } else if (entries.size() <= MapRecord.BUCKETS_PER_LEVEL
-                || level == MapRecord.MAX_NUMBER_OF_LEVELS) {
-            return writeMapLeaf(level, entries);
-        } else {
-            List<MapEntry>[] lists = new List[MapRecord.BUCKETS_PER_LEVEL];
-            for (MapEntry entry : entries) {
-                int bucketIndex = (entry.getHash() >> shift) & mask;
-                if (lists[bucketIndex] == null) {
-                    lists[bucketIndex] = Lists.newArrayList();
-                }
-                lists[bucketIndex].add(entry);
+        // when no base map was given, write a fresh new map
+        if (base == null) {
+            // use leaf records for small maps or the last map level
+            if (entries.size() <= BUCKETS_PER_LEVEL
+                    || level == MapRecord.MAX_NUMBER_OF_LEVELS) {
+                return writeMapLeaf(level, entries);
             }
 
-            RecordId[] buckets = new RecordId[MapRecord.BUCKETS_PER_LEVEL];
-            for (int i = 0; i < lists.length; i++) {
-                if (lists[i] != null) {
-                    buckets[i] = writeMapBucket(null, lists[i], level + 1).getRecordId();
-                }
+            // write a large map by dividing the entries into buckets
+            MapRecord[] buckets = new MapRecord[BUCKETS_PER_LEVEL];
+            List<List<MapEntry>> changes = splitToBuckets(entries, level);
+            for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
+                buckets[i] = writeMapBucket(null, changes.get(i), level + 1);
             }
 
+            // combine the buckets into one big map
             return writeMapBranch(level, entries.size(), buckets);
         }
+
+        // if the base map is small, update in memory and write as a new map
+        if (base.isLeaf()) {
+            Map<String, MapEntry> map = newHashMap();
+            for (MapEntry entry : base.getEntries()) {
+                map.put(entry.getName(), entry);
+            }
+            for (MapEntry entry : entries) {
+                if (entry.getValue() != null) {
+                    map.put(entry.getName(), entry);
+                } else {
+                    map.remove(entry.getName());
+                }
+            }
+            return writeMapBucket(null, map.values(), level);
+        }
+
+        // finally, the if the base map is large, handle updates per bucket
+        int newSize = 0;
+        int newCount = 0;
+        MapRecord[] buckets = base.getBuckets();
+        List<List<MapEntry>> changes = splitToBuckets(entries, level);
+        for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
+            buckets[i] = writeMapBucket(buckets[i], changes.get(i), level + 1);
+            if (buckets[i] != null) {
+                newSize += buckets[i].size();
+                newCount++;
+            }
+        }
+
+        // OAK-654: what if the updated map is smaller?
+        if (newSize > BUCKETS_PER_LEVEL) {
+            return writeMapBranch(level, newSize, buckets);
+        } else if (newCount <= 1) {
+            // up to one bucket contains entries, so return that as the new map
+            for (int i = 0; i < buckets.length; i++) {
+                if (buckets[i] != null) {
+                    return buckets[i];
+                }
+            }
+            // no buckets remaining, return empty map
+            return writeMapBucket(null, null, level);
+        } else {
+            // combine all remaining entries into a leaf record
+            List<MapEntry> list = Lists.newArrayList();
+            for (int i = 0; i < buckets.length; i++) {
+                if (buckets[i] != null) {
+                    addAll(list, buckets[i].getEntries());
+                }
+            }
+            return writeMapLeaf(level, list);
+        }
+    }
+
+    private static List<List<MapEntry>> splitToBuckets(
+            Collection<MapEntry> entries, int level) {
+        List<MapEntry> empty = null;
+        int mask = (1 << MapRecord.BITS_PER_LEVEL) - 1;
+        int shift = 32 - (level + 1) * MapRecord.BITS_PER_LEVEL;
+
+        List<List<MapEntry>> buckets =
+                newArrayList(nCopies(MapRecord.BUCKETS_PER_LEVEL, empty));
+        for (MapEntry entry : entries) {
+            int index = (entry.getHash() >> shift) & mask;
+            List<MapEntry> bucket = buckets.get(index);
+            if (bucket == null) {
+                bucket = newArrayList();
+                buckets.set(index, bucket);
+            }
+            bucket.add(entry);
+        }
+        return buckets;
     }
 
     private synchronized RecordId writeValueRecord(
@@ -530,15 +525,24 @@ public class SegmentWriter {
     public MapRecord writeMap(MapRecord base, Map<String, RecordId> changes) {
         List<MapEntry> entries = Lists.newArrayList();
         for (Map.Entry<String, RecordId> entry : changes.entrySet()) {
-            String name = entry.getKey();
+            String key = entry.getKey();
+
+            RecordId keyId = null;
+            if (base != null) {
+                MapEntry e = base.getEntry(key);
+                if (e != null) {
+                    keyId = e.getKey();
+                }
+            }
+            if (keyId == null) {
+                keyId = writeString(key);
+            }
+
             entries.add(new MapEntry(
-                    dummySegment, name, writeString(name), entry.getValue()));
+                    dummySegment, key, keyId, entry.getValue()));
         }
-        RecordId baseId = null;
-        if (base != null) {
-            baseId = base.getRecordId();
-        }
-        return writeMapBucket(baseId, entries, 0);
+
+        return writeMapBucket(base, entries, 0);
     }
 
     /**
