@@ -91,6 +91,12 @@ public class OsgiSecurityProvider implements SecurityProvider {
             policyOption = ReferencePolicyOption.GREEDY)
     private CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
 
+    @Reference(referenceInterface = AuthorizableNodeName.class,
+            bind = "bindAuthorizableNodeName",
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policyOption = ReferencePolicyOption.GREEDY)
+    private NameGenerator authorizableNodeName = new NameGenerator();
+
     private final WhiteboardAuthorizableActionProvider authorizableActionProvider = new WhiteboardAuthorizableActionProvider();
     private final WhiteboardRestrictionProvider restrictionProvider = new WhiteboardRestrictionProvider();
 
@@ -99,7 +105,7 @@ public class OsgiSecurityProvider implements SecurityProvider {
     public OsgiSecurityProvider() {
         Map<String, Object> userMap = ImmutableMap.of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
-                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT); // TODO
+                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName);
 
         Map<String, WhiteboardRestrictionProvider> authorizMap = ImmutableMap.of(
                 AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
@@ -212,11 +218,29 @@ public class OsgiSecurityProvider implements SecurityProvider {
         }
     }
 
+    protected void bindAuthorizableNodeName(@Nonnull ServiceReference reference) {
+        Object ann = reference.getBundle().getBundleContext().getService(reference);
+        if (ann instanceof AuthorizableNodeName) {
+            authorizableNodeName.dlg = (AuthorizableNodeName) ann;
+        }
+    }
+
     private Object initConfiguration(@Nonnull ServiceReference reference) {
         Object service = reference.getBundle().getBundleContext().getService(reference);
         if (service instanceof ConfigurationBase) {
             ((ConfigurationBase) service).setSecurityProvider(this);
         }
         return service;
+    }
+
+    private final class NameGenerator implements AuthorizableNodeName {
+
+        private AuthorizableNodeName dlg = AuthorizableNodeName.DEFAULT;
+
+        @Nonnull
+        @Override
+        public String generateNodeName(@Nonnull String authorizableId) {
+            return dlg.generateNodeName(authorizableId);
+        }
     }
 }
