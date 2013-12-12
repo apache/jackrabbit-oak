@@ -37,7 +37,7 @@ import org.junit.Test;
 import com.mongodb.DB;
 
 /**
- * A simple randomized single-instance test.
+ * A simple randomized dual-instance test.
  */
 public class RandomizedClusterTest {
     
