@@ -200,7 +200,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         Revision previous = null;
         for (Map.Entry<Revision, String> entry : revs.entrySet()) {
             if (previous != null) {
-                assertTrue(previous.compareRevisionTime(entry.getKey()) > 0);
+                assertTrue(previous.compareRevisionTimeThenClusterId(entry.getKey()) > 0);
             }
             previous = entry.getKey();
         }
