@@ -43,6 +43,17 @@ public class SessionMoveTest extends AbstractMoveTest {
         session.save();
     }
 
+    private void setupMovePermissions() throws Exception {
+        allow(path, privilegesFromNames(new String[]{
+                Privilege.JCR_REMOVE_NODE,
+                Privilege.JCR_REMOVE_CHILD_NODES
+        }));
+        allow(siblingPath, privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+
+    }
+
     @Test
     public void testMoveAndRemoveSubTree() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
@@ -315,12 +326,7 @@ public class SessionMoveTest extends AbstractMoveTest {
 
     @Test
     public void testMoveAndAddProperty() throws Exception {
-        allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
-        }));
+        setupMovePermissions();
 
         testSession.move(nodePath3, siblingDestPath);
         Node destNode = testSession.getNode(siblingDestPath);
@@ -331,20 +337,23 @@ public class SessionMoveTest extends AbstractMoveTest {
         } catch (AccessDeniedException e) {
             // success
         }
+    }
 
-        allow(siblingPath, privilegesFromName(PrivilegeConstants.REP_ADD_PROPERTIES));
+    @Test
+    public void testMoveAndAddProperty2() throws Exception {
+        setupMovePermissions();
+        allow(childNPath, privilegesFromName(PrivilegeConstants.REP_ADD_PROPERTIES));
+
+        testSession.move(nodePath3, siblingDestPath);
+        Node destNode = testSession.getNode(siblingDestPath);
+        Property p = destNode.setProperty("newProp", "val");
         // now save must succeed
         testSession.save();
     }
 
     @Test
     public void testMoveAndModifyProperty() throws Exception {
-        allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
-        }));
+        setupMovePermissions();
 
         testSession.move(nodePath3, siblingDestPath);
         Node destNode = testSession.getNode(siblingDestPath);
@@ -355,19 +364,37 @@ public class SessionMoveTest extends AbstractMoveTest {
         } catch (AccessDeniedException e) {
             // success
         }
+    }
 
+    @Test
+    public void testMoveAndModifyProperty2() throws Exception {
+        setupMovePermissions();
         allow(siblingPath, privilegesFromName(PrivilegeConstants.REP_ALTER_PROPERTIES));
-        testSession.save();
+
+        testSession.move(nodePath3, siblingDestPath);
+        Node destNode = testSession.getNode(siblingDestPath);
+        destNode.setProperty("movedProp", "modified");
+        try {
+            testSession.save();
+            fail("Missing MODIFY_PROPERTY permission.");
+        } catch (AccessDeniedException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testMoveAndModifyProperty3() throws Exception {
+        setupMovePermissions();
+        allow(childNPath, privilegesFromName(PrivilegeConstants.REP_ALTER_PROPERTIES));
+
+        testSession.move(nodePath3, siblingDestPath);
+        Node destNode = testSession.getNode(siblingDestPath);
+        destNode.setProperty("movedProp", "modified");
     }
 
     @Test
     public void testMoveAndRemoveProperty() throws Exception {
-        allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
-        }));
+        setupMovePermissions();
 
         testSession.move(nodePath3, siblingDestPath);
         Node destNode = testSession.getNode(siblingDestPath);
@@ -378,19 +405,28 @@ public class SessionMoveTest extends AbstractMoveTest {
         } catch (AccessDeniedException e) {
             // success
         }
+    }
 
-        allow(siblingPath, privilegesFromName(PrivilegeConstants.REP_REMOVE_PROPERTIES));
+    @Test
+    public void testMoveAndRemoveProperty2() throws Exception {
+        allow(path, privilegesFromNames(new String[]{
+                Privilege.JCR_REMOVE_NODE,
+                Privilege.JCR_REMOVE_CHILD_NODES,
+                PrivilegeConstants.REP_REMOVE_PROPERTIES
+        }));
+        allow(siblingPath, privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+
+        testSession.move(nodePath3, siblingDestPath);
+        Node destNode = testSession.getNode(siblingDestPath);
+        destNode.getProperty("movedProp").remove();
         testSession.save();
     }
 
     @Test
     public void testMoveAndAddPropertyAtSource() throws Exception {
-        allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
-        }));
+        setupMovePermissions();
 
         testSession.move(nodePath3, siblingDestPath);
         Node n = testSession.getNode(childNPath);
@@ -401,19 +437,22 @@ public class SessionMoveTest extends AbstractMoveTest {
         } catch (AccessDeniedException e) {
             // success
         }
+    }
 
+    @Test
+    public void testMoveAndAddPropertyAtSource2() throws Exception {
+        setupMovePermissions();
         allow(childNPath, privilegesFromName(PrivilegeConstants.REP_ADD_PROPERTIES));
+
+        testSession.move(nodePath3, siblingDestPath);
+        Node n = testSession.getNode(childNPath);
+        Property p = n.setProperty("newProp", "val");
         testSession.save();
     }
 
     @Test
     public void testMoveAndModifyPropertyAtSource() throws Exception {
-        allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
-        }));
+        setupMovePermissions();
 
         testSession.move(nodePath3, siblingDestPath);
         Node n = testSession.getNode(childNPath);
@@ -431,13 +470,20 @@ public class SessionMoveTest extends AbstractMoveTest {
     }
 
     @Test
+    public void testMoveAndModifyPropertyAtSource2() throws Exception {
+        setupMovePermissions();
+        allow(childNPath, privilegesFromName(PrivilegeConstants.REP_ALTER_PROPERTIES));
+
+        testSession.move(nodePath3, siblingDestPath);
+        Node n = testSession.getNode(childNPath);
+        assertTrue(n.hasProperty(propertyName1));
+        n.setProperty(propertyName1, "modified");
+        testSession.save();
+    }
+
+    @Test
     public void testMoveAndRemovePropertyAtSource() throws Exception {
-        allow(path, privilegesFromNames(new String[]{
-                Privilege.JCR_REMOVE_NODE,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_NODE_TYPE_MANAGEMENT
-        }));
+        setupMovePermissions();
 
         testSession.move(nodePath3, siblingDestPath);
         Node n = testSession.getNode(childNPath);
@@ -449,14 +495,33 @@ public class SessionMoveTest extends AbstractMoveTest {
         } catch (AccessDeniedException e) {
             // success
         }
-
-        allow(childNPath, privilegesFromName(PrivilegeConstants.REP_REMOVE_PROPERTIES));
-        testSession.save();
     }
 
     @Test
+    public void testMoveAndRemovePropertyAtSource2() throws Exception {
+        setupMovePermissions();
+        allow(childNPath, privilegesFromName(PrivilegeConstants.REP_REMOVE_PROPERTIES));
+
+        testSession.move(nodePath3, siblingDestPath);
+        Node n = testSession.getNode(childNPath);
+        assertTrue(n.hasProperty(propertyName1));
+        n.getProperty(propertyName1).remove();
+        testSession.save();
+    }
+
+    /**
+     * Moving and removing the moved node at destination should be treated like
+     * a simple removal at the original position.
+     */
+    @Test
     public void testMoveAndRemoveDestination() throws Exception {
-        // TODO
+        allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
+        allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
+
+        testSession.move(nodePath3, siblingDestPath);
+        Node destNode = testSession.getNode(siblingDestPath);
+        destNode.remove();
+        testSession.save();
     }
 
     @Test
