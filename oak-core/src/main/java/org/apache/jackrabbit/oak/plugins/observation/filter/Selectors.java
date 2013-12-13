@@ -47,6 +47,28 @@ public final class Selectors {
      */
     public static final Selector PARENT = new ParentSelector();
 
+    /**
+     * A selector returning the node at {@code relPath} relative to
+     * {@link #THIS}
+     * @param relPath  relative path
+     * @return  selector for {@code relPath} from {@code THIS}
+     */
+    @Nonnull
+    public static Selector fromThis(@Nonnull String relPath) {
+        return new RelativePathSelector(relPath, THIS);
+    }
+
+    /**
+     * A selector returning the node at {@code relPath} relative to
+     * {@link #PARENT}
+     * @param relPath  relative path
+     * @return  selector for {@code relPath} from {@code PARENT}
+     */
+    @Nonnull
+    public static Selector fromParent(@Nonnull String relPath) {
+        return new RelativePathSelector(relPath, PARENT);
+    }
+
     private Selectors() {
     }
 

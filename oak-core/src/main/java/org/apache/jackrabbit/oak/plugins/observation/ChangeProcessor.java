@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventIterator;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -57,6 +58,7 @@ public class ChangeProcessor implements Observer {
 
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
+    private final ReadOnlyNodeTypeManager ntManager;
     private final ListenerTracker tracker;
     private final EventListener eventListener;
     private final AtomicReference<FilterProvider> filterProvider;
@@ -69,9 +71,11 @@ public class ChangeProcessor implements Observer {
     public ChangeProcessor(
             ContentSession contentSession,
             NamePathMapper namePathMapper,
+            ReadOnlyNodeTypeManager ntManager,
             ListenerTracker tracker, FilterProvider filter) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
+        this.ntManager = ntManager;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
         filterProvider = new AtomicReference<FilterProvider>(filter);
@@ -121,7 +125,7 @@ public class ChangeProcessor implements Observer {
                     ImmutableTree afterTree = getTree(root, provider.getPath());
                     EventIterator<Event> events = new EventIterator<Event>(
                             beforeTree.getNodeState(), afterTree.getNodeState(),
-                            provider.getFilter(beforeTree, afterTree),
+                            provider.getFilter(beforeTree, afterTree, ntManager),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
                     if (events.hasNext()) {
                         synchronized (this) {

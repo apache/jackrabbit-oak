@@ -23,6 +23,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
@@ -51,14 +52,16 @@ public interface FilterProvider {
      *
      * @param beforeTree  before state
      * @param afterTree   after state
+     * @param ntManager   node type manager used by node type filters
      * @return new {@code Filter} instance
      */
     @Nonnull
-    Filter getFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree);
+    Filter getFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree, @Nonnull ReadOnlyNodeTypeManager ntManager);
 
     /**
      * Path of the subtree to which the the filter returned by
-     * {@link #getFilter(Tree, Tree)} applies.
+     * {@link #getFilter(Tree, Tree, org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager)}
+     * applies.
      * @return path to which the filter applies.
      */
     @Nonnull
