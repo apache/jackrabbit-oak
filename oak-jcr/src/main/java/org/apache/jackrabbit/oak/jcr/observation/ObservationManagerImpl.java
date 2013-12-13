@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
 import java.util.HashMap;
 import java.util.List;
@@ -42,8 +44,9 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeProcessor;
 import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
-import org.apache.jackrabbit.oak.plugins.observation.JcrFilterProvider;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
+import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -53,7 +56,6 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 public class ObservationManagerImpl implements ObservationManager {
-
     private static final Logger log = LoggerFactory.getLogger(ObservationManagerImpl.class);
 
     public static final Marker OBSERVATION =
@@ -109,17 +111,17 @@ public class ObservationManagerImpl implements ObservationManager {
 
     @Override
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
-            boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
+            boolean isDeep, String[] uuids, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
         boolean includeExternal = !(listener instanceof ExcludeExternal);
         String oakPath = namePathMapper.getOakPath(absPath);
-        FilterProvider filterProvider = new JcrFilterProvider(eventTypes, oakPath, isDeep,
-                uuid, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal, permissionProvider);
+        FilterProvider filterProvider = buildFilter(eventTypes, oakPath, isDeep,
+                uuids, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal, permissionProvider);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
             log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filterProvider);
             ListenerTracker tracker = new ListenerTracker(
                     listener, eventTypes, absPath, isDeep,
-                    uuid, nodeTypeName, noLocal) {
+                    uuids, nodeTypeName, noLocal) {
                 @Override
                 protected void warn(String message) {
                     log.warn(DEPRECATED, message, initStackTrace);
@@ -137,6 +139,24 @@ public class ObservationManagerImpl implements ObservationManager {
             log.debug(OBSERVATION, "Changing event listener {} to filter {}", listener, filterProvider);
             processor.setFilterProvider(filterProvider);
         }
+    }
+
+    private static FilterProvider buildFilter(int eventTypes, String oakPath, boolean isDeep, String[] uuids,
+            String[] ntNames, boolean includeSessionLocal, boolean includeClusterExternal,
+            PermissionProvider permissionProvider) {
+
+        FilterBuilder builder = new FilterBuilder();
+        return builder
+            .basePath(oakPath)
+            .includeSessionLocal(includeSessionLocal)
+            .includeClusterExternal(includeClusterExternal)
+            .condition(builder.all(
+                    builder.path(isDeep ? STAR_STAR : STAR),
+                    builder.eventType(eventTypes),
+                    builder.uuid(Selectors.PARENT, uuids),
+                    builder.nodeType(Selectors.PARENT, ntNames),
+                    builder.accessControl(permissionProvider)))
+            .build();
     }
 
     @Override
