@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,9 +40,10 @@ public class PropertyPredicate implements Predicate<Tree> {
      * @param name               name of the property
      * @param propertyPredicate  predicate on the named property
      */
-    public PropertyPredicate(String name, Predicate<PropertyState> propertyPredicate) {
-        this.name = name;
-        this.propertyPredicate = propertyPredicate;
+    public PropertyPredicate(
+            @Nonnull String name, @Nonnull Predicate<PropertyState> propertyPredicate) {
+        this.name = checkNotNull(name);
+        this.propertyPredicate = checkNotNull(propertyPredicate);
     }
 
     @Override

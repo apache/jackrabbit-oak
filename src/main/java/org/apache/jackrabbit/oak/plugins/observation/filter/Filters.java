@@ -46,6 +46,7 @@ public final class Filters {
      * @param filters  filters of which any must match
      * @return {@code true} if any of {@code filters} match.
      */
+    @Nonnull
     public static Filter any(@Nonnull final Filter... filters) {
         return any(Lists.newArrayList(checkNotNull(filters)));
     }
@@ -56,6 +57,7 @@ public final class Filters {
      * @param filters  filters of which all must match
      * @return {@code true} if all of {@code filters} match.
      */
+    @Nonnull
     public static Filter all(@Nonnull final Filter... filters) {
         return all(Lists.newArrayList(checkNotNull(filters)));
     }
@@ -63,6 +65,7 @@ public final class Filters {
     /**
      * @return  Filter that includes everything
      */
+    @Nonnull
     public static Filter includeAll() {
         return INCLUDE_ALL;
     }
@@ -70,12 +73,20 @@ public final class Filters {
     /**
      * @return  Filter that excludes everything
      */
+    @Nonnull
     public static Filter excludeAll() {
         return EXCLUDE_ALL;
     }
 
-    private static Filter any(final List<Filter> filters) {
-        if (filters.isEmpty()) {
+    /**
+     * A filter that matches if and only if any of the filters passed to this
+     * method matches.
+     * @param filters  filters of which any must match
+     * @return {@code true} if any of {@code filters} match.
+     */
+    @Nonnull
+    public static Filter any(@Nonnull final List<Filter> filters) {
+        if (checkNotNull(filters).isEmpty()) {
             return EXCLUDE_ALL;
         } else if (filters.size() == 1) {
             return filters.get(0);
@@ -166,8 +177,15 @@ public final class Filters {
         }
     }
 
-    private static Filter all(final List<Filter> filters) {
-        if (filters.isEmpty()) {
+    /**
+     * A filter that matches if and only if all of the filters passed to this
+     * method matches.
+     * @param filters  filters of which all must match
+     * @return {@code true} if all of {@code filters} match.
+     */
+    @Nonnull
+    public static Filter all(@Nonnull final List<Filter> filters) {
+        if (checkNotNull(filters).isEmpty()) {
             return INCLUDE_ALL;
         } else if (filters.size() == 1) {
             return filters.get(0);
