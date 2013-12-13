@@ -116,7 +116,7 @@ public class ObservationManagerImpl implements ObservationManager {
             log.info(OBSERVATION,
                     "Registering event listener {} with filter {}", listener, filterProvider);
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
-                    ntMgr, tracker, filterProvider);
+                    ntMgr, permissionProvider, tracker, filterProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
@@ -173,8 +173,7 @@ public class ObservationManagerImpl implements ObservationManager {
                 filterBuilder.path(isDeep ? STAR_STAR : STAR),
                 filterBuilder.eventType(eventTypes),
                 filterBuilder.uuid(Selectors.PARENT, uuids),
-                filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName)),
-                filterBuilder.accessControl(permissionProvider)));
+                filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName))));
 
         ListenerTracker tracker = new ListenerTracker(
                 listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal) {
