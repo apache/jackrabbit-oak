@@ -114,12 +114,12 @@ public class SQLDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) throws MicroKernelException {
-        return internalCreateOrUpdate(collection, update, false);
+        return internalCreateOrUpdate(collection, update, true, false);
     }
 
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) throws MicroKernelException {
-        return internalCreateOrUpdate(collection, update, true);
+        return internalCreateOrUpdate(collection, update, false, true);
     }
 
     @Override
@@ -186,31 +186,63 @@ public class SQLDocumentStore implements DocumentStore {
     }
 
     @CheckForNull
-    private <T extends Document> T internalCreateOrUpdate(Collection<T> collection, UpdateOp update, boolean checkConditions) {
+    private <T extends Document> T internalCreateOrUpdate(Collection<T> collection, UpdateOp update, boolean allowCreate,
+            boolean checkConditions) {
         T oldDoc = readDocument(collection, update.getId());
 
-        T doc = collection.newDocument(this);
         if (oldDoc == null) {
-            if (!update.isNew()) {
+            if (!update.isNew() || !allowCreate) {
                 throw new MicroKernelException("Document does not exist: " + update.getId());
             }
+            T doc = collection.newDocument(this);
+            if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
+                return null;
+            }
+            update.increment(MODCOUNT, 1);
+            UpdateUtils.applyChanges(doc, update, comparator);
+            doc.seal();
+            insertDocument(collection, doc);
         } else {
-            oldDoc.deepCopy(doc);
+            T doc = applyChanges(collection, oldDoc, update, checkConditions);
+            if (doc == null) {
+                return null;
+            }
+
+            int retries = 5; // TODO
+            boolean success = false;
+
+            while (!success && retries > 0) {
+                success = updateDocument(collection, doc, (Long) oldDoc.get(MODCOUNT));
+                if (!success) {
+                    // retry with a fresh document
+                    retries -= 1;
+                    oldDoc = readDocument(collection, update.getId());
+                    doc = applyChanges(collection, oldDoc, update, checkConditions);
+                    if (doc == null) {
+                        return null;
+                    }
+                }
+            }
+
+            if (!success) {
+                throw new MicroKernelException("failed update (race?)");
+            }
         }
+
+        return oldDoc;
+    }
+
+    @CheckForNull
+    private <T extends Document> T applyChanges(Collection<T> collection, T oldDoc, UpdateOp update, boolean checkConditions) {
+        T doc = collection.newDocument(this);
+        oldDoc.deepCopy(doc);
         if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
             return null;
         }
         update.increment(MODCOUNT, 1);
         UpdateUtils.applyChanges(doc, update, comparator);
         doc.seal();
-        if (oldDoc == null)  {
-            insertDocument(collection, doc);
-        }
-        else {
-            updateDocument(collection, doc, oldDoc != null ? (Long) oldDoc.get(MODCOUNT) : null);
-        }
-
-        return oldDoc;
+        return doc;
     }
 
     @CheckForNull
@@ -267,7 +299,7 @@ public class SQLDocumentStore implements DocumentStore {
         }
     }
 
-    private static String asString(Document doc) {
+    private static String asString(@Nonnull Document doc) {
         JSONObject obj = new JSONObject();
         for (String key : doc.keySet()) {
             Object value = doc.get(key);
@@ -328,14 +360,15 @@ public class SQLDocumentStore implements DocumentStore {
         }
     }
 
-    private <T extends Document> void updateDocument(Collection<T> collection, T document, Long oldmodcount) {
+    private <T extends Document> boolean updateDocument(@Nonnull Collection<T> collection, @Nonnull T document, Long oldmodcount) {
         String tableName = getTable(collection);
         try {
             String data = asString(document);
             Long modified = (Long) document.get(MODIFIED);
             Long modcount = (Long) document.get(MODCOUNT);
-            dbUpdate(connection, tableName, document.getId(), modified, modcount, oldmodcount, data);
+            boolean success = dbUpdate(connection, tableName, document.getId(), modified, modcount, oldmodcount, data);
             connection.commit();
+            return success;
         } catch (SQLException ex) {
             throw new MicroKernelException(ex);
         }
@@ -405,7 +438,7 @@ public class SQLDocumentStore implements DocumentStore {
         return result;
     }
 
-    private void dbUpdate(Connection connection, String tableName, String id, Long modified, Long modcount, Long oldmodcount,
+    private boolean dbUpdate(Connection connection, String tableName, String id, Long modified, Long modcount, Long oldmodcount,
             String data) throws SQLException {
         String t = "update " + tableName + " set MODIFIED = ?, MODCOUNT = ?, DATA = ? where ID = ?";
         if (oldmodcount != null) {
@@ -423,10 +456,9 @@ public class SQLDocumentStore implements DocumentStore {
             }
             int result = stmt.executeUpdate();
             if (result != 1) {
-                String message = "update failed for key=" + id + ", modCount=" + modcount + ", oldmodcount=" + oldmodcount;
-                LOG.error(message);
-                throw new MicroKernelException(message);
+                LOG.debug("DB update failed for " + tableName + "/" + id + " with oldmodcount=" + oldmodcount);
             }
+            return result == 1;
         } finally {
             stmt.close();
         }
