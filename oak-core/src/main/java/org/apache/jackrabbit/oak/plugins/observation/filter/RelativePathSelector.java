@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesCurrent;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesParent;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
@@ -49,9 +50,9 @@ public class RelativePathSelector implements Selector {
      * @param path      path to select from
      * @param selector  selector to base {@code path} upon
      */
-    public RelativePathSelector(String path, Selector selector) {
-        this.path = path;
-        this.selector = selector;
+    public RelativePathSelector(@Nonnull String path, @Nonnull Selector selector) {
+        this.path = checkNotNull(path);
+        this.selector = checkNotNull(selector);
     }
 
     @Nonnull

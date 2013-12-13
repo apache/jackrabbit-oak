@@ -112,7 +112,7 @@ public class ObservationManagerImpl implements ObservationManager {
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
         boolean includeExternal = !(listener instanceof ExcludeExternal);
         String oakPath = namePathMapper.getOakPath(absPath);
-        FilterProvider filterProvider = new JcrFilterProvider(ntMgr, eventTypes, oakPath, isDeep,
+        FilterProvider filterProvider = new JcrFilterProvider(eventTypes, oakPath, isDeep,
                 uuid, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal, permissionProvider);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
@@ -129,8 +129,8 @@ public class ObservationManagerImpl implements ObservationManager {
                     sessionDelegate.refreshAtNextAccess();
                 }
             };
-            processor = new ChangeProcessor(
-                    sessionDelegate.getContentSession(), namePathMapper, tracker, filterProvider);
+            processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
+                    ntMgr, tracker, filterProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {

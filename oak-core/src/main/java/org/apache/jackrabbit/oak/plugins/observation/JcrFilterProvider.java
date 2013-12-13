@@ -57,8 +57,6 @@ public class JcrFilterProvider implements FilterProvider {
     private static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
             PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
 
-
-    private final ReadOnlyNodeTypeManager ntManager;
     private final int eventTypes;
     private final String path;
     private final boolean deep;
@@ -71,7 +69,6 @@ public class JcrFilterProvider implements FilterProvider {
     /**
      * Create a new instance of a {@code JcrFilterProvider} for certain criteria
      *
-     * @param ntManager   node type manager
      * @param eventTypes  event types to include encoded as a bit mask
      * @param path        path to include
      * @param deep        {@code true} if descendants of {@code path} should be included.
@@ -84,11 +81,9 @@ public class JcrFilterProvider implements FilterProvider {
      *                                  Exclude otherwise.
      * @param permissionProvider        permission provider to evaluate events against
      * @see javax.jcr.observation.ObservationManager#addEventListener(javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean) */
-    public JcrFilterProvider(ReadOnlyNodeTypeManager ntManager, int eventTypes, String path,
-            boolean deep, String[] uuids, String[] nodeTypeName,
-            boolean includeSessionLocal, boolean includeClusterExternal,
+    public JcrFilterProvider(int eventTypes, String path, boolean deep, String[] uuids, String[]
+            nodeTypeName, boolean includeSessionLocal, boolean includeClusterExternal,
             PermissionProvider permissionProvider) {
-        this.ntManager = ntManager;
         this.eventTypes = eventTypes;
         this.path = path;
         this.deep = deep;
@@ -106,7 +101,7 @@ public class JcrFilterProvider implements FilterProvider {
     }
 
     @Override
-    public Filter getFilter(Tree beforeTree, Tree afterTree) {
+    public Filter getFilter(Tree beforeTree, Tree afterTree, ReadOnlyNodeTypeManager ntManager) {
         String relPath = PathUtils.relativize(afterTree.getPath(), path);
         String pathPattern = deep
             ? PathUtils.concat(relPath, STAR_STAR)

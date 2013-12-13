@@ -99,6 +99,7 @@ public class UniversalFilter implements Filter {
     /**
      * @return  before tree this filter acts upon
      */
+    @Nonnull
     public Tree getBeforeTree() {
         return beforeTree;
     }
@@ -106,6 +107,7 @@ public class UniversalFilter implements Filter {
     /**
      * @return  after tree this filter acts upon
      */
+    @Nonnull
     public Tree getAfterTree() {
         return afterTree;
     }
