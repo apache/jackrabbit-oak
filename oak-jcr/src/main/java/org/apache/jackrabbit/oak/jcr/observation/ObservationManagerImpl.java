@@ -109,54 +109,86 @@ public class ObservationManagerImpl implements ObservationManager {
         }
     }
 
-    @Override
-    public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
-            boolean isDeep, String[] uuids, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
-        boolean includeExternal = !(listener instanceof ExcludeExternal);
-        String oakPath = namePathMapper.getOakPath(absPath);
-        FilterProvider filterProvider = buildFilter(eventTypes, oakPath, isDeep,
-                uuids, validateNodeTypeNames(nodeTypeName), !noLocal, includeExternal, permissionProvider);
+    private synchronized void addEventListener(
+            EventListener listener, ListenerTracker tracker, FilterProvider filterProvider) {
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
-            log.info(OBSERVATION, "Registering event listener {} with filter {}", listener, filterProvider);
-            ListenerTracker tracker = new ListenerTracker(
-                    listener, eventTypes, absPath, isDeep,
-                    uuids, nodeTypeName, noLocal) {
-                @Override
-                protected void warn(String message) {
-                    log.warn(DEPRECATED, message, initStackTrace);
-                }
-                @Override
-                protected void beforeEventDelivery() {
-                    sessionDelegate.refreshAtNextAccess();
-                }
-            };
+            log.info(OBSERVATION,
+                    "Registering event listener {} with filter {}", listener, filterProvider);
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
                     ntMgr, tracker, filterProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
-            log.debug(OBSERVATION, "Changing event listener {} to filter {}", listener, filterProvider);
+            log.debug(OBSERVATION,
+                    "Changing event listener {} to filter {}", listener, filterProvider);
             processor.setFilterProvider(filterProvider);
         }
     }
 
-    private static FilterProvider buildFilter(int eventTypes, String oakPath, boolean isDeep, String[] uuids,
-            String[] ntNames, boolean includeSessionLocal, boolean includeClusterExternal,
-            PermissionProvider permissionProvider) {
+    /**
+     * Adds an event listener that listens for the events specified
+     * by the {@code filterProvider} passed to this method.
+     * <p>
+     * The set of events will be further filtered by the access rights
+     * of the current {@code Session}.
+     * <p>
+     * The filters of an already-registered {@code EventListener} can be
+     * changed at runtime by re-registering the same {@code EventListener}
+     * object (i.e. the same actual Java object) with a new filter provider.
+     * The implementation must ensure that no events are lost during the
+     * changeover.
+     *
+     * @param listener        an {@link EventListener} object.
+     * @param filterProvider  filter provider specifying the filter for this listener
+     */
+    public void addEventListener(EventListener listener, FilterProvider filterProvider) {
+        // FIXME Add support for FilterProvider in ListenerTracker
+        ListenerTracker tracker = new ListenerTracker(
+                listener, 0, null, true, null, null, false) {
+            @Override
+            protected void warn(String message) {
+                log.warn(DEPRECATED, message, initStackTrace);
+            }
 
-        FilterBuilder builder = new FilterBuilder();
-        return builder
-            .basePath(oakPath)
-            .includeSessionLocal(includeSessionLocal)
-            .includeClusterExternal(includeClusterExternal)
-            .condition(builder.all(
-                    builder.path(isDeep ? STAR_STAR : STAR),
-                    builder.eventType(eventTypes),
-                    builder.uuid(Selectors.PARENT, uuids),
-                    builder.nodeType(Selectors.PARENT, ntNames),
-                    builder.accessControl(permissionProvider)))
-            .build();
+            @Override
+            protected void beforeEventDelivery() {
+                sessionDelegate.refreshAtNextAccess();
+            }
+        };
+        addEventListener(listener, tracker, filterProvider);
+    }
+
+    @Override
+    public void addEventListener(EventListener listener, int eventTypes, String absPath,
+            boolean isDeep, String[] uuids, String[] nodeTypeName, boolean noLocal)
+            throws RepositoryException {
+
+        FilterBuilder filterBuilder = new FilterBuilder();
+        filterBuilder
+            .basePath(namePathMapper.getOakPath(absPath))
+            .includeSessionLocal(!noLocal)
+            .includeClusterExternal(!(listener instanceof ExcludeExternal))
+            .condition(filterBuilder.all(
+                filterBuilder.path(isDeep ? STAR_STAR : STAR),
+                filterBuilder.eventType(eventTypes),
+                filterBuilder.uuid(Selectors.PARENT, uuids),
+                filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName)),
+                filterBuilder.accessControl(permissionProvider)));
+
+        ListenerTracker tracker = new ListenerTracker(
+                listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal) {
+            @Override
+            protected void warn(String message) {
+                log.warn(DEPRECATED, message, initStackTrace);
+            }
+            @Override
+            protected void beforeEventDelivery() {
+                sessionDelegate.refreshAtNextAccess();
+            }
+        };
+
+        addEventListener(listener, tracker, filterBuilder.build());
     }
 
     @Override

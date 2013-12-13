@@ -56,7 +56,8 @@ public interface FilterProvider {
      * @return new {@code Filter} instance
      */
     @Nonnull
-    Filter getFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree, @Nonnull ReadOnlyNodeTypeManager ntManager);
+    Filter getFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree,
+            @Nonnull ReadOnlyNodeTypeManager ntManager);
 
     /**
      * Path of the subtree to which the the filter returned by
