@@ -112,6 +112,7 @@ public class ChangeProcessor implements Observer {
     /**
      * Stop this change processor if running. After returning from this methods no further
      * events will be delivered.
+     * FIXME relax this contract. See OAK-1290
      * @throws IllegalStateException if not yet started or stopped already
      */
     public synchronized void stop() {
@@ -138,10 +139,8 @@ public class ChangeProcessor implements Observer {
                             Filters.all(userFilter, acFilter),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
                     if (events.hasNext()) {
-                        synchronized (this) {
-                            if (!stopping) {
-                                eventListener.onEvent(new EventIteratorAdapter(events));
-                            }
+                        if (!stopping) {
+                            eventListener.onEvent(new EventIteratorAdapter(events));
                         }
                     }
                 }
