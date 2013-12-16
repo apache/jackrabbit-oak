@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LowCostLuceneIndexProvider
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
 
-public class LuceneOakRepositoryStub extends OakRepositoryStubBase {
+public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
 
     public LuceneOakRepositoryStub(Properties settings)
             throws RepositoryException {
