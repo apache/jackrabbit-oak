@@ -51,8 +51,9 @@ final class Range {
      * @return <code>true</code> if within this range; <code>false</code>
      * otherwise.
      */
-    boolean includes(Revision r) {
-        return high.compareRevisionTime(r) >= 0
+    boolean includes(@Nonnull Revision r) {
+        return high.getClusterId() == r.getClusterId()
+                && high.compareRevisionTime(r) >= 0
                 && low.compareRevisionTime(r) <= 0;
     }
 
