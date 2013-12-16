@@ -40,18 +40,18 @@ public class Revision {
      * revision, such that timestamps of revisions can only be compared if the
      * machine id is the same.
      */
-    private long timestamp;
+    private final long timestamp;
     
     /**
      * An incrementing counter, for commits that occur within the same
      * millisecond.
      */
-    private int counter;
+    private final int counter;
     
     /**
      * The cluster id (the MongoDB machine id).
      */
-    private int clusterId;
+    private final int clusterId;
 
     /**
      * Whether this is a branch revision.
@@ -194,8 +194,7 @@ public class Revision {
         int c = Integer.parseInt(t, 16);
         t = rev.substring(idxClusterId + 1);
         int clusterId = Integer.parseInt(t, 16);
-        Revision r = new Revision(timestamp, c, clusterId, isBranch);
-        return r;
+        return new Revision(timestamp, c, clusterId, isBranch);
     }
     
     @Override
@@ -204,6 +203,7 @@ public class Revision {
                 Integer.toHexString(counter) + '-' + Integer.toHexString(clusterId);
     }
     
+    @SuppressWarnings("UnusedDeclaration")
     public String toReadableString() {
         StringBuilder buff = new StringBuilder();
         buff.append("revision: \"").append(toString()).append("\"");
