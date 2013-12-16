@@ -19,17 +19,12 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.security.Principal;
 import java.util.Iterator;
 
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -45,13 +40,12 @@ import org.apache.jackrabbit.oak.jcr.session.operation.UserManagerOperation;
  * @see SessionDelegate#perform(org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation)
  */
 public class UserManagerDelegator implements UserManager {
-    private final SessionDelegate sessionDelegate;
     private final UserManager userManagerDelegate;
+    private final SessionDelegate sessionDelegate;
 
     public UserManagerDelegator(final SessionDelegate sessionDelegate, UserManager userManagerDelegate) {
-        checkState(!(userManagerDelegate instanceof UserManagerDelegator));
-        this.sessionDelegate = sessionDelegate;
         this.userManagerDelegate = userManagerDelegate;
+        this.sessionDelegate = sessionDelegate;
     }
 
     @Override
@@ -59,8 +53,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Authorizable>(sessionDelegate) {
             @Override
             public Authorizable perform() throws RepositoryException {
-                Authorizable authorizable = userManagerDelegate.getAuthorizable(id);
-                return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
+                return userManagerDelegate.getAuthorizable(id);
             }
         });
     }
@@ -70,8 +63,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Authorizable>(sessionDelegate) {
             @Override
             public Authorizable perform() throws RepositoryException {
-                Authorizable authorizable = userManagerDelegate.getAuthorizable(principal);
-                return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
+                return userManagerDelegate.getAuthorizable(principal);
             }
         });
     }
@@ -81,8 +73,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Authorizable>(sessionDelegate) {
             @Override
             public Authorizable perform() throws RepositoryException {
-                Authorizable authorizable = userManagerDelegate.getAuthorizableByPath(path);
-                return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
+                return userManagerDelegate.getAuthorizableByPath(path);
             }
         });
     }
@@ -92,14 +83,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate) {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
-                Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(relPath, value);
-                return Iterators.transform(authorizables, new Function<Authorizable, Authorizable>() {
-                    @Nullable
-                    @Override
-                    public Authorizable apply(Authorizable authorizable) {
-                        return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
-                    }
-                });
+                return userManagerDelegate.findAuthorizables(relPath, value);
             }
         });
     }
@@ -109,14 +93,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate) {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
-                Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(relPath, value, searchType);
-                return Iterators.transform(authorizables, new Function<Authorizable, Authorizable>() {
-                    @Nullable
-                    @Override
-                    public Authorizable apply(Authorizable authorizable) {
-                        return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
-                    }
-                });
+                return userManagerDelegate.findAuthorizables(relPath, value, searchType);
             }
         });
     }
@@ -126,14 +103,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate) {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
-                Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(query);
-                return Iterators.transform(authorizables, new Function<Authorizable, Authorizable>() {
-                    @Nullable
-                    @Override
-                    public Authorizable apply(Authorizable authorizable) {
-                        return AuthorizableDelegator.wrap(sessionDelegate, authorizable);
-                    }
-                });
+                return userManagerDelegate.findAuthorizables(query);
             }
         });
     }
@@ -143,8 +113,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate) {
             @Override
             public User perform() throws RepositoryException {
-                User user = userManagerDelegate.createUser(userID, password);
-                return new UserDelegator(sessionDelegate, user);
+                return userManagerDelegate.createUser(userID, password);
             }
         });
     }
@@ -154,8 +123,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate) {
             @Override
             public User perform() throws RepositoryException {
-                User user = userManagerDelegate.createUser(userID, password, principal, intermediatePath);
-                return new UserDelegator(sessionDelegate, user);
+                return userManagerDelegate.createUser(userID, password, principal, intermediatePath);
             }
         });
     }
@@ -165,8 +133,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate) {
             @Override
             public Group perform() throws RepositoryException {
-                Group group = userManagerDelegate.createGroup(groupID);
-                return new GroupDelegator(sessionDelegate, group);
+                return userManagerDelegate.createGroup(groupID);
             }
         });
     }
@@ -176,8 +143,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate) {
             @Override
             public Group perform() throws RepositoryException {
-                Group group = userManagerDelegate.createGroup(principal);
-                return new GroupDelegator(sessionDelegate, group);
+                return userManagerDelegate.createGroup(principal);
             }
         });
     }
@@ -187,8 +153,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate) {
             @Override
             public Group perform() throws RepositoryException {
-                Group group = userManagerDelegate.createGroup(principal, intermediatePath);
-                return new GroupDelegator(sessionDelegate, group);
+                return userManagerDelegate.createGroup(principal, intermediatePath);
             }
         });
     }
@@ -198,8 +163,7 @@ public class UserManagerDelegator implements UserManager {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate) {
             @Override
             public Group perform() throws RepositoryException {
-                Group group = userManagerDelegate.createGroup(groupID, principal, intermediatePath);
-                return new GroupDelegator(sessionDelegate, group);
+                return userManagerDelegate.createGroup(groupID, principal, intermediatePath);
             }
         });
     }
