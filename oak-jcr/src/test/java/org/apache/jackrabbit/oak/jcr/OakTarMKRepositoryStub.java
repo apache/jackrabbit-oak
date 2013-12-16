@@ -60,6 +60,7 @@ public class OakTarMKRepositoryStub extends RepositoryStub {
                     new File("target", "tarmk-" + System.currentTimeMillis());
             this.store = new FileStore(directory, 1, false);
             Jcr jcr = new Jcr(new Oak(new SegmentNodeStore(store)));
+            preCreateRepository(jcr);
             this.repository = jcr.createRepository();
 
             session = getRepository().login(superuser);
@@ -78,6 +79,15 @@ public class OakTarMKRepositoryStub extends RepositoryStub {
                 store.close();
             }
         }));
+    }
+
+    /**
+     * Override in base class and perform additional configuration on the
+     * {@link Jcr} builder before the repository is created.
+     *
+     * @param jcr the builder.
+     */
+    protected void preCreateRepository(Jcr jcr) {
     }
 
     /**
