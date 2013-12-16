@@ -40,9 +40,15 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("ds.debug", "true"));
 
     final DocumentStore store;
+    private boolean logThread = false;
 
     public LoggingDocumentStoreWrapper(DocumentStore store) {
         this.store = store;
+    }
+
+    public LoggingDocumentStoreWrapper withThreadNameLogging() {
+        this.logThread = true;
+        return this;
     }
 
     @Override
@@ -99,7 +105,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
-    
+
     @Override
     @Nonnull
     public <T extends Document> List<T> query(final Collection<T> collection,
@@ -216,7 +222,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
-    
+
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         try {
@@ -243,7 +249,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     public <T extends Document> T getIfCached(final Collection<T> collection,
                                               final String key) {
         try {
-            logMethod("isCached", collection, key);
+            logMethod("getIfCached", collection, key);
             return logResult(new Callable<T>() {
                 @Override
                 public T call() throws Exception {
@@ -256,7 +262,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
     }
 
-    private static void logMethod(String methodName, Object... args) {
+    private void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder("ds");
         buff.append('.').append(methodName).append('(');
         for (int i = 0; i < args.length; i++) {
@@ -278,7 +284,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         return o.toString();
     }
 
-    private static RuntimeException convert(Exception e) {
+    private RuntimeException convert(Exception e) {
         if (e instanceof RuntimeException) {
             return (RuntimeException) e;
         }
@@ -286,11 +292,11 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         return new MicroKernelException("Unexpected exception: " + e.toString(), e);
     }
 
-    private static void logException(Exception e) {
+    private void logException(Exception e) {
         log("// exception: " + e.toString());
     }
 
-    private static <T> T logResult(Callable<T> callable) throws Exception {
+    private <T> T logResult(Callable<T> callable) throws Exception {
         long time = System.nanoTime();
         T result = callable.call();
         time = System.nanoTime() - time;
@@ -298,11 +304,12 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         return result;
     }
 
-    private static void log(String message) {
+    private void log(String message) {
+        String out = this.logThread ? (Thread.currentThread() + " " + message) : message;
         if (DEBUG) {
-            System.out.println(message);
+            System.out.println(out);
         }
-        LOG.info(message);
+        LOG.info(out);
     }
 
 }
