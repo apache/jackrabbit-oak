@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+
 import java.io.IOException;
-import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -28,7 +31,6 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,24 +38,10 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.FailingValidator;
-import org.apache.jackrabbit.oak.spi.commit.SubtreeExcludingValidator;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 /**
  * TODO document
@@ -213,12 +201,7 @@ public class SessionDelegate {
      * @throws CommitFailedException if the commit failed
      */
     public void commit(Root root) throws CommitFailedException {
-        commit(root, null);
-    }
-
-    private void commit(Root root, CommitHook hook)
-            throws CommitFailedException {
-        root.commit(userData, hook);
+        root.commit(userData, null);
     }
 
     public void checkProtectedNode(String path) throws RepositoryException {
@@ -347,12 +330,7 @@ public class SessionDelegate {
             save();
         } else {
             try {
-                root.commit(null, new EditorHook(new EditorProvider() {
-                    @Override
-                    public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder) {
-                        return new ItemSaveValidator(path);
-                    }
-                }));
+                root.commit(null, path);
             } catch (CommitFailedException e) {
                 throw newRepositoryException(e);
             }
@@ -465,52 +443,6 @@ public class SessionDelegate {
      */
     private static RepositoryException newRepositoryException(CommitFailedException exception) {
         return exception.asRepositoryException();
-    }
-
-    /**
-     * This validator checks that all changes are contained within the subtree
-     * rooted at a given path.
-     */
-    private static class ItemSaveValidator extends SubtreeExcludingValidator {
-
-        /**
-         * Name of the property whose {@link #propertyChanged(PropertyState, PropertyState)} to
-         * ignore or {@code null} if no property should be ignored.
-         */
-        private final String ignorePropertyChange;
-
-        /**
-         * Create a new validator that only throws a {@link CommitFailedException} whenever
-         * there are changes not contained in the subtree rooted at {@code path}.
-         * @param path
-         */
-        public ItemSaveValidator(String path) {
-            this(new FailingValidator(CommitFailedException.UNSUPPORTED, 0,
-                    "Failed to save subtree at " + path + ". There are " +
-                            "transient modifications outside that subtree."),
-                    newArrayList(elements(path)));
-        }
-
-        private ItemSaveValidator(Validator validator, List<String> path) {
-            super(validator, path);
-            // Ignore property changes if this is the head of the path.
-            // This allows for calling save on a changed property.
-            ignorePropertyChange = path.size() == 1 ? path.get(0) : null;
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after)
-                throws CommitFailedException {
-            if (!before.getName().equals(ignorePropertyChange)) {
-                super.propertyChanged(before, after);
-            }
-        }
-
-        @Override
-        protected SubtreeExcludingValidator createValidator(
-                Validator validator, final List<String> path) {
-            return new ItemSaveValidator(validator, path);
-        }
     }
 
 }
