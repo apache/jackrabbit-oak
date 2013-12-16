@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.util.Collections;
 import java.util.Iterator;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -35,8 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Base class for {@code User} and {@code Group} implementations.
@@ -161,6 +162,8 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         if (obj instanceof AuthorizableImpl) {
             AuthorizableImpl otherAuth = (AuthorizableImpl) obj;
             return isGroup() == otherAuth.isGroup() && id.equals(otherAuth.id) && userManager.equals(otherAuth.userManager);
+        } else if (obj instanceof Authorizable) {
+            return obj.equals(this);
         }
         return false;
     }
