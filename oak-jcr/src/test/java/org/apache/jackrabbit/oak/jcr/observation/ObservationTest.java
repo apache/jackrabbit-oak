@@ -26,9 +26,11 @@ import static javax.jcr.observation.Event.PERSIST;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.List;
 import java.util.Map;
@@ -51,6 +53,7 @@ import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ForwardingListenableFuture;
@@ -58,9 +61,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
+import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -449,6 +455,106 @@ public class ObservationTest extends AbstractRepositoryTest {
         });
 
         testNode.orderBefore(nodeA.getName(), null);
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void filterDisjunctPaths()
+            throws ExecutionException, InterruptedException, RepositoryException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        FilterBuilder builder = new FilterBuilder();
+        builder.condition(builder.any(
+                builder.path(TEST_PATH + "/a/b"),
+                builder.path(TEST_PATH + "/x/y")));
+        oManager.addEventListener(listener, builder.build());
+
+        Node testNode = getNode(TEST_PATH);
+        Node b = testNode.addNode("a").addNode("b");
+        b.addNode("c");
+        Node y = testNode.addNode("x").addNode("y");
+        y.addNode("z");
+
+        listener.expect(b.getPath(), NODE_ADDED);
+        listener.expect(y.getPath(), NODE_ADDED);
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void filterPropertyOfParent()
+            throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        FilterBuilder builder = new FilterBuilder();
+
+        // Events for all items whose parent has a property named "foo" with value "bar"
+        builder.condition(builder.property(Selectors.PARENT, "foo",
+                new Predicate<PropertyState>() {
+                    @Override
+                    public boolean apply(PropertyState property) {
+                        return "bar".equals(property.getValue(STRING));
+                    }
+                }));
+        oManager.addEventListener(listener, builder.build());
+
+        Node testNode = getNode(TEST_PATH);
+        Node a = testNode.addNode("a");
+        Node x = testNode.addNode("x");
+        a.setProperty("foo", "bar");
+        x.setProperty("foo", "baz");
+        a.addNode("b");
+        x.addNode("y");
+
+        listener.expect(a.getPath() + "/jcr:primaryType", PROPERTY_ADDED);
+        listener.expect(a.getPath() + "/foo", PROPERTY_ADDED);
+        listener.expect(a.getPath() + "/b", NODE_ADDED);
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void filterPropertyOfChild()
+            throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        FilterBuilder builder = new FilterBuilder();
+
+        // Events for all items that have a property "b/c/foo" with value "bar"
+        builder.condition(builder.property(Selectors.fromThis("b/c"), "foo",
+                new Predicate<PropertyState>() {
+            @Override
+            public boolean apply(PropertyState property) {
+                return "bar".equals(property.getValue(STRING));
+            }
+        }));
+        oManager.addEventListener(listener, builder.build());
+
+        Node testNode = getNode(TEST_PATH);
+        Node a = testNode.addNode("a");
+        a.addNode("b").addNode("c").setProperty("foo", "bar");
+        a.addNode("d");
+        Node x = testNode.addNode("x");
+        x.addNode("b").addNode("c").setProperty("foo", "baz");
+        x.addNode("d");
+
+        listener.expect(a.getPath(), NODE_ADDED);
         testNode.getSession().save();
 
         List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
