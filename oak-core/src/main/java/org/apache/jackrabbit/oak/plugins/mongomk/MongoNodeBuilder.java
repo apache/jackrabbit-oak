@@ -19,44 +19,46 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A node builder implementation for MongoMK.
  */
 class MongoNodeBuilder extends MemoryNodeBuilder {
     
-    /**
-     * The underlying store
-     */
-    protected final MongoNodeStore store;
+    private final MongoRootBuilder root;
 
-    private NodeState base;
+    private NodeState base = null;
 
-    protected MongoNodeBuilder(MongoNodeStore store, MongoNodeState base) {
-        super(base);
-        this.store = store;
-    }
+    private NodeState rootBase = null;
 
-    private MongoNodeBuilder(MongoNodeStore store, MongoNodeBuilder parent, String name) {
-        super(parent, name);
-        this.store = store;
+    MongoNodeBuilder(MemoryNodeBuilder base,
+                     String name,
+                     MongoRootBuilder root) {
+        super(base, name);
+        this.root = checkNotNull(root);
     }
 
     @Override
+    @Nonnull
     public NodeState getBaseState() {
-        if (base == null) {
+        if (base == null || rootBase != root.getBaseState()) {
             base = getParent().getBaseState().getChildNode(getName());
+            rootBase = root.getBaseState();
         }
         return base;
     }
 
     @Override
     protected MongoNodeBuilder createChildBuilder(String name) {
-        return new MongoNodeBuilder(store, this, name);
+        return new MongoNodeBuilder(this, name, root);
     }
 
     @Override
@@ -68,16 +70,19 @@ class MongoNodeBuilder extends MemoryNodeBuilder {
                 if (parent == this) {
                     return false;
                 }
-                parent = (MongoNodeBuilder) parent.getParent();
+                if (parent.getParent() != root) {
+                    parent = (MongoNodeBuilder) parent.getParent();
+                } else {
+                    // reached root builder
+                    break;
+                }
             }
         }
         return super.moveTo(newParent, newName);
     }
     
-    
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        return store.createBlob(stream);
+        return root.createBlob(stream);
     }
-    
 }
