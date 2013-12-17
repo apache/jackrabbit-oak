@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newBulkSegmentId;
@@ -102,6 +103,18 @@ public class RecordTest {
         assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, level2p.size());
         assertEquals(blockId, level2p.getEntry(0));
         assertEquals(blockId, level2p.getEntry(LEVEL_SIZE * LEVEL_SIZE));
+
+        try {
+            int count = 0;
+            for (RecordId entry : level2p.getEntries()) {
+                assertEquals(blockId, entry);
+                assertEquals(blockId, level2p.getEntry(count));
+                count++;
+            }
+            assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, count);
+        } catch (IllegalArgumentException e) {
+            fail("OAK-1287");
+        }
     }
 
     private ListRecord writeList(int size, RecordId id) {
