@@ -18,8 +18,19 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.indexOf;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
+
 import java.util.Collections;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -34,19 +45,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.PropertyBuilder;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.indexOf;
-import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
-import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
-import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 public class MutableTree extends AbstractTree {
 
@@ -137,24 +135,7 @@ public class MutableTree extends AbstractTree {
     @Override
     public Status getPropertyStatus(String name) {
         beforeRead();
-        // FIXME use super.getPropertyStatus here. See OAK-1232
-
-        PropertyState head = super.getProperty(name);
-        if (head == null) {
-            // make sure we don't expose information about a non-accessible property
-            return null;
-        } else if (super.getStatus() == NEW) {
-            return NEW;
-        }
-
-        PropertyState base = getSecureBase().getProperty(name);
-        if (base == null) {
-            return NEW;
-        } else if (head.equals(base)) {
-            return EXISTING;
-        } else {
-            return MODIFIED;
-        }
+        return super.getPropertyStatus(name);
     }
 
     @Override
