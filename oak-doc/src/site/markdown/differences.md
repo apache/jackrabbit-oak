@@ -135,6 +135,11 @@ Observation
   external changes. That is, cancelling operations from cluster external events might not be
   reported event though they stem from separate commits (`Session.save()`).
 
+* Unregistering an observation listener blocks for no more than one second. If a pending
+  `onEvent()` call does not complete by then a warning is logged and the listener will be
+  unregistered without further waiting for the pending `onEvent()` call to complete.
+  See [OAK-1290](https://issues.apache.org/jira/browse/OAK-1290) and
+  [JSR_333-74](https://java.net/jira/browse/JSR_333-74) for further information.
 
 Binary streams
 --------------

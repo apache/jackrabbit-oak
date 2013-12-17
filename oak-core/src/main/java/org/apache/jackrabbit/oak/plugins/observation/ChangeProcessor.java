@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
@@ -27,6 +28,8 @@ import javax.annotation.Nullable;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
+import com.google.common.util.concurrent.Monitor;
+import com.google.common.util.concurrent.Monitor.Guard;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
@@ -71,7 +74,6 @@ public class ChangeProcessor implements Observer {
     private Registration observerSubscription;
     private Registration mBeanSubscription;
     private NodeState previousRoot;
-    private boolean stopping;
 
     public ChangeProcessor(
             ContentSession contentSession,
@@ -109,17 +111,47 @@ public class ChangeProcessor implements Observer {
                 tracker.getListenerMBean(), "EventListener", tracker.toString());
     }
 
+    private final Monitor runningMonitor = new Monitor();
+    private final RunningGuard running = new RunningGuard(runningMonitor);
+
     /**
-     * Stop this change processor if running. After returning from this methods no further
-     * events will be delivered.
-     * FIXME relax this contract. See OAK-1290
+     * Try to stop this change processor if running. This method will wait
+     * the specified time for a pending event listener to complete. If
+     * no timeout occurred no further events will be delivered after this
+     * method returns.
+     *
+     * @param timeOut time this method will wait for an executing event
+     *                listener to complete.
+     * @param unit    time unit for {@code timeOut}
+     * @return {@code true} if no time out occurred and this change processor
+     *         could be stopped, {@code false} otherwise.
      * @throws IllegalStateException if not yet started or stopped already
+     */
+    public synchronized boolean stopAndWait(int timeOut, TimeUnit unit) {
+        checkState(observerSubscription != null, "Change processor not started");
+        running.stop();
+        if (runningMonitor.enter(timeOut, unit)) {
+            mBeanSubscription.unregister();
+            observerSubscription.unregister();
+            runningMonitor.leave();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Stop this change processor after all pending events have been
+     * delivered. In contrast to {@link #stopAndWait(int, java.util.concurrent.TimeUnit)}
+     * this method returns immediately without waiting for pending listeners to
+     * complete.
      */
     public synchronized void stop() {
         checkState(observerSubscription != null, "Change processor not started");
-        stopping = true;
+        running.stop();
         mBeanSubscription.unregister();
         observerSubscription.unregister();
+        runningMonitor.leave();
     }
 
     @Override
@@ -138,9 +170,11 @@ public class ChangeProcessor implements Observer {
                             beforeTree.getNodeState(), afterTree.getNodeState(),
                             Filters.all(userFilter, acFilter),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
-                    if (events.hasNext()) {
-                        if (!stopping) {
+                    if (events.hasNext() && runningMonitor.enterIf(running)) {
+                        try {
                             eventListener.onEvent(new EventIteratorAdapter(events));
+                        } finally {
+                            runningMonitor.leave();
                         }
                     }
                 }
@@ -155,4 +189,21 @@ public class ChangeProcessor implements Observer {
         return new ImmutableRoot(nodeState).getTree(path);
     }
 
+    private static class RunningGuard extends Guard {
+        private boolean stopped;
+
+        public RunningGuard(Monitor monitor) {
+            super(monitor);
+        }
+
+        @Override
+        public boolean isSatisfied() {
+            return !stopped;
+        }
+
+        public void stop() {
+            checkState(!stopped, "Change processor already stopped");
+            stopped = true;
+        }
+    }
 }
