@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.Integer.bitCount;
@@ -172,28 +171,35 @@ class MapRecord extends Record {
             }
         }
 
-        // this is a leaf record; scan the list to find a matching entry
+        // use interpolation search to find the matching entry in this map leaf
+        int shift = 32 - level * BITS_PER_LEVEL;
+        long mask = -1L << shift;
         long h = hash & HASH_MASK;
         int p = 0;
-        long pH = 0;
+        long pH = h & mask;   // lower bound on hash values in this map leaf
         int q = size - 1;
-        long qH = HASH_MASK;
+        long qH = pH | ~mask; // upper bound on hash values in this map leaf
         while (p <= q) {
-            checkState(pH <= qH);
+            assert pH <= qH;
+
+            // interpolate the most likely index of the target entry
+            // based on its hash code and the lower and upper bounds
             int i = p + (int) ((q - p) * (h - pH) / (qH - pH));
-            checkState(p <= i && i <= q);
+            assert p <= i && i <= q;
+
             long iH = segment.readInt(getOffset(4 + i * 4)) & HASH_MASK;
             int diff = Long.valueOf(iH).compareTo(Long.valueOf(h));
             if (diff == 0) {
                 RecordId keyId = segment.readRecordId(
                         getOffset(4 + size * 4, i * 2));
+                RecordId valueId = segment.readRecordId(
+                        getOffset(4 + size * 4, i * 2 + 1));
                 diff = segment.readString(keyId).compareTo(name);
                 if (diff == 0) {
-                    RecordId valueId = segment.readRecordId(
-                            getOffset(4 + size * 4, i * 2 + 1));
                     return new MapEntry(segment, name, keyId, valueId);
                 }
             }
+
             if (diff < 0) {
                 p = i + 1;
                 pH = iH;
