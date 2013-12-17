@@ -16,11 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -29,13 +34,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * This implementation tracks the number of pending changes and purges them to
  * a private branch of the underlying store if a certain threshold is met.
  */
-class MongoRootBuilder extends MongoNodeBuilder {
+class MongoRootBuilder extends MemoryNodeBuilder {
 
     /**
      * Number of content updates that need to happen before the updates
      * are automatically purged to the private branch.
      */
     private static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 1000);
+
+    /**
+     * The underlying store
+     */
+    protected final MongoNodeStore store;
 
     /**
      * The base state of this builder, possibly non-existent if this builder
@@ -57,7 +67,8 @@ class MongoRootBuilder extends MongoNodeBuilder {
     private int updates;
 
     MongoRootBuilder(MongoNodeState base, MongoNodeStore store) {
-        super(store, checkNotNull(base));
+        super(checkNotNull(base));
+        this.store = checkNotNull(store);
         this.base = base;
         this.branch = store.createBranch(base);
     }
@@ -77,10 +88,20 @@ class MongoRootBuilder extends MongoNodeBuilder {
     }
 
     @Override
+    protected MongoNodeBuilder createChildBuilder(String name) {
+        return new MongoNodeBuilder(this, name, this);
+    }
+
+    @Override
     protected void updated() {
         if (updates++ > UPDATE_LIMIT) {
             purge();
         }
+    }
+
+    @Override
+    public Blob createBlob(InputStream stream) throws IOException {
+        return store.createBlob(stream);
     }
 
     //------------------------------------------------------------< internal >---
