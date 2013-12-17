@@ -112,9 +112,24 @@ public class EditorDiff implements NodeStateDiff {
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
         try {
-            Editor e = editor.childNodeAdded(name, after);
-            exception = process(e, MISSING_NODE, after);
-            return exception == null;
+            NodeState before = MISSING_NODE;
+            Editor childEditor = editor.childNodeAdded(name, after);
+            // NOTE: This piece of code is duplicated across this and the
+            // other child node diff methods. The reason for the duplication
+            // is to simplify the frequently occurring long stack traces
+            // in diff processing.
+            if (childEditor != null) {
+                childEditor.enter(before, after);
+
+                EditorDiff diff = new EditorDiff(childEditor);
+                if (!after.compareAgainstBaseState(before, diff)) {
+                    exception = diff.exception;
+                    return false;
+                }
+
+                childEditor.leave(before, after);
+            }
+            return true;
         } catch (CommitFailedException e) {
             exception = e;
             return false;
@@ -125,9 +140,19 @@ public class EditorDiff implements NodeStateDiff {
     public boolean childNodeChanged(
             String name, NodeState before, NodeState after) {
         try {
-            Editor e = editor.childNodeChanged(name, before, after);
-            exception = process(e, before, after);
-            return exception == null;
+            Editor childEditor = editor.childNodeChanged(name, before, after);
+            if (childEditor != null) {
+                childEditor.enter(before, after);
+
+                EditorDiff diff = new EditorDiff(childEditor);
+                if (!after.compareAgainstBaseState(before, diff)) {
+                    exception = diff.exception;
+                    return false;
+                }
+
+                childEditor.leave(before, after);
+            }
+            return true;
         } catch (CommitFailedException e) {
             exception = e;
             return false;
@@ -137,9 +162,20 @@ public class EditorDiff implements NodeStateDiff {
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
         try {
-            Editor e = editor.childNodeDeleted(name, before);
-            exception = process(e, before, MISSING_NODE);
-            return exception == null;
+            NodeState after = MISSING_NODE;
+            Editor childEditor = editor.childNodeDeleted(name, before);
+            if (childEditor != null) {
+                childEditor.enter(before, after);
+
+                EditorDiff diff = new EditorDiff(childEditor);
+                if (!after.compareAgainstBaseState(before, diff)) {
+                    exception = diff.exception;
+                    return false;
+                }
+
+                childEditor.leave(before, after);
+            }
+            return true;
         } catch (CommitFailedException e) {
             exception = e;
             return false;
