@@ -19,11 +19,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
@@ -128,8 +123,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
         this.parent = parent;
         this.name = name;
         this.rootBuilder = parent.rootBuilder;
+        this.base = parent.base().getChildNode(name);
         this.baseRevision = parent.baseRevision;
-        this.base = parent.base.getChildNode(name);
         this.head = new UnconnectedHead();
     }
 
