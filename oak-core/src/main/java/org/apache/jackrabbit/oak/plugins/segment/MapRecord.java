@@ -363,38 +363,11 @@ class MapRecord extends Record {
         boolean entryDeleted(MapEntry before);
     }
 
-    boolean compare(MapRecord base, MapDiff diff) {
-        return compare(base, this, diff);
-    }
-
-    //------------------------------------------------------------< Object >--
-
-    @Override
-    public String toString() {
-        StringBuilder builder = null;
-        for (MapEntry entry : getEntries()) {
-            if (builder == null) {
-                builder = new StringBuilder("{ ");
-            } else {
-                builder.append(", ");
-            }
-            builder.append(entry);
-        }
-        if (builder == null) {
-            return "{}";
-        } else {
-            builder.append(" }");
-            return builder.toString();
-        }
-    }
-
-    //-----------------------------------------------------------< private >--
-
-    private static boolean compare(
-            MapRecord before, MapRecord after, MapDiff diff) {
+    boolean compare(MapRecord before, MapDiff diff) {
         Segment beforeSegment = before.getSegment();
         int beforeHead = beforeSegment.readInt(before.getOffset(0));
 
+        MapRecord after = this;
         Segment afterSegment = after.getSegment();
         int afterHead = afterSegment.readInt(after.getOffset(0));
 
@@ -472,6 +445,29 @@ class MapRecord extends Record {
         return true;
     }
 
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public String toString() {
+        StringBuilder builder = null;
+        for (MapEntry entry : getEntries()) {
+            if (builder == null) {
+                builder = new StringBuilder("{ ");
+            } else {
+                builder.append(", ");
+            }
+            builder.append(entry);
+        }
+        if (builder == null) {
+            return "{}";
+        } else {
+            builder.append(" }");
+            return builder.toString();
+        }
+    }
+
+    //-----------------------------------------------------------< private >--
+
     /**
      * Compares two map branches. Given the way the comparison algorithm
      * works, the branches are always guaranteed to be at the same level
@@ -504,7 +500,7 @@ class MapRecord extends Record {
                 // both before and after buckets exist; compare recursively
                 MapRecord beforeBucket = beforeBuckets[i];
                 MapRecord afterBucket = afterBuckets[i];
-                if (!compare(beforeBucket, afterBucket, diff)) {
+                if (!afterBucket.compare(beforeBucket, diff)) {
                     return false;
                 }
             }
