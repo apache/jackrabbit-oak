@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
@@ -56,7 +57,8 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 public class ObservationManagerImpl implements ObservationManager {
-    private static final Logger log = LoggerFactory.getLogger(ObservationManagerImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ObservationManagerImpl.class);
+    private static final int STOP_TIME_OUT = 1000;
 
     public static final Marker OBSERVATION =
             MarkerFactory.getMarker("observation");
@@ -105,7 +107,7 @@ public class ObservationManagerImpl implements ObservationManager {
         }
 
         for (ChangeProcessor processor : toBeStopped) {
-            processor.stop();
+            stop(processor);
         }
     }
 
@@ -113,14 +115,14 @@ public class ObservationManagerImpl implements ObservationManager {
             EventListener listener, ListenerTracker tracker, FilterProvider filterProvider) {
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
-            log.info(OBSERVATION,
+            LOG.info(OBSERVATION,
                     "Registering event listener {} with filter {}", listener, filterProvider);
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
                     ntMgr, permissionProvider, tracker, filterProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
-            log.debug(OBSERVATION,
+            LOG.debug(OBSERVATION,
                     "Changing event listener {} to filter {}", listener, filterProvider);
             processor.setFilterProvider(filterProvider);
         }
@@ -148,7 +150,7 @@ public class ObservationManagerImpl implements ObservationManager {
                 listener, 0, null, true, null, null, false) {
             @Override
             protected void warn(String message) {
-                log.warn(DEPRECATED, message, initStackTrace);
+                LOG.warn(DEPRECATED, message, initStackTrace);
             }
 
             @Override
@@ -179,7 +181,7 @@ public class ObservationManagerImpl implements ObservationManager {
                 listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal) {
             @Override
             protected void warn(String message) {
-                log.warn(DEPRECATED, message, initStackTrace);
+                LOG.warn(DEPRECATED, message, initStackTrace);
             }
             @Override
             protected void beforeEventDelivery() {
@@ -197,7 +199,7 @@ public class ObservationManagerImpl implements ObservationManager {
             processor = processors.remove(listener);
         }
         if (processor != null) {
-            processor.stop(); // needs to happen outside synchronization
+            stop(processor); // needs to happen outside synchronization
         }
     }
 
@@ -246,6 +248,14 @@ public class ObservationManagerImpl implements ObservationManager {
             oakNames[i] = namePathMapper.getOakName(nodeTypeNames[i]);
         }
         return oakNames;
+    }
+
+    private static void stop(ChangeProcessor processor) {
+        if (!processor.stopAndWait(STOP_TIME_OUT, MILLISECONDS)) {
+            LOG.warn(OBSERVATION, "Timed out waiting for change processor to stop after " +
+                    STOP_TIME_OUT + " milliseconds. Falling back to asynchronous stop.");
+            processor.stop();
+        }
     }
 
 }
