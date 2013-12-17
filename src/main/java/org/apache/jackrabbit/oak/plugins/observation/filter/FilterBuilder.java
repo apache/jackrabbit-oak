@@ -55,7 +55,7 @@ public final class FilterBuilder {
 
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
-    private String basePath;
+    private String basePath = "/";
     private Condition condition;
 
     public interface Condition {
