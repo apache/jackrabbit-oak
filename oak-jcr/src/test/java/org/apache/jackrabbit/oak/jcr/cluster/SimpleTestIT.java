@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * A simple cluster test.
  */
+@Ignore("OAK-1260")
 public class SimpleTestIT extends AbstractClusterTest {
     
     @SuppressWarnings("unused")
