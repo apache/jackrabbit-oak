@@ -16,16 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * MoveTrackerTest... TODO
@@ -35,6 +36,158 @@ public class MoveTrackerTest {
     @Test
     public void testIsEmpty() {
         assertTrue(new MoveTracker().isEmpty());
+    }
+
+    /**
+     * 1.   >/a:/b >/c:/d     =  >/c:/d >/a:b
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 222
+     */
+    @Test
+    public void test1() {
+        MoveTracker mt = new MoveTracker();
+        mt.addMove("/a", "/b");
+        mt.addMove("/c", "/d");
+
+        assertEquals("/a", mt.getOriginalSourcePath("/b"));
+        assertEquals("/c", mt.getOriginalSourcePath("/d"));
+        assertEquals("/b", mt.getDestPath("/a"));
+        assertEquals("/d", mt.getDestPath("/c"));
+    }
+
+    /**
+     * 4.   >/a/b:/c >/a:/d   =  >/a:/d >/d/b:/c
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 225
+     */
+    @Test
+    public void test4() {
+        MoveTracker mt1 = new MoveTracker();
+        mt1.addMove("/a/b", "/c");
+        mt1.addMove("/a", "/d");
+
+        assertEquals("/a/b", mt1.getOriginalSourcePath("/c"));
+        assertEquals("/a", mt1.getOriginalSourcePath("/d"));
+        assertEquals("/c", mt1.getDestPath("/a/b"));
+        assertEquals("/d", mt1.getDestPath("/a"));
+    }
+
+    /**
+     * 4.   >/a/b:/c >/a:/c/d    does not commute  (q < s)
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 226
+     */
+    @Test
+    public void test4a() {
+        MoveTracker mt2 = new MoveTracker();
+        mt2.addMove("/a/b", "/c");
+        mt2.addMove("/a", "/c/d");
+
+        assertEquals("/a/b", mt2.getOriginalSourcePath("/c"));
+        assertEquals("/a", mt2.getOriginalSourcePath("/c/d"));
+        assertEquals("/c", mt2.getDestPath("/a/b"));
+        assertEquals("/c/d", mt2.getDestPath("/a"));
+    }
+
+    /**
+     * 7.   >/a:/b >/c:/a        does not commute
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 231
+     */
+    @Test
+    public void test7() {
+        MoveTracker mt3 = new MoveTracker();
+        mt3.addMove("/a", "/b");
+        mt3.addMove("/c", "/a");
+
+        assertEquals("/a", mt3.getOriginalSourcePath("/b"));
+        assertEquals("/c", mt3.getOriginalSourcePath("/a"));
+        assertEquals("/b", mt3.getDestPath("/a"));
+        assertEquals("/a", mt3.getDestPath("/c"));
+    }
+
+    /**
+     * 10.  >/a:/b >/b/c:/d   =  >/a/c:/d >/a:/b
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 234
+     */
+    @Test
+    public void test10() {
+        MoveTracker mt = new MoveTracker();
+        mt.addMove("/a", "/b");
+        mt.addMove("/b/c", "/d");
+
+        assertEquals("/a", mt.getOriginalSourcePath("/b"));
+        assertEquals("/a/c", mt.getOriginalSourcePath("/d"));
+        assertEquals("/b", mt.getDestPath("/a"));
+        assertEquals("/d", mt.getDestPath("/a/c"));
+    }
+
+    /**
+     * 11.  >/a:/b >/b:/c     =  >/a:/c
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 236
+     */
+    @Test
+    public void test11() {
+        MoveTracker mt = new MoveTracker();
+        mt.addMove("/a", "/b");
+        mt.addMove("/b", "/c");
+
+        assertEquals("/a", mt.getOriginalSourcePath("/c"));
+        assertEquals("/c", mt.getDestPath("/a"));
+    }
+
+    /**
+     * 12.  >/a:/b/c >/b:/d   =  >/b:/d >/a:/d/c
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 237
+     */
+    @Test
+    @Ignore("OAK-710")  // FIXME see OAK-710
+    public void test12() {
+        MoveTracker mt4 = new MoveTracker();
+        mt4.addMove("/a", "/b/c");
+        mt4.addMove("/b", "/d");
+
+        assertEquals("/a", mt4.getOriginalSourcePath("/d/c"));
+        assertEquals("/b", mt4.getOriginalSourcePath("/d"));
+        assertEquals("/d/c", mt4.getDestPath("/a"));
+        assertEquals("/d", mt4.getDestPath("/b"));
+    }
+
+    /**
+     * 14.  >/a:/b >/c:/b/d   =  >/c:/a/d >/a:/b
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 240
+     */
+    @Test
+    public void test14() {
+        MoveTracker mt5 = new MoveTracker();
+        mt5.addMove("/a", "/b");
+        mt5.addMove("/c", "/b/d");
+
+        assertEquals("/a", mt5.getOriginalSourcePath("/b"));
+        assertEquals("/c", mt5.getOriginalSourcePath("/b/d"));
+        assertEquals("/b", mt5.getDestPath("/a"));
+        assertEquals("/b/d", mt5.getDestPath("/c"));
+    }
+
+    /**
+     * 14.  >/a/b:/b >/a:/b/d    does not commute  (p > r)
+     * See http://svn.apache.org/viewvc/jackrabbit/sandbox/jackrabbit-microkernel/src/main/java/org/apache/jackrabbit/state/ChangeLog.java?view=markup
+     * Line 241
+     */
+    @Test
+    public void test14a() {
+        MoveTracker mt6 = new MoveTracker();
+        mt6.addMove("/a/b", "/b");
+        mt6.addMove("/a", "/b/d");
+
+        assertEquals("/a/b", mt6.getOriginalSourcePath("/b"));
+        assertEquals("/a", mt6.getOriginalSourcePath("/b/d"));
+        assertEquals("/b", mt6.getDestPath("/a/b"));
+        assertEquals("/b/d", mt6.getDestPath("/a"));
     }
 
     @Test
