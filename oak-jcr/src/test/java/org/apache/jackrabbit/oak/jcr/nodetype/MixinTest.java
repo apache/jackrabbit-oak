@@ -118,7 +118,6 @@ public class MixinTest extends AbstractJCRTest {
         assertFalse(vhId.equals(node.getVersionHistory().getUUID()));
     }
 
-    // FIXME: OAK-1118
     public void testRemoveAddMixVersionable1() throws Exception {
         Node node = testRootNode.addNode(nodeName1);
         node.addMixin(mixReferenceable);
@@ -130,6 +129,6 @@ public class MixinTest extends AbstractJCRTest {
         node.addMixin(mixVersionable);
         superuser.save();
 
-        assertFalse(vhId.equals(node.getVersionHistory().getUUID()));
+        assertEquals(vhId, node.getVersionHistory().getUUID());
     }
 }
