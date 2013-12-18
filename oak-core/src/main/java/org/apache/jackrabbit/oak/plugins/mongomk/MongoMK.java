@@ -113,7 +113,7 @@ public class MongoMK implements MicroKernel {
         nodeStore.runBackgroundOperations();
     }
 
-    MongoNodeStore getNodeStore() {
+    public MongoNodeStore getNodeStore() {
         return nodeStore;
     }
 
