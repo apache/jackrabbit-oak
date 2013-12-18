@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * arbitrary size blobs (some storage backends buffer blobs in memory) and fast
  * seeks (some storage backends re-read the whole blob when seeking).
  * <p>
- * The the format of a 'data' entry is: type (one byte; 0 for data), length
+ * The format of a 'data' entry is: type (one byte; 0 for data), length
  * (variable size int), data (bytes).
  * <p>
  * The format of a 'hash of content' entry is: type (one byte; 1 for hash),
@@ -69,7 +69,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
     protected static final int TYPE_DATA = 0;
     protected static final int TYPE_HASH = 1;
     protected static final int TYPE_HASH_COMPRESSED = 2;
-    
+
     protected static final int BLOCK_SIZE_LIMIT = 48;
 
     protected Map<String, WeakReference<String>> inUse =
@@ -91,7 +91,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
      * The cache (16 MB).
      */
     private Cache<AbstractBlobStore.BlockId, Data> cache = Cache.newInstance(this, 16 * 1024 * 1024);
-    
+
     /**
      * The byte array is re-used if possible, to avoid having to create a new,
      * large byte array each time a (potentially very small) binary is stored.
@@ -111,7 +111,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         validateBlockSize(x);
         this.blockSize = x;
     }
-    
+
     private static void validateBlockSize(int x) {
         if (x < BLOCK_SIZE_LIMIT) {
             throw new IllegalArgumentException(
@@ -453,11 +453,11 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         public String toString() {
             return StringUtils.convertBytesToHex(digest) + "@" + pos;
         }
-        
+
         public byte[] getDigest() {
             return digest;
         }
-        
+
         public long getPos() {
             return pos;
         }
