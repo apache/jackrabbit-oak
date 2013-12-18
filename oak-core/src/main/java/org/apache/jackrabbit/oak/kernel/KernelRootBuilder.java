@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -113,12 +114,19 @@ class KernelRootBuilder extends MemoryNodeBuilder implements FastCopyMove {
      * Rebase this builder on top of the head of the underlying store
      */
     NodeState rebase() {
-        purge();
+        NodeState head = getNodeState();
+        NodeState inMemBase = super.getBaseState();
+
+        // Rebase branch
         branch.rebase();
-        NodeState head = branch.getHead();
-        reset(branch.getBase());
-        super.reset(head);
-        return head;
+
+        // Rebase in memory changes on top of the head of the rebased branch
+        super.reset(branch.getHead());
+        head.compareAgainstBaseState(inMemBase, new ConflictAnnotatingRebaseDiff(this));
+
+        // Set new base and return rebased head
+        base = branch.getBase();
+        return getNodeState();
     }
 
     /**
