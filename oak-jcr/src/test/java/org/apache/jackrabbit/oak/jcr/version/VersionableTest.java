@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.jcr.version;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -69,7 +69,7 @@ public class VersionableTest extends AbstractJCRTest {
 
     /**
      * Test from Jackrabbit: JCR-3635 (OAK-940)
-     *
+     * <p/>
      * Tests the case when a node already has a manual set
      * JcrConstants.JCR_FROZENUUID property and is versioned. The manual set
      * frozenUuid will overwrite the one that is automatically assigned by the
@@ -113,4 +113,145 @@ public class VersionableTest extends AbstractJCRTest {
         assertTrue(node.isCheckedOut());
         assertTrue(newNode.isNew());
     }
+
+    // OAK-1272
+    public void testRemoveAndCreateSameVersionableChildNode() throws Exception {
+        // create parent
+        Node parentNode = testRootNode.addNode("parent");
+        parentNode.setPrimaryType(ntUnstructured);
+        parentNode.setProperty("name", "sample");
+        // create a versionable child
+        Node createdNode = parentNode.addNode("versionablechild", "nt:unstructured");
+        createdNode.addMixin(mixVersionable);
+        superuser.save();
+
+        VersionManager vm = superuser.getWorkspace().getVersionManager();
+        vm.checkin(testRootNode.getPath()+"/parent/versionablechild");
+
+        // delete and create exact same node
+        Node parent = testRootNode.getNode("parent");
+
+        // remove children
+        NodeIterator nodes = parent.getNodes();
+        while (nodes.hasNext()) {
+            Node childNode = nodes.nextNode();
+            childNode.remove();
+        }
+
+        // create again versionable child node
+        Node recreatedNode = parent.addNode("versionablechild", ntUnstructured);
+        recreatedNode.addMixin(mixVersionable);
+        superuser.save();
+    }
+
+    // Oak-1272
+    public void testRecreateVersionableNodeWithChangedProperty() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        node.setProperty(propertyName1, "foo");
+        superuser.save();
+
+        VersionManager vm = superuser.getWorkspace().getVersionManager();
+        vm.checkin(node.getPath());
+
+        // re-create node
+        node.remove();
+        node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        node.setProperty(propertyName1, "bar");
+
+        superuser.save();
+    }
+
+    // Oak-1272
+    public void testRecreateVersionableNodeWithNewProperty() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        superuser.save();
+
+        VersionManager vm = superuser.getWorkspace().getVersionManager();
+        vm.checkin(node.getPath());
+
+        // re-create node
+        node.remove();
+        node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        node.setProperty(propertyName1, "bar");
+
+        superuser.save();
+    }
+
+    // Oak-1272
+    public void testRecreateVersionableNodeWithRemovedProperty() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        node.setProperty(propertyName1, "foo");
+        superuser.save();
+
+        VersionManager vm = superuser.getWorkspace().getVersionManager();
+        vm.checkin(node.getPath());
+
+        // re-create node
+        node.remove();
+        node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+
+        superuser.save();
+    }
+
+    // Oak-1272
+    public void testRecreateVersionableNodeWithChangedChild() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        node.addNode(nodeName2, ntUnstructured).setProperty(propertyName1, "foo");
+        superuser.save();
+
+        VersionManager vm = superuser.getWorkspace().getVersionManager();
+        vm.checkin(node.getPath());
+
+        // re-create node
+        node.remove();
+        node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        node.addNode(nodeName2, ntUnstructured).setProperty(propertyName1, "bar");
+
+        superuser.save();
+    }
+
+    // Oak-1272
+    public void testRecreateVersionableNodeWithRemovedChild() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        node.addNode(nodeName2, ntUnstructured).setProperty(propertyName1, "foo");
+        superuser.save();
+
+        VersionManager vm = superuser.getWorkspace().getVersionManager();
+        vm.checkin(node.getPath());
+
+        // re-create node
+        node.remove();
+        node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+
+        superuser.save();
+    }
+
+    // Oak-1272
+    public void testRecreateVersionableNodeWithAddedChild() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        superuser.save();
+
+        VersionManager vm = superuser.getWorkspace().getVersionManager();
+        vm.checkin(node.getPath());
+
+        // re-create node
+        node.remove();
+        node = testRootNode.addNode(nodeName1, ntUnstructured);
+        node.addMixin(mixVersionable);
+        node.addNode(nodeName2, ntUnstructured).setProperty(propertyName1, "bar");
+
+        superuser.save();
+    }
+
 }
