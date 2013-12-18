@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 
@@ -354,22 +356,7 @@ class MapRecord extends Record {
         return Arrays.asList(entries);
     }
 
-    boolean compareAgainstEmptyMap(MapDiff diff) {
-        for (MapEntry entry : getEntries()) {
-            if (!diff.entryAdded(entry)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    interface MapDiff {
-        boolean entryAdded(MapEntry after);
-        boolean entryChanged(MapEntry before, MapEntry after);
-        boolean entryDeleted(MapEntry before);
-    }
-
-    boolean compare(MapRecord before, MapDiff diff) {
+    boolean compare(MapRecord before, NodeStateDiff diff) {
         Segment beforeSegment = before.getSegment();
         int beforeHead = beforeSegment.readInt(before.getOffset(0));
 
@@ -385,9 +372,10 @@ class MapRecord extends Record {
                 RecordId afterValue = afterSegment.readRecordId(after.getOffset(8, 1));
                 RecordId beforeValue = before.getValue(hash, key);
                 String name = beforeSegment.readString(key);
-                return diff.entryChanged(
-                        new MapEntry(beforeSegment, name, key, beforeValue),
-                        new MapEntry(afterSegment, name, key, afterValue));
+                return diff.childNodeChanged(
+                        name,
+                        new SegmentNodeState(beforeSegment, beforeValue),
+                        new SegmentNodeState(afterSegment, afterValue));
             } else if (isDiff(beforeHead)) {
                 RecordId beforeBase =
                         beforeSegment.readRecordId(before.getOffset(8, 2));
@@ -402,19 +390,22 @@ class MapRecord extends Record {
 
                     if (beforeKey.equals(afterKey)) {
                         String name = beforeSegment.readString(beforeKey);
-                        return diff.entryChanged(
-                                new MapEntry(beforeSegment, name, beforeKey, beforeValue),
-                                new MapEntry(afterSegment, name, afterKey, afterValue));
+                        return diff.childNodeChanged(
+                                name,
+                                new SegmentNodeState(beforeSegment, beforeValue),
+                                new SegmentNodeState(afterSegment, afterValue));
                     } else {
                         String beforeName = beforeSegment.readString(beforeKey);
                         String afterName = afterSegment.readString(afterKey);
-                        return diff.entryChanged(
-                                new MapEntry(beforeSegment, beforeName, beforeKey, beforeValue),
-                                new MapEntry(afterSegment, beforeName, beforeKey, after.getValue(beforeHash, beforeKey)))
+                        return diff.childNodeChanged(
+                                beforeName,
+                                new SegmentNodeState(beforeSegment, beforeValue),
+                                new SegmentNodeState(afterSegment, after.getValue(beforeHash, beforeKey)))
                                &&
-                               diff.entryChanged(
-                                new MapEntry(beforeSegment, afterName, afterKey, before.getValue(afterHash, afterKey)),
-                                new MapEntry(afterSegment, afterName, afterKey, afterValue));
+                               diff.childNodeChanged(
+                                afterName,
+                                new SegmentNodeState(beforeSegment, before.getValue(afterHash, afterKey)),
+                                new SegmentNodeState(afterSegment, afterValue));
                     }
                 }
             }
@@ -430,18 +421,24 @@ class MapRecord extends Record {
         while (beforeEntry != null || afterEntry != null) {
             int d = compare(beforeEntry, afterEntry);
             if (d < 0) {
-                if (!diff.entryDeleted(beforeEntry)) {
+                if (!diff.childNodeDeleted(
+                        beforeEntry.getName(), beforeEntry.getNodeState())) {
                     return false;
                 }
                 beforeEntry = nextOrNull(beforeEntries);
             } else if (d == 0) {
-                if (!diff.entryChanged(beforeEntry, afterEntry)) {
+                if (!beforeEntry.getValue().equals(afterEntry.getValue())
+                        && !diff.childNodeChanged(
+                                beforeEntry.getName(),
+                                beforeEntry.getNodeState(),
+                                afterEntry.getNodeState())) {
                     return false;
                 }
                 beforeEntry = nextOrNull(beforeEntries);
                 afterEntry = nextOrNull(afterEntries);
             } else {
-                if (!diff.entryAdded(afterEntry)) {
+                if (!diff.childNodeAdded(
+                        afterEntry.getName(), afterEntry.getNodeState())) {
                     return false;
                 }
                 afterEntry = nextOrNull(afterEntries);
@@ -480,7 +477,7 @@ class MapRecord extends Record {
      * with the same hash prefixes.
      */
     private static boolean compareBranch(
-            MapRecord before, MapRecord after, MapDiff diff) {
+            MapRecord before, MapRecord after, NodeStateDiff diff) {
         MapRecord[] beforeBuckets = before.getBuckets();
         MapRecord[] afterBuckets = after.getBuckets();
         for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
@@ -490,7 +487,8 @@ class MapRecord extends Record {
                 // before bucket is empty, so all after entries were added
                 MapRecord bucket = afterBuckets[i];
                 for (MapEntry entry : bucket.getEntries()) {
-                    if (!diff.entryAdded(entry)) {
+                    if (!diff.childNodeAdded(
+                            entry.getName(), entry.getNodeState())) {
                         return false;
                     }
                 }
@@ -498,7 +496,8 @@ class MapRecord extends Record {
                 // after bucket is empty, so all before entries were deleted
                 MapRecord bucket = beforeBuckets[i];
                 for (MapEntry entry : bucket.getEntries()) {
-                    if (!diff.entryDeleted(entry)) {
+                    if (!diff.childNodeDeleted(
+                            entry.getName(), entry.getNodeState())) {
                         return false;
                     }
                 }
