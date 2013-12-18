@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.AccessControlException;
 import java.util.Collections;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -65,9 +69,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
-
-import static com.google.common.collect.Sets.newTreeSet;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 /**
  * TODO document

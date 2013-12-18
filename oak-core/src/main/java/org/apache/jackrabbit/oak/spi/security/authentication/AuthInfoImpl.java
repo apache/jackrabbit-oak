@@ -20,9 +20,11 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 
 /**
@@ -39,6 +41,14 @@ public final class AuthInfoImpl implements AuthInfo {
         this.userID = userID;
         this.attributes = (attributes == null) ? Collections.<String, Object>emptyMap() : attributes;
         this.principals = (principals == null) ? Collections.<Principal>emptySet() : Collections.unmodifiableSet(principals);
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+            .add("userID", userID)
+            .add("attributes", attributes)
+            .add("principals", principals).toString();
     }
 
     //-----------------------------------------------------------< AuthInfo >---

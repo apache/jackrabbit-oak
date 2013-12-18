@@ -50,6 +50,11 @@ public interface AuthInfo {
         public Set<Principal> getPrincipals() {
             return Collections.emptySet();
         }
+
+        @Override
+        public String toString() {
+            return "empty";
+        }
     };
 
     /**
