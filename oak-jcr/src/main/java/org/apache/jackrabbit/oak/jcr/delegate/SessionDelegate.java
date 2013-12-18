@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
+import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.slf4j.Logger;
@@ -55,6 +56,7 @@ public class SessionDelegate {
 
     private final Root root;
     private final IdentifierManager idManager;
+    private final SessionStats sessionStats;
 
     private boolean isAlive = true;
     private int sessionOpCount;
@@ -78,6 +80,12 @@ public class SessionDelegate {
         this.refreshStrategy = checkNotNull(refreshStrategy);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
+        this.sessionStats = new SessionStats(this);
+    }
+
+    @Nonnull
+    public SessionStats getSessionStats() {
+        return sessionStats;
     }
 
     public void refreshAtNextAccess() {
@@ -116,7 +124,10 @@ public class SessionDelegate {
         } finally {
             sessionOpCount--;
             if (sessionOperation.isUpdate()) {
+                sessionStats.write();
                 updateCount++;
+            } else {
+                sessionStats.read();
             }
             if (sessionOperation.isSave()) {
                 refreshStrategy.saved();
@@ -308,10 +319,13 @@ public class SessionDelegate {
     }
 
     public void save() throws RepositoryException {
+        sessionStats.save();
         try {
             commit();
         } catch (CommitFailedException e) {
-            throw newRepositoryException(e);
+            RepositoryException repositoryException = newRepositoryException(e);
+            sessionStats.failedSave(repositoryException);
+            throw repositoryException;
         }
     }
 
@@ -326,18 +340,22 @@ public class SessionDelegate {
      * @throws RepositoryException
      */
     public void save(final String path) throws RepositoryException {
+        sessionStats.save();
         if (denotesRoot(path)) {
             save();
         } else {
             try {
                 root.commit(null, path);
             } catch (CommitFailedException e) {
-                throw newRepositoryException(e);
+                RepositoryException repositoryException = newRepositoryException(e);
+                sessionStats.failedSave(repositoryException);
+                throw repositoryException;
             }
         }
     }
 
     public void refresh(boolean keepChanges) {
+        sessionStats.refresh();
         if (keepChanges && hasPendingChanges()) {
             root.rebase();
         } else {
@@ -389,6 +407,7 @@ public class SessionDelegate {
                 throw new RepositoryException("Cannot move node at " + srcPath + " to " + destPath);
             }
             if (!transientOp) {
+                sessionStats.save();
                 commit(moveRoot);
                 refresh(true);
             }
@@ -444,5 +463,4 @@ public class SessionDelegate {
     private static RepositoryException newRepositoryException(CommitFailedException exception) {
         return exception.asRepositoryException();
     }
-
 }
