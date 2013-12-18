@@ -36,7 +36,6 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
-import org.apache.jackrabbit.oak.plugins.segment.MapRecord.MapDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -393,25 +392,7 @@ public class Template {
             // TODO: Leverage the HAMT data structure for the comparison
             MapRecord afterMap = getChildNodeMap(afterSegment, afterId);
             MapRecord beforeMap = beforeTemplate.getChildNodeMap(beforeSegment, beforeId);
-            return afterMap.compare(beforeMap, new MapDiff() {
-                @Override
-                public boolean entryAdded(MapEntry after) {
-                    return diff.childNodeAdded(
-                            after.getName(), after.getNodeState());
-                }
-                @Override
-                public boolean entryChanged(MapEntry before, MapEntry after) {
-                    SegmentNodeState b = before.getNodeState();
-                    SegmentNodeState a = after.getNodeState();
-                    return fastEquals(a, b)
-                            || diff.childNodeChanged(before.getName(), b, a);
-                }
-                @Override
-                public boolean entryDeleted(MapEntry before) {
-                    return diff.childNodeDeleted(
-                            before.getName(), before.getNodeState());
-                }
-            });
+            return afterMap.compare(beforeMap, diff);
         }
 
         return true;
@@ -437,21 +418,12 @@ public class Template {
         if (childName == MANY_CHILD_NODES) {
             RecordId childNodesId = segment.readRecordId(offset);
             MapRecord children = segment.readMap(childNodesId);
-            children.compareAgainstEmptyMap(new MapDiff() {
-                @Override
-                public boolean entryAdded(MapEntry after) {
-                    return diff.childNodeAdded(
-                            after.getName(), after.getNodeState());
+            for (MapEntry entry : children.getEntries()) {
+                if (!diff.childNodeAdded(
+                        entry.getName(), entry.getNodeState())) {
+                    return false;
                 }
-                @Override
-                public boolean entryChanged(MapEntry before, MapEntry after) {
-                    throw new IllegalStateException();
-                }
-                @Override
-                public boolean entryDeleted(MapEntry before) {
-                    throw new IllegalStateException();
-                }
-            });
+            }
             offset += RECORD_ID_BYTES;
         } else if (childName != ZERO_CHILD_NODES) {
             RecordId childNodeId = segment.readRecordId(offset);
