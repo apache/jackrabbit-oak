@@ -147,6 +147,10 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
             // jcr:rootVersion child node
             createVersion(node, versionable);
+        } else if (!versionable.hasProperty(JCR_VERSIONHISTORY)) {
+            // connect versionable node with existing history
+            connectHistory(node.getChildNode(JCR_ROOTVERSION),
+                    uuidFromNode(node), versionable);
         }
         return node;
     }
@@ -370,6 +374,25 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         }
         versionable.setProperty(JCR_PREDECESSORS, predecessors, Type.REFERENCES);
         return version;
+    }
+
+    /**
+     * Connects a versionable node with the root version of an existing version
+     * history.
+     *
+     * @param rootVersion the root version of a version history.
+     * @param vHistoryUUID the uuid of the version history node.
+     * @param versionable the versionable node.
+     */
+    private void connectHistory(@Nonnull NodeBuilder rootVersion,
+                                @Nonnull String vHistoryUUID,
+                                @Nonnull NodeBuilder versionable) {
+        String rootVersionUUID = uuidFromNode(rootVersion);
+        versionable.setProperty(JCR_ISCHECKEDOUT, true, Type.BOOLEAN);
+        versionable.setProperty(JCR_VERSIONHISTORY, vHistoryUUID, Type.REFERENCE);
+        versionable.setProperty(JCR_BASEVERSION, rootVersionUUID, Type.REFERENCE);
+        versionable.setProperty(JCR_PREDECESSORS,
+                Collections.singleton(rootVersionUUID), Type.REFERENCES);
     }
 
     /**
