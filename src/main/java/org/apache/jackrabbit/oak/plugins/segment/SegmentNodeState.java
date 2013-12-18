@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -388,18 +389,169 @@ public class SegmentNodeState extends Record implements NodeState {
         if (this == base || fastEquals(this, base)) {
              return true; // no changes
         } else if (base == EMPTY_NODE || !base.exists()) { // special case
-            return getTemplate().compareAgainstEmptyState(
-                    getSegment(), getRecordId(), diff);
-        } else if (base instanceof SegmentNodeState) {
-            SegmentNodeState that = (SegmentNodeState) base;
-            return getTemplate().compareAgainstBaseState(
-                    getSegment(), getRecordId(), that.getTemplate(),
-                    that.getSegment(), that.getRecordId(), diff);
-        } else {
-            // fallback
+            return EmptyNodeState.compareAgainstEmptyState(this, diff);
+        } else if (!(base instanceof SegmentNodeState)) { // fallback
             return AbstractNodeState.compareAgainstBaseState(this, base, diff);
         }
+
+        Template afterTemplate = getTemplate();
+        Segment afterSegment = getSegment();
+        RecordId afterId = getRecordId();
+
+        SegmentNodeState that = (SegmentNodeState) base;
+        Template beforeTemplate = that.getTemplate();
+        Segment beforeSegment = that.getSegment();
+        RecordId beforeId = that.getRecordId();
+
+        // Compare type properties
+        if (!compareProperties(
+                beforeTemplate.getPrimaryType(), afterTemplate.getPrimaryType(),
+                diff)) {
+            return false;
+        }
+        if (!compareProperties(
+                beforeTemplate.getMixinTypes(), afterTemplate.getMixinTypes(),
+                diff)) {
+            return false;
+        }
+
+        // Compare other properties, leveraging the ordering
+        int beforeIndex = 0;
+        int afterIndex = 0;
+        PropertyTemplate[] beforeProperties =
+                beforeTemplate.getPropertyTemplates();
+        PropertyTemplate[] afterProperties =
+                afterTemplate.getPropertyTemplates();
+        while (beforeIndex < beforeProperties.length
+                && afterIndex < afterProperties.length) {
+            int d = Integer.valueOf(afterProperties[afterIndex].hashCode())
+                    .compareTo(Integer.valueOf(beforeProperties[beforeIndex].hashCode()));
+            if (d == 0) {
+                d = afterProperties[afterIndex].getName().compareTo(
+                        beforeProperties[beforeIndex].getName());
+            }
+            PropertyState beforeProperty = null;
+            PropertyState afterProperty = null;
+            if (d < 0) {
+                afterProperty = afterTemplate.getProperty(afterSegment, afterId, afterIndex++);
+            } else if (d > 0) {
+                beforeProperty = beforeTemplate.getProperty(
+                        beforeSegment, beforeId, beforeIndex++);
+            } else {
+                afterProperty = afterTemplate.getProperty(
+                        afterSegment, afterId, afterIndex++);
+                beforeProperty = beforeTemplate.getProperty(
+                        beforeSegment, beforeId, beforeIndex++);
+            }
+            if (!compareProperties(beforeProperty, afterProperty, diff)) {
+                return false;
+            }
+        }
+        while (afterIndex < afterProperties.length) {
+            if (!diff.propertyAdded(afterTemplate.getProperty(
+                    afterSegment, afterId, afterIndex++))) {
+                return false;
+            }
+        }
+        while (beforeIndex < beforeProperties.length) {
+            PropertyState beforeProperty = beforeTemplate.getProperty(
+                    beforeSegment, beforeId, beforeIndex++);
+            if (!diff.propertyDeleted(beforeProperty)) {
+                return false;
+            }
+        }
+
+        String beforeChildName = beforeTemplate.getChildName();
+        String afterChildName = afterTemplate.getChildName();
+        if (afterChildName == Template.ZERO_CHILD_NODES) {
+            if (beforeChildName != Template.ZERO_CHILD_NODES) {
+                for (ChildNodeEntry entry : beforeTemplate.getChildNodeEntries(
+                        beforeSegment, beforeId)) {
+                    if (!diff.childNodeDeleted(
+                            entry.getName(), entry.getNodeState())) {
+                        return false;
+                    }
+                }
+            }
+        } else if (afterChildName != Template.MANY_CHILD_NODES) {
+            NodeState afterNode = afterTemplate.getChildNode(
+                    afterChildName, afterSegment, afterId);
+            NodeState beforeNode = beforeTemplate.getChildNode(
+                    afterChildName, beforeSegment, beforeId);
+            if (!beforeNode.exists()) {
+                if (!diff.childNodeAdded(afterChildName, afterNode)) {
+                    return false;
+                }
+            } else if (!fastEquals(afterNode, beforeNode)) {
+                if (!diff.childNodeChanged(
+                        afterChildName, beforeNode, afterNode)) {
+                    return false;
+                }
+            }
+            if (beforeChildName == Template.MANY_CHILD_NODES
+                    || (beforeChildName != Template.ZERO_CHILD_NODES
+                        && !beforeNode.exists())) {
+                for (ChildNodeEntry entry :
+                    beforeTemplate.getChildNodeEntries(beforeSegment, beforeId)) {
+                    if (!afterChildName.equals(entry.getName())) {
+                        if (!diff.childNodeDeleted(
+                                entry.getName(), entry.getNodeState())) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        } else if (beforeChildName == Template.ZERO_CHILD_NODES) {
+            for (ChildNodeEntry entry
+                    : afterTemplate.getChildNodeEntries(afterSegment, afterId)) {
+                if (!diff.childNodeAdded(
+                        entry.getName(), entry.getNodeState())) {
+                    return false;
+                }
+            }
+        } else if (beforeChildName != Template.MANY_CHILD_NODES) {
+            for (ChildNodeEntry entry : afterTemplate.getChildNodeEntries(afterSegment, afterId)) {
+                String childName = entry.getName();
+                NodeState afterChild = entry.getNodeState();
+                if (beforeChildName.equals(childName)) {
+                    NodeState beforeChild = beforeTemplate.getChildNode(
+                            beforeChildName, beforeSegment, beforeId);
+                    if (beforeChild.exists()) {
+                        if (!fastEquals(afterChild, beforeChild)
+                                && !diff.childNodeChanged(
+                                        childName, beforeChild, afterChild)) {
+                            return false;
+                        }
+                    } else {
+                        if (!diff.childNodeAdded(childName, afterChild)) {
+                            return false;
+                        }
+                    }
+                } else if (!diff.childNodeAdded(childName, afterChild)) {
+                    return false;
+                }
+            }
+        } else {
+            MapRecord afterMap = afterTemplate.getChildNodeMap(afterSegment, afterId);
+            MapRecord beforeMap = beforeTemplate.getChildNodeMap(beforeSegment, beforeId);
+            return afterMap.compare(beforeMap, diff);
+        }
+
+        return true;
     }
+
+    private static boolean compareProperties(
+            PropertyState before, PropertyState after, NodeStateDiff diff) {
+        if (before == null) {
+            return after == null || diff.propertyAdded(after);
+        } else if (after == null) {
+            return diff.propertyDeleted(before);
+        } else {
+            return before.equals(after) || diff.propertyChanged(before, after);
+        }
+    }
+
+    //------------------------------------------------------------< Object >--
 
     @Override
     public boolean equals(Object object) {

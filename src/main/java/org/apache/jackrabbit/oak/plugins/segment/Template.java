@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 public class Template {
 
@@ -160,7 +159,7 @@ public class Template {
         return childName;
     }
 
-    private PropertyState getProperty(
+    PropertyState getProperty(
             Segment segment, RecordId recordId, int index) {
         checkElementIndex(index, properties.length);
         segment = checkNotNull(segment).getSegment(checkNotNull(recordId));
@@ -262,199 +261,6 @@ public class Template {
                 }
                 return true;
             }
-        }
-    }
-
-    public boolean compareAgainstBaseState(
-            Segment afterSegment, RecordId afterId,
-            Template beforeTemplate, Segment beforeSegment, RecordId beforeId,
-            final NodeStateDiff diff) {
-        checkNotNull(afterSegment);
-        checkNotNull(afterId);
-        checkNotNull(beforeTemplate);
-        checkNotNull(beforeSegment);
-        checkNotNull(beforeId);
-        checkNotNull(diff);
-
-        // Compare type properties
-        if (!compareProperties(beforeTemplate.primaryType, primaryType, diff)
-                || !compareProperties(beforeTemplate.mixinTypes, mixinTypes, diff)) {
-            return false;
-        }
-
-        // Compare other properties, leveraging the ordering
-        int beforeIndex = 0;
-        int afterIndex = 0;
-        while (beforeIndex < beforeTemplate.properties.length
-                && afterIndex < properties.length) {
-            int d = Integer.valueOf(properties[afterIndex].hashCode())
-                    .compareTo(Integer.valueOf(beforeTemplate.properties[beforeIndex].hashCode()));
-            if (d == 0) {
-                d = properties[afterIndex].getName().compareTo(
-                        beforeTemplate.properties[beforeIndex].getName());
-            }
-            PropertyState beforeProperty = null;
-            PropertyState afterProperty = null;
-            if (d < 0) {
-                afterProperty = getProperty(afterSegment, afterId, afterIndex++);
-            } else if (d > 0) {
-                beforeProperty = beforeTemplate.getProperty(
-                        beforeSegment, beforeId, beforeIndex++);
-            } else {
-                afterProperty = getProperty(afterSegment, afterId, afterIndex++);
-                beforeProperty = beforeTemplate.getProperty(
-                        beforeSegment, beforeId, beforeIndex++);
-            }
-            if (!compareProperties(beforeProperty, afterProperty, diff)) {
-                return false;
-            }
-        }
-        while (afterIndex < properties.length) {
-            if (!diff.propertyAdded(getProperty(afterSegment, afterId, afterIndex++))) {
-                return false;
-            }
-        }
-        while (beforeIndex < beforeTemplate.properties.length) {
-            PropertyState beforeProperty = beforeTemplate.getProperty(
-                    beforeSegment, beforeId, beforeIndex++);
-            if (!diff.propertyDeleted(beforeProperty)) {
-                return false;
-            }
-        }
-
-        if (childName == ZERO_CHILD_NODES) {
-            if (beforeTemplate.childName != ZERO_CHILD_NODES) {
-                for (ChildNodeEntry entry : beforeTemplate.getChildNodeEntries(
-                        beforeSegment, beforeId)) {
-                    if (!diff.childNodeDeleted(
-                            entry.getName(), entry.getNodeState())) {
-                        return false;
-                    }
-                }
-            }
-        } else if (childName != MANY_CHILD_NODES) {
-            NodeState afterNode = getChildNode(childName, afterSegment, afterId);
-            NodeState beforeNode = beforeTemplate.getChildNode(
-                    childName, beforeSegment, beforeId);
-            if (!beforeNode.exists()) {
-                if (!diff.childNodeAdded(childName, afterNode)) {
-                    return false;
-                }
-            } else if (!fastEquals(afterNode, beforeNode)) {
-                if (!diff.childNodeChanged(childName, beforeNode, afterNode)) {
-                    return false;
-                }
-            }
-            if (beforeTemplate.childName == MANY_CHILD_NODES
-                    || (beforeTemplate.childName != ZERO_CHILD_NODES
-                        && !beforeNode.exists())) {
-                for (ChildNodeEntry entry :
-                    beforeTemplate.getChildNodeEntries(beforeSegment, beforeId)) {
-                    if (!childName.equals(entry.getName())) {
-                        if (!diff.childNodeDeleted(
-                                entry.getName(), entry.getNodeState())) {
-                            return false;
-                        }
-                    }
-                }
-            }
-        } else if (beforeTemplate.childName == ZERO_CHILD_NODES) {
-            for (ChildNodeEntry entry : getChildNodeEntries(afterSegment, afterId)) {
-                if (!diff.childNodeAdded(
-                        entry.getName(), entry.getNodeState())) {
-                    return false;
-                }
-            }
-        } else if (beforeTemplate.childName != MANY_CHILD_NODES) {
-            String name = beforeTemplate.childName;
-            for (ChildNodeEntry entry : getChildNodeEntries(afterSegment, afterId)) {
-                String childName = entry.getName();
-                NodeState afterChild = entry.getNodeState();
-                if (name.equals(childName)) {
-                    NodeState beforeChild =
-                            beforeTemplate.getChildNode(name, beforeSegment, beforeId);
-                    if (beforeChild.exists()) {
-                        if (!fastEquals(afterChild, beforeChild)
-                                && !diff.childNodeChanged(
-                                        childName, beforeChild, afterChild)) {
-                            return false;
-                        }
-                    } else {
-                        if (!diff.childNodeAdded(childName, afterChild)) {
-                            return false;
-                        }
-                    }
-                } else if (!diff.childNodeAdded(childName, afterChild)) {
-                    return false;
-                }
-            }
-        } else {
-            // TODO: Leverage the HAMT data structure for the comparison
-            MapRecord afterMap = getChildNodeMap(afterSegment, afterId);
-            MapRecord beforeMap = beforeTemplate.getChildNodeMap(beforeSegment, beforeId);
-            return afterMap.compare(beforeMap, diff);
-        }
-
-        return true;
-    }
-
-    public boolean compareAgainstEmptyState(
-            Segment segment, RecordId recordId, final NodeStateDiff diff) {
-        checkNotNull(segment);
-        checkNotNull(recordId);
-        checkNotNull(diff);
-
-        // Type properties
-        if (primaryType != null && !diff.propertyAdded(primaryType)) {
-            return false;
-        }
-        if (mixinTypes != null && !diff.propertyAdded(mixinTypes)) {
-            return false;
-        }
-
-        segment = segment.getSegment(recordId);
-        int offset = recordId.getOffset() + RECORD_ID_BYTES;
-
-        if (childName == MANY_CHILD_NODES) {
-            RecordId childNodesId = segment.readRecordId(offset);
-            MapRecord children = segment.readMap(childNodesId);
-            for (MapEntry entry : children.getEntries()) {
-                if (!diff.childNodeAdded(
-                        entry.getName(), entry.getNodeState())) {
-                    return false;
-                }
-            }
-            offset += RECORD_ID_BYTES;
-        } else if (childName != ZERO_CHILD_NODES) {
-            RecordId childNodeId = segment.readRecordId(offset);
-            if (!diff.childNodeAdded(
-                    childName, new SegmentNodeState(segment, childNodeId))) {
-                return false;
-            }
-            offset += RECORD_ID_BYTES;
-        }
-
-        // Other properties
-        for (int i = 0; i < properties.length; i++) {
-            if (!diff.propertyAdded(new SegmentPropertyState(
-                    segment, segment.readRecordId(offset), properties[i]))) {
-                return false;
-            }
-            offset += RECORD_ID_BYTES;
-        }
-
-        return true;
-    }
-
-
-    private boolean compareProperties(
-            PropertyState before, PropertyState after, NodeStateDiff diff) {
-        if (before == null) {
-            return after == null || diff.propertyAdded(after);
-        } else if (after == null) {
-            return diff.propertyDeleted(before);
-        } else {
-            return before.equals(after) || diff.propertyChanged(before, after);
         }
     }
 
