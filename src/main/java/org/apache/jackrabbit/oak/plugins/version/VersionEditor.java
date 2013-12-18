@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.RESTORE_PREFIX;
 
@@ -45,22 +47,26 @@ class VersionEditor implements Editor {
     private final VersionEditor parent;
     private final ReadWriteVersionManager vMgr;
     private final NodeBuilder node;
+    private final String name;
     private Boolean isVersionable = null;
     private NodeState before;
     private NodeState after;
-    private boolean wasReadOnly;
+    private boolean isReadOnly;
 
     public VersionEditor(@Nonnull NodeBuilder versionStore,
                          @Nonnull NodeBuilder workspaceRoot) {
         this(null, new ReadWriteVersionManager(checkNotNull(versionStore),
-                checkNotNull(workspaceRoot)), workspaceRoot);
+                checkNotNull(workspaceRoot)), workspaceRoot, "");
     }
 
     VersionEditor(@Nullable VersionEditor parent,
-                  @Nonnull ReadWriteVersionManager vMgr, @Nonnull NodeBuilder node) {
+                  @Nonnull ReadWriteVersionManager vMgr,
+                  @Nonnull NodeBuilder node,
+                  @Nonnull String name) {
         this.parent = parent;
         this.vMgr = checkNotNull(vMgr);
         this.node = checkNotNull(node);
+        this.name = checkNotNull(name);
     }
 
     @Override
@@ -71,13 +77,15 @@ class VersionEditor implements Editor {
         if (isVersionable()) {
             vMgr.getOrCreateVersionHistory(node);
         }
-        // calculate wasReadOnly state
+        // calculate isReadOnly state
         if (after.exists() || isVersionable()) {
             // deleted or versionable -> check if it was checked in
-            wasReadOnly = wasCheckedIn();
+            // a node cannot be modified if it was checked in
+            // unless it has a new identifier
+            isReadOnly = wasCheckedIn() && !hasNewIdentifier();
         } else {
             // otherwise inherit from parent
-            wasReadOnly = parent != null && parent.wasReadOnly;
+            isReadOnly = parent != null && parent.isReadOnly;
         }
     }
 
@@ -91,13 +99,13 @@ class VersionEditor implements Editor {
             throws CommitFailedException {
         if (after.getName().equals(JCR_BASEVERSION)
                 && this.after.hasProperty(JcrConstants.JCR_VERSIONHISTORY)
-                && !this.after.hasProperty(JcrConstants.JCR_ISCHECKEDOUT)
+                && !this.after.hasProperty(JCR_ISCHECKEDOUT)
                 && !this.before.exists()) {
             // sentinel node for restore
             vMgr.restore(node, after.getValue(Type.REFERENCE), null);
             return;
         }
-        if (!wasReadOnly) {
+        if (!isReadOnly) {
             return;
         }
         // JCR allows to put a lock on a checked in node.
@@ -113,14 +121,14 @@ class VersionEditor implements Editor {
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
         if (!isVersionable()) {
-            if (!isVersionProperty(after) && wasCheckedIn()) {
+            if (!isVersionProperty(after) && isReadOnly) {
                 throwCheckedIn("Cannot change property " + after.getName()
                         + " on checked in node");
             }
             return;
         }
         String propName = after.getName();
-        if (propName.equals(VersionConstants.JCR_ISCHECKEDOUT)) {
+        if (propName.equals(JCR_ISCHECKEDOUT)) {
             if (wasCheckedIn()) {
                 vMgr.checkout(node);
             } else {
@@ -135,7 +143,7 @@ class VersionEditor implements Editor {
             vMgr.restore(node, baseVersion, null);
         } else if (isVersionProperty(after)) {
             throwProtected(after.getName());
-        } else if (wasReadOnly) {
+        } else if (isReadOnly) {
             throwCheckedIn("Cannot change property " + after.getName()
                     + " on checked in node");
         }
@@ -144,7 +152,7 @@ class VersionEditor implements Editor {
     @Override
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
-        if (wasReadOnly) {
+        if (isReadOnly) {
             if (!isVersionProperty(before) && !isLockProperty(before)) {
                 throwCheckedIn("Cannot delete property on checked in node");
             }
@@ -159,12 +167,12 @@ class VersionEditor implements Editor {
     @Override
     public Editor childNodeChanged(String name, NodeState before,
             NodeState after) {
-        return new VersionEditor(this, vMgr, node.child(name));
+        return new VersionEditor(this, vMgr, node.child(name), name);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before) {
-        return new VersionEditor(this, vMgr, MISSING_NODE.builder());
+        return new VersionEditor(this, vMgr, MISSING_NODE.builder(), name);
     }
 
     /**
@@ -195,17 +203,44 @@ class VersionEditor implements Editor {
 
     /**
      * @return {@code true} if this node <b>was</b> checked in. That is,
-     *         this method checks the base state for the jcr:isCheckedOut
+     *         this method checks the before state for the jcr:isCheckedOut
      *         property.
      */
     private boolean wasCheckedIn() {
-        PropertyState prop = before
-                .getProperty(VersionConstants.JCR_ISCHECKEDOUT);
+        PropertyState prop = before.getProperty(JCR_ISCHECKEDOUT);
         if (prop != null) {
             return !prop.getValue(Type.BOOLEAN);
         }
         // new node or not versionable, check parent
         return parent != null && parent.wasCheckedIn();
+    }
+
+    private boolean hasNewIdentifier() {
+        String beforeId = buildBeforeIdentifier(new StringBuilder()).toString();
+        String afterId = buildAfterIdentifier(new StringBuilder()).toString();
+        return !beforeId.equals(afterId);
+    }
+
+    private StringBuilder buildBeforeIdentifier(StringBuilder identifier) {
+        String uuid = before.getString(JCR_UUID);
+        if (uuid != null) {
+            identifier.append(uuid);
+        } else if (parent != null) {
+            parent.buildBeforeIdentifier(identifier);
+            identifier.append("/").append(name);
+        }
+        return identifier;
+    }
+
+    private StringBuilder buildAfterIdentifier(StringBuilder identifier) {
+        String uuid = after.getString(JCR_UUID);
+        if (uuid != null) {
+            identifier.append(uuid);
+        } else if (parent != null) {
+            parent.buildAfterIdentifier(identifier);
+            identifier.append("/").append(name);
+        }
+        return identifier;
     }
 
     private static void throwCheckedIn(String msg)
