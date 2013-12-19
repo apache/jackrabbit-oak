@@ -22,8 +22,10 @@ package org.apache.jackrabbit.oak.spi.state;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -55,13 +57,14 @@ public class MoveDetectorTest {
     @Test
     public void simpleMove() throws CommitFailedException {
         NodeState moved = move(root.builder(), "/test/x", "/test/y/xx").getNodeState();
-        FindSingleMove findSingleMove = new FindSingleMove("/test/x", "/test/y/xx");
-        MoveDetector moveDetector = new MoveDetector(findSingleMove);
+        MoveExpectation moveExpectation = new MoveExpectation(
+                ImmutableMap.of("/test/x", "/test/y/xx"));
+        MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
             throw exception;
         }
-        assertTrue(findSingleMove.found());
+        moveExpectation.assertAllFound();
     }
 
     /**
@@ -74,13 +77,14 @@ public class MoveDetectorTest {
         NodeBuilder rootBuilder = root.builder();
         move(rootBuilder, "/test/x", "/test/y/xx");
         NodeState moved = move(rootBuilder, "/test/y/xx", "/test/z/xxx").getNodeState();
-        FindSingleMove findSingleMove = new FindSingleMove("/test/x", "/test/z/xxx");
-        MoveDetector moveDetector = new MoveDetector(findSingleMove);
+        MoveExpectation moveExpectation = new MoveExpectation(
+                ImmutableMap.of("/test/x", "/test/z/xxx"));
+        MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
             throw exception;
         }
-        assertTrue(findSingleMove.found());
+        moveExpectation.assertAllFound();
     }
 
     /**
@@ -92,12 +96,14 @@ public class MoveDetectorTest {
         NodeBuilder rootBuilder = root.builder();
         rootBuilder.getChildNode("test").setChildNode("added");
         NodeState moved = move(rootBuilder, "/test/added", "/test/y/added").getNodeState();
-        AssertNoMove assertNoMove = new AssertNoMove();
-        MoveDetector moveDetector = new MoveDetector(assertNoMove);
+        MoveExpectation moveExpectation = new MoveExpectation(
+                ImmutableMap.<String, String>of());
+        MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
             throw exception;
         }
+        moveExpectation.assertAllFound();
     }
 
     /**
@@ -109,13 +115,14 @@ public class MoveDetectorTest {
         NodeBuilder rootBuilder = root.builder();
         move(rootBuilder, "/test/z", "/test/y/z");
         NodeState moved = move(rootBuilder, "/test/y/z/zz", "/test/x/zz").getNodeState();
-        FindSingleMove findSingleMove = new FindSingleMove("/test/z", "/test/y/z");
-        MoveDetector moveDetector = new MoveDetector(findSingleMove);
+        MoveExpectation moveExpectation = new MoveExpectation(
+                ImmutableMap.of("/test/z", "/test/y/z"));
+        MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
             throw exception;
         }
-        assertTrue(findSingleMove.found());
+        moveExpectation.assertAllFound();
     }
 
     /**
@@ -127,12 +134,14 @@ public class MoveDetectorTest {
         NodeBuilder rootBuilder = root.builder();
         move(rootBuilder, "/test/x", "/test/y/xx");
         NodeState moved = move(rootBuilder, "/test/y/xx", "/test/x").getNodeState();
-        AssertNoMove assertNoMove = new AssertNoMove();
-        MoveDetector moveDetector = new MoveDetector(assertNoMove);
+        MoveExpectation moveExpectation = new MoveExpectation(
+                ImmutableMap.<String, String>of());
+        MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
             throw exception;
         }
+        moveExpectation.assertAllFound();
     }
 
     //------------------------------------------------------------< private >---
@@ -151,54 +160,38 @@ public class MoveDetectorTest {
         return builder;
     }
 
-    private static class FindSingleMove extends DefaultMoveValidator {
+    private static class MoveExpectation extends DefaultMoveValidator {
+        private final Map<String, String> moves;
         private final String path;
-        private final String sourcePath;
-        private final String destPath;
-        private final AtomicReference<Boolean> found;
 
-        private FindSingleMove(String sourcePath, String destPath, String path,
-                AtomicReference<Boolean> found) {
-            this.sourcePath = sourcePath;
-            this.destPath = destPath;
+        private MoveExpectation(Map<String, String> moves, String path) {
+            this.moves = moves;
             this.path = path;
-            this.found = found;
         }
 
-        public FindSingleMove(String sourcePath, String destPath) {
-            this(sourcePath, destPath, "/", new AtomicReference<Boolean>(false));
+        public MoveExpectation(Map<String, String> moves) {
+            this(Maps.newHashMap(moves), "/");
         }
 
         @Override
         public void move(String name, String sourcePath, NodeState moved) throws CommitFailedException {
-            if (found()) {
-                throw new CommitFailedException("Test", 0, "There should only be a single move operation");
-            }
-
-            assertEquals(this.sourcePath, sourcePath);
-            assertEquals(this.destPath, PathUtils.concat(path, name));
-            found.set(true);
+            String actualDestPath = PathUtils.concat(path, name);
+            String expectedDestPath = moves.remove(sourcePath);
+            assertEquals("Unexpected move. " +
+                    "Expected: " + (expectedDestPath == null
+                            ? "None"
+                            : '>' + sourcePath + ':' + expectedDestPath) +
+                    " Found: >" + sourcePath + ':' + actualDestPath,
+                    expectedDestPath, actualDestPath);
         }
 
         @Override
         public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) {
-            return new FindSingleMove(sourcePath, destPath, PathUtils.concat(path, name), found);
+            return new MoveExpectation(moves, PathUtils.concat(path, name));
         }
 
-        public boolean found() {
-            return found.get();
-        }
-    }
-
-    private static class AssertNoMove extends DefaultMoveValidator {
-        @Override
-        public void move(String name, String sourcePath, NodeState moved) throws CommitFailedException {
-            throw new CommitFailedException("Test", 0, "There should be no move operation");
-        }
-
-        @Override
-        public MoveValidator childNodeChanged(String name, NodeState before, NodeState after) {
-            return this;
+        public void assertAllFound() {
+            assertTrue("Missing moves: " + moves, moves.isEmpty());
         }
     }
 
