@@ -23,7 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.indexOf;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
@@ -37,11 +37,12 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
-import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.PropertyBuilder;
@@ -176,7 +177,7 @@ public class MutableTree extends AbstractTree {
             if (parent.hasOrderableChildren()) {
                 // FIXME (OAK-842) child order not updated when parent is not accessible
                 parent.nodeBuilder.setProperty(
-                        PropertyBuilder.copy(STRING, parent.nodeBuilder.getProperty(OAK_CHILD_ORDER))
+                        PropertyBuilder.copy(NAME, parent.nodeBuilder.getProperty(OAK_CHILD_ORDER))
                                 .removeValue(name)
                                 .getPropertyState()
                 );
@@ -195,7 +196,7 @@ public class MutableTree extends AbstractTree {
             nodeBuilder.setChildNode(name);
             if (hasOrderableChildren()) {
                 nodeBuilder.setProperty(
-                        PropertyBuilder.copy(STRING, nodeBuilder.getProperty(OAK_CHILD_ORDER))
+                        PropertyBuilder.copy(NAME, nodeBuilder.getProperty(OAK_CHILD_ORDER))
                                 .addValue(name)
                                 .getPropertyState());
             }
@@ -256,7 +257,7 @@ public class MutableTree extends AbstractTree {
         }
         // concatenate head, this name and tail
         parent.nodeBuilder.setProperty(
-                MultiStringPropertyState.stringProperty(
+                MultiGenericPropertyState.nameProperty(
                         OAK_CHILD_ORDER, Iterables.concat(head, Collections.singleton(getName()), tail))
         );
         root.updated();
@@ -365,7 +366,7 @@ public class MutableTree extends AbstractTree {
         for (String name : nodeBuilder.getChildNodeNames()) {
             names.add(name);
         }
-        PropertyBuilder builder = PropertyBuilder.array(STRING, OAK_CHILD_ORDER);
+        PropertyBuilder<String> builder = PropertyBuilder.array(NAME, OAK_CHILD_ORDER);
         builder.setValues(names);
         nodeBuilder.setProperty(builder.getPropertyState());
     }
@@ -474,7 +475,7 @@ public class MutableTree extends AbstractTree {
     private void ensureChildOrderProperty() {
         if (!nodeBuilder.hasProperty(OAK_CHILD_ORDER)) {
             nodeBuilder.setProperty(
-                    MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, nodeBuilder.getChildNodeNames()));
+                    MultiGenericPropertyState.nameProperty(OAK_CHILD_ORDER, nodeBuilder.getChildNodeNames()));
         }
     }
 

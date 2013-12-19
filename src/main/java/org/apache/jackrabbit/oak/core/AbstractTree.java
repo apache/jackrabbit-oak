@@ -26,7 +26,7 @@ import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import java.util.Iterator;
@@ -35,6 +35,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -144,7 +145,7 @@ public abstract class AbstractTree implements Tree {
 
                         @Override
                         public String next() {
-                            return childOrder.getValue(STRING, index++);
+                            return childOrder.getValue(NAME, index++);
                         }
 
                         @Override

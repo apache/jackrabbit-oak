@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -26,7 +25,6 @@ import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.core.AbstractTree.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
@@ -37,7 +35,7 @@ import java.util.Map;
 import javax.jcr.observation.Event;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -142,14 +140,8 @@ class JcrListener implements IterableListener<Event> {
     //------------------------------------------------------------< private >---
 
     private void detectReorder(String name, NodeState before, NodeState after) {
-        PropertyState afterOrder = after.getProperty(OAK_CHILD_ORDER);
-        PropertyState beforeOrder = before.getProperty(OAK_CHILD_ORDER);
-        if (afterOrder == null || beforeOrder == null) {
-            return;
-        }
-
-        List<String> afterNames = getNames(afterOrder);
-        List<String> beforeNames = getNames(beforeOrder);
+        List<String> afterNames = newArrayList(after.getNames(OAK_CHILD_ORDER));
+        List<String> beforeNames = newArrayList(before.getNames(OAK_CHILD_ORDER));
 
         afterNames.retainAll(beforeNames);
         beforeNames.retainAll(afterNames);
@@ -169,14 +161,6 @@ class JcrListener implements IterableListener<Event> {
                 }
             }
         }
-    }
-
-    private static List<String> getNames(PropertyState propertyState) {
-        List<String> names = Lists.newArrayList();
-        for (int k = 0; k < propertyState.count(); k++) {
-            names.add(propertyState.getValue(STRING, k));
-        }
-        return names;
     }
 
     private Event createEvent(int eventType, Tree tree) {
