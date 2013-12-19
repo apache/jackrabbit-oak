@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultMoveValidator;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class MoveDetectorTest {
@@ -56,7 +55,6 @@ public class MoveDetectorTest {
      * @throws CommitFailedException
      */
     @Test
-    @Ignore("OAK-1297")  // FIXME OAK-1297
     public void simpleMove() throws CommitFailedException {
         NodeState moved1 = move(root.builder(), "/test/x", "/test/y/xx").getNodeState();
         MoveExpectation moveExpectation1 = new MoveExpectation(
