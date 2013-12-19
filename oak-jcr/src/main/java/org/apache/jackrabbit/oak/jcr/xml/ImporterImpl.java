@@ -404,7 +404,12 @@ public class ImporterImpl implements Importer {
                     conflicting = currentStateIdManager.getTree(id);
                 }
 
-                if (conflicting != null && conflicting.exists()) {
+                // resolve conflict if there is one or force
+                // conflict resolution when behavior is IMPORT_UUID_CREATE_NEW.
+                // the latter will always create a new UUID even if no
+                // conflicting node exists. see OAK-1244
+                if ((conflicting != null && conflicting.exists())
+                        || uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW) {
                     // resolve uuid conflict
                     tree = resolveUUIDConflict(parent, conflicting, id, nodeInfo);
                     if (tree == null) {
