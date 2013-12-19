@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultMoveValidator;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MoveDetectorTest {
@@ -55,16 +56,28 @@ public class MoveDetectorTest {
      * @throws CommitFailedException
      */
     @Test
+    @Ignore("OAK-1297")  // FIXME OAK-1297
     public void simpleMove() throws CommitFailedException {
-        NodeState moved = move(root.builder(), "/test/x", "/test/y/xx").getNodeState();
-        MoveExpectation moveExpectation = new MoveExpectation(
+        NodeState moved1 = move(root.builder(), "/test/x", "/test/y/xx").getNodeState();
+        MoveExpectation moveExpectation1 = new MoveExpectation(
                 ImmutableMap.of("/test/x", "/test/y/xx"));
-        MoveDetector moveDetector = new MoveDetector(moveExpectation);
-        CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
-        if (exception != null) {
-            throw exception;
+        MoveDetector moveDetector1 = new MoveDetector(moveExpectation1);
+        CommitFailedException exception1 = EditorDiff.process(moveDetector1, root, moved1);
+        if (exception1 != null) {
+            throw exception1;
         }
-        moveExpectation.assertAllFound();
+        moveExpectation1.assertAllFound();
+
+        // Test whether we can also detect the move back on top of the previous, persisted move
+        NodeState moved2 = move(moved1.builder(), "/test/y/xx", "/test/x").getNodeState();
+        MoveExpectation moveExpectation2 = new MoveExpectation(
+                ImmutableMap.of("/test/y/xx", "/test/x"));
+        MoveDetector moveDetector2 = new MoveDetector(moveExpectation2);
+        CommitFailedException exception2 = EditorDiff.process(moveDetector2, moved1, moved2);
+        if (exception2 != null) {
+            throw exception2;
+        }
+        moveExpectation2.assertAllFound();
     }
 
     /**
