@@ -49,6 +49,7 @@
       org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesLocked                             <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest#testMoveNodesOrderingSupportedByParent <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
+      org.apache.jackrabbit.oak.jcr.ReferencesTest#testMVRemoveReferences                              <!-- OAK-1300 -->
 
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked
@@ -120,6 +121,7 @@
 
       <!-- User Management -->
       org.apache.jackrabbit.oak.jcr.security.user.RefreshTest#testAuthorizableGetProperty            <!-- OAK-1124 -->
+      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testMoveUserToOtherGroup                 <!-- OAK-1299 -->
 
       <!-- Query -->
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
