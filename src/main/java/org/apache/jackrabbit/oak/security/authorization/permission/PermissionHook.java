@@ -44,12 +44,10 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -155,7 +153,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             }
             String path = parentPath + '/' + name;
             if (isACL.apply(after)) {
-                Acl acl = new Acl(parentPath, name, new AfterNode(path, after));
+                Acl acl = new Acl(parentPath, name, after);
                 modified.put(acl.accessControlledPath, acl);
             } else {
                 after.compareAgainstBaseState(EMPTY_NODE, new Diff(path));
@@ -172,22 +170,22 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             String path = parentPath + '/' + name;
             if (isACL.apply(before)) {
                 if (isACL.apply(after)) {
-                    Acl acl = new Acl(parentPath, name, new AfterNode(path, after));
+                    Acl acl = new Acl(parentPath, name, after);
                     modified.put(acl.accessControlledPath, acl);
 
                     // also consider to remove the ACL from removed entries of other principals
-                    Acl beforeAcl = new Acl(parentPath, name, new BeforeNode(path, before));
+                    Acl beforeAcl = new Acl(parentPath, name, before);
                     beforeAcl.entries.keySet().removeAll(acl.entries.keySet());
                     if (!beforeAcl.entries.isEmpty()) {
                         deleted.put(parentPath, beforeAcl);
                     }
 
                 } else {
-                    Acl acl = new Acl(parentPath, name, new BeforeNode(path, before));
+                    Acl acl = new Acl(parentPath, name, before);
                     deleted.put(acl.accessControlledPath, acl);
                 }
             } else if (isACL.apply(after)) {
-                Acl acl = new Acl(parentPath, name, new AfterNode(path, after));
+                Acl acl = new Acl(parentPath, name, after);
                 modified.put(acl.accessControlledPath, acl);
             } else {
                 after.compareAgainstBaseState(before, new Diff(path));
@@ -203,57 +201,12 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             }
             String path = parentPath + '/' + name;
             if (isACL.apply(before)) {
-                Acl acl = new Acl(parentPath, name, new BeforeNode(path, before));
+                Acl acl = new Acl(parentPath, name, before);
                 deleted.put(acl.accessControlledPath, acl);
             } else {
                 EMPTY_NODE.compareAgainstBaseState(before, new Diff(path));
             }
             return true;
-        }
-    }
-
-    private abstract static class Node {
-
-        private final String path;
-
-        private Node(String path) {
-            this.path = path;
-        }
-
-        String getName() {
-            return Text.getName(path);
-        }
-
-        abstract NodeState getNodeState();
-    }
-
-    private static final class BeforeNode extends Node {
-
-        private final NodeState nodeState;
-
-        BeforeNode(String parentPath, NodeState nodeState) {
-            super(parentPath);
-            this.nodeState = nodeState;
-        }
-
-        @Override
-        NodeState getNodeState() {
-            return nodeState;
-        }
-    }
-
-    private static final class AfterNode extends Node {
-
-        private final NodeBuilder builder;
-
-        private AfterNode(String path, NodeState state) {
-            super(path);
-            this.builder = state.builder();
-        }
-
-        @Override
-        NodeState getNodeState() {
-            return builder.getNodeState();
         }
     }
 
@@ -265,7 +218,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         private final Map<String, List<AcEntry>> entries = new HashMap<String, List<AcEntry>>();
 
-        private Acl(String aclPath, String name, @Nonnull Node node) {
+        private Acl(String aclPath, String name, @Nonnull NodeState node) {
             if (name.equals(REP_REPO_POLICY)) {
                 this.accessControlledPath = "";
             } else {
@@ -273,19 +226,18 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             }
             nodeName = PermissionUtil.getEntryName(accessControlledPath);
 
-            NodeState acl = node.getNodeState();
             Set<String> orderedChildNames =
-                    newLinkedHashSet(acl.getNames(OAK_CHILD_ORDER));
+                    newLinkedHashSet(node.getNames(OAK_CHILD_ORDER));
             long n = orderedChildNames.size();
-            if (acl.getChildNodeCount(n + 1) > n) {
-                addAll(orderedChildNames, acl.getChildNodeNames());
+            if (node.getChildNodeCount(n + 1) > n) {
+                addAll(orderedChildNames, node.getChildNodeNames());
             }
 
             int index = 0;
             for (String childName : orderedChildNames) {
-                NodeState ace = acl.getChildNode(childName);
+                NodeState ace = node.getChildNode(childName);
                 if (isACE.apply(ace)) {
-                    AcEntry entry = new AcEntry(new ImmutableTree(ace), accessControlledPath, index);
+                    AcEntry entry = new AcEntry(ace, accessControlledPath, index);
                     List<AcEntry> list = entries.get(entry.principalName);
                     if (list == null) {
                         list = new ArrayList<AcEntry>();
@@ -437,14 +389,14 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         private final int index;
         private int hashCode = -1;
 
-        private AcEntry(@Nonnull ImmutableTree aceTree, @Nonnull String accessControlledPath, int index) {
+        private AcEntry(@Nonnull NodeState node, @Nonnull String accessControlledPath, int index) {
             this.accessControlledPath = accessControlledPath;
             this.index = index;
 
-            principalName = Text.escapeIllegalJcrChars(checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME)));
-            privilegeBits = bitsProvider.getBits(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
-            isAllow = isGrantACE.apply(aceTree.getNodeState());
-            restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), aceTree);
+            principalName = Text.escapeIllegalJcrChars(node.getString(REP_PRINCIPAL_NAME));
+            privilegeBits = bitsProvider.getBits(node.getNames(REP_PRIVILEGES));
+            isAllow = isGrantACE.apply(node);
+            restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), new ImmutableTree(node));
         }
 
         @Override
