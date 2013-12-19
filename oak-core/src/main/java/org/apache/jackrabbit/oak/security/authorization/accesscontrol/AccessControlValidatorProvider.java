@@ -20,11 +20,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -52,17 +50,15 @@ public class AccessControlValidatorProvider extends ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        Tree rootBefore = new ImmutableTree(before);
-        Tree rootAfter = new ImmutableTree(after);
+        ImmutableTree rootAfter = new ImmutableTree(after);
 
         RestrictionProvider restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
 
         Root root = new ImmutableRoot(before);
         PrivilegeManager privilegeManager = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
         PrivilegeBitsProvider privilegeBitsProvider = new PrivilegeBitsProvider(root);
-        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
 
-        return new AccessControlValidator(rootBefore, rootAfter, privilegeManager, privilegeBitsProvider, restrictionProvider, ntMgr);
+        return new AccessControlValidator(rootAfter, privilegeManager, privilegeBitsProvider, restrictionProvider);
     }
 
     private <T> T getConfig(Class<T> configClass) {
