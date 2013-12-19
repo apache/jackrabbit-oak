@@ -29,10 +29,10 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import com.google.common.io.ByteStreams;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -357,9 +357,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
             return false;
         } else {
             if (newParent.exists()) {
-                if (!isNew()) {
-                    annotateSourcePath(this, getPath());
-                }
+                annotateSourcePath();
                 NodeState nodeState = getNodeState();
                 newParent.setChildNode(newName, nodeState);
                 remove();
@@ -370,12 +368,68 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
-    protected static void annotateSourcePath(NodeBuilder builder, String path) {
+    /**
+     * Annotate this builder with its source path if this builder has not
+     * been transiently added. The source path is written to a property with
+     * then name {@link MoveDetector#SOURCE_PATH}.
+     * <p>
+     * The source path of a builder is its current path if its current
+     * source path is empty and all none of its parents has its source
+     * path set. Otherwise it is the source path of the first parent (or self)
+     * that has its source path set appended with the relative path from
+     * that parent to this builder.
+     * <p>
+     * This builder has been transiently added when there exists no a
+     * base node at its source path.
+     */
+    protected final void annotateSourcePath() {
+        String sourcePath = getSourcePath();
+        if (!isTransientlyAdded(sourcePath)) {
+            setProperty(MoveDetector.SOURCE_PATH, sourcePath);
+        }
+    }
+
+    private final String getSourcePath() {
+        // Traverse up the hierarchy until we encounter the first builder
+        // having a source path annotation or until we hit the root
+        MemoryNodeBuilder builder = this;
+        String sourcePath = getSourcePathAnnotation(builder);
+        while (sourcePath == null && builder.parent != null) {
+            builder = builder.parent;
+            sourcePath = getSourcePathAnnotation(builder);
+        }
+
+        if (sourcePath == null) {
+            // Neither self nor any parent has a source path annotation. The source
+            // path is just the path of this builder
+            return getPath();
+        } else {
+            // The source path is the source path of the first parent having a source
+            // path annotation with the relative path from this builder up to that
+            // parent appended.
+            return PathUtils.concat(sourcePath,
+                    PathUtils.relativize(builder.getPath(), getPath()));
+        }
+    }
+
+    private static String getSourcePathAnnotation(MemoryNodeBuilder builder) {
         PropertyState base = builder.getBaseState().getProperty(MoveDetector.SOURCE_PATH);
         PropertyState head = builder.getNodeState().getProperty(MoveDetector.SOURCE_PATH);
         if (Objects.equal(base, head)) {
-            builder.setProperty(MoveDetector.SOURCE_PATH, path);
+            // Both null: no source path annotation
+            // Both non null but equals: source path annotation is from a previous commit
+            return null;
+        } else {
+            return head.getValue(Type.STRING);
         }
+    }
+
+    private boolean isTransientlyAdded(String path) {
+        NodeState node = rootBuilder.getBaseState();
+        for (String name : PathUtils.elements(path)) {
+            node = node.getChildNode(name);
+        }
+        return !node.exists();
     }
 
     @Override

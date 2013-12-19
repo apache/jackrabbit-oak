@@ -426,6 +426,37 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void testMove() throws RepositoryException, ExecutionException, InterruptedException {
+        Node testNode = getNode(TEST_PATH);
+        Session session = testNode.getSession();
+        Node nodeA = testNode.addNode("a");
+        Node nodeAA = nodeA.addNode("aa");
+        Node nodeT = testNode.addNode("t");
+        Node nodeS = testNode.addNode("s");
+        session.save();
+
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, NODE_MOVED, "/", true, null, null, false);
+
+        String src1 = nodeA.getPath();
+        String dst1 = nodeT.getPath() + "/b";
+        session.move(src1, dst1);
+        listener.expectMove(src1, dst1);
+
+        String src2 = nodeT.getPath() + "/b/aa";
+        String dst2 = nodeS.getPath() + "/bb";
+        session.move(src2, dst2);
+        listener.expectMove(src1 + "/aa", dst2);
+
+        session.save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
     public void testReorder() throws RepositoryException, InterruptedException, ExecutionException {
         Node testNode = getNode(TEST_PATH);
         Node nodeA = testNode.addNode("a", "nt:unstructured");
@@ -433,7 +464,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         testNode.getSession().save();
 
         ExpectationListener listener = new ExpectationListener();
-        observationManager.addEventListener(listener, Event.NODE_MOVED, "/", true, null, null, false);
+        observationManager.addEventListener(listener, NODE_MOVED, "/", true, null, null, false);
         listener.expect(new Expectation("orderBefore"){
             @Override
             public boolean onEvent(Event event) throws Exception {
@@ -675,6 +706,18 @@ public class ObservationTest extends AbstractRepositoryTest {
         public Property expectChange(Property property) throws RepositoryException {
             expect(property.getPath(), PROPERTY_CHANGED);
             return property;
+        }
+
+        public void expectMove(final String src, final String dst) {
+            expect(new Expectation(">" + src + ':' + dst){
+                @Override
+                public boolean onEvent(Event event) throws Exception {
+                    return event.getType() == NODE_MOVED &&
+                            equal(dst, event.getPath()) &&
+                            equal(src, event.getInfo().get("srcAbsPath")) &&
+                            equal(dst, event.getInfo().get("destAbsPath"));
+                }
+            });
         }
 
         public List<Expectation> getMissing(int time, TimeUnit timeUnit)

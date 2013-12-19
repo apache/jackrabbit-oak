@@ -119,12 +119,26 @@ Observation
 
     * Limited support for `Event.NODE_MOVED`:
 
-      + `NODE_MOVED` are only reported for nodes whose source location is not transient. A source
-        location is transient if it is transiently added or a child node of a transiently moved
-        tree.
+      + A node that is added and subsequently moved will not generate a `Event.NODE_MOVED`
+        but a `Event.NODE_ADDED` for its final location.
 
-      + Removing a node and adding a node with the same name at the same parent will be reported as
-        `NODE_MOVED` event as if it where caused by `Node.orderBefore()`.
+      + A node that is moved and subsequently removed will not generate a `Event.NODE_MOVED`
+        but a `Event.NODE_REMOVED` for its initial location.
+
+      + A node that is moved and subsequently moved again will only generate a single
+        `Event.NODE_MOVED` reporting its initial location as `srcAbsPath` and its
+         final location as `destAbsPath`.
+
+      + A node whose parent was moved and that moved itself subsequently reports its initial
+        location as `srcAbsPath` instead of the location it had under the moved parent.
+
+      + A node that was moved and subsequently its parent is moved will report its final
+        location as `destAbsPath` instead of the location it had before its parent moved.
+
+      + Removing a node and adding a node with the same name at the same parent will be
+        reported as `NODE_MOVED` event as if it where caused by `Node.orderBefore()` if
+        the parent node is orderable and the sequence of operations caused a change in
+        the order of the child nodes.
 
       + The exact sequence of `Node.orderBefore()` will not be reflected through `NODE_MOVED`
         events: given two child nodes `a` and `b`, ordering `a` after `b` may be reported as
