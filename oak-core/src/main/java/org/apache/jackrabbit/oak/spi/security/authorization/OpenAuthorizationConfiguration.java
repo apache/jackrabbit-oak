@@ -48,7 +48,7 @@ public class OpenAuthorizationConfiguration extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(Root root, String workspaceName, Set<Principal> principals) {
         return OpenPermissionProvider.getInstance();
     }
 
