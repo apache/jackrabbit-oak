@@ -371,15 +371,15 @@ public class MemoryNodeBuilder implements NodeBuilder {
     /**
      * Annotate this builder with its source path if this builder has not
      * been transiently added. The source path is written to a property with
-     * then name {@link MoveDetector#SOURCE_PATH}.
+     * the name {@link MoveDetector#SOURCE_PATH}.
      * <p>
      * The source path of a builder is its current path if its current
-     * source path is empty and all none of its parents has its source
-     * path set. Otherwise it is the source path of the first parent (or self)
-     * that has its source path set appended with the relative path from
-     * that parent to this builder.
+     * source path annotation is empty and none of its parents has a source
+     * path annotation set. Otherwise it is the source path of the first parent
+     * (or self) that has its source path annotation set appended with the relative
+     * path from that parent to this builder.
      * <p>
-     * This builder has been transiently added when there exists no a
+     * This builder has been transiently added when there exists no
      * base node at its source path.
      */
     protected final void annotateSourcePath() {
