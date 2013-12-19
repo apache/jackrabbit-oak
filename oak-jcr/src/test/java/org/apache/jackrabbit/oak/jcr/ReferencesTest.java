@@ -245,7 +245,7 @@ public class ReferencesTest extends AbstractJCRTest {
     }
 
     // OAK-1257
-    public void testMVAddAltering() throws RepositoryException {
+    public void testMVAddReferences() throws RepositoryException {
         Node ref0 = testRootNode.addNode(nodeName2, testNodeType);
         ref0.addMixin(mixReferenceable);
         Node ref1 = testRootNode.addNode(nodeName3, testNodeType);
