@@ -22,9 +22,8 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -52,7 +51,6 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     private final Set<Principal> principals;
     private final MoveTracker moveTracker;
 
-    private ReadOnlyNodeTypeManager ntMgr;
     private Context acCtx;
     private Context userCtx;
 
@@ -73,17 +71,15 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        ntMgr = ReadOnlyNodeTypeManager.getInstance(after);
-
-        ImmutableTree treeBefore = createTree(before);
-        ImmutableTree treeAfter = createTree(after);
+        TreeTypeProvider tp =
+                new TreeTypeProviderImpl(getAccessControlContext());
         PermissionProvider pp = acConfig.getPermissionProvider(
-                new ImmutableRoot(treeBefore), workspaceName, principals);
+                new ImmutableRoot(before), workspaceName, principals);
 
         if (moveTracker.isEmpty()) {
-            return new PermissionValidator(treeBefore, treeAfter, pp, this);
+            return new PermissionValidator(before, after, tp, pp, this);
         } else {
-            return new MoveAwarePermissionValidator(treeBefore, treeAfter, pp, this, moveTracker);
+            return new MoveAwarePermissionValidator(before, after, tp, pp, this, moveTracker);
         }
     }
 
@@ -104,16 +100,8 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         return userCtx;
     }
 
-    ReadOnlyNodeTypeManager getNodeTypeManager() {
-        return ntMgr;
-    }
-
     boolean requiresJr2Permissions(long permission) {
         return Permissions.includes(jr2Permissions, permission);
-    }
-
-    private ImmutableTree createTree(NodeState root) {
-        return new ImmutableTree(root, new TreeTypeProviderImpl(getAccessControlContext()));
     }
 
 }

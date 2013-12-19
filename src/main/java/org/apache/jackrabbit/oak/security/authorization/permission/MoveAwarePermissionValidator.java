@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -41,13 +42,14 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
 
     private final MoveContext moveCtx;
 
-    MoveAwarePermissionValidator(@Nonnull ImmutableTree rootTreeBefore,
-                                 @Nonnull ImmutableTree rootTreeAfter,
+    MoveAwarePermissionValidator(@Nonnull NodeState rootBefore,
+                                 @Nonnull NodeState rootAfter,
+                                 @Nonnull TreeTypeProvider typeProvider,
                                  @Nonnull PermissionProvider permissionProvider,
                                  @Nonnull PermissionValidatorProvider provider,
                                  @Nonnull MoveTracker moveTracker) {
-        super(rootTreeBefore, rootTreeAfter, permissionProvider, provider);
-        moveCtx = new MoveContext(moveTracker, rootTreeBefore, rootTreeAfter);
+        super(rootBefore, rootAfter, typeProvider, permissionProvider, provider);
+        moveCtx = new MoveContext(moveTracker, rootBefore, rootAfter);
     }
 
     MoveAwarePermissionValidator(@Nullable ImmutableTree parentBefore,
@@ -112,11 +114,11 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         private final ImmutableRoot rootAfter;
 
         private MoveContext(@Nonnull MoveTracker moveTracker,
-                            @Nonnull ImmutableTree treeBefore,
-                            @Nonnull ImmutableTree treeAfter) {
+                            @Nonnull NodeState before,
+                            @Nonnull NodeState after) {
             this.moveTracker = moveTracker;
-            rootBefore = new ImmutableRoot(treeBefore);
-            rootAfter = new ImmutableRoot(treeAfter);
+            rootBefore = new ImmutableRoot(before);
+            rootAfter = new ImmutableRoot(after);
         }
 
         private boolean containsMove(Tree parentBefore, Tree parentAfter) {
