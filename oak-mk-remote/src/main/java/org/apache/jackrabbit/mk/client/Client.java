@@ -317,8 +317,21 @@ public class Client implements MicroKernel {
 
     @Nonnull
     @Override
-    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
-        throw new UnsupportedOperationException();
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId)
+            throws MicroKernelException {
+
+        Request request = null;
+
+        try {
+            request = createRequest("rebase");
+            request.addParameter("branch_revision_id", branchRevisionId);
+            request.addParameter("new_base_revision_id", newBaseRevisionId);
+            return request.getString();
+        } catch (IOException e) {
+            throw toMicroKernelException(e);
+        } finally {
+            IOUtils.closeQuietly(request);
+        }
     }
 
     @Nonnull

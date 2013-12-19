@@ -85,6 +85,7 @@ class MicroKernelServlet {
         COMMANDS.put("commit", new Commit());
         COMMANDS.put("branch", new Branch());
         COMMANDS.put("merge", new Merge());
+        COMMANDS.put("rebase", new Rebase());
         COMMANDS.put("reset", new Reset());
         COMMANDS.put("getLength", new GetLength());
         COMMANDS.put("read", new Read());
@@ -312,6 +313,21 @@ class MicroKernelServlet {
         }
     }
 
+    static class Rebase implements Command {
+
+        @Override
+        public void execute(MicroKernel mk, Request request, Response response)
+                throws IOException, MicroKernelException {
+            String branchRevisionId = request.getParameter("branch_revision_id");
+            String newBaseRevisionId = request.getParameter("new_base_revision_id");
+
+            String newRevision = mk.rebase(branchRevisionId, newBaseRevisionId);
+
+            response.setContentType("text/plain");
+            response.write(newRevision);
+        }
+    }
+
     static class Reset implements Command {
 
         @Override
@@ -322,7 +338,7 @@ class MicroKernelServlet {
 
             String newRevision = mk.reset(branchRevisionId, ancestorRevisionId);
 
-            response.setContentType("test/plain");
+            response.setContentType("text/plain");
             response.write(newRevision);
         }
     }
