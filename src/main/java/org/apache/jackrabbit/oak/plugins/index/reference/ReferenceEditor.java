@@ -329,12 +329,12 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
             Set<String> add, Set<String> rm) {
         NodeBuilder index = child.child(name);
         Set<String> empty = of();
+        for (String p : rm) {
+            STORE.update(index, p, of(key), empty);
+        }
         for (String p : add) {
             // TODO do we still need to encode the values?
             STORE.update(index, p, empty, of(key));
-        }
-        for (String p : rm) {
-            STORE.update(index, p, of(key), empty);
         }
     }
 
