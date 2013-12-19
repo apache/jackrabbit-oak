@@ -17,7 +17,11 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_CREATEDBY;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_CREATED;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -29,7 +33,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.AbstractTree;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -54,23 +60,31 @@ class PermissionValidator extends DefaultValidator {
     private final PermissionProvider permissionProvider;
     private final PermissionValidatorProvider provider;
 
+    private final TypePredicate isReferenceable;
+    private final TypePredicate isCreated;
+
     private final long permission;
 
-    PermissionValidator(@Nonnull ImmutableTree rootTreeBefore,
-                        @Nonnull ImmutableTree rootTreeAfter,
+    PermissionValidator(@Nonnull NodeState rootBefore,
+                        @Nonnull NodeState rootAfter,
+                        @Nonnull TreeTypeProvider typeProvider,
                         @Nonnull PermissionProvider permissionProvider,
                         @Nonnull PermissionValidatorProvider provider) {
-        this.parentBefore = rootTreeBefore;
-        this.parentAfter = rootTreeAfter;
+        this.parentBefore = new ImmutableTree(rootBefore, typeProvider);
+        this.parentAfter = new ImmutableTree(rootAfter, typeProvider);
         this.parentPermission = permissionProvider.getTreePermission(parentBefore, TreePermission.EMPTY);
 
         this.permissionProvider = permissionProvider;
         this.provider = provider;
 
+        this.isReferenceable = new TypePredicate(rootAfter, MIX_REFERENCEABLE);
+        this.isCreated = new TypePredicate(rootAfter, MIX_CREATED);
+
         permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
     }
 
-    PermissionValidator(@Nullable ImmutableTree parentBefore,
+    protected PermissionValidator(
+                        @Nullable ImmutableTree parentBefore,
                         @Nullable ImmutableTree parentAfter,
                         @Nullable TreePermission parentPermission,
                         @Nonnull PermissionValidator parentValidator) {
@@ -80,6 +94,9 @@ class PermissionValidator extends DefaultValidator {
 
         permissionProvider = parentValidator.permissionProvider;
         provider = parentValidator.provider;
+
+        this.isReferenceable = parentValidator.isReferenceable;
+        this.isCreated = parentValidator.isCreated;
 
         if (Permissions.NO_PERMISSION == parentValidator.permission) {
             this.permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
@@ -245,7 +262,7 @@ class PermissionValidator extends DefaultValidator {
         return perm;
     }
 
-    private long getPermission(@Nonnull Tree parent, @Nonnull PropertyState propertyState, long defaultPermission) {
+    private long getPermission(@Nonnull ImmutableTree parent, @Nonnull PropertyState propertyState, long defaultPermission) {
         if (permission != Permissions.NO_PERMISSION) {
             return permission;
         }
@@ -264,7 +281,7 @@ class PermissionValidator extends DefaultValidator {
         } else if (JcrConstants.JCR_MIXINTYPES.equals(name)) {
             perm = Permissions.NODE_TYPE_MANAGEMENT;
         } else if (JcrConstants.JCR_UUID.equals(name)) {
-            if (isNodeType(parent, JcrConstants.MIX_REFERENCEABLE)) {
+            if (isReferenceable.apply(parent.getNodeState())) {
                 // property added or removed: jcr:uuid is autocreated in
                 // JCR, thus can't determine here if this was a user supplied
                 // modification or not.
@@ -303,17 +320,14 @@ class PermissionValidator extends DefaultValidator {
 
     private boolean isImmutableProperty(String name) {
         // TODO: review; cant' rely on autocreated/protected definition as this doesn't reveal if a given property is expected to be never modified after creation
-        if (JcrConstants.JCR_UUID.equals(name) && isNodeType(parentAfter, JcrConstants.MIX_REFERENCEABLE)) {
+        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parentAfter.getNodeState())) {
             return true;
-        } else if (("jcr:created".equals(name) || "jcr:createdBy".equals(name)) && isNodeType(parentAfter, "mix:created")) {
+        } else if ((JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
+                && isCreated.apply(parentAfter.getNodeState())) {
             return true;
         } else {
             return false;
         }
-    }
-
-    private boolean isNodeType(Tree parent, String ntName) {
-        return provider.getNodeTypeManager().isNodeType(parent, ntName);
     }
 
     private boolean isVersionstorageTree(Tree tree) {
