@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,6 +41,7 @@ import java.util.Set;
 
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
+import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemExistsException;
@@ -1986,6 +1988,24 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
         assertTrue(paths.contains("/other"));
         assertTrue(paths.contains("/dest/test"));
+    }
+
+    @Test // OAK-1244
+    public void importUUIDCreateNew() throws Exception {
+        Session session = getAdminSession();
+        Node node = session.getRootNode().addNode("node");
+        node.addMixin("mix:referenceable");
+        session.save();
+        String uuid = node.getIdentifier();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        session.exportSystemView("/node", out, true, false);
+        node.remove();
+        session.save();
+        session.importXML("/", new ByteArrayInputStream(out.toByteArray()),
+                ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        session.save();
+        node = session.getNode("/node");
+        assertFalse(uuid.equals(node.getIdentifier()));
     }
 
     //------------------------------------------------------------< private >---
