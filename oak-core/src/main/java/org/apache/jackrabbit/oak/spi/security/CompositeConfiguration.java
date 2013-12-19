@@ -18,18 +18,22 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeWorkspaceInitializer;
@@ -122,11 +126,11 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     @Nonnull
     @Override
-    public List<? extends ValidatorProvider> getValidators(final String workspaceName, final CommitInfo commitInfo) {
+    public List<? extends ValidatorProvider> getValidators(final String workspaceName, final Set<Principal> principals, final MoveTracker moveTracker) {
         return ImmutableList.copyOf(Iterables.concat(Lists.transform(configurations, new Function<T, List<? extends ValidatorProvider>>() {
             @Override
             public List<? extends ValidatorProvider> apply(T securityConfiguration) {
-                return securityConfiguration.getValidators(workspaceName, commitInfo);
+                return securityConfiguration.getValidators(workspaceName, principals, moveTracker);
             }
         })));
     }

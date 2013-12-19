@@ -57,11 +57,11 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private ImmutableRoot immutableRoot;
 
-    public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
+    public PermissionProviderImpl(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals,
                                   @Nonnull AuthorizationConfiguration acConfig,
                                   @Nonnull PermissionEntryCache.Local cache) {
         this.root = root;
-        this.workspaceName = root.getContentSession().getWorkspaceName();
+        this.workspaceName = workspaceName;
         this.acConfig = acConfig;
 
         immutableRoot = getImmutableRoot(root, acConfig);

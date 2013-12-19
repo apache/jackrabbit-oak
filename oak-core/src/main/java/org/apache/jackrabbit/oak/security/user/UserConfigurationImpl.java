@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
@@ -27,7 +29,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -68,7 +70,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     @Nonnull
     @Override
-    public List<? extends ValidatorProvider> getValidators(String workspaceName, CommitInfo commitInfo) {
+    public List<? extends ValidatorProvider> getValidators(String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
         return Collections.singletonList(new UserValidatorProvider(getParameters()));
     }
 

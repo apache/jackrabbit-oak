@@ -131,7 +131,10 @@ public abstract class AbstractRoot implements Root {
     private final LazyValue<PermissionProvider> permissionProvider = new LazyValue<PermissionProvider>() {
         @Override
         protected PermissionProvider createValue() {
-            return getAcConfig().getPermissionProvider(AbstractRoot.this, subject.getPrincipals());
+            return getAcConfig().getPermissionProvider(
+                    AbstractRoot.this,
+                    getContentSession().getWorkspaceName(),
+                    subject.getPrincipals());
         }
     };
 
@@ -271,10 +274,8 @@ public abstract class AbstractRoot implements Root {
         checkLive();
         ContentSession session = getContentSession();
         CommitInfo info = new CommitInfo(
-                session.toString(),
-                session.getAuthInfo().getUserID(),
-                permissionProvider.get(), moveTracker, message);
-        base = store.merge(builder, getCommitHook(path, info), info);
+                session.toString(), session.getAuthInfo().getUserID(), message);
+        base = store.merge(builder, getCommitHook(path), info);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
@@ -293,7 +294,7 @@ public abstract class AbstractRoot implements Root {
      * @return A commit hook combining repository global commit hook(s) with the pluggable hooks
      *         defined with the security modules and the padded {@code hooks}.
      */
-    private CommitHook getCommitHook(@Nullable final String path, @Nonnull CommitInfo commitInfo) {
+    private CommitHook getCommitHook(@Nullable final String path) {
         List<CommitHook> hooks = newArrayList();
 
         if (path != null) {
@@ -317,7 +318,7 @@ public abstract class AbstractRoot implements Root {
                 }
             }
 
-            List<? extends ValidatorProvider> validators = sc.getValidators(workspaceName, commitInfo);
+            List<? extends ValidatorProvider> validators = sc.getValidators(workspaceName, subject.getPrincipals(), moveTracker);
             if (!validators.isEmpty()) {
                 hooks.add(new EditorHook(CompositeEditorProvider.compose(validators)));
             }

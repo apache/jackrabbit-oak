@@ -43,5 +43,6 @@ public interface AuthorizationConfiguration extends SecurityConfiguration {
 
     @Nonnull
     PermissionProvider getPermissionProvider(@Nonnull Root root,
+                                             @Nonnull String workspaceName,
                                              @Nonnull Set<Principal> principals);
 }

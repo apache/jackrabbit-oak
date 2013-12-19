@@ -423,7 +423,7 @@ public class SessionContext implements NamePathMapper {
         if (permissionProvider == null) {
             permissionProvider = checkNotNull(securityProvider)
                     .getConfiguration(AuthorizationConfiguration.class)
-                    .getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
+                    .getPermissionProvider(delegate.getRoot(), delegate.getWorkspaceName(), delegate.getAuthInfo().getPrincipals());
         }
         return permissionProvider;
     }

@@ -35,14 +35,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.OpenPermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class BackgroundObserverTest {
-    private static final CommitInfo COMMIT_INFO = new CommitInfo
-            ("no-session", null, OpenPermissionProvider.getInstance(), new MoveTracker(), null);
+    private static final CommitInfo COMMIT_INFO =
+            new CommitInfo("no-session", null, null);
 
     private final List<List<Runnable>> assertionLists = Lists.newArrayList();
     private CountDownLatch doneCounter;

@@ -65,7 +65,7 @@ public class TreePermissionImplTest extends AbstractSecurityTest implements Acce
 
     private TreePermission getTreePermission(String path) throws Exception {
         ContentSession testSession = createTestSession();
-        PermissionProvider pp = config.getPermissionProvider(testSession.getLatestRoot(), testSession.getAuthInfo().getPrincipals());
+        PermissionProvider pp = config.getPermissionProvider(testSession.getLatestRoot(), testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
 
         return pp.getTreePermission(root.getTree(path), TreePermission.EMPTY);
     }
