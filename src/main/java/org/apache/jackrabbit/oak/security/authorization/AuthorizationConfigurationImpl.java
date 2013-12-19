@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.security.authorization.permission.PermissionSto
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -98,10 +98,10 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     }
 
     @Override
-    public List<ValidatorProvider> getValidators(String workspaceName, CommitInfo commitInfo) {
+    public List<ValidatorProvider> getValidators(String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
-                new PermissionValidatorProvider(getSecurityProvider(), commitInfo),
+                new PermissionValidatorProvider(getSecurityProvider(), workspaceName, principals, moveTracker),
                 new AccessControlValidatorProvider(getSecurityProvider()));
     }
 
@@ -130,8 +130,8 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
-        return new PermissionProviderImpl(root, principals, this, permissionEntryCache.createLocalCache());
+    public PermissionProvider getPermissionProvider(Root root, String workspaceName, Set<Principal> principals) {
+        return new PermissionProviderImpl(root, workspaceName, principals, this, permissionEntryCache.createLocalCache());
     }
 
 }

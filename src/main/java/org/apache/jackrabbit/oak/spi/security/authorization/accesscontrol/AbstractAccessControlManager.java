@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,6 +53,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     private static final Logger log = LoggerFactory.getLogger(AbstractAccessControlManager.class);
 
     private final Root root;
+    private final String workspaceName;
     private final NamePathMapper namePathMapper;
     private final AuthorizationConfiguration config;
     private final PrivilegeManager privilegeManager;
@@ -62,6 +64,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
                                            @Nonnull NamePathMapper namePathMapper,
                                            @Nonnull SecurityProvider securityProvider) {
         this.root = root;
+        this.workspaceName = root.getContentSession().getWorkspaceName();
         this.namePathMapper = namePathMapper;
 
         privilegeManager = securityProvider.getConfiguration(PrivilegeConfiguration.class).getPrivilegeManager(root, namePathMapper);
@@ -99,7 +102,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         if (getPrincipals().equals(principals)) {
             return hasPrivileges(absPath, privileges);
         } else {
-            PermissionProvider provider = config.getPermissionProvider(root, principals);
+            PermissionProvider provider = config.getPermissionProvider(root, workspaceName, principals);
             return hasPrivileges(absPath, privileges, provider, Permissions.READ_ACCESS_CONTROL, false);
         }
     }
@@ -109,7 +112,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         if (getPrincipals().equals(principals)) {
             return getPrivileges(absPath);
         } else {
-            PermissionProvider provider = config.getPermissionProvider(root, principals);
+            PermissionProvider provider = config.getPermissionProvider(root, workspaceName, principals);
             return getPrivileges(absPath, provider, Permissions.READ_ACCESS_CONTROL);
         }
     }
@@ -173,7 +176,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     @Nonnull
     protected PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
-            permissionProvider = config.getPermissionProvider(root, getPrincipals());
+            permissionProvider = config.getPermissionProvider(root, workspaceName, getPrincipals());
         } else {
             permissionProvider.refresh();
         }

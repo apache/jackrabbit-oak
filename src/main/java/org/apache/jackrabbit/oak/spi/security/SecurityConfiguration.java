@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
@@ -75,7 +77,7 @@ public interface SecurityConfiguration {
     List<? extends CommitHook> getCommitHooks(String workspaceName);
 
     @Nonnull
-    List<? extends ValidatorProvider> getValidators(String workspaceName, CommitInfo commitInfo);
+    List<? extends ValidatorProvider> getValidators(String workspaceName, Set<Principal> principals, MoveTracker moveTracker);
 
     @Nonnull
     List<ProtectedItemImporter> getProtectedItemImporters();
@@ -122,7 +124,7 @@ public interface SecurityConfiguration {
         @Nonnull
         @Override
         public List<? extends ValidatorProvider> getValidators(
-                String workspaceName, CommitInfo commitInfo) {
+                String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
             return Collections.emptyList();
         }
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static com.google.common.base.Objects.toStringHelper;
@@ -25,8 +24,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 
 /**
  * Commit info instances associate some meta data with a commit.
@@ -39,31 +36,20 @@ public class CommitInfo {
 
     private final String userId;
 
-    private final PermissionProvider permissionProvider;
-
     private final String message;
 
     private final long date = System.currentTimeMillis();
-
-    private final MoveTracker moveTracker;
 
     /**
      * Creates a commit info for the given session and user.
      *
      * @param sessionId session identifier
      * @param userId The user id.
-     * @param permissionProvider The permission provider associated with the
-     * root that is committing changes.
-     * @param moveTracker Information regarding move operations associated with this commit.
      * @param message message attached to this commit, or {@code null}
      */
-    public CommitInfo(@Nonnull String sessionId, @Nullable String userId,
-                      @Nonnull PermissionProvider permissionProvider,
-                      @Nonnull MoveTracker moveTracker, @Nullable String message) {
+    public CommitInfo(@Nonnull String sessionId, @Nullable String userId, @Nullable String message) {
         this.sessionId = checkNotNull(sessionId);
         this.userId = (userId == null) ? OAK_UNKNOWN : userId;
-        this.permissionProvider = checkNotNull(permissionProvider);
-        this.moveTracker = checkNotNull(moveTracker);
         this.message = message;
     }
 
@@ -81,16 +67,6 @@ public class CommitInfo {
     @Nonnull
     public String getUserId() {
         return userId;
-    }
-
-    @Nonnull
-    public MoveTracker getMoveTracker() {
-        return moveTracker;
-    }
-
-    @Nonnull
-    public PermissionProvider getPermissionProvider() {
-        return permissionProvider;
     }
 
     /**

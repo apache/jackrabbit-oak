@@ -80,7 +80,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
         // TODO
         throw new UnsupportedOperationException("not yet implemented.");
     }
