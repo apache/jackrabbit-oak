@@ -28,7 +28,6 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -62,24 +61,14 @@ public class GlobbingPathFilter implements Filter {
     public static final String STAR = "*";
     public static final String STAR_STAR = "**";
 
-    private final Tree beforeTree;
-    private final Tree afterTree;
     private final ImmutableList<String> pattern;
 
-    private GlobbingPathFilter(
-            @Nonnull Tree beforeTree,
-            @Nonnull Tree afterTree,
-            @Nonnull Iterable<String> pattern) {
-        this.beforeTree = checkNotNull(beforeTree);
-        this.afterTree = checkNotNull(afterTree);
+    private GlobbingPathFilter(@Nonnull Iterable<String> pattern) {
         this.pattern = ImmutableList.copyOf(checkNotNull(pattern));
     }
 
-    public GlobbingPathFilter(
-            @Nonnull Tree beforeTree,
-            @Nonnull Tree afterTree,
-            @Nonnull String pattern) {
-        this(beforeTree, afterTree, elements(pattern));
+    public GlobbingPathFilter(@Nonnull String pattern) {
+        this(elements(pattern));
     }
 
     @Override
@@ -130,23 +119,19 @@ public class GlobbingPathFilter implements Filter {
         }
 
         if (STAR.equals(head) || head.equals(name)) {
-            return new GlobbingPathFilter(beforeTree.getChild(name), afterTree.getChild(name),
-                    pattern.subList(1, pattern.size()));
+            return new GlobbingPathFilter(pattern.subList(1, pattern.size()));
         } else if (STAR_STAR.equals(head)) {
             if (pattern.size() >= 2 && pattern.get(1).equals(name)) {
                 // ** matches empty list of elements and pattern.get(1) matches name
                 // match the rest of the pattern against the rest of the path and
                 // match the whole pattern against the rest of the path
                 return Filters.any(
-                        new GlobbingPathFilter(beforeTree.getChild(name), afterTree.getChild(name),
-                                pattern.subList(2, pattern.size())),
-                        new GlobbingPathFilter(beforeTree.getChild(name), afterTree.getChild(name),
-                                pattern)
+                        new GlobbingPathFilter(pattern.subList(2, pattern.size())),
+                        new GlobbingPathFilter(pattern)
                 );
             } else {
                 // ** matches name, match the whole pattern against the rest of the path
-                return new GlobbingPathFilter(beforeTree.getChild(name), afterTree.getChild(name),
-                        pattern);
+                return new GlobbingPathFilter(pattern);
             }
         } else {
             return null;

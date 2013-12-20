@@ -22,58 +22,33 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static com.google.common.base.Predicates.alwaysTrue;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import com.google.common.base.Predicate;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class SelectorTest {
-    public static final Predicate<Tree> ALL = alwaysTrue();
+    public static final Predicate<NodeState> ALL = alwaysTrue();
 
-    private final NodeState root; {
+    private final NodeState root = createRoot();
+
+    private final NodeState nodeA = root.getChildNode("a");
+    private final NodeState nodeB = nodeA.getChildNode("b");
+    private final NodeState nodeC = nodeB.getChildNode("c");
+
+    private static NodeState createRoot() {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("a").setChildNode("b").setChildNode("c");
-        root = builder.getNodeState();
+        return builder.getNodeState();
     }
-
-    private final ImmutableTree rootTree = new ImmutableTree(root);
 
     @Test
     public void selectDescendant() {
-        String path = "/a/b/c";
-        Selector selector = new RelativePathSelector(path, Selectors.PARENT);
-        UniversalFilter filter = new UniversalFilter(rootTree, rootTree, selector, ALL);
-        assertEquals(path, selector.select(filter, null, null).getPath());
-    }
-
-    @Test
-    public void selectThis() {
-        String path = ".";
-        Selector selector = new RelativePathSelector(path, Selectors.PARENT);
-        UniversalFilter filter = new UniversalFilter(rootTree, rootTree, selector, ALL);
-        assertEquals(rootTree.getPath(), selector.select(filter, null, null).getPath());
-    }
-
-    @Test
-    public void selectAncestor() {
-        String path = "../..";
-        Selector selector = new RelativePathSelector(path, Selectors.PARENT);
-        UniversalFilter filter = new UniversalFilter(
-                rootTree.getChild("a").getChild("b").getChild("c"), rootTree, selector, ALL);
-        assertEquals("/a", selector.select(filter, null, null).getPath());
-    }
-
-    @Test
-    public void selectAncestorOfRoot() {
-        String path = "../..";
-        Selector selector = new RelativePathSelector(path, Selectors.PARENT);
-        UniversalFilter filter = new UniversalFilter(rootTree, rootTree, selector, ALL);
-        assertFalse("/a", selector.select(filter, null, null).exists());
+        Selector selector = new RelativePathSelector("/a/b/c", Selectors.PARENT);
+        UniversalFilter filter = new UniversalFilter(root, root, selector, ALL);
+        assertEquals(nodeC, selector.select(filter, null, null));
     }
 
 }

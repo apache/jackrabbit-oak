@@ -29,14 +29,14 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_N
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 
+import java.util.Arrays;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Inheritance-aware node type predicate for {@link NodeState node states}.
@@ -79,6 +79,19 @@ public class TypePredicate implements Predicate<NodeState> {
             @Nonnull NodeState root, @Nonnull Iterable<String> names) {
         this.root = root;
         this.names = names;
+    }
+
+    /**
+     * Creates a predicate for checking whether a node state is an instance of
+     * any of the named node types. This is an O(n) operation in terms of item
+     * accesses, with n being the number of given node types.
+     *
+     * @param root root node state
+     * @param names Oak names of the node types to check for
+     */
+    public TypePredicate(
+            @Nonnull NodeState root, @Nonnull String[] names) {
+        this(root, Arrays.asList(names));
     }
 
     private static Set<String> add(Set<String> names, String name) {

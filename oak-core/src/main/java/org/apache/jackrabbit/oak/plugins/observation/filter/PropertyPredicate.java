@@ -25,14 +25,14 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Predicate on property values. This property holds if and only if
- * the tree has a property of the given {@code name} and the given
+ * the node has a property of the given {@code name} and the given
  * {@code propertyPredicate} holds on that property.
  */
-public class PropertyPredicate implements Predicate<Tree> {
+public class PropertyPredicate implements Predicate<NodeState> {
     private final String name;
     private final Predicate<PropertyState> propertyPredicate;
 
@@ -47,8 +47,8 @@ public class PropertyPredicate implements Predicate<Tree> {
     }
 
     @Override
-    public boolean apply(Tree tree) {
-        PropertyState property = tree.getProperty(name);
+    public boolean apply(NodeState node) {
+        PropertyState property = node.getProperty(name);
         return property != null && propertyPredicate.apply(property);
     }
 }

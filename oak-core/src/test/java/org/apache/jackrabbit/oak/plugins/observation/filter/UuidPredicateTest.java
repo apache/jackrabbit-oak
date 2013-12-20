@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class UuidPredicateTest {
@@ -33,7 +33,7 @@ public class UuidPredicateTest {
     @Test
     public void emptyUuidList() {
         UuidPredicate p = new UuidPredicate(new String[] {});
-        ImmutableTree tree = createTreeWithUuid(generateUUID());
+        NodeState tree = createNodeWithUuid(generateUUID());
         assertFalse(p.apply(tree));
     }
 
@@ -41,14 +41,14 @@ public class UuidPredicateTest {
     public void singleUuidMatch() {
         String uuid = generateUUID();
         UuidPredicate p = new UuidPredicate(new String[] {uuid});
-        ImmutableTree tree = createTreeWithUuid(uuid);
+        NodeState tree = createNodeWithUuid(uuid);
         assertTrue(p.apply(tree));
     }
 
     @Test
     public void singleUuidMiss() {
         UuidPredicate p = new UuidPredicate(new String[] {generateUUID()});
-        ImmutableTree tree = createTreeWithUuid(generateUUID());
+        NodeState tree = createNodeWithUuid(generateUUID());
         assertFalse(p.apply(tree));
     }
 
@@ -57,7 +57,7 @@ public class UuidPredicateTest {
         String uuid = generateUUID();
         UuidPredicate p = new UuidPredicate(
                 new String[] {generateUUID(), generateUUID(), uuid});
-        ImmutableTree tree = createTreeWithUuid(uuid);
+        NodeState tree = createNodeWithUuid(uuid);
         assertTrue(p.apply(tree));
     }
 
@@ -65,13 +65,13 @@ public class UuidPredicateTest {
     public void multipleUuidsMiss() {
         UuidPredicate p = new UuidPredicate(
                 new String[] {generateUUID(), generateUUID(), generateUUID()});
-        ImmutableTree tree = createTreeWithUuid(generateUUID());
+        NodeState tree = createNodeWithUuid(generateUUID());
         assertFalse(p.apply(tree));
     }
 
-    private static ImmutableTree createTreeWithUuid(String uuid) {
-        return new ImmutableTree(EMPTY_NODE.builder()
+    private static NodeState createNodeWithUuid(String uuid) {
+        return EMPTY_NODE.builder()
                 .setProperty(JCR_UUID, uuid)
-                .getNodeState());
+                .getNodeState();
     }
 }
