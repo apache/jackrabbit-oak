@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.commons;
 
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -456,6 +457,23 @@ public class PathUtilsTest extends TestCase {
                 // expected
             }
         }
+    }
+
+    public void testElements() {
+        String path = "a/b/c";
+        String[] elementsArray = path.split("/");
+        Iterable<String> elementsIterable = PathUtils.elements(path);
+        int k = 0;
+        for (String name : elementsIterable) {
+            Assert.assertEquals(elementsArray[k++], name);
+        }
+        assertEquals(3, k);
+
+        k = 0;
+        for (String name : elementsIterable) {
+            Assert.assertEquals(elementsArray[k++], name);
+        }
+        assertEquals(3, k);
     }
 
 }

@@ -215,48 +215,46 @@ public final class PathUtils {
     public static Iterable<String> elements(final String path) {
         assert isValid(path) : "Invalid path ["+path+"]";
 
-        final Iterator<String> it = new Iterator<String>() {
-            int pos = PathUtils.isAbsolute(path) ? 1 : 0;
-            String next;
-
-            @Override
-            public boolean hasNext() {
-                if (next == null) {
-                    if (pos >= path.length()) {
-                        return false;
-                    }
-                    int i = path.indexOf('/', pos);
-                    if (i < 0) {
-                        next = path.substring(pos);
-                        pos = path.length();
-                    } else {
-                        next = path.substring(pos, i);
-                        pos = i + 1;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public String next() {
-                if (hasNext()) {
-                    String next = this.next;
-                    this.next = null;
-                    return next;
-                }
-                throw new NoSuchElementException();
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException("remove");
-            }
-        };
-
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                return it;
+                return new Iterator<String>() {
+                    int pos = isAbsolute(path) ? 1 : 0;
+                    String next;
+
+                    @Override
+                    public boolean hasNext() {
+                        if (next == null) {
+                            if (pos >= path.length()) {
+                                return false;
+                            }
+                            int i = path.indexOf('/', pos);
+                            if (i < 0) {
+                                next = path.substring(pos);
+                                pos = path.length();
+                            } else {
+                                next = path.substring(pos, i);
+                                pos = i + 1;
+                            }
+                        }
+                        return true;
+                    }
+
+                    @Override
+                    public String next() {
+                        if (hasNext()) {
+                            String next = this.next;
+                            this.next = null;
+                            return next;
+                        }
+                        throw new NoSuchElementException();
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException("remove");
+                    }
+                };
             }
         };
     }
