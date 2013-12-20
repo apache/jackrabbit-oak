@@ -37,10 +37,9 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventIterator;
-import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -65,7 +64,6 @@ public class ChangeProcessor implements Observer {
 
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
-    private final ReadOnlyNodeTypeManager ntManager;
     private final PermissionProvider permissionProvider;
     private final ListenerTracker tracker;
     private final EventListener eventListener;
@@ -78,12 +76,10 @@ public class ChangeProcessor implements Observer {
     public ChangeProcessor(
             ContentSession contentSession,
             NamePathMapper namePathMapper,
-            ReadOnlyNodeTypeManager ntManager,
             PermissionProvider permissionProvider,
             ListenerTracker tracker, FilterProvider filter) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
-        this.ntManager = ntManager;
         this.permissionProvider = permissionProvider;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
@@ -161,11 +157,11 @@ public class ChangeProcessor implements Observer {
                 FilterProvider provider = filterProvider.get();
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
-                    ImmutableTree beforeTree = getTree(previousRoot, provider.getPath());
-                    ImmutableTree afterTree = getTree(root, provider.getPath());
-                    Filter userFilter = provider.getFilter(beforeTree, afterTree, ntManager);
-                    Filter acFilter = new FilterBuilder().accessControl(permissionProvider)
-                            .createFilter(beforeTree, afterTree, ntManager);
+                    String basePath = provider.getPath();
+                    Filter userFilter = provider.getFilter(previousRoot, root);
+                    Filter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
+                    ImmutableTree beforeTree = getTree(previousRoot, basePath);
+                    ImmutableTree afterTree = getTree(root, basePath);
                     EventIterator<Event> events = new EventIterator<Event>(
                             beforeTree.getNodeState(), afterTree.getNodeState(),
                             Filters.all(userFilter, acFilter),

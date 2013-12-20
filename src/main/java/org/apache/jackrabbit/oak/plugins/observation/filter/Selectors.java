@@ -25,8 +25,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -74,35 +72,35 @@ public final class Selectors {
 
     private static class ThisSelector implements Selector {
         @Override
-        public Tree select(@Nonnull UniversalFilter filter,
+        public NodeState select(@Nonnull UniversalFilter filter,
                 @CheckForNull PropertyState before, @CheckForNull PropertyState after) {
-            return new ImmutableTree(MISSING_NODE);
+            return MISSING_NODE;
         }
 
         @Override
-        public Tree select(@Nonnull UniversalFilter filter, @Nonnull String name,
+        public NodeState select(@Nonnull UniversalFilter filter, @Nonnull String name,
                 @Nonnull NodeState before, @Nonnull NodeState after) {
             return after.exists()
-                    ? filter.getAfterTree().getChild(name)
-                    : filter.getBeforeTree().getChild(name);
+                    ? after
+                    : before;
         }
     }
 
     private static class ParentSelector implements Selector {
         @Override
-        public Tree select(@Nonnull UniversalFilter filter,
+        public NodeState select(@Nonnull UniversalFilter filter,
                 @CheckForNull PropertyState before, @CheckForNull PropertyState after) {
             return after != null
-                    ? filter.getAfterTree()
-                    : filter.getBeforeTree();
+                    ? filter.getAfterState()
+                    : filter.getBeforeState();
         }
 
         @Override
-        public Tree select(@Nonnull UniversalFilter filter, @Nonnull String name,
+        public NodeState select(@Nonnull UniversalFilter filter, @Nonnull String name,
                 @Nonnull NodeState before, @Nonnull NodeState after) {
             return after.exists()
-                    ? filter.getAfterTree()
-                    : filter.getBeforeTree();
+                    ? filter.getAfterState()
+                    : filter.getBeforeState();
         }
     }
 }

@@ -30,55 +30,52 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class NodeTypePredicateTest {
-    private final ReadOnlyNodeTypeManager ntManager =
-            ReadOnlyNodeTypeManager.getInstance(InitialContent.INITIAL_CONTENT);
 
     @Test
     public void emptyNodeTypeList() {
-        NodeTypePredicate p = new NodeTypePredicate(ntManager, new String[] {});
-        ImmutableTree tree = createTreeOfType(NT_BASE);
-        assertFalse(p.apply(tree));
+        NodeState node = createNodeOfType(NT_BASE);
+        TypePredicate p = new TypePredicate(node, new String[] {});
+        assertFalse(p.apply(node));
     }
 
     @Test
     public void singleNodeTypeMatch() {
-        NodeTypePredicate p = new NodeTypePredicate(ntManager, new String[] {NT_BASE});
-        ImmutableTree tree = createTreeOfType(NT_BASE);
-        assertTrue(p.apply(tree));
+        NodeState node = createNodeOfType(NT_BASE);
+        TypePredicate p = new TypePredicate(node, new String[] {NT_BASE});
+        assertTrue(p.apply(node));
     }
 
     @Test
     public void singleNodeTypeMiss() {
-        NodeTypePredicate p = new NodeTypePredicate(ntManager, new String[] {NT_FILE});
-        ImmutableTree tree = createTreeOfType(NT_BASE);
-        assertFalse(p.apply(tree));
+        NodeState node = createNodeOfType(NT_BASE);
+        TypePredicate p = new TypePredicate(node, new String[] {NT_FILE});
+        assertFalse(p.apply(node));
     }
 
     @Test
     public void multipleNodeTypesMatch() {
-        NodeTypePredicate p = new NodeTypePredicate(ntManager,
+        NodeState node = createNodeOfType(NT_FILE);
+        TypePredicate p = new TypePredicate(node,
                 new String[] { NT_FOLDER, NT_RESOURCE, NT_FILE });
-        ImmutableTree tree = createTreeOfType(NT_FILE);
-        assertTrue(p.apply(tree));
+        assertTrue(p.apply(node));
     }
 
     @Test
     public void multipleNodeTypesMiss() {
-        NodeTypePredicate p = new NodeTypePredicate(ntManager,
+        NodeState node = createNodeOfType(NT_FILE);
+        TypePredicate p = new TypePredicate(node,
                 new String[] { NT_FOLDER, NT_RESOURCE, JCR_CONTENT });
-        ImmutableTree tree = createTreeOfType(NT_FILE);
-        assertFalse(p.apply(tree));
+        assertFalse(p.apply(node));
     }
 
-    private static ImmutableTree createTreeOfType(String ntName) {
-        return new ImmutableTree(EMPTY_NODE.builder()
+    private static NodeState createNodeOfType(String ntName) {
+        return EMPTY_NODE.builder()
                 .setProperty(JCR_PRIMARYTYPE, ntName, Type.NAME)
-                .getNodeState());
+                .getNodeState();
     }
 }

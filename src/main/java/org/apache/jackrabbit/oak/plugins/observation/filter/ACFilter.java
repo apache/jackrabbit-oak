@@ -24,8 +24,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -33,23 +35,36 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * {@code EventTypeFilter} filters based on the access rights of the observing session.
  */
 public class ACFilter implements Filter {
-    private final Tree beforeTree;
-    private final Tree afterTree;
     private final TreePermission treePermission;
+
+    private ACFilter(@Nonnull TreePermission treePermission) {
+        this.treePermission = checkNotNull(treePermission);
+    }
 
     /**
      * Create a new {@code Filter} instance that includes an event when the
      * observing session has sufficient permissions to read the associated item.
      *
-     * @param beforeTree  before state of the node being filtered
-     * @param afterTree   after state of the node being filtered
-     * @param treePermission  tree permission for the node being filtered
+     * @param before  before state
+     * @param after  after state
+     * @param permissionProvider  permission provider for access control evaluation
+     * @param basePath  base path from the root the the passed node states
      */
-    public ACFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree,
-            @Nonnull TreePermission treePermission) {
-        this.beforeTree = checkNotNull(beforeTree);
-        this.afterTree = checkNotNull(afterTree);
-        this.treePermission = checkNotNull(treePermission);
+    public ACFilter(@Nonnull NodeState before, @Nonnull NodeState after,
+            @Nonnull PermissionProvider permissionProvider, @Nonnull String basePath) {
+        this(getTreePermission(permissionProvider, after.exists() ? after : before, basePath));
+    }
+
+    private static TreePermission getTreePermission(PermissionProvider permissionProvider,
+            NodeState root, String basePath) {
+        TreePermission treePermission = permissionProvider.getTreePermission(
+                new ImmutableTree(root), TreePermission.EMPTY);
+
+        for (String name : PathUtils.elements(basePath)) {
+            root = root.getChildNode(name);
+            treePermission = treePermission.getChildPermission(name, root);
+        }
+        return treePermission;
     }
 
     @Override
@@ -89,7 +104,6 @@ public class ACFilter implements Filter {
 
     @Override
     public Filter create(String name, NodeState before, NodeState after) {
-        return new ACFilter(beforeTree.getChild(name), afterTree.getChild(name),
-                treePermission.getChildPermission(name, after));
+        return new ACFilter(treePermission.getChildPermission(name, after));
     }
 }

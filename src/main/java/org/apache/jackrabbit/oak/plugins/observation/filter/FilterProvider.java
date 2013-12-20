@@ -22,10 +22,9 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Instance of this class provide a {@link Filter} for observation
@@ -48,21 +47,18 @@ public interface FilterProvider {
 
     /**
      * Factory method for creating a {@code Filter} for the passed before and after
-     * states and the given tree permissions of the reading session.
+     * states.
      *
-     * @param beforeTree  before state
-     * @param afterTree   after state
-     * @param ntManager   node type manager used by node type filters
+     * @param before  before state
+     * @param after   after state
      * @return new {@code Filter} instance
      */
     @Nonnull
-    Filter getFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree,
-            @Nonnull ReadOnlyNodeTypeManager ntManager);
+    Filter getFilter(@Nonnull NodeState before, @Nonnull NodeState after);
 
     /**
      * Path of the subtree to which the the filter returned by
-     * {@link #getFilter(Tree, Tree, org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager)}
-     * applies.
+     * {@link #getFilter(NodeState, NodeState)} applies.
      * @return path to which the filter applies.
      */
     @Nonnull
