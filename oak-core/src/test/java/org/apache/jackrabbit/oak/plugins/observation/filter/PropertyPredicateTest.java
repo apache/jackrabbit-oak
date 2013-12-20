@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class PropertyPredicateTest {
@@ -73,10 +73,10 @@ public class PropertyPredicateTest {
         assertFalse(p.apply(createWithProperty(name, value)));
     }
 
-    private static ImmutableTree createWithProperty(String name, String value) {
-        return new ImmutableTree(EMPTY_NODE.builder()
+    private static NodeState createWithProperty(String name, String value) {
+        return EMPTY_NODE.builder()
                 .setProperty(name, value)
-                .getNodeState());
+                .getNodeState();
     }
 
 

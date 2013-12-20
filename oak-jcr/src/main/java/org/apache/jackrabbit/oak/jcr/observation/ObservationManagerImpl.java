@@ -118,7 +118,7 @@ public class ObservationManagerImpl implements ObservationManager {
             LOG.info(OBSERVATION,
                     "Registering event listener {} with filter {}", listener, filterProvider);
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
-                    ntMgr, permissionProvider, tracker, filterProvider);
+                    permissionProvider, tracker, filterProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {

@@ -61,7 +61,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void emptyMatchesNothing() {
-        Filter rootFilter = new GlobbingPathFilter(tree, tree, "");
+        Filter rootFilter = new GlobbingPathFilter("");
         NodeState a = tree.getChild("a").getNodeState();
         assertFalse(rootFilter.includeAdd("a", a));
         assertNull(rootFilter.create("a", a, a));
@@ -72,10 +72,9 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void singleMatchesSingle() {
-        Filter filter = new GlobbingPathFilter(tree, tree, "q");
-        ImmutableTree t = tree;
+        Filter filter = new GlobbingPathFilter("q");
 
-        assertTrue(filter.includeAdd("q", t.getNodeState()));
+        assertTrue(filter.includeAdd("q", tree.getNodeState()));
     }
 
     /**
@@ -83,10 +82,9 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void starMatchesSingle() {
-        Filter filter = new GlobbingPathFilter(tree, tree, STAR);
-        ImmutableTree t = tree;
+        Filter filter = new GlobbingPathFilter(STAR);
 
-        assertTrue(filter.includeAdd("q", t.getNodeState()));
+        assertTrue(filter.includeAdd("q", tree.getNodeState()));
     }
 
     /**
@@ -94,7 +92,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void all() {
-        Filter filter = new GlobbingPathFilter(tree, tree, STAR_STAR);
+        Filter filter = new GlobbingPathFilter(STAR_STAR);
         ImmutableTree t = tree;
 
         for(String name : elements("a/b/c/d")) {
@@ -110,7 +108,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void literal() {
-        Filter rootFilter = new GlobbingPathFilter(tree, tree, "a/b/c");
+        Filter rootFilter = new GlobbingPathFilter("a/b/c");
         NodeState a = tree.getChild("a").getNodeState();
         assertFalse(rootFilter.includeAdd("a", a));
 
@@ -133,7 +131,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void starGlob() {
-        Filter rootFilter = new GlobbingPathFilter(tree, tree, "a/*/c");
+        Filter rootFilter = new GlobbingPathFilter("a/*/c");
         NodeState a = tree.getChild("a").getNodeState();
         assertFalse(rootFilter.includeAdd("a", a));
 
@@ -156,7 +154,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void starStarGlob() {
-        Filter rootFilter = new GlobbingPathFilter(tree, tree, "**/y/z");
+        Filter rootFilter = new GlobbingPathFilter("**/y/z");
         NodeState x1 = tree.getChild("x").getNodeState();
         assertFalse(rootFilter.includeAdd("x", x1));
 
@@ -189,7 +187,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void matchAtStart() {
-        Filter rootFilter = new GlobbingPathFilter(tree, tree, "**/a/b/c");
+        Filter rootFilter = new GlobbingPathFilter("**/a/b/c");
         NodeState a = tree.getChild("a").getNodeState();
         assertFalse(rootFilter.includeAdd("a", a));
 
@@ -210,7 +208,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void multipleMatches() {
-        Filter filter = new GlobbingPathFilter(tree, tree, "**/r/s/t/u/v");
+        Filter filter = new GlobbingPathFilter("**/r/s/t/u/v");
         ImmutableTree t = tree;
 
         for(int c = 0; c < 2; c++) {
@@ -233,7 +231,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void matchAtEnd() {
-        Filter filter = new GlobbingPathFilter(tree, tree, "**/r/s/t/u/v/w");
+        Filter filter = new GlobbingPathFilter("**/r/s/t/u/v/w");
         ImmutableTree t = tree;
 
         for(String name : elements("r/s/t/u/v/r/s/t/u/v/r/s/t/u/v")) {
@@ -254,7 +252,7 @@ public class GlobbingPathFilterTest {
      */
     @Test
     public void matchSuffix() {
-        Filter filter = new GlobbingPathFilter(tree, tree, "r/s/t/**");
+        Filter filter = new GlobbingPathFilter("r/s/t/**");
         ImmutableTree t = tree;
 
         for(String name : elements("r/s")) {

@@ -38,13 +38,13 @@ import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Builder for {@link FilterProvider} instances.
@@ -60,8 +60,7 @@ public final class FilterBuilder {
 
     public interface Condition {
         @Nonnull
-        Filter createFilter(@Nonnull Tree before, @Nonnull Tree after,
-                @Nonnull ReadOnlyNodeTypeManager ntManager);
+        Filter createFilter(@Nonnull NodeState before, @Nonnull NodeState after, String basePath);
     }
 
     /**
@@ -213,7 +212,7 @@ public final class FilterBuilder {
         } else if (uuids.length == 0) {
             return excludeAll();
         } else {
-            return new UuidCondition(checkNotNull(selector), uuids);
+            return new UniversalCondition(checkNotNull(selector), new UuidPredicate(uuids));
         }
     }
 
@@ -227,8 +226,10 @@ public final class FilterBuilder {
     @Nonnull
     public Condition property(@Nonnull Selector selector, @Nonnull String name,
             @Nonnull Predicate<PropertyState> predicate) {
-        return new PropertyCondition(checkNotNull(selector), checkNotNull(name),
-                checkNotNull(predicate));
+
+        return new UniversalCondition(
+                checkNotNull(selector),
+                new PropertyPredicate(checkNotNull(name), checkNotNull(predicate)));
     }
 
     /**
@@ -238,7 +239,7 @@ public final class FilterBuilder {
      * @return universal condition
      */
     @Nonnull
-    public Condition universal(@Nonnull Selector selector, @Nonnull Predicate<Tree> predicate) {
+    public Condition universal(@Nonnull Selector selector, @Nonnull Predicate<NodeState> predicate) {
         return new UniversalCondition(checkNotNull(selector), checkNotNull(predicate));
     }
 
@@ -271,10 +272,10 @@ public final class FilterBuilder {
     @Nonnull
     public FilterProvider build() {
         return new FilterProvider() {
-            boolean includeSessionLocal = FilterBuilder.this.includeSessionLocal;
-            boolean includeClusterExternal = FilterBuilder.this.includeClusterExternal;
-            String basePath = FilterBuilder.this.basePath;
-            Condition condition = FilterBuilder.this.condition;
+            final boolean includeSessionLocal = FilterBuilder.this.includeSessionLocal;
+            final boolean includeClusterExternal = FilterBuilder.this.includeClusterExternal;
+            final String basePath = FilterBuilder.this.basePath;
+            final Condition condition = FilterBuilder.this.condition;
 
             @Override
             public boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info) {
@@ -284,10 +285,8 @@ public final class FilterBuilder {
 
             @Nonnull
             @Override
-            public Filter getFilter(@Nonnull Tree beforeTree, @Nonnull Tree afterTree,
-                    @Nonnull ReadOnlyNodeTypeManager ntManager) {
-                return condition.createFilter(
-                        checkNotNull(beforeTree), checkNotNull(afterTree), checkNotNull(ntManager));
+            public Filter getFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
+                return condition.createFilter(checkNotNull(before), checkNotNull(after), basePath);
             }
 
             @Nonnull
@@ -308,9 +307,16 @@ public final class FilterBuilder {
 
     //------------------------------------------------------------< Conditions >---
 
+    private static NodeState getChildNode(NodeState node, String path) {
+        for (String name : PathUtils.elements(path)) {
+            node = node.getChildNode(name);
+        }
+        return node;
+    }
+
     private static class ConstantCondition implements Condition {
-        public static ConstantCondition INCLUDE_ALL = new ConstantCondition(true);
-        public static ConstantCondition EXCLUDE_ALL = new ConstantCondition(false);
+        public static final ConstantCondition INCLUDE_ALL = new ConstantCondition(true);
+        public static final ConstantCondition EXCLUDE_ALL = new ConstantCondition(false);
 
         private final boolean value;
 
@@ -319,7 +325,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(Tree before, Tree after, ReadOnlyNodeTypeManager ntManager) {
+        public Filter createFilter(NodeState before, NodeState after, String basePath) {
             return value ? Filters.includeAll() : Filters.excludeAll();
         }
     }
@@ -332,14 +338,8 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(Tree before, Tree after, ReadOnlyNodeTypeManager ntManager) {
-            return new ACFilter(before, after, getTreePermission(after));
-        }
-
-        private TreePermission getTreePermission(Tree tree) {
-            return tree.isRoot()
-                    ? permissionProvider.getTreePermission(tree, TreePermission.EMPTY)
-                    : permissionProvider.getTreePermission(tree, getTreePermission(tree.getParent()));
+        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+            return new ACFilter(before, after, permissionProvider, basePath);
         }
     }
 
@@ -351,8 +351,8 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(Tree before, Tree after, ReadOnlyNodeTypeManager ntManager) {
-            return new GlobbingPathFilter(before, after, pathGlob);
+        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+            return new GlobbingPathFilter(pathGlob);
         }
     }
 
@@ -364,7 +364,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(Tree before, Tree after, ReadOnlyNodeTypeManager ntManager) {
+        public Filter createFilter(NodeState before, NodeState after, String basePath) {
             return new EventTypeFilter(eventTypes);
         }
     }
@@ -379,56 +379,32 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(Tree before, Tree after, ReadOnlyNodeTypeManager ntManager) {
-            NodeTypePredicate predicate = new NodeTypePredicate(ntManager, ntNames);
-            return new UniversalFilter(before, after, selector, predicate);
-        }
-    }
-
-    private static class UuidCondition implements Condition {
-        private final Selector selector;
-        private final UuidPredicate predicate;
-
-        public UuidCondition(Selector selector, String[] uuids) {
-            this.selector = selector;
-            this.predicate = new UuidPredicate(uuids);
-        }
-
-        @Override
-        public Filter createFilter(Tree before, Tree after, ReadOnlyNodeTypeManager ntManager) {
-            return new UniversalFilter(before, after, selector, predicate);
-        }
-    }
-
-    private static class PropertyCondition implements Condition {
-        private final Selector selector;
-        private final PropertyPredicate predicate;
-
-        public PropertyCondition(Selector selector, String name, Predicate<PropertyState> predicate) {
-            this.selector = selector;
-            this.predicate = new PropertyPredicate(name, predicate);
-        }
-
-        @Override
-        public Filter createFilter(Tree before, Tree after, ReadOnlyNodeTypeManager ntManager) {
-            return new UniversalFilter(before, after, selector, predicate);
+        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+            TypePredicate predicate = new TypePredicate(
+                    after.exists() ? after : before, ntNames);
+            return new UniversalFilter(
+                    getChildNode(before, basePath),
+                    getChildNode(after, basePath),
+                    selector, predicate);
         }
     }
 
     private static class UniversalCondition implements Condition {
         private final Selector selector;
-        private final Predicate<Tree> predicate;
+        private final Predicate<NodeState> predicate;
 
-        public UniversalCondition(Selector selector, Predicate<Tree> predicate) {
+        public UniversalCondition(Selector selector, Predicate<NodeState> predicate) {
             this.selector = selector;
             this.predicate = predicate;
         }
 
         @Nonnull
         @Override
-        public Filter createFilter(@Nonnull Tree before, @Nonnull Tree after,
-                @Nonnull ReadOnlyNodeTypeManager ntManager) {
-            return new UniversalFilter(before, after, selector, predicate);
+        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+            return new UniversalFilter(
+                    getChildNode(before, basePath),
+                    getChildNode(after, basePath),
+                    selector, predicate);
         }
     }
 
@@ -440,14 +416,13 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(final Tree before, final Tree after,
-                final ReadOnlyNodeTypeManager ntManager) {
+        public Filter createFilter(NodeState before, NodeState after, String basePath) {
             List<Filter> filters = Lists.newArrayList();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.INCLUDE_ALL) {
                     return ConstantFilter.INCLUDE_ALL;
                 } else if (condition != ConstantCondition.EXCLUDE_ALL) {
-                    filters.add(condition.createFilter(before, after, ntManager));
+                    filters.add(condition.createFilter(before, after, basePath));
                 }
             }
             return filters.isEmpty()
@@ -464,14 +439,13 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(final Tree before, final Tree after,
-                final ReadOnlyNodeTypeManager ntManager) {
+        public Filter createFilter(NodeState before, NodeState after, String basePath) {
             List<Filter> filters = Lists.newArrayList();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.EXCLUDE_ALL) {
                     return ConstantFilter.EXCLUDE_ALL;
                 } else if (condition != ConstantCondition.INCLUDE_ALL) {
-                    filters.add(condition.createFilter(before, after, ntManager));
+                    filters.add(condition.createFilter(before, after, basePath));
                 }
             }
             return filters.isEmpty()

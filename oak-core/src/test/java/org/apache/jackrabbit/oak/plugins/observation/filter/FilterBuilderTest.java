@@ -22,16 +22,10 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condition;
 import org.junit.Test;
 
 public class FilterBuilderTest {
-    public static final Tree TREE = new ImmutableTree(EMPTY_NODE);
-    public static final ReadOnlyNodeTypeManager ntManager =
-            ReadOnlyNodeTypeManager.getInstance(EMPTY_NODE);
 
     @Test
     public void allShortcutsExcludeAll() {
@@ -40,14 +34,14 @@ public class FilterBuilderTest {
                 builder.path("path"),
                 builder.excludeAll(),
                 builder.path("path"));
-        assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(TREE, TREE, ntManager));
+        assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE, "/"));
     }
 
     @Test
     public void emptyAllShortcuts() {
         FilterBuilder builder = new FilterBuilder();
         Condition condition = builder.all();
-        assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(TREE, TREE, ntManager));
+        assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE, "/"));
     }
 
     @Test
@@ -57,14 +51,14 @@ public class FilterBuilderTest {
                 builder.path("path"),
                 builder.includeAll(),
                 builder.path("path"));
-        assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(TREE, TREE, ntManager));
+        assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE, "/"));
     }
 
     @Test
     public void emptyAnyShortcuts() {
         FilterBuilder builder = new FilterBuilder();
         Condition condition = builder.any();
-        assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(TREE, TREE, ntManager));
+        assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE, "/"));
     }
 
 }
