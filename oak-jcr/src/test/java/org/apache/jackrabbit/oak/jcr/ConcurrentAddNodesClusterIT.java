@@ -42,7 +42,6 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -81,7 +80,6 @@ public class ConcurrentAddNodesClusterIT {
         dropDB();
     }
 
-    @Ignore("OAK-1254")
     @Test
     public void addNodesConcurrent() throws Exception {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {

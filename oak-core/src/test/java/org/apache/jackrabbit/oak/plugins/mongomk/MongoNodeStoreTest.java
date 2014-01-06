@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -31,7 +30,6 @@ import static org.junit.Assert.assertTrue;
 public class MongoNodeStoreTest {
 
     // OAK-1254
-    @Ignore
     @Test
     public void backgroundRead() throws Exception {
         final Semaphore semaphore = new Semaphore(1);
