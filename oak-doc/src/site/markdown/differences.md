@@ -188,6 +188,15 @@ there are ideas to implement a feature for automatic [disambiguation of node nam
 In the meanwhile we have [basic support](https://issues.apache.org/jira/browse/OAK-203) for same
 name siblings but that might not cover all cases.
 
+XML Import
+----------
+
+The import behavior for [`IMPORT_UUID_CREATE_NEW`](http://www.day.com/maven/jsr170/javadocs/jcr-2.0/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW) in Oak is implemented slightly different compared to Jackrabbit. Jackrabbit 2.x only creates a new UUID when it detects an existing conflicting node with the same UUID. Oak always creates a new UUID, even if there is no conflicting node. The are mainly two reasons why this is done in Oak:
+
+* The implementation in Oak is closer to what the JCR specification says: *Incoming nodes are assigned newly created identifiers upon addition to the workspace. As a result, identifier collisions never occur.*
+* Oak uses a MVCC model where a session operates on a snapshot of the repository. It is therefore very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a session, an existing node with a conflicting UUID may not be visible until commit.
+
+
 Security
 --------
 
