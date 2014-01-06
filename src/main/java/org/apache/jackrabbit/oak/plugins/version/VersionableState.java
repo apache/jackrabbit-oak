@@ -134,8 +134,10 @@ class VersionableState {
                                         @Nonnull NodeBuilder versionable,
                                         @Nonnull ReadWriteVersionManager vMgr,
                                         @Nonnull ReadOnlyNodeTypeManager ntMgr) {
-        VersionableState state = new VersionableState(version, history, versionable, vMgr, ntMgr);
-        return state.initFrozen(version.child(JCR_FROZENNODE), versionable);
+        VersionableState state = new VersionableState(
+                version, history, versionable, vMgr, ntMgr);
+        return state.initFrozen(version.child(JCR_FROZENNODE),
+                versionable, uuidFromNode(versionable));
     }
 
     /**
@@ -164,7 +166,8 @@ class VersionableState {
      * @return this versionable state.
      */
     private VersionableState initFrozen(NodeBuilder frozen,
-                                        NodeBuilder node) {
+                                        NodeBuilder node,
+                                        String nodeId) {
         // initialize jcr:frozenNode
         frozen.setProperty(JCR_UUID, IdentifierManager.generateUUID(), Type.STRING);
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
@@ -174,14 +177,7 @@ class VersionableState {
         } else {
             mixinTypes = Collections.emptyList();
         }
-        String id;
-        if (node.hasProperty(JCR_UUID)) {
-            id = uuidFromNode(node);
-        } else {
-            // TODO: use identifier
-            id = "";
-        }
-        frozen.setProperty(JCR_FROZENUUID, id, Type.STRING);
+        frozen.setProperty(JCR_FROZENUUID, nodeId, Type.STRING);
         frozen.setProperty(JCR_FROZENPRIMARYTYPE, primaryTypeOf(node), Type.NAME);
         if (mixinTypes.isEmpty()) {
             frozen.removeProperty(JCR_FROZENMIXINTYPES);
@@ -200,7 +196,7 @@ class VersionableState {
      */
     NodeBuilder create() throws CommitFailedException {
         try {
-            createFrozen(versionable, frozenNode);
+            createFrozen(versionable, uuidFromNode(versionable), frozenNode);
             return frozenNode;
         } catch (RepositoryException e) {
             throw new CommitFailedException(CommitFailedException.VERSION,
@@ -444,9 +440,9 @@ class VersionableState {
         }
     }
 
-    private void createFrozen(NodeBuilder src, NodeBuilder dest)
+    private void createFrozen(NodeBuilder src, String srcId, NodeBuilder dest)
             throws CommitFailedException, RepositoryException {
-        initFrozen(dest, src);
+        initFrozen(dest, src, srcId);
         copyProperties(src, dest, new OPVProvider() {
             @Override
             public int getAction(NodeBuilder src,
@@ -464,6 +460,7 @@ class VersionableState {
         // add the frozen children and histories
         for (String name : src.getChildNodeNames()) {
             NodeBuilder child = src.getChildNode(name);
+            String childId = getChildId(srcId, child, name);
             int opv = getOPV(src, child, name);
 
             if (opv == OnParentVersionAction.ABORT) {
@@ -477,10 +474,10 @@ class VersionableState {
                     versionedChild(child, dest.child(name));
                 } else {
                     // else copy
-                    copy(child, dest.child(name));
+                    copy(child, childId, dest.child(name));
                 }
             } else if (opv == COPY) {
-                copy(child, dest.child(name));
+                copy(child, childId, dest.child(name));
             }
         }
     }
@@ -492,13 +489,32 @@ class VersionableState {
     }
 
     private void copy(NodeBuilder src,
+                      String srcId,
                       NodeBuilder dest)
             throws RepositoryException, CommitFailedException {
-        initFrozen(dest, src);
+        initFrozen(dest, src, srcId);
         copyProperties(src, dest, OPVForceCopy.INSTANCE, true);
         for (String name : src.getChildNodeNames()) {
             NodeBuilder child = src.getChildNode(name);
-            copy(child, dest.child(name));
+            copy(child, getChildId(srcId, child, name), dest.child(name));
+        }
+    }
+
+    /**
+     * Returns the id of the {@code child} node. The id is the value of the
+     * jcr:uuid property of the child node if present, or the concatenation of
+     * the {@code parentId} and the {@code name} of the child node.
+     *
+     * @param parentId the parentId.
+     * @param child the child node.
+     * @param name the name of the child node.
+     * @return the identifier of the child node.
+     */
+    private String getChildId(String parentId, NodeBuilder child, String name) {
+        if (child.hasProperty(JCR_UUID)) {
+            return uuidFromNode(child);
+        } else {
+            return parentId + "/" + name;
         }
     }
 
