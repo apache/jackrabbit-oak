@@ -103,11 +103,6 @@ public abstract class AbstractRoot implements Root {
     private final SecureNodeBuilder secureBuilder;
 
     /**
-     * Base state of the root tree
-     */
-    private NodeState base;
-
-    /**
      * Sentinel for the next move operation to take place on the this root
      */
     private Move lastMove = new Move();
@@ -161,8 +156,7 @@ public abstract class AbstractRoot implements Root {
         this.securityProvider = checkNotNull(securityProvider);
         this.indexProvider = indexProvider;
 
-        base = store.getRoot();
-        builder = base.builder();
+        builder = store.getRoot().builder();
         secureBuilder = new SecureNodeBuilder(builder, permissionProvider, getAcContext());
         rootTree = new MutableTree(this, secureBuilder, lastMove);
     }
@@ -243,7 +237,7 @@ public abstract class AbstractRoot implements Root {
     @Override
     public void rebase() {
         checkLive();
-        if (!store.getRoot().equals(getBaseState())) {
+        if (!store.getRoot().equals(getBaseState())) { // TODO: do we need this?
             store.rebase(builder);
             secureBuilder.baseChanged();
             if (permissionProvider.hasValue()) {
@@ -255,7 +249,7 @@ public abstract class AbstractRoot implements Root {
     @Override
     public final void refresh() {
         checkLive();
-        base = store.reset(builder);
+        store.reset(builder);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
@@ -275,7 +269,7 @@ public abstract class AbstractRoot implements Root {
         ContentSession session = getContentSession();
         CommitInfo info = new CommitInfo(
                 session.toString(), session.getAuthInfo().getUserID(), message);
-        base = store.merge(builder, getCommitHook(path), info);
+        store.merge(builder, getCommitHook(path), info);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
@@ -366,16 +360,7 @@ public abstract class AbstractRoot implements Root {
      */
     @Nonnull
     NodeState getBaseState() {
-        return base;
-    }
-
-    /**
-     * Returns the secure view of this root's base state.
-     *
-     * @return secure base node state
-     */
-    NodeState getSecureBase() {
-        return new SecureNodeState(base, permissionProvider.get(), getAcContext());
+        return builder.getBaseState();
     }
 
     void updated() {
