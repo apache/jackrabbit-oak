@@ -22,7 +22,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
@@ -43,8 +42,7 @@ public class MultiSessionQueryTest {
 
     @Before
     public void before() {
-        String dir = "target/mk-tck-" + System.currentTimeMillis();
-        Jcr jcr = new Jcr(new MicroKernelImpl(dir));
+        Jcr jcr = new Jcr();
 
         // lucene specific
         jcr.with(new LuceneInitializerHelper("lucene").async());
