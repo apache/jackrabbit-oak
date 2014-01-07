@@ -516,7 +516,7 @@ public class XPathToSQL2Converter {
         boolean isPath = false;
         while (true) {
             if (currentTokenType == IDENTIFIER) {
-                String name = readIdentifier();
+                String name = readPathSegment();
                 buff.append(name);
             } else if (readIf("*")) {
                 // any node
@@ -533,7 +533,7 @@ public class XPathToSQL2Converter {
                     // xpath supports @*, even thought jackrabbit may not
                     buff.append('*');
                 } else {
-                    buff.append(readIdentifier());
+                    buff.append(readPathSegment());
                 }
                 return new Expression.Property(currentSelector, buff.toString());
             } else {
@@ -649,7 +649,7 @@ public class XPathToSQL2Converter {
         if (readIf("*")) {
             return new Expression.Property(currentSelector, "*");
         }
-        return new Expression.Property(currentSelector, readIdentifier());
+        return new Expression.Property(currentSelector, readPathSegment());
     }
     
     private void readExcerpt() throws ParseException {
