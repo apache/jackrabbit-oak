@@ -71,7 +71,8 @@ public class KernelNodeStoreCacheTest {
         int uncachedReads = readTreeWithCleanedCache();
         modifyContent();
         int cachedReads = readTreeWithCache();
-        assertTrue(cachedReads < uncachedReads);
+        assertTrue("cachedReads: " + cachedReads + " uncachedReads: " + uncachedReads, 
+                cachedReads < uncachedReads);
     }
 
     /**
@@ -84,7 +85,8 @@ public class KernelNodeStoreCacheTest {
         int uncachedReads = readTreeWithCleanedCache();
         modifyContent();
         int cachedReads = readTreeWithCache();
-        assertEquals(cachedReads, uncachedReads);
+        assertEquals("cachedReads: " + cachedReads + " uncachedReads: " + uncachedReads, 
+                cachedReads, uncachedReads);
     }
 
     /**
@@ -96,7 +98,8 @@ public class KernelNodeStoreCacheTest {
         int uncachedReads = readTreeWithCleanedCache();
         modifyContent();
         int cachedReads = readTreeWithCache();
-        assertTrue(cachedReads < uncachedReads);
+        assertTrue("cachedReads: " + cachedReads + " uncachedReads: " + uncachedReads, 
+                cachedReads < uncachedReads);
     }
 
     /**
@@ -113,7 +116,8 @@ public class KernelNodeStoreCacheTest {
         int cachedReads = readTreeWithCache();
 
         // System.out.println("Cached reads: " + cachedReads);
-        assertTrue(cachedReads < uncachedReads);
+        assertTrue("cachedReads: " + cachedReads + " uncachedReads: " + uncachedReads, 
+                cachedReads < uncachedReads);
     }
 
     //---------------------------< internal >-----------------------------------
