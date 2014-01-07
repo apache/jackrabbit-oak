@@ -428,8 +428,7 @@ public class MongoDocumentStore implements DocumentStore {
                             throw new IllegalStateException(
                                     "SET_MAP_ENTRY must not have null revision");
                         }
-                        DBObject value = new BasicDBObject(
-                                k.getRevision().toString(), op.value);
+                        DBObject value = new RevisionEntry(r, op.value);
                         inserts[i].put(k.getName(), value);
                         break;
                     }
