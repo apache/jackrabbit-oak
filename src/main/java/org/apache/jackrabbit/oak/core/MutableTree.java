@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
 import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.PropertyBuilder;
 
 public class MutableTree extends AbstractTree {
@@ -439,19 +438,6 @@ public class MutableTree extends AbstractTree {
      */
     private boolean isVisible() {
         return !isHidden(name) && nodeBuilder.exists();
-    }
-
-    /**
-     * The (possibly non-existent) node state this tree is based on.
-     * @return the base node state of this tree
-     */
-    @Nonnull
-    private NodeState getSecureBase() {
-        if (parent == null) {
-            return root.getSecureBase();
-        } else {
-            return parent.getSecureBase().getChildNode(name);
-        }
     }
 
     private boolean applyPendingMoves() {
