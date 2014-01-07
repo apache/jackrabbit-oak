@@ -218,17 +218,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <version>1.3.158</version>
-        <scope>test</scope>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-jcr-tests</artifactId>
+      <version>${jackrabbit.version}</version>
+      <scope>test</scope>
     </dependency>
-     <dependency>
-       <groupId>org.apache.jackrabbit</groupId>
-       <artifactId>jackrabbit-jcr-tests</artifactId>
-       <version>${jackrabbit.version}</version>
-       <scope>test</scope>
-     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
