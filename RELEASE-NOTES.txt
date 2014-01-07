@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.13
+Release Notes -- Apache Jackrabbit Oak -- Version 0.14
 
 Introduction
 ------------
@@ -10,73 +10,66 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.13 is to alpha-level software. Use at your own risk.
+Jackrabbit Oak 0.14 is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.13
+Changes in Oak 0.14
 -------------------
 
 New Features
 
-  [OAK-1159] Backup and restore
+  [OAK-1080] MongoMK: improved concurrency
+  [OAK-1133] Observation listener PLUS
 
 Improvements
 
-  [OAK-372] Integrate PropertyBuilder with NodeBuilder
-  [OAK-632] SegmentMK: Efficient updates of flat nodes
-  [OAK-760] MongoBlobStore: read from a secondary member when possible
-  [OAK-762] MongoMK: automatic unique cluster id with few bits
-  [OAK-856] Use in-memory MongoMK instead of MicroKernelImpl for tests
-  [OAK-908] Performance measurement
-  [OAK-1116] XPath queries: use indexes for queries with "or" conditions
-  [OAK-1152] SegmentMK: Improved debuggability
-  [OAK-1190] Limit size of batch update in background write
-  [OAK-1201] Implement jackrabbit api specific descriptors
-  [OAK-1207] Change OakRepositoryStubBase to use NodeStore setup
-  [OAK-1222] Migration of Group Members stored in tree structure
-  [OAK-1228] Update jackrabbit dependency to 2.7.3
-  [OAK-1229] XPath queries of the form [@x=1 or @x=2] should not use union
-  [OAK-1236] Query: optimize for sling's i18n support
-  [OAK-1246] Make AsynchIndexUpdate task to run only on a single node in a cluster
-  [OAK-1248] Return early in Commit.markChanged() when parent is already marked
-  [OAK-1249] Fine-grained locking in SegmentMK commits
-  [OAK-1252] Lazy privilege access in AccessControlValidator
-  [OAK-1253] Faster SecurityProviderImpl.getConfigurations()
+  [OAK-41] Initial repository setup
+  [OAK-652] ItemImpl.checkProtected() is too slow
+  [OAK-803] Backwards compatibility of long-lived sessions
+  [OAK-857] MongoMK: support for many child nodes
+  [OAK-884] Add simple randomized test
+  [OAK-1120] Enhance observation mechanism to support Apache Sling
+  [OAK-1138] Implement global per principal permission entry cache
+  [OAK-1209] Consolidate Mongo client connection creation logic in MongoMK
+  [OAK-1232] Improve implementation of Tree.get(Property)Status
+  [OAK-1237] RTC: Move org.apache.jackrabbit.oak.api.AbstractPropertyState out of api package
+  [OAK-1277] PathUtils assertion failed error should also include invalid path
+  [OAK-1282] Clean up RepositoryStub classes
+  [OAK-1290] ObservationManager#removeEventListener prone to deadlocks
+  [OAK-1294] Avoid purging transient changes when rebasing branches
+  [OAK-1296] Use TypePredicate instead of NodeType.isNodeType() for NodeState type checks
+  [OAK-1298] Improve MoveDetector to also include moves from transient locations
+  [OAK-1305] Use non-orderable child nodes in FlatTreeWithAceForSamePrincipalTest
+  [OAK-1163] Observation events should respect permissions
 
 Bugs
 
-  [OAK-781] Clarify / fix effects of MISSING_NODE as base state of NodeBuilder
-  [OAK-795] Osgi init issues
-  [OAK-913] Query: relative fulltext conditions return the wrong result
-  [OAK-928] Read access is enforced on NEW items
-  [OAK-1045] Query finds transient Items
-  [OAK-1075] XPath query failures for mvps
-  [OAK-1108] Query constraints marked as invalid in the case of an mvp
-  [OAK-1155] PropertyIndex cost calculation is faulty
-  [OAK-1176] ObservationTest#observationDispose fails every now and then
-  [OAK-1183] UserQuery: Impersonators Constraint does not work for admin user
-  [OAK-1184] Uploading large number of files to single folder fails.
-  [OAK-1191] Integration testcase fail with Segment MongoStore implementaion
-  [OAK-1216] Path parsing must support SNS indexes, irrespective of SNS support
-  [OAK-1220] SessionMoveTest.testMoveAndRemoveSubTree3 fails with SegmentMK+FileStore
-  [OAK-1224] Repository descriptor "node.type.management.same.name.siblings.supported" should be false
-  [OAK-1225] Session.nodeExists("/foo/bar[2]") must not throw PathNotFoundException
-  [OAK-1227] Node.hasNode("foo[2]") must not throw PathNotFoundException
-  [OAK-1234] Node.getReferences() also returns weak references on same node
-  [OAK-1235] Upgrade should not overwrite new oak specific builtin nodetypes
-  [OAK-1242] Weak reference targets added after the reference property are not indexed
-  [OAK-1243] Upgrade fails if source repository is broken
-  [OAK-1245] Fulltext conditions for special characters
-  [OAK-1250] Guard against invalid/missing checkpoints
-  [OAK-1256] Dead code in PrivilegeBitsProvider#getPrivilegeNames
-  [OAK-1257] Adding a new reference to an existing MV property deletes the back references of the old ones
-  [OAK-1258] QueryTest.unicode() fails on some platforms
-  [OAK-1259] Failures in ReferencesTest
-  [OAK-1262] observation event is triggered but session sees old content
-  [OAK-1269] NodeType index doesn't respect the declaringNodeTypes setting
-  [OAK-1270] Revisit full-text queries in case of multiple tokens
+  [OAK-101] implement identifier handling (byUUID, byIdentifier, etc)
+  [OAK-270] Enforce uniqueness of jcr:uuid
+  [OAK-552] AssertionError in MicroKernel.commit()
+  [OAK-783] Reflect Move and Rename upon Root#commit
+  [OAK-1009] Use identifier for jcr:frozenUuid when node is not referenceable
+  [OAK-1118] Removing and readding mix:versionable fails if node is referenceable
+  [OAK-1186] Parallel execution of ConcurrentReadAccessControlledTreeTest fails with MongoMK
+  [OAK-1244] Always create new UUID on ImportBehavior.IMPORT_UUID_CREATE_NEW
+  [OAK-1254] Parallel execution of SimpleSearchTest fails with MongoMK
+  [OAK-1271] incorrect assumptions in DocumentSplitTest
+  [OAK-1272] Remove and create of same versionable node is seen as a change in uuid
+  [OAK-1274] Wrong comparison for old Revisions
+  [OAK-1276] MongoDocumentStore sometimes returns NodeDocument.NULL instead of null document
+  [OAK-1280] MongoDocumentStore does not sort result
+  [OAK-1281] Incorrect path sorting in background write
+  [OAK-1284] Root.commit(String, CommitHook) : CommitHook is not part of oak-api
+  [OAK-1287] java.lang.IllegalArgumentException when running FlatTreeWithAceForSamePrincipalTest
+  [OAK-1288] NPE when running SmallFileReadTest on mongo
+  [OAK-1289] Range check fails with IllegalArgumentException
+  [OAK-1293] MongoNodeBuilder does not track base state properly
+  [OAK-1297] MoveDetector does not detect moved nodes that have been moved in an earlier commit already
+  [OAK-1299] Removing user from group also invalidates other members memberships
+  [OAK-1300] Removing a reference from a mv property destroys the reverse lookup from the remaining
+  [OAK-1302] PathUtils.elements returns stale iterator on subsequent calls to iterator()
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 0.12 release.
+all the changes included up to the Apache Jackrabbit Oak 0.13 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
