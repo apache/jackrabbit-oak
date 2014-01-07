@@ -23,6 +23,11 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# de-escape _x00.._
+
+xpath2sql /jcr:root//_x002e_test/element(*,rep:User)[_x002e_tokens/@jcr:primaryType]
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [rep:User] as b on ischildnode(b, a) where name(a) = '.test' and isdescendantnode(a, '/') and b.[.tokens/jcr:primaryType] is not null /* xpath: /jcr:root//_x002e_test/element(*,rep:User)[_x002e_tokens/@jcr:primaryType] */
+
 # union and in(..)
 
 xpath2sql //*[@x = 1 or @x = 2]
