@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.cache;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,16 +25,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.CacheStats;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 /**
  * A scan resistant cache. It is meant to cache objects that are relatively
@@ -65,6 +70,8 @@ import com.google.common.collect.ImmutableMap;
  * @param <V> the value type
  */
 public class CacheLIRS<K, V> implements LoadingCache<K, V> {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
 
     /**
      * The maximum memory this cache should use.
@@ -209,10 +216,75 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         return getSegment(hash).get(key, hash, valueLoader);
     }
     
+    /**
+     * Get the value, loading it if needed.
+     * <p>
+     * If there is an exception loading, an UncheckedExecutionException is
+     * thrown.
+     * 
+     * @param key the key
+     * @return the value
+     * @throws UncheckedExecutionException
+     */
+    @Override
+    public V getUnchecked(K key) {
+        try {
+            return get(key);
+        } catch (ExecutionException e) {
+            throw new UncheckedExecutionException(e);
+        }
+    }
+    
+    /**
+     * Get the value, loading it if needed.
+     * 
+     * @param key the key
+     * @return the value
+     * @throws ExecutionException
+     */
     @Override
     public V get(K key) throws ExecutionException {
         int hash = getHash(key);
         return getSegment(hash).get(key, hash, loader);
+    }
+    
+    /**
+     * Re-load the value for the given key.
+     * <p>
+     * If there is an exception while loading, it is logged and ignored. This
+     * method calls CacheLoader.reload, but synchronously replaces the old
+     * value.
+     * 
+     * @param key the key
+     */
+    @Override
+    public void refresh(K key) {
+        int hash = getHash(key);
+        try {
+            getSegment(hash).refresh(key, hash, loader);
+        } catch (ExecutionException e) {
+            LOG.warn("Could not refresh value for key " + key, e);
+        }
+    }
+    
+    V replace(K key, V value) {
+        int hash = getHash(key);
+        return getSegment(hash).replace(key, hash, value, sizeOf(key, value));
+    }
+
+    boolean replace(K key, V oldValue, V newValue) {
+        int hash = getHash(key);
+        return getSegment(hash).replace(key, hash, oldValue, newValue, sizeOf(key, newValue));
+    }
+
+    boolean remove(Object key, Object value) {
+        int hash = getHash(key);
+        return getSegment(hash).remove(key, hash, value);
+    }
+
+    protected V putIfAbsent(K key, V value) {
+        int hash = getHash(key);
+        return getSegment(hash).putIfAbsent(key, hash, value, sizeOf(key, value));
     }
     
     /**
@@ -252,9 +324,21 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      * @param key the key (may not be null)
      */
     @Override
-    public synchronized void invalidate(Object key) {
+    public void invalidate(Object key) {
         int hash = getHash(key);
         getSegment(hash).invalidate(key, hash);
+    }
+    
+    /**
+     * Remove an entry. Both resident and non-resident entries can be
+     * removed.
+     *
+     * @param key the key (may not be null)
+     * @return the old value or null
+     */
+    public V remove(Object key) {
+        int hash = getHash(key);
+        return getSegment(hash).remove(key, hash);
     }
     
     @SuppressWarnings("unchecked")
@@ -379,6 +463,29 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
         return map.entrySet();
     }
+    
+    protected Collection<V> values() {
+        ArrayList<V> list = new ArrayList<V>();
+        for (K k : keySet()) {
+            V v = find(k).value;
+            if (v != null) {
+                list.add(v);
+            }
+        }
+        return list;
+    }
+    
+    boolean containsValue(Object value) {
+        for (Segment<K, V> s : segments) {
+            for (K k : s.keySet()) {
+                V v = find(k).value;
+                if (v != null && v.equals(value)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     /**
      * Get the set of keys for resident entries.
@@ -444,6 +551,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             x += s.mapSize - s.queue2Size;
         }
         return x;
+    }
+    
+    void clear() {
+        for (Segment<K, V> s : segments) {
+            s.clear();
+        }
     }
 
     /**
@@ -598,7 +711,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             clear();
         }
 
-        private void clear() {
+        synchronized void clear() {
 
             // calculate the size of the map array
             // assume a fill factor of at most 80%
@@ -761,6 +874,65 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 put(key, hash, value, cache.sizeOf(key, value));
             }
             return value;
+        }
+        
+        synchronized V replace(K key, int hash, V value, int memory) {
+            if (containsKey(key, hash)) {   
+                return put(key, hash, value, memory);
+            }
+            return null;
+        }
+
+        synchronized boolean replace(K key, int hash, V oldValue, V newValue, int memory) {
+            V old = get(key, hash);
+            if (old != null && old.equals(oldValue)) {
+                put(key, hash, newValue, memory);
+                return true;
+            }
+            return false;
+        }
+
+        synchronized boolean remove(Object key, int hash, Object value) {
+            V old = get(key, hash);
+            if (old != null && old.equals(value)) {
+                invalidate(key, hash);
+                return true;
+            }
+            return false;
+        }
+        
+        synchronized V remove(Object key, int hash) {
+            V old = get(key, hash);
+            // even if old is null, there might still be a cold entry
+            invalidate(key, hash);
+            return old;
+        }
+
+        synchronized V putIfAbsent(K key, int hash, V value, int memory) {
+            V old = get(key, hash);
+            if (old == null) {
+                put(key, hash, value, memory);
+                return null;
+            }
+            return old;
+        }
+
+        synchronized void refresh(K key, int hash, CacheLoader<K, V> loader) throws ExecutionException {
+            V value;
+            V old = get(key, hash);
+            long start = System.nanoTime();
+            try {
+                ListenableFuture<V> future = loader.reload(key, old);
+                value = future.get();
+                loadSuccessCount++;
+            } catch (Exception e) {
+                loadExceptionCount++;
+                throw new ExecutionException(e);
+            } finally {
+                long time = System.nanoTime() - start;
+                totalLoadTime += time;
+            }
+            put(key, hash, value, cache.sizeOf(key, value));
         }
 
         /**
@@ -1192,14 +1364,96 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
     @Override
     public ConcurrentMap<K, V> asMap() {
-        ConcurrentMap<K, V> map = new ConcurrentSkipListMap<K, V>();
-        for (K key : keySet()) {
-            V value = peek(key);
-            if (value != null) {
-                map.put(key, value);
+        return new ConcurrentMap<K, V>() {
+
+            @Override
+            public int size() {
+                long size = CacheLIRS.this.size();
+                return (int) Math.min(size, Integer.MAX_VALUE);
             }
-        }
-        return map;
+
+            @Override
+            public boolean isEmpty() {
+                return CacheLIRS.this.size() == 0;
+            }
+
+            @Override
+            public boolean containsKey(Object key) {
+                return CacheLIRS.this.containsKey(key);
+            }
+
+            @Override
+            public boolean containsValue(Object value) {
+                return CacheLIRS.this.containsValue(value);
+            }
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public V get(Object key) {
+                return CacheLIRS.this.getUnchecked((K) key);
+            }
+
+            @Override
+            public V put(K key, V value) {
+                return CacheLIRS.this.put(key, value, sizeOf(key, value));
+            }
+
+            @Override
+            public V remove(Object key) {
+                @SuppressWarnings("unchecked")
+                V old = CacheLIRS.this.getUnchecked((K) key);
+                CacheLIRS.this.invalidate(key);
+                return old;
+            }
+
+            @Override
+            public void putAll(Map<? extends K, ? extends V> m) {
+                for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
+                    put(e.getKey(), e.getValue());
+                }                
+            }
+
+            @Override
+            public void clear() {
+                CacheLIRS.this.clear();
+            }
+
+            @Override
+            public Set<K> keySet() {
+                return CacheLIRS.this.keySet();
+            }
+
+            @Override
+            public Collection<V> values() {
+                return CacheLIRS.this.values();
+            }
+
+            @Override
+            public Set<java.util.Map.Entry<K, V>> entrySet() {
+                return CacheLIRS.this.entrySet();
+            }
+
+            @Override
+            public V putIfAbsent(K key, V value) {
+                return CacheLIRS.this.putIfAbsent(key, value);
+            }
+
+            @Override
+            public boolean remove(Object key, Object value) {
+                return CacheLIRS.this.remove(key, value);
+            }
+
+            @Override
+            public boolean replace(K key, V oldValue, V newValue) {
+                return CacheLIRS.this.replace(key, oldValue, newValue);
+            }
+
+            @Override
+            public V replace(K key, V value) {
+                return CacheLIRS.this.replace(key, value);
+            }
+            
+        };
     }
 
     @Override
@@ -1215,28 +1469,18 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     }
 
     @Override
-    public V getUnchecked(K key) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public ImmutableMap<K, V> getAll(Iterable<? extends K> keys)
             throws ExecutionException {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public V apply(K key) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();        
     }
 
-    @Override
-    public void refresh(K key) {
-        // TODO Auto-generated method stub
-        
+    public boolean isEmpty() {
+        return size() == 0;
     }
 
 }
