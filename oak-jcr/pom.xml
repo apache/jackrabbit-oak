@@ -117,10 +117,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleAcContent       <!-- OAK-920 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest#testMoveAddSubTreeWithRestriction <!-- OAK-1223 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest#testMoveAndRemoveSubTree3         <!-- OAK-710 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest#testMoveAndAddSubTree3            <!-- OAK-710 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest#testMoveAndAddProperty2           <!-- OAK-710 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest#testMoveAndRemoveProperty2        <!-- OAK-710 -->
 
       <!-- Query -->
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
