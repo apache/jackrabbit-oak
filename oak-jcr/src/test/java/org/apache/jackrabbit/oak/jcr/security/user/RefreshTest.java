@@ -78,7 +78,6 @@ public class RefreshTest extends AbstractUserTest {
         }
     }
 
-    @Ignore("OAK-1124") // FIXME: OAK-1124
     @Test
     public void testAuthorizableGetProperty() throws RepositoryException {
         User user = null;
