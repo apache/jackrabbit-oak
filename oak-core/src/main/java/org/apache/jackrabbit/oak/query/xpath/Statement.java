@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.query.xpath;
 import java.util.ArrayList;
 
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.xpath.Expression.AndCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
 
@@ -64,8 +65,10 @@ public class Statement {
                 // @x in (1, 2)
                 // within the query engine
             } else {
+                // conditions of type                
                 // @x = 1 or @y = 2
-                // or similar
+                // or similar are converted to
+                // (@x = 1) union (@y = 2)
                 Statement s1 = new Statement();
                 s1.columnSelector = columnSelector;
                 s1.selectors = selectors;
@@ -79,6 +82,12 @@ public class Statement {
                 s2.xpathQuery = xpathQuery;
                 return new UnionStatement(s1, s2);
             }
+        } else if (where instanceof AndCondition) {
+            // TODO
+            // conditions of type
+            // @a = 1 and (@x = 1 or @y = 2)
+            // could be automatically converted to
+            // (@a = 1 and @x = 1) union (@a = 1 and @y = 2)
         }
         return this;
     }
