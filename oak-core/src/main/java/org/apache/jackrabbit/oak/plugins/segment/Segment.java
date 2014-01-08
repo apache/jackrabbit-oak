@@ -125,6 +125,8 @@ public class Segment {
      */
     private final ConcurrentMap<Integer, Template> templates = newConcurrentMap();
 
+    private final byte[] recentCacheHits;
+
     public Segment(SegmentStore store, UUID uuid, ByteBuffer data) {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
@@ -141,7 +143,9 @@ public class Segment {
                         data.getLong(refpos + i * 16),
                         data.getLong(refpos + i * 16 + 8));
             }
+            recentCacheHits = new byte[(data.remaining() + 16 * 8 - 1) / (16 * 8)];
         } else {
+            recentCacheHits = null;
             refids = NO_REFS;
         }
 
@@ -153,7 +157,25 @@ public class Segment {
         this.uuid = checkNotNull(uuid);
         this.refids = checkNotNull(refids);
         this.data = checkNotNull(data);
+        this.recentCacheHits = new byte[(data.remaining() + 16 * 8 - 1) / (16 * 8)];
         this.current = true;
+    }
+
+    public void dropOldCacheEntries() {
+        checkState(recentCacheHits != null);
+        for (Integer key : strings.keySet().toArray(new Integer[0])) {
+            int bitpos = (pos(key, 1) - data.position()) / 16;
+            if ((recentCacheHits[bitpos / 8] & (0x80 >>> (bitpos % 8))) == 0) {
+                strings.remove(key);
+            }
+        }
+        for (Integer key : templates.keySet().toArray(new Integer[0])) {
+            int bitpos = (pos(key, 1) - data.position()) / 16;
+            if ((recentCacheHits[bitpos / 8] & (0x80 >>> (bitpos % 8))) == 0) {
+                templates.remove(key);
+            }
+        }
+        Arrays.fill(recentCacheHits, (byte) 0);
     }
 
     /**
@@ -278,6 +300,8 @@ public class Segment {
             string = loadString(offset);
             strings.putIfAbsent(offset, string); // only keep the first copy
         }
+        int bitpos = (pos(offset, 1) - data.position()) / 16;
+        recentCacheHits[bitpos / 8] |= 0x80 >>> (bitpos % 8);
         return string;
     }
 
@@ -326,6 +350,8 @@ public class Segment {
             template = loadTemplate(offset);
             templates.putIfAbsent(offset, template); // only keep the first copy
         }
+        int bitpos = (pos(offset, 1) - data.position()) / 16;
+        recentCacheHits[bitpos / 8] |= 0x80 >>> (bitpos % 8);
         return template;
     }
 
