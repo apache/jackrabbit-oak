@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionEntryCache;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
@@ -59,6 +60,8 @@ import com.google.common.collect.ImmutableList;
 @Component()
 @Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
 public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
+
+    private final PermissionEntryCache permissionEntryCache = new PermissionEntryCache();
 
     public AuthorizationConfigurationImpl() {
         super();
@@ -91,7 +94,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     public List<? extends CommitHook> getCommitHooks(String workspaceName) {
         return ImmutableList.of(
                 new VersionablePathHook(workspaceName),
-                new PermissionHook(workspaceName, getRestrictionProvider()));
+                new PermissionHook(workspaceName, getRestrictionProvider(), permissionEntryCache));
     }
 
     @Override
@@ -128,7 +131,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(Root root, String workspaceName, Set<Principal> principals) {
-        return new PermissionProviderImpl(root, workspaceName, principals, this);
+        return new PermissionProviderImpl(root, workspaceName, principals, this, permissionEntryCache.createLocalCache());
     }
 
 }

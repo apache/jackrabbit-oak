@@ -38,4 +38,5 @@ interface PermissionEntryProvider {
     @Nonnull
     Collection<PermissionEntry> getEntries(@Nonnull String accessControlledPath);
 
+    void flush();
 }

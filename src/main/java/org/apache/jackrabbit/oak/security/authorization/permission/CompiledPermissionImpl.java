@@ -86,7 +86,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     private PrivilegeBitsProvider bitsProvider;
 
-    private CompiledPermissionImpl(@Nonnull Set<Principal> principals,
+    private CompiledPermissionImpl(@Nonnull PermissionEntryCache.Local cache,
+                                   @Nonnull Set<Principal> principals,
                                    @Nonnull ImmutableRoot root, @Nonnull String workspaceName,
                                    @Nonnull RestrictionProvider restrictionProvider,
                                    @Nonnull Set<String> readPaths) {
@@ -108,19 +109,20 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
         }
 
-        userStore = new PermissionEntryProviderImpl(store, userNames);
-        groupStore = new PermissionEntryProviderImpl(store, groupNames);
+        userStore = new PermissionEntryProviderImpl(store, cache, userNames);
+        groupStore = new PermissionEntryProviderImpl(store, cache, groupNames);
     }
 
     static CompiledPermissions create(@Nonnull ImmutableRoot root, @Nonnull String workspaceName,
                                       @Nonnull Set<Principal> principals,
-                                      @Nonnull AuthorizationConfiguration acConfig) {
+                                      @Nonnull AuthorizationConfiguration acConfig,
+                                      @Nonnull PermissionEntryCache.Local cache) {
         Tree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
         if (!permissionsTree.exists() || principals.isEmpty()) {
             return NoPermissions.getInstance();
         } else {
             Set<String> readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
-            return new CompiledPermissionImpl(principals, root, workspaceName, acConfig.getRestrictionProvider(), readPaths);
+            return new CompiledPermissionImpl(cache, principals, root, workspaceName, acConfig.getRestrictionProvider(), readPaths);
         }
     }
 
@@ -130,6 +132,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         this.root = root;
         this.bitsProvider = new PrivilegeBitsProvider(root);
         store.flush(root);
+        userStore.flush();
+        groupStore.flush();
     }
 
     @Override

@@ -84,6 +84,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
+    private final PermissionEntryCache cache;
 
     private NodeBuilder permissionRoot;
     private PrivilegeBitsProvider bitsProvider;
@@ -95,9 +96,10 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private Map<String, Acl> modified = new HashMap<String, Acl>();
     private Map<String, Acl> deleted = new HashMap<String, Acl>();
 
-    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider) {
+    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider, PermissionEntryCache cache) {
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
+        this.cache = cache;
     }
 
     @Nonnull
@@ -126,6 +128,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         for (Map.Entry<String, Acl> entry : modified.entrySet()) {
             entry.getValue().update(principalNames);
         }
+        cache.flush(principalNames);
     }
 
     @Nonnull

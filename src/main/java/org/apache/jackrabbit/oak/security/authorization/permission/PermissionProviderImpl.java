@@ -58,7 +58,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     private ImmutableRoot immutableRoot;
 
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals,
-                                  @Nonnull AuthorizationConfiguration acConfig) {
+                                  @Nonnull AuthorizationConfiguration acConfig,
+                                  @Nonnull PermissionEntryCache.Local cache) {
         this.root = root;
         this.workspaceName = workspaceName;
         this.acConfig = acConfig;
@@ -68,7 +69,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
-            compiledPermissions = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, acConfig);
+            compiledPermissions = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, acConfig, cache);
         }
     }
 
