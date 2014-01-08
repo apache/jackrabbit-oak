@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
+import java.lang.Object;
+import java.lang.Override;
+import java.lang.String;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
@@ -119,5 +122,27 @@ class AuthorizableImpl implements Authorizable {
     @Override
     public String getPath() throws RepositoryException {
         return dlg.getPath();
+    }
+
+    //-------------------------------------------------------------< Object >---
+    @Override
+    public int hashCode() {
+        return dlg.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (o instanceof AuthorizableImpl) {
+            return dlg.equals((AuthorizableImpl) o).dlg);
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return dlg.toString();
     }
 }
