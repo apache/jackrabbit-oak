@@ -201,6 +201,10 @@ public class FileStore extends AbstractStore {
                 }
             }
         }
+
+        for (Segment segment : segments.asMap().values().toArray(new Segment[0])) {
+            segment.dropOldCacheEntries();
+        }
     }
 
     public Iterable<UUID> getSegmentIds() {

@@ -32,7 +32,7 @@ public abstract class AbstractStore implements SegmentStore {
 
     protected static final int MB = 1024 * 1024;
 
-    private final Cache<UUID, Segment> segments;
+    protected final Cache<UUID, Segment> segments;
 
     /**
      * Identifiers of the segments that are currently being loaded.
