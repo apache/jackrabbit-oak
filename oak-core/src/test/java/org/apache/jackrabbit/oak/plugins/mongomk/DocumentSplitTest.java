@@ -16,15 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
+import static org.apache.jackrabbit.oak.plugins.mongomk.Collection.NODES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -40,7 +47,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         DocumentStore store = mk.getDocumentStore();
         MongoNodeStore ns = mk.getNodeStore();
         Set<Revision> revisions = Sets.newHashSet();
-        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
         revisions.addAll(doc.getLocalRevisions().keySet());
         revisions.add(Revision.fromString(mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null)));
@@ -51,7 +58,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         }
         mk.runBackgroundOperations();
         String head = mk.getHeadRevision();
-        doc = store.find(Collection.NODES, Utils.getIdFromPath("/"));
+        doc = store.find(NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
         Map<Revision, String> revs = doc.getLocalRevisions();
         // one remaining in the local revisions map
@@ -73,7 +80,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         MongoNodeStore ns = mk.getNodeStore();
         Set<Revision> revisions = Sets.newHashSet();
         mk.commit("/", "+\"foo\":{}", null, null);
-        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         revisions.addAll(doc.getLocalRevisions().keySet());
         boolean create = false;
@@ -87,7 +94,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         }
         mk.runBackgroundOperations();
         String head = mk.getHeadRevision();
-        doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         Map<Revision, String> deleted = doc.getLocalDeleted();
         // one remaining in the local deleted map
@@ -110,7 +117,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     public void splitCommitRoot() throws Exception {
         DocumentStore store = mk.getDocumentStore();
         mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
-        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         Set<Revision> commitRoots = Sets.newHashSet();
         commitRoots.addAll(doc.getLocalCommitRoot().keySet());
@@ -120,7 +127,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
                     commitRoots.size() + "^\"bar/prop\":" + commitRoots.size(), null, null)));
         }
         mk.runBackgroundOperations();
-        doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         Map<Revision, String> commits = doc.getLocalCommitRoot();
         // one remaining in the local commit root map
@@ -135,7 +142,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         DocumentStore store = mk.getDocumentStore();
         MongoNodeStore ns = mk.getNodeStore();
         mk.commit("/", "+\"foo\":{}", null, null);
-        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         Set<Revision> revisions = Sets.newHashSet();
         // create nodes
@@ -144,7 +151,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
                     revisions.size(), null, null)));
         }
         mk.runBackgroundOperations();
-        doc = store.find(Collection.NODES, Utils.getIdFromPath("/foo"));
+        doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         Map<Revision, String> localRevs = doc.getLocalRevisions();
         // one remaining in the local revisions map
@@ -191,7 +198,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         mk2.runBackgroundOperations();
         mk3.runBackgroundOperations();
 
-        NodeDocument doc = ds.find(Collection.NODES, Utils.getIdFromPath("/test"));
+        NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
         Map<Revision, String> revs = doc.getLocalRevisions();
         assertEquals(3, revs.size());
@@ -203,6 +210,77 @@ public class DocumentSplitTest extends BaseMongoMKTest {
                 assertTrue(previous.compareRevisionTimeThenClusterId(entry.getKey()) > 0);
             }
             previous = entry.getKey();
+        }
+    }
+
+    @Ignore
+    @Test // OAK-1233
+    public void manyRevisions() {
+        final int numMKs = 3;
+        MemoryDocumentStore ds = new MemoryDocumentStore();
+        MemoryBlobStore bs = new MemoryBlobStore();
+
+        List<Set<String>> changes = new ArrayList<Set<String>>();
+        List<MongoMK> mks = new ArrayList<MongoMK>();
+        for (int i = 1; i <= numMKs; i++) {
+            MongoMK.Builder builder = new MongoMK.Builder();
+            builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
+            MongoMK mk = builder.setClusterId(i).open();
+            mks.add(mk);
+            changes.add(new HashSet<String>());
+            if (i == 1) {
+                mk.commit("/", "+\"test\":{}", null, null);
+                mk.runBackgroundOperations();
+            }
+        }
+
+        List<String> propNames = Arrays.asList("prop1", "prop2", "prop3");
+        Random random = new Random(0);
+
+        for (int i = 0; i < 10000; i++) {
+            int mkIdx = random.nextInt(mks.size());
+            // pick mk
+            MongoMK mk = mks.get(mkIdx);
+            MongoNodeStore ns = mk.getNodeStore();
+            // pick property name to update
+            String name = propNames.get(random.nextInt(propNames.size()));
+            // need to sync?
+            for (int j = 0; j < changes.size(); j++) {
+                Set<String> c = changes.get(j);
+                if (c.contains(name)) {
+                    syncMKs(mks, j);
+                    c.clear();
+                    break;
+                }
+            }
+            // read current value
+            NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/test"));
+            assertNotNull(doc);
+            Revision head = ns.getHeadRevision();
+            Revision lastRev = ns.getPendingModifications().get("/test");
+            Node n = doc.getNodeAtRevision(mk.getNodeStore(), head, lastRev);
+            assertNotNull(n);
+            String value = n.getProperty(name);
+            // set or increment
+            if (value == null) {
+                value = String.valueOf(0);
+            } else {
+                value = String.valueOf(Integer.parseInt(value) + 1);
+            }
+            mk.commit("/test", "^\"" + name + "\":" + value, null, null);
+            changes.get(mkIdx).add(name);
+        }
+        for (MongoMK mk : mks) {
+            mk.dispose();
+        }
+    }
+
+    private void syncMKs(List<MongoMK> mks, int idx) {
+        mks.get(idx).runBackgroundOperations();
+        for (int i = 0; i < mks.size(); i++) {
+            if (idx != i) {
+                mks.get(i).runBackgroundOperations();
+            }
         }
     }
 }
