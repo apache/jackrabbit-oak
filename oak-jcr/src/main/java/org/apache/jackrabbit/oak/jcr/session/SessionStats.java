@@ -52,12 +52,14 @@ public class SessionStats implements SessionMBean {
     private final AtomicReference<RepositoryException> lastFailedSave =
             new AtomicReference<RepositoryException>();
 
-    private final SessionDelegate sessionDelegate;
+    private final String sessionId;
+    private final AuthInfo authInfo;
 
     private Map<String, Object> attributes = Collections.emptyMap();
 
     public SessionStats(SessionDelegate sessionDelegate) {
-        this.sessionDelegate = sessionDelegate;
+        this.sessionId = sessionDelegate.toString();
+        this.authInfo = sessionDelegate.getAuthInfo();
     }
 
     public void setAttributes(Map<String, Object> attributes) {
@@ -94,7 +96,7 @@ public class SessionStats implements SessionMBean {
 
     @Override
     public String toString() {
-        return getAuthInfo().getUserID() + '@' + sessionDelegate.toString() + '@' + getLoginTimeStamp();
+        return getAuthInfo().getUserID() + '@' + sessionId + '@' + getLoginTimeStamp();
     }
 
     //------------------------------------------------------------< SessionMBean >---
@@ -106,7 +108,7 @@ public class SessionStats implements SessionMBean {
 
     @Override
     public AuthInfo getAuthInfo() {
-        return sessionDelegate.getAuthInfo();
+        return authInfo;
     }
 
     @Override

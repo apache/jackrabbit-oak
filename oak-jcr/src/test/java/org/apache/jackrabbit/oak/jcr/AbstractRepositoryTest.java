@@ -25,6 +25,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -72,6 +73,9 @@ public abstract class AbstractRepositoryTest {
             adminSession = null;
         }
         // release repository field
+        if (repository instanceof JackrabbitRepository) {
+            ((JackrabbitRepository) repository).shutdown();
+        }
         repository = null;
         if (nodeStore != null) {
             fixture.dispose(nodeStore);

@@ -42,7 +42,6 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -65,9 +64,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,7 +99,6 @@ public class SessionContext implements NamePathMapper {
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
     private ObservationManagerImpl observationManager;
-    private final Registration sessionMBeanRegistration;
 
     /** Paths (tokens) of all open scoped locks held by this session. */
     private final Set<String> openScopedLocks = newTreeSet();
@@ -121,8 +117,6 @@ public class SessionContext implements NamePathMapper {
         this.delegate = checkNotNull(delegate);
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
-        this.sessionMBeanRegistration = WhiteboardUtils.registerMBean(whiteboard, SessionMBean.class,
-                sessionStats, SessionMBean.TYPE, sessionStats.toString());
 
         this.namespaces = new SessionNamespaces(this);
         LocalNameMapper nameMapper = new LocalNameMapper(delegate.getRoot().getTree("/")) {
@@ -371,7 +365,6 @@ public class SessionContext implements NamePathMapper {
     //-----------------------------------------------------------< internal >---
 
     void dispose() {
-        sessionMBeanRegistration.unregister();
         try {
             unlockAllSessionScopedLocks();
         } catch (RepositoryException e) {
