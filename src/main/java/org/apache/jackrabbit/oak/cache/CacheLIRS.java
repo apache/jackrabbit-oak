@@ -922,8 +922,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             V old = get(key, hash);
             long start = System.nanoTime();
             try {
-                ListenableFuture<V> future = loader.reload(key, old);
-                value = future.get();
+                if (old == null) {
+                    value = loader.load(key);
+                } else {
+                    ListenableFuture<V> future = loader.reload(key, old);
+                    value = future.get();
+                }
                 loadSuccessCount++;
             } catch (Exception e) {
                 loadExceptionCount++;
