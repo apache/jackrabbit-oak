@@ -30,8 +30,14 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 
 import org.junit.Test;
+
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.Weigher;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 
 /**
  * Tests the LIRS cache.
@@ -601,6 +607,50 @@ public class CacheTest {
         map.put(1, "Hello");
         map.clear();
         assertTrue(map.isEmpty());
+    }
+    
+    @Test
+    public void testRefresh() throws ExecutionException {
+        CacheLIRS<Integer, String> cache = new CacheLIRS.Builder().
+                maximumWeight(100).
+                weigher(new Weigher<Integer, String>() {
+
+                    @Override
+                    public int weigh(Integer key, String value) {
+                        return key + value.length();
+                    }
+                    
+                }).
+                build(new CacheLoader<Integer, String>() {
+
+                    @Override
+                    public String load(Integer key) throws Exception {
+                        if (key < 0 || key >= 100) {
+                            throw new Exception("Out of range");
+                        }
+                        return "n" + key;
+                    }
+                    
+                    @Override
+                    public ListenableFuture<String> reload(Integer key, String oldValue) {
+                        assertTrue(oldValue != null);
+                        SettableFuture<String> f = SettableFuture.create();
+                        f.set(oldValue);
+                        return f;
+                    }
+                    
+                });
+        assertEquals("n1", cache.get(1));
+        cache.refresh(1);
+        cache.refresh(2);
+        try {
+            cache.get(-1);
+            fail();
+        } catch (Exception e) {
+            // expected
+        }
+        // expected to log a warning, but not fail
+        cache.refresh(-1);
     }
     
 }
