@@ -16,12 +16,22 @@
   -->
 ### User Management : Differences to Jackrabbit 2.x
 #### 1. Characteristics of the Default Implementation
-The default user management implementation present with OAK always stores user/group information in the workspace associated with the editing Session (see Jackrabbit 2.x `UserPerWorkspaceUserManager`). The implementation of a user management variant corresponding to Jackrabbit's default `UserManagerImpl` is blocked by missing workspace handling (see [OAK-118]). The current user manager has the following characteristics that differ from the corresponding Jackrabbit implementation:
+The default user management implementation present with OAK always stores
+user/group information in the workspace associated with the editing Session
+(see Jackrabbit 2.x `UserPerWorkspaceUserManager`). The implementation of a user
+management variant corresponding to Jackrabbit's default `UserManagerImpl` is
+blocked by missing workspace handling (see [OAK-118]). The current user manager
+has the following characteristics that differ from the corresponding Jackrabbit implementation:
 
 ##### General
 * Changes made to the user management API are always transient and require `Session#save()` to be persisted.
-* In case of a failure `Session#refresh` is no longer called in order to prevent reverting other changes unrelated to the user management operation. Consequently it's the responsibility of the API consumer to specifically revert pending or invalid transient modifications.
-* The implementation is no longer built on top of the JCR API but instead directly acts on `Tree` and `PropertyState` defined by the OAK API. This move allows to make use of the user management API within the OAK layer (aka SPI).
+* In case of a failure `Session#refresh` is no longer called in order to prevent
+reverting other changes unrelated to the user management operation. Consequently
+it's the responsibility of the API consumer to specifically revert pending or
+invalid transient modifications.
+* The implementation is no longer built on top of the JCR API but instead directly
+acts on `Tree` and `PropertyState` defined by the OAK API. This move allows to
+make use of the user management API within the OAK layer (aka SPI).
 
 ##### User/Group Creation
 * The `rep:password` property is no longer defined to be mandatory. Therefore a new user might be created without specifying a password. Note however, that `User#changePassword` does not allow to remove the password property.
@@ -284,10 +294,6 @@ The following configuration parameters present with the default implementation i
 * "compatibleJR16"
 * "autoExpandTree"
 * "autoExpandSize"
-
-#### 7. References
-
-**TODO**
 
 <!-- hidden references -->
 [OAK-118]: https://issues.apache.org/jira/browse/OAK-118
