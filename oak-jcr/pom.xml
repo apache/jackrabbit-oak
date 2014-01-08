@@ -122,9 +122,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest#testMoveAndAddProperty2           <!-- OAK-710 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.SessionMoveTest#testMoveAndRemoveProperty2        <!-- OAK-710 -->
 
-      <!-- User Management -->
-      org.apache.jackrabbit.oak.jcr.security.user.RefreshTest#testAuthorizableGetProperty            <!-- OAK-1124 -->
-
       <!-- Query -->
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException                          <!-- OAK-203 -->
