@@ -136,7 +136,7 @@ class AuthorizableImpl implements Authorizable {
             return true;
         }
         if (o instanceof AuthorizableImpl) {
-            return dlg.equals((AuthorizableImpl) o).dlg);
+            return dlg.equals(((AuthorizableImpl) o).dlg);
         }
         return false;
     }
