@@ -72,14 +72,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_DECLARING_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_TYPE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_UUID;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_DECLARING_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MIXIN_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PRIMARY_TYPE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_UUID;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 /**
@@ -518,31 +518,31 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     List<PropertyDefinition> getDeclaredNamedPropertyDefinitions(String oakName) {
         String escapedName = oakName;
         if (JCR_PRIMARYTYPE.equals(oakName)) {
-            escapedName = OAK_PRIMARY_TYPE;
+            escapedName = REP_PRIMARY_TYPE;
         } else if (JCR_MIXINTYPES.equals(oakName)) {
-            escapedName = OAK_MIXIN_TYPES;
+            escapedName = REP_MIXIN_TYPES;
         } else if (JCR_UUID.equals(oakName)) {
-            escapedName = OAK_UUID;
+            escapedName = REP_UUID;
         }
         return getDeclaredPropertyDefs(definition
-                .getChild(OAK_NAMED_PROPERTY_DEFINITIONS)
+                .getChild(REP_NAMED_PROPERTY_DEFINITIONS)
                 .getChild(escapedName));
     }
 
     List<PropertyDefinition> getDeclaredResidualPropertyDefinitions() {
         return getDeclaredPropertyDefs(definition
-                .getChild(OAK_RESIDUAL_PROPERTY_DEFINITIONS));
+                .getChild(REP_RESIDUAL_PROPERTY_DEFINITIONS));
     }
 
     List<NodeDefinition> getDeclaredNamedNodeDefinitions(String oakName) {
         return getDeclaredNodeDefs(definition
-                .getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS)
+                .getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)
                 .getChild(oakName));
     }
 
     List<NodeDefinition> getDeclaredResidualNodeDefinitions() {
         return getDeclaredNodeDefs(definition
-                .getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS));
+                .getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS));
     }
 
     private List<PropertyDefinition> getDeclaredPropertyDefs(Tree definitions) {
@@ -551,7 +551,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             String typeName = getOakName();
             for (Tree def : definitions.getChildren()) {
                 String declaringTypeName =
-                        TreeUtil.getName(def, OAK_DECLARING_NODE_TYPE);
+                        TreeUtil.getName(def, REP_DECLARING_NODE_TYPE);
                 if (typeName.equals(declaringTypeName)) {
                     list.add(new PropertyDefinitionImpl(def, this, mapper));
                 }
@@ -568,7 +568,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             String typeName = getOakName();
             for (Tree def : defs.getChildren()) {
                 String declaringTypeName =
-                        TreeUtil.getName(def, OAK_DECLARING_NODE_TYPE);
+                        TreeUtil.getName(def, REP_DECLARING_NODE_TYPE);
                 if (typeName.equals(declaringTypeName)) {
                     list.add(new NodeDefinitionImpl(def, this, mapper));
                 }

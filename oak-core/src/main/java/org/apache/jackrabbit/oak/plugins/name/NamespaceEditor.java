@@ -16,21 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static javax.jcr.NamespaceRegistry.PREFIX_JCR;
-import static javax.jcr.NamespaceRegistry.PREFIX_MIX;
-import static javax.jcr.NamespaceRegistry.PREFIX_NT;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NSDATA_URIS;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAMESPACES;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.safeGet;
-
 import java.util.Locale;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
@@ -39,7 +28,17 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.ImmutableSet;
+import static javax.jcr.NamespaceRegistry.PREFIX_JCR;
+import static javax.jcr.NamespaceRegistry.PREFIX_MIX;
+import static javax.jcr.NamespaceRegistry.PREFIX_NT;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAMESPACES;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NSDATA;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_URIS;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.safeGet;
 
 /**
  * TODO document
@@ -89,8 +88,8 @@ class NamespaceEditor extends DefaultEditor {
     }
 
     private static boolean containsValue(NodeState namespaces, String value) {
-        return safeGet(new ImmutableTree(namespaces.getChildNode(NSDATA)),
-                NSDATA_URIS).contains(value);
+        return safeGet(new ImmutableTree(namespaces.getChildNode(REP_NSDATA)),
+                REP_URIS).contains(value);
     }
 
     @Override
@@ -137,7 +136,7 @@ class NamespaceEditor extends DefaultEditor {
     @Override
     public Editor childNodeChanged(String name, NodeState before,
             NodeState after) throws CommitFailedException {
-        if (NSDATA.equals(name) && !before.equals(after)) {
+        if (REP_NSDATA.equals(name) && !before.equals(after)) {
             throw modificationNotAllowed(name);
         }
         return null;

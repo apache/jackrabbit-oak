@@ -27,10 +27,10 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MIXIN_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_SINGLE_VALUED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PRIMARY_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -115,12 +115,12 @@ public class SelectorImpl extends SourceImpl {
         this.matchesAllTypes = NT_BASE.equals(nodeTypeName);
 
         if (!this.matchesAllTypes) {
-            this.supertypes = newHashSet(nodeType.getNames(OAK_SUPERTYPES));
+            this.supertypes = newHashSet(nodeType.getNames(REP_SUPERTYPES));
             supertypes.add(nodeTypeName);
 
             this.primaryTypes = newHashSet(nodeType
-                    .getNames(OAK_PRIMARY_SUBTYPES));
-            this.mixinTypes = newHashSet(nodeType.getNames(OAK_MIXIN_SUBTYPES));
+                    .getNames(REP_PRIMARY_SUBTYPES));
+            this.mixinTypes = newHashSet(nodeType.getNames(REP_MIXIN_SUBTYPES));
             if (nodeType.getBoolean(JCR_ISMIXIN)) {
                 mixinTypes.add(nodeTypeName);
             } else {
@@ -169,7 +169,7 @@ public class SelectorImpl extends SourceImpl {
     }
 
     public Iterable<String> getWildcardColumns() {
-        return nodeType.getNames(OAK_NAMED_SINGLE_VALUED_PROPERTIES);
+        return nodeType.getNames(REP_NAMED_SINGLE_VALUED_PROPERTIES);
     }
 
     @Override

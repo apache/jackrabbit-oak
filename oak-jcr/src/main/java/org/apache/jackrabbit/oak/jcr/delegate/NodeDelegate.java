@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
@@ -73,15 +74,15 @@ import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PROTECTED_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PROTECTED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 import static org.apache.jackrabbit.oak.util.TreeUtil.getBoolean;
 import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
 
@@ -153,11 +154,11 @@ public class NodeDelegate extends ItemDelegate {
 
         boolean protectedResidual = false;
         for (Tree type : types) {
-            if (contains(TreeUtil.getNames(type, OAK_PROTECTED_CHILD_NODES), name)) {
+            if (contains(TreeUtil.getNames(type, REP_PROTECTED_CHILD_NODES), name)) {
                 return true;
             } else if (!protectedResidual) {
                 protectedResidual = TreeUtil.getBoolean(
-                        type, OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES);
+                        type, REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES);
             }
         }
 
@@ -168,12 +169,12 @@ public class NodeDelegate extends ItemDelegate {
             Set<String> typeNames = newHashSet();
             for (Tree type : TreeUtil.getEffectiveType(tree, typeRoot)) {
                 typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                addAll(typeNames, TreeUtil.getNames(type, OAK_SUPERTYPES));
+                addAll(typeNames, TreeUtil.getNames(type, REP_SUPERTYPES));
             }
 
             for (Tree type : types) {
                 Tree definitions =
-                        type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+                        type.getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
                 for (String typeName : typeNames) {
                     Tree definition = definitions.getChild(typeName);
                     if ((!sns || TreeUtil.getBoolean(definition, JCR_SAMENAMESIBLINGS))
@@ -194,11 +195,11 @@ public class NodeDelegate extends ItemDelegate {
 
         boolean protectedResidual = false;
         for (Tree type : types) {
-            if (contains(TreeUtil.getNames(type, OAK_PROTECTED_PROPERTIES), property)) {
+            if (contains(TreeUtil.getNames(type, REP_PROTECTED_PROPERTIES), property)) {
                 return true;
             } else if (!protectedResidual) {
                 protectedResidual = TreeUtil.getBoolean(
-                        type, OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES);
+                        type, REP_HAS_PROTECTED_RESIDUAL_PROPERTIES);
             }
         }
 
@@ -207,7 +208,7 @@ public class NodeDelegate extends ItemDelegate {
         // there's a matching, protected one.
         if (protectedResidual) {
             for (Tree type : types) {
-                Tree definitions = type.getChild(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+                Tree definitions = type.getChild(REP_RESIDUAL_PROPERTY_DEFINITIONS);
                 for (Tree definition : definitions.getChildren()) {
                     // TODO: check for matching property type?
                     if (TreeUtil.getBoolean(definition, JCR_PROTECTED)) {
@@ -434,7 +435,7 @@ public class NodeDelegate extends ItemDelegate {
             Set<String> typeNames = newLinkedHashSet();
             for (Tree type : getNodeTypes(child, typeRoot)) {
                 typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                addAll(typeNames, getNames(type, OAK_SUPERTYPES));
+                addAll(typeNames, getNames(type, REP_SUPERTYPES));
             }
 
             Tree oldDefinition = findMatchingChildNodeDefinition(
@@ -536,7 +537,7 @@ public class NodeDelegate extends ItemDelegate {
             return true;
         } else if (primaryName != null) {
             Tree type = typeRoot.getChild(primaryName);
-            if (contains(getNames(type, OAK_SUPERTYPES), typeName)) {
+            if (contains(getNames(type, REP_SUPERTYPES), typeName)) {
                 return true;
             }
         }
@@ -546,7 +547,7 @@ public class NodeDelegate extends ItemDelegate {
                 return true;
             } else {
                 Tree type = typeRoot.getChild(mixinName);
-                if (contains(getNames(type, OAK_SUPERTYPES), typeName)) {
+                if (contains(getNames(type, REP_SUPERTYPES), typeName)) {
                     return true;
                 }
             }
@@ -561,11 +562,11 @@ public class NodeDelegate extends ItemDelegate {
         // Escape the property name for looking up a matching definition
         String escapedName;
         if (JCR_PRIMARYTYPE.equals(propertyName)) {
-            escapedName = "oak:primaryType";
+            escapedName = NodeTypeConstants.REP_PRIMARY_TYPE;
         } else if (JCR_MIXINTYPES.equals(propertyName)) {
-            escapedName = "oak:mixinTypes";
+            escapedName = NodeTypeConstants.REP_MIXIN_TYPES;
         } else if (JCR_UUID.equals(propertyName)) {
-            escapedName = "oak:uuid";
+            escapedName = NodeTypeConstants.REP_UUID;
         } else {
             escapedName = propertyName;
         }
@@ -580,7 +581,7 @@ public class NodeDelegate extends ItemDelegate {
         Tree fuzzyMatch = null;
         for (Tree type : types) {
             Tree definitions = type
-                    .getChild(OAK_NAMED_PROPERTY_DEFINITIONS)
+                    .getChild(REP_NAMED_PROPERTY_DEFINITIONS)
                     .getChild(escapedName);
             Tree definition = definitions.getChild(definedType);
             if (definition.exists()) {
@@ -603,7 +604,7 @@ public class NodeDelegate extends ItemDelegate {
 
         // Then look through any residual property definitions
         for (Tree type : types) {
-            Tree definitions = type.getChild(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+            Tree definitions = type.getChild(REP_RESIDUAL_PROPERTY_DEFINITIONS);
             Tree definition = definitions.getChild(definedType);
             if (definition.exists()) {
                 return definition;
@@ -630,7 +631,7 @@ public class NodeDelegate extends ItemDelegate {
         // First look for a matching named property definition
         for (Tree type : types) {
             Tree definitions = type
-                    .getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS)
+                    .getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)
                     .getChild(childNodeName);
             for (String typeName : typeNames) {
                 Tree definition = definitions.getChild(typeName);
@@ -643,7 +644,7 @@ public class NodeDelegate extends ItemDelegate {
         // Then look through any residual property definitions
         for (Tree type : types) {
             Tree definitions = type
-                    .getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+                    .getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
             for (String typeName : typeNames) {
                 Tree definition = definitions.getChild(typeName);
                 if (definition.exists()) {

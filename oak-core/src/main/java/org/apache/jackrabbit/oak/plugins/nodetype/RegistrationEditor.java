@@ -57,33 +57,29 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_CHILD_NODE_DEFINITION;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_DECLARING_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_TYPE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITION;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_UUID;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_DECLARING_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MANDATORY_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MANDATORY_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MIXIN_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MIXIN_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_SINGLE_VALUED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PRIMARY_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PRIMARY_TYPE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PROTECTED_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PROTECTED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_UUID;
 
 /**
  * Editor that validates the consistency of the in-content node type registry
  * under {@code /jcr:system/jcr:nodeTypes} and maintains the access-optimized
- * versions of node type information as defined in {@code oak:NodeType}.
+ * versions of node type information as defined in {@code rep:NodeType}.
  *
  * <ul>
  *     <li>validate new definitions</li>
@@ -120,9 +116,9 @@ class RegistrationEditor extends DefaultEditor {
      */
     private void mergeSupertypes(NodeBuilder types, NodeBuilder type)
             throws CommitFailedException {
-        if (!type.hasProperty(OAK_SUPERTYPES)) {
+        if (!type.hasProperty(REP_SUPERTYPES)) {
             List<String> empty = Collections.emptyList();
-            type.setProperty(OAK_SUPERTYPES, empty, NAMES);
+            type.setProperty(REP_SUPERTYPES, empty, NAMES);
 
             // - jcr:supertypes (NAME) protected multiple
             PropertyState supertypes = type.getProperty(JCR_SUPERTYPES);
@@ -141,7 +137,7 @@ class RegistrationEditor extends DefaultEditor {
             }
 
             if (!getBoolean(type, JCR_ISMIXIN)
-                    && !contains(getNames(type, OAK_SUPERTYPES), NT_BASE)
+                    && !contains(getNames(type, REP_SUPERTYPES), NT_BASE)
                     && !NT_BASE.equals(type.getProperty(JCR_NODETYPENAME).getValue(NAME))) {
                 if (types.hasChildNode(NT_BASE)) {
                     NodeBuilder supertype = types.child(NT_BASE);
@@ -173,23 +169,23 @@ class RegistrationEditor extends DefaultEditor {
     private void mergeSupertype(NodeBuilder type, NodeState supertype) {
         String supername =
                 supertype.getProperty(JCR_NODETYPENAME).getValue(NAME);
-        addNameToList(type, OAK_SUPERTYPES, supername);
-        mergeNameList(type, supertype, OAK_SUPERTYPES);
-        mergeNameList(type, supertype, OAK_MANDATORY_PROPERTIES);
-        mergeNameList(type, supertype, OAK_MANDATORY_CHILD_NODES);
-        mergeNameList(type, supertype, OAK_PROTECTED_PROPERTIES);
-        mergeNameList(type, supertype, OAK_PROTECTED_CHILD_NODES);
-        if (supertype.getBoolean(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES)) {
-            type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES, true);
+        addNameToList(type, REP_SUPERTYPES, supername);
+        mergeNameList(type, supertype, REP_SUPERTYPES);
+        mergeNameList(type, supertype, REP_MANDATORY_PROPERTIES);
+        mergeNameList(type, supertype, REP_MANDATORY_CHILD_NODES);
+        mergeNameList(type, supertype, REP_PROTECTED_PROPERTIES);
+        mergeNameList(type, supertype, REP_PROTECTED_CHILD_NODES);
+        if (supertype.getBoolean(REP_HAS_PROTECTED_RESIDUAL_PROPERTIES)) {
+            type.setProperty(REP_HAS_PROTECTED_RESIDUAL_PROPERTIES, true);
         }
-        if (supertype.getBoolean(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES)) {
-            type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES, true);
+        if (supertype.getBoolean(REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES)) {
+            type.setProperty(REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES, true);
         }
-        mergeNameList(type, supertype, OAK_NAMED_SINGLE_VALUED_PROPERTIES);
-        mergeSubtree(type, supertype, OAK_NAMED_PROPERTY_DEFINITIONS, 2);
-        mergeSubtree(type, supertype, OAK_RESIDUAL_PROPERTY_DEFINITIONS, 1);
-        mergeSubtree(type, supertype, OAK_NAMED_CHILD_NODE_DEFINITIONS, 2);
-        mergeSubtree(type, supertype, OAK_RESIDUAL_CHILD_NODE_DEFINITIONS, 1);
+        mergeNameList(type, supertype, REP_NAMED_SINGLE_VALUED_PROPERTIES);
+        mergeSubtree(type, supertype, REP_NAMED_PROPERTY_DEFINITIONS, 2);
+        mergeSubtree(type, supertype, REP_RESIDUAL_PROPERTY_DEFINITIONS, 1);
+        mergeSubtree(type, supertype, REP_NAMED_CHILD_NODE_DEFINITIONS, 2);
+        mergeSubtree(type, supertype, REP_RESIDUAL_CHILD_NODE_DEFINITIONS, 1);
     }
 
     private void mergeNameList(
@@ -235,22 +231,22 @@ class RegistrationEditor extends DefaultEditor {
                     "Unexpected " + JCR_NODETYPENAME + " in type " + name);
         }
 
-        // Prepare the type node pre-compilation of the oak:NodeType info
+        // Prepare the type node pre-compilation of the rep:NodeType info
         Iterable<String> empty = emptyList();
-        type.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_NODE_TYPE, NAME);
-        type.removeProperty(OAK_SUPERTYPES);
-        type.setProperty(OAK_PRIMARY_SUBTYPES, empty, NAMES);
-        type.setProperty(OAK_MANDATORY_PROPERTIES, empty, NAMES);
-        type.setProperty(OAK_MANDATORY_CHILD_NODES, empty, NAMES);
-        type.setProperty(OAK_PROTECTED_PROPERTIES, empty, NAMES);
-        type.setProperty(OAK_PROTECTED_CHILD_NODES, empty, NAMES);
-        type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES, false, BOOLEAN);
-        type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES, false, BOOLEAN);
-        type.setProperty(OAK_NAMED_SINGLE_VALUED_PROPERTIES, empty, NAMES);
-        type.getChildNode(OAK_NAMED_PROPERTY_DEFINITIONS).remove();
-        type.getChildNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS).remove();
-        type.getChildNode(OAK_NAMED_CHILD_NODE_DEFINITIONS).remove();
-        type.getChildNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS).remove();
+        type.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_NODE_TYPE, NAME);
+        type.removeProperty(REP_SUPERTYPES);
+        type.setProperty(REP_PRIMARY_SUBTYPES, empty, NAMES);
+        type.setProperty(REP_MANDATORY_PROPERTIES, empty, NAMES);
+        type.setProperty(REP_MANDATORY_CHILD_NODES, empty, NAMES);
+        type.setProperty(REP_PROTECTED_PROPERTIES, empty, NAMES);
+        type.setProperty(REP_PROTECTED_CHILD_NODES, empty, NAMES);
+        type.setProperty(REP_HAS_PROTECTED_RESIDUAL_PROPERTIES, false, BOOLEAN);
+        type.setProperty(REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES, false, BOOLEAN);
+        type.setProperty(REP_NAMED_SINGLE_VALUED_PROPERTIES, empty, NAMES);
+        type.getChildNode(REP_NAMED_PROPERTY_DEFINITIONS).remove();
+        type.getChildNode(REP_RESIDUAL_PROPERTY_DEFINITIONS).remove();
+        type.getChildNode(REP_NAMED_CHILD_NODE_DEFINITIONS).remove();
+        type.getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS).remove();
 
         // + jcr:propertyDefinition (nt:propertyDefinition)
         //   = nt:propertyDefinition protected sns
@@ -286,35 +282,35 @@ class RegistrationEditor extends DefaultEditor {
             propertyName = name.getValue(NAME);
             String escapedName = propertyName;
             if (JCR_PRIMARYTYPE.equals(escapedName)) {
-                escapedName = OAK_PRIMARY_TYPE;
+                escapedName = REP_PRIMARY_TYPE;
             } else if (JCR_MIXINTYPES.equals(escapedName)) {
-                escapedName = OAK_MIXIN_TYPES;
+                escapedName = REP_MIXIN_TYPES;
             } else if (JCR_UUID.equals(escapedName)) {
-                escapedName = OAK_UUID;
+                escapedName = REP_UUID;
             }
-            definitions = type.child(OAK_NAMED_PROPERTY_DEFINITIONS);
+            definitions = type.child(REP_NAMED_PROPERTY_DEFINITIONS);
             definitions.setProperty(
-                    JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_NAMED_PROPERTY_DEFINITIONS, NAME);
+                    JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_NAMED_PROPERTY_DEFINITIONS, NAME);
             definitions = definitions.child(escapedName);
 
             // - jcr:mandatory (BOOLEAN) protected mandatory
             if (definition.getBoolean(JCR_MANDATORY)) {
-                addNameToList(type, OAK_MANDATORY_PROPERTIES, propertyName);
+                addNameToList(type, REP_MANDATORY_PROPERTIES, propertyName);
             }
             // - jcr:protected (BOOLEAN) protected mandatory
             if (definition.getBoolean(JCR_PROTECTED)) {
-                addNameToList(type, OAK_PROTECTED_PROPERTIES, propertyName);
+                addNameToList(type, REP_PROTECTED_PROPERTIES, propertyName);
             }
         } else {
-            definitions = type.child(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+            definitions = type.child(REP_RESIDUAL_PROPERTY_DEFINITIONS);
 
             // - jcr:protected (BOOLEAN) protected mandatory
             if (definition.getBoolean(JCR_PROTECTED)) {
-                type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES, true);
+                type.setProperty(REP_HAS_PROTECTED_RESIDUAL_PROPERTIES, true);
             }
         }
         definitions.setProperty(
-                JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_PROPERTY_DEFINITIONS, NAME);
+                JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_PROPERTY_DEFINITIONS, NAME);
 
         // - jcr:requiredType (STRING) protected mandatory
         // < 'STRING', 'URI', 'BINARY', 'LONG', 'DOUBLE',
@@ -334,12 +330,12 @@ class RegistrationEditor extends DefaultEditor {
                 key = key + "S";
             }
         } else if (propertyName != null) {
-            addNameToList(type, OAK_NAMED_SINGLE_VALUED_PROPERTIES, propertyName);
+            addNameToList(type, REP_NAMED_SINGLE_VALUED_PROPERTIES, propertyName);
         }
 
         definitions.setChildNode(key, definition)
-            .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_PROPERTY_DEFINITION, NAME)
-            .setProperty(OAK_DECLARING_NODE_TYPE, typeName, NAME);
+            .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_PROPERTY_DEFINITION, NAME)
+            .setProperty(REP_DECLARING_NODE_TYPE, typeName, NAME);
     }
 
     private void validateAndCompileChildNodeDefinition(
@@ -350,28 +346,28 @@ class RegistrationEditor extends DefaultEditor {
         NodeBuilder definitions;
         if (name != null) {
             String childNodeName = name.getValue(NAME);
-            definitions = type.child(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-            definitions.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_NAMED_CHILD_NODE_DEFINITIONS, NAME);
+            definitions = type.child(REP_NAMED_CHILD_NODE_DEFINITIONS);
+            definitions.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_NAMED_CHILD_NODE_DEFINITIONS, NAME);
             definitions = definitions.child(childNodeName);
 
             // - jcr:mandatory (BOOLEAN) protected mandatory
             if (definition.getBoolean(JCR_MANDATORY)) {
-                addNameToList(type, OAK_MANDATORY_CHILD_NODES, childNodeName);
+                addNameToList(type, REP_MANDATORY_CHILD_NODES, childNodeName);
             }
             // - jcr:protected (BOOLEAN) protected mandatory
             if (definition.getBoolean(JCR_PROTECTED)) {
-                addNameToList(type, OAK_PROTECTED_CHILD_NODES, childNodeName);
+                addNameToList(type, REP_PROTECTED_CHILD_NODES, childNodeName);
             }
         } else {
-            definitions = type.child(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+            definitions = type.child(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
 
             // - jcr:protected (BOOLEAN) protected mandatory
             if (definition.getBoolean(JCR_PROTECTED)) {
-                type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES, true);
+                type.setProperty(REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES, true);
             }
         }
         definitions.setProperty(
-                JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_CHILD_NODE_DEFINITIONS, NAME);
+                JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_CHILD_NODE_DEFINITIONS, NAME);
 
         // - jcr:requiredPrimaryTypes (NAME)
         //   = 'nt:base' protected mandatory multiple
@@ -385,8 +381,8 @@ class RegistrationEditor extends DefaultEditor {
                             "Unknown required primary type " + key);
                 } else if (!definitions.hasChildNode(key)) {
                     definitions.setChildNode(key, definition)
-                        .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_CHILD_NODE_DEFINITION, NAME)
-                        .setProperty(OAK_DECLARING_NODE_TYPE, typeName, NAME);
+                        .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_CHILD_NODE_DEFINITION, NAME)
+                        .setProperty(REP_DECLARING_NODE_TYPE, typeName, NAME);
                 }
             }
         }
@@ -407,11 +403,11 @@ class RegistrationEditor extends DefaultEditor {
             }
             for (String name : types.getChildNodeNames()) {
                 NodeBuilder type = types.child(name);
-                String listName = OAK_PRIMARY_SUBTYPES;
+                String listName = REP_PRIMARY_SUBTYPES;
                 if (type.getBoolean(JCR_ISMIXIN)) {
-                    listName = OAK_MIXIN_SUBTYPES;
+                    listName = REP_MIXIN_SUBTYPES;
                 }
-                for (String supername : getNames(type, OAK_SUPERTYPES)) {
+                for (String supername : getNames(type, REP_SUPERTYPES)) {
                     addNameToList(types.child(supername), listName, name);
                 }
             }
