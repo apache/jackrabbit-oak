@@ -786,4 +786,4 @@
 [rep:MergeConflict]
   mixin
   primaryitem rep:ours
-  + rep:ours (nt:unstructured) protected IGNORE
+  + rep:ours (rep:Unstructured) protected IGNORE
