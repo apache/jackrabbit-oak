@@ -19,6 +19,19 @@
 
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Iterator;
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
@@ -28,21 +41,6 @@ import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
-
-import java.util.Iterator;
-
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * {@code AbstractTree} provides default implementations for most
@@ -62,7 +60,7 @@ public abstract class AbstractTree implements Tree {
             IndexConstants.INDEX_CONTENT_NODE_NAME,
             NodeReferenceConstants.REF_NAME,
             NodeReferenceConstants.WEAK_REF_NAME,
-            MicroKernel.CONFLICT_NAME};
+            ConflictAnnotatingRebaseDiff.CONFLICT};
 
     /**
      * Name of this tree

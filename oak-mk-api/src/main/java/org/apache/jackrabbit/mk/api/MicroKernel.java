@@ -71,7 +71,7 @@ import javax.annotation.Nonnull;
  */
 public interface MicroKernel {
 
-    public static final String CONFLICT_NAME = ":conflict";
+    public static final String CONFLICT = ":conflict";
 
     //---------------------------------------------------------< REVISION ops >
 
@@ -508,7 +508,7 @@ public interface MicroKernel {
      * <p/>
      * If rebasing results in a conflict, conflicting nodes are annotated with a conflict
      * marker denoting the type of the conflict and the value(s) before the rebase operation.
-     * The conflict marker is an internal node with the name {@link #CONFLICT_NAME} and is added
+     * The conflict marker is an internal node with the name {@link #CONFLICT} and is added
      * to the node whose properties or child nodes are in conflict.
      * <p/>
      * type of conflicts:
