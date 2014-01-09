@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
@@ -75,9 +76,11 @@ import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.get
  * For security reasons the nodes storing the token information now have a
  * dedicated node type (rep:Token) which has the following definition:
  * <pre>
- *     [rep:Token] > nt:unstructured, mix:referenceable
- *     - rep:token.key (STRING) protected mandatory
- *     - rep:token.exp (STRING) protected mandatory
+ *     [rep:Token] > mix:referenceable
+ *      - rep:token.key (STRING) protected mandatory
+ *      - rep:token.exp (DATE) protected mandatory
+ *      - * (UNDEFINED) protected
+ *      - * (UNDEFINED) multiple protected
  * </pre>
  * Consequently the hash of the token and the expiration time of tokens generated
  * by this provider can no longer be manipulated using regular JCR item
@@ -101,7 +104,7 @@ class TokenProviderImpl implements TokenProvider {
     private static final String TOKEN_ATTRIBUTE_EXPIRY = "rep:token.exp";
     private static final String TOKEN_ATTRIBUTE_KEY = "rep:token.key";
     private static final String TOKENS_NODE_NAME = ".tokens";
-    private static final String TOKENS_NT_NAME = JcrConstants.NT_UNSTRUCTURED;
+    private static final String TOKENS_NT_NAME = NodeTypeConstants.NT_REP_UNSTRUCTURED;
     private static final String TOKEN_NT_NAME = "rep:Token";
 
     /**
