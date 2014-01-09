@@ -268,6 +268,17 @@
  - * (UNDEFINED)
  + * (nt:base) = oak:unstructured VERSION
 
+/**
+ * Unstructured base node type for repository internal information that must not
+ * be copied to the version store OPV
+ *
+ * @since oak 1.0
+ */
+[rep:Unstructured]
+ - * (UNDEFINED) multiple IGNORE
+ - * (UNDEFINED) IGNORE
+ + * (nt:base) = rep:Unstructured IGNORE
+
 //------------------------------------------------------------------------------
 // R E F E R E N C E A B L E
 //------------------------------------------------------------------------------
@@ -666,9 +677,9 @@
  * @since oak 1.0
  */
 [rep:PermissionStore]
-  - rep:accessControlledPath (STRING) protected
-  - rep:numPermissions (LONG) protected
-  - rep:timestamp (LONG) protected
+  - rep:accessControlledPath (STRING) protected IGNORE
+  - rep:numPermissions (LONG) protected IGNORE
+  - rep:timestamp (LONG) protected IGNORE
   + * (rep:PermissionStore) = rep:PermissionStore protected IGNORE
   + * (rep:Permissions) = rep:Permissions protected IGNORE
 
@@ -676,8 +687,8 @@
  * @since oak 1.0
  */
 [rep:Permissions]
-  - * (UNDEFINED) protected
-  - * (UNDEFINED) protected multiple
+  - * (UNDEFINED) protected IGNORE
+  - * (UNDEFINED) protected multiple IGNORE
   + * (rep:Permissions) = rep:Permissions protected IGNORE
 
 // -----------------------------------------------------------------------------
