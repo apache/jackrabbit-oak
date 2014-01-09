@@ -39,7 +39,7 @@ import com.google.common.collect.Iterators;
 class ValueMap {
 
     static final SortedMap<Revision, String> EMPTY = Collections.unmodifiableSortedMap(
-            new TreeMap<Revision, String>(new StableRevisionComparator()));
+            new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE));
 
     @Nonnull
     static Map<Revision, String> create(@Nonnull final NodeDocument doc,
@@ -51,7 +51,7 @@ class ValueMap {
         final Comparator<? super Revision> c = map.comparator();
         final Iterator<NodeDocument> docs = Iterators.concat(
                 Iterators.singletonIterator(doc),
-                doc.getPreviousDocs(null, property).iterator());
+                doc.getPreviousDocs(property, null).iterator());
         final Set<Map.Entry<Revision, String>> entrySet
                 = new AbstractSet<Map.Entry<Revision, String>>() {
 
@@ -82,7 +82,7 @@ class ValueMap {
             @Override
             public int size() {
                 int size = map.size();
-                for (NodeDocument prev : doc.getPreviousDocs(null, property)) {
+                for (NodeDocument prev : doc.getPreviousDocs(property, null)) {
                     size += prev.getLocalMap(property).size();
                 }
                 return size;
@@ -107,7 +107,7 @@ class ValueMap {
                     return value;
                 }
                 Revision r = (Revision) key;
-                for (NodeDocument prev : doc.getPreviousDocs(r, property)) {
+                for (NodeDocument prev : doc.getPreviousDocs(property, r)) {
                     value = prev.getLocalMap(property).get(key);
                     if (value != null) {
                         return value;
