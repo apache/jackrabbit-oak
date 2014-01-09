@@ -45,7 +45,7 @@ public interface Descriptors {
      * if it is either a valid implementation-specific key or not a valid key.
      *
      * @param key a descriptor key.
-     * @return whether <code>key</code> is a standard descriptor.
+     * @return whether {@code key} is a standard descriptor.
      */
     boolean isStandardDescriptor(@Nonnull String key);
 
