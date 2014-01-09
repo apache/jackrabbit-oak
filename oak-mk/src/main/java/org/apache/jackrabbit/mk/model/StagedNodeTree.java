@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
@@ -496,7 +497,7 @@ public class StagedNodeTree {
     }
 
     private StagedNode getOrAddConflictMarker(StagedNode parent, String name) {
-        StagedNode conflict = getOrAddNode(parent, ":conflict");
+        StagedNode conflict = getOrAddNode(parent, MicroKernel.CONFLICT);
         return getOrAddNode(conflict, name);
     }
 
