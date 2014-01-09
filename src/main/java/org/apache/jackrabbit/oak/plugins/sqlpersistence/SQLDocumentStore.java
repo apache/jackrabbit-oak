@@ -166,6 +166,8 @@ public class SQLDocumentStore implements DocumentStore {
         stmt.execute("drop table if exists NODES");
         stmt.execute("create table if not exists CLUSTERNODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
         stmt.execute("create table if not exists NODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
+
+        connection.commit();
     }
 
     @CheckForNull
