@@ -146,6 +146,9 @@ final class MongoNodeState extends AbstractNodeState {
     @Nonnull
     @Override
     public NodeState getChildNode(@Nonnull String name) {
+        if (node.hasNoChildren()) {
+            return EmptyNodeState.MISSING_NODE;
+        }
         String p = PathUtils.concat(getPath(), name);
         Node child = store.getNode(p, node.getLastRevision());
         if (child == null) {
@@ -158,6 +161,9 @@ final class MongoNodeState extends AbstractNodeState {
     @Nonnull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+        if (node.hasNoChildren()) {
+            return Collections.emptyList();
+        }
         // TODO: handle many child nodes better
         Node.Children children = store.getChildren(getPath(),
                 node.getLastRevision(), 100);
