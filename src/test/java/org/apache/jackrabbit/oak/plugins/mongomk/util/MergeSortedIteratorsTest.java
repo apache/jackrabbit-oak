@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.mongomk.util;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -55,7 +54,7 @@ public class MergeSortedIteratorsTest {
     public void testData(){
         List<Iterator<Revision>> iterators = prepareData();
         final Iterator<Iterator<Revision>> it = iterators.iterator();
-        final Comparator<Revision> comp = Collections.reverseOrder(new StableRevisionComparator());
+        final Comparator<Revision> comp = StableRevisionComparator.REVERSE;
         MergeSortedIterators<Revision> sort = new MergeSortedIterators<Revision>(comp) {
             @Override
             public Iterator<Revision> nextIterator() {

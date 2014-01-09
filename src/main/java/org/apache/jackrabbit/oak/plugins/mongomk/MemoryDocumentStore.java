@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -55,7 +54,7 @@ public class MemoryDocumentStore implements DocumentStore {
      * Comparator for maps with {@link Revision} keys. The maps are ordered
      * descending, newest revisions first!
      */
-    private final Comparator<Revision> comparator = Collections.reverseOrder(new StableRevisionComparator());
+    private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {

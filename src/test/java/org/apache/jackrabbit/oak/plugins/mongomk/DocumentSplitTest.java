@@ -26,7 +26,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -213,7 +212,6 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         }
     }
 
-    @Ignore
     @Test // OAK-1233
     public void manyRevisions() {
         final int numMKs = 3;
@@ -237,7 +235,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         List<String> propNames = Arrays.asList("prop1", "prop2", "prop3");
         Random random = new Random(0);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             int mkIdx = random.nextInt(mks.size());
             // pick mk
             MongoMK mk = mks.get(mkIdx);

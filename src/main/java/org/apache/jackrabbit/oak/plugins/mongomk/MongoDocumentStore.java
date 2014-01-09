@@ -85,7 +85,7 @@ public class MongoDocumentStore implements DocumentStore {
      * Comparator for maps with {@link Revision} keys. The maps are ordered
      * descending, newest revisions first!
      */
-    private final Comparator<Revision> comparator = Collections.reverseOrder(new StableRevisionComparator());
+    private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
     public MongoDocumentStore(DB db, MongoMK.Builder builder) {
         nodes = db.getCollection(

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,8 +40,6 @@ import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -173,12 +170,6 @@ public class NodeDocument extends Document {
 
     private final long time = System.currentTimeMillis();
 
-    /**
-     * Comparator for maps with {@link Revision} keys. The maps are ordered
-     * descending, newest revisions first!
-     */
-    private final Comparator<Revision> comparator = Collections.reverseOrder(new StableRevisionComparator());
-
     NodeDocument(@Nonnull DocumentStore store) {
         this.store = checkNotNull(store);
     }
@@ -279,7 +270,7 @@ public class NodeDocument extends Document {
             return Utils.isCommitted(value);
         }
         // check previous docs
-        for (NodeDocument prev : commitRootDoc.getPreviousDocs(revision, REVISIONS)) {
+        for (NodeDocument prev : commitRootDoc.getPreviousDocs(REVISIONS, revision)) {
             if (prev.containsRevision(revision)) {
                 return prev.isCommitted(revision);
             }
@@ -301,7 +292,7 @@ public class NodeDocument extends Document {
         if (getLocalRevisions().containsKey(revision)) {
             return true;
         }
-        for (NodeDocument prev : getPreviousDocs(revision, REVISIONS)) {
+        for (NodeDocument prev : getPreviousDocs(REVISIONS, revision)) {
             if (prev.containsRevision(revision)) {
                 return true;
             }
@@ -700,7 +691,7 @@ public class NodeDocument extends Document {
             splitOps = new ArrayList<UpdateOp>(2);
             // move to another document
             UpdateOp main = new UpdateOp(id, false);
-            main.setMapEntry(PREVIOUS, high, low.toString());
+            setPrevious(main, high, low);
             UpdateOp old = new UpdateOp(Utils.getPreviousIdFor(id, high), true);
             old.set(ID, old.getId());
             for (String property : splitValues.keySet()) {
@@ -736,7 +727,8 @@ public class NodeDocument extends Document {
             if (map.isEmpty()) {
                 previous = EMPTY_RANGE_MAP;
             } else {
-                SortedMap<Revision, Range> transformed = new TreeMap<Revision, Range>(comparator);
+                SortedMap<Revision, Range> transformed = new TreeMap<Revision, Range>(
+                        StableRevisionComparator.REVERSE);
                 for (Map.Entry<Revision, String> entry : map.entrySet()) {
                     Revision high = entry.getKey();
                     Revision low = Revision.fromString(entry.getValue());
@@ -755,45 +747,13 @@ public class NodeDocument extends Document {
      * documents are returned. The returned documents are returned in descending
      * revision order (newest first).
      *
-     * @param revision the revision to match or <code>null</code>.
      * @param property the name of a property.
+     * @param revision the revision to match or <code>null</code>.
      * @return previous documents.
      */
-    Iterable<NodeDocument> getPreviousDocs(@Nullable final Revision revision,
-                @Nonnull final String property) {
-        checkNotNull(property);
-        Iterable<NodeDocument> docs = Iterables.transform(
-                Iterables.filter(getPreviousRanges().entrySet(),
-                        new Predicate<Map.Entry<Revision, Range>>() {
-                            @Override
-                            public boolean apply(Map.Entry<Revision, Range> input) {
-                                return revision == null
-                                        || input.getValue().includes(revision);
-                            }
-                        }), new Function<Map.Entry<Revision, Range>, NodeDocument>() {
-            @Nullable
-            @Override
-            public NodeDocument apply(Map.Entry<Revision, Range> input) {
-                Revision r = input.getKey();
-                String prevId = Utils.getPreviousIdFor(getId(), r);
-                NodeDocument prev = store.find(Collection.NODES, prevId);
-                if (prev == null) {
-                    LOG.warn("Document with previous revisions not found: " + prevId);
-                }
-                return prev;
-            }
-        });
-        // filter out null docs and check if the revision is actually in there
-        return Iterables.filter(docs, new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(@Nullable NodeDocument input) {
-                if (input == null) {
-                    return false;
-                }
-                return revision == null
-                        || input.getLocalMap(property).containsKey(revision);
-            }
-        });
+    Iterable<NodeDocument> getPreviousDocs(@Nonnull final String property,
+                                           @Nullable final Revision revision) {
+        return new PropertyHistory(store, this, property, revision);
     }
 
     /**
@@ -905,6 +865,13 @@ public class NodeDocument extends Document {
         checkNotNull(op).removeMapEntry(DELETED, revision);
     }
 
+    public static void setPrevious(@Nonnull UpdateOp op,
+                                   @Nonnull Revision high,
+                                   @Nonnull Revision low) {
+        checkNotNull(op).setMapEntry(PREVIOUS, checkNotNull(high),
+                checkNotNull(low).toString());
+    }
+
     //----------------------------< internal >----------------------------------
 
     /**
@@ -1000,7 +967,7 @@ public class NodeDocument extends Document {
         String value = getLocalRevisions().get(revision);
         if (value == null) {
             // check previous
-            for (NodeDocument prev : getPreviousDocs(revision, REVISIONS)) {
+            for (NodeDocument prev : getPreviousDocs(REVISIONS, revision)) {
                 value = prev.getLocalRevisions().get(revision);
                 if (value != null) {
                     break;
