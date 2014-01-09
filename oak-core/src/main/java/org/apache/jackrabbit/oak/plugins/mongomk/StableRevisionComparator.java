@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.Collections;
 import java.util.Comparator;
 
 /**
@@ -31,6 +32,13 @@ import java.util.Comparator;
  * node id.
  */
 public class StableRevisionComparator implements Comparator<Revision> {
+
+    public static final Comparator<Revision> INSTANCE = new StableRevisionComparator();
+
+    public static final Comparator<Revision> REVERSE = Collections.reverseOrder(INSTANCE);
+
+    private StableRevisionComparator() {
+    }
 
     @Override
     public int compare(Revision o1, Revision o2) {

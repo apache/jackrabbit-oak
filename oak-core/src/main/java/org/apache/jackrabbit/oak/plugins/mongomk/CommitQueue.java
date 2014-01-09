@@ -44,7 +44,7 @@ class CommitQueue {
 
     private final MongoNodeStore store;
 
-    private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(new StableRevisionComparator());
+    private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(StableRevisionComparator.INSTANCE);
 
     private final ChangeDispatcher dispatcher;
 
@@ -61,8 +61,7 @@ class CommitQueue {
     @Nonnull
     SortedSet<Revision> createRevisions(int num) {
         checkArgument(num > 0);
-        SortedSet<Revision> revs = new TreeSet<Revision>(
-                new StableRevisionComparator());
+        SortedSet<Revision> revs = new TreeSet<Revision>(StableRevisionComparator.INSTANCE);
         Revision rev = null;
         synchronized (this) {
             for (int i = 0; i < num; i++) {

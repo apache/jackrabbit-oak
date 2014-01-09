@@ -24,7 +24,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -154,7 +153,7 @@ public class SQLDocumentStore implements DocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(SQLDocumentStore.class);
 
-    private final Comparator<Revision> comparator = Collections.reverseOrder(new StableRevisionComparator());
+    private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
     private Connection connection;
 
