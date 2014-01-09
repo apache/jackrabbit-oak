@@ -16,6 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.contains;
 import static com.google.common.collect.Lists.newArrayList;
@@ -54,8 +67,9 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_M
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_TYPE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITION;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITIONS;
@@ -63,28 +77,13 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_P
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_UUID;
-
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Editor that validates the consistency of the in-content node type registry
  * under {@code /jcr:system/jcr:nodeTypes} and maintains the access-optimized
- * versions of node type information as defined in {@code oak:nodeType}.
+ * versions of node type information as defined in {@code oak:NodeType}.
  *
  * <ul>
  *     <li>validate new definitions</li>
@@ -236,9 +235,9 @@ class RegistrationEditor extends DefaultEditor {
                     "Unexpected " + JCR_NODETYPENAME + " in type " + name);
         }
 
-        // Prepare the type node pre-compilation of the oak:nodeType info
+        // Prepare the type node pre-compilation of the oak:NodeType info
         Iterable<String> empty = emptyList();
-        type.setProperty(JCR_PRIMARYTYPE, "oak:nodeType", NAME);
+        type.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_NODE_TYPE, NAME);
         type.removeProperty(OAK_SUPERTYPES);
         type.setProperty(OAK_PRIMARY_SUBTYPES, empty, NAMES);
         type.setProperty(OAK_MANDATORY_PROPERTIES, empty, NAMES);
@@ -295,7 +294,7 @@ class RegistrationEditor extends DefaultEditor {
             }
             definitions = type.child(OAK_NAMED_PROPERTY_DEFINITIONS);
             definitions.setProperty(
-                    JCR_PRIMARYTYPE, OAK_NAMED_PROPERTY_DEFINITIONS, NAME);
+                    JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_NAMED_PROPERTY_DEFINITIONS, NAME);
             definitions = definitions.child(escapedName);
 
             // - jcr:mandatory (BOOLEAN) protected mandatory
@@ -315,7 +314,7 @@ class RegistrationEditor extends DefaultEditor {
             }
         }
         definitions.setProperty(
-                JCR_PRIMARYTYPE, OAK_PROPERTY_DEFINITIONS, NAME);
+                JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_PROPERTY_DEFINITIONS, NAME);
 
         // - jcr:requiredType (STRING) protected mandatory
         // < 'STRING', 'URI', 'BINARY', 'LONG', 'DOUBLE',
@@ -339,7 +338,7 @@ class RegistrationEditor extends DefaultEditor {
         }
 
         definitions.setChildNode(key, definition)
-            .setProperty(JCR_PRIMARYTYPE, OAK_PROPERTY_DEFINITION, NAME)
+            .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_PROPERTY_DEFINITION, NAME)
             .setProperty(OAK_DECLARING_NODE_TYPE, typeName, NAME);
     }
 
@@ -352,8 +351,7 @@ class RegistrationEditor extends DefaultEditor {
         if (name != null) {
             String childNodeName = name.getValue(NAME);
             definitions = type.child(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-            definitions.setProperty(
-                    JCR_PRIMARYTYPE, OAK_NAMED_CHILD_NODE_DEFINITIONS, NAME);
+            definitions.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_NAMED_CHILD_NODE_DEFINITIONS, NAME);
             definitions = definitions.child(childNodeName);
 
             // - jcr:mandatory (BOOLEAN) protected mandatory
@@ -373,7 +371,7 @@ class RegistrationEditor extends DefaultEditor {
             }
         }
         definitions.setProperty(
-                JCR_PRIMARYTYPE, OAK_CHILD_NODE_DEFINITIONS, NAME);
+                JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_CHILD_NODE_DEFINITIONS, NAME);
 
         // - jcr:requiredPrimaryTypes (NAME)
         //   = 'nt:base' protected mandatory multiple
@@ -387,7 +385,7 @@ class RegistrationEditor extends DefaultEditor {
                             "Unknown required primary type " + key);
                 } else if (!definitions.hasChildNode(key)) {
                     definitions.setChildNode(key, definition)
-                        .setProperty(JCR_PRIMARYTYPE, OAK_CHILD_NODE_DEFINITION, NAME)
+                        .setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_CHILD_NODE_DEFINITION, NAME)
                         .setProperty(OAK_DECLARING_NODE_TYPE, typeName, NAME);
                 }
             }

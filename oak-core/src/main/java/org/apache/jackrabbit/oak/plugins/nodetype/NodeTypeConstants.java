@@ -42,6 +42,13 @@ public interface NodeTypeConstants extends JcrConstants {
      * @since oak 1.0
      */
     String NT_REP_UNSTRUCTURED = "rep:Unstructured";
+    String NT_OAK_NODE_TYPE = "oak:NodeType";
+    String NT_OAK_NAMED_PROPERTY_DEFINITIONS = "oak:NamedPropertyDefinitions";
+    String NT_OAK_PROPERTY_DEFINITIONS = "oak:PropertyDefinitions";
+    String NT_OAK_PROPERTY_DEFINITION = "oak:PropertyDefinition";
+    String NT_OAK_NAMED_CHILD_NODE_DEFINITIONS = "oak:NamedChildNodeDefinitions";
+    String NT_OAK_CHILD_NODE_DEFINITIONS = "oak:ChildNodeDefinitions";
+    String NT_OAK_CHILD_NODE_DEFINITION = "oak:ChildNodeDefinition";
 
     /**
      * Additional name constants not present in JcrConstants

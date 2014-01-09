@@ -47,7 +47,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
 
         NodeBuilder builder = root.builder();
         builder.child("oak:index").child("solr")
-                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition")
+                .setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition")
                 .setProperty("type", "solr");
 
         NodeState before = builder.getNodeState();
@@ -76,7 +76,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
 
         NodeBuilder builder = root.builder();
         builder.child("oak:index").child("solr")
-                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition")
+                .setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition")
                 .setProperty("type", "solr");
 
         NodeState before = builder.getNodeState();
@@ -106,7 +106,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
 
         NodeBuilder builder = root.builder();
         builder.child("oak:index").child("solr")
-                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition")
+                .setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition")
                 .setProperty("type", "solr");
 
         NodeState before = builder.getNodeState();
