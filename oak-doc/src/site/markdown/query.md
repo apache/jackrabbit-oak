@@ -84,7 +84,7 @@ Is useful whenever there is a query with a property constraint that is not full-
 
 To define a property index on a subtree you have to add an index definition node that:
 
-* must be of type `oak:queryIndexDefinition`
+* must be of type `oak:QueryIndexDefinition`
 * must have the `type` property set to __`property`__
 * contains the `propertyNames` property that indicates what properties will be stored in the index.
   `propertyNames` can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
@@ -100,7 +100,7 @@ Example:
     {
       NodeBuilder index = root.child("oak:index");
       index.child("uuid")
-        .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+        .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME)
         .setProperty("type", "property")
         .setProperty("propertyNames", "jcr:uuid")
         .setProperty("declaringNodeTypes", "mix:referenceable")
@@ -133,7 +133,7 @@ TODO Node aggregation [OAK-828](https://issues.apache.org/jira/browse/OAK-828)
 
 The index definition node for a lucene-based full-text index:
 
-* must be of type `oak:queryIndexDefinition`
+* must be of type `oak:QueryIndexDefinition`
 * must have the `type` property set to __`lucene`__
 * must contain the `async` property set to the value `async`, this is what sends the index update process to a background thread
 
@@ -148,7 +148,7 @@ Example:
     {
       NodeBuilder index = root.child("oak:index");
       index.child("lucene")
-        .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+        .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME)
         .setProperty("type", "lucene")
         .setProperty("async", "async")
         .setProperty(PropertyStates.createProperty("includePropertyTypes", ImmutableSet.of(

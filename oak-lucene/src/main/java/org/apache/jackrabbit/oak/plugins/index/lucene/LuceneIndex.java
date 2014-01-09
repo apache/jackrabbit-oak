@@ -104,7 +104,7 @@ import org.slf4j.LoggerFactory;
  * 
  * Under it follows the index definition node that:
  * <ul>
- * <li>must be of type <code>oak:queryIndexDefinition</code></li>
+ * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
  * <li>must have the <code>type</code> property set to <b><code>lucene</code></b></li>
  * <li>must have the <code>async</code> property set to <b><code>async</code></b></li>
  * </b></li>
@@ -123,7 +123,7 @@ import org.slf4j.LoggerFactory;
  * {
  *     NodeBuilder index = root.child("oak:index");
  *     index.child("lucene")
- *         .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+ *         .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME)
  *         .setProperty("type", "lucene")
  *         .setProperty("async", "async")
  *         .setProperty("reindex", "true");

@@ -26,11 +26,11 @@ in the `~/.netrc` file so they are not included on the command lines.
 You can add or modify content by posting JSON:
 
     $ http -j -b localhost:8080/test \
-          jcr\\:primaryType=oak:unstructured foo=abc bar:=123
+          jcr\\:primaryType=oak:Unstructured foo=abc bar:=123
     {
         "bar": "123",
         "foo": "abc",
-        "jcr:primaryType": "oak:unstructured"
+        "jcr:primaryType": "oak:Unstructured"
     }
 
 The `jcr:primaryType` property needs to currently be included to avoid
@@ -54,13 +54,13 @@ The posted content is stored in the repository and is now accessible:
     {
         "bar": "123",
         "foo": "abc",
-        "jcr:primaryType": "oak:unstructured"
+        "jcr:primaryType": "oak:Unstructured"
     }
 
 You can modify the content by posting more data to the same URL:
 
     $ http -j -b localhost:8080/test \
-          foo=xyz child:='{"jcr:primaryType": "oak:unstructured"}'
+          foo=xyz child:='{"jcr:primaryType": "oak:Unstructured"}'
     {
         "bar": "123",
         "child": {},
@@ -70,7 +70,7 @@ You can modify the content by posting more data to the same URL:
 
     $ http -j -b localhost:8080/test/child
     {
-        "jcr:primaryType": "oak:unstructured"
+        "jcr:primaryType": "oak:Unstructured"
     }
 
 Finally, content can be removed either by posting a null value to it

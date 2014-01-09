@@ -263,10 +263,10 @@
   - * (UNDEFINED)
   + * (nt:base) = nt:unstructured sns VERSION
 
-[oak:unstructured]
+[oak:Unstructured]
  - * (UNDEFINED) multiple
  - * (UNDEFINED)
- + * (nt:base) = oak:unstructured VERSION
+ + * (nt:base) = oak:Unstructured VERSION
 
 /**
  * Unstructured base node type for repository internal information that must not
@@ -439,7 +439,7 @@
 /**
  * @since oak 1.0
  */
-[oak:nodeType] > nt:nodeType
+[oak:NodeType] > nt:nodeType
   - oak:supertypes (NAME) protected multiple autocreated
   - oak:primarySubtypes (NAME) protected multiple autocreated
   - oak:mixinSubtypes (NAME) protected multiple autocreated
@@ -450,27 +450,27 @@
   - oak:hasProtectedResidualProperties (BOOLEAN) protected autocreated
   - oak:hasProtectedResidualChildNodes (BOOLEAN) protected autocreated
   - oak:namedSingleValuedProperties (NAME) protected multiple autocreated
-  + oak:namedPropertyDefinitions (oak:namedPropertyDefinitions) = oak:namedPropertyDefinitions protected mandatory
-  + oak:residualPropertyDefinitions (oak:propertyDefinitions) = oak:propertyDefinitions protected mandatory
-  + oak:namedChildNodeDefinitions (oak:namedChildNodeDefinitions) = oak:namedChildNodeDefinitions protected mandatory
-  + oak:residualChildNodeDefinitions (oak:childNodeDefinitions) = oak:childNodeDefinitions protected mandatory
+  + oak:namedPropertyDefinitions (oak:NamedPropertyDefinitions) = oak:NamedPropertyDefinitions protected mandatory
+  + oak:residualPropertyDefinitions (oak:PropertyDefinitions) = oak:PropertyDefinitions protected mandatory
+  + oak:namedChildNodeDefinitions (oak:NamedChildNodeDefinitions) = oak:NamedChildNodeDefinitions protected mandatory
+  + oak:residualChildNodeDefinitions (oak:ChildNodeDefinitions) = oak:ChildNodeDefinitions protected mandatory
 
-[oak:namedPropertyDefinitions]
-  + * (oak:propertyDefinitions) = oak:propertyDefinitions protected
+[oak:NamedPropertyDefinitions]
+  + * (oak:PropertyDefinitions) = oak:PropertyDefinitions protected
 
-[oak:propertyDefinitions]
-  + * (oak:propertyDefinition) = oak:propertyDefinition protected
+[oak:PropertyDefinitions]
+  + * (oak:PropertyDefinition) = oak:PropertyDefinition protected
 
-[oak:propertyDefinition] > nt:propertyDefinition
+[oak:PropertyDefinition] > nt:propertyDefinition
   - oak:declaringNodeType (NAME) protected mandatory
 
-[oak:namedChildNodeDefinitions]
-  + * (oak:childNodeDefinitions) = oak:childNodeDefinitions protected
+[oak:NamedChildNodeDefinitions]
+  + * (oak:ChildNodeDefinitions) = oak:ChildNodeDefinitions protected
 
-[oak:childNodeDefinitions]
-  + * (oak:childNodeDefinition) = oak:childNodeDefinition protected
+[oak:ChildNodeDefinitions]
+  + * (oak:ChildNodeDefinition) = oak:ChildNodeDefinition protected
 
-[oak:childNodeDefinition] > nt:childNodeDefinition
+[oak:ChildNodeDefinition] > nt:childNodeDefinition
   - oak:declaringNodeType (NAME) protected mandatory
 
 /**
@@ -530,7 +530,7 @@
  *
  * @since oak 0.6
  */
-[oak:queryIndexDefinition] > nt:unstructured
+[oak:QueryIndexDefinition] > nt:unstructured
   - type (STRING) mandatory
   - async (STRING)
   - reindex (BOOLEAN) mandatory IGNORE

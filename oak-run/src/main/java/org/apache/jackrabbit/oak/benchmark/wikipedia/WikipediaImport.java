@@ -89,7 +89,7 @@ public class WikipediaImport extends Benchmark {
 
         System.out.format("Importing %s...%n", dump);
         Node wikipedia = session.getRootNode().addNode(
-                "wikipedia", "oak:unstructured");
+                "wikipedia", "oak:Unstructured");
 
         String title = null;
         String text = null;

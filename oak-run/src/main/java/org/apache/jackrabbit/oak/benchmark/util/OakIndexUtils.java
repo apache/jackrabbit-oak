@@ -94,7 +94,7 @@ public class OakIndexUtils {
          */
         public void create(Session session) throws RepositoryException {
             if (!session.getWorkspace().getNodeTypeManager().hasNodeType(
-                        "oak:queryIndexDefinition")) {
+                        "oak:QueryIndexDefinition")) {
                 // not an Oak repository
                 return;
             }

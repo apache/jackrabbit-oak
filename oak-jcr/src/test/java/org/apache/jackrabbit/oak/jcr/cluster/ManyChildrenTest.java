@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
-import static org.junit.Assert.assertEquals;
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -31,6 +29,8 @@ import org.h2.util.Profiler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * A simple, temporary benchmark for many child nodes.
@@ -82,7 +82,7 @@ public class ManyChildrenTest {
         int count = 10;
         
         Profiler prof = null;
-        String nodeType = "oak:unstructured";
+        String nodeType = "oak:Unstructured";
         if (session.getRootNode().hasNode("many")) {
             session.getRootNode().getNode("many").remove();
             session.save();
