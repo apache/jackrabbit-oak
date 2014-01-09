@@ -24,8 +24,6 @@ import java.io.InputStream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-
 /**
  * A {@code Root} instance serves as a container for a {@link Tree}. It is
  * obtained from a {@link ContentSession}, which governs accessibility and
@@ -36,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
  * will throw an {@code InvalidStateException}.
  * <p>
  * {@link Tree} instances may become non existing after a call to
- * {@link #refresh()}, {@link #rebase()} or {@link #commit(CommitHook... hooks)}.
+ * {@link #refresh()}, {@link #rebase()} or {@link #commit()}.
  * Any write access to non existing {@code Tree} instances will cause an
  * {@code InvalidStateException}.
  * @see Tree Existence and iterability of trees
@@ -56,7 +54,7 @@ public interface Root {
      * </ul>
      * If a tree at {@code destinationPath} exists but is not accessible to the
      * editing content session this method succeeds but a subsequent
-     * {@link #commit(CommitHook... hooks)} will detect the violation and fail.
+     * {@link #commit()} will detect the violation and fail.
      *
      * @param sourcePath The source path
      * @param destPath The destination path
@@ -76,7 +74,7 @@ public interface Root {
      * </ul>
      * If a tree at {@code destinationPath} exists but is not accessible to the
      * editing content session this method succeeds but a subsequent
-     * {@link #commit(CommitHook... hooks)} will detect the violation and fail.
+     * {@link #commit()} will detect the violation and fail.
      *
      * @param sourcePath source path
      * @param destPath destination path
