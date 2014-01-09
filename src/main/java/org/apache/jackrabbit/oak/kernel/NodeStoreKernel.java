@@ -73,7 +73,7 @@ public class NodeStoreKernel implements MicroKernel {
                         public Validator childNodeAdded(
                                 String name, NodeState after)
                                 throws CommitFailedException {
-                            if (name.equals(":conflict")) {
+                            if (name.equals(MicroKernel.CONFLICT)) {
                                 throw new CommitFailedException(
                                         CommitFailedException.STATE, 0, "Conflict");
                             }
