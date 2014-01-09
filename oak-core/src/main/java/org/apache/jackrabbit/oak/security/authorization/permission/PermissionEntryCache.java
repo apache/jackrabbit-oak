@@ -74,7 +74,7 @@ public class PermissionEntryCache {
             PrincipalPermissionEntries ppe = entries.get(principalName);
             if (ppe == null) {
                 ppe = store.load(principalName);
-                entries.put(principalName, ppe);
+//                entries.put(principalName, ppe);
             } else {
                 if (!verified.contains(principalName)) {
                     if (store.getTimestamp(principalName) != ppe.getTimestamp()) {
@@ -89,13 +89,13 @@ public class PermissionEntryCache {
             Currently this cache only handles entries for the Everyone principal.
             TODO: the cache should dynamically cache the principals that are used often.
             */
-            if (EveryonePrincipal.NAME.equals(principalName)) {
-                // check if base cache has the entries
-                PrincipalPermissionEntries baseppe = base.get(principalName);
-                if (baseppe == null || ppe.getTimestamp() > baseppe.getTimestamp()) {
-                    base.put(principalName, ppe);
-                }
-            }
+//            if (EveryonePrincipal.NAME.equals(principalName)) {
+//                // check if base cache has the entries
+//                PrincipalPermissionEntries baseppe = base.get(principalName);
+//                if (baseppe == null || ppe.getTimestamp() > baseppe.getTimestamp()) {
+//                    base.put(principalName, ppe);
+//                }
+//            }
             return ppe;
         }
 
