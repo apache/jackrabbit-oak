@@ -67,9 +67,8 @@ public interface ContentSession extends Closeable {
 
     /**
      * The current head root as seen by this content session. Use
-     * {@link Root#commit(org.apache.jackrabbit.oak.spi.commit.CommitHook...)}
-     * to atomically apply the changes made in that subtree the underlying
-     * Microkernel.
+     * {@link Root#commit()} to atomically apply the changes made in that
+     * subtree the underlying Microkernel.
      * <p>
      * The root instance gives you a stable view of the tree at the time the
      * root is acquired. In certain setups (i.e. clusters) changes committed
