@@ -23,7 +23,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.List;
 
@@ -314,7 +314,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             return false;
         }
 
-        PropertyState supertypes = type.getProperty(OAK_SUPERTYPES);
+        PropertyState supertypes = type.getProperty(REP_SUPERTYPES);
         return supertypes != null
                 && contains(supertypes.getValue(Type.NAMES), superName);
     }

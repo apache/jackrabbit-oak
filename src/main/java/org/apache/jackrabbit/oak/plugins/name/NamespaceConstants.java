@@ -69,14 +69,14 @@ public interface NamespaceConstants {
             NAMESPACE_SV
     ));
 
-    String EMPTY_KEY = "oak:empty";
+    String REP_EMPTY = "rep:empty";
 
     // index nodes for faster lookup
 
-    String NSDATA = "oak:namespaces";
+    String REP_NSDATA = "rep:nsdata";
 
-    String NSDATA_URIS = "oak:uris";
+    String REP_URIS = "rep:uris";
 
-    String NSDATA_PREFIXES = "oak:prefixes";
+    String REP_PREFIXES = "rep:prefixes";
 
 }
