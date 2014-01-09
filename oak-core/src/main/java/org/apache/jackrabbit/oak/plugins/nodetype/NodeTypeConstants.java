@@ -42,13 +42,13 @@ public interface NodeTypeConstants extends JcrConstants {
      * @since oak 1.0
      */
     String NT_REP_UNSTRUCTURED = "rep:Unstructured";
-    String NT_OAK_NODE_TYPE = "oak:NodeType";
-    String NT_OAK_NAMED_PROPERTY_DEFINITIONS = "oak:NamedPropertyDefinitions";
-    String NT_OAK_PROPERTY_DEFINITIONS = "oak:PropertyDefinitions";
-    String NT_OAK_PROPERTY_DEFINITION = "oak:PropertyDefinition";
-    String NT_OAK_NAMED_CHILD_NODE_DEFINITIONS = "oak:NamedChildNodeDefinitions";
-    String NT_OAK_CHILD_NODE_DEFINITIONS = "oak:ChildNodeDefinitions";
-    String NT_OAK_CHILD_NODE_DEFINITION = "oak:ChildNodeDefinition";
+    String NT_REP_NODE_TYPE = "rep:NodeType";
+    String NT_REP_NAMED_PROPERTY_DEFINITIONS = "rep:NamedPropertyDefinitions";
+    String NT_REP_PROPERTY_DEFINITIONS = "rep:PropertyDefinitions";
+    String NT_REP_PROPERTY_DEFINITION = "rep:PropertyDefinition";
+    String NT_REP_NAMED_CHILD_NODE_DEFINITIONS = "rep:NamedChildNodeDefinitions";
+    String NT_REP_CHILD_NODE_DEFINITIONS = "rep:ChildNodeDefinitions";
+    String NT_REP_CHILD_NODE_DEFINITION = "rep:ChildNodeDefinition";
 
     /**
      * Additional name constants not present in JcrConstants
@@ -67,27 +67,23 @@ public interface NodeTypeConstants extends JcrConstants {
     String RESIDUAL_NAME = "*";
 
     // Pre-compiled Oak type information fields
-    String OAK_SUPERTYPES = "oak:supertypes";
-    String OAK_PRIMARY_SUBTYPES = "oak:primarySubtypes";
-    String OAK_MIXIN_SUBTYPES = "oak:mixinSubtypes";
-    String OAK_MANDATORY_PROPERTIES = "oak:mandatoryProperties";
-    String OAK_MANDATORY_CHILD_NODES = "oak:mandatoryChildNodes";
-    String OAK_PROTECTED_PROPERTIES = "oak:protectedProperties";
-    String OAK_PROTECTED_CHILD_NODES = "oak:protectedChildNodes";
-    String OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES = "oak:hasProtectedResidualProperties";
-    String OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES = "oak:hasProtectedResidualChildNodes";
-    String OAK_NAMED_SINGLE_VALUED_PROPERTIES = "oak:namedSingleValuedProperties";
-    String OAK_RESIDUAL_CHILD_NODE_DEFINITIONS = "oak:residualChildNodeDefinitions";
-    String OAK_NAMED_CHILD_NODE_DEFINITIONS = "oak:namedChildNodeDefinitions";
-    String OAK_RESIDUAL_PROPERTY_DEFINITIONS = "oak:residualPropertyDefinitions";
-    String OAK_NAMED_PROPERTY_DEFINITIONS = "oak:namedPropertyDefinitions";
-    String OAK_PROPERTY_DEFINITIONS = "oak:propertyDefinitions";
-    String OAK_PROPERTY_DEFINITION = "oak:propertyDefinition";
-    String OAK_CHILD_NODE_DEFINITIONS = "oak:childNodeDefinitions";
-    String OAK_CHILD_NODE_DEFINITION = "oak:childNodeDefinition";
-    String OAK_DECLARING_NODE_TYPE = "oak:declaringNodeType";
-    String OAK_PRIMARY_TYPE = "oak:primaryType";
-    String OAK_MIXIN_TYPES = "oak:mixinTypes";
-    String OAK_UUID = "oak:uuid";
+    String REP_SUPERTYPES = "rep:supertypes";
+    String REP_PRIMARY_SUBTYPES = "rep:primarySubtypes";
+    String REP_MIXIN_SUBTYPES = "rep:mixinSubtypes";
+    String REP_MANDATORY_PROPERTIES = "rep:mandatoryProperties";
+    String REP_MANDATORY_CHILD_NODES = "rep:mandatoryChildNodes";
+    String REP_PROTECTED_PROPERTIES = "rep:protectedProperties";
+    String REP_PROTECTED_CHILD_NODES = "rep:protectedChildNodes";
+    String REP_HAS_PROTECTED_RESIDUAL_PROPERTIES = "rep:hasProtectedResidualProperties";
+    String REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES = "rep:hasProtectedResidualChildNodes";
+    String REP_NAMED_SINGLE_VALUED_PROPERTIES = "rep:namedSingleValuedProperties";
+    String REP_RESIDUAL_CHILD_NODE_DEFINITIONS = "rep:residualChildNodeDefinitions";
+    String REP_NAMED_CHILD_NODE_DEFINITIONS = "rep:namedChildNodeDefinitions";
+    String REP_RESIDUAL_PROPERTY_DEFINITIONS = "rep:residualPropertyDefinitions";
+    String REP_NAMED_PROPERTY_DEFINITIONS = "rep:namedPropertyDefinitions";
+    String REP_DECLARING_NODE_TYPE = "rep:declaringNodeType";
+    String REP_PRIMARY_TYPE = "rep:primaryType";
+    String REP_MIXIN_TYPES = "rep:mixinTypes";
+    String REP_UUID = "rep:uuid";
 
 }

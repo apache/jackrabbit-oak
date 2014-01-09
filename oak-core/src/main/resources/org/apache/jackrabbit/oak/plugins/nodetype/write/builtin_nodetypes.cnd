@@ -439,39 +439,39 @@
 /**
  * @since oak 1.0
  */
-[oak:NodeType] > nt:nodeType
-  - oak:supertypes (NAME) protected multiple autocreated
-  - oak:primarySubtypes (NAME) protected multiple autocreated
-  - oak:mixinSubtypes (NAME) protected multiple autocreated
-  - oak:mandatoryProperties (NAME) protected multiple autocreated
-  - oak:mandatoryChildNodes (NAME) protected multiple autocreated
-  - oak:protectedProperties (NAME) protected multiple autocreated
-  - oak:protectedChildNodes (NAME) protected multiple autocreated
-  - oak:hasProtectedResidualProperties (BOOLEAN) protected autocreated
-  - oak:hasProtectedResidualChildNodes (BOOLEAN) protected autocreated
-  - oak:namedSingleValuedProperties (NAME) protected multiple autocreated
-  + oak:namedPropertyDefinitions (oak:NamedPropertyDefinitions) = oak:NamedPropertyDefinitions protected mandatory
-  + oak:residualPropertyDefinitions (oak:PropertyDefinitions) = oak:PropertyDefinitions protected mandatory
-  + oak:namedChildNodeDefinitions (oak:NamedChildNodeDefinitions) = oak:NamedChildNodeDefinitions protected mandatory
-  + oak:residualChildNodeDefinitions (oak:ChildNodeDefinitions) = oak:ChildNodeDefinitions protected mandatory
+[rep:NodeType] > nt:nodeType
+  - rep:supertypes (NAME) protected multiple autocreated
+  - rep:primarySubtypes (NAME) protected multiple autocreated
+  - rep:mixinSubtypes (NAME) protected multiple autocreated
+  - rep:mandatoryProperties (NAME) protected multiple autocreated
+  - rep:mandatoryChildNodes (NAME) protected multiple autocreated
+  - rep:protectedProperties (NAME) protected multiple autocreated
+  - rep:protectedChildNodes (NAME) protected multiple autocreated
+  - rep:hasProtectedResidualProperties (BOOLEAN) protected autocreated
+  - rep:hasProtectedResidualChildNodes (BOOLEAN) protected autocreated
+  - rep:namedSingleValuedProperties (NAME) protected multiple autocreated
+  + rep:namedPropertyDefinitions (rep:NamedPropertyDefinitions) = rep:NamedPropertyDefinitions protected mandatory
+  + rep:residualPropertyDefinitions (rep:PropertyDefinitions) = rep:PropertyDefinitions protected mandatory
+  + rep:namedChildNodeDefinitions (rep:NamedChildNodeDefinitions) = rep:NamedChildNodeDefinitions protected mandatory
+  + rep:residualChildNodeDefinitions (rep:ChildNodeDefinitions) = rep:ChildNodeDefinitions protected mandatory
 
-[oak:NamedPropertyDefinitions]
-  + * (oak:PropertyDefinitions) = oak:PropertyDefinitions protected
+[rep:NamedPropertyDefinitions]
+  + * (rep:PropertyDefinitions) = rep:PropertyDefinitions protected
 
-[oak:PropertyDefinitions]
-  + * (oak:PropertyDefinition) = oak:PropertyDefinition protected
+[rep:PropertyDefinitions]
+  + * (rep:PropertyDefinition) = rep:PropertyDefinition protected
 
-[oak:PropertyDefinition] > nt:propertyDefinition
-  - oak:declaringNodeType (NAME) protected mandatory
+[rep:PropertyDefinition] > nt:propertyDefinition
+  - rep:declaringNodeType (NAME) protected mandatory
 
-[oak:NamedChildNodeDefinitions]
-  + * (oak:ChildNodeDefinitions) = oak:ChildNodeDefinitions protected
+[rep:NamedChildNodeDefinitions]
+  + * (rep:ChildNodeDefinitions) = rep:ChildNodeDefinitions protected
 
-[oak:ChildNodeDefinitions]
-  + * (oak:ChildNodeDefinition) = oak:ChildNodeDefinition protected
+[rep:ChildNodeDefinitions]
+  + * (rep:ChildNodeDefinition) = rep:ChildNodeDefinition protected
 
-[oak:ChildNodeDefinition] > nt:childNodeDefinition
-  - oak:declaringNodeType (NAME) protected mandatory
+[rep:ChildNodeDefinition] > nt:childNodeDefinition
+  - rep:declaringNodeType (NAME) protected mandatory
 
 /**
  * This node type used to store a property definition within a node type definition,

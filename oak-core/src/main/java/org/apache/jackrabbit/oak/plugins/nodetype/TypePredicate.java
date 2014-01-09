@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import java.util.Arrays;
+import java.util.Set;
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.Iterables.any;
@@ -26,17 +34,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
-
-import java.util.Arrays;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MIXIN_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PRIMARY_SUBTYPES;
 
 /**
  * Inheritance-aware node type predicate for {@link NodeState node states}.
@@ -106,7 +105,7 @@ public class TypePredicate implements Predicate<NodeState> {
     private void addNodeType(NodeState types, String name) {
         NodeState type = types.getChildNode(name);
 
-        for (String primary : type.getNames(OAK_PRIMARY_SUBTYPES)) {
+        for (String primary : type.getNames(REP_PRIMARY_SUBTYPES)) {
             primaryTypes = add(primaryTypes, primary);
         }
 
@@ -115,7 +114,7 @@ public class TypePredicate implements Predicate<NodeState> {
 
             // Only mixin types can have mixin descendants, so we
             // only fill the mixinTypes set in this branch of code.
-            for (String mixin : type.getNames(OAK_MIXIN_SUBTYPES)) {
+            for (String mixin : type.getNames(REP_MIXIN_SUBTYPES)) {
                 mixinTypes = add(mixinTypes, mixin);
             }
         } else {
