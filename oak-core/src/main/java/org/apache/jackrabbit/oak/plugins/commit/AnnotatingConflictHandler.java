@@ -16,17 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
+import java.util.List;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.ConflictType;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.util.List;
-
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_OURS;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_CHANGED_PROPERTY;
@@ -36,8 +40,6 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_NO
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PROPERTY;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_OURS;
 
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
@@ -48,7 +50,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_O
  * [rep:MergeConflict]
  *   mixin
  *   primaryitem rep:ours
- *   + rep:ours (nt:unstructured) protected IGNORE
+ *   + rep:ours (rep:Unstructured) protected IGNORE
  * </pre>
  *
  * The {@code rep:ours} sub node contains our version of the node prior to
@@ -126,7 +128,9 @@ public class AnnotatingConflictHandler implements ConflictHandler {
         if (mixins.add(MIX_REP_MERGE_CONFLICT)) {
             parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
         }
-        return parent.child(REP_OURS);
+        NodeBuilder repOurs = parent.child(REP_OURS);
+        repOurs.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_UNSTRUCTURED);
+        return repOurs;
     }
 
     private static NodeBuilder createChild(NodeBuilder parent, ConflictType ct) {
