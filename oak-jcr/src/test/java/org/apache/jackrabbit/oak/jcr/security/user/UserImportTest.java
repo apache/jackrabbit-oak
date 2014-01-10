@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -47,6 +48,7 @@ import static org.junit.Assert.fail;
 /**
  * Testing user import with default {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}
  */
+@Ignore("Produces OOME. see OAK-1317")
 public class UserImportTest extends AbstractImportTest {
 
     @Override
