@@ -583,7 +583,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
                 for (String member : nonExisting) {
-                    // TODO: check. was: membershipProvider.addMember(groupTree, member.name, member.contentId);
                     membershipProvider.addMember(groupTree, member);
                 }
             }
