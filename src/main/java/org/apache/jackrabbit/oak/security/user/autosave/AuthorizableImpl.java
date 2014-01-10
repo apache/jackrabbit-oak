@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import java.lang.Object;
-import java.lang.Override;
-import java.lang.String;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
