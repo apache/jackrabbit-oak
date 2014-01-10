@@ -41,8 +41,8 @@ import org.slf4j.LoggerFactory;
  * events.
  * @param <T> type of the event returned by this iterator
  */
-public class EventIterator<T> extends EventGenerator implements Iterable<T> {
-    private static final Logger LOG = LoggerFactory.getLogger(EventIterator.class);
+public class EventIterable<T> extends EventGenerator implements Iterable<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(EventIterable.class);
 
     private final NodeState before;
     private final NodeState after;
@@ -50,7 +50,7 @@ public class EventIterator<T> extends EventGenerator implements Iterable<T> {
     private final EventFilter filter;
     private final IterableListener<T> listener;
 
-    private final LinkedList<EventIterator<T>> childEvents = newLinkedList();
+    private final LinkedList<EventIterable<T>> childEvents = newLinkedList();
 
     /**
      * Specialisation of {@link Listener} that provides the events reported
@@ -73,7 +73,7 @@ public class EventIterator<T> extends EventGenerator implements Iterable<T> {
      * @param filter  filter for filtering changes
      * @param listener  listener for listening to the filtered changes
      */
-    public EventIterator(@Nonnull NodeState before, @Nonnull NodeState after,
+    public EventIterable(@Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull EventFilter filter, @Nonnull IterableListener<T> listener) {
         super(filter, listener);
         this.before = checkNotNull(before);
@@ -88,7 +88,7 @@ public class EventIterator<T> extends EventGenerator implements Iterable<T> {
     protected EventGenerator createChildGenerator(String name, NodeState before, NodeState after) {
         EventFilter childFilter = filter.create(name, before, after);
         if (childFilter != null) {
-            childEvents.add(new EventIterator<T>(
+            childEvents.add(new EventIterable<T>(
                     before, after,
                     childFilter,
                     listener.create(name, before, after)));
