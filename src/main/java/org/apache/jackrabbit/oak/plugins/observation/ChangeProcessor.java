@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -166,9 +167,10 @@ public class ChangeProcessor implements Observer {
                             beforeTree.getNodeState(), afterTree.getNodeState(),
                             Filters.all(userFilter, acFilter),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
-                    if (events.hasNext() && runningMonitor.enterIf(running)) {
+                    Iterator<Event> iterator = events.iterator();
+                    if (iterator.hasNext() && runningMonitor.enterIf(running)) {
                         try {
-                            eventListener.onEvent(new EventIteratorAdapter(events));
+                            eventListener.onEvent(new EventIteratorAdapter(iterator));
                         } finally {
                             runningMonitor.leave();
                         }
