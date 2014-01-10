@@ -29,6 +29,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
@@ -301,8 +302,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                             }
                         }
                     }
-                    principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries);
-                    principalRoot.setProperty(REP_TIMESTAMP, System.currentTimeMillis());
+                    touch(principalRoot, numEntries);
                 } else {
                     log.error("{} {}: Principal root missing.", msg, this);
                 }
@@ -357,8 +357,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 }
                 long numEntries = PermissionUtil.getNumPermissions(principalRoot);
                 numEntries+= updateEntries(parent, entries.get(principalName));
-                principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries);
-                principalRoot.setProperty(REP_TIMESTAMP, System.currentTimeMillis());
+                touch(principalRoot, numEntries);
             }
         }
 
@@ -376,6 +375,12 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 numEntries++;
             }
             return numEntries;
+        }
+
+        private void touch(NodeBuilder node, long numEntries) {
+            PropertyState ps = node.getProperty(REP_MOD_COUNT);
+            node.setProperty(REP_MOD_COUNT, ps == null ? 1 : ps.getValue(Type.LONG) + 1);
+            node.setProperty(REP_NUM_PERMISSIONS, numEntries);
         }
     }
 

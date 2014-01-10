@@ -114,10 +114,10 @@ public class PermissionStoreImpl implements PermissionStore {
     }
 
     @Override
-    public long getTimestamp(@Nonnull String principalName) {
+    public long getModCount(@Nonnull String principalName) {
         Tree principalRoot = getPrincipalRoot(principalName);
         if (principalRoot != null) {
-            PropertyState ps = principalRoot.getProperty(PermissionConstants.REP_TIMESTAMP);
+            PropertyState ps = principalRoot.getProperty(PermissionConstants.REP_MOD_COUNT);
             if (ps != null) {
                 return ps.getValue(Type.LONG);
             }
@@ -134,8 +134,8 @@ public class PermissionStoreImpl implements PermissionStore {
             for (Tree entryTree : principalRoot.getChildren()) {
                 loadPermissionEntries(entryTree, ret.getEntries(), restrictionProvider);
             }
-            PropertyState ps = principalRoot.getProperty(PermissionConstants.REP_TIMESTAMP);
-            ret.setTimestamp(ps == null ? System.currentTimeMillis() : ps.getValue(Type.LONG));
+            PropertyState ps = principalRoot.getProperty(PermissionConstants.REP_MOD_COUNT);
+            ret.setModCount(ps == null ? -1 : ps.getValue(Type.LONG));
         }
         return ret;
     }

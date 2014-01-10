@@ -38,5 +38,5 @@ public interface PermissionStore {
 
     long getNumEntries(@Nonnull String principalName);
 
-    long getTimestamp(@Nonnull String principalName);
+    long getModCount(@Nonnull String principalName);
 }

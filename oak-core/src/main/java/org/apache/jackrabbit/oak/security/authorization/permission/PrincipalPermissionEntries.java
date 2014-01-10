@@ -35,7 +35,7 @@ public class PrincipalPermissionEntries {
     /**
      * timestamp of the per-principal permission store
      */
-    private long timestamp;
+    private long modCount;
 
     /**
      * map of permission entries, accessed by path
@@ -51,12 +51,12 @@ public class PrincipalPermissionEntries {
         return name;
     }
 
-    public long getTimestamp() {
-        return timestamp;
+    public long getModCount() {
+        return modCount;
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void setModCount(long modCount) {
+        this.modCount = modCount;
     }
 
     @Nonnull
