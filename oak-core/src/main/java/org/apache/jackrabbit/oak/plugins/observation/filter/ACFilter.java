@@ -26,7 +26,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -34,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * {@code EventTypeFilter} filters based on the access rights of the observing session.
  */
-public class ACFilter implements Filter {
+public class ACFilter implements EventFilter {
     private final TreePermission treePermission;
 
     private ACFilter(@Nonnull TreePermission treePermission) {
@@ -103,7 +102,7 @@ public class ACFilter implements Filter {
     }
 
     @Override
-    public Filter create(String name, NodeState before, NodeState after) {
+    public EventFilter create(String name, NodeState before, NodeState after) {
         return new ACFilter(treePermission.getChildPermission(name, after));
     }
 }

@@ -22,12 +22,11 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Instance of this class provide a {@link Filter} for observation
+ * Instance of this class provide a {@link EventFilter} for observation
  * events and a filter for commits.
  */
 public interface FilterProvider {
@@ -54,7 +53,7 @@ public interface FilterProvider {
      * @return new {@code Filter} instance
      */
     @Nonnull
-    Filter getFilter(@Nonnull NodeState before, @Nonnull NodeState after);
+    EventFilter getFilter(@Nonnull NodeState before, @Nonnull NodeState after);
 
     /**
      * Path of the subtree to which the the filter returned by

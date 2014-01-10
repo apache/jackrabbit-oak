@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -31,84 +29,11 @@ import org.apache.jackrabbit.oak.spi.state.MoveValidator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * {@link Filter filter} and report changes between node states to the {@link Listener}.
+ * {@link EventFilter filter} and report changes between node states to the {@link Listener}.
  */
 public class EventGenerator implements MoveValidator {
-    private final Filter filter;
+    private final EventFilter filter;
     private final Listener listener;
-
-    /**
-     * Filter for determining what changes to report the the {@link Listener}.
-     */
-    public interface Filter {
-
-        /**
-         * Include an added property
-         * @param after  added property
-         * @return  {@code true} if the property should be included
-         */
-        boolean includeAdd(PropertyState after);
-
-        /**
-         * Include a changed property
-         * @param before  property before the change
-         * @param after  property after the change
-         * @return  {@code true} if the property should be included
-         */
-        boolean includeChange(PropertyState before, PropertyState after);
-
-        /**
-         * Include a deleted property
-         * @param before  deleted property
-         * @return  {@code true} if the property should be included
-         */
-        boolean includeDelete(PropertyState before);
-
-        /**
-         * Include an added node
-         * @param name name of the node
-         * @param after  added node
-         * @return  {@code true} if the node should be included
-         */
-        boolean includeAdd(String name, NodeState after);
-
-        /**
-         * Include a changed node
-         * @param name name of the node
-         * @param before node before the change
-         * @param after  node after the change
-         * @return  {@code true} if the node should be included
-         */
-        boolean includeChange(String name, NodeState before, NodeState after);
-
-        /**
-         * Include a deleted node
-         * @param name name of the node
-         * @param before deleted node
-         * @return  {@code true} if the node should be included
-         */
-        boolean includeDelete(String name, NodeState before);
-
-        /**
-         * Include a moved node
-         * @param sourcePath  source path of the move operation
-         * @param name        name of the moved node
-         * @param moved       the moved node
-         * @return  {@code true} if the node should be included
-         */
-        boolean includeMove(String sourcePath, String name, NodeState moved);
-
-        /**
-         * Factory for creating a filter instance for the given child node
-         * @param name  name of the child node
-         * @param before  before state of the child node
-         * @param after  after state of the child node
-         * @return  filter instance for filtering the child node or {@code null} to
-         *          exclude the sub tree rooted at this child node.
-         */
-        @CheckForNull
-        Filter create(String name, NodeState before, NodeState after);
-    }
 
     /**
      * Listener for listening to changes.
@@ -181,7 +106,7 @@ public class EventGenerator implements MoveValidator {
      * @param filter  filter for filtering changes
      * @param listener  listener for listening to the filtered changes
      */
-    public EventGenerator(@Nonnull Filter filter, @Nonnull Listener listener) {
+    public EventGenerator(@Nonnull EventFilter filter, @Nonnull Listener listener) {
         this.filter = checkNotNull(filter);
         this.listener = checkNotNull(listener);
     }
@@ -254,7 +179,7 @@ public class EventGenerator implements MoveValidator {
      * @return {@code EventGenerator} for a child node
      */
     protected EventGenerator createChildGenerator(String name, NodeState before, NodeState after) {
-        Filter childFilter = filter.create(name, before, after);
+        EventFilter childFilter = filter.create(name, before, after);
         if (childFilter != null) {
             return new EventGenerator(
                     childFilter,

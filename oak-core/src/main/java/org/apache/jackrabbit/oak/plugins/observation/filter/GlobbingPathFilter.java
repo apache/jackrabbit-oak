@@ -27,8 +27,8 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -57,7 +57,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  *    r/s/t&#47** matches r/s/t and all its descendants
  * </pre>
  */
-public class GlobbingPathFilter implements Filter {
+public class GlobbingPathFilter implements EventFilter {
     public static final String STAR = "*";
     public static final String STAR_STAR = "**";
 
@@ -107,7 +107,7 @@ public class GlobbingPathFilter implements Filter {
     }
 
     @Override
-    public Filter create(String name, NodeState before, NodeState after) {
+    public EventFilter create(String name, NodeState before, NodeState after) {
         if (pattern.isEmpty()) {
             return null;
         }

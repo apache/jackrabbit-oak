@@ -48,7 +48,7 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
     private final NodeState before;
     private final NodeState after;
 
-    private final Filter filter;
+    private final EventFilter filter;
     private final IterableListener<T> listener;
 
     private final List<Iterator<T>> childEvents = newArrayList();
@@ -91,7 +91,7 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
      * @param listener  listener for listening to the filtered changes
      */
     public EventIterator(@Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull Filter filter, @Nonnull IterableListener<T> listener) {
+            @Nonnull EventFilter filter, @Nonnull IterableListener<T> listener) {
         super(filter, listener);
         this.before = checkNotNull(before);
         this.after = checkNotNull(after);
@@ -103,7 +103,7 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
 
     @Override
     protected EventGenerator createChildGenerator(String name, NodeState before, NodeState after) {
-        Filter childFilter = filter.create(name, before, after);
+        EventFilter childFilter = filter.create(name, before, after);
         if (childFilter != null) {
             childEvents.add(new EventIterator<T>(
                     before, after,
