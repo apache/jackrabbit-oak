@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventIterator.IterableListener;
+import org.apache.jackrabbit.oak.plugins.observation.EventIterator.IterableListener;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
