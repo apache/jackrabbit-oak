@@ -163,7 +163,7 @@ public class ChangeProcessor implements Observer {
                     EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
                     ImmutableTree beforeTree = getTree(previousRoot, basePath);
                     ImmutableTree afterTree = getTree(root, basePath);
-                    EventIterator<Event> events = new EventIterator<Event>(
+                    EventIterable<Event> events = new EventIterable<Event>(
                             beforeTree.getNodeState(), afterTree.getNodeState(),
                             Filters.all(userFilter, acFilter),
                             new JcrListener(beforeTree, afterTree, namePathMapper, info));
