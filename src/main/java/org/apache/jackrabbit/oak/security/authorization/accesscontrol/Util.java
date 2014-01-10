@@ -60,13 +60,16 @@ final class Util implements AccessControlConstants {
         }
     }
 
-    public static void checkValidPolicy(@Nullable String oakPath, @Nonnull AccessControlPolicy policy) throws AccessControlException {
+    public static boolean isValidPolicy(@Nullable String oakPath, @Nonnull AccessControlPolicy policy) {
         if (policy instanceof ACL) {
             String path = ((ACL) policy).getOakPath();
-            if ((path == null && oakPath != null) || (path != null && !path.equals(oakPath))) {
-                throw new AccessControlException("Invalid access control policy " + policy + ": path mismatch " + oakPath);
-            }
-        } else {
+            return !((path == null && oakPath != null) || (path != null && !path.equals(oakPath)));
+        }
+        return false;
+    }
+
+    public static void checkValidPolicy(@Nullable String oakPath, @Nonnull AccessControlPolicy policy) throws AccessControlException {
+        if (!isValidPolicy(oakPath, policy)) {
             throw new AccessControlException("Invalid access control policy " + policy);
         }
     }

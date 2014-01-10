@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -90,7 +91,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * This implementation covers both editing access control content by path and
  * by {@code Principal} resulting both in the same content structure.
  */
-public class AccessControlManagerImpl extends AbstractAccessControlManager implements AccessControlConstants {
+public class AccessControlManagerImpl extends AbstractAccessControlManager implements PolicyOwner {
 
     private static final Logger log = LoggerFactory.getLogger(AccessControlManagerImpl.class);
 
@@ -372,6 +373,17 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
         }
         return effective.toArray(new AccessControlPolicy[effective.size()]);
+    }
+
+    //--------------------------------------------------------< PolicyOwner >---
+    @Override
+    public boolean defines(String absPath, AccessControlPolicy accessControlPolicy) {
+        try {
+            return Util.isValidPolicy(getOakPath(absPath), accessControlPolicy);
+        } catch (RepositoryException e) {
+            log.warn("Invalid absolute path: " + absPath, e.getMessage());
+            return false;
+        }
     }
 
     //------------------------------------------------------------< private >---

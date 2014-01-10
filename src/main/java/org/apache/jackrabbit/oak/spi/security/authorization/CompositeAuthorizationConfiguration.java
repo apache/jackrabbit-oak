@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -86,7 +88,11 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
     }
 
     /**
-     *
+     * Access control manager that aggregates a list of different access control
+     * manager implementations. Note, that the implementations *must* implement
+     * the {@link org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner}
+     * interface in order to be able to set and remove individual access control
+     * policies.
      */
     private static class CompositeAcMgr extends AbstractAccessControlManager {
 
@@ -113,11 +119,11 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
         @Override
         public AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
-            ImmutableList.Builder<AccessControlPolicy> privs = ImmutableList.builder();
+            ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
             for (AccessControlManager acMgr : acMgrs) {
-                privs.add(acMgr.getPolicies(absPath));
+                policies.add(acMgr.getPolicies(absPath));
             }
-            List<AccessControlPolicy> l = privs.build();
+            List<AccessControlPolicy> l = policies.build();
             return l.toArray(new AccessControlPolicy[l.size()]);
         }
 
@@ -135,21 +141,33 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
         public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
             List<AccessControlPolicyIterator> l = Lists.newArrayList();
             for (AccessControlManager acMgr : acMgrs) {
-                l.add(acMgr.getApplicablePolicies(absPath));
+                if (acMgr instanceof PolicyOwner) {
+                    l.add(acMgr.getApplicablePolicies(absPath));
+                }
             }
             return new AccessControlPolicyIteratorAdapter(Iterators.concat(l.toArray(new AccessControlPolicyIterator[l.size()])));
         }
 
         @Override
         public void setPolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
-            // TODO
-            throw new UnsupportedOperationException("not yet implemented.");
+            for (AccessControlManager acMgr : acMgrs) {
+                if (acMgr instanceof PolicyOwner && ((PolicyOwner) acMgr).defines(absPath, policy)) {
+                    acMgr.setPolicy(absPath, policy);
+                    return;
+                }
+            }
+            throw new AccessControlException("Cannot set access control policy " + policy + "; no PolicyOwner found.");
         }
 
         @Override
         public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
-            // TODO
-            throw new UnsupportedOperationException("not yet implemented.");
+            for (AccessControlManager acMgr : acMgrs) {
+                if (acMgr instanceof PolicyOwner && ((PolicyOwner) acMgr).defines(absPath, policy)) {
+                    acMgr.removePolicy(absPath, policy);
+                    return;
+                }
+            }
+            throw new AccessControlException("Cannot remove access control policy " + policy + "; no PolicyOwner found.");
         }
 
         //---------------------------------< JackrabbitAccessControlManager >---
@@ -158,7 +176,9 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
             for (AccessControlManager acMgr : acMgrs) {
                 if (acMgr instanceof JackrabbitAccessControlManager) {
-                    policies.add(((JackrabbitAccessControlManager) acMgr).getApplicablePolicies(principal));
+                    if (acMgr instanceof PolicyOwner) {
+                        policies.add(((JackrabbitAccessControlManager) acMgr).getApplicablePolicies(principal));
+                    }
                 }
             }
             List<JackrabbitAccessControlPolicy> l = policies.build();
