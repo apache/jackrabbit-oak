@@ -505,10 +505,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
          * </pre>
          * @param bits the super set of bits
          * @param otherBits the bits to check against
-         * @return <code>true</code> if all other bits are included in bits.
+         * @return {@code true} if all other bits are included in bits.
          */
         static boolean includes(long bits, long otherBits) {
-            // todo:  different check as 'and' check below. which one is faster?
             return (bits | ~otherBits) == -1;
         }
 
@@ -523,7 +522,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
          * </pre>
          * @param bits the super set of bits
          * @param otherBits the bits to check against
-         * @return <code>true</code> if all other bits are included in bits.
+         * @return {@code true} if all other bits are included in bits.
          */
         static boolean includes(long[] bits, long[] otherBits) {
             if (otherBits.length <= bits.length) {
