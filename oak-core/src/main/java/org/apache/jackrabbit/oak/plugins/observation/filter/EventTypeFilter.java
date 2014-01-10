@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import javax.jcr.observation.Event;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -31,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
         javax.jcr.observation.EventListener, int, String, boolean, String[], String[], boolean)
         ObservationManager.addEventListener()}.
  */
-public class EventTypeFilter implements Filter {
+public class EventTypeFilter implements EventFilter {
     private final int eventTypes;
 
     /**
@@ -83,7 +82,7 @@ public class EventTypeFilter implements Filter {
     }
 
     @Override
-    public Filter create(String name, NodeState before, NodeState after) {
+    public EventFilter create(String name, NodeState before, NodeState after) {
         return this;
     }
 

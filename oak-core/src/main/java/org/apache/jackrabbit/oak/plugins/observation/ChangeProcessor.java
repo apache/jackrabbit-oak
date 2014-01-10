@@ -30,6 +30,7 @@ import javax.jcr.observation.EventListener;
 
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.Monitor.Guard;
+
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
@@ -38,7 +39,7 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
+import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventIterator;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
@@ -158,8 +159,8 @@ public class ChangeProcessor implements Observer {
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
                     String basePath = provider.getPath();
-                    Filter userFilter = provider.getFilter(previousRoot, root);
-                    Filter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
+                    EventFilter userFilter = provider.getFilter(previousRoot, root);
+                    EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
                     ImmutableTree beforeTree = getTree(previousRoot, basePath);
                     ImmutableTree afterTree = getTree(root, basePath);
                     EventIterator<Event> events = new EventIterator<Event>(

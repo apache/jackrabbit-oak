@@ -20,13 +20,12 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * TODO document
  */
-public class ConstantFilter implements Filter {
+public class ConstantFilter implements EventFilter {
     public static final ConstantFilter INCLUDE_ALL = new ConstantFilter(true);
     public static final ConstantFilter EXCLUDE_ALL = new ConstantFilter(false);
 
@@ -72,7 +71,7 @@ public class ConstantFilter implements Filter {
     }
 
     @Override
-    public Filter create(String name, NodeState before, NodeState after) {
+    public EventFilter create(String name, NodeState before, NodeState after) {
         return include ? this : null;
     }
 }

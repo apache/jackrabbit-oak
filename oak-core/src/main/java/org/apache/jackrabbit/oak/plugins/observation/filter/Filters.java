@@ -28,12 +28,12 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This utility class provides common {@link Filter} instances
+ * This utility class provides common {@link EventFilter} instances
  */
 public final class Filters {
 
@@ -47,7 +47,7 @@ public final class Filters {
      * @return {@code true} if any of {@code filters} match.
      */
     @Nonnull
-    public static Filter any(@Nonnull final Filter... filters) {
+    public static EventFilter any(@Nonnull final EventFilter... filters) {
         return any(Lists.newArrayList(checkNotNull(filters)));
     }
 
@@ -58,7 +58,7 @@ public final class Filters {
      * @return {@code true} if all of {@code filters} match.
      */
     @Nonnull
-    public static Filter all(@Nonnull final Filter... filters) {
+    public static EventFilter all(@Nonnull final EventFilter... filters) {
         return all(Lists.newArrayList(checkNotNull(filters)));
     }
 
@@ -66,7 +66,7 @@ public final class Filters {
      * @return  Filter that includes everything
      */
     @Nonnull
-    public static Filter includeAll() {
+    public static EventFilter includeAll() {
         return INCLUDE_ALL;
     }
 
@@ -74,7 +74,7 @@ public final class Filters {
      * @return  Filter that excludes everything
      */
     @Nonnull
-    public static Filter excludeAll() {
+    public static EventFilter excludeAll() {
         return EXCLUDE_ALL;
     }
 
@@ -85,16 +85,16 @@ public final class Filters {
      * @return {@code true} if any of {@code filters} match.
      */
     @Nonnull
-    public static Filter any(@Nonnull final List<Filter> filters) {
+    public static EventFilter any(@Nonnull final List<EventFilter> filters) {
         if (checkNotNull(filters).isEmpty()) {
             return EXCLUDE_ALL;
         } else if (filters.size() == 1) {
             return filters.get(0);
         } else {
-            return new Filter() {
+            return new EventFilter() {
                 @Override
                 public boolean includeAdd(PropertyState after) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (filter.includeAdd(after)) {
                             return true;
                         }
@@ -104,7 +104,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeChange(PropertyState before, PropertyState after) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (filter.includeChange(before, after)) {
                             return true;
                         }
@@ -114,7 +114,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeDelete(PropertyState before) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (filter.includeDelete(before)) {
                             return true;
                         }
@@ -124,7 +124,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeAdd(String name, NodeState after) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (filter.includeAdd(name, after)) {
                             return true;
                         }
@@ -134,7 +134,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeChange(String name, NodeState before, NodeState after) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (filter.includeChange(name, before, after)) {
                             return true;
                         }
@@ -144,7 +144,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeDelete(String name, NodeState before) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (filter.includeDelete(name, before)) {
                             return true;
                         }
@@ -154,7 +154,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeMove(String sourcePath, String name, NodeState moved) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (filter.includeMove(sourcePath, name, moved)) {
                             return true;
                         }
@@ -163,10 +163,10 @@ public final class Filters {
                 }
 
                 @Override
-                public Filter create(String name, NodeState before, NodeState after) {
-                    List<Filter> childFilters = Lists.newArrayList();
-                    for (Filter filter : filters) {
-                        Filter childFilter = filter.create(name, before, after);
+                public EventFilter create(String name, NodeState before, NodeState after) {
+                    List<EventFilter> childFilters = Lists.newArrayList();
+                    for (EventFilter filter : filters) {
+                        EventFilter childFilter = filter.create(name, before, after);
                         if (childFilter != null) {
                             childFilters.add(childFilter);
                         }
@@ -184,16 +184,16 @@ public final class Filters {
      * @return {@code true} if all of {@code filters} match.
      */
     @Nonnull
-    public static Filter all(@Nonnull final List<Filter> filters) {
+    public static EventFilter all(@Nonnull final List<EventFilter> filters) {
         if (checkNotNull(filters).isEmpty()) {
             return INCLUDE_ALL;
         } else if (filters.size() == 1) {
             return filters.get(0);
         } else {
-            return new Filter() {
+            return new EventFilter() {
                 @Override
                 public boolean includeAdd(PropertyState after) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (!filter.includeAdd(after)) {
                             return false;
                         }
@@ -203,7 +203,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeChange(PropertyState before, PropertyState after) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (!filter.includeChange(before, after)) {
                             return false;
                         }
@@ -213,7 +213,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeDelete(PropertyState before) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (!filter.includeDelete(before)) {
                             return false;
                         }
@@ -223,7 +223,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeAdd(String name, NodeState after) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (!filter.includeAdd(name, after)) {
                             return false;
                         }
@@ -233,7 +233,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeChange(String name, NodeState before, NodeState after) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (!filter.includeChange(name, before, after)) {
                             return false;
                         }
@@ -243,7 +243,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeDelete(String name, NodeState before) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (!filter.includeDelete(name, before)) {
                             return false;
                         }
@@ -253,7 +253,7 @@ public final class Filters {
 
                 @Override
                 public boolean includeMove(String sourcePath, String name, NodeState moved) {
-                    for (Filter filter : filters) {
+                    for (EventFilter filter : filters) {
                         if (!filter.includeMove(sourcePath, name, moved)) {
                             return false;
                         }
@@ -262,10 +262,10 @@ public final class Filters {
                 }
 
                 @Override
-                public Filter create(String name, NodeState before, NodeState after) {
-                    List<Filter> childFilters = Lists.newArrayList();
-                    for (Filter filter : filters) {
-                        Filter childFilter = filter.create(name, before, after);
+                public EventFilter create(String name, NodeState before, NodeState after) {
+                    List<EventFilter> childFilters = Lists.newArrayList();
+                    for (EventFilter filter : filters) {
+                        EventFilter childFilter = filter.create(name, before, after);
                         if (childFilter == null) {
                             return null;
                         } else {
