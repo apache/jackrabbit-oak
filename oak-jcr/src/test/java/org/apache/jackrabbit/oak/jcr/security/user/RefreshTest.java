@@ -26,7 +26,6 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.test.RepositoryStub;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
