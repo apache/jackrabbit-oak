@@ -26,7 +26,13 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAuthorizationConfiguration;
 
 /**
- * OpenSecurityProvider... TODO: review if we really have the need for that once TODO in InitialContent is resolved
+ * Rudimentary {@code SecurityProvider} implementation that allow every subject
+ * to authenticate and grants it full access everywhere. Note, that this
+ * implementation does not provide support for other security related features
+ * such as e.g. user or access control management.
+ *
+ * @see org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration
+ * @see org.apache.jackrabbit.oak.spi.security.authorization.OpenAuthorizationConfiguration
  */
 public class OpenSecurityProvider implements SecurityProvider {
 
