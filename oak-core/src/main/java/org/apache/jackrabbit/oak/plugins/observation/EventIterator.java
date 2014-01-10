@@ -19,11 +19,11 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterators.concat;
-import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newLinkedList;
 
 import java.util.Iterator;
-import java.util.List;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
 
 import javax.annotation.Nonnull;
 
@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.LazyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * events.
  * @param <T> type of the event returned by this iterator
  */
-public class EventIterator<T> extends EventGenerator implements Iterator<T> {
+public class EventIterator<T> extends EventGenerator implements Iterable<T> {
     private static final Logger LOG = LoggerFactory.getLogger(EventIterator.class);
 
     private final NodeState before;
@@ -51,23 +50,7 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
     private final EventFilter filter;
     private final IterableListener<T> listener;
 
-    private final List<Iterator<T>> childEvents = newArrayList();
-
-    private final LazyValue<Iterator<T>> eventIterator = new LazyValue<Iterator<T>>() {
-        @Override
-        protected Iterator<T> createValue() {
-            CommitFailedException e = EditorDiff.process(
-                    new VisibleEditor(
-                        new MoveDetector(EventIterator.this)),
-                    before, after);
-
-            if (e != null) {
-                LOG.error("Error while extracting observation events", e);
-            }
-
-            return concat(listener.iterator(), concat(childEvents.iterator()));
-        }
-    };
+    private final LinkedList<EventIterator<T>> childEvents = newLinkedList();
 
     /**
      * Specialisation of {@link Listener} that provides the events reported
@@ -113,21 +96,48 @@ public class EventIterator<T> extends EventGenerator implements Iterator<T> {
         return null;
     }
 
-    //------------------------------------------------------------< Iterator >---
+    //----------------------------------------------------------< Iterable >--
 
     @Override
-    public boolean hasNext() {
-        return eventIterator.get().hasNext();
-    }
+    public Iterator<T> iterator() {
+        CommitFailedException e = EditorDiff.process(
+                new VisibleEditor(new MoveDetector(this)),
+                before, after);
+        if (e != null) {
+            LOG.error("Error while extracting observation events", e);
+        }
 
-    @Override
-    public T next() {
-        return eventIterator.get().next();
-    }
+        return new Iterator<T>() {
 
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException();
+            private Iterator<T> iterator = listener.iterator();
+
+            @Override
+            public boolean hasNext() {
+                while (!iterator.hasNext()) {
+                    if (childEvents.isEmpty()) {
+                        return false;
+                    } else {
+                        iterator = childEvents.removeFirst().iterator();
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public T next() {
+                if (hasNext()) {
+                    return iterator.next();
+                } else {
+                    throw new NoSuchElementException();
+                }
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+        };
     }
 
 }
