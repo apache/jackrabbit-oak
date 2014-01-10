@@ -61,14 +61,6 @@ public interface UserConstants {
     );
 
     /**
-     * TODO: remove?
-     */
-    Collection<String> NODE_TYPE_NAMES = ImmutableSet.of(
-            NT_REP_AUTHORIZABLE, NT_REP_USER, NT_REP_GROUP, NT_REP_MEMBERS,
-            NT_REP_MEMBER_REFERENCES, NT_REP_MEMBER_REFERENCES_LIST
-    );
-
-    /**
      * Configuration option defining the ID of the administrator user.
      */
     String PARAM_ADMIN_ID = "adminId";
