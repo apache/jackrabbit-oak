@@ -46,7 +46,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 
 /**
  * {@link CompositeAuthorizationConfiguration} that combines different
- * authorization models.
+ * authorization models. This implementation has the following characteristics:
+ *
+ * TODO
  */
 public class CompositeAuthorizationConfiguration extends CompositeConfiguration<AuthorizationConfiguration> implements AuthorizationConfiguration {
 
