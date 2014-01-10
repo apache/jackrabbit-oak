@@ -19,21 +19,16 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import java.security.Principal;
 import java.util.Iterator;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.Value;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * This implementation of {@code Group} delegates back to a
