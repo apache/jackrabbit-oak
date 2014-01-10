@@ -530,7 +530,7 @@
  *
  * @since oak 0.6
  */
-[oak:QueryIndexDefinition] > nt:unstructured
+[oak:QueryIndexDefinition] > oak:Unstructured
   - type (STRING) mandatory
   - async (STRING)
   - reindex (BOOLEAN) mandatory IGNORE
