@@ -37,10 +37,10 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.observation.filter.EventGenerator.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -60,7 +60,7 @@ public final class FilterBuilder {
 
     public interface Condition {
         @Nonnull
-        Filter createFilter(@Nonnull NodeState before, @Nonnull NodeState after, String basePath);
+        EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after, String basePath);
     }
 
     /**
@@ -285,7 +285,7 @@ public final class FilterBuilder {
 
             @Nonnull
             @Override
-            public Filter getFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
+            public EventFilter getFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
                 return condition.createFilter(checkNotNull(before), checkNotNull(after), basePath);
             }
 
@@ -325,7 +325,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
             return value ? Filters.includeAll() : Filters.excludeAll();
         }
     }
@@ -338,7 +338,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
             return new ACFilter(before, after, permissionProvider, basePath);
         }
     }
@@ -351,7 +351,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
             return new GlobbingPathFilter(pathGlob);
         }
     }
@@ -364,7 +364,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
             return new EventTypeFilter(eventTypes);
         }
     }
@@ -379,7 +379,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
             TypePredicate predicate = new TypePredicate(
                     after.exists() ? after : before, ntNames);
             return new UniversalFilter(
@@ -400,7 +400,7 @@ public final class FilterBuilder {
 
         @Nonnull
         @Override
-        public Filter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
             return new UniversalFilter(
                     getChildNode(before, basePath),
                     getChildNode(after, basePath),
@@ -416,8 +416,8 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(NodeState before, NodeState after, String basePath) {
-            List<Filter> filters = Lists.newArrayList();
+        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
+            List<EventFilter> filters = Lists.newArrayList();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.INCLUDE_ALL) {
                     return ConstantFilter.INCLUDE_ALL;
@@ -439,8 +439,8 @@ public final class FilterBuilder {
         }
 
         @Override
-        public Filter createFilter(NodeState before, NodeState after, String basePath) {
-            List<Filter> filters = Lists.newArrayList();
+        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
+            List<EventFilter> filters = Lists.newArrayList();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.EXCLUDE_ALL) {
                     return ConstantFilter.EXCLUDE_ALL;

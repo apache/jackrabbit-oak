@@ -34,14 +34,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public final class Selectors {
 
     /**
-     * A selector returning the node for which a call back on {@link EventGenerator.Filter} was
+     * A selector returning the node for which a call back on {@link EventFilter} was
      * called or a non existing node in the case of a property call back.
      */
     public static final Selector THIS = new ThisSelector();
 
     /**
      * A selector returning the parent node of the item for which a call back
-     * on {@link EventGenerator.Filter} was called.
+     * on {@link EventFilter} was called.
      */
     public static final Selector PARENT = new ParentSelector();
 
