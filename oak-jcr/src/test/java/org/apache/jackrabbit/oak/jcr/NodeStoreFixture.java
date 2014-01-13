@@ -113,6 +113,30 @@ public abstract class NodeStoreFixture {
         }
     };
 
+    public static final NodeStoreFixture MONGO_JDBC = new NodeStoreFixture() {
+        @Override
+        public NodeStore createNodeStore() {
+            return new MongoMK.Builder().setMongoJDBC("jdbc:h2:mem:oaknodes", "sa", "").getNodeStore();
+        }
+
+        @Override
+        public NodeStore createNodeStore(int clusterNodeId) {
+            try {
+                return new MongoMK.Builder()
+                                .setMongoJDBC("jdbc:h2:mem:oaknodes", "sa", "").getNodeStore();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        @Override
+        public void dispose(NodeStore nodeStore) {
+            if (nodeStore instanceof MongoNodeStore) {
+                ((MongoNodeStore) nodeStore).dispose();
+            }
+        }
+    };
+
     public static final NodeStoreFixture MK_IMPL = new NodeStoreFixture() {
         @Override
         public NodeStore createNodeStore() {
