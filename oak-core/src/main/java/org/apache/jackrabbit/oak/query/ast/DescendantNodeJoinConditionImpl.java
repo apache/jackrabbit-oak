@@ -83,7 +83,7 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
                 a = KNOWN_PATH;
             }
             if (a != null) {
-                f.restrictPath(a, Filter.PathRestriction.DIRECT_CHILDREN);
+                f.restrictPath(a, Filter.PathRestriction.ALL_CHILDREN);
             }
         }
     }
