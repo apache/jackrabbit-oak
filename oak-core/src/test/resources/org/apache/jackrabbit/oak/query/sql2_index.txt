@@ -65,7 +65,7 @@ explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantno
 [nt:base] as [a] /* property jcr:uuid where ([a].[jcr:uuid] is not null) and ([a].[jcr:uuid] in(cast('1' as long), cast('2' as long))) */ inner join [nt:base] as [b] /* property jcr:uuid where ([b].[jcr:uuid] is not null) and ([b].[jcr:uuid] in(cast('3' as long), cast('4' as long))) */ on isdescendantnode([b], [a])
 
 explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where a.[jcr:uuid] is not null and b.[x] is not null
-[nt:base] as [a] /* property jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* traverse "/path/from/the/join/selector/*" where [b].[x] is not null */ on isdescendantnode([b], [a])
+[nt:base] as [a] /* property jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* traverse "/path/from/the/join/selector//*" where [b].[x] is not null */ on isdescendantnode([b], [a])
 
 explain select [rep:excerpt] from [nt:base] where [jcr:uuid] is not null
 [nt:base] as [nt:base] /* property jcr:uuid (rep:excerpt) where [nt:base].[jcr:uuid] is not null */
