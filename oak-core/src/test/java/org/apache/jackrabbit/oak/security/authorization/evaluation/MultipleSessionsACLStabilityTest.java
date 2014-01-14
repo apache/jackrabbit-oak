@@ -86,7 +86,7 @@ public class MultipleSessionsACLStabilityTest extends AbstractOakCoreTest {
         assertFalse(rootTree2.hasChild("a/bb"));
     }
 
-    @Ignore("OAK-1197")
+    @Ignore("OAK-1197") // FIXME OAK-1197
     @Test
     public void testAllowChild3() throws Exception {
         Tree rootTree1 = testRoot1.getTree("/");
