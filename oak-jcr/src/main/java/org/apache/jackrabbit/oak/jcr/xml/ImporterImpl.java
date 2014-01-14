@@ -155,7 +155,8 @@ public class ImporterImpl implements Importer {
         if (!vMgr.isCheckedOut(absPath)) {
             throw new VersionException("Target node is checked in.");
         }
-        if (sessionContext.getWorkspace().getLockManager().isLocked(absPath)) {
+        if (importTargetTree.getStatus() != Tree.Status.NEW
+                && sessionContext.getWorkspace().getLockManager().isLocked(absPath)) {
             throw new LockException("Target node is locked.");
         }
         ntTypesRoot = root.getTree(NODE_TYPES_PATH);
