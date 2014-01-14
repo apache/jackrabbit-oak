@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.UUID;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
@@ -116,14 +117,15 @@ public abstract class NodeStoreFixture {
     public static final NodeStoreFixture MONGO_JDBC = new NodeStoreFixture() {
         @Override
         public NodeStore createNodeStore() {
-            return new MongoMK.Builder().setMongoJDBC("jdbc:h2:mem:oaknodes", "sa", "").getNodeStore();
+            String id = UUID.randomUUID().toString();
+            return new MongoMK.Builder().setMongoJDBC("jdbc:h2:mem:" + id, "sa", "").getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
                 return new MongoMK.Builder()
-                                .setMongoJDBC("jdbc:h2:mem:oaknodes", "sa", "").getNodeStore();
+                                .setMongoJDBC("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "").getNodeStore();
             } catch (Exception e) {
                 return null;
             }
