@@ -94,6 +94,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
         BUILT_IN.put(REP_WRITE, PrivilegeBits.getInstance(WRITE2));
     }
 
+    public static PrivilegeBits NEXT_AFTER_BUILT_INS =
+            getInstance(USER_MNGMT).nextBits();
+
     private final Data d;
 
     /**

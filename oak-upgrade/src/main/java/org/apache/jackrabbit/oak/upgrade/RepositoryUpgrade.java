@@ -27,6 +27,7 @@ import java.util.Set;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
+import javax.jcr.security.Privilege;
 import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.core.NamespaceRegistryImpl;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
+import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -50,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -107,6 +110,13 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.NT_REP_PRIVILEGE;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.NT_REP_PRIVILEGES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_BITS;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_NEXT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
 import static org.apache.jackrabbit.spi.commons.name.NameConstants.ANY_NAME;
 
 public class RepositoryUpgrade {
@@ -379,8 +389,66 @@ public class RepositoryUpgrade {
         return properties;
     }
 
+    @SuppressWarnings("deprecation")
     private void copyPrivileges(NodeBuilder root) throws RepositoryException {
-        // TODO
+        PrivilegeRegistry registry = source.getPrivilegeRegistry();
+        NodeBuilder privileges = root.child(JCR_SYSTEM).child(REP_PRIVILEGES);
+        privileges.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, NAME);
+
+        PrivilegeBits next = PrivilegeBits.NEXT_AFTER_BUILT_INS;
+
+        logger.info("Copying registered privileges");
+        for (Privilege privilege : registry.getRegisteredPrivileges()) {
+            String name = privilege.getName();
+            NodeBuilder def = privileges.child(name);
+            def.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, NAME);
+
+            if (privilege.isAbstract()) {
+                def.setProperty(REP_IS_ABSTRACT, true);
+            }
+
+            Privilege[] aggregate = privilege.getDeclaredAggregatePrivileges();
+            if (aggregate.length > 0) {
+                List<String> names = newArrayListWithCapacity(aggregate.length);
+                for (Privilege p : aggregate) {
+                    names.add(p.getName());
+                }
+                def.setProperty(REP_AGGREGATES, names, NAMES);
+            }
+
+            PrivilegeBits bits = PrivilegeBits.BUILT_IN.get(name);
+            if (bits != null) {
+                def.setProperty(bits.asPropertyState(REP_BITS));
+            } else if (aggregate.length == 0) {
+                bits = next;
+                next = next.nextBits();
+                def.setProperty(bits.asPropertyState(REP_BITS));
+            }
+        }
+
+        privileges.setProperty(next.asPropertyState(REP_NEXT));
+
+        // resolve privilege bits also for all aggregates
+        for (String name : privileges.getChildNodeNames()) {
+            resolvePrivilegeBits(privileges, name);
+        }
+    }
+
+    private PrivilegeBits resolvePrivilegeBits(
+            NodeBuilder privileges, String name) {
+        NodeBuilder def = privileges.getChildNode(name);
+
+        PropertyState b = def.getProperty(REP_BITS);
+        if (b != null) {
+            return PrivilegeBits.getInstance(b);
+        }
+
+        PrivilegeBits bits = PrivilegeBits.getInstance();
+        for (String n : def.getNames(REP_AGGREGATES)) {
+            bits.add(resolvePrivilegeBits(privileges, n));
+        }
+        def.setProperty(bits.asPropertyState(REP_BITS));
+        return bits;
     }
 
     private void copyNodeTypes(NodeBuilder root) throws RepositoryException {

@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  * PrivilegeDefinitionWriter is responsible for writing privilege definitions
  * to the repository without applying any validation checks.
  */
-public class PrivilegeDefinitionWriter implements PrivilegeConstants {
+class PrivilegeDefinitionWriter implements PrivilegeConstants {
 
     /**
      * The internal names of all built-in privileges that are not aggregates.
@@ -71,14 +71,14 @@ public class PrivilegeDefinitionWriter implements PrivilegeConstants {
 
     private PrivilegeBits next;
 
-    public PrivilegeDefinitionWriter(Root root) {
+    PrivilegeDefinitionWriter(Root root) {
         this.root = root;
         this.bitsMgr = new PrivilegeBitsProvider(root);
         Tree privilegesTree = bitsMgr.getPrivilegesTree();
         if (privilegesTree.exists() && privilegesTree.hasProperty(REP_NEXT)) {
             next = PrivilegeBits.getInstance(privilegesTree);
         } else {
-            next = PrivilegeBits.BUILT_IN.get(REP_USER_MANAGEMENT).nextBits();
+            next = PrivilegeBits.NEXT_AFTER_BUILT_INS;
         }
     }
 
@@ -88,7 +88,7 @@ public class PrivilegeDefinitionWriter implements PrivilegeConstants {
      * @param definition The new privilege definition.
      * @throws RepositoryException If the definition can't be written.
      */
-    public void writeDefinition(PrivilegeDefinition definition) throws RepositoryException {
+    void writeDefinition(PrivilegeDefinition definition) throws RepositoryException {
         writeDefinitions(Collections.singleton(definition));
     }
 

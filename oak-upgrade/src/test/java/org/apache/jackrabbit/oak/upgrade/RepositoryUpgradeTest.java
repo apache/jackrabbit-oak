@@ -35,13 +35,18 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 
 public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
@@ -60,17 +65,23 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
     protected void createSourceContent(Repository repository) throws Exception {
         Session session = repository.login(CREDENTIALS);
         try {
-            NamespaceRegistry registry =
-                session.getWorkspace().getNamespaceRegistry();
+            JackrabbitWorkspace workspace =
+                    (JackrabbitWorkspace) session.getWorkspace();
+
+            NamespaceRegistry registry = workspace.getNamespaceRegistry();
             registry.registerNamespace("test", "http://www.example.org/");
 
-            NodeTypeManager manager =
-                session.getWorkspace().getNodeTypeManager();
-            NodeTypeTemplate template = manager.createNodeTypeTemplate();
+            PrivilegeManager privilegeManager = workspace.getPrivilegeManager();
+            privilegeManager.registerPrivilege("test:privilege", false, null);
+            privilegeManager.registerPrivilege(
+                    "test:aggregate", false, new String[] { "jcr:read", "test:privilege" });
+
+            NodeTypeManager nodeTypeManager = workspace.getNodeTypeManager();
+            NodeTypeTemplate template = nodeTypeManager.createNodeTypeTemplate();
             template.setName("test:unstructured");
             template.setDeclaredSuperTypeNames(
                     new String[] { "nt:unstructured" });
-            manager.registerNodeType(template, false);
+            nodeTypeManager.registerNodeType(template, false);
 
             Node root = session.getRootNode();
 
@@ -130,6 +141,30 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertEquals(
                     "http://www.example.org/",
                     session.getNamespaceURI("test"));
+        } finally {
+            session.logout();
+        }
+    }
+
+    @Test
+    public void verifyCustomPrivileges() throws Exception {
+        JackrabbitSession session = createAdminSession();
+        try {
+            JackrabbitWorkspace workspace =
+                    (JackrabbitWorkspace) session.getWorkspace();
+            PrivilegeManager manager = workspace.getPrivilegeManager();
+
+            Privilege privilege = manager.getPrivilege("test:privilege");
+            assertNotNull(privilege);
+            assertFalse(privilege.isAbstract());
+            assertFalse(privilege.isAggregate());
+            assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
+
+            Privilege aggregate = manager.getPrivilege("test:aggregate");
+            assertNotNull(aggregate);
+            assertFalse(aggregate.isAbstract());
+            assertTrue(aggregate.isAggregate());
+            assertEquals(2, aggregate.getDeclaredAggregatePrivileges().length);
         } finally {
             session.logout();
         }
