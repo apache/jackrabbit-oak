@@ -177,10 +177,8 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
         public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
             ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
             for (AccessControlManager acMgr : acMgrs) {
-                if (acMgr instanceof JackrabbitAccessControlManager) {
-                    if (acMgr instanceof PolicyOwner) {
-                        policies.add(((JackrabbitAccessControlManager) acMgr).getApplicablePolicies(principal));
-                    }
+                if (acMgr instanceof JackrabbitAccessControlManager && acMgr instanceof PolicyOwner) {
+                    policies.add(((JackrabbitAccessControlManager) acMgr).getApplicablePolicies(principal));
                 }
             }
             List<JackrabbitAccessControlPolicy> l = policies.build();
