@@ -19,10 +19,7 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.security.Principal;
-
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
@@ -30,13 +27,15 @@ import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * This implementation of {@code Impersonation} delegates back to a
  * delegatee wrapping each call into a {@link SessionOperation} closure.
  *
  * @see SessionDelegate#perform(SessionOperation)
  */
-class ImpersonationDelegator implements Impersonation {
+final class ImpersonationDelegator implements Impersonation {
     private final SessionDelegate sessionDelegate;
     private final Impersonation impersonationDelegate;
 

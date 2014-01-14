@@ -220,7 +220,7 @@ abstract class AuthorizableDelegator implements Authorizable {
     }
 
     @Override
-    public String getPath() throws UnsupportedRepositoryOperationException, RepositoryException {
+    public String getPath() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<String>() {
             @Override
             public String perform() throws RepositoryException {
