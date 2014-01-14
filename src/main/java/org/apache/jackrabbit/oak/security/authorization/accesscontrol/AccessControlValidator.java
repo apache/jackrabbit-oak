@@ -166,9 +166,12 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     private void checkValidPolicy(ImmutableTree parent, Tree policyTree, NodeState policyNode) throws CommitFailedException {
-        TypePredicate requiredMixin = (REP_REPO_POLICY.equals(policyTree.getName())) ?
-                isRepoAccessControllable : isAccessControllable;
-        checkValidAccessControlledNode(parent, requiredMixin);
+        if (REP_REPO_POLICY.equals(policyTree.getName())) {
+            checkValidAccessControlledNode(parent, isRepoAccessControllable);
+            checkValidRepoAccessControlled(parent);
+        } else {
+            checkValidAccessControlledNode(parent, isAccessControllable);
+        }
 
         Collection<String> validPolicyNames = (parent.isRoot()) ?
                 POLICY_NODE_NAMES :
@@ -199,10 +202,6 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         if (!requiredMixin.apply(accessControlledTree.getNodeState())) {
             String msg = "Isolated policy node. Parent is not of type " + requiredMixin;
             throw accessViolation(6, msg);
-        }
-
-        if (MIX_REP_REPO_ACCESS_CONTROLLABLE.equals(requiredMixin)) {
-            checkValidRepoAccessControlled(accessControlledTree);
         }
     }
 
