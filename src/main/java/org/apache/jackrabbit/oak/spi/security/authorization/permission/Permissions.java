@@ -214,6 +214,11 @@ public final class Permissions {
         return (permissions & permissionsToTest) == permissionsToTest;
     }
 
+    public static boolean respectParentPermissions(long permissions) {
+        return Permissions.includes(permissions, Permissions.ADD_NODE) ||
+                Permissions.includes(permissions, Permissions.REMOVE_NODE);
+    }
+
      /**
       * Returns those bits from {@code permissions} that are not present in
       * the {@code otherPermissions}, i.e. subtracts the other permissions

@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * Predicate used to evaluation if a given {@code PermissionEntry} matches
@@ -34,22 +35,35 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
     private final PropertyState property;
     private final String path;
 
-    public EntryPredicate(@Nonnull Tree tree, @Nullable PropertyState property) {
-        this.tree = tree;
-        this.property = property;
-        this.path = tree.getPath();
+    private final String parentPath;
+    private final Tree parent;
+
+    public EntryPredicate(@Nonnull Tree tree, @Nullable PropertyState property,
+                          boolean respectParent) {
+        this(tree, property, tree.getPath(), respectParent);
     }
 
-    public EntryPredicate(@Nonnull String path) {
-        this.tree = null;
-        this.property = null;
-        this.path = path;
+    public EntryPredicate(@Nonnull String path, boolean respectParent) {
+        this(null, null, path, respectParent);
     }
 
     public EntryPredicate() {
-        this.tree = null;
-        this.property = null;
-        this.path = null;
+        this(null, null, null, false);
+    }
+
+    private EntryPredicate(@Nullable Tree tree, @Nullable PropertyState property,
+                           @Nullable String path, boolean respectParent) {
+        this.tree = tree;
+        this.property = property;
+        this.path = path;
+
+        if (respectParent) {
+            parentPath = (path == null || "/".equals(path)) ? null : PathUtils.getParentPath(path);
+            parent = (tree == null || tree.isRoot()) ? null : tree.getParent();
+        } else {
+            parentPath = null;
+            parent = null;
+        }
     }
 
     @CheckForNull
@@ -63,11 +77,21 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
             return false;
         }
         if (tree != null) {
-            return entry.matches(tree, property);
+            return entry.matches(tree, property) || applyToParent(entry);
         } else if (path != null) {
-            return entry.matches(path);
+            return entry.matches(path) || applyToParent(entry);
         } else {
             return entry.matches();
+        }
+    }
+
+    private boolean applyToParent(@Nonnull PermissionEntry entry) {
+        if (parent != null) {
+            return entry.matches(parent, null);
+        } else if (parentPath != null) {
+            return entry.matches(parentPath);
+        } else {
+            return false;
         }
     }
 }
