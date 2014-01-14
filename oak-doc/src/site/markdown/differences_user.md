@@ -294,6 +294,7 @@ The following configuration parameters present with the default implementation i
 * "compatibleJR16"
 * "autoExpandTree"
 * "autoExpandSize"
+* "groupMembershipSplitSize"
 
 <!-- hidden references -->
 [OAK-118]: https://issues.apache.org/jira/browse/OAK-118
