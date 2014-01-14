@@ -61,7 +61,7 @@ public abstract class AbstractRepositoryTest {
                 {NodeStoreFixture.MONGO_MK},
                 {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},
-                {NodeStoreFixture.MONGO_JDBC},
+                // {NodeStoreFixture.MONGO_JDBC},
         };
         return Arrays.asList(fixtures);
     }
