@@ -123,22 +123,6 @@ public interface UserConstants {
     int DEFAULT_DEPTH = 2;
 
     /**
-     * Its value determines the maximum number of members within a given
-     * content structure until additional intermediate structuring is being
-     * added. This may for example be used to
-     * <ul>
-     *     <li>switch storing group members in JCR properties or nodes</li>
-     *     <li>define maximum number of members is a multivalued property</li>
-     *     <li>define maximum number of member properties within a given
-     *     node structure</li>
-     * </ul>
-     *
-     * @deprecated since oak 1.0
-     */
-    @Deprecated
-    String PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE = "groupMembershipSplitSize";
-
-    /**
      * Configuration parameter to change the default algorithm used to generate
      * password hashes.
      */
