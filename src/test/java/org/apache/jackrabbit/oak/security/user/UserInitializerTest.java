@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -153,7 +153,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
-                .with(new RegistrationEditorProvider())
+                .with(new TypeEditorProvider())
                 .with(sp)
                 .createContentRepository();
 
@@ -204,7 +204,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
-                .with(new RegistrationEditorProvider())
+                .with(new TypeEditorProvider())
                 .with(sp)
                 .createContentRepository();
 

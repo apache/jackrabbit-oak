@@ -20,12 +20,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+
+import java.util.Collections;
+import java.util.Set;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -39,22 +44,41 @@ public class TypeEditorProvider implements EditorProvider {
     public Editor getRootEditor(
             NodeState before, NodeState after, NodeBuilder builder)
             throws CommitFailedException {
-        NodeState system = after.getChildNode(JCR_SYSTEM);
-        NodeState types = system.getChildNode(JCR_NODE_TYPES);
-        if (types.exists()) {
+        NodeState beforeTypes =
+                before.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
+        NodeState afterTypes =
+                after.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
 
-            String primary = after.getName(JCR_PRIMARYTYPE);
-            Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
+        Set<String> modifiedTypes = Collections.emptySet();
+        TypeRegistration registration = new TypeRegistration();
+        afterTypes.compareAgainstBaseState(beforeTypes, registration);
+        if (registration.isModified()) {
+            afterTypes = registration.apply(builder);
+            modifiedTypes = registration.getModifiedTypes(beforeTypes);
+        }
 
-            if (primary == null) {
-                // no primary type on the root node, set the hardcoded default
-                primary = "rep:root";
-                builder.setProperty(JCR_PRIMARYTYPE, primary, NAME);
-            }
+        String primary = after.getName(JCR_PRIMARYTYPE);
+        Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
 
-            return new VisibleEditor(
-                    new TypeEditor(types, primary, mixins, builder));
+        if (primary == null && afterTypes.hasChildNode("rep:root")) {
+            // no primary type on the root node, set the hardcoded default
+            primary = "rep:root";
+            builder.setProperty(JCR_PRIMARYTYPE, primary, NAME);
+        }
+
+        Editor editor = new VisibleEditor(
+                new TypeEditor(afterTypes, primary, mixins, builder));
+        if (modifiedTypes.isEmpty()) {
+            return editor;
         } else {
+            // Some node types were modified, so scan the entire repository
+            // to make sure that the modified type definitions still apply.
+            // TODO: Only check the content that uses the modified node types.
+            CommitFailedException exception =
+                    EditorDiff.process(editor, MISSING_NODE, after);
+            if (exception != null) {
+                throw exception;
+            }
             return null;
         }
     }

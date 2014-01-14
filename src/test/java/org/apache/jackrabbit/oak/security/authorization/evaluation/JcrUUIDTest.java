@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -76,7 +75,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
 
     @Override
     protected Oak withEditors(Oak oak) {
-        return oak.with(new TypeEditorProvider()).with(new RegistrationEditorProvider());
+        return oak.with(new TypeEditorProvider());
     }
 
     /**

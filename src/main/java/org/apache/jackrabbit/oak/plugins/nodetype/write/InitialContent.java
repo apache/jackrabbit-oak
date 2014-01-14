@@ -20,8 +20,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 
 import com.google.common.collect.ImmutableList;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -31,7 +29,7 @@ import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -88,9 +86,10 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
 
         NodeState base = builder.getNodeState();
         NodeStore store = new MemoryNodeStore(base);
-        BuiltInNodeTypes.register(new SystemRoot(store, new EditorHook(
-                new CompositeEditorProvider(new NamespaceEditorProvider(),
-                        new RegistrationEditorProvider()))));
+        BuiltInNodeTypes.register(new SystemRoot(
+                store, new EditorHook(new CompositeEditorProvider(
+                        new NamespaceEditorProvider(),
+                        new TypeEditorProvider()))));
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }
