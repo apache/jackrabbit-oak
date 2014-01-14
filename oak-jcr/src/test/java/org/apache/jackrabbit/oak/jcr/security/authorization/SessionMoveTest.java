@@ -25,7 +25,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -141,6 +140,29 @@ public class SessionMoveTest extends AbstractMoveTest {
     }
 
     @Test
+    public void testMoveRemoveSubTreeWithRestriction2() throws Exception {
+            /* allow READ/WRITE privilege for testUser at 'path' */
+        allow(path, testUser.getPrincipal(), readWritePrivileges);
+            /* deny REMOVE_NODE privileges at subtree. */
+        deny(path, privilegesFromName(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), createGlobRestriction("*/" + Text.getName(childNPath)));
+
+        assertTrue(testSession.nodeExists(childNPath));
+        assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+        assertTrue(testSession.hasPermission(childNPath2, Session.ACTION_ADD_NODE));
+
+        testSession.move(childNPath, childNPath2 + "/dest");
+        Node dest = testSession.getNode(childNPath2 + "/dest");
+        dest.getNode(nodeName3).remove();
+
+        try {
+            testSession.save();
+            fail("Removing child node must be denied.");
+        } catch (AccessDeniedException e) {
+            // success
+        }
+    }
+
+    @Test
     public void testMoveAndAddSubTree() throws Exception {
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
@@ -199,7 +221,6 @@ public class SessionMoveTest extends AbstractMoveTest {
         testSession.save();
     }
 
-    @Ignore("OAK-1223") // FIXME: OAK-1223
     @Test
     public void testMoveAddSubTreeWithRestriction() throws Exception {
         /* allow READ/WRITE privilege for testUser at 'path' */
