@@ -19,11 +19,12 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static junit.framework.Assert.assertFalse;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.runners.Parameterized.Parameters;
 
 import java.util.ArrayList;
@@ -444,6 +445,34 @@ public class NodeStoreTest {
     @Test
     public void compareAgainstBaseState100() throws CommitFailedException {
         compareAgainstBaseState(KernelNodeState.MAX_CHILD_NODE_NAMES);
+    }
+
+    @Test // OAK-1320
+    public void rebaseWithFailedMerge() throws CommitFailedException {
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        rootBuilder.child("foo");
+
+        // commit something in between to force rebase
+        NodeBuilder b = store.getRoot().builder();
+        b.child("bar");
+        store.merge(b, EmptyHook.INSTANCE, null);
+
+        try {
+            store.merge(rootBuilder, new CommitHook() {
+                @Nonnull
+                @Override
+                public NodeState processCommit(NodeState before, NodeState after)
+                        throws CommitFailedException {
+                    throw new CommitFailedException("", 0, "commit rejected");
+                }
+            }, null);
+            fail("must throw CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+        // merge again
+        NodeState root = store.merge(rootBuilder, EmptyHook.INSTANCE, null);
+        assertTrue(root.hasChildNode("bar"));
     }
 
     private void compareAgainstBaseState(int childNodeCount) throws CommitFailedException {
