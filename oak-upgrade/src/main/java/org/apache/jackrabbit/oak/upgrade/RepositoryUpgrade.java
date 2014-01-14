@@ -276,6 +276,7 @@ public class RepositoryUpgrade {
 
             Map<Integer, String> idxToPrefix = copyNamespaces(builder);
             copyNodeTypes(builder);
+            copyPrivileges(builder);
             copyVersionStore(builder, idxToPrefix);
             copyWorkspaces(builder, idxToPrefix);
 
@@ -376,6 +377,10 @@ public class RepositoryUpgrade {
         }
 
         return properties;
+    }
+
+    private void copyPrivileges(NodeBuilder root) throws RepositoryException {
+        // TODO
     }
 
     private void copyNodeTypes(NodeBuilder root) throws RepositoryException {
