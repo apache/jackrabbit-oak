@@ -150,7 +150,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Adding an ACL below access control content should fail");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.isAccessControlViolation());
+                assertTrue(e.isConstraintViolation());
             } finally {
                 policy.getTree().remove();
             }
@@ -170,7 +170,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Adding an ACL below access control content should fail");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.isAccessControlViolation());
+                assertTrue(e.isConstraintViolation());
             } finally {
                 policy.getTree().remove();
             }
@@ -190,7 +190,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Adding an ACE below an ACE or restriction should fail");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.isAccessControlViolation());
+                assertTrue(e.isConstraintViolation());
             } finally {
                 entry.getTree().remove();
             }
@@ -210,7 +210,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Adding an ACE below an ACE or restriction should fail");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.isAccessControlViolation());
+                assertTrue(e.isConstraintViolation());
             } finally {
                 entry.getTree().remove();
             }

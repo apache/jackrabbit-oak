@@ -106,4 +106,5 @@ public class TypeEditorTest {
         TypeEditor editor = new TypeEditor(effective);
         editor.childNodeDeleted("mandatory", EMPTY_NODE);
     }
+
 }

@@ -450,10 +450,10 @@
   - rep:hasProtectedResidualProperties (BOOLEAN) protected autocreated
   - rep:hasProtectedResidualChildNodes (BOOLEAN) protected autocreated
   - rep:namedSingleValuedProperties (NAME) protected multiple autocreated
-  + rep:namedPropertyDefinitions (rep:NamedPropertyDefinitions) = rep:NamedPropertyDefinitions protected mandatory
-  + rep:residualPropertyDefinitions (rep:PropertyDefinitions) = rep:PropertyDefinitions protected mandatory
-  + rep:namedChildNodeDefinitions (rep:NamedChildNodeDefinitions) = rep:NamedChildNodeDefinitions protected mandatory
-  + rep:residualChildNodeDefinitions (rep:ChildNodeDefinitions) = rep:ChildNodeDefinitions protected mandatory
+  + rep:namedPropertyDefinitions (rep:NamedPropertyDefinitions) = rep:NamedPropertyDefinitions protected
+  + rep:residualPropertyDefinitions (rep:PropertyDefinitions) = rep:PropertyDefinitions protected
+  + rep:namedChildNodeDefinitions (rep:NamedChildNodeDefinitions) = rep:NamedChildNodeDefinitions protected
+  + rep:residualChildNodeDefinitions (rep:ChildNodeDefinitions) = rep:ChildNodeDefinitions protected
 
 [rep:NamedPropertyDefinitions]
   + * (rep:PropertyDefinitions) = rep:PropertyDefinitions protected
@@ -533,7 +533,7 @@
 [oak:QueryIndexDefinition] > oak:Unstructured
   - type (STRING) mandatory
   - async (STRING)
-  - reindex (BOOLEAN) mandatory IGNORE
+  - reindex (BOOLEAN) IGNORE
 
 //------------------------------------------------------------------------------
 // L I F E C Y C L E   M A N A G E M E N T
@@ -679,7 +679,7 @@
 [rep:PermissionStore]
   - rep:accessControlledPath (STRING) protected IGNORE
   - rep:numPermissions (LONG) protected IGNORE
-  - rep:timestamp (LONG) protected IGNORE
+  - rep:modCount (LONG) protected IGNORE
   + * (rep:PermissionStore) = rep:PermissionStore protected IGNORE
   + * (rep:Permissions) = rep:Permissions protected IGNORE
 

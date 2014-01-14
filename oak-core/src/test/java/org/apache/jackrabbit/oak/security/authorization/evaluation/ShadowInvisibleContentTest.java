@@ -56,7 +56,7 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
             testRoot.commit();
             fail();
         } catch (CommitFailedException e) {
-            assertTrue(e.isAccessViolation());
+            assertTrue(e.isConstraintViolation());
         }
     }
 
