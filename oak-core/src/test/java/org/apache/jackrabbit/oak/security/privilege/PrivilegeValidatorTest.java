@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.Collections;
 
 import com.google.common.collect.ImmutableList;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -32,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -65,7 +67,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             fail("Missing privilege bits property must be detected.");
         } catch (CommitFailedException e) {
             // success
-            assertEquals("OakConstraint0048: PrivilegeBits are missing.", e.getMessage());
+            assertTrue(e.isConstraintViolation());
         } finally {
             root.refresh();
         }

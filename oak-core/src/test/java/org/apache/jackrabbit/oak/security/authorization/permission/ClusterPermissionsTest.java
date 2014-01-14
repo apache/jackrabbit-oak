@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.mongomk.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
-import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -95,7 +95,7 @@ public class ClusterPermissionsTest {
                 .with(new ReferenceIndexProvider())
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
-                .with(new RegistrationEditorProvider())
+                .with(new TypeEditorProvider())
                 .with(securityProvider1 = new SecurityProviderImpl(getSecurityConfigParameters()));
         contentRepository1 = oak.createContentRepository();
         adminSession1 = login1(getAdminCredentials());
@@ -109,7 +109,7 @@ public class ClusterPermissionsTest {
                 .with(new ReferenceIndexProvider())
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
-                .with(new RegistrationEditorProvider())
+                .with(new TypeEditorProvider())
                 .with(securityProvider2 = new SecurityProviderImpl(getSecurityConfigParameters()));
 
         contentRepository2 = oak.createContentRepository();

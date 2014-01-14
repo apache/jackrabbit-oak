@@ -41,6 +41,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -106,7 +107,12 @@ class TypeEditor extends DefaultEditor {
 
     private CommitFailedException constraintViolation(
             int code, String message) {
-        return effective.constraintViolation(code, getPath(), message);
+        if (effective != null) {
+            return effective.constraintViolation(code, getPath(), message);
+        } else {
+            return new CommitFailedException(
+                    CONSTRAINT, 0, getPath() + ": " + message);
+        }
     }
 
     private String getPath() {
@@ -165,14 +171,14 @@ class TypeEditor extends DefaultEditor {
         // verify the presence of all mandatory items
         for (String property : editor.effective.getMandatoryProperties()) {
             if (!after.hasProperty(property)) {
-                throw constraintViolation(
+                throw editor.constraintViolation(
                         21, "Mandatory property " + property
                         + " not found in a new node");
             }
         }
         for (String child : editor.effective.getMandatoryChildNodes()) {
             if (!after.hasChildNode(child)) {
-                throw constraintViolation(
+                throw editor.constraintViolation(
                         25, "Mandatory child node " + child
                         + " not found in a new node");
             }

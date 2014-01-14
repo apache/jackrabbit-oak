@@ -16,24 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Iterables.contains;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
+import static com.google.common.collect.Sets.union;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -76,32 +64,128 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_R
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_UUID;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.collect.Iterables;
+
 /**
- * Editor that validates the consistency of the in-content node type registry
- * under {@code /jcr:system/jcr:nodeTypes} and maintains the access-optimized
- * versions of node type information as defined in {@code rep:NodeType}.
+ * This class is used by the {@link TypeEditorProvider} to check for,
+ * validate, and post-process changes to the in-content node type registry
+ * under {@code /jcr:system/jcr:nodeTypes}. The post-processing is used to
+ * maintain the access-optimized versions of node type information as
+ * defined in {@code rep:NodeType}.
  *
  * <ul>
- *     <li>validate new definitions</li>
- *     <li>detect collisions,</li>
- *     <li>prevent circular inheritance,</li>
- *     <li>reject modifications to definitions that render existing content invalid,</li>
- *     <li>prevent un-registration of built-in node types.</li>
+ *   <li>validate new definitions,</li>
+ *   <li>detect collisions,</li>
+ *   <li>prevent circular inheritance,</li>
+ *   <li>reject modifications to definitions that render existing content invalid,</li>
+ *   <li>etc.</li>
  * </ul>
  */
-class RegistrationEditor extends DefaultEditor {
+class TypeRegistration extends DefaultNodeStateDiff {
 
-    private final NodeBuilder builder;
+    private final Set<String> addedTypes = newHashSet();
 
     private final Set<String> changedTypes = newHashSet();
 
     private final Set<String> removedTypes = newHashSet();
 
-    private boolean modified = false;
-
-    RegistrationEditor(NodeBuilder builder) {
-        this.builder = checkNotNull(builder);
+    /**
+     * Checks whether any node type modifications were detected during
+     * the diff of the type registry.
+     *
+     * @return {@code true} if there were node type modifications,
+     *         {@code false} if not
+     */
+    boolean isModified() {
+        return !addedTypes.isEmpty()
+                || !changedTypes.isEmpty()
+                || !removedTypes.isEmpty();
     }
+
+    /**
+     * Returns the names of all node types that may have been modified
+     * in backwards-incompatible ways (including being removed entirely),
+     * and thus need to be re-evaluated across the entire content tree.
+     * The names of potentially affected subtypes are also included.
+     *
+     * @param beforeTypes the type registry before the changes
+     * @return names of modified or removed node types
+     */
+    Set<String> getModifiedTypes(NodeState beforeTypes) {
+        Set<String> types = newHashSet();
+        for (String name : union(changedTypes, removedTypes)) {
+            types.add(name);
+            NodeState type = beforeTypes.getChildNode(name);
+            addAll(types, type.getNames(REP_PRIMARY_SUBTYPES));
+            addAll(types, type.getNames(REP_MIXIN_SUBTYPES));
+        }
+        return types;
+    }
+
+    NodeState apply(NodeBuilder builder) throws CommitFailedException {
+        NodeBuilder types = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
+
+        for (String name : types.getChildNodeNames()) {
+            validateAndCompileType(types, name);
+        }
+
+        for (String name : types.getChildNodeNames()) {
+            mergeSupertypes(types, types.child(name));
+        }
+
+        for (String name : types.getChildNodeNames()) {
+            NodeBuilder type = types.child(name);
+            String listName = REP_PRIMARY_SUBTYPES;
+            if (type.getBoolean(JCR_ISMIXIN)) {
+                listName = REP_MIXIN_SUBTYPES;
+            }
+            for (String supername : getNames(type, REP_SUPERTYPES)) {
+                addNameToList(types.child(supername), listName, name);
+            }
+        }
+
+        return types.getNodeState();
+    }
+
+    //-----------------------------------------------------< NodeStateDiff >--
+
+    @Override
+    public boolean childNodeAdded(String name, NodeState after) {
+        addedTypes.add(name);
+        return true;
+    }
+
+    @Override
+    public boolean childNodeChanged(
+            String name, NodeState before, NodeState after) {
+        // the NodeState.equals() method is potentially expensive
+        // and should generally not be used, but here we can expect
+        // the node structures to be small so even a full scan will
+        // be reasonably efficient
+        if (!before.equals(after)) {
+            changedTypes.add(name);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean childNodeDeleted(String name, NodeState before) {
+        removedTypes.add(name);
+        return true;
+    }
+
+    //-----------------------------------------------------------< private >--
 
     /**
      * Validates the inheritance hierarchy of the identified node type and
@@ -386,58 +470,6 @@ class RegistrationEditor extends DefaultEditor {
                 }
             }
         }
-    }
-
-    //------------------------------------------------------------< Editor >--
-
-    @Override
-    public void leave(NodeState before, NodeState after)
-            throws CommitFailedException {
-        if (modified) {
-            NodeBuilder types = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
-            for (String name : types.getChildNodeNames()) {
-                validateAndCompileType(types, name);
-            }
-            for (String name : types.getChildNodeNames()) {
-                mergeSupertypes(types, types.child(name));
-            }
-            for (String name : types.getChildNodeNames()) {
-                NodeBuilder type = types.child(name);
-                String listName = REP_PRIMARY_SUBTYPES;
-                if (type.getBoolean(JCR_ISMIXIN)) {
-                    listName = REP_MIXIN_SUBTYPES;
-                }
-                for (String supername : getNames(type, REP_SUPERTYPES)) {
-                    addNameToList(types.child(supername), listName, name);
-                }
-            }
-
-            if (!changedTypes.isEmpty() || !removedTypes.isEmpty()) {
-                // TODO: Find and re-validate any nodes in the repository that
-                // refer to any of the changed (or removed) node types.
-            }
-        }
-    }
-
-    @Override
-    public Validator childNodeAdded(String name, NodeState after) {
-        modified = true;
-        return null;
-    }
-
-    @Override
-    public Validator childNodeChanged(
-            String name, NodeState before, NodeState after) {
-        modified = true;
-        changedTypes.add(name);
-        return null;
-    }
-
-    @Override
-    public Validator childNodeDeleted(String name, NodeState before) {
-        modified = true;
-        removedTypes.add(name);
-        return null;
     }
 
 }

@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
+import static junit.framework.Assert.fail;
+
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
@@ -61,4 +64,35 @@ public class NodeTypeTest extends AbstractRepositoryTest {
 
         session.save();
     }
+
+    @Test
+    public void removeNodeType() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        ValueFactory vf = session.getValueFactory();
+        NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
+
+        Node n = root.addNode("q1", "nt:query");
+        n.setProperty("jcr:statement", vf.createValue("statement"));
+        n.setProperty("jcr:language", vf.createValue("language"));
+        session.save();
+
+        try {
+            manager.unregisterNodeType("nt:query");
+            fail();
+        } catch (ConstraintViolationException expected) {
+            // this type is referenced in content, so it can't be removed
+        }
+
+        n.remove();
+        session.save();
+
+        try {
+            manager.unregisterNodeType("nt:query");
+            // no longer referenced in content, so removal should succeed
+        } catch (ConstraintViolationException unexpected) {
+            fail();
+        }
+    }
+
 }
