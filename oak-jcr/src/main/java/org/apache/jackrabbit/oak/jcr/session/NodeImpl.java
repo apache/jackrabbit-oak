@@ -55,7 +55,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
@@ -65,7 +64,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
@@ -74,6 +72,7 @@ import org.apache.jackrabbit.oak.jcr.lock.LockOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -1424,9 +1423,55 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     //-----------------------------------------------------< JackrabbitNode >---
+
+    /**
+     * Simplified implementation of {@link JackrabbitNode#rename(String)}. In
+     * contrast to the implementation in Jackrabbit 2.x which was operating on
+     * the NodeState level directly, this implementation does a move plus
+     * subsequent reorder on the JCR API due to a missing support for renaming
+     * on the OAK API.
+     *
+     * Note, that this also has an impact on how permissions are enforced: In
+     * Jackrabbit 2.x the rename just required permission to modify the child
+     * collection on the parent, whereas a move did the full permission check.
+     * With this simplified implementation that (somewhat inconsistent) difference
+     * has been removed.
+     *
+     * @param newName The new name of this node.
+     * @throws RepositoryException If an error occurs.
+     */
     @Override
     public void rename(String newName) throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("TODO: JackrabbitNode.rename (OAK-770");
+        if (dlg.isRoot()) {
+            throw new RepositoryException("Cannot rename the root node");
+        }
+
+        String name = getName();
+        if (newName.equals(name)) {
+            // nothing to do
+            return;
+        }
+
+        String beforeName = null;
+        Node parent = getParent();
+        NodeIterator nit = parent.getNodes();
+        while (nit.hasNext()) {
+            Node child = nit.nextNode();
+            if (name.equals(child.getName())) {
+                if (nit.hasNext()) {
+                    beforeName = nit.nextNode().getName();
+                }
+                break;
+            }
+        }
+
+        String srcPath = getPath();
+        String destPath = PathUtils.getAncestorPath(srcPath, 1) + '/' + newName;
+        sessionContext.getSession().move(srcPath, destPath);
+
+        if (beforeName != null) {
+            parent.orderBefore(newName, beforeName);
+        }
     }
 
     @Override
