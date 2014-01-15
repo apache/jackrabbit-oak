@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -120,7 +121,7 @@ class MutableNodeState extends AbstractNodeState {
         if (!exists()) {
             return false;
         } else if (nodes.isEmpty() && properties.isEmpty()) {
-            return false;
+            return EqualsDiff.modified(before, base);
         }
 
         // was a child node added or removed?
