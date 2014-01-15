@@ -237,12 +237,10 @@ public abstract class AbstractRoot implements Root {
     @Override
     public void rebase() {
         checkLive();
-        if (!store.getRoot().equals(getBaseState())) { // TODO: do we need this?
-            store.rebase(builder);
-            secureBuilder.baseChanged();
-            if (permissionProvider.hasValue()) {
-                permissionProvider.get().refresh();
-            }
+        store.rebase(builder);
+        secureBuilder.baseChanged();
+        if (permissionProvider.hasValue()) {
+            permissionProvider.get().refresh();
         }
     }
 
