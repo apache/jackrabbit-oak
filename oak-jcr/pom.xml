@@ -116,6 +116,9 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleProperty        <!-- OAK-920 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleAcContent       <!-- OAK-920 -->
 
+      <!-- JackrabbitNode -->
+      org.apache.jackrabbit.oak.jcr.JackrabbitNodeTest#testSetMixins                                 <!-- OAK-770 -->
+
       <!-- Query -->
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException                          <!-- OAK-203 -->
