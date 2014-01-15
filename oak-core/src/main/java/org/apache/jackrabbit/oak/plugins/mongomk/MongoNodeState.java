@@ -58,7 +58,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 /**
  * A {@link NodeState} implementation for the {@link MongoNodeStore}.
  * TODO: merge MongoNodeState with Node
- * TODO: implement more methods for efficient access (getProperty(), etc.)
  */
 final class MongoNodeState extends AbstractNodeState {
 
@@ -120,25 +119,35 @@ final class MongoNodeState extends AbstractNodeState {
 
     @Override
     public boolean exists() {
-        return node != null;
+        return true;
+    }
+
+    @Override
+    public PropertyState getProperty(String name) {
+        String value = node.getProperty(name);
+        if (value == null) {
+            return null;
+        }
+        JsopReader reader = new JsopTokenizer(value);
+        if (reader.matches('[')) {
+            return readArrayProperty(name, reader);
+        } else {
+            return readProperty(name, reader);
+        }
+    }
+
+    @Override
+    public boolean hasProperty(String name) {
+        return node.getPropertyNames().contains(name);
     }
 
     @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        if (node == null) {
-            return Collections.emptyList();
-        }
         return Iterables.transform(node.getPropertyNames(), new Function<String, PropertyState>() {
             @Override
             public PropertyState apply(String name) {
-                String value = node.getProperty(name);
-                JsopReader reader = new JsopTokenizer(value);
-                if (reader.matches('[')) {
-                    return readArrayProperty(name, reader);
-                } else {
-                    return readProperty(name, reader);
-                }
+                return getProperty(name);
             }
         });
     }
