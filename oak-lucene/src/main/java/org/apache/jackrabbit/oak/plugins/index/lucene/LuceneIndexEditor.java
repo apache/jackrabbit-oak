@@ -101,16 +101,11 @@ public class LuceneIndexEditor implements IndexEditor {
             throws CommitFailedException {
         if (propertiesChanged || !before.exists()) {
             String path = getPath();
-            try {
-                context.getWriter().updateDocument(newPathTerm(path),
-                        makeDocument(path, after));
-            } catch (IOException e) {
-                throw new CommitFailedException(
-                        "Lucene", 3, "Failed to index the node " + path, e);
-            }
-            long indexed = context.incIndexedNodes();
-            if (indexed % 1000 == 0) {
-                log.debug("Indexed {} nodes...", indexed);
+            if (addOrUpdate(path, after, before.exists())) {
+                long indexed = context.incIndexedNodes();
+                if (indexed % 1000 == 0) {
+                    log.debug("Indexed {} nodes...", indexed);
+                }
             }
         }
 
@@ -172,14 +167,24 @@ public class LuceneIndexEditor implements IndexEditor {
         return null; // no need to recurse down the removed subtree
     }
 
-    private Document makeDocument(String path, NodeState state) {
-        Document document = new Document();
-        document.add(newPathField(path));
-        String name = getName(path);
-        if (name != null) {
-            document.add(newFulltextField(name));
+    private boolean addOrUpdate(String path, NodeState state, boolean isUpdate)
+            throws CommitFailedException {
+        try {
+            Document d = makeDocument(path, state, isUpdate);
+            if (d != null) {
+                context.getWriter().updateDocument(newPathTerm(path), d);
+                return true;
+            }
+        } catch (IOException e) {
+            throw new CommitFailedException("Lucene", 3,
+                    "Failed to index the node " + path, e);
         }
+        return false;
+    }
 
+    private Document makeDocument(String path, NodeState state, boolean isUpdate) {
+        Document document = new Document();
+        boolean dirty = false;
         for (PropertyState property : state.getProperties()) {
             String pname = property.getName();
             if (isVisible(pname)
@@ -187,15 +192,26 @@ public class LuceneIndexEditor implements IndexEditor {
                             .tag())) != 0 && context.includeProperty(pname)) {
                 if (Type.BINARY.tag() == property.getType().tag()) {
                     addBinaryValue(document, property, state);
+                    dirty = true;
                 } else {
                     for (String value : property.getValue(Type.STRINGS)) {
                         document.add(newPropertyField(pname, value));
                         document.add(newFulltextField(value));
+                        dirty = true;
                     }
                 }
             }
         }
 
+        if (isUpdate && !dirty) {
+            // updated the state but had no relevant changes
+            return null;
+        }
+        document.add(newPathField(path));
+        String name = getName(path);
+        if (name != null) {
+            document.add(newFulltextField(name));
+        }
         return document;
     }
 
