@@ -64,6 +64,7 @@
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddLockTokenToAnotherSession
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockWithPendingChanges
 
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock2
