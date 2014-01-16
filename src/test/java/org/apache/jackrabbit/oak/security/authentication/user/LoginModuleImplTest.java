@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
+import java.util.Arrays;
 import javax.jcr.GuestCredentials;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
@@ -26,6 +28,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -38,6 +41,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -45,9 +49,36 @@ import static org.junit.Assert.fail;
  */
 public class LoginModuleImplTest extends AbstractSecurityTest {
 
+    private static final String USER_ID = "test";
+    private static final String USER_PW = "pw";
+    private User user;
+
+    @Override
+    public void before() throws Exception {
+        // TODO
+        super.before();
+    }
+
+    @Override
+    public void after() throws Exception {
+        if (user != null) {
+            user.remove();
+            root.commit();
+        }
+    }
+
     @Override
     protected Configuration getConfiguration() {
         return ConfigurationUtil.getDefaultConfiguration(ConfigurationParameters.EMPTY);
+    }
+
+    private User createTestUser() throws RepositoryException, CommitFailedException {
+        if (user == null) {
+            UserManager userManager = getUserManager(root);
+            user = userManager.createUser(USER_ID, USER_PW);
+            root.commit();
+        }
+        return user;
     }
 
     @Test
@@ -103,21 +134,14 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Test
     public void testUserLogin() throws Exception {
-        UserManager userManager = getUserManager(root);
         ContentSession cs = null;
-        User user = null;
         try {
-            user = userManager.createUser("test", "pw");
-            root.commit();
+            createTestUser();
 
-            cs = login(new SimpleCredentials("test", "pw".toCharArray()));
+            cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()));
             AuthInfo authInfo = cs.getAuthInfo();
-            assertEquals("test", authInfo.getUserID());
+            assertEquals(USER_ID, authInfo.getUserID());
         } finally {
-            if (user != null) {
-                user.remove();
-                root.commit();
-            }
             if (cs != null) {
                 cs.close();
             }
@@ -126,32 +150,25 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Test
     public void testSelfImpersonation() throws Exception {
-        UserManager userManager = getUserManager(root);
         ContentSession cs = null;
-        User user = null;
         try {
-            user = userManager.createUser("test", "pw");
-            root.commit();
+            createTestUser();
 
-            SimpleCredentials sc = new SimpleCredentials("test", "pw".toCharArray());
+            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
             cs = login(sc);
 
             AuthInfo authInfo = cs.getAuthInfo();
-            assertEquals("test", authInfo.getUserID());
+            assertEquals(USER_ID, authInfo.getUserID());
 
             cs.close();
 
-            sc = new SimpleCredentials("test", new char[0]);
+            sc = new SimpleCredentials(USER_ID, new char[0]);
             ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
             cs = login(ic);
 
             authInfo = cs.getAuthInfo();
-            assertEquals("test", authInfo.getUserID());
+            assertEquals(USER_ID, authInfo.getUserID());
         } finally {
-            if (user != null) {
-                user.remove();
-                root.commit();
-            }
             if (cs != null) {
                 cs.close();
             }
@@ -160,18 +177,15 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Test
     public void testInvalidImpersonation() throws Exception {
-        UserManager userManager = getUserManager(root);
         ContentSession cs = null;
-        User user = null;
         try {
-            user = userManager.createUser("test", "pw");
-            root.commit();
+            createTestUser();
 
-            SimpleCredentials sc = new SimpleCredentials("test", "pw".toCharArray());
+            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
             cs = login(sc);
 
             AuthInfo authInfo = cs.getAuthInfo();
-            assertEquals("test", authInfo.getUserID());
+            assertEquals(USER_ID, authInfo.getUserID());
 
             cs.close();
             cs = null;
@@ -188,10 +202,56 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
                 // success
             }
         } finally {
-            if (user != null) {
-                user.remove();
-                root.commit();
+            if (cs != null) {
+                cs.close();
             }
+        }
+    }
+
+    @Test
+    public void testLoginWithAttributes( ) throws Exception {
+        ContentSession cs = null;
+        try {
+            createTestUser();
+
+            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
+            sc.setAttribute("attr", "value");
+
+            cs = login(sc);
+
+            AuthInfo authInfo = cs.getAuthInfo();
+            assertTrue(Arrays.asList(authInfo.getAttributeNames()).contains("attr"));
+            assertEquals("value", authInfo.getAttribute("attr"));
+
+            cs.close();
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testImpersonationWithAttributes() throws Exception {
+        ContentSession cs = null;
+        try {
+            createTestUser();
+
+            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
+            cs = login(sc);
+            AuthInfo authInfo = cs.getAuthInfo();
+            cs.close();
+            cs = null;
+
+            sc = new SimpleCredentials(USER_ID, new char[0]);
+            sc.setAttribute("attr", "value");
+            ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
+            cs = login(ic);
+
+            authInfo = cs.getAuthInfo();
+            assertTrue(Arrays.asList(authInfo.getAttributeNames()).contains("attr"));
+            assertEquals("value", authInfo.getAttribute("attr"));
+        } finally {
             if (cs != null) {
                 cs.close();
             }
