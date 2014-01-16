@@ -45,6 +45,7 @@ import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -81,6 +82,34 @@ public class QueryTest extends AbstractRepositoryTest {
             assertEquals("/test/" + pair[0], path);
             assertFalse(it.hasNext());
         }        
+    }
+    
+    @Test
+    @Ignore("OAK-1215")
+    public void anyChildNodeProperty() throws Exception {
+        Session session = getAdminSession();
+        Node content = session.getRootNode().addNode("test");
+        content.addNode("one").addNode("child").setProperty("prop", "hello");
+        content.addNode("two").addNode("child").setProperty("prop", "hi");
+        session.save();
+        String query = "//*[*/@prop = 'hello']";
+        QueryResult r = session.getWorkspace().getQueryManager().createQuery(
+                query, "xpath").execute();
+        NodeIterator it = r.getNodes();
+        assertTrue(it.hasNext());
+        String path = it.nextNode().getPath();
+        assertEquals("/test/one", path);
+        assertFalse(it.hasNext());
+        
+        query = "//*[*/*/@prop = 'hello']";
+        r = session.getWorkspace().getQueryManager().createQuery(
+                query, "xpath").execute();
+        it = r.getNodes();
+        assertTrue(it.hasNext());
+        path = it.nextNode().getPath();
+        assertEquals("/test", path);
+        assertFalse(it.hasNext());
+
     }
     
     @Test
