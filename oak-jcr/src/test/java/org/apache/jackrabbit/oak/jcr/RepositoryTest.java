@@ -18,6 +18,15 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,6 +38,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.ImportUUIDBehavior;
@@ -56,6 +66,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
@@ -63,15 +74,6 @@ import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -1696,6 +1698,21 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));
         assertTrue(node.hasNode("target/moved"));
+    }
+
+    @Test
+    public void renameNonOrderable() throws RepositoryException {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        Node parent = root.addNode("parent", "oak:Unstructured");
+        parent.addNode("fo");
+        Node foo = parent.addNode("foo");
+        session.save();
+
+        ((JackrabbitNode) foo).rename("renamed");
+        assertEquals("renamed", foo.getName());
+        assertFalse(session.nodeExists("/parent/foo"));
+        assertTrue(session.nodeExists("/parent/renamed"));
     }
 
     @Test(expected = RepositoryException.class)
