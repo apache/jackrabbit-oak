@@ -54,7 +54,7 @@ public class OSGiIT {
     public Option[] configuration() throws IOException, URISyntaxException {
         return CoreOptions.options(
                 junitBundles(),
-                mavenBundle("org.apache.felix", "org.apache.felix.scr", "1.6.0"),
+                mavenBundle("org.apache.felix", "org.apache.felix.scr", "1.8.0"),
                 mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.4.0" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
