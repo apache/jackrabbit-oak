@@ -32,8 +32,8 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
@@ -92,7 +92,7 @@ public class MongoNodeStoreService{
 
     private ServiceRegistration reg;
     private final List<Registration> registrations = new ArrayList<Registration>();
-    private MongoNodeStore store;
+    private MongoMK mk;
     private ObserverTracker observerTracker;
 
     @Activate
@@ -125,7 +125,7 @@ public class MongoNodeStoreService{
         MongoClient client = new MongoClient(mongoURI);
         DB mongoDB = client.getDB(db);
 
-        MongoMK mk = new MongoMK.Builder()
+        mk = new MongoMK.Builder()
                 .memoryCacheSize(cacheSize * MB)
                 .setMongoDB(mongoDB)
                 .open();
@@ -133,15 +133,20 @@ public class MongoNodeStoreService{
         logger.info("Connected to database {}", mongoDB);
 
         registerJMXBeans(mk, context);
-        store = mk.getNodeStore();
 
-        if(useMK){
-            reg  = context.registerService(MicroKernel.class.getName(), mk, new Properties());
-        }else{
-            observerTracker = new ObserverTracker(store);
-            observerTracker.start(context);
-            reg = context.registerService(NodeStore.class.getName(), store, new Properties());
+        NodeStore store;
+        if (useMK) {
+            KernelNodeStore kns = new KernelNodeStore(mk);
+            store = kns;
+            observerTracker = new ObserverTracker(kns);
+        } else {
+            MongoNodeStore mns = mk.getNodeStore();
+            store = mns;
+            observerTracker = new ObserverTracker(mns);
         }
+
+        observerTracker.start(context);
+        reg = context.registerService(NodeStore.class.getName(), store, new Properties());
     }
 
     @Deactivate
@@ -158,8 +163,8 @@ public class MongoNodeStoreService{
             reg.unregister();
         }
 
-        if (store != null) {
-            store.dispose();
+        if (mk != null) {
+            mk.dispose();
         }
     }
 
