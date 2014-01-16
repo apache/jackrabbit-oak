@@ -27,6 +27,12 @@ with respect to Jackrabbit 2.
   backwards compatibility but this flag is currently not enabled by default. Please let us know if
   you suspect this causes wrong behavior in your application.
 
+* 'JackrabbitNode#rename': Due to the nature of the diff mechanism in oak it is
+  not possible to distinguish between rename and a move-call with subsequent
+  reordering. Consequently the permission evaluation will no longer apply the
+  special handling for the renaming as it was present in Jackrabbit 2.x (renaming
+  just required the ability to modify the child collection of the parent node).
+
 * By default user management operations require the specific user mgt related
   permission that has been introduced with OAK-1.0. This behavior can be
   turned off by setting the corresponding configuration flag.
