@@ -16,12 +16,23 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newLinkedHashSet;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
+
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -79,16 +90,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newLinkedHashSet;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
 
 /**
  * TODO document
@@ -1441,37 +1442,66 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @throws RepositoryException If an error occurs.
      */
     @Override
-    public void rename(String newName) throws RepositoryException {
+    public void rename(final String newName) throws RepositoryException {
         if (dlg.isRoot()) {
             throw new RepositoryException("Cannot rename the root node");
         }
 
-        String name = getName();
+        final String name = getName();
         if (newName.equals(name)) {
             // nothing to do
             return;
         }
 
-        String beforeName = null;
-        Node parent = getParent();
-        NodeIterator nit = parent.getNodes();
-        while (nit.hasNext()) {
-            Node child = nit.nextNode();
-            if (name.equals(child.getName())) {
-                if (nit.hasNext()) {
-                    beforeName = nit.nextNode().getName();
+        perform(new ItemWriteOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                Node parent = getParent();
+                String beforeName = null;
+
+                if (isOrderable(parent)) {
+                    // remember position amongst siblings
+                    NodeIterator nit = parent.getNodes();
+                    while (nit.hasNext()) {
+                        Node child = nit.nextNode();
+                        if (name.equals(child.getName())) {
+                            if (nit.hasNext()) {
+                                beforeName = nit.nextNode().getName();
+                            }
+                            break;
+                        }
+                    }
                 }
-                break;
+
+                String srcPath = getPath();
+                String destPath = '/' + newName;
+                String parentPath = parent.getPath();
+                if (!"/".equals(parentPath)) {
+                    destPath = parentPath + destPath;
+                }
+                sessionContext.getSession().move(srcPath, destPath);
+
+                if (beforeName != null) {
+                    // restore position within siblings
+                    parent.orderBefore(newName, beforeName);
+                }
+                return null;
+            }
+        });
+    }
+
+    private static boolean isOrderable(Node node) throws RepositoryException {
+        if (node.getPrimaryNodeType().hasOrderableChildNodes()) {
+            return true;
+        }
+
+        NodeType[] types = node.getMixinNodeTypes();
+        for (NodeType type : types) {
+            if (type.hasOrderableChildNodes()) {
+                return true;
             }
         }
-
-        String srcPath = getPath();
-        String destPath = PathUtils.getAncestorPath(srcPath, 1) + '/' + newName;
-        sessionContext.getSession().move(srcPath, destPath);
-
-        if (beforeName != null) {
-            parent.orderBefore(newName, beforeName);
-        }
+        return false;
     }
 
     /**
