@@ -59,7 +59,7 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
         if (t == null) {
             return true;
         }
-        String pn = normalizePath(propertyName);
+        String pn = normalizePropertyName(propertyName);
         String relativePath = PathUtils.getParentPath(pn);
         String name = PathUtils.getName(pn);
         for (String p : PathUtils.elements(relativePath)) {
