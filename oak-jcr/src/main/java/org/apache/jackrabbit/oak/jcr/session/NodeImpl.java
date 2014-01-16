@@ -1474,8 +1474,45 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
+    /**
+     * Simplified implementation of the {@link org.apache.jackrabbit.api.JackrabbitNode#setMixins(String[])}
+     * method that adds all mixin types that are not yet present on this node
+     * and removes all mixins that are no longer contained in the specified
+     * array. Note, that this implementation will not work exactly like the
+     * variant in Jackrabbit 2.x which first created the effective node type
+     * and adjusted the set of child items accordingly.
+     *
+     * @param mixinNames
+     * @throws RepositoryException
+     */
     @Override
-    public void setMixins(String[] strings) throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("TODO: JackrabbitNode.setMixins (OAK-770");
+    public void setMixins(String[] mixinNames) throws RepositoryException {
+        final Set<String> oakTypeNames = newLinkedHashSet();
+        for (String mixinName : mixinNames) {
+            oakTypeNames.add(getOakName(checkNotNull(mixinName)));
+        }
+        perform(new ItemWriteOperation<Void>() {
+            @Override
+            public void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!isCheckedOut()) {
+                    throw new VersionException("Cannot set mixin types. Node is checked in.");
+                }
+
+                // check for NODE_TYPE_MANAGEMENT permission here as we cannot
+                // distinguish between a combination of removeMixin and addMixin
+                // and Node#remove plus subsequent addNode when it comes to
+                // autocreated properties like jcr:create, jcr:uuid and so forth.
+                PropertyDelegate mixinProp = dlg.getPropertyOrNull(JCR_MIXINTYPES);
+                if (mixinProp != null) {
+                    sessionContext.getAccessManager().checkPermissions(dlg.getTree(), mixinProp.getPropertyState(), Permissions.NODE_TYPE_MANAGEMENT);
+                }
+            }
+            @Override
+            public Void perform() throws RepositoryException {
+                dlg.setMixins(oakTypeNames);
+                return null;
+            }
+        });
     }
 }

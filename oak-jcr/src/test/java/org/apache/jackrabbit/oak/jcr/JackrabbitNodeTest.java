@@ -25,11 +25,11 @@ import javax.jcr.Session;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.ObservationManager;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.api.observation.EventResult;
-import org.junit.Ignore;
 
 /**
  * JackrabbitNodeTest: Copied and slightly adjusted from org.apache.jackrabbit.api.JackrabbitNodeTest,
@@ -120,23 +120,96 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         }
     }
 
-    public void testRemoveMixin() throws RepositoryException {
+    /**
+     * @since oak 1.0
+     */
+    public void testSetNewMixins() throws RepositoryException {
+        // create node with mixin test:AA
+        Node n = testRootNode.addNode("foo", "nt:folder");
+        ((JackrabbitNode) n).setMixins(new String[]{"test:AA", "test:A"});
+        superuser.save();
+
+        assertTrue(n.isNodeType("test:AA"));
+        assertTrue(n.isNodeType("test:A"));
+        assertTrue(n.hasProperty(JcrConstants.JCR_MIXINTYPES));
+    }
+
+    /**
+     * @since oak 1.0
+     */
+    public void testSetNewMixins2() throws RepositoryException {
+        // create node with mixin test:AA
+        Node n = testRootNode.addNode("foo", "nt:folder");
+        ((JackrabbitNode) n).setMixins(new String[]{"test:A", "test:AA"});
+        superuser.save();
+
+        assertTrue(n.isNodeType("test:A"));
+        assertTrue(n.isNodeType("test:AA"));
+        assertTrue(n.hasProperty(JcrConstants.JCR_MIXINTYPES));
+    }
+
+    /**
+     * @since oak 1.0
+     */
+    public void testSetEmptyMixins() throws RepositoryException {
         // create node with mixin test:AA
         Node n = testRootNode.addNode("foo", "nt:folder");
         n.addMixin("test:AA");
-        n.setProperty("test:propAA", "AA");
-        n.setProperty("test:propA", "A");
         superuser.save();
 
-        // 'downgrade' from test:AA to test:A
-        n.removeMixin("test:AA");
+        ((JackrabbitNode) n).setMixins(new String[0]);
         superuser.save();
 
-        assertFalse(n.hasProperty("test:propA"));
-        assertFalse(n.hasProperty("test:propAA"));
+        assertFalse(n.isNodeType("test:AA"));
+        assertTrue(n.hasProperty(JcrConstants.JCR_MIXINTYPES));
+        assertEquals(0, n.getProperty(JcrConstants.JCR_MIXINTYPES).getValues().length);
     }
 
-    @Ignore("OAK-770") // FIXME: OAK-770
+    /**
+     * @since oak 1.0
+     */
+    public void testSetRemoveMixins() throws RepositoryException {
+        // create node with mixin test:AA
+        Node n = testRootNode.addNode("foo", "nt:folder");
+        ((JackrabbitNode) n).setMixins(new String[]{"test:A", "test:AA"});
+        superuser.save();
+
+        ((JackrabbitNode) n).setMixins(new String[]{"test:A"});
+        superuser.save();
+
+        assertTrue(n.isNodeType("test:A"));
+        assertFalse(n.isNodeType("test:AA"));
+    }
+
+    /**
+     * @since oak 1.0
+     */
+    public void testUpdateMixins() throws RepositoryException {
+        // create node with mixin test:AA
+        Node n = testRootNode.addNode("foo", "nt:folder");
+        ((JackrabbitNode) n).setMixins(new String[]{"test:A", "test:AA"});
+        superuser.save();
+
+        assertTrue(n.isNodeType("test:AA"));
+        assertTrue(n.isNodeType("test:A"));
+
+        ((JackrabbitNode) n).setMixins(new String[]{"test:A", "test:AA", JcrConstants.MIX_REFERENCEABLE});
+        superuser.save();
+
+        assertTrue(n.isNodeType("test:AA"));
+        assertTrue(n.isNodeType("test:A"));
+        assertTrue(n.isNodeType(JcrConstants.MIX_REFERENCEABLE));
+        assertTrue(n.hasProperty(JcrConstants.JCR_UUID));
+
+        ((JackrabbitNode) n).setMixins(new String[]{JcrConstants.MIX_REFERENCEABLE});
+        superuser.save();
+
+        assertFalse(n.isNodeType("test:AA"));
+        assertFalse(n.isNodeType("test:A"));
+        assertTrue(n.isNodeType(JcrConstants.MIX_REFERENCEABLE));
+        assertTrue(n.hasProperty(JcrConstants.JCR_UUID));
+    }
+
     public void testSetMixins() throws RepositoryException {
         // create node with mixin test:AA
         Node n = testRootNode.addNode("foo", "nt:folder");
