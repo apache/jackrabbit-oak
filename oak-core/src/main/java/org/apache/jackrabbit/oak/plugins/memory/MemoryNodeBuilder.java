@@ -127,7 +127,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         this.rootBuilder = parent.rootBuilder;
         this.base = parent.base().getChildNode(name);
         this.baseRevision = parent.baseRevision;
-        this.head = new UnconnectedHead();
+        this.head = new UnconnectedHead(baseRevision, base);
     }
 
     /**
@@ -611,8 +611,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     private class UnconnectedHead extends Head {
-        private long revision = baseRevision;
-        private NodeState state = base;
+        private long revision;
+        private NodeState state;
+
+        UnconnectedHead(long revision, NodeState state) {
+            this.revision = revision;
+            this.state = state;
+        }
 
         @Override
         public Head update() {
@@ -687,7 +692,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
             if (revision != rootBuilder.baseRevision) {
                 // the root builder's base state has been reset: transition back
                 // to unconnected and connect again if necessary.
-                return new UnconnectedHead().update();
+                // No need to pass base() instead of base as the subsequent
+                // call to update will take care of updating to the latest state.
+                return new UnconnectedHead(baseRevision, base).update();
             } else {
                 return this;
             }
@@ -734,6 +741,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     private class RootHead extends ConnectedHead {
         public RootHead() {
+            // Base of root is always up to date. No need to call base()
             super(new MutableNodeState(base));
         }
 
