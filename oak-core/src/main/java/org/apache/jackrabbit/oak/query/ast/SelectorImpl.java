@@ -385,11 +385,18 @@ public class SelectorImpl extends SourceImpl {
         return currentOakProperty(pn);
     }
     
-    public PropertyValue currentOakProperty(String propertyName) {
-        boolean relative = propertyName.indexOf('/') >= 0;
+    /**
+     * Get the property value. The property name may be relative. The special
+     * property names "jcr:path", "jcr:score" and "rep:excerpt" are supported.
+     * 
+     * @param oakPropertyName (must already be normalized)
+     * @return the property value or null if not found
+     */
+    public PropertyValue currentOakProperty(String oakPropertyName) {
+        boolean relative = oakPropertyName.indexOf('/') >= 0;
         Tree t = currentTree();
         if (relative) {
-            for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
+            for (String p : PathUtils.elements(PathUtils.getParentPath(oakPropertyName))) {
                 if (t == null) {
                     return null;
                 }
@@ -401,12 +408,12 @@ public class SelectorImpl extends SourceImpl {
                     t = t.getChild(p);
                 }
             }
-            propertyName = PathUtils.getName(propertyName);
+            oakPropertyName = PathUtils.getName(oakPropertyName);
         }
         if (t == null || !t.exists()) {
             return null;
         }
-        if (propertyName.equals(QueryImpl.JCR_PATH)) {
+        if (oakPropertyName.equals(QueryImpl.JCR_PATH)) {
             String path = currentPath();
             String local = getLocalPath(path);
             if (local == null) {
@@ -414,12 +421,12 @@ public class SelectorImpl extends SourceImpl {
                 return null;
             }
             return PropertyValues.newString(local);
-        } else if (propertyName.equals(QueryImpl.JCR_SCORE)) {
+        } else if (oakPropertyName.equals(QueryImpl.JCR_SCORE)) {
             return currentRow.getValue(QueryImpl.JCR_SCORE);
-        } else if (propertyName.equals(QueryImpl.REP_EXCERPT)) {
+        } else if (oakPropertyName.equals(QueryImpl.REP_EXCERPT)) {
             return currentRow.getValue(QueryImpl.REP_EXCERPT);
         }
-        return PropertyValues.create(t.getProperty(propertyName));
+        return PropertyValues.create(t.getProperty(oakPropertyName));
     }
 
     @Override
