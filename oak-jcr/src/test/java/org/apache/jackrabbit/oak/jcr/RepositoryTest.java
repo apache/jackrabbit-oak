@@ -18,15 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -38,7 +29,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.ImportUUIDBehavior;
@@ -57,6 +47,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinition;
@@ -72,6 +63,15 @@ import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -120,6 +120,25 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals(1, attributeNames.length);
         assertEquals(RepositoryImpl.REFRESH_INTERVAL, attributeNames[0]);
         assertEquals(42L, session.getAttribute(RepositoryImpl.REFRESH_INTERVAL));
+    }
+
+    @Test
+    public void loginWithCredentialsAttribute() throws RepositoryException {
+        SimpleCredentials sc = getAdminCredentials();
+        sc.setAttribute("attr", "val");
+        Session session = null;
+
+        try {
+            session = getRepository().login(sc, null);
+            String[] attributeNames = session.getAttributeNames();
+            assertEquals(1, attributeNames.length);
+            assertEquals("attr", attributeNames[0]);
+            assertEquals("val", session.getAttribute("attr"));
+        } finally {
+            if (session != null) {
+                session.logout();
+            }
+        }
     }
 
     @Test(expected = NoSuchWorkspaceException.class)

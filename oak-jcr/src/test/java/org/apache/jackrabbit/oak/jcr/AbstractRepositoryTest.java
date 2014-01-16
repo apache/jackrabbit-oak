@@ -106,7 +106,11 @@ public abstract class AbstractRepositoryTest {
     }
 
     protected Session createAdminSession() throws RepositoryException {
-        return getRepository().login(new SimpleCredentials("admin", "admin".toCharArray()));
+        return getRepository().login(getAdminCredentials());
+    }
+
+    protected SimpleCredentials getAdminCredentials() {
+        return new SimpleCredentials("admin", "admin".toCharArray());
     }
 
 }

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
@@ -151,11 +152,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     @Override
     public boolean commit() throws LoginException {
         if (tokenCredentials != null) {
-            if (!subject.isReadOnly()) {
-                subject.getPublicCredentials().add(tokenCredentials);
-                subject.getPrincipals().addAll(principals);
-                subject.getPublicCredentials().add(getAuthInfo(tokenInfo));
-            }
+            updateSubject(tokenCredentials, getAuthInfo(tokenInfo), principals);
             return true;
         }
 
@@ -173,7 +170,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
                     for (String name : attributes.keySet()) {
                         tc.setAttribute(name, attributes.get(name));
                     }
-                    subject.getPublicCredentials().add(tc);
+                    updateSubject(tc, getAuthInfo(ti), null);
                 } else {
                     // failed to create token -> fail commit()
                     log.debug("TokenProvider failed to create a login token for user " + userId);
@@ -249,5 +246,23 @@ public final class TokenLoginModule extends AbstractLoginModule {
             }
         }
         return new AuthInfoImpl(userId, attributes, principals);
+    }
+
+    private void updateSubject(@Nonnull TokenCredentials tc, @Nonnull AuthInfo authInfo,
+                               @Nullable Set<? extends Principal> principals) {
+        if (!subject.isReadOnly()) {
+            subject.getPublicCredentials().add(tc);
+
+            if (principals != null) {
+                subject.getPrincipals().addAll(principals);
+            }
+
+            // replace all existing auth-info
+            Set<AuthInfo> ais = subject.getPublicCredentials(AuthInfo.class);
+            if (!ais.isEmpty()) {
+                subject.getPublicCredentials().removeAll(ais);
+            }
+            subject.getPublicCredentials().add(authInfo);
+        }
     }
 }

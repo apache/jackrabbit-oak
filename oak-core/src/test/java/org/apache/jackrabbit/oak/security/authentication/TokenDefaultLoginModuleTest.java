@@ -18,27 +18,32 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Set;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -232,6 +237,53 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
             assertEquals(sc.getUserID(), cs.getAuthInfo().getUserID());
         } finally {
             cs.close();
+        }
+    }
+
+    @Test
+    public void testTokenCreationWithAttributes() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
+            sc.setAttribute(".token", "");
+            sc.setAttribute(".token.mandatory", "something");
+            sc.setAttribute("attr", "val");
+
+            cs = login(sc);
+
+            AuthInfo ai = cs.getAuthInfo();
+            Set<String> attrNames = ImmutableSet.copyOf(ai.getAttributeNames());
+            assertTrue(attrNames.contains("attr"));
+            assertFalse(attrNames.contains(".token"));
+            assertFalse(attrNames.contains(".token.mandatory"));
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testTokenCreationWithImpersonationAttributes() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
+            sc.setAttribute(".token", "");
+            sc.setAttribute(".token.mandatory", "something");
+            sc.setAttribute("attr", "val");
+
+            ImpersonationCredentials ic = new ImpersonationCredentials(sc, new AuthInfoImpl(((SimpleCredentials) getAdminCredentials()).getUserID(), Collections.<String, Object>emptyMap(), Collections.<Principal>emptySet()));
+            cs = login(ic);
+
+            AuthInfo ai = cs.getAuthInfo();
+            Set<String> attrNames = ImmutableSet.copyOf(ai.getAttributeNames());
+            assertTrue(attrNames.contains("attr"));
+            assertFalse(attrNames.contains(".token"));
+            assertFalse(attrNames.contains(".token.mandatory"));
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
         }
     }
 }

@@ -143,7 +143,10 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             if (!subject.isReadOnly()) {
                 subject.getPrincipals().addAll(principals);
                 subject.getPublicCredentials().add(credentials);
-                subject.getPublicCredentials().add(createAuthInfo());
+                Set<AuthInfo> ais = subject.getPublicCredentials(AuthInfo.class);
+                if (ais.isEmpty()) {
+                    subject.getPublicCredentials().add(createAuthInfo());
+                }
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
@@ -211,8 +214,14 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
     private AuthInfo createAuthInfo() {
         Map<String, Object> attributes = new HashMap<String, Object>();
-        if (credentials instanceof SimpleCredentials) {
-            SimpleCredentials sc = (SimpleCredentials) credentials;
+        Credentials creds;
+        if (credentials instanceof ImpersonationCredentials) {
+            creds = ((ImpersonationCredentials) credentials).getBaseCredentials();
+        } else {
+            creds = credentials;
+        }
+        if (creds instanceof SimpleCredentials) {
+            SimpleCredentials sc = (SimpleCredentials) creds;
             for (String attrName : sc.getAttributeNames()) {
                 attributes.put(attrName, sc.getAttribute(attrName));
             }
