@@ -655,7 +655,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override
         public boolean isModified() {
-            return EqualsDiff.modified(base, state);
+            return EqualsDiff.modified(base(), state);
         }
 
         @Override
