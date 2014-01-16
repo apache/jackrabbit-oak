@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -53,7 +55,6 @@ import static com.google.common.collect.Iterators.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
-import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
@@ -117,7 +118,7 @@ public class NodeDelegate extends ItemDelegate {
     @Override
     @CheckForNull
     public NodeDelegate getParent() {
-        return tree.isRoot() || !tree.getParent().exists() 
+        return tree.isRoot() || !tree.getParent().exists()
             ? null
             : new NodeDelegate(sessionDelegate, tree.getParent());
     }
@@ -307,7 +308,7 @@ public class NodeDelegate extends ItemDelegate {
      * the value is higher than max). If the implementation does not know the
      * exact value, and the child node count is higher than max, it may return
      * Long.MAX_VALUE. The cost of the operation is at most O(max).
-     * 
+     *
      * @param max the maximum value
      * @return number of child nodes of the node
      */
@@ -385,68 +386,99 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public void removeMixin(String typeName) throws RepositoryException {
-        boolean wasLockable = isNodeType(MIX_LOCKABLE);
-
         Tree tree = getTree();
         Set<String> mixins = newLinkedHashSet(getNames(tree, JCR_MIXINTYPES));
         if (!mixins.remove(typeName)) {
-            throw new NoSuchNodeTypeException(
-                    "Mixin " + typeName +" not contained in " + getPath());
+            throw new NoSuchNodeTypeException("Mixin " + typeName +" not contained in " + getPath());
         }
-        tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
+        updateMixins(mixins, Collections.singleton(typeName));
+    }
 
-        boolean isLockable = isNodeType(MIX_LOCKABLE);
-        if (wasLockable && !isLockable && holdsLock(false)) {
-            // TODO: This should probably be done in a commit hook
-            unlock();
-            sessionDelegate.refresh(true);
-        }
-
-        // We need to remove all protected properties and child nodes
-        // associated with the removed mixin type, as there's no way for
-        // the client to do that. Other items defined in this mixin type
-        // might also need to be removed, but it's probably best to let
-        // the client take care of that before save(), as it's hard to tell
-        // whether removing such items really is the right thing to do.
-
-        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
-        List<Tree> removed = singletonList(typeRoot.getChild(typeName));
-        List<Tree> remaining = getNodeTypes(tree, typeRoot);
-
-        for (PropertyState property : tree.getProperties()) {
-            String name = property.getName();
-            Type<?> type = property.getType();
-
-            Tree oldDefinition = findMatchingPropertyDefinition(
-                    removed, name, type, true);
-            if (oldDefinition != null) {
-                Tree newDefinition = findMatchingPropertyDefinition(
-                        remaining, name, type, true);
-                if (newDefinition == null
-                        || (getBoolean(oldDefinition, JCR_PROTECTED)
-                                && !getBoolean(newDefinition, JCR_PROTECTED))) {
-                    tree.removeProperty(name);
+    public void setMixins(Set<String> mixinNames) throws RepositoryException {
+        Set<String> existingMixins = newLinkedHashSet(getNames(tree, JCR_MIXINTYPES));
+        if (existingMixins.isEmpty()) {
+            updateMixins(mixinNames, Collections.EMPTY_SET);
+        } else {
+            Set<String> toRemove = newLinkedHashSet();
+            for (String name : existingMixins) {
+                if (!mixinNames.remove(name)) {
+                    toRemove.add(name);
                 }
             }
+            updateMixins(mixinNames, toRemove);
+        }
+    }
+
+
+    public void updateMixins(Set<String> addMixinNames, Set<String> removedOakMixinNames) throws RepositoryException {
+        // 1. set all new mixin types including validation
+        for (String oakMixinName : addMixinNames) {
+            addMixin(oakMixinName);
         }
 
-        for (Tree child : tree.getChildren()) {
-            String name = child.getName();
-            Set<String> typeNames = newLinkedHashSet();
-            for (Tree type : getNodeTypes(child, typeRoot)) {
-                typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                addAll(typeNames, getNames(type, REP_SUPERTYPES));
+        if (!removedOakMixinNames.isEmpty()) {
+            // 2. retrieve the updated set of mixin types, remove the mixins that should no longer be present
+            Set<String> mixinNames = newLinkedHashSet(getNames(getTree(), JCR_MIXINTYPES));
+            if (mixinNames.removeAll(removedOakMixinNames)) {
+                // FIXME: add mixins to add again as the removal may change the effect of type inheritance as evaluated during #addMixin
+                mixinNames.addAll(addMixinNames);
+                tree.setProperty(JCR_MIXINTYPES, mixinNames, NAMES);
             }
 
-            Tree oldDefinition = findMatchingChildNodeDefinition(
-                    removed, name, typeNames);
-            if (oldDefinition != null) {
-                Tree newDefinition = findMatchingChildNodeDefinition(
-                        remaining, name, typeNames);
-                if (newDefinition == null
-                        || (getBoolean(oldDefinition, JCR_PROTECTED)
-                                && !getBoolean(newDefinition, JCR_PROTECTED))) {
-                    child.remove();
+            // 3. deal with locked nodes
+            boolean wasLockable = isNodeType(MIX_LOCKABLE);
+            boolean isLockable = isNodeType(MIX_LOCKABLE);
+            if (wasLockable && !isLockable && holdsLock(false)) {
+                // TODO: This should probably be done in a commit hook
+                unlock();
+                sessionDelegate.refresh(true);
+            }
+
+            // 4. clean up set of properties and child nodes such that all child items
+            // have a valid item definition according to the effective node type present
+            // after having updated the mixin property. this includes removing all
+            // protected properties and child nodes associated with the removed mixin
+            // type(s), as there's no way for the client to do that. Other items
+            // defined in this mixin type might also need to be removed if there
+            // is no longer a matching item definition available.
+            Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+            List<Tree> removed = new ArrayList<Tree>();
+            for (String name : removedOakMixinNames) {
+                removed.add(typeRoot.getChild(name));
+            }
+            List<Tree> remaining = getNodeTypes(tree, typeRoot);
+
+            for (PropertyState property : tree.getProperties()) {
+                String name = property.getName();
+                Type<?> type = property.getType();
+
+                Tree oldDefinition = findMatchingPropertyDefinition(removed, name, type, true);
+                if (oldDefinition != null) {
+                    Tree newDefinition = findMatchingPropertyDefinition(remaining, name, type, true);
+                    if (newDefinition == null
+                            || (getBoolean(oldDefinition, JCR_PROTECTED)
+                            && !getBoolean(newDefinition, JCR_PROTECTED))) {
+                        tree.removeProperty(name);
+                    }
+                }
+            }
+
+            for (Tree child : tree.getChildren()) {
+                String name = child.getName();
+                Set<String> typeNames = newLinkedHashSet();
+                for (Tree type : getNodeTypes(child, typeRoot)) {
+                    typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
+                    addAll(typeNames, getNames(type, REP_SUPERTYPES));
+                }
+
+                Tree oldDefinition = findMatchingChildNodeDefinition(removed, name, typeNames);
+                if (oldDefinition != null) {
+                    Tree newDefinition = findMatchingChildNodeDefinition(remaining, name, typeNames);
+                    if (newDefinition == null
+                            || (getBoolean(oldDefinition, JCR_PROTECTED)
+                            && !getBoolean(newDefinition, JCR_PROTECTED))) {
+                        child.remove();
+                    }
                 }
             }
         }
