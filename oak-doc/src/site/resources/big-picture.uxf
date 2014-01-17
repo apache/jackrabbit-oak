@@ -117,7 +117,8 @@ bg=yellow</panel_attributes>
       <h>30</h>
     </coordinates>
     <panel_attributes>MicroKernel interface
-bg=green</panel_attributes>
+bg=green
+fg=gray</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -129,7 +130,8 @@ bg=green</panel_attributes>
       <h>60</h>
     </coordinates>
     <panel_attributes>"H2" MK
-bg=yellow</panel_attributes>
+bg=yellow
+fg=gray</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -140,10 +142,11 @@ bg=yellow</panel_attributes>
       <w>290</w>
       <h>50</h>
     </coordinates>
-    <panel_attributes>KernelNS
+    <panel_attributes>KernelNodeStore
 --
 - org.apache.jackrabbit.oak.kernel
-bg=yellow</panel_attributes>
+bg=yellow
+fg=gray</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -152,9 +155,12 @@ bg=yellow</panel_attributes>
       <x>380</x>
       <y>770</y>
       <w>130</w>
-      <h>30</h>
+      <h>80</h>
     </coordinates>
     <panel_attributes>BlobStore
+--
+blobs contain
+binary data
 bg=green</panel_attributes>
     <additional_attributes/>
   </element>
@@ -162,7 +168,7 @@ bg=green</panel_attributes>
     <type>com.umlet.element.Class</type>
     <coordinates>
       <x>110</x>
-      <y>830</y>
+      <y>880</y>
       <w>310</w>
       <h>30</h>
     </coordinates>
@@ -174,7 +180,7 @@ bg=gray</panel_attributes>
     <type>com.umlet.element.Class</type>
     <coordinates>
       <x>20</x>
-      <y>870</y>
+      <y>920</y>
       <w>180</w>
       <h>30</h>
     </coordinates>
@@ -186,7 +192,7 @@ bg=gray</panel_attributes>
     <type>com.umlet.element.Class</type>
     <coordinates>
       <x>320</x>
-      <y>870</y>
+      <y>920</y>
       <w>310</w>
       <h>30</h>
     </coordinates>
@@ -261,7 +267,7 @@ bg=gray</panel_attributes>
       <h>80</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-
-</panel_attributes>
+fg=gray</panel_attributes>
     <additional_attributes>30;30;30;60</additional_attributes>
   </element>
   <element>
@@ -272,7 +278,8 @@ bg=gray</panel_attributes>
       <w>50</w>
       <h>80</h>
     </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
+    <panel_attributes>lt=&lt;-
+fg=gray</panel_attributes>
     <additional_attributes>30;60;30;30</additional_attributes>
   </element>
   <element>
@@ -284,7 +291,7 @@ bg=gray</panel_attributes>
       <h>90</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-
-</panel_attributes>
+fg=gray</panel_attributes>
     <additional_attributes>30;30;30;70</additional_attributes>
   </element>
   <element>
@@ -296,7 +303,7 @@ bg=gray</panel_attributes>
       <h>90</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-
-</panel_attributes>
+fg=gray</panel_attributes>
     <additional_attributes>30;30;30;70</additional_attributes>
   </element>
   <element>
@@ -329,9 +336,13 @@ bg=gray</panel_attributes>
       <x>230</x>
       <y>770</y>
       <w>130</w>
-      <h>30</h>
+      <h>80</h>
     </coordinates>
     <panel_attributes>DocumentStore
+--
+documents contain
+tree data (nodes,
+non-binary props)
 bg=green</panel_attributes>
     <additional_attributes/>
   </element>
@@ -365,7 +376,8 @@ bg=green</panel_attributes>
       <w>50</w>
       <h>80</h>
     </coordinates>
-    <panel_attributes>lt=&lt;-</panel_attributes>
+    <panel_attributes>lt=&lt;-
+fg=gray</panel_attributes>
     <additional_attributes>30;60;30;30</additional_attributes>
   </element>
   <element>
@@ -374,9 +386,13 @@ bg=green</panel_attributes>
       <x>50</x>
       <y>770</y>
       <w>130</w>
-      <h>30</h>
+      <h>80</h>
     </coordinates>
     <panel_attributes>SegmentStore
+--
+segments contain
+both tree and
+binary data
 bg=green</panel_attributes>
     <additional_attributes/>
   </element>
