@@ -47,7 +47,7 @@ public interface PermissionProvider {
      * @param privilegeNames
      * @return
      */
-    boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames);
+    boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames);
 
     RepositoryPermission getRepositoryPermission();
 
