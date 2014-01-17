@@ -79,7 +79,7 @@
       org.apache.jackrabbit.core.observation.ReorderTest                                           <!-- Uses SNS -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShare                       <!-- OAK-118 workspace support needed -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testRemoveShare                    <!-- OAK-118 workspace support needed -->
-
+      org.apache.jackrabbit.oak.jcr.JackrabbitNodeTest#testRenameEventHandling                     <!-- OAK-770 -->
       org.apache.jackrabbit.oak.jcr.observation.ObservationRefreshTest <!-- [tripod] currently too slow...will fix soon -->
 
       <!-- Versioning -->
