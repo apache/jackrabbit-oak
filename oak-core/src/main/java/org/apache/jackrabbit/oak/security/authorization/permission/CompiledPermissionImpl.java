@@ -246,7 +246,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable ImmutableTree tree, String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable ImmutableTree tree, @Nonnull String... privilegeNames) {
         return internalGetPrivileges(tree).includes(bitsProvider.getBits(privilegeNames));
     }
 

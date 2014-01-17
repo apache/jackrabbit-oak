@@ -71,5 +71,5 @@ public interface CompiledPermissions {
      * @param privilegeNames
      * @return
      */
-    boolean hasPrivileges(@Nullable ImmutableTree tree, String... privilegeNames);
+    boolean hasPrivileges(@Nullable ImmutableTree tree, @Nonnull String... privilegeNames);
 }
