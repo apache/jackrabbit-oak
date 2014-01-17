@@ -86,7 +86,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
         return compiledPermissions.hasPrivileges(getImmutableTree(tree), privilegeNames);
     }
 
