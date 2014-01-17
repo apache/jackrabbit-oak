@@ -83,6 +83,8 @@
       org.apache.jackrabbit.oak.jcr.observation.ObservationRefreshTest <!-- [tripod] currently too slow...will fix soon -->
 
       <!-- Versioning -->
+      org.apache.jackrabbit.test.api.version.CheckinTest#testCheckinCreatesNewVersion <!-- OAK-1335 -->
+      org.apache.jackrabbit.test.api.version.CheckinTest#testCheckinCreatesNewVersionJcr2 <!-- OAK-1335 -->
       org.apache.jackrabbit.test.api.version.VersionTest#testUpdate
       org.apache.jackrabbit.test.api.version.VersionTest#testGetCorrespondingNodePath
       org.apache.jackrabbit.test.api.version.VersionTest#testGetLock
@@ -93,9 +95,15 @@
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLock
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetLockJcr2
       org.apache.jackrabbit.test.api.version.VersionHistoryTest#testMerge
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitialNumberOfLinearVersions <!-- OAK-1335 -->
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testInitialNumberOfVersions <!-- OAK-1335 -->
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetAllVersions <!-- OAK-1335 -->
+      org.apache.jackrabbit.test.api.version.VersionHistoryTest#testGetAllVersionsJcr2 <!-- OAK-1335 -->
       org.apache.jackrabbit.test.api.version.CopyTest
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabel
       org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreLabelJcr2
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreName <!-- OAK-1335 -->
+      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreNameJcr2 <!-- OAK-1335 -->
       org.apache.jackrabbit.test.api.version.WorkspaceRestoreTest
       org.apache.jackrabbit.test.api.version.MergeCancelMergeTest
       org.apache.jackrabbit.test.api.version.MergeCheckedoutSubNodeTest
