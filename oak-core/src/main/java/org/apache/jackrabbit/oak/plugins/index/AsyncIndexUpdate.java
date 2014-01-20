@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
@@ -84,6 +83,26 @@ public class AsyncIndexUpdate implements Runnable {
         this.provider = checkNotNull(provider);
     }
 
+    /**
+     * Index update callback that tries to raise the async status flag when
+     * the first index change is detected.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-1292">OAK-1292</a>
+     */
+    private class AsyncUpdateCallback implements IndexUpdateCallback {
+
+        private boolean dirty = false;
+
+        @Override
+        public void indexUpdate() throws CommitFailedException {
+            if (!dirty) {
+                dirty = true;
+                preAsyncRun(store, name);
+            }
+        }
+
+    }
+
     @Override
     public synchronized void run() {
         log.debug("Running background index task {}", name);
@@ -111,46 +130,33 @@ public class AsyncIndexUpdate implements Runnable {
             before = MISSING_NODE;
         }
 
-        final AtomicBoolean dirty = new AtomicBoolean(false);
-
-        IndexUpdateCallback callback = new IndexUpdateCallback() {
-            @Override
-            public void indexUpdate() throws CommitFailedException {
-                if (dirty.getAndSet(true)) {
-                    preAsyncRun(store, name);
-                }
-            }
-        };
-
+        AsyncUpdateCallback callback = new AsyncUpdateCallback();
         IndexUpdate indexUpdate = new IndexUpdate(provider, name, after,
                 builder, callback);
 
         CommitFailedException exception = EditorDiff.process(indexUpdate,
                 before, after);
-        if (exception == null) {
+        if (exception == null && callback.dirty) {
             async.setProperty(name, checkpoint);
-            if (dirty.get()) {
-                try {
-                    store.merge(builder, new CommitHook() {
-                        @Override
-                        @Nonnull
-                        public NodeState processCommit(NodeState before,
-                                NodeState after) throws CommitFailedException {
-                            // check for concurrent updates by this async task
-                            PropertyState stateAfterRebase = before
-                                    .getChildNode(ASYNC).getProperty(name);
-                            if (Objects.equal(state, stateAfterRebase)) {
-                                return postAsyncRunStatus(after.builder())
-                                        .getNodeState();
-                            } else {
-                                throw CONCURRENT_UPDATE;
-                            }
+            try {
+                store.merge(builder, new CommitHook() {
+                    @Override @Nonnull
+                    public NodeState processCommit(NodeState before,
+                            NodeState after) throws CommitFailedException {
+                        // check for concurrent updates by this async task
+                        PropertyState stateAfterRebase = before
+                                .getChildNode(ASYNC).getProperty(name);
+                        if (Objects.equal(state, stateAfterRebase)) {
+                            return postAsyncRunStatus(after.builder())
+                                    .getNodeState();
+                        } else {
+                            throw CONCURRENT_UPDATE;
                         }
-                    }, null);
-                } catch (CommitFailedException e) {
-                    if (e != CONCURRENT_UPDATE) {
-                        exception = e;
                     }
+                }, null);
+            } catch (CommitFailedException e) {
+                if (e != CONCURRENT_UPDATE) {
+                    exception = e;
                 }
             }
         }
