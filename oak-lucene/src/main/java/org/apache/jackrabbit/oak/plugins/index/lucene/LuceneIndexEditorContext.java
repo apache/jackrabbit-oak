@@ -172,9 +172,7 @@ public class LuceneIndexEditorContext {
     }
 
     void indexUpdate() throws CommitFailedException {
-        if (this.updateCallback != null) {
-            updateCallback.indexUpdate();
-        }
+        updateCallback.indexUpdate();
     }
 
 }

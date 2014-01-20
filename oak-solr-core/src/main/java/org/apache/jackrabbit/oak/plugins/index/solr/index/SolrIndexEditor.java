@@ -58,7 +58,7 @@ public class SolrIndexEditor implements IndexEditor {
 
     private boolean propertiesChanged = false;
 
-    private IndexUpdateCallback updateCallback;
+    private final IndexUpdateCallback updateCallback;
 
     SolrIndexEditor(
             NodeBuilder definition, SolrServer solrServer,
@@ -98,7 +98,7 @@ public class SolrIndexEditor implements IndexEditor {
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
         if (propertiesChanged || !before.exists()) {
-            indexUpdate();
+            updateCallback.indexUpdate();
             try {
                 solrServer.add(docFromState(after));
             } catch (SolrServerException e) {
@@ -159,7 +159,7 @@ public class SolrIndexEditor implements IndexEditor {
         try {
             solrServer.deleteByQuery(String.format(
                     "%s:%s\\/*", configuration.getPathField(), path));
-            indexUpdate();
+            updateCallback.indexUpdate();
         } catch (SolrServerException e) {
             throw new CommitFailedException(
                     "Solr", 5, "Failed to remove documents from Solr", e);
@@ -197,12 +197,6 @@ public class SolrIndexEditor implements IndexEditor {
             }
         }
         return inputDocument;
-    }
-
-    protected void indexUpdate() throws CommitFailedException {
-        if (updateCallback != null) {
-            updateCallback.indexUpdate();
-        }
     }
 
 }

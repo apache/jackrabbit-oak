@@ -241,9 +241,7 @@ class PropertyIndexEditor implements IndexEditor {
             }
 
             if (!beforeKeys.isEmpty() || !afterKeys.isEmpty()) {
-                if (updateCallback != null) {
-                    updateCallback.indexUpdate();
-                }
+                updateCallback.indexUpdate();
                 NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
                 getStrategy(keysToCheckForUniqueness != null).update(
                         index, getPath(), beforeKeys, afterKeys);

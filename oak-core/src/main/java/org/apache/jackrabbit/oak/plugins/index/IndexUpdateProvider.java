@@ -26,6 +26,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class IndexUpdateProvider implements EditorProvider {
 
+    private static final IndexUpdateCallback NOOP_CALLBACK =
+            new IndexUpdateCallback() {
+                @Override
+                public void indexUpdate() {
+                    // do nothing
+                }
+            };
+
     private final IndexEditorProvider provider;
 
     private final String async;
@@ -43,7 +51,7 @@ public class IndexUpdateProvider implements EditorProvider {
     @Override @CheckForNull
     public Editor getRootEditor(
             NodeState before, NodeState after, NodeBuilder builder) {
-        return new IndexUpdate(provider, async, after, builder, null);
+        return new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK);
     }
 
 }

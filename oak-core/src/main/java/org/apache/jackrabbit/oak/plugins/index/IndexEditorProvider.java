@@ -51,5 +51,5 @@ public interface IndexEditorProvider {
     Editor getIndexEditor(
             @Nonnull String type, @Nonnull NodeBuilder definition,
             @Nonnull NodeState root, 
-            @CheckForNull IndexUpdateCallback callback) throws CommitFailedException;
+            @Nonnull IndexUpdateCallback callback) throws CommitFailedException;
 }
