@@ -306,29 +306,25 @@ public class FileStore extends AbstractStore {
     @Override
     public synchronized void writeSegment(
             UUID segmentId, byte[] data, int offset, int length) {
-        try {
-            writeEntry(segmentId, data, offset, length);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void writeEntry(
-            UUID segmentId, byte[] buffer, int offset, int length)
-            throws IOException {
+        // select whether to write a data or a bulk segment
         LinkedList<TarFile> files = dataFiles;
         String base = "data";
         if (isBulkSegmentId(segmentId)) {
             files = bulkFiles;
             base = "bulk";
         }
-        if (files.isEmpty() || !files.getLast().writeEntry(
-                segmentId, buffer, offset, length)) {
-            String name = String.format(FILE_NAME_FORMAT, base, files.size());
-            File file = new File(directory, name);
-            TarFile last = new TarFile(file, maxFileSize, memoryMapping);
-            checkState(last.writeEntry(segmentId, buffer, offset, length));
-            files.add(last);
+
+        try {
+            if (files.isEmpty() || !files.getLast().writeEntry(
+                    segmentId, data, offset, length)) {
+                String name = String.format(FILE_NAME_FORMAT, base, files.size());
+                File file = new File(directory, name);
+                TarFile last = new TarFile(file, maxFileSize, memoryMapping);
+                checkState(last.writeEntry(segmentId, data, offset, length));
+                files.add(last);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
