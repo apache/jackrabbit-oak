@@ -26,8 +26,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -59,6 +62,7 @@ import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newTreeMap;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
@@ -99,6 +103,16 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESID
 class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     private static final Logger log = LoggerFactory.getLogger(NodeTypeImpl.class);
+
+    /**
+     * Name pattern for the property and child node definition nodes.
+     * Used to pick out the SNS indices from the names so the definitions
+     * can be sorted in the same order they were created. This in turn
+     * makes accessing node type information more deterministic.
+     */
+    private final Pattern DEFINITION_PATTERN = Pattern.compile(
+            "(" + JCR_PROPERTYDEFINITION + "|" + JCR_CHILDNODEDEFINITION
+            + ")\\[([1-9][0-9]*)\\]");
 
     private static final PropertyDefinition[] NO_PROPERTY_DEFINITIONS =
             new PropertyDefinition[0];
@@ -177,26 +191,44 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         }
     }
 
-    @Override
+    /**
+     * Returns the declared property definitions in their original order.
+     *
+     * @return declared property definitions
+     */
+    @Override @Nonnull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        List<PropertyDefinition> definitions = Lists.newArrayList();
+        Map<Integer, PropertyDefinition> definitions = newTreeMap();
         for (Tree child : definition.getChildren()) {
-            if (child.getName().startsWith(JCR_PROPERTYDEFINITION)) {
-                definitions.add(new PropertyDefinitionImpl(child, this, mapper));
+            Matcher matcher = DEFINITION_PATTERN.matcher(child.getName());
+            if (matcher.matches()
+                    && JCR_PROPERTYDEFINITION.equals(matcher.group(1))) {
+                definitions.put(
+                        Integer.valueOf(matcher.group(2)),
+                        new PropertyDefinitionImpl(child, this, mapper));
             }
         }
-        return definitions.toArray(NO_PROPERTY_DEFINITIONS);
+        return definitions.values().toArray(NO_PROPERTY_DEFINITIONS);
     }
 
-    @Override
+    /**
+     * Returns the declared child node definitions in their original order.
+     *
+     * @return declared child node definitions
+     */
+    @Override @Nonnull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        List<NodeDefinition> definitions = Lists.newArrayList();
+        Map<Integer, NodeDefinition> definitions = newTreeMap();
         for (Tree child : definition.getChildren()) {
-            if (child.getName().startsWith(JCR_CHILDNODEDEFINITION)) {
-                definitions.add(new NodeDefinitionImpl(child, this, mapper));
+            Matcher matcher = DEFINITION_PATTERN.matcher(child.getName());
+            if (matcher.matches()
+                    && JCR_CHILDNODEDEFINITION.equals(matcher.group(1))) {
+                definitions.put(
+                        Integer.valueOf(matcher.group(2)),
+                        new NodeDefinitionImpl(child, this, mapper));
             }
         }
-        return definitions.toArray(NO_NODE_DEFINITIONS);
+        return definitions.values().toArray(NO_NODE_DEFINITIONS);
     }
 
     @Override

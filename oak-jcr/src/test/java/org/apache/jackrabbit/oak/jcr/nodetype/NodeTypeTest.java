@@ -20,11 +20,16 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 
 import static junit.framework.Assert.fail;
 
+import java.util.List;
+
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
@@ -63,6 +68,55 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         n2.setProperty("jcr:language", vf.createValue("language"));
 
         session.save();
+    }
+
+    @Test
+    public void updateNodeType() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        ValueFactory vf = session.getValueFactory();
+        NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
+
+        Node n = root.addNode("q1", "nt:query");
+        n.setProperty("jcr:statement", vf.createValue("statement"));
+        session.save();
+
+        NodeTypeDefinition ntd = manager.getNodeType("nt:query");
+        NodeTypeTemplate ntt = manager.createNodeTypeTemplate(ntd);
+
+        try {
+            manager.registerNodeType(ntt, true);
+            // no changes to the type, so the registration should be a no-op
+        } catch (ConstraintViolationException unexpected) {
+            fail();
+        }
+
+        // make the (still missing) jcr:language property mandatory
+        @SuppressWarnings("unchecked")
+        List<PropertyDefinitionTemplate> pdts = ntt.getPropertyDefinitionTemplates();
+        for (PropertyDefinitionTemplate pdt : pdts) {
+            if ("jcr:language".equals(pdt.getName())) {
+                pdt.setMandatory(true);
+            }
+        }
+
+        try {
+            manager.registerNodeType(ntt, true);
+            fail();
+        } catch (ConstraintViolationException expected) {
+            // the registration fails because of the would-be invalid content
+        }
+
+        // add the jcr:language property so it can be made mandatory
+        n.setProperty("jcr:language", vf.createValue("language"));
+        session.save();
+
+        try {
+            manager.registerNodeType(ntt, true);
+            // now the mandatory property exists, so the type change is OK
+        } catch (ConstraintViolationException unexpected) {
+            fail();
+        }
     }
 
     @Test
