@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
+import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 
 import java.lang.ref.WeakReference;
 import java.security.SecureRandom;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -79,6 +81,35 @@ public class SegmentIdFactory {
      */
     private final ArrayList<List<WeakReference<UUID>>> uuids = newArrayList(
             Collections.<List<WeakReference<UUID>>>nCopies(1024, null));
+
+    /**
+     * Returns all segment identifiers that are currently referenced in memory.
+     *
+     * @return referenced segment identifiers
+     */
+    synchronized Set<UUID> getReferencedSegmentIds() {
+        Set<UUID> set = newHashSetWithExpectedSize(uuids.size());
+
+        for (int i = 0; i < uuids.size(); i++) {
+            List<WeakReference<UUID>> list = uuids.get(i);
+            if (list != null) {
+                Iterator<WeakReference<UUID>> iterator = list.iterator();
+                while (iterator.hasNext()) {
+                    UUID uuid = iterator.next().get();
+                    if (uuid == null) {
+                        iterator.remove();
+                    } else {
+                        set.add(uuid);
+                    }
+                }
+                if (list.isEmpty()) {
+                    uuids.set(i, null);
+                }
+            }
+        }
+
+        return set;
+    }
 
     /**
      * 
