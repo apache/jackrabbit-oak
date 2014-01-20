@@ -18,21 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
-public abstract class IndexUpdateCallback {
+public interface IndexUpdateCallback {
 
-    private boolean dirty = false;
-
-    public void indexUpdate() throws CommitFailedException {
-        if (!dirty) {
-            dirty = true;
-            beforeIndex();
-        }
-    }
-
-    /**
-     * Called when the indexer finds the first changes that need indexing when
-     * running the diff
-     */
-    abstract protected void beforeIndex() throws CommitFailedException;
+    void indexUpdate() throws CommitFailedException;
 
 }

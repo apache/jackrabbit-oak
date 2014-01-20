@@ -114,14 +114,11 @@ public class AsyncIndexUpdate implements Runnable {
         final AtomicBoolean dirty = new AtomicBoolean(false);
 
         IndexUpdateCallback callback = new IndexUpdateCallback() {
-
             @Override
-            public void beforeIndex() throws CommitFailedException {
-                if (dirty.get()) {
-                    return;
+            public void indexUpdate() throws CommitFailedException {
+                if (dirty.getAndSet(true)) {
+                    preAsyncRun(store, name);
                 }
-                preAsyncRun(store, name);
-                dirty.set(true);
             }
         };
 
