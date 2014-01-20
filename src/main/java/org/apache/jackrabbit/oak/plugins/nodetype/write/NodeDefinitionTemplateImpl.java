@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype.write;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 import java.util.Arrays;
 
@@ -27,10 +28,13 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+
+import com.google.common.base.Objects;
 
 class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
         implements NodeDefinitionTemplate {
@@ -71,12 +75,16 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
             tree.setProperty(
                     JCR_REQUIREDPRIMARYTYPES,
                     Arrays.asList(requiredPrimaryTypeOakNames), Type.NAMES);
+        } else {
+            tree.removeProperty(JCR_REQUIREDPRIMARYTYPES);
         }
 
         if (defaultPrimaryTypeOakName != null) {
             tree.setProperty(
                     JCR_DEFAULTPRIMARYTYPE,
                     defaultPrimaryTypeOakName, Type.NAME);
+        } else {
+            tree.removeProperty(JCR_DEFAULTPRIMARYTYPE);
         }
     }
 
@@ -140,8 +148,33 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
 
     //------------------------------------------------------------< Object >--
 
+    @Override
     public String toString() {
-        return String.format("PropertyDefinitionTemplate(%s)", getOakName());
+        StringBuilder builder = new StringBuilder("+ ");
+        if (getOakName() == null) {
+            builder.append(RESIDUAL_NAME);
+        } else {
+            builder.append(getOakName());
+        }
+        if (defaultPrimaryTypeOakName != null) {
+            builder.append(" (");
+            builder.append(defaultPrimaryTypeOakName);
+            builder.append(")");
+        }
+        if (isAutoCreated()) {
+            builder.append(" a");
+        }
+        if (isProtected()) {
+            builder.append(" p");
+        }
+        if (isMandatory()) {
+            builder.append(" m");
+        }
+        if (getOnParentVersion() != OnParentVersionAction.COPY) {
+            builder.append(" ");
+            builder.append(OnParentVersionAction.nameFromValue(getOnParentVersion()));
+        }
+        return builder.toString();
     }
 
 }
