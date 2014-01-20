@@ -114,7 +114,7 @@ public class FileStore extends AbstractStore {
             String name = String.format(FILE_NAME_FORMAT, "bulk", i);
             File file = new File(directory, name);
             if (file.isFile()) {
-                bulkFiles.add(new TarFile(file, maxFileSizeMB, memoryMapping));
+                bulkFiles.add(new TarFile(file, maxFileSize, memoryMapping));
             } else {
                 break;
             }
@@ -124,7 +124,7 @@ public class FileStore extends AbstractStore {
             String name = String.format(FILE_NAME_FORMAT, "data", i);
             File file = new File(directory, name);
             if (file.isFile()) {
-                dataFiles.add(new TarFile(file, maxFileSizeMB, memoryMapping));
+                dataFiles.add(new TarFile(file, maxFileSize, memoryMapping));
             } else {
                 break;
             }
