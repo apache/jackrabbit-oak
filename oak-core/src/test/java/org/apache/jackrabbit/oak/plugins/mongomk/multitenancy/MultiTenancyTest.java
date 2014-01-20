@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
+import org.apache.jackrabbit.oak.plugins.mongomk.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
 import org.junit.After;
 import org.junit.Before;
@@ -49,8 +50,8 @@ public class MultiTenancyTest extends AbstractMongoConnectionTest {
 
     @BeforeClass
     public static void createMongoConnections() throws Exception {
-        mongoConnection2 = new MongoConnection(HOST, PORT, DB2);
-        mongoConnection3 = new MongoConnection(HOST, PORT, DB);
+        mongoConnection2 = MongoUtils.getConnection(DB2);
+        mongoConnection3 = MongoUtils.getConnection();
     }
 
 
@@ -71,7 +72,7 @@ public class MultiTenancyTest extends AbstractMongoConnectionTest {
 
     @After
     public void dropCollections() throws Exception {
-        dropCollections(mongoConnection2.getDB());
+        MongoUtils.dropCollections(mongoConnection2.getDB());
         // DB1 handled by the AbstractMongoConnectionTest
     }
 

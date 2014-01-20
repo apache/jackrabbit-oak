@@ -44,12 +44,22 @@ public class MongoUtils {
      * @return the connection or null
      */
     public static MongoConnection getConnection() {
+        return getConnection(DB);
+    }
+    
+    /**
+     * Get a connection if available. If not available, null is returned.
+     * 
+     * @param dbName the database name
+     * @return the connection or null
+     */    
+    public static MongoConnection getConnection(String dbName) {
         if (exception != null) {
             return null;
         }
         MongoConnection mongoConnection = null;
         try {
-            mongoConnection = new MongoConnection(HOST, PORT, DB);
+            mongoConnection = new MongoConnection(HOST, PORT, dbName);
             mongoConnection.getDB().command(new BasicDBObject("ping", 1));
             // dropCollections(mongoConnection.getDB());
         } catch (Exception e) {
