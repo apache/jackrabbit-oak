@@ -100,7 +100,7 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
             String name = n.getName();
 
             JackrabbitNode node = (JackrabbitNode) n;
-            node.rename(name.toUpperCase());
+            node.rename(name + 'X');
             superuser.save();
 
             boolean foundMove = false;
