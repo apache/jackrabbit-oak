@@ -61,13 +61,20 @@ class IndexUpdate implements Editor {
      */
     private final List<Editor> reindex = newArrayList();
 
+    /**
+     * Callback for the 'before' events of the indexing job
+     */
+    private final IndexUpdateCallback updateCallback;
+
     IndexUpdate(
             IndexEditorProvider provider, String async,
-            NodeState root, NodeBuilder builder) {
+            NodeState root, NodeBuilder builder,
+            IndexUpdateCallback updateCallback) {
         this.provider = checkNotNull(provider);
         this.async = async;
         this.root = checkNotNull(root);
         this.builder = checkNotNull(builder);
+        this.updateCallback = updateCallback;
     }
 
     private IndexUpdate(IndexUpdate parent, String name) {
@@ -76,6 +83,7 @@ class IndexUpdate implements Editor {
         this.async = parent.async;
         this.root = parent.root;
         this.builder = parent.builder.child(checkNotNull(name));
+        this.updateCallback = parent.updateCallback;
     }
 
     @Override
@@ -101,7 +109,7 @@ class IndexUpdate implements Editor {
             NodeBuilder definition = definitions.getChildNode(name);
             if (Objects.equal(async, definition.getString(ASYNC_PROPERTY_NAME))) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
-                Editor editor = provider.getIndexEditor(type, definition, root);
+                Editor editor = provider.getIndexEditor(type, definition, root, updateCallback);
                 if (editor == null) {
                     // trigger reindexing when an indexer becomes available
                     definition.setProperty(REINDEX_PROPERTY_NAME, true);

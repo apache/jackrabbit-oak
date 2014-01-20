@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -70,11 +71,13 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private boolean propertiesChanged = false;
 
-    LuceneIndexEditor(NodeBuilder definition, Analyzer analyzer) throws CommitFailedException {
+    LuceneIndexEditor(NodeBuilder definition, Analyzer analyzer,
+            IndexUpdateCallback updateCallback) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.context = new LuceneIndexEditorContext(definition, analyzer);
+        this.context = new LuceneIndexEditorContext(definition, analyzer,
+                updateCallback);
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name) {
@@ -158,6 +161,7 @@ public class LuceneIndexEditor implements IndexEditor {
             // Remove all index entries in the removed subtree
             writer.deleteDocuments(newPathTerm(path));
             writer.deleteDocuments(new PrefixQuery(newPathTerm(path + "/")));
+            this.context.indexUpdate();
         } catch (IOException e) {
             throw new CommitFailedException(
                     "Lucene", 5, "Failed to remove the index entries of"
@@ -182,7 +186,7 @@ public class LuceneIndexEditor implements IndexEditor {
         return false;
     }
 
-    private Document makeDocument(String path, NodeState state, boolean isUpdate) {
+    private Document makeDocument(String path, NodeState state, boolean isUpdate) throws CommitFailedException {
         Document document = new Document();
         boolean dirty = false;
         for (PropertyState property : state.getProperties()) {
@@ -191,10 +195,12 @@ public class LuceneIndexEditor implements IndexEditor {
                     && (context.getPropertyTypes() & (1 << property.getType()
                             .tag())) != 0 && context.includeProperty(pname)) {
                 if (Type.BINARY.tag() == property.getType().tag()) {
+                    this.context.indexUpdate();
                     addBinaryValue(document, property, state);
                     dirty = true;
                 } else {
                     for (String value : property.getValue(Type.STRINGS)) {
+                        this.context.indexUpdate();
                         document.add(newPropertyField(pname, value));
                         document.add(newFulltextField(value));
                         dirty = true;

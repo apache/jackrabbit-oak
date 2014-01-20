@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
@@ -50,7 +51,7 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            String type, NodeBuilder definition, NodeState root)
+            String type, NodeBuilder definition, NodeState root, IndexUpdateCallback callback)
             throws CommitFailedException {
 
         if (SolrQueryIndex.TYPE.equals(type)
@@ -59,7 +60,7 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
                 return new SolrIndexEditor(
                         definition,
                         solrServerProvider.getSolrServer(),
-                        oakSolrConfigurationProvider.getConfiguration());
+                        oakSolrConfigurationProvider.getConfiguration(), callback);
             } catch (Exception e) {
                 if (log.isErrorEnabled()) {
                     log.error("unable to create SolrIndexEditor", e);

@@ -29,8 +29,10 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexWriter;
@@ -102,7 +104,9 @@ public class LuceneIndexEditorContext {
 
     private long indexedNodes;
 
-    LuceneIndexEditorContext(NodeBuilder definition, Analyzer analyzer) {
+    private final IndexUpdateCallback updateCallback;
+
+    LuceneIndexEditorContext(NodeBuilder definition, Analyzer analyzer, IndexUpdateCallback updateCallback) {
         this.definition = definition;
         this.config = getIndexWriterConfig(analyzer);
 
@@ -127,6 +131,7 @@ public class LuceneIndexEditorContext {
             excludes = ImmutableSet.of();
         }
         this.indexedNodes = 0;
+        this.updateCallback = updateCallback;
     }
 
     int getPropertyTypes() {
@@ -164,6 +169,12 @@ public class LuceneIndexEditorContext {
 
     public long getIndexedNodes() {
         return indexedNodes;
+    }
+
+    void indexUpdate() throws CommitFailedException {
+        if (this.updateCallback != null) {
+            updateCallback.indexUpdate();
+        }
     }
 
 }

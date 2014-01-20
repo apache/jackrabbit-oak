@@ -27,6 +27,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
@@ -55,11 +56,11 @@ public class SolrIndexEditorProviderService implements IndexEditorProvider {
     @Override
     @CheckForNull
     public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition, 
-                    @Nonnull NodeState root) throws CommitFailedException {
+                    @Nonnull NodeState root, IndexUpdateCallback callback) throws CommitFailedException {
         Editor indexEditor = null;
         if (solrServerProvider != null && oakSolrConfigurationProvider != null && solrIndexEditorProvider == null) {
             solrIndexEditorProvider = new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider);
-            indexEditor = solrIndexEditorProvider.getIndexEditor(type, definition, root);
+            indexEditor = solrIndexEditorProvider.getIndexEditor(type, definition, root, callback);
         }
         return indexEditor;
     }

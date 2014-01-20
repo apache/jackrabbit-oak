@@ -44,10 +44,12 @@ public interface IndexEditorProvider {
      * @param type  index type
      * @param definition index definition node builder, used for updates
      * @param root root node state, used for things like node type information
+     * @param callback used to register for index update notifications
      * @return index update editor, or {@code null} if type is unknown
      */
     @CheckForNull
     Editor getIndexEditor(
             @Nonnull String type, @Nonnull NodeBuilder definition,
-            @Nonnull NodeState root) throws CommitFailedException;
+            @Nonnull NodeState root, 
+            @CheckForNull IndexUpdateCallback callback) throws CommitFailedException;
 }
