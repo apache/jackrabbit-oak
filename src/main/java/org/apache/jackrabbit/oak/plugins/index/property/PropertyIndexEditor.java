@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
@@ -101,7 +102,10 @@ class PropertyIndexEditor implements IndexEditor {
      */
     private Set<String> afterKeys;
 
-    public PropertyIndexEditor(NodeBuilder definition, NodeState root) {
+    private final IndexUpdateCallback updateCallback;
+
+    public PropertyIndexEditor(NodeBuilder definition, NodeState root,
+            IndexUpdateCallback updateCallback) {
         this.parent = null;
         this.name = null;
         this.path = "/";
@@ -130,6 +134,7 @@ class PropertyIndexEditor implements IndexEditor {
         } else {
             this.keysToCheckForUniqueness = null;
         }
+        this.updateCallback = updateCallback;
     }
 
     private PropertyIndexEditor(PropertyIndexEditor parent, String name) {
@@ -140,6 +145,7 @@ class PropertyIndexEditor implements IndexEditor {
         this.propertyNames = parent.propertyNames;
         this.typePredicate = parent.typePredicate;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
+        this.updateCallback = parent.updateCallback;
     }
 
     /**
@@ -235,6 +241,9 @@ class PropertyIndexEditor implements IndexEditor {
             }
 
             if (!beforeKeys.isEmpty() || !afterKeys.isEmpty()) {
+                if (updateCallback != null) {
+                    updateCallback.indexUpdate();
+                }
                 NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
                 getStrategy(keysToCheckForUniqueness != null).update(
                         index, getPath(), beforeKeys, afterKeys);

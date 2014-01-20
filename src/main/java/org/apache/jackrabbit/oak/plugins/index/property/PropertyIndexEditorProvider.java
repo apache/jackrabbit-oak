@@ -20,6 +20,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -38,9 +39,9 @@ public class PropertyIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            String type, NodeBuilder definition, NodeState root) {
+            String type, NodeBuilder definition, NodeState root, IndexUpdateCallback callback) {
         if (TYPE.equals(type)) {
-            return new PropertyIndexEditor(definition, root);
+            return new PropertyIndexEditor(definition, root, callback);
         }
         return null;
     }

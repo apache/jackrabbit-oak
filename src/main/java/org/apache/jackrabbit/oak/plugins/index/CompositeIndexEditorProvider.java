@@ -43,7 +43,7 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
             return new IndexEditorProvider() {
                 @Override
                 public Editor getIndexEditor(
-                        String type, NodeBuilder builder, NodeState root) {
+                        String type, NodeBuilder builder, NodeState root, IndexUpdateCallback callback) {
                     return null;
                 }
             };
@@ -67,11 +67,11 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            String type, NodeBuilder builder, NodeState root)
+            String type, NodeBuilder builder, NodeState root, IndexUpdateCallback callback)
             throws CommitFailedException {
         List<Editor> indexes = Lists.newArrayList();
         for (IndexEditorProvider provider : providers) {
-            Editor e = provider.getIndexEditor(type, builder, root);
+            Editor e = provider.getIndexEditor(type, builder, root, callback);
             if (e != null) {
                 indexes.add(e);
             }
