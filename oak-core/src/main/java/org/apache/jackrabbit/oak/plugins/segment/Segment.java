@@ -127,7 +127,9 @@ public class Segment {
 
     private final byte[] recentCacheHits;
 
-    public Segment(SegmentStore store, UUID uuid, ByteBuffer data) {
+    public Segment(
+            SegmentStore store, SegmentIdFactory factory,
+            UUID uuid, ByteBuffer data) {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
@@ -139,7 +141,7 @@ public class Segment {
             refpos += align(3 + roots * 3);
             refids = new UUID[refs];
             for (int i = 0; i < refs; i++) {
-                refids[i] = new UUID(
+                refids[i] = factory.getSegmentId(
                         data.getLong(refpos + i * 16),
                         data.getLong(refpos + i * 16 + 8));
             }

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 
@@ -45,9 +46,12 @@ public abstract class AbstractStore implements SegmentStore {
      */
     private int currentlyWaiting = 0;
 
-    private final SegmentWriter writer = new SegmentWriter(this);
+    private final SegmentIdFactory factory = new SegmentIdFactory();
+
+    private final SegmentWriter writer;
 
     protected AbstractStore(int cacheSizeMB) {
+        this.writer = new SegmentWriter(this, factory);
         if (cacheSizeMB > 0) {
             this.segments = CacheLIRS.newBuilder()
                     .weigher(Segment.WEIGHER)
@@ -56,6 +60,10 @@ public abstract class AbstractStore implements SegmentStore {
         } else {
             this.segments = null;
         }
+    }
+
+    protected Segment createSegment(UUID segmentId, ByteBuffer data) {
+        return new Segment(this, factory, segmentId, data);
     }
 
     @Nonnull

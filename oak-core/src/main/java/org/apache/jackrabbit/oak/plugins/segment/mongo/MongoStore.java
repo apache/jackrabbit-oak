@@ -106,7 +106,7 @@ public class MongoStore extends AbstractStore {
         }
 
         byte[] data = (byte[]) segment.get("data");
-        return new Segment(this, segmentId, ByteBuffer.wrap(data));
+        return createSegment(segmentId, ByteBuffer.wrap(data));
     }
 
     @Override
