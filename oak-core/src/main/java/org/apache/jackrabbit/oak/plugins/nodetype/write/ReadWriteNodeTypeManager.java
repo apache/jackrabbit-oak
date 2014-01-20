@@ -128,8 +128,6 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     public final NodeTypeIterator registerNodeTypes(
             NodeTypeDefinition[] ntds, boolean allowUpdate)
             throws RepositoryException {
-        // TODO proper node type registration... (OAK-66, OAK-411)
-        // TODO handle inter-type dependencies (OAK-66, OAK-411)
         Root root = getWriteRoot();
         try {
             Tree tree = getOrCreateNodeTypes(root);

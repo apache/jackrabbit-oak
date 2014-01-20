@@ -49,9 +49,9 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
 
     private int onParentVersion = OnParentVersionAction.COPY;
 
-    protected boolean isProtected = false;
+    private boolean isProtected = false;
 
-    protected boolean isMandatory = false;
+    private boolean isMandatory = false;
 
     protected ItemDefinitionTemplate(NameMapper mapper) {
         super(mapper);
@@ -82,6 +82,8 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
                 throw new RepositoryException("Unnamed item definition");
             }
             tree.setProperty(JCR_NAME, oakName, Type.NAME);
+        } else {
+            tree.removeProperty(JCR_NAME);
         }
 
         // TODO avoid (in validator?) unbounded recursive auto creation.

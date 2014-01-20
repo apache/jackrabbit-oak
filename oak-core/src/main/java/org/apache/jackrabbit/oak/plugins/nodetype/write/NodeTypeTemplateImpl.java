@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 
@@ -45,6 +46,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -129,23 +131,22 @@ class NodeTypeTemplateImpl extends NamedTemplate
         String oakName = getOakName();
 
         Tree type = parent.getChild(oakName);
-        if (type.exists()) {
-            if (allowUpdate) {
-                type.remove();
-            } else {
-                throw new NodeTypeExistsException(
-                        "Node type " + getName() + " already exists");
-            }
+        if (!type.exists()) {
+            type = parent.addChild(oakName);
+            type.setProperty(JCR_PRIMARYTYPE, NT_NODETYPE, Type.NAME);
+        } else if (!allowUpdate) {
+            throw new NodeTypeExistsException(
+                    "Node type " + getName() + " already exists");
         }
-        type = parent.addChild(oakName);
 
-        type.setProperty(JCR_PRIMARYTYPE, NT_NODETYPE, Type.NAME);
         type.setProperty(JCR_NODETYPENAME, oakName, Type.NAME);
 
         if (superTypeOakNames.length > 0) {
             type.setProperty(
                     JCR_SUPERTYPES,
                     Arrays.asList(superTypeOakNames), Type.NAMES);
+        } else {
+            type.removeProperty(JCR_SUPERTYPES);
         }
 
         type.setProperty(JCR_IS_ABSTRACT, isAbstract);
@@ -160,28 +161,49 @@ class NodeTypeTemplateImpl extends NamedTemplate
         // See 3.7.6.7 Node Type Attribute Subtyping Rules (OAK-411)
         if (primaryItemOakName != null) {
             type.setProperty(JCR_PRIMARYITEMNAME, primaryItemOakName, Type.NAME);
+        } else {
+            type.removeProperty(JCR_PRIMARYITEMNAME);
         }
 
+        Tree tree;
         // TODO fail (in validator?) on invalid item definitions
         // See 3.7.6.8 Item Definitions in Subtypes (OAK-411)
+        int pdn = 1;
         if (propertyDefinitionTemplates != null) {
-            int pdn = 1;
             for (PropertyDefinitionTemplateImpl pdt : propertyDefinitionTemplates) {
-                Tree tree = type.addChild(JCR_PROPERTYDEFINITION + "[" + pdn++ + "]");
-                tree.setProperty(
-                        JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION, Type.NAME);
+                String name = JCR_PROPERTYDEFINITION + "[" + pdn++ + "]";
+                tree = type.getChild(name);
+                if (!tree.exists()) {
+                    tree = type.addChild(name);
+                    tree.setProperty(
+                            JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION, NAME);
+                }
                 pdt.writeTo(tree);
             }
         }
+        tree = type.getChild(JCR_PROPERTYDEFINITION + "[" + pdn++ + "]");
+        while (tree.exists()) {
+            tree.remove();
+            tree = type.getChild(JCR_PROPERTYDEFINITION + "[" + pdn++ + "]");
+        }
 
+        int ndn = 1;
         if (nodeDefinitionTemplates != null) {
-            int ndn = 1;
             for (NodeDefinitionTemplateImpl ndt : nodeDefinitionTemplates) {
-                Tree tree = type.addChild(JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]");
-                tree.setProperty(
-                        JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION, Type.NAME);
+                String name = JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]";
+                tree = type.getChild(name);
+                if (!tree.exists()) {
+                    tree = type.addChild(name);
+                    tree.setProperty(
+                            JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION, NAME);
+                }
                 ndt.writeTo(tree);
             }
+        }
+        tree = type.getChild(JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]");
+        while (tree.exists()) {
+            tree.remove();
+            tree = type.getChild(JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]");
         }
 
         return type;
