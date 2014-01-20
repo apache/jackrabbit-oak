@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.util.Set;
 
@@ -86,6 +87,8 @@ public class AsyncIndexUpdateTest {
         // first check that the index content nodes exist
         checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
                 INDEX_CONTENT_NODE_NAME);
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
+                ":conflict"));
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));

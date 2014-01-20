@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceCon
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -31,7 +32,7 @@ public class ReferenceEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(String type, NodeBuilder definition,
-            NodeState root) {
+            NodeState root, IndexUpdateCallback callback) {
         if (TYPE.equals(type)) {
             return new ReferenceEditor(definition, root);
         }
