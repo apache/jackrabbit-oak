@@ -280,7 +280,7 @@ public class FileStore extends AbstractStore {
             try {
                 ByteBuffer buffer = file.readEntry(id);
                 if (buffer != null) {
-                    return new Segment(FileStore.this, id, buffer);
+                    return createSegment(id, buffer);
                 }
             } catch (IOException e) {
                 throw new RuntimeException(
@@ -292,7 +292,7 @@ public class FileStore extends AbstractStore {
             try {
                 ByteBuffer buffer = file.readEntry(id);
                 if (buffer != null) {
-                    return new Segment(FileStore.this, id, buffer);
+                    return createSegment(id, buffer);
                 }
             } catch (IOException e) {
                 throw new RuntimeException(

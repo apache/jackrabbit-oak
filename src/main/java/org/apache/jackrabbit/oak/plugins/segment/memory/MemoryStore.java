@@ -81,7 +81,7 @@ public class MemoryStore extends AbstractStore {
         ByteBuffer buffer = ByteBuffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
-        Segment segment = new Segment(this, segmentId, buffer);
+        Segment segment = createSegment(segmentId, buffer);
         if (segments.putIfAbsent(segment.getSegmentId(), segment) != null) {
             throw new IllegalStateException(
                     "Segment override: " + segment.getSegmentId());

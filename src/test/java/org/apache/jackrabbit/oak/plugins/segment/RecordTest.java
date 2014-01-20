@@ -20,7 +20,6 @@ import static com.google.common.collect.Lists.newArrayList;
 import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newBulkSegmentId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -125,9 +124,10 @@ public class RecordTest {
 
     @Test
     public void testListWithLotsOfReferences() { // OAK-1184
+        SegmentIdFactory factory = new SegmentIdFactory();
         List<RecordId> list = newArrayList();
         for (int i = 0; i < 1000; i++) {
-            list.add(new RecordId(newBulkSegmentId(), 0));
+            list.add(new RecordId(factory.newBulkSegmentId(), 0));
         }
         writer.writeList(list);
     }
