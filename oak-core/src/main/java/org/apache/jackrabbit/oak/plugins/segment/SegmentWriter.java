@@ -37,8 +37,6 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newBulkSegmentId;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.newDataSegmentId;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -86,6 +84,8 @@ public class SegmentWriter {
 
     private final SegmentStore store;
 
+    private final SegmentIdFactory factory;
+
     /**
      * Cache of recently stored string and template records, used to
      * avoid storing duplicates of frequently occurring data.
@@ -99,7 +99,7 @@ public class SegmentWriter {
             }
         };
 
-    private UUID uuid = newDataSegmentId();
+    private UUID uuid;
 
     /**
      * Insertion-ordered map from the UUIDs of referenced segments to the
@@ -136,10 +136,13 @@ public class SegmentWriter {
 
     private final Segment dummySegment;
 
-    public SegmentWriter(SegmentStore store) {
+    public SegmentWriter(SegmentStore store, SegmentIdFactory factory) {
         this.store = store;
-        this.dummySegment =
-                new Segment(store, newBulkSegmentId(), ByteBuffer.allocate(0));
+        this.factory = factory;
+        this.uuid = factory.newDataSegmentId();
+        this.dummySegment = new Segment(
+                store, factory,
+                factory.newBulkSegmentId(), ByteBuffer.allocate(0));
     }
 
     private void writeSegmentHeader(ByteBuffer b) {
@@ -197,7 +200,7 @@ public class SegmentWriter {
 
             store.writeSegment(uuid, buffer, buffer.length - length, length);
 
-            uuid = newDataSegmentId();
+            uuid = factory.newDataSegmentId();
             buffer = new byte[MAX_SEGMENT_SIZE];
             refids.clear();
             roots.clear();
@@ -621,7 +624,7 @@ public class SegmentWriter {
 
         // write as many full bulk segments as possible
         while (pos + MAX_SEGMENT_SIZE <= data.length) {
-            UUID uuid = newBulkSegmentId();
+            UUID uuid = factory.newBulkSegmentId();
             store.writeSegment(uuid, data, pos, MAX_SEGMENT_SIZE);
             for (int i = 0; i < MAX_SEGMENT_SIZE; i += BLOCK_SIZE) {
                 blockIds.add(new RecordId(uuid, i));
@@ -686,7 +689,7 @@ public class SegmentWriter {
 
         // Write the data to bulk segments and collect the list of block ids
         while (n != 0) {
-            UUID id = newBulkSegmentId();
+            UUID id = factory.newBulkSegmentId();
             int len = align(n);
             store.writeSegment(id, data, 0, len);
 

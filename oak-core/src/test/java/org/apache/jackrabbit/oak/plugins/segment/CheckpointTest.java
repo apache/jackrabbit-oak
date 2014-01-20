@@ -41,7 +41,7 @@ public class CheckpointTest {
         verifyNS(store, false);
 
         // gc?
-        store.retrieve(SegmentIdFactory.newDataSegmentId().toString());
+        store.retrieve(new SegmentIdFactory().newDataSegmentId().toString());
     }
 
     private static void verifyNS(SegmentNodeStore store, boolean exists) {
