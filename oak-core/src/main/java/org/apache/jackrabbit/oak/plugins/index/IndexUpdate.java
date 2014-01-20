@@ -62,7 +62,7 @@ class IndexUpdate implements Editor {
     private final List<Editor> reindex = newArrayList();
 
     /**
-     * Callback for the 'before' events of the indexing job
+     * Callback for the update events of the indexing job
      */
     private final IndexUpdateCallback updateCallback;
 
@@ -74,7 +74,7 @@ class IndexUpdate implements Editor {
         this.async = async;
         this.root = checkNotNull(root);
         this.builder = checkNotNull(builder);
-        this.updateCallback = updateCallback;
+        this.updateCallback = checkNotNull(updateCallback);
     }
 
     private IndexUpdate(IndexUpdate parent, String name) {
