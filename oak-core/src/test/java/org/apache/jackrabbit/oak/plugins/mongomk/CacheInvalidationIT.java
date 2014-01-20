@@ -196,7 +196,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     }
 
     private MongoNodeStore createNS(int clusterId) throws Exception {
-        MongoConnection mc = new MongoConnection(HOST, PORT, DB);
+        MongoConnection mc = MongoUtils.getConnection();
         return new MongoMK.Builder()
                           .setMongoDB(mc.getDB())
                           .setClusterId(clusterId)
