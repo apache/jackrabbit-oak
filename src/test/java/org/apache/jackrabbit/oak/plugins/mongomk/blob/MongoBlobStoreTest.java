@@ -34,22 +34,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.blobs.BlobStoreInputStream;
-import org.apache.jackrabbit.oak.plugins.mongomk.AbstractMongoConnectionTest;
+import org.apache.jackrabbit.oak.plugins.mongomk.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Tests the {@link MongoBlobStore} implementation. It should really extend from
- * AbstractBlobStore but it cannot due to classpath issues, so instead AbstractBlobStore
- * tests are copied here as well.
+ * Tests the {@link MongoBlobStore} implementation.
  */
-public class MongoBlobStoreTest extends AbstractMongoConnectionTest {
+public class MongoBlobStoreTest {
 
+    private MongoConnection mongoConnection;
     protected AbstractBlobStore store;
-
+    
+    @BeforeClass
+    public static void checkMongoDbAvailable() {
+        Assume.assumeNotNull(MongoUtils.getConnection());
+    }
+    
     @Before
     public void setUp() throws Exception {
+        mongoConnection = MongoUtils.getConnection();
+        MongoUtils.dropCollections(mongoConnection.getDB());
+        
         MongoBlobStore blobStore = new MongoBlobStore(mongoConnection.getDB());
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
@@ -58,6 +68,7 @@ public class MongoBlobStoreTest extends AbstractMongoConnectionTest {
 
     @After
     public void tearDown() throws Exception {
+        MongoUtils.dropCollections(mongoConnection.getDB());
         store = null;
     }
 

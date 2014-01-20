@@ -74,7 +74,7 @@ public class MongoConnection {
                 .threadsAllowedToBlockForConnectionMultiplier(100);
     }
 
-    public static String toString(MongoClientOptions opts){
+    public static String toString(MongoClientOptions opts) {
         return Objects.toStringHelper(opts)
                 .add("connectionsPerHost", opts.getConnectionsPerHost())
                 .add("connectTimeout", opts.getConnectTimeout())
@@ -85,7 +85,7 @@ public class MongoConnection {
                 .add("maxWaitTime", opts.getMaxWaitTime())
                 .add("threadsAllowedToBlockForConnectionMultiplier",
                         opts.getThreadsAllowedToBlockForConnectionMultiplier())
-                .add("readPreference",opts.getReadPreference().getName())
+                .add("readPreference", opts.getReadPreference().getName())
                 .add("writeConcern", opts.getWriteConcern())
                 .toString();
     }

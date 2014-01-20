@@ -23,54 +23,25 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-
 /**
  * Base class for test cases that need a {@link MongoConnection}
  * to a clean test database. Tests in subclasses are automatically
  * skipped if the configured MongoDB connection can not be created.
  */
 public abstract class AbstractMongoConnectionTest extends MongoMKTestBase {
-
-    protected static final String HOST =
-            System.getProperty("mongo.host", "127.0.0.1");
-
-    protected static final int PORT =
-            Integer.getInteger("mongo.port", 27017);
-
-    protected static final String DB =
-            System.getProperty("mongo.db", "MongoMKDB");
-
-    protected static Boolean mongoAvailable;
-
-    private static Exception mongoException;
     
     protected MongoConnection mongoConnection;
-
     protected MongoMK mk;
-
+    
     @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        if (mongoAvailable == null) {
-            MongoConnection mongoConnection = new MongoConnection(HOST, PORT, DB);
-            try {
-                mongoConnection.getDB().command(new BasicDBObject("ping", 1));
-                mongoAvailable = Boolean.TRUE;
-            } catch (Exception e) {
-                mongoAvailable = Boolean.FALSE;
-                mongoException = e;
-            } finally {
-                mongoConnection.close();
-            }
-        }
-        Assume.assumeNoException(mongoException);
+    public static void checkMongoDbAvailable() {
+        Assume.assumeNotNull(MongoUtils.getConnection());
     }
 
     @Before
     public void setUpConnection() throws Exception {
-        mongoConnection = new MongoConnection(HOST, PORT, DB);
-        dropCollections(mongoConnection.getDB());
+        mongoConnection = MongoUtils.getConnection();
+        MongoUtils.dropCollections(mongoConnection.getDB());
         mk = new MongoMK.Builder().setMongoDB(mongoConnection.getDB()).open();
     }
 
@@ -79,22 +50,14 @@ public abstract class AbstractMongoConnectionTest extends MongoMKTestBase {
         mk.dispose();
         // the db might already be closed
         mongoConnection.close();
-        mongoConnection = new MongoConnection(HOST, PORT, DB);
-        dropCollections(mongoConnection.getDB());
+        mongoConnection = MongoUtils.getConnection();
+        MongoUtils.dropCollections(mongoConnection.getDB());
         mongoConnection.close();
     }
 
     @Override
     protected MicroKernel getMicroKernel() {
         return mk;
-    }
-
-    protected void dropCollections(DB db) throws Exception {
-        for (String name : db.getCollectionNames()) {
-            if (!name.startsWith("system.")) {
-                db.getCollection(name).drop();
-            }
-        }
     }
 
 }
