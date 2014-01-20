@@ -62,6 +62,10 @@ public abstract class AbstractStore implements SegmentStore {
         }
     }
 
+    protected Set<UUID> getReferencedSegmentIds() {
+        return factory.getReferencedSegmentIds();
+    }
+
     protected Segment createSegment(UUID segmentId, ByteBuffer data) {
         return new Segment(this, factory, segmentId, data);
     }
