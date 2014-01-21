@@ -75,7 +75,7 @@ public final class KernelNodeState extends AbstractNodeState {
     /**
      * Maximum number of child nodes kept in memory.
      */
-    static final int MAX_CHILD_NODE_NAMES = 100;
+    public static final int MAX_CHILD_NODE_NAMES = 100;
 
     /**
      * Number of child nodes beyond which {@link MicroKernel#diff(String, String, String, int)}
