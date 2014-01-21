@@ -65,6 +65,11 @@ public class ClusterNodeInfo {
     private static final String INFO_KEY = "info";
     
     /**
+     * The read/write mode key.
+     */
+    private static final String READ_WRITE_MODE_KEY = "readWriteMode";
+
+    /**
      * The unique machine id (the MAC address if available).
      */
     private static final String MACHINE_ID = getMachineId();
@@ -119,6 +124,11 @@ public class ClusterNodeInfo {
      * The time (in milliseconds UTC) where the lease of this instance ends.
      */
     private long leaseEndTime;
+    
+    /**
+     * The read/write mode.
+     */
+    private String readWriteMode;
     
     ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId) {
         this.id = id;
@@ -234,7 +244,12 @@ public class ClusterNodeInfo {
         UpdateOp update = new UpdateOp("" + id, true);
         leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
-        store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        ClusterNodeInfoDocument doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        String mode = (String) doc.get(READ_WRITE_MODE_KEY);
+        if (mode != null && !mode.equals(readWriteMode)) {
+            readWriteMode = mode;
+            store.setReadWriteMode(mode);
+        }
     }
     
     public void setLeaseTime(long leaseTime) {
@@ -258,7 +273,8 @@ public class ClusterNodeInfo {
                 "machineId: " + machineId + ",\n" +
                 "instanceId: " + instanceId + ",\n" +
                 "pid: " + PROCESS_ID + ",\n" +
-                "uuid: " + uuid +"\n";
+                "uuid: " + uuid +",\n" +
+                "readWriteMode: " + readWriteMode;
     }
         
     private static long getProcessId() {

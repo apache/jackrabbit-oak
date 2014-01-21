@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
@@ -29,6 +30,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+
+import com.google.common.base.Splitter;
+import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and
@@ -55,6 +60,12 @@ public class MemoryDocumentStore implements DocumentStore {
      * descending, newest revisions first!
      */
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
+
+    private ReadPreference readPreference;
+
+    private WriteConcern writeConcern;
+
+    private Object lastReadWriteMode;
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
@@ -177,7 +188,7 @@ public class MemoryDocumentStore implements DocumentStore {
             } else {
                 oldDoc.deepCopy(doc);
             }
-            if (checkConditions && ! UpdateUtils.checkConditions(doc, update)) {
+            if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
                 return null;
             }
             // update the document
@@ -263,6 +274,41 @@ public class MemoryDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         // ignore
+    }
+
+    @Override
+    public void setReadWriteMode(String readWriteMode) {
+        if (readWriteMode == null || readWriteMode.equals(lastReadWriteMode)) {
+            return;
+        }
+        lastReadWriteMode = readWriteMode;        
+        try {
+            Map<String, String> map = Splitter.on(", ").withKeyValueSeparator(":").split(readWriteMode);
+            String read = map.get("read");
+            if (read != null) {
+                ReadPreference readPref = ReadPreference.valueOf(read);
+                if (!readPref.equals(this.readPreference)) {
+                    this.readPreference = readPref;
+                }
+            } 
+            String write = map.get("write");
+            if (write != null) {
+                WriteConcern writeConcern = WriteConcern.valueOf(write);
+                if (!writeConcern.equals(this.writeConcern)) {
+                    this.writeConcern = writeConcern;
+                }
+            }
+        } catch (Exception e) {
+            // unsupported or parse error - ignore
+        }
+    }
+    
+    public ReadPreference getReadPreference() {
+        return readPreference;
+    }
+
+    public WriteConcern getWriteConcern() {
+        return writeConcern;
     }
 
 }

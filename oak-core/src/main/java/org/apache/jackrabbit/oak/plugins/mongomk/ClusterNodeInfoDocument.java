@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
  * A document storing cluster node info. See also {@link ClusterNodeInfo}.
  */
 public class ClusterNodeInfoDocument extends Document {
-    
+
     // marker interface
 
 }
