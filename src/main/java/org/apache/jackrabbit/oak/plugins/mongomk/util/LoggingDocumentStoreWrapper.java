@@ -40,7 +40,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("ds.debug", "true"));
 
     final DocumentStore store;
-    private boolean logThread = false;
+    private boolean logThread;
 
     public LoggingDocumentStoreWrapper(DocumentStore store) {
         this.store = store;
@@ -256,6 +256,17 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
                     return store.getIfCached(collection, key);
                 }
             });
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+    
+    @Override
+    public void setReadWriteMode(String readWriteMode) {
+        try {
+            logMethod("setReadWriteMode", readWriteMode);
+            store.setReadWriteMode(readWriteMode);
         } catch (Exception e) {
             logException(e);
             throw convert(e);

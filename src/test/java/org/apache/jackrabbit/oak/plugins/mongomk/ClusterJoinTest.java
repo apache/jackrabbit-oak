@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
-import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
 import org.json.simple.JSONObject;
 import org.junit.Test;
 

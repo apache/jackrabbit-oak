@@ -39,75 +39,81 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    synchronized public <T extends Document> T find(final Collection<T> collection, final String key) {
+    public synchronized <T extends Document> T find(final Collection<T> collection, final String key) {
         return store.find(collection, key);
     }
 
     @Override
-    synchronized public <T extends Document> T find(final Collection<T> collection, final String key, final int maxCacheAge) {
+    public synchronized <T extends Document> T find(final Collection<T> collection, final String key, final int maxCacheAge) {
         return store.find(collection, key, maxCacheAge);
     }
 
     @Nonnull
     @Override
-    synchronized public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
+    public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
             final String toKey, final int limit) {
         return store.query(collection, fromKey, toKey, limit);
     }
 
     @Override
     @Nonnull
-    synchronized public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
+    public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
             final String toKey, final String indexedProperty, final long startValue, final int limit) {
         return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
     }
 
     @Override
-    synchronized public <T extends Document> void remove(Collection<T> collection, String key) {
+    public synchronized <T extends Document> void remove(Collection<T> collection, String key) {
         store.remove(collection, key);
     }
 
     @Override
-    synchronized public <T extends Document> boolean create(final Collection<T> collection, final List<UpdateOp> updateOps) {
+    public synchronized <T extends Document> boolean create(final Collection<T> collection, final List<UpdateOp> updateOps) {
         return store.create(collection, updateOps);
     }
 
     @Override
-    synchronized public <T extends Document> void update(final Collection<T> collection, final List<String> keys,
+    public synchronized <T extends Document> void update(final Collection<T> collection, final List<String> keys,
             final UpdateOp updateOp) {
         store.update(collection, keys, updateOp);
     }
 
     @Nonnull
     @Override
-    synchronized public <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update)
+    public synchronized <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update)
             throws MicroKernelException {
         return store.createOrUpdate(collection, update);
     }
 
     @Override
-    synchronized public <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update)
+    public synchronized <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update)
             throws MicroKernelException {
         return store.findAndUpdate(collection, update);
     }
 
     @Override
-    synchronized public void invalidateCache() {
+    public synchronized void invalidateCache() {
         store.invalidateCache();
     }
 
     @Override
-    synchronized public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
+    public synchronized <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         store.invalidateCache(collection, key);
     }
 
     @Override
-    synchronized public void dispose() {
+    public synchronized void dispose() {
         store.dispose();
     }
 
     @Override
-    synchronized public <T extends Document> T getIfCached(final Collection<T> collection, final String key) {
+    public synchronized <T extends Document> T getIfCached(final Collection<T> collection, final String key) {
         return store.getIfCached(collection, key);
     }
+    
+    @Override
+    public synchronized void setReadWriteMode(String readWriteMode) {
+        store.setReadWriteMode(readWriteMode);
+    }    
+    
 }

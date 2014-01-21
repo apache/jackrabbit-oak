@@ -33,12 +33,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Splitter;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
@@ -49,10 +51,9 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.QueryBuilder;
+import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
-
-import static org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Key;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -86,6 +87,8 @@ public class MongoDocumentStore implements DocumentStore {
      * descending, newest revisions first!
      */
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
+
+    private String lastReadWriteMode;
 
     public MongoDocumentStore(DB db, MongoMK.Builder builder) {
         nodes = db.getCollection(
@@ -767,5 +770,34 @@ public class MongoDocumentStore implements DocumentStore {
         Lock l = locks.get(key);
         l.lock();
         return l;
+    }
+
+    @Override
+    public void setReadWriteMode(String readWriteMode) {
+        if (readWriteMode == null || readWriteMode.equals(lastReadWriteMode)) {
+            return;
+        }
+        lastReadWriteMode = readWriteMode;
+        try {
+            Map<String, String> map = Splitter.on(", ").withKeyValueSeparator(":").split(readWriteMode);
+            String read = map.get("read");
+            if (read != null) {
+                ReadPreference readPref = ReadPreference.valueOf(read);
+                if (!readPref.equals(nodes.getReadPreference())) {
+                    nodes.setReadPreference(readPref);
+                    LOG.info("Using ReadPreference " + readPref);
+                }
+            } 
+            String write = map.get("write");
+            if (write != null) {
+                WriteConcern writeConcern = WriteConcern.valueOf(write);
+                if (!writeConcern.equals(nodes.getWriteConcern())) {
+                    nodes.setWriteConcern(writeConcern);
+                    LOG.info("Using WriteConcern " + writeConcern);
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("Error setting readWriteMode " + readWriteMode, e);
+        }
     }
 }
