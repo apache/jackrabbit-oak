@@ -16,14 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.ArrayList;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.Semaphore;
 
+import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -85,5 +92,26 @@ public class MongoNodeStoreTest {
         root = store1.getRoot();
         // now node2 is visible
         assertTrue(root.hasChildNode("node2"));
+    }
+
+    @Test
+    public void childNodeCache() throws Exception {
+        MongoNodeStore store = new MongoMK.Builder().getNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+        int max = (int) (KernelNodeState.MAX_CHILD_NODE_NAMES * 1.5);
+        SortedSet<String> children = new TreeSet<String>();
+        for (int i = 0; i < max; i++) {
+            String name = "c" + i;
+            children.add(name);
+            builder.child(name);
+        }
+        store.merge(builder, EmptyHook.INSTANCE, null);
+        builder = store.getRoot().builder();
+        String name = new ArrayList<String>(children).get(
+                KernelNodeState.MAX_CHILD_NODE_NAMES / 2);
+        builder.child(name).remove();
+        store.merge(builder, EmptyHook.INSTANCE, null);
+        int numEntries = Iterables.size(store.getRoot().getChildNodeEntries());
+        assertEquals(max - 1, numEntries);
     }
 }
