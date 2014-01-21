@@ -147,16 +147,27 @@ Value records
 
 Value records are byte arrays used for storing all names and values of the
 content tree. Since item names can be thought of as name values and since
-all JCR and Oak values can be expressed in binary form, it is easiest to
-simply use that form for storing all values. The size overhead of such a
-form for small value types like booleans or dates is amortized by the facts
-that those types are used only for a minority of values in typical content
-trees and that repeating copies of a value can be stored just once.
+all JCR and Oak values can be expressed in binary form (strings encoded in
+UTF-8), it is easiest to simply use that form for storing all values. The
+size overhead of such a form for small value types like booleans or dates
+is amortized by the facts that those types are used only for a minority of
+values in typical content trees and that repeating copies of a value can
+be stored just once.
 
-Small values, up to N kB (exact size TBD, N ~ 32), are stored inline in
-the record, prefixed by a byte or two to indicate the length of the value.
-Larger values are split into a list of fixed-size blocks and a possibly
-smaller tail block, and the value is stored as a list of block references.
+There are four types of value records: small, medium, long and external.
+The small- and medium-sized values are stored in inline form, prepended
+by one or two bytes that indicate the length of the value. Long values
+of up to two exabytes (2^61) are stored as a list of block records. Finally
+an external value record contains the length of the value and a string
+reference (up to 4kB in length) to some external storage location.
+
+The type of a value record is encoded in the high-order bits of the first
+byte of the record. These bit patterns are:
+
+  * `0xxxxxxx`: small value, length (0 - 127 bytes) encoded in 7 bits
+  * `10xxxxxx`: medium value length (128 - 16511 bytes) encoded in 6 + 8 bits
+  * `110xxxxx`: long value, length (up to 2^61 bytes) encoded in 5 + 7*8 bits
+  * `1110xxxx`: external value, reference string length encoded in 4 + 8 bits
 
 Template records
 ----------------
