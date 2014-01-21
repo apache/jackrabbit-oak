@@ -318,7 +318,8 @@ class VersionableState {
         dest.setProperty(JCR_PRIMARYTYPE,
                 frozen.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
         String id = frozen.getProperty(JCR_FROZENUUID).getValue(Type.STRING);
-        if (id.length() > 0) {
+        if (id.indexOf('/') == -1) {
+            // only restore jcr:uuid if id is in fact a uuid
             dest.setProperty(JCR_UUID, id, Type.STRING);
         }
         if (frozen.hasProperty(JCR_FROZENMIXINTYPES)) {
