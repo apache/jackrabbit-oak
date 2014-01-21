@@ -32,6 +32,7 @@ import java.util.TreeMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.sql.DataSource;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.mongomk.Collection;
@@ -56,7 +57,19 @@ public class SQLDocumentStore implements DocumentStore {
     public SQLDocumentStore() {
         try {
             String jdbcurl = "jdbc:h2:mem:oaknodes";
-            initialize(jdbcurl, "sa", "");
+            Connection connection = DriverManager.getConnection(jdbcurl, "sa", "");
+            initialize(connection);
+        } catch (Exception ex) {
+            throw new MicroKernelException("initializing SQL document store", ex);
+        }
+    }
+
+    /**
+     * Creates a {@linkplain SQLDocumentStore} instance using the provided {@link DataSource}.
+     */
+    public SQLDocumentStore(DataSource ds) {
+        try {
+            initialize(ds.getConnection());
         } catch (Exception ex) {
             throw new MicroKernelException("initializing SQL document store", ex);
         }
@@ -68,7 +81,8 @@ public class SQLDocumentStore implements DocumentStore {
      */
     public SQLDocumentStore(String jdbcurl, String username, String password) {
         try {
-            initialize(jdbcurl, username, password);
+            Connection connection = DriverManager.getConnection(jdbcurl, username, password);
+            initialize(connection);
         } catch (Exception ex) {
             throw new MicroKernelException("initializing SQL document store", ex);
         }
@@ -157,15 +171,17 @@ public class SQLDocumentStore implements DocumentStore {
 
     private Connection connection;
 
-    private void initialize(String jdbcurl, String username, String password) throws Exception {
-        connection = DriverManager.getConnection(jdbcurl, username, password);
-        connection.setAutoCommit(false);
-        Statement stmt = connection.createStatement();
+    private void initialize(Connection con) throws Exception {
+        con.setAutoCommit(false);
 
+        Statement stmt = con.createStatement();
         stmt.execute("create table if not exists CLUSTERNODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
         stmt.execute("create table if not exists NODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
+        stmt.close();
 
-        connection.commit();
+        con.commit();
+
+        this.connection = con;
     }
 
     @CheckForNull

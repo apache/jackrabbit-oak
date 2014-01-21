@@ -29,6 +29,8 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.util.StringUtils;
 
+import sun.jdbc.odbc.ee.DataSource;
+
 // mostly copied from DbBlobStore, removing the ConnectionPool dependency
 
 public class SQLBlobStore extends AbstractBlobStore {
@@ -40,7 +42,8 @@ public class SQLBlobStore extends AbstractBlobStore {
     public SQLBlobStore() {
         try {
             String jdbcurl = "jdbc:h2:mem:oaknodes";
-            initialize(jdbcurl, "sa", "");
+            Connection connection = DriverManager.getConnection(jdbcurl, "sa", "");
+            initialize(connection);
         } catch (Exception ex) {
             throw new MicroKernelException("initializing SQL blob store", ex);
         }
@@ -52,7 +55,20 @@ public class SQLBlobStore extends AbstractBlobStore {
      */
     public SQLBlobStore(String jdbcurl, String username, String password) {
         try {
-            initialize(jdbcurl, username, password);
+            Connection connection = DriverManager.getConnection(jdbcurl, username, password);
+            initialize(connection);
+        } catch (Exception ex) {
+            throw new MicroKernelException("initializing SQL blob store", ex);
+        }
+    }
+
+    /**
+     * Creates a {@linkplain SQLBlobStore} instance using the provided
+     * {@link DataSource}.
+     */
+    public SQLBlobStore(DataSource ds) {
+        try {
+            initialize(ds.getConnection());
         } catch (Exception ex) {
             throw new MicroKernelException("initializing SQL blob store", ex);
         }
@@ -69,14 +85,17 @@ public class SQLBlobStore extends AbstractBlobStore {
 
     private Connection connection;
 
-    private void initialize(String jdbcurl, String username, String password) throws Exception {
-        connection = DriverManager.getConnection(jdbcurl, username, password);
-        connection.setAutoCommit(false);
-        Statement stmt = connection.createStatement();
+    private void initialize(Connection con) throws Exception {
+        con.setAutoCommit(false);
 
+        Statement stmt = con.createStatement();
         stmt.execute("create table if not exists datastore_meta" + "(id varchar primary key, level int, lastMod bigint)");
         stmt.execute("create table if not exists datastore_data" + "(id varchar primary key, data binary)");
         stmt.close();
+
+        con.commit();
+
+        this.connection = con;
     }
 
     private long minLastModified;
