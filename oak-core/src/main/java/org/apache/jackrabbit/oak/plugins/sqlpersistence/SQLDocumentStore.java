@@ -494,4 +494,10 @@ public class SQLDocumentStore implements DocumentStore {
             stmt.close();
         }
     }
+
+    @Override
+    public void setReadWriteMode(String readWriteMode) {
+        // ignored
+    }
+
 }

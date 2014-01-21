@@ -188,4 +188,12 @@ public interface DocumentStore {
      */
     @CheckForNull
     <T extends Document> T getIfCached(Collection<T> collection, String key);
+
+    /**
+     * Set the level of guarantee for read and write operations, if supported by this backend.
+     * 
+     * @param readWriteMode the read/write mode
+     */
+    void setReadWriteMode(String readWriteMode);
+    
 }

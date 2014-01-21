@@ -286,6 +286,17 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         }
     }
     
+    @Override
+    public void setReadWriteMode(String readWriteMode) {
+        try {
+            long start = now();
+            base.setReadWriteMode(readWriteMode);
+            updateAndLogTimes("setReadWriteMode", start, 0, 0);
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+    
     private void logCommonCall(long start, String key) {
         int time = (int) (System.currentTimeMillis() - start);
         if (time <= 0) {
