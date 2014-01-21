@@ -73,72 +73,80 @@ public class SQLBlobStore extends AbstractBlobStore {
     private long minLastModified;
 
     @Override
-    protected synchronized void storeBlock(byte[] digest, int level, byte[] data) throws SQLException {
-        String id = StringUtils.convertBytesToHex(digest);
-        long now = System.currentTimeMillis();
-        PreparedStatement prep = connection.prepareStatement("update datastore_meta set lastMod = ? where id = ?");
-        int count;
+    protected void storeBlock(byte[] digest, int level, byte[] data) throws SQLException {
         try {
-            prep.setLong(1, now);
-            prep.setString(2, id);
-            count = prep.executeUpdate();
+            String id = StringUtils.convertBytesToHex(digest);
+            long now = System.currentTimeMillis();
+            PreparedStatement prep = connection.prepareStatement("update datastore_meta set lastMod = ? where id = ?");
+            int count;
+            try {
+                prep.setLong(1, now);
+                prep.setString(2, id);
+                count = prep.executeUpdate();
+            } finally {
+                prep.close();
+            }
+            if (count == 0) {
+                try {
+                    prep = connection.prepareStatement("insert into datastore_data(id, data) values(?, ?)");
+                    try {
+                        prep.setString(1, id);
+                        prep.setBytes(2, data);
+                        prep.execute();
+                    } finally {
+                        prep.close();
+                    }
+                } catch (SQLException e) {
+                    // already exists - ok
+                }
+                try {
+                    prep = connection.prepareStatement("insert into datastore_meta(id, level, lastMod) values(?, ?, ?)");
+                    try {
+                        prep.setString(1, id);
+                        prep.setInt(2, level);
+                        prep.setLong(3, now);
+                        prep.execute();
+                    } finally {
+                        prep.close();
+                    }
+                } catch (SQLException e) {
+                    // already exists - ok
+                }
+            }
         } finally {
-            prep.close();
-        }
-        if (count == 0) {
-            try {
-                prep = connection.prepareStatement("insert into datastore_data(id, data) values(?, ?)");
-                try {
-                    prep.setString(1, id);
-                    prep.setBytes(2, data);
-                    prep.execute();
-                } finally {
-                    prep.close();
-                }
-            } catch (SQLException e) {
-                // already exists - ok
-            }
-            try {
-                prep = connection.prepareStatement("insert into datastore_meta(id, level, lastMod) values(?, ?, ?)");
-                try {
-                    prep.setString(1, id);
-                    prep.setInt(2, level);
-                    prep.setLong(3, now);
-                    prep.execute();
-                } finally {
-                    prep.close();
-                }
-            } catch (SQLException e) {
-                // already exists - ok
-            }
+            connection.commit();
         }
     }
 
     @Override
     protected byte[] readBlockFromBackend(BlockId blockId) throws Exception {
-        PreparedStatement prep = connection.prepareStatement("select data from datastore_data where id = ?");
         try {
-            String id = StringUtils.convertBytesToHex(blockId.getDigest());
-            prep.setString(1, id);
-            ResultSet rs = prep.executeQuery();
-            if (!rs.next()) {
-                throw new IOException("Datastore block " + id + " not found");
+            PreparedStatement prep = connection.prepareStatement("select data from datastore_data where id = ?");
+            try {
+                String id = StringUtils.convertBytesToHex(blockId.getDigest());
+                prep.setString(1, id);
+                ResultSet rs = prep.executeQuery();
+                if (!rs.next()) {
+                    throw new IOException("Datastore block " + id + " not found");
+                }
+                byte[] data = rs.getBytes(1);
+                // System.out.println("    read block " + id + " blockLen: " +
+                // data.length + " [0]: " + data[0]);
+                if (blockId.getPos() == 0) {
+                    return data;
+                }
+                int len = (int) (data.length - blockId.getPos());
+                if (len < 0) {
+                    return new byte[0];
+                }
+                byte[] d2 = new byte[len];
+                System.arraycopy(data, (int) blockId.getPos(), d2, 0, len);
+                return d2;
+            } finally {
+                prep.close();
             }
-            byte[] data = rs.getBytes(1);
-            // System.out.println("    read block " + id + " blockLen: " +
-            // data.length + " [0]: " + data[0]);
-            if (blockId.getPos() == 0) {
-                return data;
-            }
-            int len = (int) (data.length - blockId.getPos());
-            if (len < 0) {
-                return new byte[0];
-            }
-            byte[] d2 = new byte[len];
-            System.arraycopy(data, (int) blockId.getPos(), d2, 0, len);
-            return d2;
         } finally {
-            prep.close();
+            connection.commit();
         }
     }
 
@@ -155,41 +163,49 @@ public class SQLBlobStore extends AbstractBlobStore {
 
     @Override
     protected void mark(BlockId blockId) throws Exception {
-        if (minLastModified == 0) {
-            return;
+        try {
+            if (minLastModified == 0) {
+                return;
+            }
+            String id = StringUtils.convertBytesToHex(blockId.getDigest());
+            PreparedStatement prep = connection
+                    .prepareStatement("update datastore_meta set lastMod = ? where id = ? and lastMod < ?");
+            prep.setLong(1, System.currentTimeMillis());
+            prep.setString(2, id);
+            prep.setLong(3, minLastModified);
+            prep.executeUpdate();
+            prep.close();
+        } finally {
+            connection.commit();
         }
-        String id = StringUtils.convertBytesToHex(blockId.getDigest());
-        PreparedStatement prep = connection.prepareStatement("update datastore_meta set lastMod = ? where id = ? and lastMod < ?");
-        prep.setLong(1, System.currentTimeMillis());
-        prep.setString(2, id);
-        prep.setLong(3, minLastModified);
-        prep.executeUpdate();
-        prep.close();
     }
 
     @Override
     public int sweep() throws Exception {
-        int count = 0;
-        PreparedStatement prep = connection.prepareStatement("select id from datastore_meta where lastMod < ?");
-        prep.setLong(1, minLastModified);
-        ResultSet rs = prep.executeQuery();
-        ArrayList<String> ids = new ArrayList<String>();
-        while (rs.next()) {
-            ids.add(rs.getString(1));
+        try {
+            int count = 0;
+            PreparedStatement prep = connection.prepareStatement("select id from datastore_meta where lastMod < ?");
+            prep.setLong(1, minLastModified);
+            ResultSet rs = prep.executeQuery();
+            ArrayList<String> ids = new ArrayList<String>();
+            while (rs.next()) {
+                ids.add(rs.getString(1));
+            }
+            prep = connection.prepareStatement("delete from datastore_meta where id = ?");
+            PreparedStatement prepData = connection.prepareStatement("delete from datastore_data where id = ?");
+            for (String id : ids) {
+                prep.setString(1, id);
+                prep.execute();
+                prepData.setString(1, id);
+                prepData.execute();
+                count++;
+            }
+            prepData.close();
+            prep.close();
+            minLastModified = 0;
+            return count;
+        } finally {
+            connection.commit();
         }
-        prep = connection.prepareStatement("delete from datastore_meta where id = ?");
-        PreparedStatement prepData = connection.prepareStatement("delete from datastore_data where id = ?");
-        for (String id : ids) {
-            prep.setString(1, id);
-            prep.execute();
-            prepData.setString(1, id);
-            prepData.execute();
-            count++;
-        }
-        prepData.close();
-        prep.close();
-        minLastModified = 0;
-        return count;
     }
-
 }
