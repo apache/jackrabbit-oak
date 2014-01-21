@@ -25,13 +25,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
+import javax.sql.DataSource;
+
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.util.StringUtils;
-
-import sun.jdbc.odbc.ee.DataSource;
-
-// mostly copied from DbBlobStore, removing the ConnectionPool dependency
 
 public class SQLBlobStore extends AbstractBlobStore {
 
