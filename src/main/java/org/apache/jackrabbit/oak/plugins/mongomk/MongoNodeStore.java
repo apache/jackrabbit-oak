@@ -596,11 +596,10 @@ public final class MongoNodeStore
         // as the starting point
         Iterable<NodeDocument> docs;
         Node.Children c = new Node.Children();
-        int rawLimit = limit;
+        int rawLimit = (int) Math.min(Integer.MAX_VALUE, ((long) limit) + 1);
         Set<Revision> validRevisions = new HashSet<Revision>();
-        do {
+        for (;;) {
             c.children.clear();
-            c.hasMore = true;
             docs = readChildren(path, rawLimit);
             int numReturned = 0;
             for (NodeDocument doc : docs) {
@@ -613,17 +612,22 @@ public final class MongoNodeStore
                 if (c.children.size() < limit) {
                     // add to children until limit is reached
                     c.children.add(p);
+                } else {
+                    // enough collected and we know there are more
+                    c.hasMore = true;
+                    return c;
                 }
             }
+            // if we get here we have less than or equal the requested children
             if (numReturned < rawLimit) {
                 // fewer documents returned than requested
                 // -> no more documents
                 c.hasMore = false;
+                return c;
             }
             // double rawLimit for next round
             rawLimit = (int) Math.min(((long) rawLimit) * 2, Integer.MAX_VALUE);
-        } while (c.children.size() < limit && c.hasMore);
-        return c;
+        }
     }
 
     @Nonnull
