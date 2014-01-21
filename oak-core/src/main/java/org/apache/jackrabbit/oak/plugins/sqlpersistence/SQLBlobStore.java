@@ -58,6 +58,15 @@ public class SQLBlobStore extends AbstractBlobStore {
         }
     }
 
+    public void dispose() {
+        try {
+            this.connection.close();
+            this.connection = null;
+        } catch (SQLException ex) {
+            throw new MicroKernelException(ex);
+        }
+    }
+
     private Connection connection;
 
     private void initialize(String jdbcurl, String username, String password) throws Exception {

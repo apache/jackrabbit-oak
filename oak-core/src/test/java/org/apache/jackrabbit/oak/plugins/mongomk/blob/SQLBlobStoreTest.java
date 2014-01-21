@@ -23,8 +23,10 @@ import org.apache.jackrabbit.oak.plugins.sqlpersistence.SQLBlobStore;
  */
 public class SQLBlobStoreTest extends AbstractBlobStoreTest {
 
+    private SQLBlobStore blobStore;
+
     public void setUp() throws Exception {
-        SQLBlobStore blobStore = new SQLBlobStore();
+        blobStore = new SQLBlobStore();
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;
@@ -32,5 +34,6 @@ public class SQLBlobStoreTest extends AbstractBlobStoreTest {
 
     public void tearDown() throws Exception {
         super.tearDown();
+        blobStore.dispose();
     }
 }
