@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Provides a QueryIndex that does lookups for node references based on a custom
@@ -99,7 +100,7 @@ class ReferenceIndex implements QueryIndex {
             return newPathCursor(new ArrayList<String>());
         }
         Iterable<String> paths = STORE.query(new FilterImpl(), index + "("
-                + uuid + ")", indexRoot, index, null);
+                + uuid + ")", indexRoot, index, ImmutableSet.of(uuid));
 
         if (!"*".equals(name)) {
             paths = filter(paths, new Predicate<String>() {
