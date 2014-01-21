@@ -18,26 +18,63 @@
 SegmentMK design overview
 =========================
 
+The SegmentMK is an Oak storage backend that stores content as various
+types of *records* within larger *segments*. One or more *journals* are
+used to track the latest state of the repository.
+
+The SegmentMK was designed from the ground up based on the following
+key principles:
+
+  * Immutability. Segments are immutable, which makes is easy to cache
+    frequently accessed segments. This also makes it less likely for
+    programming or system errors to cause repository inconsistencies, and
+    simplifies features like backups or master-slave clustering.
+
+  * Compactness. The formatting of records is optimized for size to
+    reduce IO costs and to fit as much content in caches as possible.
+    A node stored in SegmentMK typically consumes only a fraction of the
+    size it would as a bundle in Jackrabbit Classic.
+
+  * Locality. Segments are written so that related records, like a node
+    and its immediate children, usually end up stored in the same segment.
+    This makes tree traversals very fast and avoids most cache misses for
+    typical clients that access more than one related node per session.
+
+This document describes the overall design of the SegmentMK. See the
+source code and javadocs in `org.apache.jackrabbit.oak.plugins.segment`
+for full details.
+
 Segments
 ========
 
 The content tree and all its revisions are stored in a collection of
-immutable *segments*. Each segment is identified by a UUID and typically
-contains a continuous subset of the content tree. Some segments might
-also be used to store commonly occurring property values or other shared
-data. Segments range from a few dozens of bytes to up to 256kB in size
-and are stored as documents in a MongoDB collection.
+immutable segments. Each segment is identified by a UUID and typically
+contains a continuous subset of the content tree, for example a node with
+its properties and closest child nodes. Some segments might also be used
+to store commonly occurring property values or other shared data. Segments
+can be to up to 256KiB in size.
 
-Since segments are immutable, it's easy for a client to keep a local
-in-memory cache of frequently accessed segments. Since segments also
-leverage locality of reference, i.e. nearby nodes are often stored
-in the same segment, it's common for things like small child nodes
-to already exist in the cache by the time they get accessed. The intention
-is to avoid as many network or database roundtrips as possible by using
-local cache memory as efficiently as possible.
+Segments come in two types: data and bulk segments. A data segment can
+contain any types of records, may refer to content in other segments and
+comes with a segment header that guides the parsing of the segment.
+Bulk segments on the other hand only contain raw binary data, interpreted
+as a sequence of block records. Bulk segments are only used for storing
+large binary values, and are handled separately from data segments to
+prevent large binaries from disrupting the compactness of the rest of
+the stored tree data.
 
-Content within a segment can contain references to content within other
-segments. Each segment keeps a list of the UUIDs of all other segments
+The type of a segment is encoded in its UUID and can thus be determined
+already before reading the segment. The following bit patterns are used
+(each `x` represents 4 random bits):
+
+  * `xxxxxxxx-xxxx-4xxx-Axxx-xxxxxxxxxxxx`: data segment UUID
+  * `xxxxxxxx-xxxx-4xxx-Bxxx-xxxxxxxxxxxx`: bulk segment UUID
+
+This encoding makes segment UUIDs appear as syntactically valid version 4
+random UUIDs specified in RFC 4122.
+
+Content within a data segment can contain references to content within
+other segments. Each segment keeps a list of the UUIDs of all other segments
 it references. This list of segment references can be used to optimize
 both internal storage (as seen below) and garbage collection. Segments
 that are no longer referenced can be efficiently identified by
