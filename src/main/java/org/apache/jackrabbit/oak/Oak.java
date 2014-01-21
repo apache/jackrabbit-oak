@@ -50,6 +50,7 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -476,8 +477,12 @@ public class Oak {
                 .compose(editorProviders)));
 
         if (asyncIndexing) {
-            Runnable task = new AsyncIndexUpdate("async", store, indexEditors);
+            String name = "async";
+            AsyncIndexUpdate task = new AsyncIndexUpdate(name, store,
+                    indexEditors);
             WhiteboardUtils.scheduleWithFixedDelay(whiteboard, task, 5, true);
+            WhiteboardUtils.registerMBean(whiteboard, IndexStatsMBean.class,
+                    task.getIndexStats(), IndexStatsMBean.TYPE, name);
         }
 
         // FIXME: OAK-810 move to proper workspace initialization
