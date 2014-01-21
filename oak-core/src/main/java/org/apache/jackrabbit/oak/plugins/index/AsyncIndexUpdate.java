@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
+import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_INIT;
+import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
 
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +35,7 @@ import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
@@ -76,6 +80,8 @@ public class AsyncIndexUpdate implements Runnable {
     /** Flag to avoid repeatedly logging failure warnings */
     private boolean failing = false;
 
+    private final AsyncIndexStats indexStats = new AsyncIndexStats();
+
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider) {
         this.name = checkNotNull(name);
@@ -97,7 +103,7 @@ public class AsyncIndexUpdate implements Runnable {
         public void indexUpdate() throws CommitFailedException {
             if (!dirty) {
                 dirty = true;
-                preAsyncRun(store, name);
+                preAsyncRun(store, name, indexStats);
             }
         }
 
@@ -147,7 +153,7 @@ public class AsyncIndexUpdate implements Runnable {
                         PropertyState stateAfterRebase = before
                                 .getChildNode(ASYNC).getProperty(name);
                         if (Objects.equal(state, stateAfterRebase)) {
-                            return postAsyncRunStatus(after.builder())
+                            return postAsyncRunStatus(after.builder(), indexStats)
                                     .getNodeState();
                         } else {
                             throw CONCURRENT_UPDATE;
@@ -174,10 +180,10 @@ public class AsyncIndexUpdate implements Runnable {
         }
     }
 
-    private static void preAsyncRun(NodeStore store, String name)
-            throws CommitFailedException {
+    private static void preAsyncRun(NodeStore store, String name,
+            AsyncIndexStats stats) throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
-        preAsyncRunStatus(builder);
+        preAsyncRunStatus(builder, stats);
         store.merge(builder, EmptyHook.INSTANCE, null);
     }
 
@@ -190,7 +196,7 @@ public class AsyncIndexUpdate implements Runnable {
         }
 
         //Check if already running or timed out
-        if ("running".equals(indexState.getString("async-status"))) {
+        if (STATUS_RUNNING.equals(indexState.getString("async-status"))) {
             PropertyState startTime = indexState.getProperty("async-start");
             Calendar start = Conversions.convert(startTime.getValue(Type.DATE)).toCalendar();
             Calendar now = Calendar.getInstance();
@@ -209,23 +215,67 @@ public class AsyncIndexUpdate implements Runnable {
         return false;
     }
 
-    private static void preAsyncRunStatus(NodeBuilder builder) {
+    private static void preAsyncRunStatus(NodeBuilder builder,
+            AsyncIndexStats stats) {
+        String now = now();
+        stats.start(now);
         builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
-                .setProperty("async-status", "running")
-                .setProperty("async-start", now(), Type.DATE)
+                .setProperty("async-status", STATUS_RUNNING)
+                .setProperty("async-start", now, Type.DATE)
                 .removeProperty("async-done");
     }
 
-    private static NodeBuilder postAsyncRunStatus(NodeBuilder builder) {
+    private static NodeBuilder postAsyncRunStatus(NodeBuilder builder,
+            AsyncIndexStats stats) {
+        String now = now();
+        stats.done(now);
         builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
-                .setProperty("async-status", "done")
-                .setProperty("async-done", now(), Type.DATE)
+                .setProperty("async-status", STATUS_DONE)
+                .setProperty("async-done", now, Type.DATE)
                 .removeProperty("async-start");
         return builder;
     }
 
     private static String now() {
         return ISO8601.format(Calendar.getInstance());
+    }
+
+    public AsyncIndexStats getIndexStats() {
+        return indexStats;
+    }
+
+    private static final class AsyncIndexStats implements IndexStatsMBean {
+
+        private String start = "";
+        private String done = "";
+        private String status = STATUS_INIT;
+
+        public void start(String now) {
+            status = STATUS_RUNNING;
+            start = now;
+            done = "";
+        }
+
+        public void done(String now) {
+            status = STATUS_DONE;
+            start = "";
+            done = now;
+        }
+
+        @Override
+        public String getStart() {
+            return start;
+        }
+
+        @Override
+        public String getDone() {
+            return done;
+        }
+
+        @Override
+        public String getStatus() {
+            return status;
+        }
     }
 
 }
