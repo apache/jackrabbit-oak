@@ -160,6 +160,36 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         }
     }
 
+    //----------------------------------------------------------< protected >---
+    /**
+     * Returns {@code true} if the specified path is {@code null}. Subclasses may
+     * change the default behavior.
+     *
+     * @param oakPath The path for which a restriction is being created.
+     * @return {@code true} if this implementation can create restrictions for
+     * the specified {@code oakPath}; {@code false} otherwise.
+     */
+    protected boolean isUnsupportedPath(@Nullable String oakPath) {
+        return oakPath == null;
+    }
+
+    /**
+     * Returns the tree that contains the restriction of the specified
+     * ACE tree.
+     *
+     * @param aceTree The ACE tree for which the restrictions are being read.
+     * @return The tree storing the restriction information.
+     */
+    @Nonnull
+    protected Tree getRestrictionsTree(@Nonnull Tree aceTree) {
+        Tree restrictions = aceTree.getChild(REP_RESTRICTIONS);
+        if (!restrictions.exists()) {
+            // no rep:restrictions tree -> read from aceTree for backwards compatibility
+            restrictions = aceTree;
+        }
+        return restrictions;
+    }
+
     //------------------------------------------------------------< private >---
     @Nonnull
     private RestrictionDefinition getDefinition(@Nullable String oakPath, @Nonnull String oakName) throws AccessControlException {
@@ -179,16 +209,6 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @Nonnull
-    private Tree getRestrictionsTree(Tree aceTree) {
-        Tree restrictions = aceTree.getChild(REP_RESTRICTIONS);
-        if (!restrictions.exists()) {
-            // no rep:restrictions tree -> read from aceTree for backwards compatibility
-            restrictions = aceTree;
-        }
-        return restrictions;
-    }
-
-    @Nonnull
     private Map<String, PropertyState> getRestrictionProperties(Tree aceTree) {
         Tree rTree = getRestrictionsTree(aceTree);
         Map<String, PropertyState> restrictionProperties = new HashMap<String, PropertyState>();
@@ -204,9 +224,5 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     private static boolean isRestrictionProperty(String propertyName) {
         return !AccessControlConstants.ACE_PROPERTY_NAMES.contains(propertyName) &&
                 !NamespaceRegistry.PREFIX_JCR.equals(Text.getNamespacePrefix(propertyName));
-    }
-
-    private static boolean isUnsupportedPath(String oakPath) {
-        return oakPath == null;
     }
 }
