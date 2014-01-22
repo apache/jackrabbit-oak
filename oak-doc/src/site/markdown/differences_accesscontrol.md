@@ -60,6 +60,14 @@ is still performed in the corresponding `AccessControlList` methods, the complet
 validation is delegated to the commit phase and executed by a specific `Validator`
 implementation.
 
+The default behavior with respect to principal validation is compliant with the
+specification and the same as in Jackrabbit 2.x.: Adding an ACE for an principal
+unknown to the repository will fail. However in order to be consistent
+with the ability have a more relaxed behavior upon XML import that validation
+will be relaxed if the import behavior is being changed to allow for unknown
+principals (see ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350))) and
+the section Import below.
+
 Restrictions: as of OAK the optional restrictions present with a given
 `JackrabbitAccessControlEntry` can be multivalued (see below).
 
@@ -85,6 +93,30 @@ The implementation of the additional restrictions associated with an ACE has bee
 - New restrictions:
     - "rep:ntNames", which allows to limit the affected ACE to nodes of the specified node type(s)
     - "rep:prefixes", which allows to limit the effect to item names that have a specific namespace prefix.
+
+##### Import
+
+The import of access control content via JCR XML import has been extended to
+respect the `o.a.j.oak.spi.xml.ImportBehavior` flags instead of just performing
+a best effort import.
+
+Currently the `ImportBehavior` is only used to switch between different ways of
+handling principals unknown to the repository. For consistency and in order to
+match the validation requirements as specified by `AccessControlList#addAccessControlEntry`
+the default behavior is ABORT (while in Jackrabbit 2.x the behavior always was BESTEFFORT).
+
+The different `ImportBehavior` flags are implemented as follows:
+- `ABORT`: throws an `AccessControlException` if the principal is unknown
+- `IGNORE`: ignore the entry defining the unknown principal
+- `BESTEFFORT`: import the access control entry with an unknown principal.
+
+In order to get the same best effort behavior as present with Jackrabbit 2.x
+the configuration parameters of the `AuthorizationConfiguration` must contain
+the following entry:
+
+    importBehavior = "besteffort"
+
+See also ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350)))
 
 #### 2. Node Types
 
