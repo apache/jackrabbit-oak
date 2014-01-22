@@ -16,17 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk.blob;
 
-import org.apache.jackrabbit.oak.plugins.sqlpersistence.SQLBlobStore;
+import org.apache.jackrabbit.oak.plugins.sqlpersistence.RDBBlobStore;
 
 /**
- * Tests the SQLBlobStore implementation.
+ * Tests the RDBBlobStore implementation.
  */
-public class SQLBlobStoreTest extends AbstractBlobStoreTest {
+public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
-    private SQLBlobStore blobStore;
+    private RDBBlobStore blobStore;
 
     public void setUp() throws Exception {
-        blobStore = new SQLBlobStore();
+        blobStore = new RDBBlobStore();
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;

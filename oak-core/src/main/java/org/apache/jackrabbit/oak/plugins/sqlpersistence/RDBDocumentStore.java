@@ -48,43 +48,43 @@ import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SQLDocumentStore implements DocumentStore {
+public class RDBDocumentStore implements DocumentStore {
 
     /**
-     * Creates a {@linkplain SQLDocumentStore} instance using an embedded H2
+     * Creates a {@linkplain RDBDocumentStore} instance using an embedded H2
      * database in in-memory mode.
      */
-    public SQLDocumentStore() {
+    public RDBDocumentStore() {
         try {
             String jdbcurl = "jdbc:h2:mem:oaknodes";
             Connection connection = DriverManager.getConnection(jdbcurl, "sa", "");
             initialize(connection);
         } catch (Exception ex) {
-            throw new MicroKernelException("initializing SQL document store", ex);
+            throw new MicroKernelException("initializing RDB document store", ex);
         }
     }
 
     /**
-     * Creates a {@linkplain SQLDocumentStore} instance using the provided {@link DataSource}.
+     * Creates a {@linkplain RDBDocumentStore} instance using the provided {@link DataSource}.
      */
-    public SQLDocumentStore(DataSource ds) {
+    public RDBDocumentStore(DataSource ds) {
         try {
             initialize(ds.getConnection());
         } catch (Exception ex) {
-            throw new MicroKernelException("initializing SQL document store", ex);
+            throw new MicroKernelException("initializing RDB document store", ex);
         }
     }
 
     /**
-     * Creates a {@linkplain SQLDocumentStore} instance using the provided JDBC
+     * Creates a {@linkplain RDBDocumentStore} instance using the provided JDBC
      * connection information.
      */
-    public SQLDocumentStore(String jdbcurl, String username, String password) {
+    public RDBDocumentStore(String jdbcurl, String username, String password) {
         try {
             Connection connection = DriverManager.getConnection(jdbcurl, username, password);
             initialize(connection);
         } catch (Exception ex) {
-            throw new MicroKernelException("initializing SQL document store", ex);
+            throw new MicroKernelException("initializing RDB document store", ex);
         }
     }
 
@@ -165,7 +165,7 @@ public class SQLDocumentStore implements DocumentStore {
     private final String MODIFIED = "_modified";
     private final String MODCOUNT = "_modCount";
 
-    private static final Logger LOG = LoggerFactory.getLogger(SQLDocumentStore.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStore.class);
 
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 

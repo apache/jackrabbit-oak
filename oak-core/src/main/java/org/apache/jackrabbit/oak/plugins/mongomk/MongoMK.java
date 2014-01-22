@@ -47,8 +47,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.Node.Children;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.apache.jackrabbit.oak.plugins.sqlpersistence.SQLBlobStore;
-import org.apache.jackrabbit.oak.plugins.sqlpersistence.SQLDocumentStore;
+import org.apache.jackrabbit.oak.plugins.sqlpersistence.RDBBlobStore;
+import org.apache.jackrabbit.oak.plugins.sqlpersistence.RDBDocumentStore;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -686,8 +686,8 @@ public class MongoMK implements MicroKernel {
          */
         public Builder setMongoJDBC(String jdbcurl, String username, String password) {
             // TODO maybe we need different connections for document store and node store
-            this.documentStore = new SQLDocumentStore(jdbcurl, username, password);
-            this.blobStore = new SQLBlobStore(jdbcurl, username, password);
+            this.documentStore = new RDBDocumentStore(jdbcurl, username, password);
+            this.blobStore = new RDBBlobStore(jdbcurl, username, password);
             return this;
         }
 
