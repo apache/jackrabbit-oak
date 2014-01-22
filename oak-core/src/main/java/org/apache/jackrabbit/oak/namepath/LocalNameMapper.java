@@ -41,7 +41,8 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
         checkArgument(!oakName.startsWith(":"), oakName); // hidden name
         checkArgument(!isExpandedName(oakName), oakName); // expanded name
 
-        if (hasSessionLocalMappings()) {
+        Map<String, String> local = getSessionLocalMappings();
+        if (!local.isEmpty()) {
             int colon = oakName.indexOf(':');
             if (colon > 0) {
                 String oakPrefix = oakName.substring(0, colon);
@@ -51,7 +52,6 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
                             "No namespace mapping found for " + oakName);
                 }
 
-                Map<String, String> local = getSessionLocalMappings();
                 for (Map.Entry<String, String> entry : local.entrySet()) {
                     if (uri.equals(entry.getValue())) {
                         String jcrPrefix = entry.getKey();
@@ -87,10 +87,10 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
             return getOakNameFromExpanded(jcrName);
         }
 
-        if (hasSessionLocalMappings()) {
+        Map<String, String> local = getSessionLocalMappings();
+        if (!local.isEmpty()) {
             int colon = jcrName.indexOf(':');
             if (colon > 0) {
-                Map<String, String> local = getSessionLocalMappings();
                 String jcrPrefix = jcrName.substring(0, colon);
                 String uri = local.get(jcrPrefix);
                 if (uri != null) {
@@ -115,10 +115,4 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
         return jcrName;
     }
 
-    @Override
-    public boolean hasSessionLocalMappings() {
-        return !getSessionLocalMappings().isEmpty();
-    }
-
-    protected abstract Map<String, String> getSessionLocalMappings();
 }

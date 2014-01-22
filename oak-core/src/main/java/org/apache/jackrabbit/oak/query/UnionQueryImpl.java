@@ -23,7 +23,6 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -78,12 +77,6 @@ public class UnionQueryImpl implements Query {
         left.setOrderings(l);
         right.setOrderings(r);
         this.orderings = orderings;
-    }
-
-    @Override
-    public void setNamePathMapper(NamePathMapper namePathMapper) {
-        left.setNamePathMapper(namePathMapper);
-        right.setNamePathMapper(namePathMapper);
     }
 
     @Override

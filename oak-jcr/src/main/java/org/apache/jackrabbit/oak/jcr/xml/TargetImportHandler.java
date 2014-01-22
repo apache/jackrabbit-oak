@@ -109,9 +109,8 @@ public abstract class TargetImportHandler extends DefaultHandler {
 
     public NamePathMapper currentNamePathMapper() {
         return new NamePathMapperImpl(new LocalNameMapper(getNSReadTree()) {
-
             @Override
-            protected Map<String, String> getSessionLocalMappings() {
+            public Map<String, String> getSessionLocalMappings() {
                 return documentPrefixMap;
             }
         });

@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+
 import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -28,11 +31,12 @@ import javax.jcr.Value;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -276,8 +280,10 @@ public class UserQueryManager {
                                                      long offset,
                                                      @Nullable AuthorizableType type) throws RepositoryException {
         try {
-            QueryEngine queryEngine = root.getQueryEngine();
-            Iterable<? extends ResultRow> resultRows = queryEngine.executeQuery(statement, javax.jcr.query.Query.XPATH, limit, offset, null, namePathMapper).getRows();
+            Result query = root.getQueryEngine().executeQuery(
+                    statement, javax.jcr.query.Query.XPATH, limit, offset,
+                    NO_BINDINGS, namePathMapper.getSessionLocalMappings());
+            Iterable<? extends ResultRow> resultRows = query.getRows();
             Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager, root, type));
             return Iterators.filter(authorizables, new UniqueResultPredicate());
         } catch (ParseException e) {

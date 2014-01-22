@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import java.util.Collections;
+import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -90,8 +93,8 @@ public class GlobalNameMapper implements NameMapper {
     }
 
     @Override
-    public boolean hasSessionLocalMappings() {
-        return false;
+    public Map<String, String> getSessionLocalMappings() {
+        return Collections.emptyMap();
     }
 
     @CheckForNull

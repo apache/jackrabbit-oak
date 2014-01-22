@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -29,6 +30,7 @@ import javax.jcr.query.Query;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -52,6 +54,7 @@ import static com.google.common.collect.Iterators.emptyIterator;
 import static com.google.common.collect.Iterators.filter;
 import static com.google.common.collect.Iterators.singletonIterator;
 import static com.google.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 
 /**
  * TODO document
@@ -217,7 +220,7 @@ public class IdentifierManager {
         try {
             Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
-                    Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
+                    Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, NO_MAPPINGS);
             return findPaths(result, uuid, propertyName, nodeTypeNames,
                     weak ? Type.WEAKREFERENCE : Type.REFERENCE,
                     weak ? Type.WEAKREFERENCES : Type.REFERENCES
@@ -308,7 +311,7 @@ public class IdentifierManager {
             Map<String, PropertyValue> bindings = Collections.singletonMap("id", uuid);
             Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
-                    Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
+                    Long.MAX_VALUE, 0, bindings, NO_MAPPINGS);
 
             String path = null;
             for (ResultRow rr : result.getRows()) {

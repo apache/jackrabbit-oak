@@ -60,7 +60,7 @@ public final class TestNameMapper extends LocalNameMapper {
     }
 
     @Override
-    protected Map<String, String> getSessionLocalMappings() {
+    public Map<String, String> getSessionLocalMappings() {
         return local;
     }
 }

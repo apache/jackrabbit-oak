@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import java.util.Collections;
+import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -45,8 +48,8 @@ public interface NamePathMapper extends NameMapper, PathMapper {
         }
 
         @Override
-        public boolean hasSessionLocalMappings() {
-            return false;
+        public Map<String, String> getSessionLocalMappings() {
+            return Collections.emptyMap();
         }
 
         @Override

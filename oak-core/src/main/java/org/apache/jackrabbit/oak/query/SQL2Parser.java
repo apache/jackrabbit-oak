@@ -182,7 +182,8 @@ public class SQL2Parser {
         if (readIf("WHERE")) {
             constraint = parseConstraint();
         }
-        QueryImpl q = new QueryImpl(statement, source, constraint, columnArray);
+        QueryImpl q = new QueryImpl(
+                statement, source, constraint, columnArray, namePathMapper);
         q.setDistinct(distinct);
         return q;
     }

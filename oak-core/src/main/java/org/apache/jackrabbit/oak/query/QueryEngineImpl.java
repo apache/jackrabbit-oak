@@ -29,7 +29,9 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -75,24 +77,38 @@ public abstract class QueryEngineImpl implements QueryEngine {
     /**
      * Parse the query (check if it's valid) and get the list of bind variable names.
      *
-     * @param statement
-     * @param language
+     * @param statement query statement
+     * @param language query language
+     * @param mappings namespace prefix mappings
      * @return the list of bind variable names
      * @throws ParseException
      */
     @Override
-    public List<String> getBindVariableNames(String statement, String language, NamePathMapper namePathMapper) throws ParseException {
-        Query q = parseQuery(statement, language, getExecutionContext(), namePathMapper);
+    public List<String> getBindVariableNames(
+            String statement, String language, Map<String, String> mappings)
+            throws ParseException {
+        Query q = parseQuery(statement, language, getExecutionContext(), mappings);
         return q.getBindVariableNames();
     }
 
-    private static Query parseQuery(String statement, String language, 
-            ExecutionContext context, NamePathMapper namePathMapper) throws ParseException {
+    private static Query parseQuery(
+            String statement, String language, ExecutionContext context,
+            final Map<String, String> mappings) throws ParseException {
         LOG.debug("Parsing {} statement: {}", language, statement);
+
+        NamePathMapper mapper = new NamePathMapperImpl(
+                new LocalNameMapper(context.getRootTree()) {
+                    @Override
+                    public Map<String, String> getSessionLocalMappings() {
+                        return mappings;
+                    }
+                });
+
         NodeState types = context.getBaseState()
                 .getChildNode(JCR_SYSTEM)
                 .getChildNode(JCR_NODE_TYPES);
-        SQL2Parser parser = new SQL2Parser(namePathMapper, types);
+
+        SQL2Parser parser = new SQL2Parser(mapper, types);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);
@@ -123,9 +139,10 @@ public abstract class QueryEngineImpl implements QueryEngine {
     }
     
     @Override
-    public Result executeQuery(String statement, String language, long limit,
-            long offset, Map<String, ? extends PropertyValue> bindings,
-            NamePathMapper namePathMapper) throws ParseException {
+    public Result executeQuery(
+            String statement, String language, long limit, long offset,
+            Map<String, ? extends PropertyValue> bindings,
+            Map<String, String> mappings) throws ParseException {
         if (limit < 0) {
             throw new IllegalArgumentException("Limit may not be negative, is: " + limit);
         }
@@ -133,10 +150,17 @@ public abstract class QueryEngineImpl implements QueryEngine {
             throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
         }
 
+        // avoid having to deal with null arguments
+        if (bindings == null) {
+            bindings = NO_BINDINGS;
+        }
+        if (mappings == null) {
+            mappings = NO_MAPPINGS;
+        }
+
         ExecutionContext context = getExecutionContext();
-        Query q = parseQuery(statement, language, context, namePathMapper);
+        Query q = parseQuery(statement, language, context, mappings);
         q.setExecutionContext(context);
-        q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
         q.setOffset(offset);
         if (bindings != null) {

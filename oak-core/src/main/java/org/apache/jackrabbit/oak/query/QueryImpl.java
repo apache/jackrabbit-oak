@@ -111,13 +111,16 @@ public class QueryImpl implements Query {
     private long size = -1;
     private boolean prepared;
     private ExecutionContext context;
-    private NamePathMapper namePathMapper;
 
-    QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint, ColumnImpl[] columns) {
+    private final NamePathMapper namePathMapper;
+
+    QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
+            ColumnImpl[] columns, NamePathMapper mapper) {
         this.statement = statement;
         this.source = source;
         this.constraint = constraint;
         this.columns = columns;
+        this.namePathMapper = mapper;
     }
 
     @Override
@@ -632,11 +635,6 @@ public class QueryImpl implements Query {
         this.orderings = orderings;
     }
 
-    @Override
-    public void setNamePathMapper(NamePathMapper namePathMapper) {
-        this.namePathMapper = namePathMapper;
-    }
-
     public NamePathMapper getNamePathMapper() {
         return namePathMapper;
     }
@@ -659,9 +657,6 @@ public class QueryImpl implements Query {
         }
         if (!JcrPathParser.validate(path)) {
             throw new IllegalArgumentException("Invalid path: " + path);
-        }
-        if (namePathMapper == null) {
-            return path;
         }
         String p = namePathMapper.getOakPath(path);
         if (p == null) {

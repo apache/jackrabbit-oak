@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -48,14 +50,14 @@ public interface NameMapper {
     @Nonnull
     String getOakName(@Nonnull String jcrName) throws RepositoryException;
 
-
     /**
-     * Returns whether the mapper has prefix remappings; when there aren't
-     * any, prefixed names do not need to be converted at all
-     * 
-     * @return {@code true} if prefixes have been remapped
+     * Returns the local namespace prefix mappings, or an empty map if
+     * there aren't any local mappings.
+     *
+     * @return local namespace prefix to URI mappings
      */
-    boolean hasSessionLocalMappings();
+    @Nonnull
+    Map<String, String> getSessionLocalMappings();
 
     /**
      * Returns the JCR name for the given Oak name. The given name is

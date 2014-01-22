@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -41,6 +43,7 @@ import java.util.Map;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
@@ -108,7 +111,7 @@ public abstract class AbstractQueryTest {
 
     protected Result executeQuery(String statement, String language,
             Map<String, PropertyValue> sv) throws ParseException {
-        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv, null);
+        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv, NO_MAPPINGS);
     }
 
     protected void test(String file) throws Exception {
@@ -227,7 +230,7 @@ public abstract class AbstractQueryTest {
         long time = System.currentTimeMillis();
         List<String> lines = new ArrayList<String>();
         try {
-            Result result = executeQuery(query, language, null);
+            Result result = executeQuery(query, language, NO_BINDINGS);
             for (ResultRow row : result.getRows()) {
                 lines.add(readRow(row, pathsOnly));
             }

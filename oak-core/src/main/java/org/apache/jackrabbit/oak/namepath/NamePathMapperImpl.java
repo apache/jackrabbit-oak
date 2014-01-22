@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.namepath;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -67,9 +69,9 @@ public class NamePathMapperImpl implements NamePathMapper {
         return nameMapper.getJcrName(oakName);
     }
 
-    @Override
-    public boolean hasSessionLocalMappings() {
-        return nameMapper.hasSessionLocalMappings();
+    @Override @Nonnull
+    public Map<String, String> getSessionLocalMappings() {
+        return nameMapper.getSessionLocalMappings();
     }
 
     //---------------------------------------------------------< PathMapper >---
@@ -279,7 +281,7 @@ public class NamePathMapperImpl implements NamePathMapper {
             }
         }
 
-        return colon != -1 && hasSessionLocalMappings();
+        return colon != -1 && !getSessionLocalMappings().isEmpty();
     }
 
     //------------------------------------------------------------< PathListener >---
