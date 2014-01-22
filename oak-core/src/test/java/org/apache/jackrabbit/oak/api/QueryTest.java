@@ -21,14 +21,12 @@ package org.apache.jackrabbit.oak.api;
 import static junit.framework.Assert.assertEquals;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
@@ -69,10 +67,8 @@ public class QueryTest {
         r.commit();
 
         Result result = r2.getQueryEngine().executeQuery(
-                "test//element(*, nt:base)",
-                Query.XPATH, Long.MAX_VALUE, 0,
-                Collections.<String, PropertyValue>emptyMap(),
-                NamePathMapper.DEFAULT);
+                "test//element(*, nt:base)", Query.XPATH, Long.MAX_VALUE, 0,
+                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
         Set<String> paths = new HashSet<String>();
         for (ResultRow rr : result.getRows()) {
             paths.add(rr.getPath());

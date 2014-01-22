@@ -120,9 +120,8 @@ public class SessionContext implements NamePathMapper {
 
         this.namespaces = new SessionNamespaces(this);
         LocalNameMapper nameMapper = new LocalNameMapper(delegate.getRoot().getTree("/")) {
-
             @Override
-            protected Map<String, String> getSessionLocalMappings() {
+            public Map<String, String> getSessionLocalMappings() {
                 return namespaces.getSessionLocalMappings();
             }
         };
@@ -184,6 +183,11 @@ public class SessionContext implements NamePathMapper {
 
     SessionNamespaces getNamespaces() {
         return namespaces;
+    }
+
+    @Nonnull
+    public Map<String, String> getSessionLocalMappings() {
+        return namespaces.getSessionLocalMappings();
     }
 
     public ValueFactory getValueFactory() {
@@ -277,11 +281,6 @@ public class SessionContext implements NamePathMapper {
     @CheckForNull
     public String getOakNameOrNull(@Nonnull String jcrName) {
         return namePathMapper.getOakNameOrNull(jcrName);
-    }
-
-    @Override
-    public boolean hasSessionLocalMappings() {
-        return !namespaces.getSessionLocalMappings().isEmpty();
     }
 
     @Override
@@ -420,4 +419,5 @@ public class SessionContext implements NamePathMapper {
         }
         return permissionProvider;
     }
+
 }

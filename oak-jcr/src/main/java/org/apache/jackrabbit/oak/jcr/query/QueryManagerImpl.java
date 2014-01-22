@@ -108,7 +108,9 @@ public class QueryManagerImpl implements QueryManager {
      */
     public List<String> parse(String statement, String language) throws InvalidQueryException {
         try {
-            return queryEngine.getBindVariableNames(statement, language, sessionContext);
+            return queryEngine.getBindVariableNames(
+                    statement, language,
+                    sessionContext.getSessionLocalMappings());
         } catch (ParseException e) {
             throw new InvalidQueryException(e);
         }
@@ -118,8 +120,9 @@ public class QueryManagerImpl implements QueryManager {
             long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
-            Result r = queryEngine.executeQuery(statement, language, limit, offset,
-                    bindMap, sessionContext);
+            Result r = queryEngine.executeQuery(
+                    statement, language, limit, offset, bindMap,
+                    sessionContext.getSessionLocalMappings());
             return new QueryResultImpl(sessionContext, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
