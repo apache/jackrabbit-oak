@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk.blob;
 
-import org.apache.jackrabbit.oak.plugins.sqlpersistence.RDBBlobStore;
+import org.apache.jackrabbit.oak.plugins.rdbpersistence.RDBBlobStore;
 
 /**
  * Tests the RDBBlobStore implementation.

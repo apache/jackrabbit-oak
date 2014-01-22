@@ -47,8 +47,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.Node.Children;
 import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.apache.jackrabbit.oak.plugins.sqlpersistence.RDBBlobStore;
-import org.apache.jackrabbit.oak.plugins.sqlpersistence.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.rdbpersistence.RDBBlobStore;
+import org.apache.jackrabbit.oak.plugins.rdbpersistence.RDBDocumentStore;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
