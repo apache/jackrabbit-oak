@@ -26,8 +26,11 @@ import javax.jcr.security.AccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
  * Implementation specific access control utility methods
@@ -40,12 +43,13 @@ final class Util implements AccessControlConstants {
     private Util() {}
 
     public static void checkValidPrincipal(@Nullable Principal principal,
-                                           @Nonnull PrincipalManager principalManager) throws AccessControlException {
+                                           @Nonnull PrincipalManager principalManager,
+                                           boolean verifyExists) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
         if (name == null || name.isEmpty()) {
             throw new AccessControlException("Invalid principal " + name);
         }
-        if (!(principal instanceof PrincipalImpl) && !principalManager.hasPrincipal(name)) {
+        if (verifyExists && !(principal instanceof PrincipalImpl) && !principalManager.hasPrincipal(name)) {
             throw new AccessControlException("Unknown principal " + name);
         }
     }
@@ -56,7 +60,7 @@ final class Util implements AccessControlConstants {
             throw new AccessControlException("Valid principals expected. Found null.");
         }
         for (Principal principal : principals) {
-            checkValidPrincipal(principal, principalManager);
+            checkValidPrincipal(principal, principalManager, true);
         }
     }
 
@@ -111,5 +115,10 @@ final class Util implements AccessControlConstants {
             i++;
         }
         return aceName;
+    }
+
+    public static int getImportBehavior(AuthorizationConfiguration config) {
+        String importBehaviorStr = config.getParameters().getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
+        return ImportBehavior.valueFromString(importBehaviorStr);
     }
 }

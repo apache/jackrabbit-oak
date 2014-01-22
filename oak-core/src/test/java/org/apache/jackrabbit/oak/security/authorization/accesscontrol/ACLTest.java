@@ -100,7 +100,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
                                                   @Nonnull NamePathMapper namePathMapper,
                                                   final @Nonnull RestrictionProvider restrictionProvider) {
         String path = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
-        return new ACL(path, entries, namePathMapper, principalManager, privilegeManager, getBitsProvider()) {
+        return new ACL(path, entries, namePathMapper) {
             @Override
             public RestrictionProvider getRestrictionProvider() {
                 return restrictionProvider;
@@ -109,6 +109,22 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
             @Override
             ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException {
                 return createEntry(principal, privilegeBits, isAllow, restrictions);
+            }
+
+            @Override
+            void checkValidPrincipal(Principal principal) throws AccessControlException {
+                Util.checkValidPrincipal(principal, principalManager, true);
+
+            }
+
+            @Override
+            PrivilegeManager getPrivilegeManager() {
+                return privilegeManager;
+            }
+
+            @Override
+            PrivilegeBits getPrivilegeBits(Privilege[] privileges) {
+                return getBitsProvider().getBits(privileges, getNamePathMapper());
             }
         };
     }
