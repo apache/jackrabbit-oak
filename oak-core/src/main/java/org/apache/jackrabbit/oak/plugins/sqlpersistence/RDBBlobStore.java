@@ -31,44 +31,44 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.util.StringUtils;
 
-public class SQLBlobStore extends AbstractBlobStore {
+public class RDBBlobStore extends AbstractBlobStore {
 
     /**
-     * Creates a {@linkplain SQLBlobStore} instance using an embedded H2
+     * Creates a {@linkplain RDBBlobStore} instance using an embedded H2
      * database in in-memory mode.
      */
-    public SQLBlobStore() {
+    public RDBBlobStore() {
         try {
             String jdbcurl = "jdbc:h2:mem:oaknodes";
             Connection connection = DriverManager.getConnection(jdbcurl, "sa", "");
             initialize(connection);
         } catch (Exception ex) {
-            throw new MicroKernelException("initializing SQL blob store", ex);
+            throw new MicroKernelException("initializing RDB blob store", ex);
         }
     }
 
     /**
-     * Creates a {@linkplain SQLBlobStore} instance using the provided JDBC
+     * Creates a {@linkplain RDBBlobStore} instance using the provided JDBC
      * connection information.
      */
-    public SQLBlobStore(String jdbcurl, String username, String password) {
+    public RDBBlobStore(String jdbcurl, String username, String password) {
         try {
             Connection connection = DriverManager.getConnection(jdbcurl, username, password);
             initialize(connection);
         } catch (Exception ex) {
-            throw new MicroKernelException("initializing SQL blob store", ex);
+            throw new MicroKernelException("initializing RDB blob store", ex);
         }
     }
 
     /**
-     * Creates a {@linkplain SQLBlobStore} instance using the provided
+     * Creates a {@linkplain RDBBlobStore} instance using the provided
      * {@link DataSource}.
      */
-    public SQLBlobStore(DataSource ds) {
+    public RDBBlobStore(DataSource ds) {
         try {
             initialize(ds.getConnection());
         } catch (Exception ex) {
-            throw new MicroKernelException("initializing SQL blob store", ex);
+            throw new MicroKernelException("initializing RDB blob store", ex);
         }
     }
 
