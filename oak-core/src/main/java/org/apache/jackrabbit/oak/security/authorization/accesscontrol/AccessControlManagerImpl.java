@@ -46,6 +46,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -75,6 +76,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -320,7 +322,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @Nonnull
     @Override
     public JackrabbitAccessControlPolicy[] getApplicablePolicies(@Nonnull Principal principal) throws RepositoryException {
-        Util.checkValidPrincipal(principal, principalManager);
+        Util.checkValidPrincipal(principal, principalManager, true);
 
         String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
         JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
@@ -335,7 +337,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @Nonnull
     @Override
     public JackrabbitAccessControlPolicy[] getPolicies(@Nonnull Principal principal) throws RepositoryException {
-        Util.checkValidPrincipal(principal, principalManager);
+        Util.checkValidPrincipal(principal, principalManager, true);
 
         String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
         JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
@@ -543,7 +545,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         }
 
         NodeACL(@Nullable String oakPath, @Nullable List<ACE> entries) {
-            super(oakPath, entries, AccessControlManagerImpl.this.getNamePathMapper(), principalManager, getPrivilegeManager(), bitsProvider);
+            super(oakPath, entries, AccessControlManagerImpl.this.getNamePathMapper());
         }
 
         @Nonnull
@@ -555,6 +557,21 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         @Override
         ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException {
             return new Entry(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
+        }
+
+        @Override
+        void checkValidPrincipal(Principal principal) throws AccessControlException {
+            Util.checkValidPrincipal(principal, principalManager, ImportBehavior.BESTEFFORT != Util.getImportBehavior(getConfig()));
+        }
+
+        @Override
+        PrivilegeManager getPrivilegeManager() {
+            return AccessControlManagerImpl.this.getPrivilegeManager();
+        }
+
+        @Override
+        PrivilegeBits getPrivilegeBits(Privilege[] privileges) {
+            return bitsProvider.getBits(privileges, getNamePathMapper());
         }
 
         @Override
@@ -588,7 +605,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         private PrincipalACL(@Nullable String oakPath, @Nonnull Principal principal,
                              @Nullable List<ACE> entries,
                              @Nonnull RestrictionProvider restrictionProvider) {
-            super(oakPath, entries, AccessControlManagerImpl.this.getNamePathMapper(), principalManager, getPrivilegeManager(), bitsProvider);
+            super(oakPath, entries, AccessControlManagerImpl.this.getNamePathMapper());
             this.principal = principal;
             rProvider = restrictionProvider;
         }
@@ -602,6 +619,21 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         @Override
         ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException {
             return new Entry(principal, privilegeBits, isAllow, restrictions, getNamePathMapper());
+        }
+
+        @Override
+        void checkValidPrincipal(Principal principal) throws AccessControlException {
+            Util.checkValidPrincipal(principal, principalManager, true);
+        }
+
+        @Override
+        PrivilegeManager getPrivilegeManager() {
+            return AccessControlManagerImpl.this.getPrivilegeManager();
+        }
+
+        @Override
+        PrivilegeBits getPrivilegeBits(Privilege[] privileges) {
+            return bitsProvider.getBits(privileges, getNamePathMapper());
         }
 
         @Override

@@ -50,6 +50,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -175,12 +176,28 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     private ACL createPolicy(@Nullable String path) {
         final PrincipalManager pm = getPrincipalManager(root);
+        final PrivilegeManager pvMgr = getPrivilegeManager(root);
         final RestrictionProvider rp = getRestrictionProvider();
-        return new ACL(path, null, getNamePathMapper(), pm, AccessControlManagerImplTest.this.getPrivilegeManager(root), getBitsProvider()) {
+        return new ACL(path, null, getNamePathMapper()) {
 
             @Override
             ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) {
                 throw new UnsupportedOperationException();
+            }
+
+            @Override
+            void checkValidPrincipal(Principal principal) throws AccessControlException {
+                Util.checkValidPrincipal(principal, pm, true);
+            }
+
+            @Override
+            PrivilegeManager getPrivilegeManager() {
+                return pvMgr;
+            }
+
+            @Override
+            PrivilegeBits getPrivilegeBits(Privilege[] privileges) {
+                return getBitsProvider().getBits(privileges, getNamePathMapper());
             }
 
             @Nonnull
