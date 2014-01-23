@@ -54,6 +54,7 @@ public abstract class TCKBase extends TestSuite {
         if (OakMongoMKRepositoryStub.isMongoDBAvailable()) {
             Setup.wrap(this, OakMongoMKRepositoryStub.class.getName());
         }
+        // Setup.wrap(this, OakDocumentRDBRepositoryStub.class.getName());
     }
 
     abstract protected void addTests();
