@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.security.Principal;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import javax.jcr.Credentials;
@@ -36,7 +39,7 @@ import org.apache.jackrabbit.test.RepositoryStub;
  */
 public class OakDocumentRDBRepositoryStub extends RepositoryStub {
 
-    protected static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:mem:oaknodes");
+    protected static final String URL = System.getProperty("rdb.jdbc-url", ""); // such as: jdbc:h2:mem:oaknodes
 
     protected static final String USERNAME = System.getProperty("rdb.jcbc-user", "sa");
 
@@ -84,6 +87,18 @@ public class OakDocumentRDBRepositoryStub extends RepositoryStub {
                 .setRDBConnection(url, username, password).open();
         Jcr jcr = new Jcr(m);
         return jcr.createRepository();
+    }
+
+    public static boolean isAvailable() {
+        try {
+            Connection c = DriverManager.getConnection(URL, USERNAME, PASSWD);
+            c.close();
+            return true;
+        }
+        catch (SQLException ex) {
+            // expected
+            return false;
+        }
     }
 
     /**
