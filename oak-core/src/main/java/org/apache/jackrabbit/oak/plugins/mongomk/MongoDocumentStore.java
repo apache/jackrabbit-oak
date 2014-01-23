@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,16 +34,21 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Splitter;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
+import org.apache.jackrabbit.oak.plugins.mongomk.cache.ForwardingListener;
+import org.apache.jackrabbit.oak.plugins.mongomk.cache.NodeDocOffHeapCache;
+import org.apache.jackrabbit.oak.plugins.mongomk.cache.OffHeapCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Splitter;
 import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
 import com.mongodb.BasicDBObject;
@@ -106,9 +113,29 @@ public class MongoDocumentStore implements DocumentStore {
         nodes.ensureIndex(index, options);
 
         // TODO expire entries if the parent was changed
-        nodesCache = builder.buildCache(builder.getDocumentCacheSize());
+        if(builder.useOffHeapCache()){
+            nodesCache = createOffHeapCache(builder);
+        }else{
+            nodesCache = builder.buildCache(builder.getDocumentCacheSize());
+        }
+
         cacheStats = new CacheStats(nodesCache, "MongoMk-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
+    }
+
+    private Cache<String , NodeDocument> createOffHeapCache(MongoMK.Builder builder){
+        ForwardingListener<String , NodeDocument> listener = ForwardingListener.newInstance();
+
+        Cache<String,NodeDocument> primaryCache = CacheBuilder.newBuilder()
+                .weigher(builder.getWeigher())
+                .maximumWeight(builder.getDocumentCacheSize())
+                .removalListener(listener)
+                .recordStats()
+                .build();
+
+        Cache<String,NodeDocument> cache =
+                new NodeDocOffHeapCache( primaryCache, listener, builder, this );
+        return cache;
     }
     
     private static long start() {
@@ -568,14 +595,35 @@ public class MongoDocumentStore implements DocumentStore {
             LOG.debug("MongoDB time: " + timeSum);
         }
         nodes.getDB().getMongo().close();
+
+        if(nodesCache instanceof Closeable){
+            try {
+                ((Closeable)nodesCache).close();
+            } catch (IOException e) {
+
+                LOG.warn("Error occurred while closing Off Heap Cache",e);
+            }
+        }
     }
 
     public CacheStats getCacheStats() {
         return cacheStats;
     }
 
-    Map<String, NodeDocument> getCache() {
-        return Collections.unmodifiableMap(nodesCache.asMap());
+    Iterable<? extends Map.Entry<String, ? extends CachedNodeDocument>> getCacheEntries() {
+        if(nodesCache instanceof OffHeapCache){
+            return Iterables.concat(nodesCache.asMap().entrySet(),
+                    ((OffHeapCache)nodesCache).offHeapEntriesMap().entrySet());
+        }
+        return nodesCache.asMap().entrySet();
+    }
+
+    CachedNodeDocument getCachedNodeDoc(String id){
+        if(nodesCache instanceof OffHeapCache){
+            return  ((OffHeapCache) nodesCache).getCachedDocument(id);
+        }
+
+        return nodesCache.getIfPresent(id);
     }
 
     private static void log(String message, Object... args) {

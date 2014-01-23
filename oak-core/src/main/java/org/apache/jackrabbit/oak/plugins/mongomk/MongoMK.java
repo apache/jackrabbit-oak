@@ -661,6 +661,7 @@ public class MongoMK implements MicroKernel {
         private long docChildrenCacheSize;
         private boolean useSimpleRevision;
         private long splitDocumentAgeMillis = 5 * 60 * 1000;
+        private long offHeapCacheSize = -1;
 
         public Builder() {
             memoryCacheSize(DEFAULT_MEMORY_CACHE_SIZE);
@@ -846,6 +847,19 @@ public class MongoMK implements MicroKernel {
             return splitDocumentAgeMillis;
         }
 
+        public boolean useOffHeapCache() {
+            return this.offHeapCacheSize > 0;
+        }
+
+        public long getOffHeapCacheSize() {
+            return offHeapCacheSize;
+        }
+
+        public Builder offHeapCacheSize(long offHeapCacheSize) {
+            this.offHeapCacheSize = offHeapCacheSize;
+            return this;
+        }
+
         /**
          * Open the MongoMK instance using the configured options.
          * 
@@ -855,13 +869,6 @@ public class MongoMK implements MicroKernel {
             return new MongoMK(this);
         }
         
-        /**
-         * Create a cache.
-         * 
-         * @param <V> the value type
-         * @param maxWeight
-         * @return the cache
-         */
         public <V extends CacheValue> Cache<String, V> buildCache(long maxWeight) {
             if (LIRS_CACHE) {
                 return CacheLIRS.newBuilder().weigher(weigher).
