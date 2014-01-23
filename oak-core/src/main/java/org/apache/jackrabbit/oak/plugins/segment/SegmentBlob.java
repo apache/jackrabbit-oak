@@ -21,20 +21,34 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 
+import java.io.InputStream;
+
 class SegmentBlob extends Record implements Blob {
 
-    SegmentBlob(Segment segment, RecordId id) {
+    private boolean external;
+
+    SegmentBlob(Segment segment, RecordId id, boolean external) {
         super(segment, id);
+
+        this.external = external;
     }
 
     @Override @Nonnull
-    public SegmentStream getNewStream() {
+    public InputStream getNewStream() {
+        if (external) {
+            String refererence = getSegment().readBlobReference(getOffset());
+            return getStore().readBlob(refererence).getNewStream();
+        }
         return getSegment().readStream(getOffset());
     }
 
     @Override
     public long length() {
-        SegmentStream stream = getNewStream();
+        if (external) {
+            return getSegment().readBlobLength(getOffset());
+        }
+
+        SegmentStream stream = (SegmentStream) getNewStream();
         try {
             return stream.getLength();
         } finally {

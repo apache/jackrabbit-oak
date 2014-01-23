@@ -487,6 +487,31 @@ public class SegmentWriter {
     }
 
     /**
+     * Write a reference to an external blob.
+     *
+     * @param reference reference
+     * @param blobLength blob length
+     * @return record id
+     */
+    private synchronized RecordId writeValueRecord(String reference, long blobLength) {
+        byte[] data = reference.getBytes(Charsets.UTF_8);
+        int length = data.length;
+
+        checkArgument(length < 8192);
+
+        RecordId id = prepare(RecordType.VALUE, 2 + 8 + length);
+        int len = length | 0xE000;
+        buffer[position++] = (byte) (len >> 8);
+        buffer[position++] = (byte) len;
+
+        writeLong(blobLength);
+
+        System.arraycopy(data, 0, buffer, position, length);
+        position += length;
+        return id;
+    }
+
+    /**
      * Writes a block record containing the given block of bytes.
      *
      * @param bytes source buffer
@@ -643,11 +668,18 @@ public class SegmentWriter {
     }
 
     public SegmentBlob writeBlob(Blob blob) throws IOException {
-        if (store.isInstance(blob, SegmentBlob.class)) {
+        if (blob instanceof ExternalBlob) {
+            return writeBlob((ExternalBlob) blob);
+        } else if (store.isInstance(blob, SegmentBlob.class)) {
             return (SegmentBlob) blob;
         } else {
             return writeStream(blob.getNewStream());
         }
+    }
+
+    private SegmentBlob writeBlob(ExternalBlob blob) {
+        RecordId id = writeValueRecord(blob.getReference(), blob.length());
+        return new SegmentBlob(dummySegment, id, true);
     }
 
     /**
@@ -669,7 +701,7 @@ public class SegmentWriter {
                 Closeables.close(stream, threw);
             }
         }
-        return new SegmentBlob(dummySegment, id);
+        return new SegmentBlob(dummySegment, id, false);
     }
 
     private RecordId internalWriteStream(InputStream stream)

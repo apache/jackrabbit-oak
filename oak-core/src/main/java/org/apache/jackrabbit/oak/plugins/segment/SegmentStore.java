@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 public interface SegmentStore {
@@ -51,4 +52,11 @@ public interface SegmentStore {
      */
     boolean isInstance(Object object, Class<? extends Record> type);
 
+    /**
+     * Read a blob from external storage.
+     *
+     * @param reference blob reference
+     * @return external blob
+     */
+    ExternalBlob readBlob(String reference);
 }
