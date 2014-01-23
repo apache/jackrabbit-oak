@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk.util;
 
+import java.net.UnknownHostException;
+
 import com.google.common.base.Objects;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
-import com.mongodb.ServerAddress;
+import com.mongodb.MongoClientURI;
 
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
@@ -31,6 +33,20 @@ public class MongoConnection {
     private final MongoClient mongo;
 
     /**
+     * Constructs a new connection using the specified MongoDB connection string.
+     * See also http://docs.mongodb.org/manual/reference/connection-string/
+     * 
+     * @param uri the MongoDB URI
+     * @throws UnknownHostException
+     */
+    public MongoConnection(String uri) throws UnknownHostException  {
+        MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
+        MongoClientURI mongoURI = new MongoClientURI(uri, builder);
+        mongo = new MongoClient(mongoURI);
+        db = mongo.getDB(mongoURI.getDatabase());
+    }
+    
+    /**
      * Constructs a new {@code MongoConnection}.
      *
      * @param host The host address.
@@ -39,10 +55,7 @@ public class MongoConnection {
      * @throws Exception If an error occurred while trying to connect.
      */
     public MongoConnection(String host, int port, String database) throws Exception {
-        MongoClientOptions options = getDefaultBuilder().build();
-        ServerAddress serverAddress = new ServerAddress(host, port);
-        mongo = new MongoClient(serverAddress, options);
-        db = mongo.getDB(database);
+        this("mongodb://" + host + ":" + port + "/" + database);
     }
 
     /**

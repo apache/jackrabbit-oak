@@ -36,10 +36,14 @@ import org.junit.Before;
  */
 public class AbstractClusterTest {
 
-    protected NodeStoreFixture fixture = NodeStoreFixture.MONGO_MK;
+    protected NodeStoreFixture fixture = getFixture();
     protected NodeStore ns1, ns2;
     protected Repository r1, r2;
     protected Session s1, s2;
+    
+    protected NodeStoreFixture getFixture() {
+        return NodeStoreFixture.MONGO_NS;
+    }
     
     @After
     public void logout() {

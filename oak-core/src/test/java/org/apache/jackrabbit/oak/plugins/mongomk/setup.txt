@@ -83,3 +83,41 @@ du -h .
 db.printShardingStatus()
 exit
 
+
+=== Testing with a local Replica Set
+
+# within the mongodb directory:
+
+cd <mongodb/bin>
+
+# create a replica set with 2 replicas and 1 arbiter:
+# see also http://docs.mongodb.org/manual/tutorial/deploy-replica-set/
+
+killall mongod
+rm -rf db1; mkdir db1
+rm -rf db2; mkdir db2
+rm -rf db3; mkdir db3
+./mongod --replSet test --dbpath db1 --port 27017 > db1/log.txt &
+./mongod --replSet test --dbpath db2 --port 27018 > db2/log.txt &
+./mongod --replSet test --dbpath db3 --port 27019 > db3/log.txt &
+while ! nc -vz localhost 27017; do sleep 1; done
+while ! nc -vz localhost 27018; do sleep 1; done
+while ! nc -vz localhost 27019; do sleep 1; done
+./mongo --eval "rs.initiate({_id:'test', members:[ \
+  {_id:0, host:'localhost:27017'}, \
+  {_id:1, host:'localhost:27018'}, \
+  {_id:2, host:'localhost:27019', arbiterOnly:true}, \
+]});"
+
+# display configuration:
+
+./mongo
+rs.config()
+
+# display processes:
+
+ps -ef | grep "./mongod "
+
+# kill the one on port 27017:
+
+ps -l | grep "mongod" | grep "port 27017" | awk '{print $2}' | xargs kill -9
