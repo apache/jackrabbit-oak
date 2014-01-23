@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.sql.DataSource;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -682,13 +683,28 @@ public class MongoMK implements MicroKernel {
         }
 
         /**
-         * Sets a JDBC connection to use. By default an in-memory store is used.
+         * Sets a JDBC connection URL to use for the RDB document store.
+         * 
          * @return this
          */
-        public Builder setMongoJDBC(String jdbcurl, String username, String password) {
-            // TODO maybe we need different connections for document store and node store
+        public Builder setRDBConnection(String jdbcurl, String username, String password) {
+            // TODO maybe we need different connections for document store and
+            // node store
             this.documentStore = new RDBDocumentStore(jdbcurl, username, password);
             this.blobStore = new RDBBlobStore(jdbcurl, username, password);
+            return this;
+        }
+
+        /**
+         * Sets a {@link DataSource} to use for the RDB document store.
+         * 
+         * @return this
+         */
+        public Builder setRDBConnection(DataSource ds) {
+            // TODO maybe we need different connections for document store and
+            // node store
+            this.documentStore = new RDBDocumentStore(ds);
+            this.blobStore = new RDBBlobStore(ds);
             return this;
         }
 

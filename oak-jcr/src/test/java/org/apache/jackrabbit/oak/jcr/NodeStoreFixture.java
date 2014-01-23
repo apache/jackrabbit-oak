@@ -80,21 +80,20 @@ public abstract class NodeStoreFixture {
             }
         }
     };
-    
+
     public static final NodeStoreFixture MONGO_NS = createMongoFixture("mongodb://localhost:27017/oak");
 
     public static final NodeStoreFixture MONGO_JDBC = new NodeStoreFixture() {
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            return new MongoMK.Builder().setMongoJDBC("jdbc:h2:mem:" + id, "sa", "").getNodeStore();
+            return new MongoMK.Builder().setRDBConnection("jdbc:h2:mem:" + id, "sa", "").getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
-                return new MongoMK.Builder()
-                                .setMongoJDBC("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "").getNodeStore();
+                return new MongoMK.Builder().setRDBConnection("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "").getNodeStore();
             } catch (Exception e) {
                 return null;
             }
