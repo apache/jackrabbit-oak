@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
@@ -51,7 +52,14 @@ public class MongoBlob implements Blob {
             throw new IllegalArgumentException("Invalid blob id: " + id);
         }
     }
-    
+
+    @Override @CheckForNull
+    public String getReference() {
+        return null;
+    }
+
+    //------------------------------------------------------------< Object >--
+
     @Override
     public String toString() {
         return id;

@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
+
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteStreams;
@@ -100,6 +102,15 @@ public abstract class AbstractBlob implements Blob {
     protected byte[] sha256() {
         return getSha256().asBytes();
     }
+
+    //--------------------------------------------------------------< Blob >--
+
+    @Override @CheckForNull
+    public String getReference() {
+        return null;
+    }
+
+    //------------------------------------------------------------< Object >--
 
     /**
      * To {@code Blob} instances are considered equal iff they have the
