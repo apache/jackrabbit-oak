@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
@@ -66,7 +67,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         createTree(root,paths);
         c1.merge(root, EmptyHook.INSTANCE, null);
 
-        assertEquals(totalPaths,ds(c1).getCache().size());
+        assertEquals(totalPaths, Iterables.size(ds(c1).getCacheEntries()));
 
         runBgOps(c1,c2);
         return totalPaths;
@@ -89,7 +90,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         //Only 2 entries /a and /a/d would be invalidated
         // '/' would have been added to cache in start of backgroundRead
         //itself
-        assertEquals(totalPaths - 2,ds(c1).getCache().size());
+        assertEquals(totalPaths - 2,Iterables.size(ds(c1).getCacheEntries()));
     }
 
     @Test

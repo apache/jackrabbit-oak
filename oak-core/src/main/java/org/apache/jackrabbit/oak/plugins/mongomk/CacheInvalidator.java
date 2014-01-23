@@ -19,6 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
@@ -33,11 +39,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 abstract class CacheInvalidator {
     static final Logger LOG = LoggerFactory.getLogger(CacheInvalidator.class);
@@ -87,11 +88,12 @@ abstract class CacheInvalidator {
         @Override
         public InvalidationResult invalidateCache() {
             InvalidationResult result = new InvalidationResult();
-            Map<String, NodeDocument> cacheMap = documentStore.getCache();
-            result.cacheSize = cacheMap.size();
-            for (String key : cacheMap.keySet()) {
-                documentStore.invalidateCache(Collection.NODES, key);
+            int size = 0;
+            for (Map.Entry<String, ? extends CachedNodeDocument> e : documentStore.getCacheEntries()) {
+                size++;
+                documentStore.invalidateCache(Collection.NODES, e.getKey());
             }
+            result.cacheSize = size;
             return result;
         }
     }
@@ -107,12 +109,18 @@ abstract class CacheInvalidator {
 
         @Override
         public InvalidationResult invalidateCache() {
-            final Map<String, NodeDocument> cacheMap = documentStore.getCache();
             final InvalidationResult result = new InvalidationResult();
-            result.cacheSize = cacheMap.size();
+
+            int size  = 0;
+            List<String> cachedKeys = new ArrayList<String>();
+            for (Map.Entry<String, ? extends CachedNodeDocument> e : documentStore.getCacheEntries()) {
+                size++;
+                cachedKeys.add(e.getKey());
+            }
+            result.cacheSize = size;
 
             QueryBuilder query = QueryBuilder.start(Document.ID)
-                    .in(cacheMap.keySet());
+                    .in(cachedKeys);
 
             // Fetch only the lastRev map and id
             final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
@@ -121,12 +129,13 @@ abstract class CacheInvalidator {
             // Fetch lastRev for each such node
             DBCursor cursor = nodes.find(query.get(), keys);
             result.queryCount++;
+
             for (DBObject obj : cursor) {
                 result.cacheEntriesProcessedCount++;
                 String id = (String) obj.get(Document.ID);
                 Number modCount = (Number) obj.get(Document.MOD_COUNT);
 
-                NodeDocument cachedDoc = documentStore.getIfCached(Collection.NODES, id);
+                CachedNodeDocument cachedDoc = documentStore.getCachedNodeDoc(id);
                 if (cachedDoc != null
                         && !Objects.equal(cachedDoc.getModCount(), modCount)) {
                     documentStore.invalidateCache(Collection.NODES, id);
@@ -141,7 +150,7 @@ abstract class CacheInvalidator {
 
 
     private static class HierarchicalInvalidator extends CacheInvalidator {
-        
+
         private static final TreeTraverser<TreeNode> TRAVERSER = new TreeTraverser<TreeNode>() {
             @Override
             public Iterable<TreeNode> children(TreeNode root) {
@@ -160,11 +169,7 @@ abstract class CacheInvalidator {
         @Override
         public InvalidationResult invalidateCache() {
             final InvalidationResult result = new InvalidationResult();
-            Map<String, NodeDocument> cacheMap = documentStore.getCache();
-            TreeNode root = constructTreeFromPaths(cacheMap.keySet());
-
-            // Invalidation stats
-            result.cacheSize = cacheMap.size();
+            TreeNode root = constructTreeFromPaths(documentStore.getCacheEntries(), result);
 
             // Time at which the check is started. All NodeDocuments which
             // are found to be up-to-date would be marked touched at this time
@@ -219,7 +224,7 @@ abstract class CacheInvalidator {
                         String id = (String) obj.get(Document.ID);
 
                         final TreeNode tn2 = sameLevelNodes.get(id);
-                        NodeDocument cachedDoc = tn2.getDocument();
+                        CachedNodeDocument cachedDoc = tn2.getDocument();
                         if (cachedDoc != null) {
                             boolean noChangeInModCount = Objects.equal(latestModCount, cachedDoc.getModCount());
                             if (noChangeInModCount) {
@@ -256,11 +261,19 @@ abstract class CacheInvalidator {
             return result;
         }
 
-        private TreeNode constructTreeFromPaths(Set<String> ids) {
+        private TreeNode constructTreeFromPaths(Iterable<? extends Map.Entry<String, ? extends CachedNodeDocument>> entries,
+                                                InvalidationResult result) {
             TreeNode root = new TreeNode("");
-            for (String id : ids) {
+            for (Map.Entry<String, ? extends CachedNodeDocument> e : entries) {
                 TreeNode current = root;
-                String path = Utils.getPathFromId(id);
+
+                //TODO Split documents are immutable hence no need to
+                //check them
+                //TODO Need to determine way to determine if the
+                //key is referring to a split document
+
+                String path = Utils.getPathFromId(e.getKey());
+                result.cacheSize++;
                 for (String name : PathUtils.elements(path)) {
                     current = current.child(name);
                 }
@@ -329,12 +342,12 @@ abstract class CacheInvalidator {
                 documentStore.invalidateCache(Collection.NODES, getId());
             }
 
-            public NodeDocument getDocument() {
-                return documentStore.getIfCached(Collection.NODES, id);
+            public CachedNodeDocument getDocument() {
+                return documentStore.getCachedNodeDoc(id);
             }
 
             public boolean isUptodate(long time) {
-                NodeDocument doc = documentStore.getIfCached(Collection.NODES, id);
+                CachedNodeDocument doc = documentStore.getCachedNodeDoc(id);
                 if (doc != null) {
                     return doc.isUpToDate(time);
                 } else {
@@ -346,7 +359,7 @@ abstract class CacheInvalidator {
             }
 
             public void markUptodate(long cacheCheckTime) {
-                NodeDocument doc = getDocument();
+                CachedNodeDocument doc = getDocument();
                 if (doc == null) {
                     return;
                 }
@@ -358,7 +371,7 @@ abstract class CacheInvalidator {
                 return id;
             }
 
-            private void markUptodate(long cacheCheckTime, NodeDocument upToDateRoot) {
+            private void markUptodate(long cacheCheckTime, CachedNodeDocument upToDateRoot) {
                 for (TreeNode tn : children.values()) {
                     tn.markUptodate(cacheCheckTime, upToDateRoot);
                 }
@@ -366,8 +379,8 @@ abstract class CacheInvalidator {
                 markUptodate(getId(), cacheCheckTime, upToDateRoot);
             }
 
-            private void markUptodate(String key, long time, NodeDocument upToDateRoot) {
-                NodeDocument doc = documentStore.getIfCached(Collection.NODES, key);
+            private void markUptodate(String key, long time, CachedNodeDocument upToDateRoot) {
+                CachedNodeDocument doc = documentStore.getCachedNodeDoc(key);
 
                 if (doc == null) {
                     return;
