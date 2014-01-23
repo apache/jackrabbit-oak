@@ -57,12 +57,9 @@ public abstract class NodeStoreFixture {
         
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
-            String host = "localhost";
-            int port = 27017;
-            String db = "oak";
             MongoConnection connection;
             try {
-                connection = new MongoConnection(host, port, db);
+                connection = new MongoConnection("mongodb://localhost:27017/oak");
                 DB mongoDB = connection.getDB();
                 MongoMK mk = new MongoMK.Builder()
                                 .setMongoDB(mongoDB).open();
@@ -83,36 +80,8 @@ public abstract class NodeStoreFixture {
             }
         }
     };
-
-    public static final NodeStoreFixture MONGO_NS = new NodeStoreFixture() {
-        @Override
-        public NodeStore createNodeStore() {
-            return new MongoMK.Builder().getNodeStore();
-        }
-        
-        @Override
-        public NodeStore createNodeStore(int clusterNodeId) {
-            String host = "localhost";
-            int port = 27017;
-            String db = "oak";
-            MongoConnection connection;
-            try {
-                connection = new MongoConnection(host, port, db);
-                DB mongoDB = connection.getDB();
-                return new MongoMK.Builder()
-                                .setMongoDB(mongoDB).getNodeStore();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof MongoNodeStore) {
-                ((MongoNodeStore) nodeStore).dispose();
-            }
-        }
-    };
+    
+    public static final NodeStoreFixture MONGO_NS = createMongoFixture("mongodb://localhost:27017/oak");
 
     public static final NodeStoreFixture MONGO_JDBC = new NodeStoreFixture() {
         @Override
@@ -149,6 +118,35 @@ public abstract class NodeStoreFixture {
         public void dispose(NodeStore nodeStore) {
         }
     };
+    
+    public static NodeStoreFixture createMongoFixture(final String uri) {
+        return new NodeStoreFixture() {
+            @Override
+            public NodeStore createNodeStore() {
+                return new MongoMK.Builder().getNodeStore();
+            }
+            
+            @Override
+            public NodeStore createNodeStore(int clusterNodeId) {
+                MongoConnection connection;
+                try {
+                    connection = new MongoConnection(uri);
+                    DB mongoDB = connection.getDB();
+                    return new MongoMK.Builder()
+                                    .setMongoDB(mongoDB).getNodeStore();
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+
+            @Override
+            public void dispose(NodeStore nodeStore) {
+                if (nodeStore instanceof MongoNodeStore) {
+                    ((MongoNodeStore) nodeStore).dispose();
+                }
+            }
+        };
+    }
 
     /**
      * Creates a new empty {@link NodeStore} instance. An implementation must
