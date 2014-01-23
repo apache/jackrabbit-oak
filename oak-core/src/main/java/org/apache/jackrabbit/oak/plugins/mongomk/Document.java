@@ -125,6 +125,14 @@ public class Document implements CacheValue {
     }
 
     /**
+     * Determines if this document is sealed or not
+     * @return true if document is sealed.
+     */
+    public boolean isSealed(){
+        return sealed.get();
+    }
+
+    /**
      * Performs a deep copy of the data within this document to the given target.
      *
      * @param target the target document.
