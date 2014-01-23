@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.api;
 
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
@@ -55,5 +56,15 @@ public interface Blob {
      * @return the length of this blob.
      */
     long length();
+
+    /**
+     * Returns a secure reference to this blob, or {@code null} if such
+     * a reference is not available.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-834">OAK-834</a>
+     * @return binary reference, or {@code null}
+     */
+    @CheckForNull
+    String getReference();
 
 }

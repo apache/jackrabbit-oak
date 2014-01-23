@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -54,6 +55,11 @@ class SegmentBlob extends Record implements Blob {
         } finally {
             stream.close();
         }
+    }
+
+    @Override @CheckForNull
+    public String getReference() {
+        return null;
     }
 
     //------------------------------------------------------------< Object >--
