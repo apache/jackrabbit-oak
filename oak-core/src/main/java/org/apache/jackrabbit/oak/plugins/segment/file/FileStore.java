@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
+import org.apache.jackrabbit.oak.plugins.segment.ExternalBlob;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -332,6 +333,11 @@ public class FileStore extends AbstractStore {
     public void deleteSegment(UUID segmentId) {
         // TODO: implement
         super.deleteSegment(segmentId);
+    }
+
+    @Override
+    public ExternalBlob readBlob(String reference) {
+        return new FileBlob(reference);
     }
 
 }

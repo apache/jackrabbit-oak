@@ -440,6 +440,12 @@ public class Segment {
         }
     }
 
+    SegmentBlob createBlob(int offset) {
+        RecordId id = new RecordId(uuid, offset);
+        int n = readByte(offset) & 0xff;
+        return new SegmentBlob(this, id, (n & 0xe0) == 0xe0);
+    }
+
     SegmentStream readStream(int offset) {
         RecordId id = new RecordId(uuid, offset);
         int pos = pos(offset, 1);
@@ -460,6 +466,25 @@ public class Segment {
                     new ListRecord(this, internalReadRecordId(pos + 8), size);
             return new SegmentStream(store, id, list, length);
         }
+    }
+
+    String readBlobReference(int offset) {
+        int pos = pos(offset, 1);
+
+        int length = (data.get(pos++) & 0x1f) << 8
+                | (data.get(pos++) & 0xff);
+
+        byte[] bytes = new byte[length];
+        ByteBuffer buffer = data.duplicate();
+        buffer.position(pos + 8); // skip blob length
+        buffer.get(bytes);
+        return new String(bytes, Charsets.UTF_8);
+    }
+
+    long readBlobLength(int offset) {
+        long high = readInt(offset + 2);
+        long low = readInt(offset + 6);
+        return high << 32 | low;
     }
 
     //------------------------------------------------------------< Object >--

@@ -162,7 +162,7 @@ class SegmentPropertyState extends Record implements PropertyState {
     @SuppressWarnings("unchecked")
     private <T> T getValue(Segment segment, RecordId id, Type<T> type) {
         if (type == BINARY) {
-            return (T) new SegmentBlob(segment, id); // load binaries lazily
+            return (T) segment.createBlob(id.getOffset()); // load binaries lazily
         }
 
         String value = segment.readString(id);
