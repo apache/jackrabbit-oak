@@ -50,12 +50,16 @@ import static org.apache.jackrabbit.oak.plugins.mongomk.UpdateOp.Operation;
 /**
  * A document storing data about a node.
  */
-public class NodeDocument extends Document {
+public class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Marker document, which indicates the document does not exist.
      */
     public static final NodeDocument NULL = new NodeDocument(new MemoryDocumentStore());
+
+    static {
+        NULL.seal();
+    }
 
     static final Logger LOG = LoggerFactory.getLogger(NodeDocument.class);
     
@@ -168,10 +172,22 @@ public class NodeDocument extends Document {
      */
     private final AtomicLong lastCheckTime = new AtomicLong(System.currentTimeMillis());
 
-    private final long time = System.currentTimeMillis();
+    private final long creationTime;
 
     NodeDocument(@Nonnull DocumentStore store) {
+        this(store, System.currentTimeMillis());
+    }
+
+    /**
+     * Required for serialization
+     *
+     * @param store
+     * @param creationTime time at which it was created. Would be different from current time
+     *                     in case of being resurrected from a serialized for
+     */
+    public NodeDocument(@Nonnull DocumentStore store, long creationTime) {
         this.store = checkNotNull(store);
+        this.creationTime = creationTime;
     }
 
     /**
@@ -197,7 +213,7 @@ public class NodeDocument extends Document {
      * @return the system time this object was created.
      */
     public final long getCreated() {
-        return time;
+        return creationTime;
     }
 
     /**
