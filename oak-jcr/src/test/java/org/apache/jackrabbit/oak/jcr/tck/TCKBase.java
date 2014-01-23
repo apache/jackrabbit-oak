@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.jackrabbit.oak.jcr.OakDocumentRDBRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakMongoMKRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakSegmentMKRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakTarMKRepositoryStub;
@@ -54,7 +55,9 @@ public abstract class TCKBase extends TestSuite {
         if (OakMongoMKRepositoryStub.isMongoDBAvailable()) {
             Setup.wrap(this, OakMongoMKRepositoryStub.class.getName());
         }
-        // Setup.wrap(this, OakDocumentRDBRepositoryStub.class.getName());
+        if (OakDocumentRDBRepositoryStub.isAvailable()) {
+            Setup.wrap(this, OakDocumentRDBRepositoryStub.class.getName());
+        }
     }
 
     abstract protected void addTests();
