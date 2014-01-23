@@ -19,14 +19,16 @@ package org.apache.jackrabbit.oak.plugins.value;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.jcr.Binary;
+import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.api.ReferenceBinary;
 
 /**
  * TODO document
  */
-class BinaryImpl implements Binary {
+class BinaryImpl implements ReferenceBinary {
 
     private final ValueImpl value;
 
@@ -42,12 +44,12 @@ class BinaryImpl implements Binary {
 
     @Override
     public InputStream getStream() {
-        return value.getNewStream();
+        return value.getBlob().getNewStream();
     }
 
     @Override
     public int read(byte[] b, long position) throws IOException {
-        InputStream stream = value.getNewStream();
+        InputStream stream = getStream();
         try {
             if (position != stream.skip(position)) {
                 throw new IOException("Can't skip to position " + position);
@@ -61,12 +63,12 @@ class BinaryImpl implements Binary {
     @Override
     public long getSize() throws RepositoryException {
         switch (value.getType()) {
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-                // need to respect namespace remapping
-                return value.getString().length();
-            default:
-                return value.getStreamLength();
+        case PropertyType.NAME:
+        case PropertyType.PATH:
+            // need to respect namespace remapping
+            return value.getString().length();
+        default:
+            return value.getBlob().length();
         }
     }
 
@@ -74,4 +76,12 @@ class BinaryImpl implements Binary {
     public void dispose() {
         // nothing to do
     }
+
+    //---------------------------------------------------< ReferenceBinary >--
+
+    @Override @CheckForNull
+    public String getReference() {
+        return value.getBlob().getReference();
+    }
+
 }

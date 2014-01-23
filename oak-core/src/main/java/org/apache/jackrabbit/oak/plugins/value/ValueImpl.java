@@ -78,7 +78,7 @@ public class ValueImpl implements Value {
         this(checkSingleValued(property), 0, namePathMapper);
     }
 
-    private Blob getBlob() {
+    Blob getBlob() {
         return propertyState.getValue(Type.BINARY, index);
     }
 
@@ -246,17 +246,9 @@ public class ValueImpl implements Value {
     @Override
     public InputStream getStream() throws IllegalStateException {
         if (stream == null) {
-            stream = getNewStream();
+            stream = getBlob().getNewStream();
         }
         return stream;
-    }
-
-    InputStream getNewStream() {
-        return propertyState.getValue(Type.BINARY, index).getNewStream();
-    }
-
-    long getStreamLength() {
-        return propertyState.getValue(Type.BINARY, index).length();
     }
 
     /**
