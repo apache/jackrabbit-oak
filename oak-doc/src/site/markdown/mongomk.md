@@ -24,6 +24,19 @@ content.
 Content Model
 -------------
 
+The repository data is stored in two collections: the `nodes` collection for node data,
+and the `blobs` collection for binaries. There is a third collection, `clusterNodes`,
+which contains metadata of all cluster nodes. The data can be viewed using the 
+MongoDB shell:
+
+    > show collections
+    blobs
+    clusterNodes
+    nodes
+
+Node Content Model
+------------------
+
 The `MongoMK` stores each node in a separate MongoDB document and updates to
 a node are stored by adding new revision/value pairs to the document. This way
 the previous state of a node is preserved and can still be retrieved by a
@@ -325,6 +338,10 @@ Each MongoMK instance connecting to same database in Mongo server performs certa
 
 ### Renew Cluster Id Lease
 
+Each cluster node uses a unique cluster node id, which is the last part of the revision id.
+Each cluster node has a lease on the cluster node id, as described in the section
+[Cluster Node Metadata](#Cluster_Node_Metadata).
+
 ### Background Document Split
 
 MongoMK periodically checks documents for their size and if necessary splits them up and
@@ -348,6 +365,60 @@ Pending Topics
 
 ### Conflict Detection and Handling
 
+Cluster Node Metadata
+---------------------
+
+Cluster node metadata is stored in the `clusterNodes` collection. There is one entry
+for each cluster node that is running, and there are entries for cluster nodes that were
+ran. Old entries are kept so that if a cluster node is started again, it gets the same 
+cluster node id as before (which is not strictly needed for consistency, but nice for
+support, if one would want to find out which change originated from which cluster node).
+
+Each running cluster node updates the lease time of the cluster node id once every minute,
+to ensure each cluster node uses a different cluster node id.
+
+    > db.clusterNodes.find().pretty()
+    
+    {
+		"_id" : "1",
+		"_modCount" : NumberLong(2),
+		"leaseEnd" : NumberLong("1390465250135"),
+		"instance" : "/Users/test/jackrabbit/oak/trunk/oak-jcr",
+		"machine" : "mac:20c9d043f141",
+		"info" : "...pid: 11483, uuid: 6b6e8e4f-8322-4b19-a2b2-de0c573620b9 ..."
+	}
+	{
+		"_id" : "2",
+		"_modCount" : NumberLong(2),
+		"leaseEnd" : NumberLong("1390465252206"),
+		"instance" : "/Users/mueller/jackrabbit/oak/trunk/oak-jcr",
+		"machine" : "mac:20c9d043f141",
+		"info" : "...pid: 11483, uuid: 28ada13d-ec9c-4d48-aeb9-cef53aa4bb9e ..."
+	}
+
+The `_id` is the cluster node id of the node, which is the last part of the revision id.
+The `leaseEnd` is updated once per minute by running cluster nodes. It is the number
+of milliseconds since 1970.
+The `instance` is the current working directory.
+The `machine` is the lowest number of the network addresses, 
+or a random uuid if this is not available.
+The `info` contains the same info as a string, plus additionally the process id
+and the uuid.
+
+### Changing the Read Preference and Write Concern at Runtime
+
+The read preference and write concern of all cluster nodes can be changed at runtime
+without having to restart the instances, by setting the property `readWriteMode` of
+this collection. All cluster nodes will pick up the change within one minute 
+(when they renew the lease of the cluster node id). This is a string property with the
+format `'read:<readPreference>, write:<writeConcern>'` (please note the space after 
+the comma, and no spaces before and after the colon). The following shell command will
+set the read preference to `primary` and the write concern to `majority` for all
+cluster nodes:
+
+    > db.clusterNodes.update({}, 
+      {$set: {readWriteMode:'read:primary, write:majority'}}, 
+      {multi: true})    
 
 License
 -------
