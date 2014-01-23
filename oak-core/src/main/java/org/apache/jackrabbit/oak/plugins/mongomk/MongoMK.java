@@ -181,7 +181,7 @@ public class MongoMK implements MicroKernel {
         }
     }
     
-    synchronized String diffImpl(String fromRevisionId, String toRevisionId, String path,
+    String diffImpl(String fromRevisionId, String toRevisionId, String path,
             int depth) throws MicroKernelException {
         if (fromRevisionId.equals(toRevisionId)) {
             return "";
@@ -212,7 +212,7 @@ public class MongoMK implements MicroKernel {
             if (!fromValue.equals(toValue)) {
                 w.tag('^').key(p);
                 if (toValue == null) {
-                    w.value(toValue);
+                    w.value(null);
                 } else {
                     w.encodedValue(toValue).newline();
                 }
