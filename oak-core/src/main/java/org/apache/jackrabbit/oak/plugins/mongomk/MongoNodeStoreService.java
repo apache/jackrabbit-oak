@@ -59,7 +59,9 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 public class MongoNodeStoreService{
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
+    private static final int DEFAULT_OFF_HEAP_CACHE = 0;
     private static final String DEFAULT_DB = "oak";
+    private static final String PREFIX = "oak.documentstore.";
 
     /**
      * Name of framework property to configure Mongo Connection URI
@@ -86,6 +88,9 @@ public class MongoNodeStoreService{
     @Property(intValue = DEFAULT_CACHE)
     private static final String PROP_CACHE = "cache";
 
+    @Property(intValue = DEFAULT_OFF_HEAP_CACHE)
+    private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
+
     private static final long MB = 1024 * 1024;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -94,20 +99,17 @@ public class MongoNodeStoreService{
     private final List<Registration> registrations = new ArrayList<Registration>();
     private MongoMK mk;
     private ObserverTracker observerTracker;
+    private BundleContext bundleContext;
 
     @Activate
     protected void activate(BundleContext context, Map<String, ?> config) throws Exception {
-        String uri = PropertiesUtil.toString(config.get(PROP_URI), DEFAULT_URI);
-        if(context.getProperty(FWK_PROP_URI) != null){
-            uri = context.getProperty(FWK_PROP_URI);
-        }
+        this.bundleContext = context;
 
-        String db = PropertiesUtil.toString(config.get(PROP_DB), DEFAULT_DB);
-        if(context.getProperty(FWK_PROP_DB) != null){
-            db = context.getProperty(FWK_PROP_DB);
-        }
+        String uri = PropertiesUtil.toString(prop(config, PROP_URI, FWK_PROP_URI), DEFAULT_URI);
+        String db = PropertiesUtil.toString(prop(config, PROP_DB, FWK_PROP_DB), DEFAULT_DB);
 
-        int cacheSize = PropertiesUtil.toInteger(config.get(PROP_CACHE), DEFAULT_CACHE);
+        int offHeapCache = PropertiesUtil.toInteger(prop(config, PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
+        int cacheSize = PropertiesUtil.toInteger(prop(config, PROP_CACHE), DEFAULT_CACHE);
         boolean useMK = PropertiesUtil.toBoolean(config.get(PROP_USE_MK), false);
 
         MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
@@ -117,8 +119,8 @@ public class MongoNodeStoreService{
             //Take care around not logging the uri directly as it
             //might contain passwords
             String type = useMK ? "MicroKernel" : "NodeStore" ;
-            logger.info("Starting MongoDB {} with host={}, db={}",
-                    new Object[] {type,mongoURI.getHosts(), db});
+            logger.info("Starting MongoDB {} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}",
+                    new Object[] {type,mongoURI.getHosts(), db, cacheSize, offHeapCache});
             logger.info("Mongo Connection details {}",MongoConnection.toString(mongoURI.getOptions()));
         }
 
@@ -127,6 +129,7 @@ public class MongoNodeStoreService{
 
         mk = new MongoMK.Builder()
                 .memoryCacheSize(cacheSize * MB)
+                .offHeapCacheSize(offHeapCache * MB)
                 .setMongoDB(mongoDB)
                 .open();
 
@@ -147,6 +150,21 @@ public class MongoNodeStoreService{
 
         observerTracker.start(context);
         reg = context.registerService(NodeStore.class.getName(), store, new Properties());
+    }
+
+    private Object prop(Map<String, ?> config, String propName){
+        return prop(config,propName,PREFIX + propName);
+    }
+
+    private Object prop(Map<String, ?> config, String propName, String fwkPropName){
+        //Prefer framework property first
+        Object value = bundleContext.getProperty(fwkPropName);
+        if(value != null){
+            return value;
+        }
+
+        //Fallback to one from config
+        return config.get(propName);
     }
 
     @Deactivate
@@ -210,5 +228,7 @@ public class MongoNodeStoreService{
                             mds.getCacheStats().getName())
             );
         }
+
+        //TODO Register JMX bean for Off Heap Cache stats
     }
 }
