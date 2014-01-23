@@ -196,6 +196,15 @@ The import behavior for [`IMPORT_UUID_CREATE_NEW`](http://www.day.com/maven/jsr1
 * The implementation in Oak is closer to what the JCR specification says: *Incoming nodes are assigned newly created identifiers upon addition to the workspace. As a result, identifier collisions never occur.*
 * Oak uses a MVCC model where a session operates on a snapshot of the repository. It is therefore very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a session, an existing node with a conflicting UUID may not be visible until commit.
 
+Identifiers
+-----------
+
+In contrast to Jackrabbit 2.x, only referenceable nodes in Oak have a UUID assigned. With Jackrabbit 2.x the UUID is only visible in content when the node is referenceable and exposes the UUID as a `jcr:uuid` property. But using `Node.getIdentifer()`, it is possible to get the UUID of any node. With Oak this method will only return a UUID when the node is referenceable, otherwise the identifier is the UUID of the nearest referenceable ancestor with the relative path to the node.
+
+Versioning
+----------
+
+Because of the different identifier implementation in Oak, the value of a `jcr:frozenUuid` property on a frozen node will not always be a UUID (see also section about Identifiers). The property reflects the value returned by `Node.getIdentifier()` when a node is copied into the version storage as a frozen node. This also means a node restored from a frozen node will only have a `jcr:uuid` when it is actually referenceable.
 
 Security
 --------
