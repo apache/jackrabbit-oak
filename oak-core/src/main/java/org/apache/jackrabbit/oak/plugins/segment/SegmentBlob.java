@@ -99,7 +99,17 @@ class SegmentBlob extends Record implements Blob {
 
     @Override @CheckForNull
     public String getReference() {
-        return null;
+        Segment segment = getSegment();
+        int offset = getOffset();
+        if ((segment.readByte(offset) & 0xf0) == 0xe0) {
+            // 1110 xxxx: external value
+            int length = segment.readShort(offset) & 0x0fff;
+            byte[] bytes = new byte[length];
+            segment.readBytes(offset + 10, bytes, 0, length);
+            return new String(bytes, UTF_8);
+        } else {
+            return null;
+        }
     }
 
     //------------------------------------------------------------< Object >--
