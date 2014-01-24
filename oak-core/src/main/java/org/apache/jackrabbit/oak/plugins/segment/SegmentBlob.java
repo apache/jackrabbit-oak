@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -26,34 +31,69 @@ import java.io.InputStream;
 
 class SegmentBlob extends Record implements Blob {
 
-    private boolean external;
-
-    SegmentBlob(Segment segment, RecordId id, boolean external) {
+    SegmentBlob(Segment segment, RecordId id) {
         super(segment, id);
+    }
 
-        this.external = external;
+    private InputStream getInlineStream(
+            Segment segment, int offset, int length) {
+        byte[] inline = new byte[length];
+        segment.readBytes(offset, inline, 0, length);
+        return new SegmentStream(getRecordId(), inline);
     }
 
     @Override @Nonnull
     public InputStream getNewStream() {
-        if (external) {
-            String refererence = getSegment().readBlobReference(getOffset());
+        Segment segment = getSegment();
+        int offset = getOffset();
+        byte head = segment.readByte(offset);
+        if ((head & 0x80) == 0x00) {
+            // 0xxx xxxx: small value
+            return getInlineStream(segment, offset + 1, head);
+        } else if ((head & 0xc0) == 0x80) {
+            // 10xx xxxx: medium value
+            int length = (segment.readShort(offset) & 0x3fff) + SMALL_LIMIT;
+            return getInlineStream(segment, offset + 2, length);
+        } else if ((head & 0xe0) == 0xc0) {
+            // 110x xxxx: long value
+            long length = (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
+            int listSize = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            ListRecord list = new ListRecord(
+                    segment, segment.readRecordId(offset + 8), listSize);
+            return new SegmentStream(getStore(), getRecordId(), list, length);
+        } else if ((head & 0xf0) == 0xe0) {
+            // 1110 xxxx: external value
+            int length = segment.readShort(offset) & 0x0fff;
+            byte[] bytes = new byte[length];
+            segment.readBytes(offset + 10, bytes, 0, length);
+            String refererence = new String(bytes, UTF_8);
             return getStore().readBlob(refererence).getNewStream();
+        } else {
+            throw new IllegalStateException(String.format(
+                    "Unexpected value record type: %02x", head & 0xff));
         }
-        return getSegment().readStream(getOffset());
     }
 
     @Override
     public long length() {
-        if (external) {
-            return getSegment().readBlobLength(getOffset());
-        }
-
-        SegmentStream stream = (SegmentStream) getNewStream();
-        try {
-            return stream.getLength();
-        } finally {
-            stream.close();
+        Segment segment = getSegment();
+        int offset = getOffset();
+        byte head = segment.readByte(offset);
+        if ((head & 0x80) == 0x00) {
+            // 0xxx xxxx: small value
+            return head;
+        } else if ((head & 0xc0) == 0x80) {
+            // 10xx xxxx: medium value
+            return (segment.readShort(offset) & 0x3fff) + SMALL_LIMIT;
+        } else if ((head & 0xe0) == 0xc0) {
+            // 110x xxxx: long value
+            return (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
+        } else if ((head & 0xf0) == 0xe0) {
+            // 1110 xxxx: external value
+            return segment.readLong(offset + 2);
+        } else {
+            throw new IllegalStateException(String.format(
+                    "Unexpected value record type: %02x", head & 0xff));
         }
     }
 

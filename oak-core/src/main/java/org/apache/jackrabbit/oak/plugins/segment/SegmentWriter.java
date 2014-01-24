@@ -679,7 +679,7 @@ public class SegmentWriter {
 
     private SegmentBlob writeBlob(ExternalBlob blob) {
         RecordId id = writeValueRecord(blob.getReference(), blob.length());
-        return new SegmentBlob(dummySegment, id, true);
+        return new SegmentBlob(dummySegment, id);
     }
 
     /**
@@ -701,7 +701,7 @@ public class SegmentWriter {
                 Closeables.close(stream, threw);
             }
         }
-        return new SegmentBlob(dummySegment, id, false);
+        return new SegmentBlob(dummySegment, id);
     }
 
     private RecordId internalWriteStream(InputStream stream)

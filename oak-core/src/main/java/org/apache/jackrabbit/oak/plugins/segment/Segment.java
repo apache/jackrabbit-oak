@@ -222,6 +222,18 @@ public class Segment {
         return data.get(pos(offset, 1));
     }
 
+    short readShort(int offset) {
+        return data.getShort(pos(offset, 2));
+    }
+
+    int readInt(int offset) {
+        return data.getInt(pos(offset, 4));
+    }
+
+    long readLong(int offset) {
+        return data.getLong(pos(offset, 8));
+    }
+
     /**
      * Returns the identified segment.
      *
@@ -282,14 +294,6 @@ public class Segment {
                 << RECORD_ALIGN_BITS;
 
         return new RecordId(refid, offset);
-    }
-
-    int readInt(int offset) {
-        int pos = pos(offset, 4);
-        return (data.get(pos) & 0xff) << 24
-                | (data.get(pos + 1) & 0xff) << 16
-                | (data.get(pos + 2) & 0xff) << 8
-                | (data.get(pos + 3) & 0xff);
     }
 
     String readString(final RecordId id) {
@@ -442,43 +446,7 @@ public class Segment {
 
     SegmentBlob createBlob(int offset) {
         RecordId id = new RecordId(uuid, offset);
-        int n = readByte(offset) & 0xff;
-        return new SegmentBlob(this, id, (n & 0xe0) == 0xe0);
-    }
-
-    SegmentStream readStream(int offset) {
-        RecordId id = new RecordId(uuid, offset);
-        int pos = pos(offset, 1);
-        long length = internalReadLength(pos);
-        if (length < Segment.MEDIUM_LIMIT) {
-            byte[] inline = new byte[(int) length];
-            ByteBuffer buffer = data.duplicate();
-            if (length < Segment.SMALL_LIMIT) {
-                buffer.position(pos + 1);
-            } else {
-                buffer.position(pos + 2);
-            }
-            buffer.get(inline);
-            return new SegmentStream(id, inline);
-        } else {
-            int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            ListRecord list =
-                    new ListRecord(this, internalReadRecordId(pos + 8), size);
-            return new SegmentStream(store, id, list, length);
-        }
-    }
-
-    String readBlobReference(int offset) {
-        int pos = pos(offset, 1);
-
-        int length = (data.get(pos++) & 0x1f) << 8
-                | (data.get(pos++) & 0xff);
-
-        byte[] bytes = new byte[length];
-        ByteBuffer buffer = data.duplicate();
-        buffer.position(pos + 8); // skip blob length
-        buffer.get(bytes);
-        return new String(bytes, Charsets.UTF_8);
+        return new SegmentBlob(this, id);
     }
 
     long readBlobLength(int offset) {
