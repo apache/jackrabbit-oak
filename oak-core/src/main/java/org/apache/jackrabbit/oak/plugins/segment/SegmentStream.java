@@ -43,7 +43,6 @@ public class SegmentStream extends InputStream {
         return null;
     }
 
-
     private final SegmentStore store;
 
     private final RecordId recordId;
