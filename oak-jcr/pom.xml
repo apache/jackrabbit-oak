@@ -170,6 +170,9 @@
       org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
       org.apache.jackrabbit.oak.jcr.query.QueryTest#fnNameEncoding                                   <!-- OAK-1000 -->
+
+      <!-- RDB persistence -->
+      org.apache.jackrabbit.core.query.QueryResultTest#testGetSize <!-- OAK-1355 -->
     </known.issues>
   </properties>
 
