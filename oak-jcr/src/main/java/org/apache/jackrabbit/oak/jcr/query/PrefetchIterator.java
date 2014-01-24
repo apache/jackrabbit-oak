@@ -28,7 +28,7 @@ import java.util.NoSuchElementException;
  * and then tries to load some more items until the timeout is reached or the
  * maximum number of entries are read.
  * <p>
- * Prefeching is only done when size() is called.
+ * Prefetching is only done when size() is called.
  * 
  * @param <K> the iterator data type
  */
@@ -39,7 +39,7 @@ public class PrefetchIterator<K> implements Iterator<K> {
     private boolean prefetchDone;
     private Iterator<K> prefetchIterator;
     private long size, position;
-    
+
     /**
      * Create a new iterator.
      * 
@@ -56,7 +56,7 @@ public class PrefetchIterator<K> implements Iterator<K> {
         this.maxPrefetch = max;
         this.size = size;
     }
-    
+
     @Override
     public boolean hasNext() {
         if (prefetchIterator != null) {
@@ -88,7 +88,7 @@ public class PrefetchIterator<K> implements Iterator<K> {
     public void remove() {
         throw new UnsupportedOperationException();
     }
-    
+
     /**
      * Get the size if known. This call might pre-fetch data. The returned value
      * is unknown if the actual size is larger than the number of pre-fetched
