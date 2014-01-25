@@ -19,14 +19,13 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static java.util.Collections.emptyMap;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.core.AbstractTree.OAK_CHILD_ORDER;
-import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
 import java.util.Iterator;
 import java.util.List;
@@ -37,7 +36,6 @@ import javax.jcr.observation.Event;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.EventIterable.IterableListener;
@@ -65,22 +63,26 @@ class JcrListener implements IterableListener<Event> {
 
     @Override
     public void propertyAdded(PropertyState after) {
-        events.add(createEvent(PROPERTY_ADDED, afterTree, after));
+        events.add(new EventImpl(
+                context, PROPERTY_ADDED, afterTree, after.getName()));
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        events.add(createEvent(Event.PROPERTY_CHANGED, afterTree, after));
+        events.add(new EventImpl(
+                context, PROPERTY_CHANGED, afterTree, after.getName()));
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        events.add(createEvent(PROPERTY_REMOVED, beforeTree, before));
+        events.add(new EventImpl(
+                context, PROPERTY_REMOVED, beforeTree, before.getName()));
     }
 
     @Override
     public void childNodeAdded(String name, NodeState after) {
-        events.add(createEvent(NODE_ADDED, afterTree.getChild(name)));
+        events.add(new EventImpl(
+                context, NODE_ADDED, new ImmutableTree(afterTree, name, after)));
     }
 
     @Override
@@ -90,23 +92,26 @@ class JcrListener implements IterableListener<Event> {
 
     @Override
     public void childNodeDeleted(String name, NodeState before) {
-        events.add(createEvent(NODE_REMOVED, beforeTree.getChild(name)));
+        events.add(new EventImpl(
+                context, NODE_REMOVED, new ImmutableTree(beforeTree, name, before)));
     }
 
     @Override
     public void nodeMoved(String sourcePath, String name, NodeState moved) {
         String destPath = PathUtils.concat(afterTree.getPath(), name);
-        events.add(createEvent(NODE_MOVED, afterTree.getChild(name),
-                ImmutableMap.of(
-                        "srcAbsPath", context.getJcrPath(sourcePath),
-                        "destAbsPath", context.getJcrPath(destPath))));
+        ImmutableMap<String, String> info = ImmutableMap.of(
+                "srcAbsPath", context.getJcrPath(sourcePath),
+                "destAbsPath", context.getJcrPath(destPath));
+        ImmutableTree tree = new ImmutableTree(afterTree, name, moved);
+        events.add(new EventImpl(context, NODE_MOVED, tree, info));
     }
 
     @Override
     public JcrListener create(String name, NodeState before, NodeState after) {
         return new JcrListener(
                 context,
-                new ImmutableTree(beforeTree, name, before), afterTree.getChild(name));
+                new ImmutableTree(beforeTree, name, before),
+                new ImmutableTree(afterTree, name, after));
     }
 
     @Override
@@ -123,6 +128,7 @@ class JcrListener implements IterableListener<Event> {
         afterNames.retainAll(beforeNames);
         beforeNames.retainAll(afterNames);
 
+        ImmutableTree parent = new ImmutableTree(afterTree, name, after);
         // Selection sort beforeNames into afterNames recording the swaps as we go
         for (int a = 0; a < afterNames.size(); a++) {
             String afterName = afterNames.get(a);
@@ -131,26 +137,14 @@ class JcrListener implements IterableListener<Event> {
                 if (a != b && beforeName.equals(afterName)) {
                     beforeNames.set(b, beforeNames.get(a));
                     beforeNames.set(a, beforeName);
-                    events.add(createEvent(NODE_MOVED, afterTree.getChild(name).getChild(afterName),
-                            ImmutableMap.of(
-                                    "srcChildRelPath", context.getJcrName(beforeNames.get(a)),
-                                    "destChildRelPath", context.getJcrName(beforeNames.get(a + 1)))));
+                    Map<String, String> info = ImmutableMap.of(
+                            "srcChildRelPath", context.getJcrName(beforeNames.get(a)),
+                            "destChildRelPath", context.getJcrName(beforeNames.get(a + 1)));
+                    ImmutableTree tree = parent.getChild(afterName);
+                    events.add(new EventImpl(context, NODE_MOVED, tree, info));
                 }
             }
         }
-    }
-
-    private Event createEvent(int eventType, Tree tree) {
-        return new EventImpl(context, eventType, tree.getPath(), getIdentifier(tree), emptyMap());
-    }
-
-    private Event createEvent(int eventType, Tree tree, Map<?, ?> info) {
-        return new EventImpl(context, eventType, tree.getPath(), getIdentifier(tree), info);
-    }
-
-    private Event createEvent(int eventType, Tree parent, PropertyState property) {
-        String path = PathUtils.concat(parent.getPath(), property.getName());
-        return new EventImpl(context, eventType, path, getIdentifier(parent), emptyMap());
     }
 
 }
