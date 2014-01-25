@@ -110,7 +110,7 @@ public final class CommitInfo {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return toStringHelper(this).omitNullValues()
                 .add("sessionId", sessionId)
                 .add("userId", userId)
                 .add("userData", message)

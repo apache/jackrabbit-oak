@@ -18,9 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static java.util.Collections.emptyMap;
+
 import java.util.Map;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 
 import com.google.common.base.Objects;
 
@@ -31,17 +36,30 @@ final class EventImpl implements JackrabbitEvent {
 
     private final EventContext context;
     private final int type;
-    private final String path;
-    private final String identifier;
+    private final ImmutableTree tree;
+    private final String name;
     private final Map<?, ?> info;
 
-    EventImpl(EventContext context,
-            int type, String path, String identifier, Map<?, ?> info) {
+    private EventImpl(
+            EventContext context, int type,
+            ImmutableTree tree, String name, Map<?, ?> info) {
         this.context = context;
         this.type = type;
-        this.path = path;
-        this.identifier = identifier;
+        this.tree = tree;
+        this.name = name;
         this.info = info;
+    }
+
+    EventImpl(EventContext context, int type, ImmutableTree tree, String name) {
+        this(context, type, tree, name, emptyMap());
+    }
+
+    EventImpl(EventContext context, int type, ImmutableTree tree, Map<?, ?> info) {
+        this(context, type, tree, null, info);
+    }
+
+    EventImpl(EventContext context, int type, ImmutableTree tree) {
+        this(context, type, tree, null, emptyMap());
     }
 
     @Override
@@ -51,6 +69,10 @@ final class EventImpl implements JackrabbitEvent {
 
     @Override
     public String getPath() {
+        String path = tree.getPath();
+        if (name != null) {
+            path = PathUtils.concat(path, name);
+        }
         return context.getJcrPath(path);
     }
 
@@ -61,7 +83,7 @@ final class EventImpl implements JackrabbitEvent {
 
     @Override
     public String getIdentifier() {
-        return identifier;
+        return IdentifierManager.getIdentifier(tree);
     }
 
     @Override
@@ -92,11 +114,11 @@ final class EventImpl implements JackrabbitEvent {
             return true;
         } else if (object instanceof EventImpl) {
             EventImpl that = (EventImpl) object;
-            return Objects.equal(this.context, that.context)
-                    && this.type == that.type
-                    && Objects.equal(this.path, that.path)
-                    && Objects.equal(this.identifier, that.identifier)
-                    && Objects.equal(this.info, that.info);
+            return this.type == that.type
+                    && context.equals(that.context)
+                    && Objects.equal(this.info, that.info)
+                    && getPath().equals(that.getPath())
+                    && getIdentifier().equals(that.getIdentifier());
         } else {
             return false;
         }
@@ -104,15 +126,15 @@ final class EventImpl implements JackrabbitEvent {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(context, type, path, identifier, info);
+        return Objects.hashCode(context, type, info, getPath(), getIdentifier());
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
+        return Objects.toStringHelper(this).omitNullValues()
                 .add("type", type)
-                .add("path", path)
-                .add("identifier", identifier)
+                .add("tree", tree)
+                .add("name", name)
                 .add("info", info)
                 .add("context", context)
                 .toString();
