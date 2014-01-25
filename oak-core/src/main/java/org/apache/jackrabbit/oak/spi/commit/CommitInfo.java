@@ -25,10 +25,12 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Objects;
+
 /**
  * Commit info instances associate some meta data with a commit.
  */
-public class CommitInfo {
+public final class CommitInfo {
 
     public static final String OAK_UNKNOWN = "oak:unknown";
 
@@ -84,6 +86,28 @@ public class CommitInfo {
         return date;
     }
 
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        } else if (object instanceof CommitInfo) {
+            CommitInfo that = (CommitInfo) object;
+            return sessionId.equals(that.sessionId)
+                    && userId.equals(that.userId)
+                    && Objects.equal(this.message, that.message)
+                    && this.date == that.date;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(sessionId, userId, message, date);
+    }
+
     @Override
     public String toString() {
         return toStringHelper(this)
@@ -93,4 +117,5 @@ public class CommitInfo {
                 .add("date", date)
                 .toString();
     }
+
 }

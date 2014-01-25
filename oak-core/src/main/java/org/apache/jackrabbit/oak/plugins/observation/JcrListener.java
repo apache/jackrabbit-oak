@@ -39,52 +39,28 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.observation.EventIterable.IterableListener;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * TODO JcrListener...
  */
 class JcrListener implements IterableListener<Event> {
-    private final Tree beforeTree;
-    private final Tree afterTree;
+
+    private final EventContext context;
+
+    private final ImmutableTree beforeTree;
+    private final ImmutableTree afterTree;
+
     private final List<Event> events = newArrayList();
-    private final PathMapper namePathMapper;
-    private final String userId;
-    private final long timestamp;
-    private final String message;
-    private final boolean external;
 
-    JcrListener(Tree beforeTree, Tree afterTree, PathMapper namePathMapper, CommitInfo info) {
+    JcrListener(
+            EventContext context,
+            ImmutableTree beforeTree, ImmutableTree afterTree) {
+        this.context = context;
         this.beforeTree = beforeTree;
         this.afterTree = afterTree;
-        this.namePathMapper = namePathMapper;
-        if (info != null) {
-            this.userId = info.getUserId();
-            this.message = info.getMessage();
-            this.timestamp = info.getDate();
-            this.external = false;
-        } else {
-            this.userId = CommitInfo.OAK_UNKNOWN;
-            this.message = null;
-            // we can't tell exactly when external changes were committed,
-            // so we just use a rough estimate like this
-            this.timestamp = System.currentTimeMillis();
-            this.external = true;
-        }
-    }
-
-    private JcrListener(Tree beforeTree, Tree afterTree, PathMapper namePathMapper, String userId,
-            long timestamp, String message, boolean external) {
-        this.beforeTree = beforeTree;
-        this.afterTree = afterTree;
-        this.namePathMapper = namePathMapper;
-        this.userId = userId;
-        this.timestamp = timestamp;
-        this.message = message;
-        this.external = external;
     }
 
     @Override
@@ -122,14 +98,15 @@ class JcrListener implements IterableListener<Event> {
         String destPath = PathUtils.concat(afterTree.getPath(), name);
         events.add(createEvent(NODE_MOVED, afterTree.getChild(name),
                 ImmutableMap.of(
-                        "srcAbsPath", namePathMapper.getJcrPath(sourcePath),
-                        "destAbsPath", namePathMapper.getJcrPath(destPath))));
+                        "srcAbsPath", context.getJcrPath(sourcePath),
+                        "destAbsPath", context.getJcrPath(destPath))));
     }
 
     @Override
     public JcrListener create(String name, NodeState before, NodeState after) {
-        return new JcrListener(beforeTree.getChild(name), afterTree.getChild(name), namePathMapper,
-                userId, timestamp, message, external);
+        return new JcrListener(
+                context,
+                new ImmutableTree(beforeTree, name, before), afterTree.getChild(name));
     }
 
     @Override
@@ -156,30 +133,24 @@ class JcrListener implements IterableListener<Event> {
                     beforeNames.set(a, beforeName);
                     events.add(createEvent(NODE_MOVED, afterTree.getChild(name).getChild(afterName),
                             ImmutableMap.of(
-                                    "srcChildRelPath", beforeNames.get(a),
-                                    "destChildRelPath", beforeNames.get(a + 1))));
+                                    "srcChildRelPath", context.getJcrName(beforeNames.get(a)),
+                                    "destChildRelPath", context.getJcrName(beforeNames.get(a + 1)))));
                 }
             }
         }
     }
 
     private Event createEvent(int eventType, Tree tree) {
-        return createEvent(eventType, tree.getPath(), getIdentifier(tree), emptyMap());
+        return new EventImpl(context, eventType, tree.getPath(), getIdentifier(tree), emptyMap());
     }
 
     private Event createEvent(int eventType, Tree tree, Map<?, ?> info) {
-        return createEvent(eventType, tree.getPath(), getIdentifier(tree), info);
+        return new EventImpl(context, eventType, tree.getPath(), getIdentifier(tree), info);
     }
 
     private Event createEvent(int eventType, Tree parent, PropertyState property) {
         String path = PathUtils.concat(parent.getPath(), property.getName());
-        return createEvent(eventType, path, getIdentifier(parent), emptyMap());
-    }
-
-    private Event createEvent(int eventType, String path, String id, Map<?, ?> info) {
-        return new EventImpl(
-                eventType, namePathMapper.getJcrPath(path), userId, id,
-                info, timestamp, message, external);
+        return new EventImpl(context, eventType, path, getIdentifier(parent), emptyMap());
     }
 
 }

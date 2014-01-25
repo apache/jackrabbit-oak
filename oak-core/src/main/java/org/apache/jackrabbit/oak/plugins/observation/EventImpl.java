@@ -16,41 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import java.util.Collections;
 import java.util.Map;
 
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
+
+import com.google.common.base.Objects;
 
 /**
  * TODO document
  */
-class EventImpl implements JackrabbitEvent {
+final class EventImpl implements JackrabbitEvent {
 
+    private final EventContext context;
     private final int type;
-    private final String jcrPath;
-    private final String userID;
+    private final String path;
     private final String identifier;
     private final Map<?, ?> info;
-    private final long date;
-    private final String userData;
-    private final boolean external;
 
-    EventImpl(
-            int type, String jcrPath, String userID, String identifier,
-            Map<?, ?> info, long date, String userData, boolean external) {
+    EventImpl(EventContext context,
+            int type, String path, String identifier, Map<?, ?> info) {
+        this.context = context;
         this.type = type;
-        this.jcrPath = jcrPath;
-        this.userID = userID;
+        this.path = path;
         this.identifier = identifier;
-        this.info = info == null ? Collections.emptyMap() : info;
-        this.date = date;
-        this.userData = userData;
-        this.external = external;
+        this.info = info;
     }
 
     @Override
@@ -59,13 +50,13 @@ class EventImpl implements JackrabbitEvent {
     }
 
     @Override
-    public String getPath() throws RepositoryException {
-        return jcrPath;
+    public String getPath() {
+        return context.getJcrPath(path);
     }
 
     @Override
     public String getUserID() {
-        return userID;
+        return context.getUserID();
     }
 
     @Override
@@ -80,63 +71,51 @@ class EventImpl implements JackrabbitEvent {
 
     @Override
     public String getUserData() {
-        return userData;
+        return context.getUserData();
     }
 
     @Override
     public long getDate() {
-        return date;
+        return context.getDate();
     }
 
     @Override
-    public synchronized boolean isExternal() {
-        return external;
+    public boolean isExternal() {
+        return context.isExternal();
     }
 
+    //------------------------------------------------------------< Object >--
+
     @Override
-    public final boolean equals(Object other) {
-        if (this == other) {
+    public boolean equals(Object object) {
+        if (this == object) {
             return true;
-        }
-        if (other == null || getClass() != other.getClass()) {
+        } else if (object instanceof EventImpl) {
+            EventImpl that = (EventImpl) object;
+            return Objects.equal(this.context, that.context)
+                    && this.type == that.type
+                    && Objects.equal(this.path, that.path)
+                    && Objects.equal(this.identifier, that.identifier)
+                    && Objects.equal(this.info, that.info);
+        } else {
             return false;
         }
-
-        EventImpl that = (EventImpl) other;
-        return date == that.date && type == that.type &&
-                (identifier == null ? that.identifier == null : identifier.equals(that.identifier)) &&
-                (info == null ? that.info == null : info.equals(that.info)) &&
-                (jcrPath == null ? that.jcrPath == null : jcrPath.equals(that.jcrPath)) &&
-                (userID == null ? that.userID == null : userID.equals(that.userID)) &&
-                (userData == null ? that.userData == null : userData.equals(that.userData)) &&
-                external == that.external;
-
     }
 
     @Override
-    public final int hashCode() {
-        int result = type;
-        result = 31 * result + (jcrPath == null ? 0 : jcrPath.hashCode());
-        result = 31 * result + (userID == null ? 0 : userID.hashCode());
-        result = 31 * result + (identifier == null ? 0 : identifier.hashCode());
-        result = 31 * result + (info == null ? 0 : info.hashCode());
-        result = 31 * result + (int) (date ^ (date >>> 32));
-        result = 31 * result + (userData == null ? 0 :  userData.hashCode());
-        return result;
+    public int hashCode() {
+        return Objects.hashCode(context, type, path, identifier, info);
     }
 
     @Override
     public String toString() {
-        return "EventImpl{" +
-                "type=" + type +
-                ", jcrPath='" + jcrPath + '\'' +
-                ", userID='" + userID + '\'' +
-                ", identifier='" + identifier + '\'' +
-                ", info=" + info +
-                ", date=" + date +
-                ", userData=" + userData +
-                ", external=" + external +
-                '}';
+        return Objects.toStringHelper(this)
+                .add("type", type)
+                .add("path", path)
+                .add("identifier", identifier)
+                .add("info", info)
+                .add("context", context)
+                .toString();
     }
 
 }
