@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.AbstractMap.SimpleImmutableEntry;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.SortedMap;
+import java.util.TreeMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -35,9 +34,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.PeekingIterator;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.AbstractMap.SimpleImmutableEntry;
+import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The revision history for a given property. The history may span multiple
@@ -111,7 +110,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
         return new Iterator<NodeDocument>() {
             PeekingIterator<Map.Entry<Revision, NodeDocument>> input
                     = Iterators.peekingIterator(docs.iterator());
-            SortedMap<Revision, NodeDocument> queue = Maps.newTreeMap(StableRevisionComparator.INSTANCE);
+            TreeMap<Revision, NodeDocument> queue = Maps.newTreeMap(StableRevisionComparator.INSTANCE);
             NodeDocument next = fetchNext();
 
             @Override
