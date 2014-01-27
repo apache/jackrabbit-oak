@@ -173,6 +173,8 @@
 
       <!-- RDB persistence -->
       org.apache.jackrabbit.core.query.QueryResultTest#testGetSize <!-- OAK-1355 -->
+
+      org.apache.jackrabbit.core.value.ReferenceBinaryTest <!-- OAK-834 -->
     </known.issues>
   </properties>
 
