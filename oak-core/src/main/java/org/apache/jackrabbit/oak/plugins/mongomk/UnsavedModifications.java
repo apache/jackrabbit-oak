@@ -90,14 +90,14 @@ class UnsavedModifications {
      * Applies all modifications from this instance to the <code>other</code>.
      * A modification is only applied if there is no modification in other
      * for a given path or if the other modification is earlier than the
-     * merge commit revision.
+     * {@code commit} revision.
      *
      * @param other the other <code>UnsavedModifications</code>.
-     * @param mergeCommit the merge commit revision.
+     * @param commit the commit revision.
      */
-    public void applyTo(UnsavedModifications other, Revision mergeCommit) {
+    public void applyTo(UnsavedModifications other, Revision commit) {
         for (Map.Entry<String, Revision> entry : map.entrySet()) {
-            other.put(entry.getKey(), mergeCommit);
+            other.put(entry.getKey(), commit);
         }
     }
 

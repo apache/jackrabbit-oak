@@ -452,6 +452,10 @@ public class Commit {
         addOrRemove.addAll(addedNodes);
         addOrRemove.addAll(removedNodes);
         for (String p : addOrRemove) {
+            if (PathUtils.denotesRoot(p)) {
+                // special case: root node was added
+                continue;
+            }
             String parent = PathUtils.getParentPath(p);
             ArrayList<String> list = nodesWithChangedChildren.get(parent);
             if (list == null) {

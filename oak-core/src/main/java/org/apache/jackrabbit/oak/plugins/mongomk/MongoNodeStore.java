@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
 import java.io.Closeable;
@@ -211,7 +210,7 @@ public final class MongoNodeStore
     /**
      * Child node cache.
      *
-     * Key: path@rev, value: children
+     * Key: start-name/path@rev, value: children
      */
     private final Cache<String, Node.Children> nodeChildrenCache;
     private final CacheStats nodeChildrenCacheStats;
@@ -496,29 +495,22 @@ public final class MongoNodeStore
         splitCandidates.put(id, id);
     }
 
-    void copyNode(String sourcePath, String targetPath, Commit commit) {
-        moveOrCopyNode(false, sourcePath, targetPath, commit);
+    void copyNode(Node source, String targetPath, Commit commit) {
+        moveOrCopyNode(false, source, targetPath, commit);
     }
 
-    void moveNode(String sourcePath, String targetPath, Commit commit) {
-        moveOrCopyNode(true, sourcePath, targetPath, commit);
+    void moveNode(Node source, String targetPath, Commit commit) {
+        moveOrCopyNode(true, source, targetPath, commit);
     }
 
-    void markAsDeleted(String path, Commit commit, boolean subTreeAlso) {
-        Revision rev = commit.getBaseRevision();
-        checkState(rev != null, "Base revision of commit must not be null");
-        commit.removeNode(path);
+    void markAsDeleted(Node node, Commit commit, boolean subTreeAlso) {
+        commit.removeNode(node.getPath());
 
         if (subTreeAlso) {
             // recurse down the tree
             // TODO causes issue with large number of children
-            Node n = getNode(path, rev);
-
-            if (n != null) {
-                Node.Children c = getChildren(path, rev, Integer.MAX_VALUE);
-                for (String childPath : c.children) {
-                    markAsDeleted(childPath, commit, true);
-                }
+            for (Node child : getChildNodes(node, null, Integer.MAX_VALUE)) {
+                markAsDeleted(child, commit, true);
             }
         }
     }
@@ -553,54 +545,59 @@ public final class MongoNodeStore
         }
     }
 
-    Node.Children getChildren(final String path, final Revision rev, final int limit)
+    Node.Children getChildren(@Nonnull final Node parent,
+                              @Nullable final String name,
+                              final int limit)
             throws MicroKernelException {
-        checkRevisionAge(rev, path);
-
-        //Preemptive check. If we know there are no child then
-        //return straight away
-        final Node node = getNode(path, rev);
-        if (node.hasNoChildren()) {
-            return new Node.Children();
+        if (checkNotNull(parent).hasNoChildren()) {
+            return Node.NO_CHILDREN;
         }
-
-        String key = path + "@" + rev;
+        final String path = checkNotNull(parent).getPath();
+        final Revision readRevision = parent.getLastRevision();
+        String key = childNodeCacheKey(path, readRevision, name);
         Node.Children children;
-        try {
-            children = nodeChildrenCache.get(key, new Callable<Node.Children>() {
-                @Override
-                public Node.Children call() throws Exception {
-                    return readChildren(path, rev, limit);
-                }
-            });
-        } catch (ExecutionException e) {
-            throw new MicroKernelException("Error occurred while fetching children nodes for path "+path, e);
-        }
-
-        //In case the limit > cached children size and there are more child nodes
-        //available then refresh the cache
-        if (children.hasMore) {
-            if (limit > children.children.size()) {
-                children = readChildren(path, rev, limit);
-                if (children != null) {
-                    nodeChildrenCache.put(key, children);
-                }
+        for (;;) {
+            try {
+                children = nodeChildrenCache.get(key, new Callable<Node.Children>() {
+                    @Override
+                    public Node.Children call() throws Exception {
+                        return readChildren(parent, name, limit);
+                    }
+                });
+            } catch (ExecutionException e) {
+                throw new MicroKernelException(
+                        "Error occurred while fetching children for path "
+                                + path, e.getCause());
+            }
+            if (children.hasMore && limit > children.children.size()) {
+                // there are potentially more children and
+                // current cache entry contains less than requested limit
+                // -> need to refresh entry with current limit
+                nodeChildrenCache.invalidate(key);
+            } else {
+                // use this cache entry
+                break;
             }
         }
         return children;
     }
 
-    Node.Children readChildren(String path, Revision rev, int limit) {
+    Node.Children readChildren(Node parent, String name, int limit) {
         // TODO use offset, to avoid O(n^2) and running out of memory
         // to do that, use the *name* of the last entry of the previous batch of children
         // as the starting point
+        String path = parent.getPath();
+        Revision rev = parent.getLastRevision();
         Iterable<NodeDocument> docs;
         Node.Children c = new Node.Children();
+        // add one to the requested limit for the raw limit
+        // this gives us a chance to detect whether there are more
+        // child nodes than requested.
         int rawLimit = (int) Math.min(Integer.MAX_VALUE, ((long) limit) + 1);
         Set<Revision> validRevisions = new HashSet<Revision>();
         for (;;) {
             c.children.clear();
-            docs = readChildren(path, rawLimit);
+            docs = readChildDocs(path, name, rawLimit);
             int numReturned = 0;
             for (NodeDocument doc : docs) {
                 numReturned++;
@@ -630,12 +627,32 @@ public final class MongoNodeStore
         }
     }
 
+    /**
+     * Returns the child documents at the given {@code path} and returns up to
+     * {@code limit} documents. The returned child documents are sorted in
+     * ascending child node name order. If a {@code name} is passed, the first
+     * child document returned is after the given name. That is, the name is the
+     * lower exclusive bound.
+     *
+     * @param path the path of the parent document.
+     * @param name the lower exclusive bound or {@code null}.
+     * @param limit the maximum number of child documents to return.
+     * @return the child documents.
+     */
     @Nonnull
-    Iterable<NodeDocument> readChildren(final String path, int limit) {
-        String from = Utils.getKeyLowerLimit(path);
-        String to = Utils.getKeyUpperLimit(path);
-        if (limit > NUM_CHILDREN_CACHE_LIMIT) {
-            // do not use cache
+    Iterable<NodeDocument> readChildDocs(@Nonnull final String path,
+                                         @Nullable String name,
+                                         int limit) {
+        String to = Utils.getKeyUpperLimit(checkNotNull(path));
+        String from;
+        if (name != null) {
+            from = Utils.getIdFromPath(PathUtils.concat(path, name));
+        } else {
+            from = Utils.getKeyLowerLimit(path);
+        }
+        if (name != null || limit > NUM_CHILDREN_CACHE_LIMIT) {
+            // do not use cache when there is a lower bound name
+            // or more than 16k child docs are requested
             return store.query(Collection.NODES, from, to, limit);
         }
         // check cache
@@ -649,6 +666,7 @@ public final class MongoNodeStore
             }
             c.isComplete = docs.size() < limit;
             docChildrenCache.put(path, c);
+            return docs;
         } else if (c.childNames.size() < limit && !c.isComplete) {
             // fetch more and update cache
             String lastName = c.childNames.get(c.childNames.size() - 1);
@@ -677,6 +695,37 @@ public final class MongoNodeStore
             it = Iterables.limit(it, limit * 2);
         }
         return it;
+    }
+
+    /**
+     * Returns up to {@code limit} child nodes, starting at the given
+     * {@code name} (exclusive).
+     *
+     * @param parent the parent node.
+     * @param name the name of the lower bound child node (exclusive) or
+     *             {@code null}, if the method should start with the first known
+     *             child node.
+     * @param limit the maximum number of child nodes to return.
+     * @return the child nodes.
+     */
+    @Nonnull
+    Iterable<Node> getChildNodes(final @Nonnull Node parent,
+                                 final @Nullable String name,
+                                 final int limit) {
+        // Preemptive check. If we know there are no children then
+        // return straight away
+        if (checkNotNull(parent).hasNoChildren()) {
+            return Collections.emptyList();
+        }
+
+        final Revision readRevision = parent.getLastRevision();
+        return Iterables.transform(getChildren(parent, name, limit).children,
+                new Function<String, Node>() {
+            @Override
+            public Node apply(String input) {
+                return getNode(input, readRevision);
+            }
+        });
     }
 
     @CheckForNull
@@ -727,7 +776,7 @@ public final class MongoNodeStore
                 }
             }
         }
-        String key = path + "@" + rev;
+        String key = childNodeCacheKey(path, rev, null);
         Node.Children c = nodeChildrenCache.getIfPresent(key);
         if (isNew || (!isDelete && c != null)) {
             Node.Children c2 = new Node.Children();
@@ -1232,6 +1281,12 @@ public final class MongoNodeStore
 
     //-----------------------------< internal >---------------------------------
 
+    private static String childNodeCacheKey(@Nonnull String path,
+                                            @Nonnull Revision readRevision,
+                                            @Nullable String name) {
+        return (name == null ? "" : name) + path + "@" + readRevision;
+    }
+
     private static MongoRootBuilder asMongoRootBuilder(NodeBuilder builder)
             throws IllegalArgumentException {
         if (!(builder instanceof MongoRootBuilder)) {
@@ -1242,7 +1297,7 @@ public final class MongoNodeStore
     }
 
     private void moveOrCopyNode(boolean move,
-                                String sourcePath,
+                                Node source,
                                 String targetPath,
                                 Commit commit) {
         // TODO Optimize - Move logic would not work well with very move of very large subtrees
@@ -1253,25 +1308,17 @@ public final class MongoNodeStore
         // of this commit i.e. transient nodes. If its required it would need to be looked
         // into
 
-        Node n = getNode(sourcePath, commit.getBaseRevision());
-
-        // Node might be deleted already
-        if (n == null) {
-            return;
-        }
-
         Node newNode = new Node(targetPath, commit.getRevision());
-        n.copyTo(newNode);
+        source.copyTo(newNode);
 
         commit.addNode(newNode);
         if (move) {
-            markAsDeleted(sourcePath, commit, false);
+            markAsDeleted(source, commit, false);
         }
-        Node.Children c = getChildren(sourcePath, commit.getBaseRevision(), Integer.MAX_VALUE);
-        for (String srcChildPath : c.children) {
-            String childName = PathUtils.getName(srcChildPath);
+        for (Node child : getChildNodes(source, null, Integer.MAX_VALUE)) {
+            String childName = PathUtils.getName(child.getPath());
             String destChildPath = PathUtils.concat(targetPath, childName);
-            moveOrCopyNode(move, srcChildPath, destChildPath, commit);
+            moveOrCopyNode(move, child, destChildPath, commit);
         }
     }
 
