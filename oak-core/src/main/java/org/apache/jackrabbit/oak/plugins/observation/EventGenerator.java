@@ -27,6 +27,7 @@ import static javax.jcr.observation.Event.NODE_REMOVED;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.core.AbstractTree.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -85,13 +86,28 @@ public class EventGenerator implements EventIterator {
     private class EventDiff implements NodeStateDiff, Runnable {
 
         private final EventFilter filter;
+
+        /**
+         * The name of this node, or the empty string for the root.
+         */
+        private final String name;
+
+        /**
+         * Before state of this node.
+         */
         private final NodeState before;
+
+        /**
+         * AFter state of this node.
+         */
         private final NodeState after;
+
         private final ImmutableTree beforeTree;
         private final ImmutableTree afterTree;
 
         EventDiff(ImmutableTree before, ImmutableTree after,
                 EventFilter filter) {
+            this.name = before.getName();
             this.before = before.getNodeState();
             this.after = after.getNodeState();
             this.filter = filter;
@@ -102,6 +118,7 @@ public class EventGenerator implements EventIterator {
         public EventDiff(
                 EventDiff parent, String name,
                 NodeState before, NodeState after, EventFilter filter) {
+            this.name = name;
             this.before = before;
             this.after = after;
             this.filter = filter;
@@ -128,6 +145,11 @@ public class EventGenerator implements EventIterator {
         @Override
         public boolean propertyChanged(
                 PropertyState before, PropertyState after) {
+            // check for reordering of child nodes
+            if (OAK_CHILD_ORDER.equals(before.getName()) &&
+                    filter.includeChange(this.name, this.before, this.after)) {
+                detectReorder(before, after);
+            }
             if (filter.includeChange(before, after)) {
                 events.add(new EventImpl(
                         context, PROPERTY_CHANGED, afterTree, after.getName()));
@@ -169,9 +191,6 @@ public class EventGenerator implements EventIterator {
         @Override
         public boolean childNodeChanged(
                 String name, NodeState before, NodeState after) {
-            if (filter.includeChange(name, before, after)) {
-                detectReorder(name, before, after);
-            }
             addChildGenerator(name, before, after);
             return true;
         }
@@ -188,15 +207,14 @@ public class EventGenerator implements EventIterator {
 
         //------------------------------------------------------------< private >---
 
-        private void detectReorder(String name, NodeState before, NodeState after) {
-            List<String> afterNames = newArrayList(after.getNames(OAK_CHILD_ORDER));
-            List<String> beforeNames = newArrayList(before.getNames(OAK_CHILD_ORDER));
+        private void detectReorder(PropertyState before, PropertyState after) {
+            List<String> afterNames = newArrayList(after.getValue(NAMES));
+            List<String> beforeNames = newArrayList(before.getValue(NAMES));
 
             afterNames.retainAll(beforeNames);
             beforeNames.retainAll(afterNames);
 
             // Selection sort beforeNames into afterNames recording the swaps as we go
-            ImmutableTree parent = new ImmutableTree(afterTree, name, after);
             for (int a = 0; a < afterNames.size(); a++) {
                 String afterName = afterNames.get(a);
                 for (int b = a; b < beforeNames.size(); b++) {
@@ -205,9 +223,9 @@ public class EventGenerator implements EventIterator {
                         beforeNames.set(b, beforeNames.get(a));
                         beforeNames.set(a, beforeName);
                         Map<String, String> info = ImmutableMap.of(
-                                "srcChildRelPath", beforeNames.get(a),
-                                "destChildRelPath", beforeNames.get(a + 1));
-                        ImmutableTree tree = parent.getChild(afterName);
+                                "srcChildRelPath", context.getJcrName(beforeNames.get(a)),
+                                "destChildRelPath", context.getJcrName(beforeNames.get(a + 1)));
+                        ImmutableTree tree = afterTree.getChild(afterName);
                         events.add(new EventImpl(context, NODE_MOVED, tree, info));
                     }
                 }
