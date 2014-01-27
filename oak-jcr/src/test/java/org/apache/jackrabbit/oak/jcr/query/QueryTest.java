@@ -25,6 +25,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
@@ -35,6 +37,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -43,6 +46,7 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Ignore;
@@ -539,6 +543,33 @@ public class QueryTest extends AbstractRepositoryTest {
         assertTrue(ni.hasNext());
         Node n = ni.nextNode();
         assertEquals("/etc/p1", n.getPath());
+        assertFalse(ni.hasNext());
+    }
+
+    @Test
+    public void testOak1354() throws Exception {
+        Session session = createAdminSession();
+        NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
+
+        if (!manager.hasNodeType("mymixinOak1354")) {
+            StringBuilder defs = new StringBuilder();
+            defs.append("[mymixinOak1354]\n");
+            defs.append("  mixin");
+            Reader cndReader = new InputStreamReader(new ByteArrayInputStream(defs.toString().getBytes()));
+            CndImporter.registerNodeTypes(cndReader, session);
+        }
+        Node p = session.getRootNode().addNode("one");
+        p.addMixin("mymixinOak1354");
+        session.save();
+
+        Query q = session.getWorkspace().getQueryManager()
+                .createQuery("SELECT * FROM [mymixinOak1354]", Query.JCR_SQL2);
+        QueryResult qr = q.execute();
+
+        NodeIterator ni = qr.getNodes();
+        assertTrue(ni.hasNext());
+        Node n = ni.nextNode();
+        assertEquals("/one", n.getPath());
         assertFalse(ni.hasNext());
     }
 

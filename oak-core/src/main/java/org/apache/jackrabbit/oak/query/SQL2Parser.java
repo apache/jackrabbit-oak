@@ -870,6 +870,12 @@ public class SQL2Parser {
             }
             columns.add(factory.column(selectorName, propertyName, columnName));
         }
+
+        if (columns.isEmpty()) {
+            // OAK-1354, inject the selector name
+            columns.add(factory
+                    .column(selectorName, selectorName, selectorName));
+        }
     }
 
     private void parseComment() throws ParseException {
