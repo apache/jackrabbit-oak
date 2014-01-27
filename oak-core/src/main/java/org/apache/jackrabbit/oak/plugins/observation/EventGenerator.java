@@ -179,8 +179,8 @@ public class EventGenerator implements EventIterator {
         public boolean propertyChanged(
                 PropertyState before, PropertyState after) {
             // check for reordering of child nodes
-            if (OAK_CHILD_ORDER.equals(before.getName() &&
-                    filter.includeChange(this.name, this.before, this.after))) {
+            if (OAK_CHILD_ORDER.equals(before.getName()) &&
+                    filter.includeChange(this.name, this.before, this.after)) {
                 handleReorderedNodes(
                         before.getValue(NAMES), after.getValue(NAMES));
             }
