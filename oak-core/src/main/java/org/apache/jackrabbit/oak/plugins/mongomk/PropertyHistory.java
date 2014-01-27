@@ -32,7 +32,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
 import com.google.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.plugins.mongomk.util.Utils;
 import org.slf4j.Logger;
@@ -110,7 +109,8 @@ class PropertyHistory implements Iterable<NodeDocument> {
         return new Iterator<NodeDocument>() {
             PeekingIterator<Map.Entry<Revision, NodeDocument>> input
                     = Iterators.peekingIterator(docs.iterator());
-            TreeMap<Revision, NodeDocument> queue = Maps.newTreeMap(StableRevisionComparator.INSTANCE);
+            TreeMap<Revision, NodeDocument> queue =
+                    new TreeMap<Revision, NodeDocument>(StableRevisionComparator.INSTANCE);
             NodeDocument next = fetchNext();
 
             @Override
