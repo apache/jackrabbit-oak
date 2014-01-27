@@ -118,7 +118,7 @@ public class Oak {
 
     private ScheduledExecutorService scheduledExecutor = defaultScheduledExecutor();
 
-    private Executor executor;
+    private Executor executor = defaultExecutorService();
 
     /**
      * Default {@code ScheduledExecutorService} used for scheduling background tasks.
@@ -219,9 +219,6 @@ public class Oak {
                     }
                 }
             } else if (type == Observer.class && store instanceof Observable) {
-                Executor executor = Oak.this.executor == null
-                        ? defaultExecutorService()
-                        : Oak.this.executor;
                 BackgroundObserver backgroundObserver =
                         new BackgroundObserver((Observer) service, executor);
                 observerSubscription.register(backgroundObserver);
