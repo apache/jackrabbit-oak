@@ -17,9 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.mongomk;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -60,6 +63,16 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
  * TODO: merge MongoNodeState with Node
  */
 final class MongoNodeState extends AbstractNodeState {
+
+    /**
+     * The number of child nodes to fetch initially.
+     */
+    static final int INITIAL_FETCH_SIZE = 100;
+
+    /**
+     * The maximum number of child nodes to fetch in one call. (1600).
+     */
+    static final int MAX_FETCH_SIZE = INITIAL_FETCH_SIZE << 4;
 
     private final MongoNodeStore store;
 
@@ -173,32 +186,12 @@ final class MongoNodeState extends AbstractNodeState {
         if (node.hasNoChildren()) {
             return Collections.emptyList();
         }
-        // TODO: handle many child nodes better
-        Node.Children children = store.getChildren(getPath(),
-                node.getLastRevision(), 100);
-        if (children.hasMore) {
-            children = store.getChildren(getPath(),
-                    node.getLastRevision(), Integer.MAX_VALUE);
-        }
-        return Iterables.transform(children.children, new Function<String, ChildNodeEntry>() {
+        return new Iterable<ChildNodeEntry>() {
             @Override
-            public ChildNodeEntry apply(String path) {
-                final String name = PathUtils.getName(path);
-                return new AbstractChildNodeEntry() {
-                    @Nonnull
-                    @Override
-                    public String getName() {
-                        return name;
-                    }
-
-                    @Nonnull
-                    @Override
-                    public NodeState getNodeState() {
-                        return getChildNode(name);
-                    }
-                };
+            public Iterator<ChildNodeEntry> iterator() {
+                return new ChildNodeEntryIterator();
             }
-        });
+        };
     }
 
     @Nonnull
@@ -259,7 +252,7 @@ final class MongoNodeState extends AbstractNodeState {
      * @param reader the reader
      * @return new property state
      */    
-    public static PropertyState readProperty(String name, MongoNodeStore store, JsopReader reader) {
+    static PropertyState readProperty(String name, MongoNodeStore store, JsopReader reader) {
         if (reader.matches(JsopReader.NUMBER)) {
             String number = reader.getToken();
             try {
@@ -317,7 +310,7 @@ final class MongoNodeState extends AbstractNodeState {
      * @param reader the reader
      * @return new property state
      */
-    public static PropertyState readArrayProperty(String name, MongoNodeStore store, JsopReader reader) {
+    static PropertyState readArrayProperty(String name, MongoNodeStore store, JsopReader reader) {
         int type = PropertyType.STRING;
         List<Object> values = Lists.newArrayList();
         while (!reader.matches(']')) {
@@ -361,5 +354,90 @@ final class MongoNodeState extends AbstractNodeState {
             reader.matches(',');
         }
         return createProperty(name, values, Type.fromTag(type, true));
+    }
+
+    //-----------------------< internal >---------------------------------------
+
+    /**
+     * Returns up to {@code limit} child node entries, starting after the given
+     * {@code name}.
+     *
+     * @param name the name of the lower bound child node entry (exclusive) or
+     *             {@code null}, if the method should start with the first known
+     *             child node.
+     * @param limit the maximum number of child node entries to return.
+     * @return the child node entries.
+     */
+    @Nonnull
+    private Iterable<ChildNodeEntry> getChildNodeEntries(@Nullable String name,
+                                                         int limit) {
+        Iterable<Node> children = store.getChildNodes(node, name, limit);
+        return Iterables.transform(children, new Function<Node, ChildNodeEntry>() {
+            @Override
+            public ChildNodeEntry apply(final Node input) {
+                return new AbstractChildNodeEntry() {
+                    @Nonnull
+                    @Override
+                    public String getName() {
+                        return PathUtils.getName(input.path);
+                    }
+
+                    @Nonnull
+                    @Override
+                    public NodeState getNodeState() {
+                        return new MongoNodeState(store, input);
+                    }
+                };
+            }
+        });
+    }
+
+    private class ChildNodeEntryIterator implements Iterator<ChildNodeEntry> {
+
+        private String previousName;
+        private Iterator<ChildNodeEntry> current;
+        private int fetchSize = INITIAL_FETCH_SIZE;
+
+        ChildNodeEntryIterator() {
+            fetchMore();
+        }
+
+        @Override
+        public boolean hasNext() {
+            while (true) {
+                if (current == null) {
+                    return false;
+                } else if (current.hasNext()) {
+                    return true;
+                }
+                fetchMore();
+            }
+        }
+
+        @Override
+        public ChildNodeEntry next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            ChildNodeEntry entry = current.next();
+            previousName = entry.getName();
+            return entry;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+        private void fetchMore() {
+            Iterator<ChildNodeEntry> entries = getChildNodeEntries(
+                    previousName, fetchSize).iterator();
+            fetchSize = Math.min(fetchSize * 2, MAX_FETCH_SIZE);
+            if (entries.hasNext()) {
+                current = entries;
+            } else {
+                current = null;
+            }
+        }
     }
 }

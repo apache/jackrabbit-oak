@@ -98,7 +98,10 @@ class Branch {
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(head, last) > 0);
         BranchCommit bc = new BranchCommit(base);
-        bc.getModifications().put("/", head);
+        // set all previously touched paths as modified
+        for (BranchCommit c : commits.values()) {
+            c.getModifications().applyTo(bc.getModifications(), head);
+        }
         commits.put(head, bc);
     }
 
@@ -198,7 +201,7 @@ class Branch {
      */
     @CheckForNull
     public Revision getUnsavedLastRevision(String path,
-                                                        Revision readRevision) {
+                                           Revision readRevision) {
         readRevision = readRevision.asBranchRevision();
         for (Revision r : commits.descendingKeySet()) {
             if (readRevision.compareRevisionTime(r) < 0) {

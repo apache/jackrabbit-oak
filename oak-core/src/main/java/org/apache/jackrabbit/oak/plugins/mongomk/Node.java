@@ -143,6 +143,8 @@ public class Node implements CacheValue {
         return size;
     }
 
+    static final Children NO_CHILDREN = new Children();
+
     /**
      * A list of children for a node.
      */

@@ -244,10 +244,13 @@ public class SimpleTest {
         String r0 = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
         String r1 = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
         test = mk.getNodes("/test", r0, 0, 0, Integer.MAX_VALUE, null);
-        Children c;
-        c = ns.getChildren("/", Revision.fromString(r0), Integer.MAX_VALUE);
+        Node n = ns.getNode("/", Revision.fromString(r0));
+        assertNotNull(n);
+        Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals("[/test]", c.toString());
-        c = ns.getChildren("/test", Revision.fromString(r1), Integer.MAX_VALUE);
+        n = ns.getNode("/test", Revision.fromString(r1));
+        assertNotNull(n);
+        c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals("[/test/a, /test/b]", c.toString());
 
         rev = mk.commit("", "^\"/test\":1", null, null);
@@ -268,17 +271,19 @@ public class SimpleTest {
         mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
         String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
 
-        Children c = ns.getChildren("/testDel", Revision.fromString(r1),
-                Integer.MAX_VALUE);
+        Node n = ns.getNode("/testDel", Revision.fromString(r1));
+        assertNotNull(n);
+        Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals(3, c.children.size());
 
         String r2 = mk.commit("/testDel", "-\"c\"", null, null);
-        c = ns.getChildren("/testDel", Revision.fromString(r2),
-                Integer.MAX_VALUE);
+        n = ns.getNode("/testDel", Revision.fromString(r2));
+        assertNotNull(n);
+        c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals(2, c.children.size());
 
         String r3 = mk.commit("/", "-\"testDel\"", null, null);
-        Node n = ns.getNode("/testDel", Revision.fromString(r3));
+        n = ns.getNode("/testDel", Revision.fromString(r3));
         assertNull(n);
     }
     
