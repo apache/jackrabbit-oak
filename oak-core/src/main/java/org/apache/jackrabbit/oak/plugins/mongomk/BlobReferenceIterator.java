@@ -121,7 +121,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
         JsopReader reader = new JsopTokenizer(v);
         PropertyState p;
         if (reader.matches('[')) {
-            p = MongoNodeState.readArrayProperty("x", nodeStore, reader);
+            p = MongoPropertyState.readArrayProperty("x", nodeStore, reader);
             if (p.getType() == Type.BINARIES) {
                 for (int i = 0; i < p.count(); i++) {
                     Blob b = p.getValue(Type.BINARY, i);
@@ -129,7 +129,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
                 }
             }
         } else {
-            p = MongoNodeState.readProperty("x", nodeStore, reader);
+            p = MongoPropertyState.readProperty("x", nodeStore, reader);
             if (p.getType() == Type.BINARY) {
                 Blob b = p.getValue(Type.BINARY);
                 batch.add(b);
