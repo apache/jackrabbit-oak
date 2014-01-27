@@ -21,11 +21,10 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.observation.EventGenerator.Listener;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Filter for determining what changes to report the the {@link Listener}.
+ * Filter for determining what changes to report the the event listener.
  */
 public interface EventFilter {
 

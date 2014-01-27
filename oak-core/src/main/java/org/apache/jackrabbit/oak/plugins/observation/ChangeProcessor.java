@@ -20,13 +20,11 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
 import com.google.common.util.concurrent.Monitor;
@@ -163,15 +161,12 @@ public class ChangeProcessor implements Observer {
                     EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
                     ImmutableTree beforeTree = getTree(previousRoot, basePath);
                     ImmutableTree afterTree = getTree(root, basePath);
-                    EventContext context = new EventContext(namePathMapper, info);
-                    EventIterable<Event> events = new EventIterable<Event>(
-                            beforeTree.getNodeState(), afterTree.getNodeState(),
-                            Filters.all(userFilter, acFilter),
-                            new JcrListener(context, beforeTree, afterTree));
-                    Iterator<Event> iterator = events.iterator();
-                    if (iterator.hasNext() && runningMonitor.enterIf(running)) {
+                    EventGenerator events = new EventGenerator(
+                            namePathMapper, info, beforeTree, afterTree,
+                            Filters.all(userFilter, acFilter));
+                    if (events.hasNext() && runningMonitor.enterIf(running)) {
                         try {
-                            eventListener.onEvent(new EventIteratorAdapter(iterator));
+                            eventListener.onEvent(new EventIteratorAdapter(events));
                         } finally {
                             runningMonitor.leave();
                         }
