@@ -75,17 +75,21 @@ public class EventGenerator implements EventIterator {
      */
     public EventGenerator(
             @Nonnull NamePathMapper namePathMapper, CommitInfo info,
-            @Nonnull ImmutableTree before, @Nonnull ImmutableTree after,
-            @Nonnull EventFilter filter) {
+            @Nonnull NodeState before, @Nonnull NodeState after,
+            @Nonnull String basePath, @Nonnull EventFilter filter) {
         this.context = new EventContext(namePathMapper, info);
 
         filter = Filters.all(new VisibleFilter(), checkNotNull(filter));
-        new EventDiff(before, after, filter).run();
+
+        new EventDiff(before, after, basePath, filter).run();
     }
 
     private class EventDiff implements NodeStateDiff, Runnable {
 
-        private final EventFilter filter;
+        /**
+         * The diff handler of the parent node, or {@code null} for the root.
+         */
+        private final EventDiff parent;
 
         /**
          * The name of this node, or the empty string for the root.
@@ -93,35 +97,58 @@ public class EventGenerator implements EventIterator {
         private final String name;
 
         /**
-         * Before state of this node.
+         * Before state, or {@code MISSING_NODE} if this node was added.
          */
         private final NodeState before;
 
         /**
-         * AFter state of this node.
+         * After state, or {@code MISSING_NODE} if this node was removed.
          */
         private final NodeState after;
+
+        /**
+         * Filter for selecting which events to produce, or {@code null} if
+         * no events should be produced below this node.
+         */
+        private final EventFilter filter;
 
         private final ImmutableTree beforeTree;
         private final ImmutableTree afterTree;
 
-        EventDiff(ImmutableTree before, ImmutableTree after,
+        EventDiff(NodeState before, NodeState after, String path,
                 EventFilter filter) {
-            this.name = before.getName();
-            this.before = before.getNodeState();
-            this.after = after.getNodeState();
-            this.filter = filter;
-            this.beforeTree = before;
-            this.afterTree = after;
-        }
+            String name = null;
+            ImmutableTree btree = new ImmutableTree(before);
+            ImmutableTree atree = new ImmutableTree(after);
+            for (String element : PathUtils.elements(path)) {
+                name = element;
+                before = before.getChildNode(name);
+                after = after.getChildNode(name);
+                btree = new ImmutableTree(btree, name, before);
+                atree = new ImmutableTree(atree, name, after);
+            }
 
-        public EventDiff(
-                EventDiff parent, String name,
-                NodeState before, NodeState after, EventFilter filter) {
+            this.parent = null;
             this.name = name;
             this.before = before;
             this.after = after;
             this.filter = filter;
+            this.beforeTree = btree;
+            this.afterTree = atree;
+        }
+
+        private EventDiff(
+                EventDiff parent, String name,
+                NodeState before, NodeState after) {
+            this.parent = parent;
+            this.name = name;
+            this.before = before;
+            this.after = after;
+            if (parent.filter != null) {
+                this.filter = parent.filter.create(name, before, after);
+            } else {
+                this.filter = null;
+            }
             this.beforeTree = new ImmutableTree(parent.beforeTree, name, before);
             this.afterTree = new ImmutableTree(parent.afterTree, name, after);
         }
@@ -130,8 +157,38 @@ public class EventGenerator implements EventIterator {
 
         @Override
         public void run() {
-            after.compareAgainstBaseState(before, this);
+            // postponed handling of added nodes
+            if (before == MISSING_NODE && parent != null) {
+                PropertyState sourceProperty = after.getProperty(SOURCE_PATH);
+                if (sourceProperty != null) {
+                    String sourcePath = sourceProperty.getValue(STRING);
+                    if (parent.filter.includeMove(sourcePath, name, after)) {
+                        Map<String, String> info = ImmutableMap.of(
+                                "srcAbsPath", context.getJcrPath(sourcePath),
+                                "destAbsPath", context.getJcrPath(afterTree.getPath()));
+                        events.add(new EventImpl(context, NODE_MOVED, afterTree, info));
+                    }
+                }
+
+                if (parent.filter.includeAdd(name, after)) {
+                    events.add(new EventImpl(context, NODE_ADDED, afterTree));
+                }
+            }
+
+            // postponed handling of removed nodes
+            if (after == MISSING_NODE && parent != null) {
+                if (parent.filter.includeDelete(name, before)) {
+                    events.add(new EventImpl(context, NODE_REMOVED, beforeTree));
+                }
+            }
+
+            // process changes below this node
+            if (filter != null) {
+                after.compareAgainstBaseState(before, this);
+            }
         }
+
+        //-------------------------------------------------< NodeStateDiff >--
 
         @Override
         public boolean propertyAdded(PropertyState after) {
@@ -168,40 +225,20 @@ public class EventGenerator implements EventIterator {
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
-            PropertyState sourceProperty = after.getProperty(SOURCE_PATH);
-            if (sourceProperty != null) {
-                String sourcePath = sourceProperty.getValue(STRING);
-                if (filter.includeMove(sourcePath, name, after)) {
-                    String destPath = PathUtils.concat(afterTree.getPath(), name);
-                    Map<String, String> info = ImmutableMap.of(
-                            "srcAbsPath", context.getJcrPath(sourcePath),
-                            "destAbsPath", context.getJcrPath(destPath));
-                    ImmutableTree tree = new ImmutableTree(afterTree, name, after);
-                    events.add(new EventImpl(context, NODE_MOVED, tree, info));
-                }
-            }
-            if (filter.includeAdd(name, after)) {
-                ImmutableTree tree = new ImmutableTree(afterTree, name, after);
-                events.add(new EventImpl(context, NODE_ADDED, tree));
-            }
-            addChildGenerator(name, MISSING_NODE, after);
+            generators.add(new EventDiff(this, name, MISSING_NODE, after));
             return true;
         }
 
         @Override
         public boolean childNodeChanged(
                 String name, NodeState before, NodeState after) {
-            addChildGenerator(name, before, after);
+            generators.add(new EventDiff(this, name, before, after));
             return true;
         }
 
         @Override
         public boolean childNodeDeleted(String name, NodeState before) {
-            if (filter.includeDelete(name, before)) {
-                ImmutableTree tree = new ImmutableTree(beforeTree, name, before);
-                events.add(new EventImpl(context, NODE_REMOVED, tree));
-            }
-            addChildGenerator(name, before, MISSING_NODE);
+            generators.add(new EventDiff(this, name, before, MISSING_NODE));
             return true;
         }
 
@@ -229,21 +266,6 @@ public class EventGenerator implements EventIterator {
                         events.add(new EventImpl(context, NODE_MOVED, tree, info));
                     }
                 }
-            }
-        }
-
-        /**
-         * Factory method for creating {@code EventGenerator} instances of child nodes.
-         * @param name  name of the child node
-         * @param before  before state of the child node
-         * @param after  after state of the child node
-         */
-        private void addChildGenerator(
-                String name, NodeState before, NodeState after) {
-            EventFilter childFilter = filter.create(name, before, after);
-            if (childFilter != null) {
-                generators.add(
-                        new EventDiff(this, name, before, after, childFilter));
             }
         }
 

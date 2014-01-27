@@ -34,8 +34,6 @@ import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
@@ -159,10 +157,8 @@ public class ChangeProcessor implements Observer {
                     String basePath = provider.getPath();
                     EventFilter userFilter = provider.getFilter(previousRoot, root);
                     EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
-                    ImmutableTree beforeTree = getTree(previousRoot, basePath);
-                    ImmutableTree afterTree = getTree(root, basePath);
                     EventGenerator events = new EventGenerator(
-                            namePathMapper, info, beforeTree, afterTree,
+                            namePathMapper, info, previousRoot, root, basePath,
                             Filters.all(userFilter, acFilter));
                     if (events.hasNext() && runningMonitor.enterIf(running)) {
                         try {
@@ -177,10 +173,6 @@ public class ChangeProcessor implements Observer {
             }
         }
         previousRoot = root;
-    }
-
-    private static ImmutableTree getTree(NodeState nodeState, String path) {
-        return new ImmutableRoot(nodeState).getTree(path);
     }
 
     private static class RunningGuard extends Guard {
