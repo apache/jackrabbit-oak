@@ -152,9 +152,9 @@ public final class Filters {
                 }
 
                 @Override
-                public boolean includeReorder(String name, NodeState reordered) {
+                public boolean includeReorder(String destName, String name, NodeState reordered) {
                     for (EventFilter filter : filters) {
-                        if (filter.includeReorder(name, reordered)) {
+                        if (filter.includeReorder(destName, name, reordered)) {
                             return true;
                         }
                     }
@@ -251,9 +251,9 @@ public final class Filters {
                 }
 
                 @Override
-                public boolean includeReorder(String name, NodeState reordered) {
+                public boolean includeReorder(String destName, String name, NodeState reordered) {
                     for (EventFilter filter : filters) {
-                        if (!filter.includeReorder(name, reordered)) {
+                        if (!filter.includeReorder(destName, name, reordered)) {
                             return false;
                         }
                     }

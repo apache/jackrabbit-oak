@@ -93,11 +93,13 @@ public class ACFilter implements EventFilter {
 
     @Override
     public boolean includeMove(String sourcePath, String name, NodeState moved) {
+        // TODO: check access to the source path, it might not be accessible
         return treePermission.getChildPermission(name, moved).canRead();
     }
 
     @Override
-    public boolean includeReorder(String name, NodeState reordered) {
+    public boolean includeReorder(String destName, String name, NodeState reordered) {
+        // TODO: check access to the dest name, it might not be accessible
         return treePermission.getChildPermission(name, reordered).canRead();
     }
 
@@ -105,4 +107,5 @@ public class ACFilter implements EventFilter {
     public EventFilter create(String name, NodeState before, NodeState after) {
         return new ACFilter(treePermission.getChildPermission(name, after));
     }
+
 }
