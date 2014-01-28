@@ -21,9 +21,9 @@ import java.util.Properties;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
-import org.apache.jackrabbit.oak.plugins.mongomk.MongoNodeStore;
-import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 
 /**
  * A repository stub using the MongoNodeStore.

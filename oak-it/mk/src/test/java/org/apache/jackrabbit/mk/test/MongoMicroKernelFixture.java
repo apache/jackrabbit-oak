@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.mk.test;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.blob.MongoBlobStore;
 
 import com.mongodb.DB;
 

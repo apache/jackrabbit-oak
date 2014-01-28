@@ -23,10 +23,10 @@ import java.io.IOException;
 import java.util.UUID;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.MongoMK;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.mongomk.MongoNodeStore;
-import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
