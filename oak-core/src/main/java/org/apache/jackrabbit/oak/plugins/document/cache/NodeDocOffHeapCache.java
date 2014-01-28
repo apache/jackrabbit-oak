@@ -90,7 +90,7 @@ public class NodeDocOffHeapCache
                 .recordStats()
                 .build();
 
-        offHeapCacheStats = new CacheStats(offHeapCache, "MongoMk-Documents-L2", builder.getWeigher(),
+        offHeapCacheStats = new CacheStats(offHeapCache, "DocumentMk-Documents-L2", builder.getWeigher(),
                 builder.getOffHeapCacheSize());
 
         final long bufferSize = Ram.Gb(1);

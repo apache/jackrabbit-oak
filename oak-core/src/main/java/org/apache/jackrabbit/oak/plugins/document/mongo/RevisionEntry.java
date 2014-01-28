@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Collections;
 import java.util.Map;
@@ -22,6 +22,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.bson.BSONObject;
 
 import com.mongodb.DBObject;

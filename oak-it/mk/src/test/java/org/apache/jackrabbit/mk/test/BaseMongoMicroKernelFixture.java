@@ -20,7 +20,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.blob.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 
 import com.mongodb.BasicDBObject;

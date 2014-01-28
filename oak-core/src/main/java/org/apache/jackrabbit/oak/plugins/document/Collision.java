@@ -92,7 +92,7 @@ class Collision {
      * Marks the commit root of the change to the given <code>document</code> in
      * <code>revision</code>.
      * 
-     * @param document the MongoDB document.
+     * @param document the document.
      * @param revision the revision of the commit to annotated with a collision
      *            marker.
      * @param store the document store.

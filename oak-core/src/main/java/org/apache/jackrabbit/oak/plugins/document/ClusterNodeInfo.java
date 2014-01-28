@@ -26,7 +26,6 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.util.StringUtils;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
  */
 public class ClusterNodeInfo {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ClusterNodeInfo.class);
 
     /**
      * The prefix for random (non-reusable) keys.
