@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 import java.util.Arrays;
+import java.util.Locale;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -99,7 +100,7 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplate
 
         tree.setProperty(
                 JCR_REQUIREDTYPE,
-                PropertyType.nameFromValue(requiredType).toUpperCase());
+                PropertyType.nameFromValue(requiredType).toUpperCase(Locale.ENGLISH));
         tree.setProperty(JCR_MULTIPLE, isMultiple);
         tree.setProperty(JCR_IS_FULLTEXT_SEARCHABLE, fullTextSearchable);
         tree.setProperty(JCR_IS_QUERY_ORDERABLE, queryOrderable);

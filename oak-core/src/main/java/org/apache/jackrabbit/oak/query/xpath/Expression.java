@@ -191,7 +191,7 @@ abstract class Expression {
                     String decoded = ISO9075.decode(raw);
                     String encoded = ISO9075.encode(decoded);
                     rightExpr = SQL2Parser.escapeStringLiteral(decoded);
-                    if (!encoded.toUpperCase().equals(raw.toUpperCase())) {
+                    if (!encoded.equalsIgnoreCase(raw)) {
                         // nothing can potentially match
                         impossible = true;
                     }
