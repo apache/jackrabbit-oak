@@ -33,7 +33,7 @@ public class SmallFileWriteTest extends AbstractTest {
     private Node root;
 
     /**
-     * Iteration counter used to avoid the slit document edge case in MongoMK.
+     * Iteration counter used to avoid the slit document edge case in DocumentMK.
      */
     private int iteration = 0;
 

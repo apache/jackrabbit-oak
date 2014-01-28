@@ -51,7 +51,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +75,7 @@ public class NodeDocOffHeapCache
 
     public NodeDocOffHeapCache(Cache<String, NodeDocument> delegate,
                                ForwardingListener<String, NodeDocument> forwardingListener,
-                               MongoMK.Builder builder,
+                               DocumentMK.Builder builder,
                                DocumentStore documentStore) {
         super(delegate);
         forwardingListener.setDelegate(new PrimaryRemovalListener());

@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.After;
@@ -61,13 +61,13 @@ public class MultiTenancyTest extends AbstractMongoConnectionTest {
         // DB1 handled by the AbstractMongoConnectionTest
 
         DB db = mongoConnection.getDB();
-        mk1 = new MongoMK.Builder().setMongoDB(db).open();
+        mk1 = new DocumentMK.Builder().setMongoDB(db).open();
 
         DB db2 = mongoConnection2.getDB();
-        mk2 = new MongoMK.Builder().setMongoDB(db2).open();
+        mk2 = new DocumentMK.Builder().setMongoDB(db2).open();
 
         DB db3 = mongoConnection3.getDB();
-        mk3 = new MongoMK.Builder().setMongoDB(db3).open();
+        mk3 = new DocumentMK.Builder().setMongoDB(db3).open();
     }
 
     @After

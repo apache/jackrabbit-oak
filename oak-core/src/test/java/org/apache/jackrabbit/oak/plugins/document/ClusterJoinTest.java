@@ -33,24 +33,24 @@ public class ClusterJoinTest extends AbstractMongoConnectionTest {
         mk.getNodeStore().setAsyncDelay(0);
         rev1 = mk.commit("/", "+\"foo\":{}", null, null);
 
-        // start a new MongoMK instance. this instance sees /foo
-        // because it started after the commit on the first MongoMK
-        MongoMK mk2 = new MongoMK.Builder().setAsyncDelay(0)
+        // start a new DocumentMK instance. this instance sees /foo
+        // because it started after the commit on the first DocumentMK
+        DocumentMK mk2 = new DocumentMK.Builder().setAsyncDelay(0)
                 .setMongoDB(MongoUtils.getConnection().getDB()).open();
 
         try {
-            // this creates a first commit from the second MongoMK instance
-            // the first MongoMK instance does not see this yet
+            // this creates a first commit from the second DocumentMK instance
+            // the first DocumentMK instance does not see this yet
             mk2.commit("/", "+\"bar\":{}+\"bla\":{}", null, null);
-            // create a commit on the first MongoMK. this commit revision
-            // is higher than the previous commit on the second MongoMK
+            // create a commit on the first DocumentMK. this commit revision
+            // is higher than the previous commit on the second DocumentMK
             rev2 = mk.commit("/", "+\"baz\":{}+\"qux\":{}", null, null);
             // @rev1 must only see /foo
             assertChildNodeCount("/", rev1, 1);
             // read children @rev2, should not contain /bar, /bla
             // because there was no background read yet
             JSONObject obj = parseJSONObject(mk.getNodes("/", rev2, 0, 0, 10, null));
-            // make changes from second MongoMK visible
+            // make changes from second DocumentMK visible
             mk2.runBackgroundOperations();
             mk.runBackgroundOperations();
             // check child nodes of previous getNodes() call

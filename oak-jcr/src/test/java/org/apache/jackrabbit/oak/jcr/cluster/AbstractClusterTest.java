@@ -32,7 +32,7 @@ import org.junit.After;
 import org.junit.Before;
 
 /**
- * A base class for MongoMK cluster tests.
+ * A base class for DocumentMK cluster tests.
  */
 public class AbstractClusterTest {
 

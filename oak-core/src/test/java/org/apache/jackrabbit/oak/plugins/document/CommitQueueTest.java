@@ -43,7 +43,7 @@ public class CommitQueueTest {
 
     @Test
     public void concurrentCommits() throws Exception {
-        final MongoNodeStore store = new MongoMK.Builder().getNodeStore();
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
         ChangeDispatcher dispatcher = new ChangeDispatcher(store.getRoot());
         AtomicBoolean running = new AtomicBoolean(true);
         final CommitQueue queue = new CommitQueue(store, dispatcher);
@@ -54,7 +54,7 @@ public class CommitQueueTest {
 
             @Override
             public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
-                MongoNodeState after = (MongoNodeState) root;
+                DocumentNodeState after = (DocumentNodeState) root;
                 Revision r = after.getRevision();
 //                System.out.println("seen: " + r);
                 if (r.compareRevisionTime(before) < 0) {

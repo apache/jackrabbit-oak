@@ -207,7 +207,7 @@ class SecureNodeState extends AbstractNodeState {
                 // underlying node state even for non-leaf nodes if we can
                 // tell in advance that the full subtree is readable. Then
                 // we also wouldn't need the above getChildNodeCount() call
-                // that's somewhat expensive on the MongoMK.
+                // that's somewhat expensive on the DocumentMK.
                 return input;
             } else {
                 return new MemoryChildNodeEntry(name, secureChild);

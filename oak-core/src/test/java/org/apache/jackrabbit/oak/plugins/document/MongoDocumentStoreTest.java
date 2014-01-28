@@ -58,7 +58,7 @@ public class MongoDocumentStoreTest {
 
     DocumentStore openDocumentStore() {
         if (MONGO_DB) {
-            return new MongoDocumentStore(MongoUtils.getConnection().getDB(), new MongoMK.Builder());
+            return new MongoDocumentStore(MongoUtils.getConnection().getDB(), new DocumentMK.Builder());
         }
         return new MemoryDocumentStore();
     }
@@ -192,15 +192,15 @@ public class MongoDocumentStoreTest {
         DocumentStore docStore = openDocumentStore();
         Revision rev = Revision.newRevision(0);
         List<UpdateOp> inserts = new ArrayList<UpdateOp>();
-        for (int i = 0; i < MongoMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
             Node n = new Node("/node-" + i, rev);
             inserts.add(n.asOperation(true));
         }
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
                 Utils.getKeyLowerLimit("/"),  Utils.getKeyUpperLimit("/"),
-                MongoMK.MANY_CHILDREN_THRESHOLD);
-        assertEquals(MongoMK.MANY_CHILDREN_THRESHOLD, docs.size());
+                DocumentMK.MANY_CHILDREN_THRESHOLD);
+        assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
     }
 
     @Test

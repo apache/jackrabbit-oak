@@ -24,8 +24,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
-import org.apache.jackrabbit.oak.plugins.document.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -86,15 +86,15 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
             final boolean dropDBAfterTest, final long cacheSize) {
         return new OakRepositoryFixture("Oak-Mongo") {
             private String dbName = database != null ? database : unique;
-            private MongoMK[] kernels;
+            private DocumentMK[] kernels;
             @Override
             protected Repository[] internalSetUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
-                kernels = new MongoMK[cluster.length];
+                kernels = new DocumentMK[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
                     MongoConnection mongo =
                             new MongoConnection(host, port, dbName);
-                    kernels[i] = new MongoMK.Builder().
+                    kernels[i] = new DocumentMK.Builder().
                             setMongoDB(mongo.getDB()).
                             setClusterId(i).setLogging(false).open();
                     Oak oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
@@ -105,7 +105,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
             @Override
             public void tearDownCluster() {
                 super.tearDownCluster();
-                for (MongoMK kernel : kernels) {
+                for (DocumentMK kernel : kernels) {
                     kernel.dispose();
                 }
                 if (dropDBAfterTest) {
@@ -127,15 +127,15 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
             final boolean dropDBAfterTest, final long cacheSize) {
         return new OakRepositoryFixture("Oak-MongoNS") {
             private String dbName = database != null ? database : unique;
-            private MongoNodeStore[] stores;
+            private DocumentNodeStore[] stores;
             @Override
             protected Repository[] internalSetUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
-                stores = new MongoNodeStore[cluster.length];
+                stores = new DocumentNodeStore[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
                     MongoConnection mongo =
                             new MongoConnection(host, port, dbName);
-                    stores[i] = new MongoMK.Builder().
+                    stores[i] = new DocumentMK.Builder().
                             setMongoDB(mongo.getDB()).
                             memoryCacheSize(cacheSize).
                             setClusterId(i).setLogging(false).getNodeStore();
@@ -147,7 +147,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
             @Override
             public void tearDownCluster() {
                 super.tearDownCluster();
-                for (MongoNodeStore store : stores) {
+                for (DocumentNodeStore store : stores) {
                     store.dispose();
                 }
                 if (dropDBAfterTest) {

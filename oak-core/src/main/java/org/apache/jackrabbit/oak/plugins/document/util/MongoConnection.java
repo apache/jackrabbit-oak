@@ -83,7 +83,7 @@ public class MongoConnection {
      */
     public static MongoClientOptions.Builder getDefaultBuilder() {
         return new MongoClientOptions.Builder()
-                .description("MongoConnection for Oak MongoMK")
+                .description("MongoConnection for Oak DocumentMK")
                 .threadsAllowedToBlockForConnectionMultiplier(100);
     }
 

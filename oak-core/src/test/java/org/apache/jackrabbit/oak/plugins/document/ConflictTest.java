@@ -25,7 +25,7 @@ import static org.junit.Assert.fail;
  * <code>ConflictTest</code> checks
  * <a href="http://wiki.apache.org/jackrabbit/Conflict%20handling%20through%20rebasing%20branches">conflict handling</a>.
  */
-public class ConflictTest extends BaseMongoMKTest {
+public class ConflictTest extends BaseDocumentMKTest {
 
     @Test
     public void addExistingProperty() {

@@ -23,7 +23,7 @@ import java.util.List;
 import org.junit.Test;
 
 /**
- * Performs non-conflicting property updates on MongoMK with multiple threads.
+ * Performs non-conflicting property updates on DocumentMK with multiple threads.
  */
 public class ConcurrentUpdatesTest extends AbstractMongoConnectionTest {
 

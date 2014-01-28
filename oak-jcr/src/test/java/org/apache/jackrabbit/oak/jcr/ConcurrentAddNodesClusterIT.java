@@ -34,9 +34,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.After;
 import org.junit.Assume;
@@ -58,7 +58,7 @@ public class ConcurrentAddNodesClusterIT {
     private static final String PROP_NAME = "testcount";
     private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
 
-    private List<MongoMK> mks = new ArrayList<MongoMK>();
+    private List<DocumentMK> mks = new ArrayList<DocumentMK>();
     private List<Thread> workers = new ArrayList<Thread>();
 
     @BeforeClass
@@ -74,7 +74,7 @@ public class ConcurrentAddNodesClusterIT {
 
     @After
     public void after() throws Exception {
-        for (MongoMK mk : mks) {
+        for (DocumentMK mk : mks) {
             mk.dispose();
         }
         dropDB();
@@ -83,7 +83,7 @@ public class ConcurrentAddNodesClusterIT {
     @Test
     public void addNodesConcurrent() throws Exception {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
-            MongoMK mk = new MongoMK.Builder()
+            DocumentMK mk = new DocumentMK.Builder()
                     .setMongoDB(createConnection().getDB())
                     .setClusterId(i + 1).open();
             mks.add(mk);
@@ -91,7 +91,7 @@ public class ConcurrentAddNodesClusterIT {
         Map<String, Exception> exceptions = Collections.synchronizedMap(
                 new HashMap<String, Exception>());
         for (int i = 0; i < mks.size(); i++) {
-            MongoMK mk = mks.get(i);
+            DocumentMK mk = mks.get(i);
             Repository repo = new Jcr(mk).createRepository();
             workers.add(new Thread(new Worker(repo, exceptions), "Worker-" + (i + 1)));
         }
@@ -110,14 +110,14 @@ public class ConcurrentAddNodesClusterIT {
     @Test
     public void addNodes() throws Exception {
         for (int i = 0; i < 2; i++) {
-            MongoMK mk = new MongoMK.Builder()
+            DocumentMK mk = new DocumentMK.Builder()
                     .setMongoDB(createConnection().getDB())
                     .setAsyncDelay(0)
                     .setClusterId(i + 1).open();
             mks.add(mk);
         }
-        final MongoMK mk1 = mks.get(0);
-        final MongoMK mk2 = mks.get(1);
+        final DocumentMK mk1 = mks.get(0);
+        final DocumentMK mk2 = mks.get(1);
         Repository r1 = new Jcr(mk1).createRepository();
         Repository r2 = new Jcr(mk2).createRepository();
 
@@ -142,15 +142,15 @@ public class ConcurrentAddNodesClusterIT {
     @Test
     public void addNodes2() throws Exception {
         for (int i = 0; i < 3; i++) {
-            MongoMK mk = new MongoMK.Builder()
+            DocumentMK mk = new DocumentMK.Builder()
                     .setMongoDB(createConnection().getDB())
                     .setAsyncDelay(0)
                     .setClusterId(i + 1).open();
             mks.add(mk);
         }
-        final MongoMK mk1 = mks.get(0);
-        final MongoMK mk2 = mks.get(1);
-        final MongoMK mk3 = mks.get(2);
+        final DocumentMK mk1 = mks.get(0);
+        final DocumentMK mk2 = mks.get(1);
+        final DocumentMK mk3 = mks.get(2);
         Repository r1 = new Jcr(mk1).createRepository();
         Repository r2 = new Jcr(mk2).createRepository();
         Repository r3 = new Jcr(mk3).createRepository();
@@ -214,14 +214,14 @@ public class ConcurrentAddNodesClusterIT {
     @Test
     public void rebaseVisibility() throws Exception {
         for (int i = 0; i < 2; i++) {
-            MongoMK mk = new MongoMK.Builder()
+            DocumentMK mk = new DocumentMK.Builder()
                     .setMongoDB(createConnection().getDB())
                     .setAsyncDelay(0)
                     .setClusterId(i + 1).open();
             mks.add(mk);
         }
-        final MongoMK mk1 = mks.get(0);
-        final MongoMK mk2 = mks.get(1);
+        final DocumentMK mk1 = mks.get(0);
+        final DocumentMK mk2 = mks.get(1);
         Repository r1 = new Jcr(mk1).createRepository();
         Repository r2 = new Jcr(mk2).createRepository();
 
@@ -255,7 +255,7 @@ public class ConcurrentAddNodesClusterIT {
         EXECUTOR.schedule(new Callable<Object>() {
             @Override
             public Object call() throws Exception {
-                for (MongoMK mk : mks) {
+                for (DocumentMK mk : mks) {
                     runBackgroundOps(mk);
                 }
                 return null;
@@ -279,7 +279,7 @@ public class ConcurrentAddNodesClusterIT {
 
     private static void initRepository() throws Exception {
         MongoConnection con = createConnection();
-        MongoMK mk = new MongoMK.Builder()
+        DocumentMK mk = new DocumentMK.Builder()
                 .setMongoDB(con.getDB())
                 .setClusterId(1).open();
         Session session = new Jcr(mk).createRepository().login(
@@ -310,8 +310,8 @@ public class ConcurrentAddNodesClusterIT {
         }
     }
 
-    private static void runBackgroundOps(MongoMK mk) throws Exception {
-        Method m = MongoMK.class.getDeclaredMethod("runBackgroundOperations");
+    private static void runBackgroundOps(DocumentMK mk) throws Exception {
+        Method m = DocumentMK.class.getDeclaredMethod("runBackgroundOperations");
         m.setAccessible(true);
         m.invoke(mk);
     }

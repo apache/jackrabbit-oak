@@ -24,7 +24,7 @@ import java.util.Comparator;
 public interface RevisionContext {
 
     /**
-     * @return the branches of the local MongoMK instance, which are not yet
+     * @return the branches of the local DocumentMK instance, which are not yet
      *         merged.
      */
     UnmergedBranches getBranches();
@@ -40,7 +40,7 @@ public interface RevisionContext {
     Comparator<Revision> getRevisionComparator();
 
     /**
-     * @return the cluster id of the local MongoMK instance.
+     * @return the cluster id of the local DocumentMK instance.
      */
     int getClusterId();
     

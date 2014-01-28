@@ -54,7 +54,7 @@ public class BlobTest {
 
     @Test
     public void addBlobs() throws Exception {
-        MongoMK mk = new MongoMK.Builder().
+        DocumentMK mk = new DocumentMK.Builder().
                 setMongoDB(openMongoConnection()).open();
         long blobSize = TOTAL_SIZE / DOCUMENT_COUNT;
         ArrayList<String> blobIds = new ArrayList<String>();

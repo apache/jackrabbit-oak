@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionEntry;
@@ -108,7 +108,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private String lastReadWriteMode;
 
-    public MongoDocumentStore(DB db, MongoMK.Builder builder) {
+    public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
         nodes = db.getCollection(
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(
@@ -134,7 +134,7 @@ public class MongoDocumentStore implements DocumentStore {
                 builder.getDocumentCacheSize());
     }
 
-    private Cache<String , NodeDocument> createOffHeapCache(MongoMK.Builder builder){
+    private Cache<String , NodeDocument> createOffHeapCache(DocumentMK.Builder builder){
         ForwardingListener<String , NodeDocument> listener = ForwardingListener.newInstance();
 
         Cache<String,NodeDocument> primaryCache = CacheBuilder.newBuilder()

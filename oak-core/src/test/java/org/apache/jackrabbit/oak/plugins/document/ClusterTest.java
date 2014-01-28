@@ -58,17 +58,17 @@ public class ClusterTest {
     public void threeNodes() throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
-        MongoMK.Builder builder;
+        DocumentMK.Builder builder;
 
-        builder = new MongoMK.Builder();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        MongoMK mk1 = builder.setClusterId(1).open();
-        builder = new MongoMK.Builder();
+        DocumentMK mk1 = builder.setClusterId(1).open();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        MongoMK mk2 = builder.setClusterId(2).open();
-        builder = new MongoMK.Builder();
+        DocumentMK mk2 = builder.setClusterId(2).open();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        MongoMK mk3 = builder.setClusterId(3).open();
+        DocumentMK mk3 = builder.setClusterId(3).open();
 
         mk1.commit("/", "+\"test\":{}", null, null);
         mk2.commit("/", "+\"a\":{}", null, null);
@@ -136,26 +136,26 @@ public class ClusterTest {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
 
-        MongoMK mk1 = createMK(1, 0, ds, bs);
+        DocumentMK mk1 = createMK(1, 0, ds, bs);
         mk1.commit("/", "+\"a\": {}", null, null);
         mk1.commit("/", "-\"a\"", null, null);
         mk1.runBackgroundOperations();
 
-        MongoMK mk2 = createMK(2, 0, ds, bs);
+        DocumentMK mk2 = createMK(2, 0, ds, bs);
         mk2.commit("/", "+\"a\": {}", null, null);
         mk2.commit("/", "-\"a\"", null, null);
         mk2.runBackgroundOperations();
 
-        MongoMK mk3 = createMK(3, 0, ds, bs);
+        DocumentMK mk3 = createMK(3, 0, ds, bs);
         mk3.commit("/", "+\"a\": {}", null, null);
         mk3.commit("/", "-\"a\"", null, null);
         mk3.runBackgroundOperations();
 
-        MongoMK mk4 = createMK(4, 0, ds, bs);
+        DocumentMK mk4 = createMK(4, 0, ds, bs);
         mk4.commit("/", "+\"a\": {}", null, null);
         mk4.runBackgroundOperations();
 
-        MongoMK mk5 = createMK(5, 0, ds, bs);
+        DocumentMK mk5 = createMK(5, 0, ds, bs);
         mk5.commit("/", "-\"a\"", null, null);
         mk5.commit("/", "+\"a\": {}", null, null);
 
@@ -168,8 +168,8 @@ public class ClusterTest {
 
     @Test
     public void clusterNodeId() {
-        MongoMK mk1 = createMK(0);
-        MongoMK mk2 = createMK(0);
+        DocumentMK mk1 = createMK(0);
+        DocumentMK mk2 = createMK(0);
         assertEquals(1, mk1.getClusterInfo().getId());
         assertEquals(2, mk2.getClusterInfo().getId());
         mk1.dispose();
@@ -178,7 +178,7 @@ public class ClusterTest {
 
     @Test
     public void clusterBranchInVisibility() throws InterruptedException {
-        MongoMK mk1 = createMK(1);
+        DocumentMK mk1 = createMK(1);
         mk1.commit("/", "+\"regular\": {}", null, null);
         String b1 = mk1.branch(null);
         String b2 = mk1.branch(null);
@@ -190,7 +190,7 @@ public class ClusterTest {
         // unsaved last revisions
         mk1.dispose();
 
-        MongoMK mk2 = createMK(2);
+        DocumentMK mk2 = createMK(2);
         String nodes = mk2.getNodes("/", null, 0, 0, 100, null);
         assertEquals("{\"branchVisible\":{},\"regular\":{},\":childNodeCount\":2}", nodes);
 
@@ -202,11 +202,11 @@ public class ClusterTest {
      */
     @Test
     public void clusterBranchRebase() throws Exception {
-        MongoMK mk1 = createMK(1, 0);
+        DocumentMK mk1 = createMK(1, 0);
         mk1.commit("/", "+\"test\":{}", null, null);
         mk1.runBackgroundOperations();
-        MongoMK mk2 = createMK(2, 0);
-        MongoMK mk3 = createMK(3, 0);
+        DocumentMK mk2 = createMK(2, 0);
+        DocumentMK mk3 = createMK(3, 0);
 
         KernelNodeStore ns3 = new KernelNodeStore(mk3);
         // the next line is required for the test even if it
@@ -285,8 +285,8 @@ public class ClusterTest {
 
     @Test
     public void conflict() {
-        MongoMK mk1 = createMK(1, 0);
-        MongoMK mk2 = createMK(2, 0);
+        DocumentMK mk1 = createMK(1, 0);
+        DocumentMK mk2 = createMK(2, 0);
 
         String m1r0 = mk1.getHeadRevision();
         String m2r0 = mk2.getHeadRevision();
@@ -312,8 +312,8 @@ public class ClusterTest {
 
     @Test
     public void revisionVisibility() throws InterruptedException {
-        MongoMK mk1 = createMK(1);
-        MongoMK mk2 = createMK(2);
+        DocumentMK mk1 = createMK(1);
+        DocumentMK mk2 = createMK(2);
 
         String m2h;
         m2h = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 2, null);
@@ -350,8 +350,8 @@ public class ClusterTest {
 
     @Test
     public void rollbackAfterConflict() {
-        MongoMK mk1 = createMK(1);
-        MongoMK mk2 = createMK(2);
+        DocumentMK mk1 = createMK(1);
+        DocumentMK mk2 = createMK(2);
 
         String m1r0 = mk1.getHeadRevision();
         String m2r0 = mk2.getHeadRevision();
@@ -378,14 +378,14 @@ public class ClusterTest {
         }
     }
 
-    private MongoMK createMK(int clusterId) {
+    private DocumentMK createMK(int clusterId) {
         return createMK(clusterId, 10);
     }
 
-    private MongoMK createMK(int clusterId, int asyncDelay) {
+    private DocumentMK createMK(int clusterId, int asyncDelay) {
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
-            return new MongoMK.Builder().setMongoDB(db)
+            return new DocumentMK.Builder().setMongoDB(db)
                     .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
         } else {
             if (ds == null) {
@@ -398,9 +398,9 @@ public class ClusterTest {
         }
     }
 
-    private MongoMK createMK(int clusterId, int asyncDelay,
+    private DocumentMK createMK(int clusterId, int asyncDelay,
                              DocumentStore ds, BlobStore bs) {
-        return new MongoMK.Builder().setDocumentStore(ds).setBlobStore(bs)
+        return new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs)
                 .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
     }
 

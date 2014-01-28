@@ -26,7 +26,7 @@ class MergeCommit extends Commit {
 
     private final SortedSet<Revision> mergeRevs;
 
-    MergeCommit(MongoNodeStore nodeStore,
+    MergeCommit(DocumentNodeStore nodeStore,
                 Revision baseRevision,
                 SortedSet<Revision> revisions) {
         super(nodeStore, baseRevision, revisions.last());

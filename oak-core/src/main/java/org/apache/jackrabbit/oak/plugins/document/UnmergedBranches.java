@@ -33,7 +33,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 /**
- * <code>UnmergedBranches</code> contains all un-merged branches of a MongoMK
+ * <code>UnmergedBranches</code> contains all un-merged branches of a DocumentMK
  * instance.
  */
 class UnmergedBranches {

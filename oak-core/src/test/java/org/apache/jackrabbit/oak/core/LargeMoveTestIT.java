@@ -46,7 +46,7 @@ public class LargeMoveTestIT extends OakBaseTest {
 
     @Before
     public void setUp() throws CommitFailedException {
-        // FIXME slow on MongoMK and MongoNS. See OAK-964
+        // FIXME slow on DocumentMK and MongoNS. See OAK-964
         assumeTrue(fixture != NodeStoreFixture.MONGO_MK
                 && fixture != NodeStoreFixture.MONGO_NS);
 

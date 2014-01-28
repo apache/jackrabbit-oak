@@ -36,7 +36,7 @@ public class BlobReferenceTest {
     
     @Test
     public void test() throws Exception {
-        MongoNodeStore s = new MongoMK.Builder().getNodeStore();
+        DocumentNodeStore s = new DocumentMK.Builder().getNodeStore();
         NodeBuilder a = s.getRoot().builder();
         HashSet<String> set = new HashSet<String>();
         for (int i = 0; i < 100; i++) {

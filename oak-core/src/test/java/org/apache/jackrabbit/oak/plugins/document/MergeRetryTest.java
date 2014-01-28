@@ -67,8 +67,8 @@ public class MergeRetryTest {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
 
-        MongoMK mk1 = createMK(1, 1000, ds, bs);
-        MongoMK mk2 = createMK(2, 1000, ds, bs);
+        DocumentMK mk1 = createMK(1, 1000, ds, bs);
+        DocumentMK mk2 = createMK(2, 1000, ds, bs);
 
         try {
             NodeStore ns1 = new KernelNodeStore(mk1);
@@ -96,8 +96,8 @@ public class MergeRetryTest {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
 
-        MongoMK mk1 = createMK(1, 1000, ds, bs);
-        MongoMK mk2 = createMK(2, 1000, ds, bs);
+        DocumentMK mk1 = createMK(1, 1000, ds, bs);
+        DocumentMK mk2 = createMK(2, 1000, ds, bs);
 
         try {
             NodeStore ns1 = new KernelNodeStore(mk1);
@@ -129,9 +129,9 @@ public class MergeRetryTest {
         }
     }
 
-    private MongoMK createMK(int clusterId, int asyncDelay,
+    private DocumentMK createMK(int clusterId, int asyncDelay,
                              DocumentStore ds, BlobStore bs) {
-        return new MongoMK.Builder().setDocumentStore(ds).setBlobStore(bs)
+        return new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs)
                 .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
     }
 }

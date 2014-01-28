@@ -29,13 +29,13 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 
 import com.mongodb.BasicDBObject;
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
 /**
- * A repository stub implementation for Oak on MongoMK
+ * A repository stub implementation for Oak on DocumentMK
  */
 public class OakMongoMKRepositoryStub extends RepositoryStub {
 
@@ -87,7 +87,7 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
     }
 
     protected Repository createRepository(MongoConnection connection) {
-        MongoMK m = new MongoMK.Builder().setClusterId(1).
+        DocumentMK m = new DocumentMK.Builder().setClusterId(1).
                 memoryCacheSize(64 * 1024 * 1024).
                 setMongoDB(connection.getDB()).open();
         Jcr jcr = new Jcr(m);
