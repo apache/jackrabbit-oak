@@ -120,8 +120,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion3  <!-- OAK-168 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleSubTree         <!-- OAK-920 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleProperty        <!-- OAK-920 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleAcContent       <!-- OAK-920 -->
 
       <!-- Query -->
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
