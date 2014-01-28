@@ -70,7 +70,6 @@ public class CopyTest extends AbstractRepositoryTest {
         assertTrue(testNode.hasNode("target/copied"));
     }
 
-    @Ignore("OAK-915") // FIXME
     @Test
     public void testCopyReferenceableNode() throws Exception {
         Session session = getAdminSession();
@@ -89,7 +88,6 @@ public class CopyTest extends AbstractRepositoryTest {
         assertFalse(copy.getUUID().equals(testNode.getNode("source/node").getUUID()));
     }
 
-    @Ignore("OAK-915") // FIXME
     @Test
     public void testCopyReferenceableChildNode() throws Exception {
         Session session = getAdminSession();
@@ -142,14 +140,17 @@ public class CopyTest extends AbstractRepositoryTest {
         session.save();
 
         session.getWorkspace().getLockManager().lock(toCopy.getPath(), true, true, Long.MAX_VALUE, "my");
-        session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
+        assertTrue(toCopy.isLocked());
+        assertTrue(toCopy.hasProperty(JcrConstants.JCR_LOCKISDEEP));
+        assertTrue(toCopy.hasProperty(JcrConstants.JCR_LOCKOWNER));
 
+        session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
         assertTrue(testNode.hasNode("source/node"));
         assertTrue(testNode.hasNode("target/copied"));
 
         Node copy = testNode.getNode("target/copied");
-
-        assertFalse(copy.isNodeType(JcrConstants.MIX_LOCKABLE));
+        assertTrue(copy.isNodeType(JcrConstants.MIX_LOCKABLE));
+        assertFalse(copy.isLocked());
         assertFalse(copy.hasProperty(JcrConstants.JCR_LOCKISDEEP));
         assertFalse(copy.hasProperty(JcrConstants.JCR_LOCKOWNER));
     }
