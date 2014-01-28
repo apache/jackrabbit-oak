@@ -157,7 +157,7 @@ public class ChangeProcessor implements Observer {
                     String basePath = provider.getPath();
                     EventFilter userFilter = provider.getFilter(previousRoot, root);
                     EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
-                    EventGenerator events = new EventGenerator(
+                    EventQueue events = new EventQueue(
                             namePathMapper, info, previousRoot, root, basePath,
                             Filters.all(userFilter, acFilter));
                     if (events.hasNext() && runningMonitor.enterIf(running)) {
