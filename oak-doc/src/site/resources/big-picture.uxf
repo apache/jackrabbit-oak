@@ -120,7 +120,7 @@ bg=yellow</panel_attributes>
       <w>230</w>
       <h>60</h>
     </coordinates>
-    <panel_attributes>MongoMK
+    <panel_attributes>DocumentMK
 bg=yellow</panel_attributes>
     <additional_attributes/>
   </element>
