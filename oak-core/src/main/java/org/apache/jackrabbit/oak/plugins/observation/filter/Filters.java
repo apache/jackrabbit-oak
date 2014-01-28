@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -133,16 +132,6 @@ public final class Filters {
                 }
 
                 @Override
-                public boolean includeChange(String name, NodeState before, NodeState after) {
-                    for (EventFilter filter : filters) {
-                        if (filter.includeChange(name, before, after)) {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-
-                @Override
                 public boolean includeDelete(String name, NodeState before) {
                     for (EventFilter filter : filters) {
                         if (filter.includeDelete(name, before)) {
@@ -156,6 +145,16 @@ public final class Filters {
                 public boolean includeMove(String sourcePath, String name, NodeState moved) {
                     for (EventFilter filter : filters) {
                         if (filter.includeMove(sourcePath, name, moved)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                @Override
+                public boolean includeReorder(String name, NodeState reordered) {
+                    for (EventFilter filter : filters) {
+                        if (filter.includeReorder(name, reordered)) {
                             return true;
                         }
                     }
@@ -232,16 +231,6 @@ public final class Filters {
                 }
 
                 @Override
-                public boolean includeChange(String name, NodeState before, NodeState after) {
-                    for (EventFilter filter : filters) {
-                        if (!filter.includeChange(name, before, after)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-
-                @Override
                 public boolean includeDelete(String name, NodeState before) {
                     for (EventFilter filter : filters) {
                         if (!filter.includeDelete(name, before)) {
@@ -255,6 +244,16 @@ public final class Filters {
                 public boolean includeMove(String sourcePath, String name, NodeState moved) {
                     for (EventFilter filter : filters) {
                         if (!filter.includeMove(sourcePath, name, moved)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
+                @Override
+                public boolean includeReorder(String name, NodeState reordered) {
+                    for (EventFilter filter : filters) {
+                        if (!filter.includeReorder(name, reordered)) {
                             return false;
                         }
                     }

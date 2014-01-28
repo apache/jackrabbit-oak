@@ -59,15 +59,6 @@ public interface EventFilter {
     boolean includeAdd(String name, NodeState after);
 
     /**
-     * Include a changed node
-     * @param name name of the node
-     * @param before node before the change
-     * @param after  node after the change
-     * @return  {@code true} if the node should be included
-     */
-    boolean includeChange(String name, NodeState before, NodeState after);
-
-    /**
      * Include a deleted node
      * @param name name of the node
      * @param before deleted node
@@ -83,6 +74,14 @@ public interface EventFilter {
      * @return  {@code true} if the node should be included
      */
     boolean includeMove(String sourcePath, String name, NodeState moved);
+
+    /**
+     * Include a reordered node
+     * @param name        name of the reordered node
+     * @param reordered   the reordered node
+     * @return  {@code true} if the node should be included
+     */
+    boolean includeReorder(String name, NodeState reordered);
 
     /**
      * Factory for creating a filter instance for the given child node

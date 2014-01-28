@@ -56,17 +56,17 @@ public class ConstantFilter implements EventFilter {
     }
 
     @Override
-    public boolean includeChange(String name, NodeState before, NodeState after) {
-        return include;
-    }
-
-    @Override
     public boolean includeDelete(String name, NodeState before) {
         return include;
     }
 
     @Override
     public boolean includeMove(String sourcePath, String name, NodeState moved) {
+        return include;
+    }
+
+    @Override
+    public boolean includeReorder(String name, NodeState reordered) {
         return include;
     }
 

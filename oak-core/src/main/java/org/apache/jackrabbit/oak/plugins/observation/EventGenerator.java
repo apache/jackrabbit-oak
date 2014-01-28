@@ -179,8 +179,7 @@ public class EventGenerator implements EventIterator {
         public boolean propertyChanged(
                 PropertyState before, PropertyState after) {
             // check for reordering of child nodes
-            if (OAK_CHILD_ORDER.equals(before.getName()) &&
-                    filter.includeChange(this.name, this.before, this.after)) {
+            if (OAK_CHILD_ORDER.equals(before.getName())) {
                 handleReorderedNodes(
                         before.getValue(NAMES), after.getValue(NAMES));
             }
@@ -279,11 +278,14 @@ public class EventGenerator implements EventIterator {
                     if (a != b && beforeName.equals(afterName)) {
                         beforeNames.set(b, beforeNames.get(a));
                         beforeNames.set(a, beforeName);
-                        Map<String, String> info = ImmutableMap.of(
-                                "srcChildRelPath", context.getJcrName(beforeNames.get(a)),
-                                "destChildRelPath", context.getJcrName(beforeNames.get(a + 1)));
-                        ImmutableTree tree = afterTree.getChild(afterName);
-                        events.add(new EventImpl(context, NODE_MOVED, tree, info));
+                        NodeState afterChild = this.after.getChildNode(afterName);
+                        if (filter.includeReorder(afterName, afterChild)) {
+                            Map<String, String> info = ImmutableMap.of(
+                                    "srcChildRelPath", context.getJcrName(beforeName),
+                                    "destChildRelPath", context.getJcrName(beforeNames.get(a + 1)));
+                            ImmutableTree tree = new ImmutableTree(afterTree, afterName, afterChild);
+                            events.add(new EventImpl(context, NODE_MOVED, tree, info));
+                        }
                     }
                 }
             }

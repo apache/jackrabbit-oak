@@ -131,11 +131,6 @@ public class UniversalFilter implements EventFilter {
     }
 
     @Override
-    public boolean includeChange(String name, NodeState before, NodeState after) {
-        return predicate.apply(selector.select(this, name, before, after));
-    }
-
-    @Override
     public boolean includeDelete(String name, NodeState before) {
         return predicate.apply(selector.select(this, name, before, MISSING_NODE));
     }
@@ -143,6 +138,11 @@ public class UniversalFilter implements EventFilter {
     @Override
     public boolean includeMove(String sourcePath, String name, NodeState moved) {
         return predicate.apply(selector.select(this, name, MISSING_NODE, moved));
+    }
+
+    @Override
+    public boolean includeReorder(String name, NodeState reordered) {
+        return predicate.apply(selector.select(this, name, MISSING_NODE, reordered));
     }
 
     @Override

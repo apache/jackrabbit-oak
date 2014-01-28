@@ -92,17 +92,17 @@ public class GlobbingPathFilter implements EventFilter {
     }
 
     @Override
-    public boolean includeChange(String name, NodeState before, NodeState after) {
-        return includeItem(name);
-    }
-
-    @Override
     public boolean includeDelete(String name, NodeState before) {
         return includeItem(name);
     }
 
     @Override
     public boolean includeMove(String sourcePath, String name, NodeState moved) {
+        return includeItem(name);
+    }
+
+    @Override
+    public boolean includeReorder(String name, NodeState reordered) {
         return includeItem(name);
     }
 
