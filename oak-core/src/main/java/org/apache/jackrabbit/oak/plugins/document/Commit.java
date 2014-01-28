@@ -166,14 +166,14 @@ public class Commit {
     }
 
     /**
-     * Apply the changes to the document store (to update MongoDB).
+     * Apply the changes to the document store.
      */
     void applyToDocumentStore() {
         applyToDocumentStore(null);
     }
 
     /**
-     * Apply the changes to the document store (to update MongoDB).
+     * Apply the changes to the document store.
      *
      * @param baseBranchRevision the base revision of this commit. Currently only
      *                     used for branch commits.

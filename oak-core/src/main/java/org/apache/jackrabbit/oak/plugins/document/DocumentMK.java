@@ -46,7 +46,7 @@ import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Node.Children;
-import org.apache.jackrabbit.oak.plugins.document.blob.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -56,7 +56,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * A MicroKernel implementation that stores the data in a MongoDB.
+ * A MicroKernel implementation that stores the data in a {@link DocumentStore}.
  */
 public class DocumentMK implements MicroKernel {
 
@@ -64,27 +64,27 @@ public class DocumentMK implements MicroKernel {
      * The threshold where special handling for many child node starts.
      */
     static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
-            "oak.mongoMK.manyChildren", 50);
+            "oak.documentMK.manyChildren", 50);
     
     /**
      * Enable the LIRS cache.
      */
     static final boolean LIRS_CACHE = Boolean.parseBoolean(
-            System.getProperty("oak.mongoMK.lirsCache", "false"));
+            System.getProperty("oak.documentMK.lirsCache", "false"));
 
     /**
      * Enable fast diff operations.
      */
     private static final boolean FAST_DIFF = Boolean.parseBoolean(
-            System.getProperty("oak.mongoMK.fastDiff", "true"));
+            System.getProperty("oak.documentMK.fastDiff", "true"));
         
     /**
-     * The MongoDB store.
+     * The node store.
      */
     protected final DocumentNodeStore nodeStore;
 
     /**
-     * The MongoDB store (might be used by multiple MongoMKs).
+     * The document store (might be used by multiple DocumentMKs).
      */
     protected final DocumentStore store;
 
@@ -99,7 +99,7 @@ public class DocumentMK implements MicroKernel {
         this.store = nodeStore.getDocumentStore();
 
         diffCache = builder.buildCache(builder.getDiffCacheSize());
-        diffCacheStats = new CacheStats(diffCache, "MongoMk-DiffCache",
+        diffCacheStats = new CacheStats(diffCache, "DocumentMk-DiffCache",
                 builder.getWeigher(), builder.getDiffCacheSize());
     }
 
@@ -228,7 +228,7 @@ public class DocumentMK implements MicroKernel {
             }
         }
         // TODO this does not work well for large child node lists 
-        // use a MongoDB index instead
+        // use a document store index instead
         int max = MANY_CHILDREN_THRESHOLD;
         Children fromChildren, toChildren;
         fromChildren = nodeStore.getChildren(from, null, max);
@@ -656,7 +656,7 @@ public class DocumentMK implements MicroKernel {
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
         private BlobStore blobStore;
-        private int clusterId  = Integer.getInteger("oak.mongoMK.clusterId", 0);
+        private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
         private int asyncDelay = 1000;
         private boolean timing;
         private boolean logging;

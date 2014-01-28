@@ -73,7 +73,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation of a NodeStore on MongoDB.
+ * Implementation of a NodeStore on {@link DocumentStore}.
  */
 public final class DocumentNodeStore
         implements NodeStore, RevisionContext, Observable {
@@ -88,19 +88,19 @@ public final class DocumentNodeStore
     /**
      * Do not cache more than this number of children for a document.
      */
-    private static final int NUM_CHILDREN_CACHE_LIMIT = Integer.getInteger("oak.mongoMK.childrenCacheLimit", 16 * 1024);
+    private static final int NUM_CHILDREN_CACHE_LIMIT = Integer.getInteger("oak.documentMK.childrenCacheLimit", 16 * 1024);
 
     /**
      * When trying to access revisions that are older than this many
      * milliseconds, a warning is logged. The default is one minute.
      */
     private static final int WARN_REVISION_AGE =
-            Integer.getInteger("oak.mongoMK.revisionAge", 60 * 1000);
+            Integer.getInteger("oak.documentMK.revisionAge", 60 * 1000);
 
     /**
      * Enable background operations
      */
-    private static final boolean ENABLE_BACKGROUND_OPS = Boolean.parseBoolean(System.getProperty("oak.mongoMK.backgroundOps", "true"));
+    private static final boolean ENABLE_BACKGROUND_OPS = Boolean.parseBoolean(System.getProperty("oak.documentMK.backgroundOps", "true"));
 
     /**
      * How long to remember the relative order of old revision of all cluster
@@ -109,7 +109,7 @@ public final class DocumentNodeStore
     private static final int REMEMBER_REVISION_ORDER_MILLIS = 60 * 60 * 1000;
 
     /**
-     * The MongoDB store (might be used by multiple MongoMKs).
+     * The document store (might be used by multiple node stores).
      */
     protected final DocumentStore store;
 
@@ -222,7 +222,7 @@ public final class DocumentNodeStore
     private final CacheStats docChildrenCacheStats;
     
     /**
-     * The MongoDB blob store.
+     * The blob store.
      */
     private final BlobStore blobStore;
 
@@ -259,7 +259,7 @@ public final class DocumentNodeStore
         }
         this.store = s;
         int cid = builder.getClusterId();
-        cid = Integer.getInteger("oak.mongoMK.clusterId", cid);
+        cid = Integer.getInteger("oak.documentMK.clusterId", cid);
         if (cid == 0) {
             clusterNodeInfo = ClusterNodeInfo.getInstance(store);
             // TODO we should ensure revisions generated from now on
@@ -277,15 +277,15 @@ public final class DocumentNodeStore
         //TODO Make stats collection configurable as it add slight overhead
 
         nodeCache = builder.buildCache(builder.getNodeCacheSize());
-        nodeCacheStats = new CacheStats(nodeCache, "MongoMk-Node",
+        nodeCacheStats = new CacheStats(nodeCache, "DocumentMk-Node",
                 builder.getWeigher(), builder.getNodeCacheSize());
 
         nodeChildrenCache = builder.buildCache(builder.getChildrenCacheSize());
-        nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "MongoMk-NodeChildren",
+        nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "DocumentMk-NodeChildren",
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
         docChildrenCache = builder.buildCache(builder.getDocChildrenCacheSize());
-        docChildrenCacheStats = new CacheStats(docChildrenCache, "MongoMk-DocChildren",
+        docChildrenCacheStats = new CacheStats(docChildrenCache, "DocumentMk-DocChildren",
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
 
         // check if root node exists
@@ -798,7 +798,7 @@ public final class DocumentNodeStore
                 TreeSet<String> names = new TreeSet<String>(docChildren.childNames);
                 // incomplete cache entries must not be updated with
                 // names at the end of the list because there might be
-                // a next name in MongoDB smaller than the one added
+                // a next name in DocumentStore smaller than the one added
                 if (!docChildren.isComplete) {
                     for (String childPath : added) {
                         String name = PathUtils.getName(childPath);
@@ -1055,18 +1055,18 @@ public final class DocumentNodeStore
                            @Nonnull CommitHook commitHook,
                            @Nullable CommitInfo info)
             throws CommitFailedException {
-        return asMongoRootBuilder(builder).merge(commitHook, info);
+        return asDocumentRootBuilder(builder).merge(commitHook, info);
     }
 
     @Nonnull
     @Override
     public NodeState rebase(@Nonnull NodeBuilder builder) {
-        return asMongoRootBuilder(builder).rebase();
+        return asDocumentRootBuilder(builder).rebase();
     }
 
     @Override
     public NodeState reset(@Nonnull NodeBuilder builder) {
-        return asMongoRootBuilder(builder).reset();
+        return asDocumentRootBuilder(builder).reset();
     }
 
     @Override
@@ -1287,7 +1287,7 @@ public final class DocumentNodeStore
         return (name == null ? "" : name) + path + "@" + readRevision;
     }
 
-    private static DocumentRootBuilder asMongoRootBuilder(NodeBuilder builder)
+    private static DocumentRootBuilder asDocumentRootBuilder(NodeBuilder builder)
             throws IllegalArgumentException {
         if (!(builder instanceof DocumentRootBuilder)) {
             throw new IllegalArgumentException("builder must be a " +

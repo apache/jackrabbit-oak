@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * A MongoDB "update" operation for one document.
+ * A DocumentStore "update" operation for one document.
  */
 public final class UpdateOp {
 
@@ -188,12 +188,12 @@ public final class UpdateOp {
     }
     
     /**
-     * A MongoDB operation for a given key within a document. 
+     * A DocumentStore operation for a given key within a document.
      */
     public static final class Operation {
         
         /**
-         * The MongoDB operation type.
+         * The DocumentStore operation type.
          */
         public enum Type { 
             

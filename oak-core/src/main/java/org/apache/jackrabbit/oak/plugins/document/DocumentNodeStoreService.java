@@ -53,8 +53,8 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
  * The OSGi service to start/stop a DocumentNodeStore instance.
  */
 @Component(metatype = true,
-        label = "%oak.mongons.label",
-        description = "%oak.mongons.description",
+        label = "%oak.documentns.label",
+        description = "%oak.documentns.description",
         policy = ConfigurationPolicy.REQUIRE
 )
 public class DocumentNodeStoreService {
@@ -117,12 +117,12 @@ public class DocumentNodeStoreService {
         MongoClientURI mongoURI = new MongoClientURI(uri,builder);
 
         if(logger.isInfoEnabled()){
-            //Take care around not logging the uri directly as it
-            //might contain passwords
-            String type = useMK ? "MicroKernel" : "NodeStore" ;
-            logger.info("Starting MongoDB {} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}",
-                    new Object[] {type,mongoURI.getHosts(), db, cacheSize, offHeapCache});
-            logger.info("Mongo Connection details {}",MongoConnection.toString(mongoURI.getOptions()));
+            // Take care around not logging the uri directly as it
+            // might contain passwords
+            String type = useMK ? "MK" : "NodeStore" ;
+            logger.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}",
+                    new Object[] {type, mongoURI.getHosts(), db, cacheSize, offHeapCache});
+            logger.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
         }
 
         MongoClient client = new MongoClient(mongoURI);

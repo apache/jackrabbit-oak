@@ -129,7 +129,7 @@ public interface DocumentStore {
                                      UpdateOp updateOp);
     
     /**
-     * Create or update a document. For MongoDb, this is using "findAndModify" with
+     * Create or update a document. For MongoDB, this is using "findAndModify" with
      * the "upsert" flag (insert or update). The returned document is immutable.
      *
      * @param <T> the document type

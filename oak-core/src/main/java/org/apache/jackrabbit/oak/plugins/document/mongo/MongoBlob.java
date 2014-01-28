@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document.blob;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.BasicDBObject;
 

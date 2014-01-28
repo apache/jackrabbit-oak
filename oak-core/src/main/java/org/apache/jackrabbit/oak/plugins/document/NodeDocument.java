@@ -1082,7 +1082,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
     static final class Children implements CacheValue, Cloneable {
 
         /**
-         * The child node names, ordered as stored in MongoDB.
+         * The child node names, ordered as stored in DocumentStore.
          */
         ArrayList<String> childNames = new ArrayList<String>();
         
