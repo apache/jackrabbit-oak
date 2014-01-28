@@ -29,7 +29,7 @@
 
   <artifactId>oak-core</artifactId>
   <name>Oak Core</name>
-  <version>0.15.2</version>
+  <version>0.15.3-SNAPSHOT</version>
   <packaging>bundle</packaging>
 
   <build>
