@@ -102,7 +102,7 @@ public class GlobbingPathFilter implements EventFilter {
     }
 
     @Override
-    public boolean includeReorder(String name, NodeState reordered) {
+    public boolean includeReorder(String destName, String name, NodeState reordered) {
         return includeItem(name);
     }
 

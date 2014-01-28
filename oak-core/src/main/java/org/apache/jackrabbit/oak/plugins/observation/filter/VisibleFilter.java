@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -58,12 +59,17 @@ public class VisibleFilter implements EventFilter {
 
     @Override
     public boolean includeMove(String sourcePath, String name, NodeState moved) {
+        for (String element : PathUtils.elements(sourcePath)) {
+            if (!isVisible(element)) {
+                return false;
+            }
+        }
         return isVisible(name);
     }
 
     @Override
-    public boolean includeReorder(String name, NodeState reordered) {
-        return isVisible(name);
+    public boolean includeReorder(String destName, String name, NodeState reordered) {
+        return isVisible(destName) && isVisible(name);
     }
 
     @Override

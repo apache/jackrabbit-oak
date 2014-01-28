@@ -278,11 +278,12 @@ public class EventGenerator implements EventIterator {
                     if (a != b && beforeName.equals(afterName)) {
                         beforeNames.set(b, beforeNames.get(a));
                         beforeNames.set(a, beforeName);
+                        String destName = beforeNames.get(a + 1);
                         NodeState afterChild = this.after.getChildNode(afterName);
-                        if (filter.includeReorder(afterName, afterChild)) {
+                        if (filter.includeReorder(destName, afterName, afterChild)) {
                             Map<String, String> info = ImmutableMap.of(
-                                    "srcChildRelPath", context.getJcrName(beforeName),
-                                    "destChildRelPath", context.getJcrName(beforeNames.get(a + 1)));
+                                    "srcChildRelPath", context.getJcrName(afterName),
+                                    "destChildRelPath", context.getJcrName(destName));
                             ImmutableTree tree = new ImmutableTree(afterTree, afterName, afterChild);
                             events.add(new EventImpl(context, NODE_MOVED, tree, info));
                         }
