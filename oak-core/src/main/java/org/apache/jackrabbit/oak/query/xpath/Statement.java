@@ -20,6 +20,7 @@ import java.util.ArrayList;
 
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.xpath.Expression.AndCondition;
+import org.apache.jackrabbit.oak.query.xpath.Expression.Contains;
 import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
 
@@ -64,6 +65,8 @@ public class Statement {
                 // is automatically converted to 
                 // @x in (1, 2)
                 // within the query engine
+            } else if (or.left instanceof Contains && or.right instanceof Contains) {
+                // do not optimize "contains"
             } else {
                 // conditions of type                
                 // @x = 1 or @y = 2
@@ -80,14 +83,44 @@ public class Statement {
                 s2.columnList = columnList;
                 s2.where = or.right;
                 s2.xpathQuery = xpathQuery;
-                return new UnionStatement(s1, s2);
+                return new UnionStatement(s1.optimize(), s2.optimize());
             }
         } else if (where instanceof AndCondition) {
-            // TODO
             // conditions of type
             // @a = 1 and (@x = 1 or @y = 2)
-            // could be automatically converted to
+            // are automatically converted to
             // (@a = 1 and @x = 1) union (@a = 1 and @y = 2)
+            AndCondition and = (AndCondition) where;
+            if (and.left instanceof OrCondition && !(and.right instanceof OrCondition)) {
+                // swap left and right
+                and = new AndCondition(and.right, and.left);
+            }
+            if (and.right instanceof OrCondition) {
+                OrCondition or = (OrCondition) and.right;
+                if (or.getCommonLeftPart() != null) {
+                    // @x = 1 or @x = 2 
+                    // is automatically converted to 
+                    // @x in (1, 2)
+                    // within the query engine                
+                } else if (or.left instanceof Contains && or.right instanceof Contains) {
+                    // do not optimize "contains"
+                } else {
+                    // same as above, but with the added "and"
+                    // TODO avoid code duplication if possible
+                    Statement s1 = new Statement();
+                    s1.columnSelector = columnSelector;
+                    s1.selectors = selectors;
+                    s1.columnList = columnList;
+                    s1.where = new AndCondition(and.left, or.left);
+                    Statement s2 = new Statement();
+                    s2.columnSelector = columnSelector;
+                    s2.selectors = selectors;
+                    s2.columnList = columnList;
+                    s2.where = new AndCondition(and.left, or.right);
+                    s2.xpathQuery = xpathQuery;
+                    return new UnionStatement(s1.optimize(), s2.optimize());
+                }
+            }
         }
         return this;
     }

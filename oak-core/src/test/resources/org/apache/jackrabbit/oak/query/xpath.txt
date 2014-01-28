@@ -23,6 +23,22 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# union (complex)
+
+xpath2sql //*[((@jcr:primaryType = 'nt:unstructured') and (@resources = '/data' or @resolved = '/data'))]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [jcr:primaryType] = 'nt:unstructured' and [resources] = '/data' union select [jcr:path], [jcr:score], * from [nt:base] as a where [jcr:primaryType] = 'nt:unstructured' and [resolved] = '/data' /* xpath: //*[((@jcr:primaryType = 'nt:unstructured') and (@resources = '/data' or @resolved = '/data'))] */
+
+xpath2sql //*[(((@jcr:primaryType = 'nt:unstructured') and (@resources = '/data' or @resolved = '/data')) or (@content = '/data' and (@jcr:primaryType = 'nt:folder'))) ]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [jcr:primaryType] = 'nt:unstructured' and [resources] = '/data' union select [jcr:path], [jcr:score], * from [nt:base] as a where [jcr:primaryType] = 'nt:unstructured' and [resolved] = '/data' union select [jcr:path], [jcr:score], * from [nt:base] as a where [content] = '/data' and [jcr:primaryType] = 'nt:folder' /* xpath: //*[(((@jcr:primaryType = 'nt:unstructured') and (@resources = '/data' or @resolved = '/data')) or (@content = '/data' and (@jcr:primaryType = 'nt:folder'))) ] */
+
+# union must not be used for "contains or contains"
+
+xpath2sql //*[((@jcr:primaryType = 'nt:unstructured') and (jcr:contains(., 'hello') or jcr:contains(., 'world')))]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [jcr:primaryType] = 'nt:unstructured' and (contains(*, 'hello') or contains(*, 'world')) /* xpath: //*[((@jcr:primaryType = 'nt:unstructured') and (jcr:contains(., 'hello') or jcr:contains(., 'world')))] */
+
+xpath2sql //*[(((@jcr:primaryType = 'nt:unstructured') and (jcr:contains(., 'hello') or jcr:contains(., 'world'))) or (@content = '/data' and (@jcr:primaryType = 'nt:folder'))) ]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [jcr:primaryType] = 'nt:unstructured' and (contains(*, 'hello') or contains(*, 'world')) union select [jcr:path], [jcr:score], * from [nt:base] as a where [content] = '/data' and [jcr:primaryType] = 'nt:folder' /* xpath: //*[(((@jcr:primaryType = 'nt:unstructured') and (jcr:contains(., 'hello') or jcr:contains(., 'world'))) or (@content = '/data' and (@jcr:primaryType = 'nt:folder'))) ] */
+
 # de-escape _x00.._
 
 xpath2sql /jcr:root//_x002e_test/element(*,rep:User)[_x002e_tokens/@jcr:primaryType]

@@ -570,11 +570,11 @@ public class XPathToSQL2Converter {
             read(")");
             return c;
         } else if ("jcr:contains".equals(functionName)) {
-            Expression.Function f = new Expression.Function("contains");
-            f.params.add(parseExpression());
+            Expression left = parseExpression();
             read(",");
-            f.params.add(parseExpression());
+            Expression right = parseExpression();
             read(")");
+            Expression.Contains f = new Expression.Contains(left, right);
             return f;
         } else if ("jcr:score".equals(functionName)) {
             Expression.Function f = new Expression.Function("score");

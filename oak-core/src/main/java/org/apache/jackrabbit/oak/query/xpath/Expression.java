@@ -256,6 +256,37 @@ abstract class Expression {
         }
         
     }
+    
+    /**
+     * A contains call.
+     */
+    static class Contains extends Expression {
+        
+        final Expression left, right;
+    
+        Contains(Expression left, Expression right) {
+            this.left = left;
+            this.right = right;
+        }
+    
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("contains").
+                    append('(').append(left).append(", ").append(right).append(')');
+            return buff.toString();
+        }
+    
+        @Override
+        boolean isCondition() {
+            return true;
+        }
+        
+        @Override
+        boolean isName() {
+            return left.isName();
+        }
+    
+    }    
 
     /**
      * A function call.
