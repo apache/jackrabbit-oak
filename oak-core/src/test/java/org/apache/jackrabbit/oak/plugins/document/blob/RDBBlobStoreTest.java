@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
-import org.apache.jackrabbit.oak.plugins.rdbpersistence.RDBBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 
 /**
  * Tests the RDBBlobStore implementation.

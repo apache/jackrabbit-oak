@@ -41,13 +41,13 @@ public class Document implements CacheValue {
      * The node id, which contains the depth of the path
      * (0 for root, 1 for children of the root), and then the path.
      */
-    static final String ID = "_id";
+    public static final String ID = "_id";
 
     /**
      * The modification count on the document. This is an long value
      * incremented on every modification.
      */
-    static final String MOD_COUNT = "_modCount";
+    public static final String MOD_COUNT = "_modCount";
 
     /**
      * The data of this document.
