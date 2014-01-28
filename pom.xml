@@ -29,6 +29,7 @@
 
   <artifactId>oak-core</artifactId>
   <name>Oak Core</name>
+  <version>0.15.2</version>
   <packaging>bundle</packaging>
 
   <build>
@@ -42,50 +43,54 @@
               *
             </Import-Package>
             <Export-Package>
-              org.apache.jackrabbit.oak,
-              org.apache.jackrabbit.oak.api,
-              org.apache.jackrabbit.oak.api.jmx,
-              org.apache.jackrabbit.oak.kernel,
-              org.apache.jackrabbit.oak.util,
-              org.apache.jackrabbit.oak.namepath,
-              org.apache.jackrabbit.oak.osgi,
-              org.apache.jackrabbit.oak.plugins.backup,
-              org.apache.jackrabbit.oak.plugins.commit,
-              org.apache.jackrabbit.oak.plugins.identifier,
-              org.apache.jackrabbit.oak.plugins.index,
-              org.apache.jackrabbit.oak.plugins.index.aggregate,
-              org.apache.jackrabbit.oak.plugins.index.nodetype,
-              org.apache.jackrabbit.oak.plugins.index.property,
-              org.apache.jackrabbit.oak.plugins.index.reference,
-              org.apache.jackrabbit.oak.plugins.memory,
-              org.apache.jackrabbit.oak.plugins.name,
-              org.apache.jackrabbit.oak.plugins.nodetype,
-              org.apache.jackrabbit.oak.plugins.nodetype.write,
-              org.apache.jackrabbit.oak.plugins.observation,
-              org.apache.jackrabbit.oak.plugins.observation.filter,
-              org.apache.jackrabbit.oak.plugins.value,
-              org.apache.jackrabbit.oak.plugins.version,
-              org.apache.jackrabbit.oak.spi.query,
-              org.apache.jackrabbit.oak.spi.commit,
-              org.apache.jackrabbit.oak.spi.lifecycle,
-              org.apache.jackrabbit.oak.spi.state,
-              org.apache.jackrabbit.oak.spi.security,
-              org.apache.jackrabbit.oak.spi.security.authentication,
-              org.apache.jackrabbit.oak.spi.security.authentication.callback,
-              org.apache.jackrabbit.oak.spi.security.authentication.external,
-              org.apache.jackrabbit.oak.spi.security.authentication.token,
-              org.apache.jackrabbit.oak.spi.security.authorization,
-              org.apache.jackrabbit.oak.spi.security.authorization.permission,
-              org.apache.jackrabbit.oak.spi.security.authorization.restriction,
-              org.apache.jackrabbit.oak.spi.security.principal,
-              org.apache.jackrabbit.oak.spi.security.privilege,
-              org.apache.jackrabbit.oak.spi.security.user,
-              org.apache.jackrabbit.oak.spi.security.user.action,
-              org.apache.jackrabbit.oak.spi.security.user.util,
-              org.apache.jackrabbit.oak.spi.whiteboard,
-              org.apache.jackrabbit.oak.spi.xml,
-              org.apache.jackrabbit.oak.query.fulltext,
-              org.apache.jackrabbit.oak.security
+              org.apache.jackrabbit.oak;version="0.15.0",
+              org.apache.jackrabbit.oak.api;version="0.15.0",
+              org.apache.jackrabbit.oak.api.jmx;version="0.15.0",
+              org.apache.jackrabbit.oak.kernel;version="0.15.0",
+              org.apache.jackrabbit.oak.util;version="0.15.0",
+              org.apache.jackrabbit.oak.namepath;version="0.15.0",
+              org.apache.jackrabbit.oak.osgi;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.backup;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.commit;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.identifier;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.index;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.index.aggregate;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.index.nodetype;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.index.property;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.index.reference;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.memory;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.name;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.nodetype;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.nodetype.write;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.observation;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.observation.filter;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.value;version="0.15.0",
+              org.apache.jackrabbit.oak.plugins.version;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.query;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.commit;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.lifecycle;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.state;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.authentication;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.authentication.callback;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.authentication.external;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.authentication.token;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.authorization;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.authorization.permission;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.authorization.restriction;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.principal;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.privilege;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.user;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.user.action;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.security.user.util;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.whiteboard;version="0.15.0",
+              org.apache.jackrabbit.oak.spi.xml;version="0.15.0",
+              org.apache.jackrabbit.oak.query.fulltext;version="0.15.0",
+              org.apache.jackrabbit.oak.security;version="0.15.0",
+              <!-- for now also export the jaas login modules so that they can be instantiated via felix LoginModuleFactories -->
+              org.apache.jackrabbit.oak.security.authentication.token;version="0.15.0",
+              org.apache.jackrabbit.oak.security.authentication.user;version="0.15.0",
+              org.apache.jackrabbit.oak.security.authentication.ldap;version="0.15.0"
             </Export-Package>
             <Jaas-ModuleClass>
               org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule,
@@ -179,25 +184,25 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk-api</artifactId>
-      <version>${project.version}</version>
+      <version>0.15</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk</artifactId>
-      <version>${project.version}</version>
+        <version>0.15</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk-remote</artifactId>
-      <version>${project.version}</version>
+        <version>0.15</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>
-      <version>${project.version}</version>
+        <version>0.15</version>
     </dependency>
 
     <dependency>
