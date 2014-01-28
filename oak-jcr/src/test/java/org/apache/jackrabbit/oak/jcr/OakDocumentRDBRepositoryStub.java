@@ -30,7 +30,7 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
@@ -83,7 +83,7 @@ public class OakDocumentRDBRepositoryStub extends RepositoryStub {
     }
 
     protected Repository createRepository(String url, String username, String password) {
-        MongoMK m = new MongoMK.Builder().setClusterId(1).memoryCacheSize(64 * 1024 * 1024)
+        DocumentMK m = new DocumentMK.Builder().setClusterId(1).memoryCacheSize(64 * 1024 * 1024)
                 .setRDBConnection(url, username, password).open();
         Jcr jcr = new Jcr(m);
         return jcr.createRepository();

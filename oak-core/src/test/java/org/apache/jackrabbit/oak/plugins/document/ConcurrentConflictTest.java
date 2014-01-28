@@ -41,7 +41,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * <code>ConcurrentConflictTest</code>...
  */
-public class ConcurrentConflictTest extends BaseMongoMKTest {
+public class ConcurrentConflictTest extends BaseDocumentMKTest {
 
     private static final boolean USE_LOGGER = true;
     private static final Logger LOG = LoggerFactory.getLogger(ConcurrentConflictTest.class);
@@ -49,26 +49,26 @@ public class ConcurrentConflictTest extends BaseMongoMKTest {
     private static final int NUM_NODES = 10;
     private static final int NUM_TRANSFERS_PER_THREAD = 10;
     private DocumentStore store;
-    private List<MongoMK> kernels = new ArrayList<MongoMK>();
+    private List<DocumentMK> kernels = new ArrayList<DocumentMK>();
     private final StringBuilder logBuffer = new StringBuilder();
 
     @Before
     @Override
-    public void initMongoMK() {
+    public void initDocumentMK() {
         logBuffer.setLength(0);
         this.store = new MemoryDocumentStore();
-        MongoMK mk = openMongoMK();
+        DocumentMK mk = openDocumentMK();
         for (int i = 0; i < NUM_NODES; i++) {
             mk.commit("/", "+\"node-" + i + "\":{\"value\":100}", null, null);
         }
         mk.dispose();
         for (int i = 0; i < NUM_WRITERS; i++) {
-            kernels.add(openMongoMK());
+            kernels.add(openDocumentMK());
         }
     }
 
-    private MongoMK openMongoMK() {
-        return new MongoMK.Builder().setAsyncDelay(10).setDocumentStore(store).open();
+    private DocumentMK openDocumentMK() {
+        return new DocumentMK.Builder().setAsyncDelay(10).setDocumentStore(store).open();
     }
 
     @Ignore
@@ -171,10 +171,10 @@ public class ConcurrentConflictTest extends BaseMongoMKTest {
             t.join();
         }
         // dispose will flush all pending revisions
-        for (MongoMK mk : kernels) {
+        for (DocumentMK mk : kernels) {
             mk.dispose();
         }
-        MongoMK mk = openMongoMK();
+        DocumentMK mk = openDocumentMK();
         String rev = mk.getHeadRevision();
         long sum = 0;
         for (int i = 0; i < NUM_NODES; i++) {

@@ -38,7 +38,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
 /**
- * A repository stub implementation for Oak on MongoMK
+ * A repository stub implementation for Oak on DocumentMK
  */
 public class OakSegmentMKRepositoryStub extends RepositoryStub {
 

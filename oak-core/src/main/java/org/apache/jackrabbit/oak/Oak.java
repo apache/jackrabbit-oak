@@ -284,9 +284,9 @@ public class Oak {
 
     public Oak() {
         this(new MicroKernelImpl());
-        // this(new MongoMK.Builder().open());
+        // this(new DocumentMK.Builder().open());
         // this(new LogWrapper(new MicroKernelImpl()));
-        // this(new LogWrapper(new MongoMK.Builder().open()));
+        // this(new LogWrapper(new DocumentMK.Builder().open()));
     }
 
     /**

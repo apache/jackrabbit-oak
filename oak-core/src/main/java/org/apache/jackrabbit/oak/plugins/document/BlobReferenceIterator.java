@@ -39,14 +39,14 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 public class BlobReferenceIterator implements Iterator<Blob> {
     
     private static final int BATCH_SIZE = 1000;
-    private final MongoNodeStore nodeStore;
+    private final DocumentNodeStore nodeStore;
     private final DocumentStore docStore;
     private HashSet<Blob> batch = new HashSet<Blob>();
     private Iterator<Blob> batchIterator;
     private boolean done;
     private String fromKey = "0000000";
 
-    public BlobReferenceIterator(MongoNodeStore nodeStore) {
+    public BlobReferenceIterator(DocumentNodeStore nodeStore) {
         this.nodeStore = nodeStore;
         this.docStore = nodeStore.getDocumentStore();
         batchIterator = batch.iterator();
@@ -121,7 +121,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
         JsopReader reader = new JsopTokenizer(v);
         PropertyState p;
         if (reader.matches('[')) {
-            p = MongoPropertyState.readArrayProperty("x", nodeStore, reader);
+            p = DocumentPropertyState.readArrayProperty("x", nodeStore, reader);
             if (p.getType() == Type.BINARIES) {
                 for (int i = 0; i < p.count(); i++) {
                     Blob b = p.getValue(Type.BINARY, i);
@@ -129,7 +129,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
                 }
             }
         } else {
-            p = MongoPropertyState.readProperty("x", nodeStore, reader);
+            p = DocumentPropertyState.readProperty("x", nodeStore, reader);
             if (p.getType() == Type.BINARY) {
                 Blob b = p.getValue(Type.BINARY);
                 batch.add(b);

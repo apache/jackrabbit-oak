@@ -41,11 +41,11 @@ public class ManyChildNodesTest {
     @Test
     public void manyChildNodes() throws Exception {
         TestStore store = new TestStore();
-        MongoMK mk = new MongoMK.Builder().setDocumentStore(store).open();
+        DocumentMK mk = new DocumentMK.Builder().setDocumentStore(store).open();
         NodeStore ns = mk.getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
-        for (int i = 0; i < MongoNodeState.MAX_FETCH_SIZE * 2; i++) {
+        for (int i = 0; i < DocumentNodeState.MAX_FETCH_SIZE * 2; i++) {
             builder.child("c-" + i);
         }
         ns.merge(builder, EmptyHook.INSTANCE, null);
@@ -55,9 +55,9 @@ public class ManyChildNodesTest {
             entry.getName();
         }
         // maximum fetch size is MAX_FETCH_SIZE plus one because
-        // MongoNodeStore will use this value to find out if there
+        // DocumentNodeStore will use this value to find out if there
         // are more child nodes than requested
-        int maxFetchSize = MongoNodeState.MAX_FETCH_SIZE + 1;
+        int maxFetchSize = DocumentNodeState.MAX_FETCH_SIZE + 1;
         for (Map.Entry<String, Integer> e : store.queries.entrySet()) {
             assertTrue(e.getValue() + " > " + maxFetchSize,
                     e.getValue() <= maxFetchSize);

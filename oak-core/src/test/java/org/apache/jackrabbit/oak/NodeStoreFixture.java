@@ -25,8 +25,8 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
-import org.apache.jackrabbit.oak.plugins.document.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -55,12 +55,12 @@ public abstract class NodeStoreFixture {
     public static final NodeStoreFixture MONGO_MK = new NodeStoreFixture() {
         @Override
         public String toString() {
-            return "MongoMK Fixture";
+            return "DocumentMK Fixture";
         }
 
         @Override
         public NodeStore createNodeStore() {
-            return new CloseableNodeStore(new MongoMK.Builder().open());
+            return new CloseableNodeStore(new DocumentMK.Builder().open());
         }
 
         @Override
@@ -83,13 +83,13 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            return new MongoMK.Builder().getNodeStore();
+            return new DocumentMK.Builder().getNodeStore();
         }
 
         @Override
         public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof MongoNodeStore) {
-                ((MongoNodeStore) nodeStore).dispose();
+            if (nodeStore instanceof DocumentNodeStore) {
+                ((DocumentNodeStore) nodeStore).dispose();
             }
         }
     };
@@ -117,9 +117,9 @@ public abstract class NodeStoreFixture {
     private static class CloseableNodeStore
             extends KernelNodeStore implements Closeable {
 
-        private final MongoMK kernel;
+        private final DocumentMK kernel;
 
-        public CloseableNodeStore(MongoMK kernel) {
+        public CloseableNodeStore(DocumentMK kernel) {
             super(kernel, DEFAULT_CACHE_SIZE);
             this.kernel = kernel;
         }

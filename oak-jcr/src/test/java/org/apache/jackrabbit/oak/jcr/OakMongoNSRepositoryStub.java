@@ -21,12 +21,12 @@ import java.util.Properties;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
-import org.apache.jackrabbit.oak.plugins.document.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 
 /**
- * A repository stub using the MongoNodeStore.
+ * A repository stub using the DocumentNodeStore.
  */
 public class OakMongoNSRepositoryStub extends OakMongoMKRepositoryStub {
 
@@ -37,7 +37,7 @@ public class OakMongoNSRepositoryStub extends OakMongoMKRepositoryStub {
 
     @Override
     protected Repository createRepository(MongoConnection connection) {
-        MongoNodeStore store = new MongoMK.Builder().setClusterId(1).
+        DocumentNodeStore store = new DocumentMK.Builder().setClusterId(1).
                 memoryCacheSize(64 * 1024 * 1024).
                 setMongoDB(connection.getDB()).getNodeStore();
         return new Jcr(store).createRepository();

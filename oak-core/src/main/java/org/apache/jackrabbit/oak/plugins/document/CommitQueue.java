@@ -42,13 +42,13 @@ class CommitQueue {
 
     static final Logger LOG = LoggerFactory.getLogger(CommitQueue.class);
 
-    private final MongoNodeStore store;
+    private final DocumentNodeStore store;
 
     private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(StableRevisionComparator.INSTANCE);
 
     private final ChangeDispatcher dispatcher;
 
-    CommitQueue(MongoNodeStore store, ChangeDispatcher dispatcher) {
+    CommitQueue(DocumentNodeStore store, ChangeDispatcher dispatcher) {
         this.store = store;
         this.dispatcher = dispatcher;
     }

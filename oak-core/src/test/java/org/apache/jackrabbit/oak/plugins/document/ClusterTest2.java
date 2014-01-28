@@ -31,14 +31,14 @@ public class ClusterTest2 {
     public void twoNodes() throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
-        MongoMK.Builder builder;
+        DocumentMK.Builder builder;
         
-        builder = new MongoMK.Builder();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs);
-        MongoMK mk1 = builder.setClusterId(1).open();
-        builder = new MongoMK.Builder();
+        DocumentMK mk1 = builder.setClusterId(1).open();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs);
-        MongoMK mk2 = builder.setClusterId(2).open();
+        DocumentMK mk2 = builder.setClusterId(2).open();
 
         mk1.commit("/", "+\"test\":{\"x\": 1}", null, null);
         mk1.backgroundWrite();

@@ -40,12 +40,12 @@ import static org.junit.Assert.assertTrue;
 /**
  * Check correct splitting of documents (OAK-926).
  */
-public class DocumentSplitTest extends BaseMongoMKTest {
+public class DocumentSplitTest extends BaseDocumentMKTest {
 
     @Test
     public void splitRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
-        MongoNodeStore ns = mk.getNodeStore();
+        DocumentNodeStore ns = mk.getNodeStore();
         Set<Revision> revisions = Sets.newHashSet();
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/"));
         assertNotNull(doc);
@@ -77,7 +77,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     @Test
     public void splitDeleted() throws Exception {
         DocumentStore store = mk.getDocumentStore();
-        MongoNodeStore ns = mk.getNodeStore();
+        DocumentNodeStore ns = mk.getNodeStore();
         Set<Revision> revisions = Sets.newHashSet();
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
@@ -140,7 +140,7 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     @Test
     public void splitPropertyRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
-        MongoNodeStore ns = mk.getNodeStore();
+        DocumentNodeStore ns = mk.getNodeStore();
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -171,22 +171,22 @@ public class DocumentSplitTest extends BaseMongoMKTest {
     public void cluster() {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
-        MongoMK.Builder builder;
+        DocumentMK.Builder builder;
 
-        builder = new MongoMK.Builder();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        MongoMK mk1 = builder.setClusterId(1).open();
+        DocumentMK mk1 = builder.setClusterId(1).open();
 
         mk1.commit("/", "+\"test\":{\"prop1\":0}", null, null);
-        // make sure the new node is visible to other MongoMK instances
+        // make sure the new node is visible to other DocumentMK instances
         mk1.backgroundWrite();
 
-        builder = new MongoMK.Builder();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        MongoMK mk2 = builder.setClusterId(2).open();
-        builder = new MongoMK.Builder();
+        DocumentMK mk2 = builder.setClusterId(2).open();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        MongoMK mk3 = builder.setClusterId(3).open();
+        DocumentMK mk3 = builder.setClusterId(3).open();
 
         for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
             mk1.commit("/", "^\"test/prop1\":" + i, null, null);
@@ -220,11 +220,11 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         MemoryBlobStore bs = new MemoryBlobStore();
 
         List<Set<String>> changes = new ArrayList<Set<String>>();
-        List<MongoMK> mks = new ArrayList<MongoMK>();
+        List<DocumentMK> mks = new ArrayList<DocumentMK>();
         for (int i = 1; i <= numMKs; i++) {
-            MongoMK.Builder builder = new MongoMK.Builder();
+            DocumentMK.Builder builder = new DocumentMK.Builder();
             builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-            MongoMK mk = builder.setClusterId(i).open();
+            DocumentMK mk = builder.setClusterId(i).open();
             mks.add(mk);
             changes.add(new HashSet<String>());
             if (i == 1) {
@@ -239,8 +239,8 @@ public class DocumentSplitTest extends BaseMongoMKTest {
         for (int i = 0; i < 1000; i++) {
             int mkIdx = random.nextInt(mks.size());
             // pick mk
-            MongoMK mk = mks.get(mkIdx);
-            MongoNodeStore ns = mk.getNodeStore();
+            DocumentMK mk = mks.get(mkIdx);
+            DocumentNodeStore ns = mk.getNodeStore();
             // pick property name to update
             String name = propNames.get(random.nextInt(propNames.size()));
             // need to sync?
@@ -269,12 +269,12 @@ public class DocumentSplitTest extends BaseMongoMKTest {
             mk.commit("/test", "^\"" + name + "\":" + value, null, null);
             changes.get(mkIdx).add(name);
         }
-        for (MongoMK mk : mks) {
+        for (DocumentMK mk : mks) {
             mk.dispose();
         }
     }
 
-    private void syncMKs(List<MongoMK> mks, int idx) {
+    private void syncMKs(List<DocumentMK> mks, int idx) {
         mks.get(idx).runBackgroundOperations();
         for (int i = 0; i < mks.size(); i++) {
             if (idx != i) {

@@ -38,11 +38,11 @@ public class ClusterInfoTest {
     public void readWriteMode() throws InterruptedException {
         
         MemoryDocumentStore mem = new MemoryDocumentStore();
-        MongoNodeStore ns1 = new MongoMK.Builder().
+        DocumentNodeStore ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
                 getNodeStore();
-        MongoNodeStore ns2 = new MongoMK.Builder().
+        DocumentNodeStore ns2 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
                 getNodeStore();

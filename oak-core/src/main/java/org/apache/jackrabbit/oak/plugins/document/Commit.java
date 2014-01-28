@@ -45,7 +45,7 @@ public class Commit {
 
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
-    private final MongoNodeStore nodeStore;
+    private final DocumentNodeStore nodeStore;
     private final Revision baseRevision;
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
@@ -61,7 +61,7 @@ public class Commit {
     private HashSet<String> addedNodes = new HashSet<String>();
     private HashSet<String> removedNodes = new HashSet<String>();
     
-    Commit(MongoNodeStore nodeStore, Revision baseRevision, Revision revision) {
+    Commit(DocumentNodeStore nodeStore, Revision baseRevision, Revision revision) {
         this.baseRevision = baseRevision;
         this.revision = revision;
         this.nodeStore = nodeStore;
@@ -96,7 +96,7 @@ public class Commit {
 
     /**
      * Returns the base revision for this commit. That is, the revision passed
-     * to {@link MongoMK#commit(String, String, String, String)}. The base
+     * to {@link DocumentMK#commit(String, String, String, String)}. The base
      * revision may be <code>null</code>, e.g. for the initial commit of the
      * root node, when there is no base revision.
      *
@@ -442,7 +442,7 @@ public class Commit {
     }
 
     /**
-     * Apply the changes to the MongoMK (to update the cache).
+     * Apply the changes to the DocumentMK (to update the cache).
      * 
      * @param isBranchCommit whether this is a commit to a branch
      */

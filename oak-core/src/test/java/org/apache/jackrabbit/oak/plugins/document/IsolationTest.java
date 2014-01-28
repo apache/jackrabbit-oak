@@ -22,7 +22,7 @@ import org.junit.Test;
  * Tests if commits to branches and trunk are properly isolated and repository
  * state on a given revision is stable.
  */
-public class IsolationTest extends BaseMongoMKTest {
+public class IsolationTest extends BaseDocumentMKTest {
 
     @Test
     public void phantomReadOnBranch() {

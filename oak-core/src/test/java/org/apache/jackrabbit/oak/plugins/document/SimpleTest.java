@@ -44,7 +44,7 @@ public class SimpleTest {
 
     @Test
     public void test() {
-        MongoMK mk = new MongoMK.Builder().open();
+        DocumentMK mk = new DocumentMK.Builder().open();
         mk.dispose();
     }
 
@@ -70,7 +70,7 @@ public class SimpleTest {
     
     @Test
     public void addNodeGetNode() {
-        MongoMK mk = new MongoMK.Builder().open();
+        DocumentMK mk = new DocumentMK.Builder().open();
         Revision rev = Revision.fromString(mk.getHeadRevision());
         Node n = new Node("/test", rev);
         n.setProperty("name", "Hello");
@@ -78,7 +78,7 @@ public class SimpleTest {
         // mark as commit root
         NodeDocument.setRevision(op, rev, "c");
         DocumentStore s = mk.getDocumentStore();
-        MongoNodeStore ns = mk.getNodeStore();
+        DocumentNodeStore ns = mk.getNodeStore();
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
         Node n2 = ns.getNode("/test", rev);
         assertEquals("Hello", n2.getProperty("name"));
@@ -87,7 +87,7 @@ public class SimpleTest {
     
     @Test
     public void nodeIdentifier() {
-        MongoMK mk = createMK(true);
+        DocumentMK mk = createMK(true);
 
         String rev0 = mk.getHeadRevision();
         String rev1 = mk.commit("/", "+\"test\":{}", null, null);
@@ -121,7 +121,7 @@ public class SimpleTest {
     
     @Test
     public void conflict() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         mk.commit("/", "+\"a\": {}", null, null);
         try {
             mk.commit("/", "+\"b\": {}  +\"a\": {}", null, null);
@@ -137,7 +137,7 @@ public class SimpleTest {
     
     @Test
     public void diff() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         
         String rev0 = mk.getHeadRevision();
         String rev1 = mk.commit("/", "+\"t1\":{}", null, null);
@@ -169,7 +169,7 @@ public class SimpleTest {
 
     @Test
     public void reAddDeleted() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         String rev0 = mk.getHeadRevision();
         String rev1 = mk.commit("/", "+\"test\":{\"name\": \"Hello\"} ^ \"x\": 1", null, null);
         String rev2 = mk.commit("/", "-\"test\" ^ \"x\": 2", null, null);
@@ -187,7 +187,7 @@ public class SimpleTest {
 
     @Test
     public void reAddDeleted2() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         String rev = mk.commit("/", "+\"test\":{\"x\":\"1\",\"child\": {}}", null, null);
         rev = mk.commit("/", "-\"test\"", rev, null);
         rev = mk.commit("/", "+\"test\":{}  +\"test2\": {}", null, null);
@@ -200,7 +200,7 @@ public class SimpleTest {
     
     @Test
     public void move() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         String rev = mk.commit("/", "+\"test\":{\"x\":\"1\",\"child\": {}}", null, null);
         rev = mk.commit("/", ">\"test\": \"/test2\"", rev, null);
         String test = mk.getNodes("/test2", rev, 0, 0, Integer.MAX_VALUE, null);
@@ -212,7 +212,7 @@ public class SimpleTest {
     
     @Test
     public void copy() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         String rev = mk.commit("/", "+\"test\":{\"x\":\"1\",\"child\": {}}", null, null);
         rev = mk.commit("/", "*\"test\": \"/test2\"", rev, null);
         String test = mk.getNodes("/test2", rev, 0, 0, Integer.MAX_VALUE, null);
@@ -224,7 +224,7 @@ public class SimpleTest {
 
     @Test
     public void escapePropertyName() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         String rev = mk.commit(
                 "/", "+\"test\":{\"name.first\": \"Hello\", \"_id\": \"a\", \"$x\": \"1\"}", null, null);
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
@@ -234,8 +234,8 @@ public class SimpleTest {
     
     @Test
     public void commit() {
-        MongoMK mk = createMK();
-        MongoNodeStore ns = mk.getNodeStore();
+        DocumentMK mk = createMK();
+        DocumentNodeStore ns = mk.getNodeStore();
         
         String rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
@@ -263,8 +263,8 @@ public class SimpleTest {
 
     @Test
     public void delete() {
-        MongoMK mk = createMK();
-        MongoNodeStore ns = mk.getNodeStore();
+        DocumentMK mk = createMK();
+        DocumentNodeStore ns = mk.getNodeStore();
 
         mk.commit("/", "+\"testDel\":{\"name\": \"Hello\"}", null, null);
         mk.commit("/testDel", "+\"a\":{\"name\": \"World\"}", null, null);
@@ -289,7 +289,7 @@ public class SimpleTest {
     
     @Test
     public void escapeUnescape() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         String rev;
         String nodes; 
         Random r = new Random(1);
@@ -333,7 +333,7 @@ public class SimpleTest {
     
     @Test
     public void nodeAndPropertyNames() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         String rev;
         String nodes; 
         for (String s : new String[] { "_", "$", "__", "_id", "$x", ".", ".\\", "x\\", "\\x", "first.name" }) {
@@ -366,7 +366,7 @@ public class SimpleTest {
 
     @Test
     public void addAndMove() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
 
         String head = mk.getHeadRevision();
         head = mk.commit("",
@@ -385,7 +385,7 @@ public class SimpleTest {
 
     @Test
     public void commitRoot() {
-        MongoMK mk = createMK();
+        DocumentMK mk = createMK();
         try {
             DocumentStore store = mk.getDocumentStore();
             Revision head = Revision.fromString(mk.getHeadRevision());
@@ -433,12 +433,12 @@ public class SimpleTest {
         }
     }
 
-    private static MongoMK createMK() {
+    private static DocumentMK createMK() {
         return createMK(false);
     }
 
-    private static MongoMK createMK(boolean useSimpleRevision) {
-        MongoMK.Builder builder = new MongoMK.Builder();
+    private static DocumentMK createMK(boolean useSimpleRevision) {
+        DocumentMK.Builder builder = new DocumentMK.Builder();
 
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();

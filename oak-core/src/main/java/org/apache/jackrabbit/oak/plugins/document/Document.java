@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import com.google.common.collect.Maps;
 
 /**
- * A document corresponds to a node stored in the MongoMK. A document contains
+ * A document corresponds to a node stored in the DocumentMK. A document contains
  * all the revisions of a node stored in the {@link DocumentStore}.
  */
 public class Document implements CacheValue {

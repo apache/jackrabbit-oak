@@ -36,12 +36,12 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
@@ -80,14 +80,14 @@ public class ClusterPermissionsTest {
     public void before() throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
-        MongoMK.Builder builder;
+        DocumentMK.Builder builder;
 
-        builder = new MongoMK.Builder();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(1);
-        MongoMK mk1 = builder.setClusterId(1).open();
-        builder = new MongoMK.Builder();
+        DocumentMK mk1 = builder.setClusterId(1).open();
+        builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(1);
-        MongoMK mk2 = builder.setClusterId(2).open();
+        DocumentMK mk2 = builder.setClusterId(2).open();
 
         Oak oak = new Oak(mk1)
                 .with(new InitialContent())

@@ -50,7 +50,7 @@ public class RandomizedClusterTest {
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
     
-    private MongoMK[] mkList = new MongoMK[MK_COUNT];
+    private DocumentMK[] mkList = new DocumentMK[MK_COUNT];
     private String[] revList = new String[MK_COUNT];
     @SuppressWarnings({ "unchecked", "cast" })
     private HashSet<Integer>[] unseenChanges = (HashSet<Integer>[]) new HashSet[MK_COUNT];
@@ -219,7 +219,7 @@ public class RandomizedClusterTest {
                 log("get " + node2);
                 x = get(i, node2);
                 log("get " + node2 + " returns " + x);
-                MongoMK mk = mkList[mkId];
+                DocumentMK mk = mkList[mkId];
                 ClusterRev cr = new ClusterRev();
                 cr.mkId = mkId;
                 cr.rev = mk.getHeadRevision();
@@ -277,17 +277,17 @@ public class RandomizedClusterTest {
     
     private void syncClusterNode() {
         for (int i = 0; i < mkList.length; i++) {
-            MongoMK mk = mkList[i];
+            DocumentMK mk = mkList[i];
             mk.backgroundWrite();
         }
-        MongoMK mk = mkList[mkId];
+        DocumentMK mk = mkList[mkId];
         mk.backgroundRead();
     }
     
     private void syncAndRefreshAllClusterNodes() {
         syncClusterNode();
         for (int i = 0; i < mkList.length; i++) {
-            MongoMK mk = mkList[i];
+            DocumentMK mk = mkList[i];
             mk.backgroundRead();
             revList[i] = mk.getHeadRevision();
             unseenChanges[i].clear();
@@ -302,13 +302,13 @@ public class RandomizedClusterTest {
     
     private boolean exists(String node) {
         String head = revList[mkId];
-        MongoMK mk = mkList[mkId];
+        DocumentMK mk = mkList[mkId];
         return mk.nodeExists("/" + node, head);
     }
         
     private boolean get(int maxOp, String node, String head) {
         String p = "/" + node;
-        MongoMK mk = mkList[mkId];
+        DocumentMK mk = mkList[mkId];
         String value = getValue(mkId, maxOp, node);
         if (value == null) {
             assertFalse("path: " + p + " is supposed to not exist", 
@@ -338,7 +338,7 @@ public class RandomizedClusterTest {
 
     private String commit(String diff, boolean conflictExpected) {
         boolean ok = false;
-        MongoMK mk = mkList[mkId];
+        DocumentMK mk = mkList[mkId];
         String rev = revList[mkId];
         String result = null;
         String ex = null;
@@ -370,8 +370,8 @@ public class RandomizedClusterTest {
         return result;
     }
     
-    private MongoMK createMK(int clusterId) {
-        MongoMK.Builder builder = new MongoMK.Builder();
+    private DocumentMK createMK(int clusterId) {
+        DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.setAsyncDelay(0);
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();

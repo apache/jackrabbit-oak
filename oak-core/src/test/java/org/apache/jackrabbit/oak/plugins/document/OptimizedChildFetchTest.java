@@ -37,13 +37,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.matchers.JUnitMatchers.hasItem;
 
 
-public class OptimizedChildFetchTest extends BaseMongoMKTest {
+public class OptimizedChildFetchTest extends BaseDocumentMKTest {
 
     private TestDocumentStore ds = new TestDocumentStore();
 
     @Before
-    public void initMongoMK() {
-        mk = new MongoMK.Builder().setDocumentStore(ds).open();
+    public void initDocumentMK() {
+        mk = new DocumentMK.Builder().setDocumentStore(ds).open();
     }
 
     @Test
@@ -90,8 +90,8 @@ public class OptimizedChildFetchTest extends BaseMongoMKTest {
     }
 
     private void resetMK() {
-        disposeMongoMK();
-        initMongoMK();
+        disposeDocumentMK();
+        initDocumentMK();
 
     }
 

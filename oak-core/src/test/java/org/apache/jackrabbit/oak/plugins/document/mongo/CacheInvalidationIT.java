@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
-import org.apache.jackrabbit.oak.plugins.document.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -42,8 +42,8 @@ import static org.junit.Assert.assertEquals;
 
 public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
-    private MongoNodeStore c1;
-    private MongoNodeStore c2;
+    private DocumentNodeStore c1;
+    private DocumentNodeStore c2;
 
     @Before
     public void prepareStores() throws Exception {
@@ -163,12 +163,12 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     }
 
-    private void refreshHead(MongoNodeStore store){
+    private void refreshHead(DocumentNodeStore store){
         ds(store).find(Collection.NODES, Utils.getIdFromPath("/"), 0);
     }
 
 
-    private static MongoDocumentStore ds(MongoNodeStore ns){
+    private static MongoDocumentStore ds(DocumentNodeStore ns){
         return (MongoDocumentStore) ns.getDocumentStore();
     }
 
@@ -201,15 +201,15 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         c2.dispose();
     }
 
-    private void runBgOps(MongoNodeStore ... stores){
-        for(MongoNodeStore ns : stores){
+    private void runBgOps(DocumentNodeStore... stores){
+        for(DocumentNodeStore ns : stores){
             ns.runBackgroundOperations();
         }
     }
 
-    private MongoNodeStore createNS(int clusterId) throws Exception {
+    private DocumentNodeStore createNS(int clusterId) throws Exception {
         MongoConnection mc = MongoUtils.getConnection();
-        return new MongoMK.Builder()
+        return new DocumentMK.Builder()
                           .setMongoDB(mc.getDB())
                           .setClusterId(clusterId)
                           .setAsyncDelay(0) //Set delay to 0 so that effect of changes are immediately reflected

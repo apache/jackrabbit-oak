@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -54,7 +54,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends
         for (int i = 0; i < numberOfMks; i++) {
             String diff = buildPyramidDiff("/", 0, numberOfChildren,
                     numberOfNodes, prefixes[i], new StringBuilder()).toString();
-            MongoMK mk = new MongoMK.Builder().open();
+            DocumentMK mk = new DocumentMK.Builder().open();
             GenericWriteTask task = new GenericWriteTask("mk-" + i, mk, diff, 10);
             executor.execute(task);
         }
@@ -105,7 +105,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends
         private String diff;
         private int nodesPerCommit;
 
-        public GenericWriteTask(String id, MongoMK mk, String diff,
+        public GenericWriteTask(String id, DocumentMK mk, String diff,
                 int nodesPerCommit) {
             this.id = id;
             this.mk = mk;

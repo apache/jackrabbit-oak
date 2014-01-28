@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.util.UUID;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -52,7 +52,7 @@ public abstract class NodeStoreFixture {
     public static final NodeStoreFixture MONGO_MK = new NodeStoreFixture() {
         @Override
         public NodeStore createNodeStore() {
-            return new CloseableNodeStore(new MongoMK.Builder().open());
+            return new CloseableNodeStore(new DocumentMK.Builder().open());
         }
         
         @Override
@@ -61,7 +61,7 @@ public abstract class NodeStoreFixture {
             try {
                 connection = new MongoConnection("mongodb://localhost:27017/oak");
                 DB mongoDB = connection.getDB();
-                MongoMK mk = new MongoMK.Builder()
+                DocumentMK mk = new DocumentMK.Builder()
                                 .setMongoDB(mongoDB).open();
                 return new CloseableNodeStore(mk);
             } catch (Exception e) {
@@ -87,13 +87,13 @@ public abstract class NodeStoreFixture {
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            return new MongoMK.Builder().setRDBConnection("jdbc:h2:mem:" + id, "sa", "").getNodeStore();
+            return new DocumentMK.Builder().setRDBConnection("jdbc:h2:mem:" + id, "sa", "").getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
-                return new MongoMK.Builder().setRDBConnection("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "").getNodeStore();
+                return new DocumentMK.Builder().setRDBConnection("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "").getNodeStore();
             } catch (Exception e) {
                 return null;
             }
@@ -101,8 +101,8 @@ public abstract class NodeStoreFixture {
 
         @Override
         public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof MongoNodeStore) {
-                ((MongoNodeStore) nodeStore).dispose();
+            if (nodeStore instanceof DocumentNodeStore) {
+                ((DocumentNodeStore) nodeStore).dispose();
             }
         }
     };
@@ -122,7 +122,7 @@ public abstract class NodeStoreFixture {
         return new NodeStoreFixture() {
             @Override
             public NodeStore createNodeStore() {
-                return new MongoMK.Builder().getNodeStore();
+                return new DocumentMK.Builder().getNodeStore();
             }
             
             @Override
@@ -131,7 +131,7 @@ public abstract class NodeStoreFixture {
                 try {
                     connection = new MongoConnection(uri);
                     DB mongoDB = connection.getDB();
-                    return new MongoMK.Builder()
+                    return new DocumentMK.Builder()
                                     .setMongoDB(mongoDB).getNodeStore();
                 } catch (Exception e) {
                     return null;
@@ -140,8 +140,8 @@ public abstract class NodeStoreFixture {
 
             @Override
             public void dispose(NodeStore nodeStore) {
-                if (nodeStore instanceof MongoNodeStore) {
-                    ((MongoNodeStore) nodeStore).dispose();
+                if (nodeStore instanceof DocumentNodeStore) {
+                    ((DocumentNodeStore) nodeStore).dispose();
                 }
             }
         };
@@ -171,9 +171,9 @@ public abstract class NodeStoreFixture {
     private static class CloseableNodeStore
             extends KernelNodeStore implements Closeable {
 
-        private final MongoMK kernel;
+        private final DocumentMK kernel;
 
-        public CloseableNodeStore(MongoMK kernel) {
+        public CloseableNodeStore(DocumentMK kernel) {
             super(kernel);
             this.kernel = kernel;
         }

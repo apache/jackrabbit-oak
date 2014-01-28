@@ -41,7 +41,7 @@ public class RandomizedTest {
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
     
-    private MongoMK mk;
+    private DocumentMK mk;
     private MicroKernelImpl mkGold;
     
     private String commitRev;
@@ -236,8 +236,8 @@ public class RandomizedTest {
         return ok;
     }
     
-    private static MongoMK createMK() {
-        MongoMK.Builder builder = new MongoMK.Builder();
+    private static DocumentMK createMK() {
+        DocumentMK.Builder builder = new DocumentMK.Builder();
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);

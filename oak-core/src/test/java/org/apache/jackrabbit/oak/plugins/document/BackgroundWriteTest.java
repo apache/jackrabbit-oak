@@ -25,17 +25,17 @@ import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests related to background write operation in MongoNodeStore.
+ * Tests related to background write operation in DocumentNodeStore.
  */
 public class BackgroundWriteTest {
 
     @Test // OAK-1190
     public void limitMultiUpdate() {
-        MongoMK mk = new MongoMK.Builder().setDocumentStore(
+        DocumentMK mk = new DocumentMK.Builder().setDocumentStore(
                 new TestStore()).setAsyncDelay(0).open();
         List<String> paths = new ArrayList<String>();
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; paths.size() < MongoNodeStore.BACKGROUND_MULTI_UPDATE_LIMIT * 2; i++) {
+        for (int i = 0; paths.size() < DocumentNodeStore.BACKGROUND_MULTI_UPDATE_LIMIT * 2; i++) {
             String child = "node-" + i;
             sb.append("+\"").append(child).append("\":{}");
             for (int j = 0; j < 1000; j++) {
@@ -61,7 +61,7 @@ public class BackgroundWriteTest {
         public <T extends Document> void update(Collection<T> collection,
                                                 List<String> keys,
                                                 UpdateOp updateOp) {
-            assertTrue(keys.size() <= MongoNodeStore.BACKGROUND_MULTI_UPDATE_LIMIT);
+            assertTrue(keys.size() <= DocumentNodeStore.BACKGROUND_MULTI_UPDATE_LIMIT);
             super.update(collection, keys, updateOp);
         }
     }
