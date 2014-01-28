@@ -65,7 +65,7 @@ public class BlobStoreInputStream extends InputStream {
         return oneByteBuff[0] & 0xff;
     }
 
-    public static byte[] readFully(AbstractBlobStore store, String id) throws IOException {
+    public static byte[] readFully(BlobStore store, String id) throws IOException {
         int len = (int) store.getBlobLength(id);
         byte[] buff = new byte[len];
         BlobStoreInputStream in = new BlobStoreInputStream(store, id, 0);

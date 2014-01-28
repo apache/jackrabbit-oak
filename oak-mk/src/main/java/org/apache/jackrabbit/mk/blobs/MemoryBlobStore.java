@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 /**
@@ -42,7 +43,7 @@ public class MemoryBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public void startMark() throws Exception {
+    public void startMark() throws IOException {
         mark = true;
         old = map;
         map = new HashMap<BlockId, byte[]>();
@@ -55,7 +56,7 @@ public class MemoryBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    protected void mark(BlockId id) throws Exception {
+    protected void mark(BlockId id) {
         byte[] data = map.get(id);
         if (data == null) {
             data = old.get(id);

@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * A file blob store.
@@ -48,10 +49,15 @@ public class FileBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public String writeBlob(String tempFilePath) throws Exception {
+    public String writeBlob(String tempFilePath) throws IOException {
         File file = new File(tempFilePath);
         InputStream in = new FileInputStream(file);
-        MessageDigest messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
+        MessageDigest messageDigest;
+        try {
+            messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e);
+        }
         DigestInputStream din = new DigestInputStream(in, messageDigest);
         long length = file.length();
         try {
@@ -136,7 +142,7 @@ public class FileBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public void startMark() throws Exception {
+    public void startMark() throws IOException {
         mark = true;
         for (int j = 0; j < 256; j++) {
             String sub1 = StringUtils.convertBytesToHex(new byte[] { (byte) j });

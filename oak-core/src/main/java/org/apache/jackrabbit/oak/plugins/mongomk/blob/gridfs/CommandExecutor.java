@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk.blob.gridfs;
 
+import java.io.IOException;
+
 /**
  * The executor part of the <a href="http://en.wikipedia.org/wiki/Command_pattern">Command Pattern</a>.
  *
@@ -38,7 +40,7 @@ public interface CommandExecutor {
      * @param <T> the command type
      * @param command
      * @return The result of the execution.
-     * @throws Exception If an error occurred while executing.
+     * @throws IOException If an error occurred while executing.
      */
-    <T> T execute(Command<T> command) throws Exception;
+    <T> T execute(Command<T> command) throws IOException;
 }
