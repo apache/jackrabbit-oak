@@ -99,7 +99,15 @@ public class RDBBlobStore extends AbstractBlobStore {
     private long minLastModified;
 
     @Override
-    protected void storeBlock(byte[] digest, int level, byte[] data) throws SQLException {
+    protected void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
+        try {
+            storeBlockInDatabase(digest, level, data);
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
+    }
+    
+    private void storeBlockInDatabase(byte[] digest, int level, byte[] data) throws SQLException {
         try {
             String id = StringUtils.convertBytesToHex(digest);
             long now = System.currentTimeMillis();
@@ -177,7 +185,7 @@ public class RDBBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public void startMark() throws Exception {
+    public void startMark() throws IOException {
         minLastModified = System.currentTimeMillis();
         markInUse();
     }
@@ -207,7 +215,15 @@ public class RDBBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public int sweep() throws Exception {
+    public int sweep() throws IOException {
+        try {
+            return sweepFromDatabase();
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
+    }
+        
+    private int sweepFromDatabase() throws SQLException {
         try {
             int count = 0;
             PreparedStatement prep = connection.prepareStatement("select id from datastore_meta where lastMod < ?");

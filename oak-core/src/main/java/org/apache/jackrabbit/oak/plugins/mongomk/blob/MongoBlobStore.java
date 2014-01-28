@@ -60,7 +60,7 @@ public class MongoBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    protected void storeBlock(byte[] digest, int level, byte[] data) throws Exception {
+    protected void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
         String id = StringUtils.convertBytesToHex(digest);
         // Check if it already exists?
         MongoBlob mongoBlob = new MongoBlob();
@@ -102,7 +102,7 @@ public class MongoBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public void startMark() throws Exception {
+    public void startMark() throws IOException {
         minLastModified = System.currentTimeMillis();
         markInUse();
     }
@@ -128,7 +128,7 @@ public class MongoBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public int sweep() throws Exception {
+    public int sweep() throws IOException {
         DBObject query = getBlobQuery(null, minLastModified);
         long countBefore = getBlobCollection().count(query);
         WriteResult writeResult = getBlobCollection().remove(query);

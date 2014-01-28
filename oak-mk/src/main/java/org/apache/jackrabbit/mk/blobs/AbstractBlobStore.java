@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,7 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * long), size of data store id (variable size long), hash code length (variable
  * size int), hash code.
  */
-public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
+public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
 
     protected static final String HASH_ALGORITHM = "SHA-256";
 
@@ -103,10 +104,12 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         this.blockSizeMin = x;
     }
 
+    @Override
     public long getBlockSizeMin() {
         return blockSizeMin;
     }
 
+    @Override
     public void setBlockSize(int x) {
         validateBlockSize(x);
         this.blockSize = x;
@@ -124,15 +127,8 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         return blockSize;
     }
 
-    /**
-     * Write a blob from a temporary file. The temporary file is removed
-     * afterwards. A file based blob stores might simply rename the file, so
-     * that no additional writes are necessary.
-     *
-     * @param tempFilePath the temporary file
-     * @return the blob id
-     */
-    public String writeBlob(String tempFilePath) throws Exception {
+    @Override
+    public String writeBlob(String tempFilePath) throws IOException {
         File file = new File(tempFilePath);
         InputStream in = null;
         try {
@@ -147,7 +143,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
     }
 
     @Override
-    public String writeBlob(InputStream in) throws Exception {
+    public String writeBlob(InputStream in) throws IOException {
         try {
             ByteArrayOutputStream idStream = new ByteArrayOutputStream();
             convertBlobToId(in, idStream, 0, 0);
@@ -169,15 +165,17 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         inUse.put(blobId, new WeakReference<String>(blobId));
     }
 
+    @Override
     public void clearInUse() {
         inUse.clear();
     }
 
+    @Override
     public void clearCache() {
         cache.clear();
     }
 
-    private void convertBlobToId(InputStream in, ByteArrayOutputStream idStream, int level, long totalLength) throws Exception {
+    private void convertBlobToId(InputStream in, ByteArrayOutputStream idStream, int level, long totalLength) throws IOException {
         int count = 0;
         // try to re-use the block (but not concurrently)
         byte[] block = blockBuffer.getAndSet(null);
@@ -197,7 +195,12 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
                 idStream.write(block, 0, blockLen);
                 totalLength += blockLen;
             } else {
-                MessageDigest messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
+                MessageDigest messageDigest;
+                try {
+                    messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IOException(e);
+                }
                 messageDigest.update(block, 0, blockLen);
                 byte[] digest = messageDigest.digest();
                 idStream.write(TYPE_HASH);
@@ -244,24 +247,26 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
      *            unless that's easy to achieve
      * @param data the data to be stored
      */
-    protected abstract void storeBlock(byte[] digest, int level, byte[] data) throws Exception;
+    protected abstract void storeBlock(byte[] digest, int level, byte[] data) throws IOException;
 
-    public abstract void startMark() throws Exception;
+    @Override
+    public abstract void startMark() throws IOException;
 
-    public abstract int sweep() throws Exception;
+    @Override
+    public abstract int sweep() throws IOException;
 
     protected abstract boolean isMarkEnabled();
 
     protected abstract void mark(BlockId id) throws Exception;
 
-    protected void markInUse() throws Exception {
+    protected void markInUse() throws IOException {
         for (String id : new ArrayList<String>(inUse.keySet())) {
             mark(id);
         }
     }
 
     @Override
-    public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws Exception {
+    public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
         if (isMarkEnabled()) {
             mark(blobId);
         }
@@ -313,7 +318,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         }
     }
 
-    private byte[] readBlock(byte[] digest, long pos) throws Exception {
+    private byte[] readBlock(byte[] digest, long pos) {
         BlockId id = new BlockId(digest, pos);
         return cache.get(id).data;
     }

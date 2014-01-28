@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk.blob.gridfs;
 
+import java.io.IOException;
+
 
 /**
  * Implementation of the {@link CommandExecutor} interface.
@@ -23,7 +25,15 @@ package org.apache.jackrabbit.oak.plugins.mongomk.blob.gridfs;
 public class DefaultCommandExecutor implements CommandExecutor {
 
     @Override
-    public <T> T execute(Command<T> command) throws Exception {
+    public <T> T execute(Command<T> command) throws IOException {
+        try {
+            return executeCommand(command);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
+        
+    public <T> T executeCommand(Command<T> command) throws Exception {
         T result = null;
 
         int numOfRetries = command.getNumOfRetries();

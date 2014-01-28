@@ -33,9 +33,10 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.BlobStoreInputStream;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
+import org.apache.jackrabbit.mk.blobs.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.junit.After;
@@ -49,7 +50,7 @@ import org.junit.Test;
  */
 public abstract class AbstractBlobStoreTest {
 
-    public AbstractBlobStore store;
+    public GarbageCollectableBlobStore store;
 
     /**
      * Should be overridden by subclasses to set the {@link #store} variable.
@@ -301,7 +302,7 @@ public abstract class AbstractBlobStoreTest {
 
     }
 
-    public static void extractFiles(AbstractBlobStore store, String listingId, String target) throws IOException {
+    public static void extractFiles(BlobStore store, String listingId, String target) throws IOException {
         String listing = new String(BlobStoreInputStream.readFully(store, listingId), "UTF-8");
         JsopTokenizer t = new JsopTokenizer(listing);
         File targetDir = new File(target);
@@ -326,7 +327,7 @@ public abstract class AbstractBlobStoreTest {
         t.read('}');
     }
 
-    public static String addFiles(AbstractBlobStore store, String dir) throws Exception {
+    public static String addFiles(BlobStore store, String dir) throws Exception {
         ArrayList<String> list = new ArrayList<String>();
         String root = new File(dir).getAbsolutePath();
         String parent = new File(dir).getParentFile().getAbsolutePath();

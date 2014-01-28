@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.mongomk.blob.gridfs;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
@@ -43,20 +44,20 @@ public class MongoGridFSBlobStore implements BlobStore {
     }
 
     @Override
-    public long getBlobLength(String blobId) throws Exception {
+    public long getBlobLength(String blobId) throws IOException {
         Command<Long> command = new GetBlobLengthCommandGridFS(gridFS, blobId);
         return commandExecutor.execute(command);
     }
 
     @Override
-    public int readBlob(String blobId, long blobOffset, byte[] buffer, int bufferOffset, int length) throws Exception {
+    public int readBlob(String blobId, long blobOffset, byte[] buffer, int bufferOffset, int length) throws IOException {
         Command<Integer> command = new ReadBlobCommandGridFS(gridFS, blobId, blobOffset,
                 buffer, bufferOffset, length);
         return commandExecutor.execute(command);
     }
 
     @Override
-    public String writeBlob(InputStream is) throws Exception {
+    public String writeBlob(InputStream is) throws IOException {
         Command<String> command = new WriteBlobCommandGridFS(gridFS, is);
         return commandExecutor.execute(command);
     }

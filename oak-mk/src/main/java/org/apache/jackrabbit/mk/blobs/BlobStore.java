@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -30,7 +31,7 @@ public interface BlobStore {
      * @param in the input stream
      * @return the blob id
      */
-    String writeBlob(InputStream in) throws Exception;
+    String writeBlob(InputStream in) throws IOException;
 
     /**
      * Read a number of bytes from a blob.
@@ -42,7 +43,7 @@ public interface BlobStore {
      * @param length the number of bytes to read
      * @return the number of bytes read
      */
-    int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws Exception;
+    int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException;
 
     /**
      * Get the length of the blob.
@@ -50,6 +51,6 @@ public interface BlobStore {
      * @param blobId the blob id
      * @return the length
      */
-    long getBlobLength(String blobId) throws Exception;
+    long getBlobLength(String blobId) throws IOException;
 
 }

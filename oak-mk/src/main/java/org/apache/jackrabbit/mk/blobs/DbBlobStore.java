@@ -48,7 +48,15 @@ public class DbBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    protected synchronized void storeBlock(byte[] digest, int level, byte[] data) throws SQLException {
+    protected synchronized void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
+        try {
+            storeBlockToDatabase(digest, level, data);
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
+    }
+    
+    private void storeBlockToDatabase(byte[] digest, int level, byte[] data) throws SQLException {
         Connection conn = cp.getConnection();
         try {
             String id = StringUtils.convertBytesToHex(digest);
@@ -131,7 +139,7 @@ public class DbBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public void startMark() throws Exception {
+    public void startMark() throws IOException {
         minLastModified = System.currentTimeMillis();
         markInUse();
     }
@@ -162,7 +170,15 @@ public class DbBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public int sweep() throws Exception {
+    public int sweep() throws IOException {
+        try {
+            return sweepFromDatabase();
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
+    }
+    
+    private int sweepFromDatabase() throws SQLException {
         int count = 0;
         Connection conn = cp.getConnection();
         try {
