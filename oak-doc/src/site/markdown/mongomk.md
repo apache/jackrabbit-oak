@@ -15,11 +15,21 @@
    limitations under the License.
   -->
 
-Oak MongoMK
-===========
+Oak DocumentMK
+==============
 
-This module contains a `MicroKernel` implementation using MongoDB to persist
-content.
+One of the plugins in Oak stores data in a document oriented format. The plugin implementes two low level APIs, the `MicroKernel` and `NodeStore` interface.
+
+Backend implementations
+-----------------------
+
+DocumentMK supports a number of backends, with a storage abstraction called `DocumentStore`:
+
+* `MongoDocumentStore`: stores documents in a MongoDB.
+* `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for testing purposes.
+* `RDBDocumentStore`: stores documents in a relational data base.
+
+The remaining part of the document will focus on the `MongoDocumentStore` to explain and illustrate concepts of the DocumentMK.
 
 Content Model
 -------------
@@ -37,7 +47,7 @@ MongoDB shell:
 Node Content Model
 ------------------
 
-The `MongoMK` stores each node in a separate MongoDB document and updates to
+The `DocumentMK` stores each node in a separate MongoDB document and updates to
 a node are stored by adding new revision/value pairs to the document. This way
 the previous state of a node is preserved and can still be retrieved by a
 session looking at a given snapshot (revision) of the repository.
@@ -61,7 +71,7 @@ The basic MongoDB document of a node in Oak looks like this:
     }
 
 All fields in the above document are metadata and are not exposed through the
-Oak API. MongoMK has two types of fields. Simple fields are key/value pairs
+Oak API. DocumentMK has two types of fields. Simple fields are key/value pairs
 like the `_id` or `_modified` field. Versioned fields are kept in sub-documents
 where the key is a revision paired with the value at this revision.
 
@@ -75,10 +85,10 @@ the node is later deleted, the `_deleted` sub-document will get a new field with
 the revision the node was deleted in.
 
 The sub-document `_lastRev` contains the last revision written to this node by
-each cluster node. In the above example the MongoMK cluster node with id `1`
+each cluster node. In the above example the DocumentMK cluster node with id `1`
 modified the node the last time in revision `r13f3875b5d1-0-1`, when it created
 the node. The revision key in the `_lastRev` sub-document is synthetic and the
-only information actually used by MongoMK is the clusterId. The `_lastRev`
+only information actually used by DocumentMK is the clusterId. The `_lastRev`
 sub-document is only updated for non-branch commits or on merge, when changes
 become visible to all readers.
 
@@ -87,13 +97,12 @@ was last modified. The time resolution is five seconds. This field is also updat
 when a branch commit modifies a node.
 
 The `_modCount` field contains a modification counter, which is incremented with
-every change to the document. This field allows MongoMK to perform conditional updates
+every change to the document. This field allows DocumentMK to perform conditional updates
 without requesting the whole document.
 
 The `_children` field is a boolean flag to indicate if this node has child nodes. By
 default a node would not have this field. If any node gets added as child of this node
-then it would be set to true. It is used to optimize access to child nodes and allows MongoMK
-to omit calls to fetch child nodes for leaf nodes.
+then it would be set to true. It is used to optimize access to child nodes and allows DocumentMK to omit calls to fetch child nodes for leaf nodes.
 
 Finally, the `_revisions` sub-document contains commit information about changes
 marked with a revision. E.g. the single entry in the above document tells us
@@ -173,7 +182,7 @@ Branches
 --------
 
 MicroKernel implementations support branches, which allows a client to stage
-multiple commits and make them visible with a single merge call. In MongoMK
+multiple commits and make them visible with a single merge call. In DocumentMK
 a branch commit looks very similar to a regular commit, but instead of setting
 the value of an entry in `_revisions` to `c` (committed), it marks it with
 the base revision of the branch commit. In contrast to regular commits where
@@ -181,7 +190,7 @@ the commit root is the common ancestor of all nodes modified in a commit, the
 commit root of a branch commit is always the root node. This is because a
 branch will likely have multiple commits and a commit root must already be
 known when the first commit happens on a branch. To make sure the following
-branch commits can use the same commit root, MongoMK simply picks the root
+branch commits can use the same commit root, DocumentMK simply picks the root
 node, which always works in this case.
 
 A root node may look like this:
@@ -266,13 +275,13 @@ Now, the changed property is visible to readers with a revision equal or
 newer than `r13fcda91b12-0-1`.
 
 The same logic is used for changes to other nodes that belong to a branch
-commit. MongoMK internally resolves the commit revision for a modification
+commit. DocumentMK internally resolves the commit revision for a modification
 before it decides whether a reader is able to see a given change.
 
 Previous Documents
 ------------------
 
-Over time the size of a document grows because MongoMK adds data to the document
+Over time the size of a document grows because DocumentMK adds data to the document
 with every modification, but never deletes anything to keep the history. Old data
 is moved when there are 1000 commits to be moved or the document is bigger than
 1 MB. A document with a reference to old data looks like this:
@@ -334,7 +343,7 @@ documents until the branch is merged.
 
 Background Operations
 ---------------------
-Each MongoMK instance connecting to same database in Mongo server performs certain background task.
+Each DocumentMK instance connecting to same database in Mongo server performs certain background task.
 
 ### Renew Cluster Id Lease
 
@@ -344,8 +353,8 @@ Each cluster node has a lease on the cluster node id, as described in the sectio
 
 ### Background Document Split
 
-MongoMK periodically checks documents for their size and if necessary splits them up and
-moves old data to a previous document. This is done in the background by each MongoMK
+DocumentMK periodically checks documents for their size and if necessary splits them up and
+moves old data to a previous document. This is done in the background by each DocumentMK
 instance for the data it created.
 
 ### Background Writes
@@ -357,7 +366,7 @@ and flushed periodically through a asynchronous job.
 
 ### Background Reads
 
-MongoMK periodically picks up changes from other MongoMK instances by polling the root node
+DocumentMK periodically picks up changes from other DocumentMK instances by polling the root node
 for changes of `_lastRev`. This happens once every second.
 
 Pending Topics
