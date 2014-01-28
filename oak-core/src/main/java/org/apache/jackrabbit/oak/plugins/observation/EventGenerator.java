@@ -49,6 +49,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter;
+import org.apache.jackrabbit.oak.plugins.observation.handler.ChangeHandler;
+import org.apache.jackrabbit.oak.plugins.observation.handler.FilteredHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -107,45 +109,37 @@ public class EventGenerator implements EventIterator {
         private final NodeState after;
 
         /**
-         * Filter for selecting which events to produce.
+         * Filtered handler of detected content changes.
          */
-        private final EventFilter filter;
-
-        private final ImmutableTree beforeTree;
-        private final ImmutableTree afterTree;
+        private final ChangeHandler handler;
 
         EventDiff(NodeState before, NodeState after, String path,
                 EventFilter filter) {
             String name = null;
-            ImmutableTree btree = new ImmutableTree(before);
-            ImmutableTree atree = new ImmutableTree(after);
+            ChangeHandler handler = new Handler(
+                    new ImmutableTree(before), new ImmutableTree(after));
             for (String element : PathUtils.elements(path)) {
                 name = element;
                 before = before.getChildNode(name);
                 after = after.getChildNode(name);
-                btree = new ImmutableTree(btree, name, before);
-                atree = new ImmutableTree(atree, name, after);
+                handler = handler.getChildHandler(name, before, after);
             }
 
             this.parent = null;
             this.name = name;
             this.before = before;
             this.after = after;
-            this.filter = filter;
-            this.beforeTree = btree;
-            this.afterTree = atree;
+            this.handler = new FilteredHandler(filter, handler);
         }
 
         private EventDiff(
-                EventDiff parent, EventFilter filter,
+                EventDiff parent, ChangeHandler handler,
                 String name, NodeState before, NodeState after) {
             this.parent = parent;
             this.name = name;
             this.before = before;
             this.after = after;
-            this.filter = filter;
-            this.beforeTree = new ImmutableTree(parent.beforeTree, name, before);
-            this.afterTree = new ImmutableTree(parent.afterTree, name, after);
+            this.handler = handler;
         }
 
         //------------------------------------------------------< Runnable >--
@@ -168,10 +162,7 @@ public class EventGenerator implements EventIterator {
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            if (filter.includeAdd(after)) {
-                events.add(new EventImpl(
-                        context, PROPERTY_ADDED, afterTree, after.getName()));
-            }
+            handler.propertyAdded(after);
             return true;
         }
 
@@ -183,19 +174,13 @@ public class EventGenerator implements EventIterator {
                 handleReorderedNodes(
                         before.getValue(NAMES), after.getValue(NAMES));
             }
-            if (filter.includeChange(before, after)) {
-                events.add(new EventImpl(
-                        context, PROPERTY_CHANGED, afterTree, after.getName()));
-            }
+            handler.propertyChanged(before, after);
             return true;
         }
 
         @Override
         public boolean propertyDeleted(PropertyState before) {
-            if (filter.includeDelete(before)) {
-                events.add(new EventImpl(
-                        context, PROPERTY_REMOVED, beforeTree, before.getName()));
-            }
+            handler.propertyDeleted(before);
             return true;
         }
 
@@ -226,10 +211,9 @@ public class EventGenerator implements EventIterator {
 
         private boolean addChildEventGenerator(
                 String name, NodeState before, NodeState after) {
-            EventFilter childFilter = filter.create(name, before, after);
-            if (childFilter != null) {
-                generators.add(new EventDiff(
-                        this, childFilter, name, before, after));
+            ChangeHandler h = handler.getChildHandler(name, before, after);
+            if (h != null) {
+                generators.add(new EventDiff(this, h, name, before, after));
                 return true;
             } else {
                 return false;
@@ -240,26 +224,14 @@ public class EventGenerator implements EventIterator {
             PropertyState sourceProperty = after.getProperty(SOURCE_PATH);
             if (sourceProperty != null) {
                 String sourcePath = sourceProperty.getValue(STRING);
-                if (filter.includeMove(sourcePath, name, after)) {
-                    ImmutableTree tree = new ImmutableTree(afterTree, name, after);
-                    Map<String, String> info = ImmutableMap.of(
-                            "srcAbsPath", context.getJcrPath(sourcePath),
-                            "destAbsPath", context.getJcrPath(tree.getPath()));
-                    events.add(new EventImpl(context, NODE_MOVED, tree, info));
-                }
+                handler.nodeMoved(sourcePath, name, after);
             }
 
-            if (filter.includeAdd(name, after)) {
-                ImmutableTree tree = new ImmutableTree(afterTree, name, after);
-                events.add(new EventImpl(context, NODE_ADDED, tree));
-            }
+            handler.nodeAdded(name, after);
         }
 
         protected void handleDeletedNode(String name, NodeState before) {
-            if (filter.includeDelete(name, before)) {
-                ImmutableTree tree = new ImmutableTree(beforeTree, name, before);
-                events.add(new EventImpl(context, NODE_REMOVED, tree));
-            }
+            handler.nodeDeleted(name, before);
         }
 
         private void handleReorderedNodes(
@@ -280,16 +252,79 @@ public class EventGenerator implements EventIterator {
                         beforeNames.set(a, beforeName);
                         String destName = beforeNames.get(a + 1);
                         NodeState afterChild = this.after.getChildNode(afterName);
-                        if (filter.includeReorder(destName, afterName, afterChild)) {
-                            Map<String, String> info = ImmutableMap.of(
-                                    "srcChildRelPath", context.getJcrName(afterName),
-                                    "destChildRelPath", context.getJcrName(destName));
-                            ImmutableTree tree = new ImmutableTree(afterTree, afterName, afterChild);
-                            events.add(new EventImpl(context, NODE_MOVED, tree, info));
-                        }
+                        handler.nodeReordered(destName, afterName, afterChild);
                     }
                 }
             }
+        }
+
+    }
+
+    private class Handler implements ChangeHandler {
+
+        private final ImmutableTree before;
+        private final ImmutableTree after;
+
+        Handler(ImmutableTree before, ImmutableTree after) {
+            this.before = before;
+            this.after = after;
+        }
+
+        @Override
+        public ChangeHandler getChildHandler(
+                String name, NodeState before, NodeState after) {
+            return new Handler(
+                    new ImmutableTree(this.before, name, before),
+                    new ImmutableTree(this.after, name, after));
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after) {
+            events.add(new EventImpl(
+                    context, PROPERTY_ADDED, this.after, after.getName()));
+        }
+
+        @Override
+        public void propertyChanged(PropertyState before, PropertyState after) {
+            events.add(new EventImpl(
+                    context, PROPERTY_CHANGED, this.after, after.getName()));
+        }
+
+        @Override
+        public void propertyDeleted(PropertyState before) {
+            events.add(new EventImpl(
+                    context, PROPERTY_REMOVED, this.before, before.getName()));
+        }
+
+        @Override
+        public void nodeAdded(String name, NodeState after) {
+            ImmutableTree tree = new ImmutableTree(this.after, name, after);
+            events.add(new EventImpl(context, NODE_ADDED, tree));
+        }
+
+        @Override
+        public void nodeDeleted(String name, NodeState before) {
+            ImmutableTree tree = new ImmutableTree(this.before, name, before);
+            events.add(new EventImpl(context, NODE_REMOVED, tree));
+        }
+
+        @Override
+        public void nodeMoved(String sourcePath, String name, NodeState moved) {
+            ImmutableTree tree = new ImmutableTree(this.after, name, moved);
+            Map<String, String> info = ImmutableMap.of(
+                    "srcAbsPath", context.getJcrPath(sourcePath),
+                    "destAbsPath", context.getJcrPath(tree.getPath()));
+            events.add(new EventImpl(context, NODE_MOVED, tree, info));
+        }
+
+        @Override
+        public void nodeReordered(
+                String destName, String name, NodeState reordered) {
+            Map<String, String> info = ImmutableMap.of(
+                    "srcChildRelPath", context.getJcrName(name),
+                    "destChildRelPath", context.getJcrName(destName));
+            ImmutableTree tree = new ImmutableTree(after, name, reordered);
+            events.add(new EventImpl(context, NODE_MOVED, tree, info));
         }
 
     }
