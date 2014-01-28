@@ -18,10 +18,10 @@ package org.apache.jackrabbit.mk.test;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.oak.plugins.mongomk.Collection;
-import org.apache.jackrabbit.oak.plugins.mongomk.MongoMK;
-import org.apache.jackrabbit.oak.plugins.mongomk.blob.MongoBlobStore;
-import org.apache.jackrabbit.oak.plugins.mongomk.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.blob.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
