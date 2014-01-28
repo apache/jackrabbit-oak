@@ -72,12 +72,12 @@ public class EventTypeFilter implements EventFilter {
     }
 
     @Override
-    public boolean includeChange(String name, NodeState before, NodeState after) {
-        return true;
+    public boolean includeMove(String sourcePath, String name, NodeState moved) {
+        return includeByEvent(Event.NODE_MOVED);
     }
 
     @Override
-    public boolean includeMove(String sourcePath, String name, NodeState moved) {
+    public boolean includeReorder(String name, NodeState reordered) {
         return includeByEvent(Event.NODE_MOVED);
     }
 
