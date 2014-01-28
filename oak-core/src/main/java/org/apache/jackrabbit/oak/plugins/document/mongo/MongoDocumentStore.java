@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -37,8 +37,19 @@ import javax.annotation.Nullable;
 import com.google.common.base.Splitter;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.MongoMK;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionEntry;
+import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
@@ -529,7 +540,7 @@ public class MongoDocumentStore implements DocumentStore {
                             nodesCache.invalidate(entry.getKey());
                         } else {
                             applyToCache(Collection.NODES, entry.getValue(),
-                                    new UpdateOp(entry.getKey(), updateOp));
+                                    updateOp.clone(entry.getKey()));
                         }
                     } finally {
                         lock.unlock();
@@ -740,7 +751,7 @@ public class MongoDocumentStore implements DocumentStore {
     @Nonnull
     private static QueryBuilder createQueryForUpdate(UpdateOp updateOp,
                                               boolean checkConditions) {
-        QueryBuilder query = getByKeyQuery(updateOp.id);
+        QueryBuilder query = getByKeyQuery(updateOp.getId());
 
         for (Entry<Key, Operation> entry : updateOp.getChanges().entrySet()) {
             Key k = entry.getKey();

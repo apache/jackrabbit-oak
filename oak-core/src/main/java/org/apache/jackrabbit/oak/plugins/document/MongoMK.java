@@ -47,9 +47,11 @@ import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Node.Children;
 import org.apache.jackrabbit.oak.plugins.document.blob.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.plugins.rdbpersistence.RDBBlobStore;
-import org.apache.jackrabbit.oak.plugins.rdbpersistence.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

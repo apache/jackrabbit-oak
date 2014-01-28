@@ -36,7 +36,7 @@ public final class UpdateOp {
     private boolean isNew;
     private boolean isDelete;
     
-    private Map<Key, Operation> changes = new HashMap<Key, Operation>();
+    private final Map<Key, Operation> changes;
     
     /**
      * Create an update operation for the document with the given id. The commit
@@ -46,23 +46,25 @@ public final class UpdateOp {
      * @param isNew whether this is a new document
      */
     UpdateOp(String id, boolean isNew) {
+        this(id, isNew, false, new HashMap<Key, Operation>());
+    }
+
+    private UpdateOp(String id, boolean isNew, boolean isDelete,
+                     Map<Key, Operation> changes) {
         this.id = id;
         this.isNew = isNew;
+        this.isDelete = isDelete;
+        this.changes = changes;
     }
 
     /**
      * Creates an update operation for the document with the given id. The
-     * changes are shared with the other update operation.
+     * changes are shared with the this update operation.
      *
      * @param id the primary key.
-     * @param other the other update operation.
      */
-    UpdateOp(String id, UpdateOp other) {
-        this.id = id;
-        this.changes = other.changes;
-        this.isNew = other.isNew;
-        this.isDelete = other.isDelete;
-
+    public UpdateOp clone(String id) {
+        return new UpdateOp(id, isNew, isDelete, changes);
     }
     
     public String getId() {
@@ -81,7 +83,7 @@ public final class UpdateOp {
         return isDelete;
     }
 
-    Map<Key, Operation> getChanges() {
+    public Map<Key, Operation> getChanges() {
         return changes;
     }
     
@@ -188,7 +190,7 @@ public final class UpdateOp {
     /**
      * A MongoDB operation for a given key within a document. 
      */
-    public static class Operation {
+    public static final class Operation {
         
         /**
          * The MongoDB operation type.
@@ -230,12 +232,12 @@ public final class UpdateOp {
         /**
          * The operation type.
          */
-        Type type;
+        public Type type;
         
         /**
          * The value, if any.
          */
-        Object value;
+        public Object value;
         
         @Override
         public String toString() {

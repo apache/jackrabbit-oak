@@ -22,6 +22,7 @@ import java.util.TreeSet;
 import java.util.concurrent.Semaphore;
 
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

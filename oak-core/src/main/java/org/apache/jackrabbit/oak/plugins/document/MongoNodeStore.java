@@ -1120,7 +1120,7 @@ public final class MongoNodeStore
 
     //----------------------< background operations >---------------------------
 
-    void runBackgroundOperations() {
+    public void runBackgroundOperations() {
         if (isDisposed.get()) {
             return;
         }

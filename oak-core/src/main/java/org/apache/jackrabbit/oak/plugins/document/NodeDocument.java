@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,7 +97,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * The modified time (5 second resolution).
      */
-    static final String MODIFIED = "_modified";
+    public static final String MODIFIED = "_modified";
 
     private static final SortedMap<Revision, Range> EMPTY_RANGE_MAP =
             Collections.unmodifiableSortedMap(new TreeMap<Revision, Range>());

@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.junit.Test;
 
 import com.mongodb.ReadPreference;

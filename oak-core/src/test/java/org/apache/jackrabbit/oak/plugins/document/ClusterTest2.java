@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.junit.Test;
 
 /**

@@ -20,6 +20,8 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import com.google.common.collect.Sets;
+
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Before;
 import org.junit.Test;

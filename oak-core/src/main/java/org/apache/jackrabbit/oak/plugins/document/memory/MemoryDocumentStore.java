@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.memory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -30,6 +30,14 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 
 import com.google.common.base.Splitter;
 import com.mongodb.ReadPreference;
@@ -178,12 +186,12 @@ public class MemoryDocumentStore implements DocumentStore {
         lock.lock();
         try {
             // get the node if it's there
-            oldDoc = map.get(update.id);
+            oldDoc = map.get(update.getId());
 
             T doc = collection.newDocument(this);
             if (oldDoc == null) {
                 if (!update.isNew()) {
-                    throw new MicroKernelException("Document does not exist: " + update.id);
+                    throw new MicroKernelException("Document does not exist: " + update.getId());
                 }
             } else {
                 oldDoc.deepCopy(doc);
@@ -194,7 +202,7 @@ public class MemoryDocumentStore implements DocumentStore {
             // update the document
             UpdateUtils.applyChanges(doc, update, comparator);
             doc.seal();
-            map.put(update.id, doc);
+            map.put(update.getId(), doc);
             return oldDoc;
         } finally {
             lock.unlock();
@@ -209,7 +217,7 @@ public class MemoryDocumentStore implements DocumentStore {
         try {
             ConcurrentSkipListMap<String, T> map = getMap(collection);
             for (UpdateOp op : updateOps) {
-                if (map.containsKey(op.id)) {
+                if (map.containsKey(op.getId())) {
                     return false;
                 }
             }
@@ -234,7 +242,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 if (!map.containsKey(key)) {
                     continue;
                 }
-                internalCreateOrUpdate(collection, new UpdateOp(key, updateOp), true);
+                internalCreateOrUpdate(collection, updateOp.clone(key), true);
             }
         } finally {
             lock.unlock();

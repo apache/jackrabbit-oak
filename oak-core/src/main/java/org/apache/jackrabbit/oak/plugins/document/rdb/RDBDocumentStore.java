@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.rdbpersistence;
+package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
