@@ -190,7 +190,7 @@ abstract class ACL extends AbstractAccessControlList {
         List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, new Predicate<ACE>() {
             @Override
             public boolean apply(@Nullable ACE ace) {
-                return (ace != null) && ace.getPrincipal().equals(principal);
+                return (ace != null) && ace.getPrincipal().getName().equals(principal.getName());
             }
         }));
 
