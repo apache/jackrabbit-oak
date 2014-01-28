@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -157,6 +158,22 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
             SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
             sc.setAttribute(".token", "");
             cs = login(sc);
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    @Ignore("OAK-1363")
+    public void testTokenAuthInfo() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
+            sc.setAttribute(".token", "");
+            cs = login(sc);
+            assertEquals("userid must be correct", "admin", cs.getAuthInfo().getUserID());
         } finally {
             if (cs != null) {
                 cs.close();
