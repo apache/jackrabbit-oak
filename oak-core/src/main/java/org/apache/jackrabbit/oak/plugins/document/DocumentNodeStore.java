@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -53,9 +55,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.mk.json.JsopStream;
+import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
@@ -220,7 +225,13 @@ public final class DocumentNodeStore
      */
     private final Cache<String, NodeDocument.Children> docChildrenCache;
     private final CacheStats docChildrenCacheStats;
-    
+
+    /**
+     * Diff cache.
+     */
+    private final Cache<String, Diff> diffCache;
+    private final CacheStats diffCacheStats;
+
     /**
      * The blob store.
      */
@@ -287,6 +298,10 @@ public final class DocumentNodeStore
         docChildrenCache = builder.buildCache(builder.getDocChildrenCacheSize());
         docChildrenCacheStats = new CacheStats(docChildrenCache, "DocumentMk-DocChildren",
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
+
+        diffCache = builder.buildCache(builder.getDiffCacheSize());
+        diffCacheStats = new CacheStats(diffCache, "DocumentMk-DiffCache",
+                builder.getWeigher(), builder.getDiffCacheSize());
 
         // check if root node exists
         if (store.find(Collection.NODES, Utils.getIdFromPath("/")) == null) {
@@ -469,6 +484,10 @@ public final class DocumentNodeStore
 
     public CacheStats getDocChildrenCacheStats() {
         return docChildrenCacheStats;
+    }
+
+    public CacheStats getDiffCacheStats() {
+        return diffCacheStats;
     }
 
     public int getPendingWriteCount() {
@@ -1024,6 +1043,68 @@ public final class DocumentNodeStore
     }
 
     /**
+     * Compares the given {@code state} against the {@code base} state and
+     * reports the differences as a json diff string.
+     *
+     * @param node the state to compare.
+     * @param base the base state to compare against.
+     * @return the json diff.
+     */
+    String diff(final @Nonnull Node node,
+                final @Nonnull Node base) {
+        String key = checkNotNull(base).getLastRevision() + "-"
+                + checkNotNull(node).getLastRevision() + "-" + node.getPath();
+        try {
+            return diffCache.get(key, new Callable<Diff>() {
+                @Override
+                public Diff call() throws Exception {
+                    return new Diff(diffImpl(base, node));
+                }
+            }).diff;
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof MicroKernelException) {
+                throw (MicroKernelException) e.getCause();
+            } else {
+                throw new MicroKernelException(e.getCause());
+            }
+        }
+    }
+
+    String diff(@Nonnull final String fromRevisionId,
+                @Nonnull final String toRevisionId,
+                @Nonnull final String path) throws MicroKernelException {
+        if (fromRevisionId.equals(toRevisionId)) {
+            return "";
+        }
+        String key = fromRevisionId + "-" + toRevisionId + "-" + path;
+        try {
+            return diffCache.get(key, new Callable<Diff>() {
+                @Override
+                public Diff call() throws Exception {
+                    Revision fromRev = Revision.fromString(fromRevisionId);
+                    Revision toRev = Revision.fromString(toRevisionId);
+                    Node from = getNode(path, fromRev);
+                    Node to = getNode(path, toRev);
+                    if (from == null || to == null) {
+                        // TODO implement correct behavior if the node does't/didn't exist
+                        String msg = String.format("Diff is only supported if the node exists in both cases. " +
+                                "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
+                                path, fromRev, from != null, toRev, to != null);
+                        throw new MicroKernelException(msg);
+                    }
+                    return new Diff(diffImpl(from, to));
+                }
+            }).diff;
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof MicroKernelException) {
+                throw (MicroKernelException) e.getCause();
+            } else {
+                throw new MicroKernelException(e.getCause());
+            }
+        }
+    }
+
+    /**
      * Returns the {@link Blob} with the given blobId.
      *
      * @param blobId the blobId of the blob.
@@ -1281,6 +1362,143 @@ public final class DocumentNodeStore
 
     //-----------------------------< internal >---------------------------------
 
+    private String diffImpl(Node from, Node to)
+            throws MicroKernelException {
+        JsopWriter w = new JsopStream();
+        for (String p : from.getPropertyNames()) {
+            // changed or removed properties
+            String fromValue = from.getProperty(p);
+            String toValue = to.getProperty(p);
+            if (!fromValue.equals(toValue)) {
+                w.tag('^').key(p);
+                if (toValue == null) {
+                    w.value(null);
+                } else {
+                    w.encodedValue(toValue).newline();
+                }
+            }
+        }
+        for (String p : to.getPropertyNames()) {
+            // added properties
+            if (from.getProperty(p) == null) {
+                w.tag('^').key(p).encodedValue(to.getProperty(p)).newline();
+            }
+        }
+        // TODO this does not work well for large child node lists
+        // use a document store index instead
+        int max = MANY_CHILDREN_THRESHOLD;
+        Node.Children fromChildren, toChildren;
+        fromChildren = getChildren(from, null, max);
+        toChildren = getChildren(to, null, max);
+        if (!fromChildren.hasMore && !toChildren.hasMore) {
+            diffFewChildren(w, fromChildren, from.getLastRevision(),
+                    toChildren, to.getLastRevision());
+        } else {
+            if (FAST_DIFF) {
+                diffManyChildren(w, from.getPath(),
+                        from.getLastRevision(), to.getLastRevision());
+            } else {
+                max = Integer.MAX_VALUE;
+                fromChildren = getChildren(from, null, max);
+                toChildren = getChildren(to, null, max);
+                diffFewChildren(w, fromChildren, from.getLastRevision(),
+                        toChildren, to.getLastRevision());
+            }
+        }
+        return w.toString();
+    }
+
+    private void diffManyChildren(JsopWriter w, String path, Revision fromRev, Revision toRev) {
+        long minTimestamp = Math.min(fromRev.getTimestamp(), toRev.getTimestamp());
+        long minValue = Commit.getModified(minTimestamp);
+        String fromKey = Utils.getKeyLowerLimit(path);
+        String toKey = Utils.getKeyUpperLimit(path);
+        Set<String> paths = new HashSet<String>();
+        for (NodeDocument doc : store.query(Collection.NODES, fromKey, toKey,
+                NodeDocument.MODIFIED, minValue, Integer.MAX_VALUE)) {
+            paths.add(Utils.getPathFromId(doc.getId()));
+        }
+        // also consider nodes with not yet stored modifications (OAK-1107)
+        Revision minRev = new Revision(minTimestamp, 0, getClusterId());
+        addPathsForDiff(path, paths, getPendingModifications(), minRev);
+        for (Revision r : new Revision[]{fromRev, toRev}) {
+            if (r.isBranch()) {
+                Branch b = getBranches().getBranch(fromRev);
+                if (b != null) {
+                    addPathsForDiff(path, paths, b.getModifications(r), r);
+                }
+            }
+        }
+        for (String p : paths) {
+            Node fromNode = getNode(p, fromRev);
+            Node toNode = getNode(p, toRev);
+            if (fromNode != null) {
+                // exists in fromRev
+                if (toNode != null) {
+                    // exists in both revisions
+                    // check if different
+                    if (!fromNode.getLastRevision().equals(toNode.getLastRevision())) {
+                        w.tag('^').key(p).object().endObject().newline();
+                    }
+                } else {
+                    // does not exist in toRev -> was removed
+                    w.tag('-').value(p).newline();
+                }
+            } else {
+                // does not exist in fromRev
+                if (toNode != null) {
+                    // exists in toRev
+                    w.tag('+').key(p).object().endObject().newline();
+                } else {
+                    // does not exist in either revisions
+                    // -> do nothing
+                }
+            }
+        }
+    }
+
+    private static void addPathsForDiff(String path,
+                                        Set<String> paths,
+                                        UnsavedModifications pending,
+                                        Revision minRev) {
+        for (String p : pending.getPaths(minRev)) {
+            if (PathUtils.denotesRoot(p)) {
+                continue;
+            }
+            String parent = PathUtils.getParentPath(p);
+            if (path.equals(parent)) {
+                paths.add(p);
+            }
+        }
+    }
+
+    private void diffFewChildren(JsopWriter w, Node.Children fromChildren, Revision fromRev, Node.Children toChildren, Revision toRev) {
+        Set<String> childrenSet = new HashSet<String>(toChildren.children);
+        for (String n : fromChildren.children) {
+            if (!childrenSet.contains(n)) {
+                w.tag('-').value(n).newline();
+            } else {
+                Node n1 = getNode(n, fromRev);
+                Node n2 = getNode(n, toRev);
+                // this is not fully correct:
+                // a change is detected if the node changed recently,
+                // even if the revisions are well in the past
+                // if this is a problem it would need to be changed
+                checkNotNull(n1, "Node at [%s] not found for fromRev [%s]", n, fromRev);
+                checkNotNull(n2, "Node at [%s] not found for toRev [%s]", n, toRev);
+                if (!n1.getId().equals(n2.getId())) {
+                    w.tag('^').key(n).object().endObject().newline();
+                }
+            }
+        }
+        childrenSet = new HashSet<String>(fromChildren.children);
+        for (String n : toChildren.children) {
+            if (!childrenSet.contains(n)) {
+                w.tag('+').key(n).object().endObject().newline();
+            }
+        }
+    }
+
     private static String childNodeCacheKey(@Nonnull String path,
                                             @Nonnull Revision readRevision,
                                             @Nullable String name) {
@@ -1330,6 +1548,24 @@ public final class DocumentNodeStore
                         ((headRevision.getTimestamp() - r.getTimestamp()) / 1000) + " seconds old");
             }
         }
+    }
+
+    /**
+     * A (cached) result of the diff operation.
+     */
+    private static class Diff implements CacheValue {
+
+        final String diff;
+
+        Diff(String diff) {
+            this.diff = diff;
+        }
+
+        @Override
+        public int getMemory() {
+            return diff.length() * 2;
+        }
+
     }
 
     /**

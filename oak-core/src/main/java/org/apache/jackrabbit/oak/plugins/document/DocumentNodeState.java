@@ -23,6 +23,8 @@ import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.mk.json.JsopReader;
+import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -56,6 +58,12 @@ final class DocumentNodeState extends AbstractNodeState {
      * The maximum number of child nodes to fetch in one call. (1600).
      */
     static final int MAX_FETCH_SIZE = INITIAL_FETCH_SIZE << 4;
+
+    /**
+     * Number of child nodes beyond which {@link DocumentNodeStore#}
+     * is used for diffing.
+     */
+    public static final int LOCAL_DIFF_THRESHOLD = 10;
 
     private final DocumentNodeStore store;
 
@@ -193,12 +201,15 @@ final class DocumentNodeState extends AbstractNodeState {
         } else if (base instanceof DocumentNodeState) {
             DocumentNodeState mBase = (DocumentNodeState) base;
             if (store == mBase.store) {
-                if (node.getLastRevision().equals(mBase.node.getLastRevision())
-                        && getPath().equals(mBase.getPath())) {
-                    // no differences
-                    return true; 
+                if (getPath().equals(mBase.getPath())) {
+                    if (node.getLastRevision().equals(mBase.node.getLastRevision())) {
+                        // no differences
+                        return true;
+                    } else if (getChildNodeCount(LOCAL_DIFF_THRESHOLD) > LOCAL_DIFF_THRESHOLD) {
+                        // use DocumentNodeStore compare when there are many children
+                        return dispatch(store.diff(this.node, mBase.node), mBase, diff);
+                    }
                 }
-                // TODO: use diff, similar to KernelNodeState
             }
         }
         // fall back to the generic node state diff algorithm
@@ -206,6 +217,82 @@ final class DocumentNodeState extends AbstractNodeState {
     }
 
     //------------------------------< internal >--------------------------------
+
+    private boolean dispatch(@Nonnull String jsonDiff,
+                             @Nonnull DocumentNodeState base,
+                             @Nonnull NodeStateDiff diff) {
+        if (jsonDiff.trim().isEmpty()) {
+            return true;
+        }
+        if (!AbstractNodeState.comparePropertiesAgainstBaseState(this, base, diff)) {
+            return false;
+        }
+        JsopTokenizer t = new JsopTokenizer(jsonDiff);
+        boolean continueComparison = true;
+        while (continueComparison) {
+            int r = t.read();
+            if (r == JsopReader.END) {
+                break;
+            }
+            switch (r) {
+                case '+': {
+                    String path = t.readString();
+                    t.read(':');
+                    t.read('{');
+                    while (t.read() != '}') {
+                        // skip properties
+                    }
+                    String name = PathUtils.getName(path);
+                    continueComparison = diff.childNodeAdded(name, getChildNode(name));
+                    break;
+                }
+                case '-': {
+                    String path = t.readString();
+                    String name = PathUtils.getName(path);
+                    continueComparison = diff.childNodeDeleted(name, base.getChildNode(name));
+                    break;
+                }
+                case '^': {
+                    String path = t.readString();
+                    t.read(':');
+                    if (t.matches('{')) {
+                        t.read('}');
+                        String name = PathUtils.getName(path);
+                        continueComparison = diff.childNodeChanged(name,
+                                base.getChildNode(name), getChildNode(name));
+                    } else if (t.matches('[')) {
+                        // ignore multi valued property
+                        while (t.read() != ']') {
+                            // skip values
+                        }
+                    } else {
+                        // ignore single valued property
+                        t.read();
+                    }
+                    break;
+                }
+                case '>': {
+                    String from = t.readString();
+                    t.read(':');
+                    String to = t.readString();
+                    String fromName = PathUtils.getName(from);
+                    continueComparison = diff.childNodeDeleted(
+                            fromName, base.getChildNode(fromName));
+                    if (!continueComparison) {
+                        break;
+                    }
+                    String toName = PathUtils.getName(to);
+                    continueComparison = diff.childNodeAdded(
+                            toName, getChildNode(toName));
+                    break;
+                }
+                default:
+                    throw new IllegalArgumentException("jsonDiff: illegal token '"
+                            + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
+            }
+        }
+        return continueComparison;
+    }
 
     /**
      * Returns up to {@code limit} child node entries, starting after the given
