@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -76,6 +77,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public SegmentNodeStore(SegmentStore store, String journal) {
         this.store = store;
         this.journal = store.getJournal(journal);
+        checkState(this.journal != null);
         this.head = new AtomicReference<SegmentNodeState>(new SegmentNodeState(
                 store.getWriter().getDummySegment(), this.journal.getHead()));
         this.changeDispatcher = new ChangeDispatcher(getRoot());

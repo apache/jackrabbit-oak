@@ -277,19 +277,12 @@ public class FileStore extends AbstractStore {
 
     @Override @Nonnull
     protected Segment loadSegment(UUID id) {
-        for (TarFile file : dataFiles) {
-            try {
-                ByteBuffer buffer = file.readEntry(id);
-                if (buffer != null) {
-                    return createSegment(id, buffer);
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(
-                        "Failed to access data file " + file, e);
-            }
+        LinkedList<TarFile> files = dataFiles;
+        if (isBulkSegmentId(id)) {
+            files = bulkFiles;
         }
 
-        for (TarFile file : bulkFiles) {
+        for (TarFile file : files) {
             try {
                 ByteBuffer buffer = file.readEntry(id);
                 if (buffer != null) {
@@ -297,7 +290,7 @@ public class FileStore extends AbstractStore {
                 }
             } catch (IOException e) {
                 throw new RuntimeException(
-                        "Failed to access bulk file " + file, e);
+                        "Failed to access file " + file, e);
             }
         }
 
