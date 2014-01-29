@@ -28,7 +28,6 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
@@ -50,12 +49,11 @@ class EventQueue implements EventIterator {
     private long position = 0;
 
     public EventQueue(
-            @Nonnull NamePathMapper namePathMapper, CommitInfo info,
+            @Nonnull NamePathMapper mapper, CommitInfo info,
             @Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull String basePath, @Nonnull EventFilter filter) {
         ChangeHandler handler = new QueueingHandler(
-                queue, new EventContext(namePathMapper, info),
-                new ImmutableTree(before), new ImmutableTree(after));
+                queue, mapper, info, before, after);
         for (String name : PathUtils.elements(basePath)) {
             before = before.getChildNode(name);
             after = after.getChildNode(name);
