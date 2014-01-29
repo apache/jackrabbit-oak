@@ -70,7 +70,7 @@ public class EventGenerator {
      */
     private static final int MAX_QUEUED_CONTINUATIONS = 1000;
 
-    private final LinkedList<Continuation> continuations = newLinkedList();
+    private final LinkedList<Runnable> continuations = newLinkedList();
 
     /**
      * Creates a new generator instance for processing the given changes.
@@ -97,12 +97,11 @@ public class EventGenerator {
      */
     public void generate() {
         if (!continuations.isEmpty()) {
-            Continuation c = continuations.removeFirst();
-            c.after.compareAgainstBaseState(c.before, c);
+            continuations.removeFirst().run();
         }
     }
 
-    private class Continuation implements NodeStateDiff {
+    private class Continuation implements NodeStateDiff, Runnable {
 
         /**
          * Filtered handler of detected content changes.
@@ -136,6 +135,17 @@ public class EventGenerator {
             this.before = before;
             this.after = after;
             this.skip = skip;
+        }
+
+        //------------------------------------------------------< Runnable >--
+
+        /**
+         * Continues the content diff from the point where this
+         * continuation was created.
+         */
+        @Override
+        public void run() {
+            after.compareAgainstBaseState(before, this);
         }
 
         //-------------------------------------------------< NodeStateDiff >--
