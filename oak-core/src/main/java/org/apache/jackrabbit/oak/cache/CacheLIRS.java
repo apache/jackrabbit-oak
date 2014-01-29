@@ -154,11 +154,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
     }
 
-    private Entry<K, V> find(Object key) {
-        int hash = getHash(key);
-        return getSegment(hash).find(key, hash);
-    }
-
     /**
      * Check whether there is a resident entry for the given key. This
      * method does not adjust the internal state of the cache.
@@ -179,7 +174,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      * @return the value, or null if there is no resident entry
      */
     public V peek(K key) {
-        Entry<K, V> e = find(key);
+        int hash = getHash(key);
+        Entry<K, V> e = getSegment(hash).find(key, hash);
         return e == null ? null : e.value;
     }
 
@@ -459,7 +455,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     public synchronized Set<Map.Entry<K, V>> entrySet() {
         HashMap<K, V> map = new HashMap<K, V>();
         for (K k : keySet()) {
-            map.put(k,  find(k).value);
+            V v = peek(k);
+            if (v != null) {
+                map.put(k,  v);
+            }
         }
         return map.entrySet();
     }
@@ -467,7 +466,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     protected Collection<V> values() {
         ArrayList<V> list = new ArrayList<V>();
         for (K k : keySet()) {
-            V v = find(k).value;
+            V v = peek(k);
             if (v != null) {
                 list.add(v);
             }
@@ -478,7 +477,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     boolean containsValue(Object value) {
         for (Segment<K, V> s : segments) {
             for (K k : s.keySet()) {
-                V v = find(k).value;
+                V v = peek(k);
                 if (v != null && v.equals(value)) {
                     return true;
                 }
@@ -860,6 +859,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         synchronized V get(K key, int hash, CacheLoader<K, V> loader) throws ExecutionException {
             V value = get(key, hash);
             if (value == null) {
+                if (loader == null) {
+                    return null;
+                }
                 long start = System.nanoTime();
                 try {
                     value = loader.load(key);
@@ -1394,7 +1396,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             @SuppressWarnings("unchecked")
             @Override
             public V get(Object key) {
-                return CacheLIRS.this.getUnchecked((K) key);
+                return CacheLIRS.this.peek((K) key);
             }
 
             @Override
