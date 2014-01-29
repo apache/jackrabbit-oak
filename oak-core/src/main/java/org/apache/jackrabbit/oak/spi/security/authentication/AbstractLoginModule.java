@@ -35,6 +35,7 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -153,6 +154,12 @@ public abstract class AbstractLoginModule implements LoginModule {
      * between multiple login modules.
      */
     public static final String SHARED_KEY_LOGIN_NAME = "javax.security.auth.login.name";
+
+    /**
+     * Key of the sharedState entry referring to public attributes that are shared
+     * between multiple login modules.
+     */
+    public static final String SHARED_KEY_ATTRIBUTES = "javax.security.auth.login.attributes";
 
     protected Subject subject;
     protected CallbackHandler callbackHandler;
@@ -440,5 +447,13 @@ public abstract class AbstractLoginModule implements LoginModule {
         } else {
             return principalProvider.getPrincipals(userId);
         }
+    }
+
+    static protected void setAuthInfo(@Nonnull AuthInfo authInfo, @Nonnull Subject subject) {
+        Set<AuthInfo> ais = subject.getPublicCredentials(AuthInfo.class);
+        if (!ais.isEmpty()) {
+            subject.getPublicCredentials().removeAll(ais);
+        }
+        subject.getPublicCredentials().add(authInfo);
     }
 }
