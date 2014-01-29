@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.observation.handler;
+package org.apache.jackrabbit.oak.plugins.observation;
 
 import javax.annotation.CheckForNull;
 
@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Handler of content changes. Used to decouple processing of changes
+ * Handler of content change events. Used to decouple processing of changes
  * from the content diff logic that detects them.
  * <p>
  * As the content diff recurses down the content tree, it will call the
@@ -38,19 +38,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * <p>
  * All names and paths passed to handler methods use unmapped Oak names.
  */
-public interface ChangeHandler {
+public interface EventHandler {
 
     /**
-     * Returns a handler of changes within the given child node, or
+     * Returns a handler of events within the given child node, or
      * {@code null} if changes within that child are not to be processed.
      *
      * @param name  name of the child node
      * @param before before state of the child node, possibly non-existent
      * @param after  after state of the child node, possibly non-existent
-     * @return handler of changes within the child node, or {@code null}
+     * @return handler of events within the child node, or {@code null}
      */
     @CheckForNull
-    ChangeHandler getChildHandler(
+    EventHandler getChildHandler(
             String name, NodeState before, NodeState after);
 
     /**

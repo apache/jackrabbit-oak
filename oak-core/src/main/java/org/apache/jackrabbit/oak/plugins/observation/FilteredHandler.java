@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.observation.handler;
+package org.apache.jackrabbit.oak.plugins.observation;
 
 import javax.annotation.CheckForNull;
 
@@ -25,27 +25,27 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Filtered change handler. This decorator class applies an {@link EventFilter}
- * on all detected changes, and forwards the filtered changes to a given
- * delegate change handler.
+ * Filtered event handler. This decorator class applies an {@link EventFilter}
+ * on all detected changes, and forwards the filtered change events to a given
+ * delegate handler.
  */
-public class FilteredHandler implements ChangeHandler {
+public class FilteredHandler implements EventHandler {
 
     private final EventFilter filter;
 
-    private final ChangeHandler handler;
+    private final EventHandler handler;
 
-    public FilteredHandler(EventFilter filter, ChangeHandler handler) {
+    public FilteredHandler(EventFilter filter, EventHandler handler) {
         this.filter = filter;
         this.handler = handler;
     }
 
     @Override @CheckForNull
-    public ChangeHandler getChildHandler(
+    public EventHandler getChildHandler(
             String name, NodeState before, NodeState after) {
         EventFilter f = filter.create(name, before, after);
         if (f != null) {
-            ChangeHandler h = handler.getChildHandler(name, before, after);
+            EventHandler h = handler.getChildHandler(name, before, after);
             if (h != null) { 
                 return new FilteredHandler(f, h);
             }

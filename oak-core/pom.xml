@@ -63,7 +63,6 @@
               org.apache.jackrabbit.oak.plugins.nodetype.write,
               org.apache.jackrabbit.oak.plugins.observation,
               org.apache.jackrabbit.oak.plugins.observation.filter,
-              org.apache.jackrabbit.oak.plugins.observation.handler,
               org.apache.jackrabbit.oak.plugins.value,
               org.apache.jackrabbit.oak.plugins.version,
               org.apache.jackrabbit.oak.spi.query,

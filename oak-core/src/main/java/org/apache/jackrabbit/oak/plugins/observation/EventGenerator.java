@@ -32,16 +32,14 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.swing.event.ChangeListener;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.observation.handler.ChangeHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
  * Continuation-based content diff implementation that generates
- * {@link ChangeHandler} callbacks by recursing down a content diff
+ * {@link EventHandler} callbacks by recursing down a content diff
  * in a way that guarantees that only a finite number of callbacks
  * will be made during a {@link #generate()} method call, regardless
  * of how large or complex the content diff is.
@@ -77,7 +75,7 @@ public class EventGenerator {
      */
     public EventGenerator(
             @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull ChangeHandler handler) {
+            @Nonnull EventHandler handler) {
         continuations.add(new Continuation(handler, before, after, 0));
     }
 
@@ -89,7 +87,7 @@ public class EventGenerator {
     }
 
     /**
-     * Generates a finite number of {@link ChangeListener} callbacks based
+     * Generates a finite number of {@link EventHandler} callbacks based
      * on the content changes that have yet to be processed. Further processing
      * (even if no callbacks were made) may be postponed to a future
      * {@link #generate()} call, until the {@link #isDone()} method finally
@@ -106,7 +104,7 @@ public class EventGenerator {
         /**
          * Filtered handler of detected content changes.
          */
-        private final ChangeHandler handler;
+        private final EventHandler handler;
 
         /**
          * Before state, possibly non-existent.
@@ -129,7 +127,7 @@ public class EventGenerator {
         private int counter = 0;
 
         private Continuation(
-                ChangeHandler handler, NodeState before, NodeState after,
+                EventHandler handler, NodeState before, NodeState after,
                 int skip) {
             this.handler = handler;
             this.before = before;
@@ -286,7 +284,7 @@ public class EventGenerator {
          */
         private void addChildDiff(
                 String name, NodeState before, NodeState after) {
-            ChangeHandler h = handler.getChildHandler(name, before, after);
+            EventHandler h = handler.getChildHandler(name, before, after);
             if (h != null) {
                 continuations.add(new Continuation(h, before, after, 0));
             }
