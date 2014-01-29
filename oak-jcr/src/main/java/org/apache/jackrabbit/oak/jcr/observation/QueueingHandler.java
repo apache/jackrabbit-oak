@@ -19,8 +19,6 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 
 import java.util.Map;
 
@@ -28,7 +26,8 @@ import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.namepath.PathTracker;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierTracker;
 import org.apache.jackrabbit.oak.plugins.observation.EventHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -51,13 +50,9 @@ class QueueingHandler implements EventHandler {
 
     private final String name;
 
-    private String path = null; // initialized lazily
+    private final PathTracker pathTracker;
 
-    private String identifier = null; // initialized lazily
-
-    private final TypePredicate beforeReferenceable;
-
-    private final TypePredicate afterReferenceable;
+    private final IdentifierTracker identifierTracker;
 
     private final EventQueue queue;
 
@@ -74,10 +69,13 @@ class QueueingHandler implements EventHandler {
             NodeState before, NodeState after) {
         this.parent = null;
         this.name = null;
-        this.path = "/";
 
-        this.beforeReferenceable = new TypePredicate(before, MIX_REFERENCEABLE);
-        this.afterReferenceable = new TypePredicate(after, MIX_REFERENCEABLE);
+        this.pathTracker = new PathTracker();
+        if (after.exists()) {
+            this.identifierTracker = new IdentifierTracker(after);
+        } else {
+            this.identifierTracker = new IdentifierTracker(before);
+        }
 
         this.queue = queue;
         this.mapper = mapper;
@@ -99,8 +97,14 @@ class QueueingHandler implements EventHandler {
         this.parent = parent;
         this.name = name;
 
-        this.beforeReferenceable = parent.beforeReferenceable;
-        this.afterReferenceable = parent.afterReferenceable;
+        this.pathTracker = parent.pathTracker.getChildTracker(name);
+        if (after.exists()) {
+            this.identifierTracker =
+                    parent.identifierTracker.getChildTracker(name, after);
+        } else {
+            this.identifierTracker =
+                    parent.getBeforeIdentifierTracker().getChildTracker(name, before);
+        }
 
         this.queue = parent.queue;
         this.mapper = parent.mapper;
@@ -110,39 +114,13 @@ class QueueingHandler implements EventHandler {
         this.after = after;
     }
 
-    private String getPath() {
-        if (path == null) { // implies parent != null
-            path = PathUtils.concat(parent.getPath(), name);
-        }
-        return path;
-    }
-
-    private String getIdentifier() {
-        if (identifier == null) { // implies after.exists()
-            String uuid = after.getString(JCR_UUID);
-            if (uuid != null && afterReferenceable.apply(after)) {
-                this.identifier = uuid;
-            } else if (!after.exists()) {
-                this.identifier = getBeforeIdentifier();
-            } else if (parent == null) {
-                this.identifier = "/";
-            } else {
-                return PathUtils.concat(parent.getIdentifier(), name);
-            }
-        }
-        return identifier;
-    }
-
-    private String getBeforeIdentifier() {
-        String uuid = before.getString(JCR_UUID);
-        if (uuid != null && beforeReferenceable.apply(before)) {
-            return uuid;
-        } else if (parent == null) {
-            return "/";
-        } else if (parent.identifier != null && !parent.after.exists()) {
-            return PathUtils.concat(parent.identifier, name);
+    private IdentifierTracker getBeforeIdentifierTracker() {
+        if (!after.exists()) {
+            return identifierTracker;
+        } else if (parent != null) {
+            return parent.getBeforeIdentifierTracker().getChildTracker(name, before);
         } else {
-            return PathUtils.concat(parent.getBeforeIdentifier(), name);
+            return new IdentifierTracker(before);
         }
     }
 
@@ -186,7 +164,7 @@ class QueueingHandler implements EventHandler {
 
     @Override
     public void nodeAdded(String name, NodeState after) {
-        queue.addEvent(new NodeEvent(name, after, afterReferenceable) {
+        queue.addEvent(new NodeEvent(name, after, identifierTracker) {
             @Override
             public int getType() {
                 return NODE_ADDED;
@@ -196,7 +174,7 @@ class QueueingHandler implements EventHandler {
 
     @Override
     public void nodeDeleted(String name, NodeState before) {
-        queue.addEvent(new NodeEvent(name, before, beforeReferenceable) {
+        queue.addEvent(new NodeEvent(name, before, getBeforeIdentifierTracker()) {
             @Override
             public int getType() {
                 return NODE_REMOVED;
@@ -207,7 +185,7 @@ class QueueingHandler implements EventHandler {
     @Override
     public void nodeMoved(
             final String sourcePath, String name, NodeState moved) {
-        queue.addEvent(new NodeEvent(name, moved, afterReferenceable) {
+        queue.addEvent(new NodeEvent(name, moved, identifierTracker) {
             @Override
             public int getType() {
                 return NODE_MOVED;
@@ -224,7 +202,7 @@ class QueueingHandler implements EventHandler {
     @Override
     public void nodeReordered(
             final String destName, final String name, NodeState reordered) {
-        queue.addEvent(new NodeEvent(name, reordered, afterReferenceable) {
+        queue.addEvent(new NodeEvent(name, reordered, identifierTracker) {
             @Override
             public int getType() {
                 return NODE_MOVED;
@@ -242,29 +220,17 @@ class QueueingHandler implements EventHandler {
 
     private abstract class NodeEvent extends ItemEvent {
 
-        private final String uuid;
+        private final String identifier;
 
-        NodeEvent(String name, NodeState node, TypePredicate isReferenceable) {
+        NodeEvent(String name, NodeState node, IdentifierTracker tracker) {
             super(name);
-            String uuid = node.getString(JCR_UUID);
-            if (uuid != null && isReferenceable.apply(node)) {
-                this.uuid = uuid;
-            } else {
-                this.uuid = null;
-            }
+            this.identifier =
+                    tracker.getChildTracker(name, node).getIdentifier();
         }
 
         @Override
         public String getIdentifier() {
-            if (uuid != null) {
-                return uuid;
-            } else if (getType() == NODE_REMOVED) {
-                return PathUtils.concat(
-                        QueueingHandler.this.getBeforeIdentifier(), name);
-            } else {
-                return PathUtils.concat(
-                        QueueingHandler.this.getIdentifier(), name);
-            }
+            return identifier;
         }
 
     }
@@ -280,13 +246,13 @@ class QueueingHandler implements EventHandler {
         @Override
         public String getPath() {
             return PathUtils.concat(
-                    mapper.getJcrPath(QueueingHandler.this.getPath()),
+                    mapper.getJcrPath(pathTracker.getPath()),
                     mapper.getJcrName(name));
         }
 
         @Override
         public String getIdentifier() {
-            return QueueingHandler.this.getIdentifier();
+            return identifierTracker.getIdentifier();
         }
 
         @Override
