@@ -71,7 +71,7 @@ class EventQueue implements EventIterator {
 
     @Override
     public long getSize() {
-        if (generator.isComplete()) {
+        if (generator.isDone()) {
             // no more new events will be generated, so count just those
             // that have already been iterated and those left in the queue
             return position + queue.size();
@@ -90,7 +90,7 @@ class EventQueue implements EventIterator {
     @Override
     public boolean hasNext() {
         while (queue.isEmpty()) {
-            if (generator.isComplete()) {
+            if (generator.isDone()) {
                 return false;
             } else {
                 generator.generate();
@@ -109,7 +109,7 @@ class EventQueue implements EventIterator {
             queue.clear();
 
             // generate more events if possible, otherwise fail
-            if (!generator.isComplete()) {
+            if (!generator.isDone()) {
                 generator.generate();
             } else {
                 throw new NoSuchElementException("Not enough events to skip");
