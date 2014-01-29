@@ -98,7 +98,7 @@ public interface ChangeHandler {
      * Notification for a reordered node
      * @param destName    name of the {@code orderBefore()} destination node
      * @param name        name of the moved node
-     * @param moved       moved node
+     * @param reordered       moved node
      */
     void nodeReordered(String destName, String name, NodeState reordered);
 

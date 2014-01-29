@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class VisibleFilter implements EventFilter {
 
-    private boolean isVisible(String name) {
+    private static boolean isVisible(String name) {
         return !name.startsWith(":");
     }
 
