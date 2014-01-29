@@ -16,13 +16,12 @@
  */
 
 /**
- * The Oak Security Layer.
- *
- * See <a href="README.md">README.md</a> for more details.
+ * Oak plugins. This package contains various oak-core extensions that are
+ * (still) too small to be placed into their own Maven components.
  */
 @Version("0.16")
 @Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak.spi.commit;
 
 import aQute.bnd.annotation.Version;
 import aQute.bnd.annotation.Export;

@@ -15,14 +15,11 @@
  * limitations under the License.
  */
 
-/**
- * The Oak Security Layer.
- *
- * See <a href="README.md">README.md</a> for more details.
- */
+// for now also export this package so that the jaas login modules so that they can be instantiated via a felix LoginModuleFactory
+// todo: find better solution
 @Version("0.16")
 @Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak.security.authentication.token;
 
 import aQute.bnd.annotation.Version;
 import aQute.bnd.annotation.Export;
