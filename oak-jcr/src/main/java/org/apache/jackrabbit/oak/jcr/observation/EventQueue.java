@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.collect.Lists.newLinkedList;
 
@@ -29,6 +29,7 @@ import javax.jcr.observation.EventIterator;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.observation.EventGenerator;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter;
