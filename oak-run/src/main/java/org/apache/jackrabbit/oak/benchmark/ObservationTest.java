@@ -50,6 +50,7 @@ public class ObservationTest extends Benchmark {
     private static final int EVENTS_PER_NODE = 2; // NODE_ADDED and PROPERTY_ADDED
     private static final int SAVE_INTERVAL = 100;
     private static final int OUTPUT_RESOLUTION = 100;
+    private static final int LISTENER_COUNT = 100;
 
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
@@ -87,17 +88,14 @@ public class ObservationTest extends Benchmark {
         final AtomicInteger eventCount = new AtomicInteger();
         final AtomicInteger nodeCount = new AtomicInteger();
 
-        EventListener listener = new EventListener() {
-            @Override
-            public void onEvent(EventIterator events) {
-                for (; events.hasNext(); events.nextEvent()) {
-                    eventCount.incrementAndGet();
-                }
-            }
-        };
+        EventListener[] listeners = new Listener[LISTENER_COUNT];
 
         try {
-            observationManager.addEventListener(listener, EVENT_TYPES, "/", true, null, null, false);
+            for (int k = 0; k < LISTENER_COUNT; k++) {
+                listeners[k] = new Listener(eventCount);
+                observationManager.addEventListener(listeners[k], EVENT_TYPES, "/", true, null, null, false);
+            }
+
             Future<?> createNodes = Executors.newSingleThreadExecutor().submit(new Runnable() {
                 private final Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
@@ -137,7 +135,7 @@ public class ObservationTest extends Benchmark {
                 t += System.currentTimeMillis() - t0;
 
                 int nc = nodeCount.get();
-                int ec = eventCount.get();
+                int ec = eventCount.get() / LISTENER_COUNT;
 
                 double nps = (double) nc / t * 1000;
                 double eps = (double) ec / t * 1000;
@@ -147,8 +145,24 @@ public class ObservationTest extends Benchmark {
             }
             createNodes.get();
         } finally {
-            observationManager.removeEventListener(listener);
+            for (int k = 0; k < LISTENER_COUNT; k++) {
+                observationManager.removeEventListener(listeners[k]);
+            }
         }
     }
 
+    private static class Listener implements EventListener {
+        private final AtomicInteger eventCount;
+
+        public Listener(AtomicInteger eventCount) {
+            this.eventCount = eventCount;
+        }
+
+        @Override
+        public void onEvent(EventIterator events) {
+            for (; events.hasNext(); events.nextEvent()) {
+                eventCount.incrementAndGet();
+            }
+        }
+    }
 }
