@@ -18,16 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.core.AbstractTree.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.MoveDetector.SOURCE_PATH;
 
+import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Set;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.swing.event.ChangeListener;
@@ -67,8 +69,6 @@ public class EventGenerator {
      * help reduce the backlog.
      */
     private static final int MAX_QUEUED_CONTINUATIONS = 1000;
-
-    private static final String[] STRING_ARRAY = new String[0];
 
     private final LinkedList<Continuation> continuations = newLinkedList();
 
@@ -156,27 +156,52 @@ public class EventGenerator {
             if (beforeEvent()) {
                 // check for reordering of child nodes
                 if (OAK_CHILD_ORDER.equals(before.getName())) {
-                    Set<String> beforeSet =
-                            newLinkedHashSet(before.getValue(NAMES));
-                    Set<String> afterSet =
-                            newLinkedHashSet(after.getValue(NAMES));
-                    afterSet.retainAll(beforeSet);
-                    beforeSet.retainAll(afterSet);
-                    String[] beforeNames = beforeSet.toArray(STRING_ARRAY);
-                    String[] afterNames = afterSet.toArray(STRING_ARRAY);
+                    // list the child node names before and after the change
+                    List<String> beforeNames =
+                            newArrayList(before.getValue(NAMES));
+                    List<String> afterNames =
+                            newArrayList(after.getValue(NAMES));
+
+                    // check only those names that weren't added or removed
+                    beforeNames.retainAll(newHashSet(afterNames));
+                    afterNames.retainAll(newHashSet(beforeNames));
 
                     // Selection sort beforeNames into afterNames,
                     // recording the swaps as we go
-                    for (int a = 0; a < afterNames.length; a++) {
-                        String name = afterNames[a];
-                        for (int b = a + 1; b < beforeNames.length; b++) {
-                            if (name.equals(beforeNames[b])) {
-                                beforeNames[b] = beforeNames[a];
-                                beforeNames[a] = name;
-                                handler.nodeReordered(
-                                        beforeNames[a + 1], name,
-                                        this.after.getChildNode(name));
+                    for (int a = 0; a < afterNames.size() - 1; a++) {
+                        String beforeName = beforeNames.get(a);
+                        String afterName = afterNames.get(a);
+                        if (!afterName.equals(beforeName)) {
+                            // Find afterName in the beforeNames list.
+                            // This loop is guaranteed to stop because both
+                            // lists contain the same names and we've already
+                            // processed all previous names.
+                            int b = a + 1;
+                            while (!afterName.equals(beforeNames.get(b))) {
+                                b++;
                             }
+
+                            // Swap the non-matching before name forward.
+                            // No need to beforeNames.set(a, afterName),
+                            // as we won't look back there anymore.
+                            beforeNames.set(b, beforeName);
+
+                            // find the destName of the orderBefore operation
+                            String destName = null;
+                            Iterator<String> iterator =
+                                    after.getValue(NAMES).iterator();
+                            while (destName == null && iterator.hasNext()) {
+                                if (afterName.equals(iterator.next())) {
+                                    if (iterator.hasNext()) {
+                                        destName = iterator.next();
+                                    }
+                                }
+                            }
+
+                            // deliver the reordering event
+                            handler.nodeReordered(
+                                    destName, afterName,
+                                    this.after.getChildNode(afterName));
                         }
                     }
                 }
