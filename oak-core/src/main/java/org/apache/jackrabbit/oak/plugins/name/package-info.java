@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,15 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/**
- * The Oak Security Layer.
- *
- * See <a href="README.md">README.md</a> for more details.
- */
 @Version("0.16")
 @Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak.plugins.name;
 
 import aQute.bnd.annotation.Version;
 import aQute.bnd.annotation.Export;

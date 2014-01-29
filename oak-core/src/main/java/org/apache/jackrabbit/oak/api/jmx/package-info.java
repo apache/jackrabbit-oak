@@ -15,14 +15,10 @@
  * limitations under the License.
  */
 
-/**
- * The Oak Security Layer.
- *
- * See <a href="README.md">README.md</a> for more details.
- */
 @Version("0.16")
 @Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak.api.jmx;
 
-import aQute.bnd.annotation.Version;
 import aQute.bnd.annotation.Export;
+import aQute.bnd.annotation.Version;
+
