@@ -136,7 +136,7 @@ public class DocumentNodeStoreService {
 
         logger.info("Connected to database {}", mongoDB);
 
-        registerJMXBeans(mk, context);
+        registerJMXBeans(mk.getNodeStore(), context);
 
         NodeStore store;
         if (useMK) {
@@ -187,38 +187,36 @@ public class DocumentNodeStoreService {
         }
     }
 
-    private void registerJMXBeans(DocumentMK mk, BundleContext context) {
+    private void registerJMXBeans(DocumentNodeStore store, BundleContext context) {
         Whiteboard wb = new OsgiWhiteboard(context);
         registrations.add(
                 registerMBean(wb,
                         CacheStatsMBean.class,
-                        mk.getNodeCacheStats(),
+                        store.getNodeCacheStats(),
                         CacheStatsMBean.TYPE,
-                        mk.getNodeCacheStats().getName())
+                        store.getNodeCacheStats().getName()));
+        registrations.add(
+                registerMBean(wb,
+                        CacheStatsMBean.class,
+                        store.getNodeChildrenCacheStats(),
+                        CacheStatsMBean.TYPE,
+                        store.getNodeChildrenCacheStats().getName())
         );
         registrations.add(
                 registerMBean(wb,
                         CacheStatsMBean.class,
-                        mk.getNodeChildrenCacheStats(),
+                        store.getDiffCacheStats(),
                         CacheStatsMBean.TYPE,
-                        mk.getNodeChildrenCacheStats().getName())
-        );
+                        store.getDiffCacheStats().getName()));
         registrations.add(
                 registerMBean(wb,
                         CacheStatsMBean.class,
-                        mk.getDiffCacheStats(),
+                        store.getDocChildrenCacheStats(),
                         CacheStatsMBean.TYPE,
-                        mk.getDiffCacheStats().getName())
-        );
-        registrations.add(
-                registerMBean(wb,
-                        CacheStatsMBean.class,
-                        mk.getDocChildrenCacheStats(),
-                        CacheStatsMBean.TYPE,
-                        mk.getDocChildrenCacheStats().getName())
+                        store.getDocChildrenCacheStats().getName())
         );
 
-        DocumentStore ds = mk.getDocumentStore();
+        DocumentStore ds = store.getDocumentStore();
         if (ds instanceof MongoDocumentStore) {
             MongoDocumentStore mds = (MongoDocumentStore) ds;
             registrations.add(

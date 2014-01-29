@@ -75,7 +75,7 @@ public class DocumentMK implements MicroKernel {
     /**
      * Enable fast diff operations.
      */
-    private static final boolean FAST_DIFF = Boolean.parseBoolean(
+    static final boolean FAST_DIFF = Boolean.parseBoolean(
             System.getProperty("oak.documentMK.fastDiff", "true"));
         
     /**
@@ -88,19 +88,9 @@ public class DocumentMK implements MicroKernel {
      */
     protected final DocumentStore store;
 
-    /**
-     * Diff cache.
-     */
-    private final Cache<String, Diff> diffCache;
-    private final CacheStats diffCacheStats;
-
     DocumentMK(Builder builder) {
         this.nodeStore = builder.getNodeStore();
         this.store = nodeStore.getDocumentStore();
-
-        diffCache = builder.buildCache(builder.getDiffCacheSize());
-        diffCacheStats = new CacheStats(diffCache, "DocumentMk-DiffCache",
-                builder.getWeigher(), builder.getDiffCacheSize());
     }
 
     public void dispose() {
@@ -163,182 +153,19 @@ public class DocumentMK implements MicroKernel {
     }
 
     @Override
-    public String diff(final String fromRevisionId,
-                       final String toRevisionId,
-                       final String path,
-                       final int depth) throws MicroKernelException {
-        String key = fromRevisionId + "-" + toRevisionId + "-" + path + "-" + depth;
-        try {
-            return diffCache.get(key, new Callable<Diff>() {
-                @Override
-                public Diff call() throws Exception {
-                    return new Diff(diffImpl(fromRevisionId, toRevisionId, path, depth));
-                }
-            }).diff;
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof MicroKernelException) {
-                throw (MicroKernelException) e.getCause();
-            } else {
-                throw new MicroKernelException(e.getCause());
-            }
-        }
-    }
-    
-    String diffImpl(String fromRevisionId, String toRevisionId, String path,
-            int depth) throws MicroKernelException {
-        if (fromRevisionId.equals(toRevisionId)) {
-            return "";
-        }
+    public String diff(String fromRevisionId,
+                       String toRevisionId,
+                       String path,
+                       int depth) throws MicroKernelException {
         if (depth != 0) {
             throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
         }
         if (path == null || path.equals("")) {
             path = "/";
         }
-        Revision fromRev = Revision.fromString(fromRevisionId);
-        Revision toRev = Revision.fromString(toRevisionId);
-        Node from = nodeStore.getNode(path, fromRev);
-        Node to = nodeStore.getNode(path, toRev);
-
-        if (from == null || to == null) {
-            // TODO implement correct behavior if the node does't/didn't exist
-            String msg = String.format("Diff is only supported if the node exists in both cases. " +
-                    "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
-                    path, fromRev, from != null, toRev, to != null);
-            throw new MicroKernelException(msg);
-        }
-        JsopWriter w = new JsopStream();
-        for (String p : from.getPropertyNames()) {
-            // changed or removed properties
-            String fromValue = from.getProperty(p);
-            String toValue = to.getProperty(p);
-            if (!fromValue.equals(toValue)) {
-                w.tag('^').key(p);
-                if (toValue == null) {
-                    w.value(null);
-                } else {
-                    w.encodedValue(toValue).newline();
-                }
-            }
-        }
-        for (String p : to.getPropertyNames()) {
-            // added properties
-            if (from.getProperty(p) == null) {
-                w.tag('^').key(p).encodedValue(to.getProperty(p)).newline();
-            }
-        }
-        // TODO this does not work well for large child node lists 
-        // use a document store index instead
-        int max = MANY_CHILDREN_THRESHOLD;
-        Children fromChildren, toChildren;
-        fromChildren = nodeStore.getChildren(from, null, max);
-        toChildren = nodeStore.getChildren(to, null, max);
-        if (!fromChildren.hasMore && !toChildren.hasMore) {
-            diffFewChildren(w, fromChildren, fromRev, toChildren, toRev);
-        } else {
-            if (FAST_DIFF) {
-                diffManyChildren(w, path, fromRev, toRev);
-            } else {
-                max = Integer.MAX_VALUE;
-                fromChildren = nodeStore.getChildren(from, null, max);
-                toChildren = nodeStore.getChildren(to, null, max);
-                diffFewChildren(w, fromChildren, fromRev, toChildren, toRev);
-            }
-        }
-        return w.toString();
+        return nodeStore.diff(fromRevisionId, toRevisionId, path);
     }
     
-    private void diffManyChildren(JsopWriter w, String path, Revision fromRev, Revision toRev) {
-        long minTimestamp = Math.min(fromRev.getTimestamp(), toRev.getTimestamp());
-        long minValue = Commit.getModified(minTimestamp);
-        String fromKey = Utils.getKeyLowerLimit(path);
-        String toKey = Utils.getKeyUpperLimit(path);
-        Set<String> paths = new HashSet<String>();
-        for (NodeDocument doc : store.query(Collection.NODES, fromKey, toKey,
-                NodeDocument.MODIFIED, minValue, Integer.MAX_VALUE)) {
-            paths.add(Utils.getPathFromId(doc.getId()));
-        }
-        // also consider nodes with not yet stored modifications (OAK-1107)
-        Revision minRev = new Revision(minTimestamp, 0, nodeStore.getClusterId());
-        addPathsForDiff(path, paths, nodeStore.getPendingModifications(), minRev);
-        for (Revision r : new Revision[]{fromRev, toRev}) {
-            if (r.isBranch()) {
-                Branch b = nodeStore.getBranches().getBranch(fromRev);
-                if (b != null) {
-                    addPathsForDiff(path, paths, b.getModifications(r), r);
-                }
-            }
-        }
-        for (String p : paths) {
-            Node fromNode = nodeStore.getNode(p, fromRev);
-            Node toNode = nodeStore.getNode(p, toRev);
-            if (fromNode != null) {
-                // exists in fromRev
-                if (toNode != null) {
-                    // exists in both revisions
-                    // check if different
-                    if (!fromNode.getLastRevision().equals(toNode.getLastRevision())) {
-                        w.tag('^').key(p).object().endObject().newline();
-                    }
-                } else {
-                    // does not exist in toRev -> was removed
-                    w.tag('-').value(p).newline();
-                }
-            } else {
-                // does not exist in fromRev
-                if (toNode != null) {
-                    // exists in toRev
-                    w.tag('+').key(p).object().endObject().newline();
-                } else {
-                    // does not exist in either revisions
-                    // -> do nothing
-                }
-            }
-        }
-    }
-
-    private static void addPathsForDiff(String path,
-                                 Set<String> paths,
-                                 UnsavedModifications pending,
-                                 Revision minRev) {
-        for (String p : pending.getPaths(minRev)) {
-            if (PathUtils.denotesRoot(p)) {
-                continue;
-            }
-            String parent = PathUtils.getParentPath(p);
-            if (path.equals(parent)) {
-                paths.add(p);
-            }
-        }
-    }
-    
-    private void diffFewChildren(JsopWriter w, Children fromChildren, Revision fromRev, Children toChildren, Revision toRev) {
-        Set<String> childrenSet = new HashSet<String>(toChildren.children);
-        for (String n : fromChildren.children) {
-            if (!childrenSet.contains(n)) {
-                w.tag('-').value(n).newline();
-            } else {
-                Node n1 = nodeStore.getNode(n, fromRev);
-                Node n2 = nodeStore.getNode(n, toRev);
-                // this is not fully correct:
-                // a change is detected if the node changed recently,
-                // even if the revisions are well in the past
-                // if this is a problem it would need to be changed
-                checkNotNull(n1, "Node at [%s] not found for fromRev [%s]", n, fromRev);
-                checkNotNull(n2, "Node at [%s] not found for toRev [%s]", n, toRev);
-                if (!n1.getId().equals(n2.getId())) {
-                    w.tag('^').key(n).object().endObject().newline();
-                }
-            }
-        }
-        childrenSet = new HashSet<String>(fromChildren.children);
-        for (String n : toChildren.children) {
-            if (!childrenSet.contains(n)) {
-                w.tag('+').key(n).object().endObject().newline();
-            }
-        }
-    }
-
     @Override
     public boolean nodeExists(String path, String revisionId)
             throws MicroKernelException {
@@ -512,22 +339,6 @@ public class DocumentMK implements MicroKernel {
         return store;
     }
     
-    public CacheStats getNodeCacheStats() {
-        return nodeStore.getNodeCacheStats();
-    }
-
-    public CacheStats getNodeChildrenCacheStats() {
-        return nodeStore.getNodeChildrenCacheStats();
-    }
-
-    public CacheStats getDiffCacheStats() {
-        return diffCacheStats;
-    }
-    
-    public CacheStats getDocChildrenCacheStats() {
-        return nodeStore.getDocChildrenCacheStats();
-    }
-
     //------------------------------< internal >--------------------------------
 
     private void parseJsonDiff(Commit commit, String json, String rootPath) {
@@ -626,24 +437,6 @@ public class DocumentMK implements MicroKernel {
         }
         commit.addNode(n);
         commit.addNodeDiff(n);
-    }
-
-    /**
-     * A (cached) result of the diff operation.
-     */
-    private static class Diff implements CacheValue {
-
-        final String diff;
-
-        Diff(String diff) {
-            this.diff = diff;
-        }
-
-        @Override
-        public int getMemory() {
-            return diff.length() * 2;
-        }
-
     }
 
     //----------------------------< Builder >-----------------------------------
