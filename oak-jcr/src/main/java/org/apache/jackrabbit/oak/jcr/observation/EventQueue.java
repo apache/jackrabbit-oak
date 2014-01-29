@@ -54,7 +54,7 @@ class EventQueue implements EventIterator {
             @Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull String basePath, @Nonnull EventFilter filter) {
         ChangeHandler handler = new QueueingHandler(
-                queue, mapper, info, before, after);
+                this, mapper, info, before, after);
         for (String name : PathUtils.elements(basePath)) {
             before = before.getChildNode(name);
             after = after.getChildNode(name);
@@ -65,6 +65,13 @@ class EventQueue implements EventIterator {
                 handler);
 
         this.generator = new EventGenerator(before, after, handler);
+    }
+
+    /**
+     * Called by the {@link QueueingHandler} to add new events to the queue.
+     */
+    void addEvent(Event event) {
+        queue.add(event);
     }
 
     //-----------------------------------------------------< EventIterator >--
