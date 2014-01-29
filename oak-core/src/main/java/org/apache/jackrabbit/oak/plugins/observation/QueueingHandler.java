@@ -18,23 +18,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static javax.jcr.observation.Event.NODE_ADDED;
-import static javax.jcr.observation.Event.NODE_MOVED;
-import static javax.jcr.observation.Event.NODE_REMOVED;
-import static javax.jcr.observation.Event.PROPERTY_ADDED;
-import static javax.jcr.observation.Event.PROPERTY_CHANGED;
-import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static java.util.Collections.emptyMap;
 
 import java.util.LinkedList;
 import java.util.Map;
 
 import javax.jcr.observation.Event;
 
+import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.observation.handler.ChangeHandler;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -43,79 +44,235 @@ import com.google.common.collect.ImmutableMap;
  */
 class QueueingHandler implements ChangeHandler {
 
+    /**
+     * Dummy session identifier used to identify external commits.
+     */
+    private static final String OAK_EXTERNAL = "oak:external";
+
     private final LinkedList<Event> queue;
 
-    private final EventContext context;
+    private final NamePathMapper mapper;
+
+    private final CommitInfo info;
 
     private final ImmutableTree before;
 
     private final ImmutableTree after;
 
     QueueingHandler(
-            LinkedList<Event> queue, EventContext context,
-            ImmutableTree before, ImmutableTree after) {
+            LinkedList<Event> queue, NamePathMapper mapper, CommitInfo info,
+            NodeState before, NodeState after) {
         this.queue = queue;
-        this.context = context;
-        this.before = before;
-        this.after = after;
+        this.mapper = mapper;
+        if (info != null) {
+            this.info = info;
+        } else {
+            // Generate a dummy CommitInfo object to avoid extra null checks.
+            // The current time is used as a rough estimate of the commit time.
+            this.info = new CommitInfo(OAK_EXTERNAL, null, null);
+        }
+
+        this.before = new ImmutableTree(before);
+        this.after = new ImmutableTree(after);
+    }
+
+    private QueueingHandler(
+            QueueingHandler parent,
+            String name, NodeState before, NodeState after) {
+        this.queue = parent.queue;
+        this.mapper = parent.mapper;
+        this.info = parent.info;
+        this.before = new ImmutableTree(parent.before, name, before);
+        this.after = new ImmutableTree(parent.after, name, after);
     }
 
     @Override
     public ChangeHandler getChildHandler(
             String name, NodeState before, NodeState after) {
-        return new QueueingHandler(
-                queue, context,
-                new ImmutableTree(this.before, name, before),
-                new ImmutableTree(this.after, name, after));
+        return new QueueingHandler(this, name, before, after);
     }
 
     @Override
     public void propertyAdded(PropertyState after) {
-        queue.add(new EventImpl(
-                context, PROPERTY_ADDED, this.after, after.getName()));
+        queue.add(new OakEvent(this.after, after.getName()) {
+            @Override
+            public int getType() {
+                return PROPERTY_ADDED;
+            }
+        });
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        queue.add(new EventImpl(
-                context, PROPERTY_CHANGED, this.after, after.getName()));
+        queue.add(new OakEvent(this.after, after.getName()) {
+            @Override
+            public int getType() {
+                return PROPERTY_CHANGED;
+            }
+        });
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        queue.add(new EventImpl(
-                context, PROPERTY_REMOVED, this.before, before.getName()));
+        queue.add(new OakEvent(this.before, before.getName()) {
+            @Override
+            public int getType() {
+                return PROPERTY_REMOVED;
+            }
+        });
     }
 
     @Override
     public void nodeAdded(String name, NodeState after) {
         ImmutableTree tree = new ImmutableTree(this.after, name, after);
-        queue.add(new EventImpl(context, NODE_ADDED, tree));
+        queue.add(new OakEvent(tree, null) {
+            @Override
+            public int getType() {
+                return NODE_ADDED;
+            }
+        });
     }
 
     @Override
     public void nodeDeleted(String name, NodeState before) {
         ImmutableTree tree = new ImmutableTree(this.before, name, before);
-        queue.add(new EventImpl(context, NODE_REMOVED, tree));
+        queue.add(new OakEvent(tree, null) {
+            @Override
+            public int getType() {
+                return NODE_REMOVED;
+            }
+        });
     }
 
     @Override
-    public void nodeMoved(String sourcePath, String name, NodeState moved) {
-        ImmutableTree tree = new ImmutableTree(this.after, name, moved);
-        Map<String, String> info = ImmutableMap.of(
-                "srcAbsPath", context.getJcrPath(sourcePath),
-                "destAbsPath", context.getJcrPath(tree.getPath()));
-        queue.add(new EventImpl(context, NODE_MOVED, tree, info));
+    public void nodeMoved(
+            final String sourcePath, String name, NodeState moved) {
+        final ImmutableTree tree = new ImmutableTree(this.after, name, moved);
+        queue.add(new OakEvent(tree, null) {
+            @Override
+            public int getType() {
+                return NODE_MOVED;
+            }
+            @Override
+            public Map<?, ?> getInfo() {
+                return ImmutableMap.of(
+                        "srcAbsPath", mapper.getJcrPath(sourcePath),
+                        "destAbsPath", mapper.getJcrPath(tree.getPath()));
+            }
+        });
     }
 
     @Override
     public void nodeReordered(
-            String destName, String name, NodeState reordered) {
-        Map<String, String> info = ImmutableMap.of(
-                "srcChildRelPath", context.getJcrName(name),
-                "destChildRelPath", context.getJcrName(destName));
+            final String destName, final String name, NodeState reordered) {
         ImmutableTree tree = new ImmutableTree(after, name, reordered);
-        queue.add(new EventImpl(context, NODE_MOVED, tree, info));
+        queue.add(new OakEvent(tree, null) {
+            @Override
+            public int getType() {
+                return NODE_MOVED;
+            }
+            @Override
+            public Map<?, ?> getInfo() {
+                return ImmutableMap.of(
+                        "srcChildRelPath", mapper.getJcrName(name),
+                        "destChildRelPath", mapper.getJcrName(destName));
+            }
+        });
+    }
+
+    //-----------------------------------------------------------< private >--
+
+    private abstract class OakEvent implements JackrabbitEvent {
+
+        private final ImmutableTree tree;
+        private final String name;
+
+        OakEvent(ImmutableTree tree, String name) {
+            this.tree = tree;
+            this.name = name;
+        }
+
+        @Override
+        public String getPath() {
+            String path = tree.getPath();
+            if (name != null) {
+                path = PathUtils.concat(path, name);
+            }
+            return mapper.getJcrPath(path);
+        }
+
+        @Override
+        public String getIdentifier() {
+            return IdentifierManager.getIdentifier(tree);
+        }
+
+        @Override
+        public Map<?, ?> getInfo() {
+            return emptyMap();
+        }
+
+        @Override
+        public String getUserID() {
+            return info.getUserId();
+        }
+
+        @Override
+        public String getUserData() {
+            return info.getMessage();
+        }
+
+        @Override
+        public long getDate() {
+            return info.getDate();
+        }
+
+        @Override
+        public boolean isExternal() {
+            return info.getSessionId() == OAK_EXTERNAL;
+        }
+
+        //--------------------------------------------------------< Object >--
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            } else if (object instanceof OakEvent) {
+                OakEvent that = (OakEvent) object;
+                return getType() == that.getType()
+                        && getPath().equals(that.getPath())
+                        && getIdentifier().equals(that.getIdentifier())
+                        && getInfo().equals(that.getInfo())
+                        && Objects.equal(getUserID(), that.getUserID())
+                        && Objects.equal(getUserData(), that.getUserData())
+                        && getDate() == that.getDate()
+                        && isExternal() == that.isExternal();
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(
+                    getType(), getPath(), getIdentifier(), getInfo(),
+                    getUserID(), getUserData(), getDate(), isExternal());
+        }
+
+        @Override
+        public String toString() {
+            return Objects.toStringHelper("Event")
+                    .add("type", getType())
+                    .add("path", getPath())
+                    .add("identifier", getIdentifier())
+                    .add("info", getInfo())
+                    .add("userID", getUserID())
+                    .add("userData", getUserData())
+                    .add("date", getDate())
+                    .add("external", isExternal())
+                    .toString();
+        }
+
     }
 
 }
