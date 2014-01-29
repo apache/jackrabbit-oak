@@ -53,8 +53,9 @@ class EventQueue implements EventIterator {
             @Nonnull NamePathMapper mapper, CommitInfo info,
             @Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull String basePath, @Nonnull EventFilter filter) {
-        EventHandler handler = new QueueingHandler(
-                this, mapper, info, before, after);
+        EventFactory factory = new EventFactory(mapper, info);
+        EventHandler handler =
+                new QueueingHandler(this, factory, before, after);
         for (String name : PathUtils.elements(basePath)) {
             before = before.getChildNode(name);
             after = after.getChildNode(name);
