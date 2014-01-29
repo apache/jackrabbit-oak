@@ -157,9 +157,9 @@ public class EventGenerator {
                 // check for reordering of child nodes
                 if (OAK_CHILD_ORDER.equals(before.getName())) {
                     Set<String> beforeSet =
-                            newLinkedHashSet(after.getValue(NAMES));
-                    Set<String> afterSet =
                             newLinkedHashSet(before.getValue(NAMES));
+                    Set<String> afterSet =
+                            newLinkedHashSet(after.getValue(NAMES));
                     afterSet.retainAll(beforeSet);
                     beforeSet.retainAll(afterSet);
                     String[] beforeNames = beforeSet.toArray(STRING_ARRAY);
