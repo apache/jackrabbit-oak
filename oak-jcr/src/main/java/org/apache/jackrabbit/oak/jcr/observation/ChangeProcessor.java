@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.observation;
+package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -56,7 +56,8 @@ import org.slf4j.LoggerFactory;
  * After instantiation a {@code ChangeProcessor} must be started in order to start
  * delivering observation events and stopped to stop doing so.
  */
-public class ChangeProcessor implements Observer {
+class ChangeProcessor implements Observer {
+
     private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
 
     private final ContentSession contentSession;
