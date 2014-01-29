@@ -70,9 +70,9 @@ public class UniversalFilter implements EventFilter {
          * Map a property event.
          * @param filter  filter instance on which respective call back occurred.
          * @param before  before state or {@code null} for
-         *                {@link EventFilter#propertyAdded(PropertyState)}
+         *                {@link EventFilter#includeAdd(PropertyState)}
          * @param after   after state or {@code null} for
-         *                {@link EventFilter#propertyDeleted(PropertyState)}
+         *                {@link EventFilter#includeDelete(PropertyState)}
          * @return a {@code NodeState} instance for basing the filtering criterion (predicate) upon
          */
         @Nonnull
@@ -84,9 +84,9 @@ public class UniversalFilter implements EventFilter {
          * @param filter  filter instance on which respective call back occurred.
          * @param name    name of the child node state
          * @param before  before state or {@code null} for
-         *                {@link EventFilter#childNodeAdded(String, NodeState)}
+         *                {@link EventFilter#includeAdd(String, NodeState)}
          * @param after   after state or {@code null} for
-         *                {@link EventFilter#childNodeDeleted(String, NodeState)}
+         *                {@link EventFilter#includeDelete(String, NodeState)}
          * @return a NodeState instance for basing the filtering criterion (predicate) upon
          */
         @Nonnull
