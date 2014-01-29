@@ -22,10 +22,7 @@ import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 
-import java.util.LinkedList;
 import java.util.Map;
-
-import javax.jcr.observation.Event;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -62,7 +59,7 @@ class QueueingHandler implements ChangeHandler {
 
     private final TypePredicate afterReferenceable;
 
-    private final LinkedList<Event> queue;
+    private final EventQueue queue;
 
     private final NamePathMapper mapper;
 
@@ -73,7 +70,7 @@ class QueueingHandler implements ChangeHandler {
     private final NodeState after;
 
     QueueingHandler(
-            LinkedList<Event> queue, NamePathMapper mapper, CommitInfo info,
+            EventQueue queue, NamePathMapper mapper, CommitInfo info,
             NodeState before, NodeState after) {
         this.parent = null;
         this.name = null;
@@ -159,7 +156,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void propertyAdded(PropertyState after) {
-        queue.add(new ItemEvent(after.getName()) {
+        queue.addEvent(new ItemEvent(after.getName()) {
             @Override
             public int getType() {
                 return PROPERTY_ADDED;
@@ -169,7 +166,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        queue.add(new ItemEvent(after.getName()) {
+        queue.addEvent(new ItemEvent(after.getName()) {
             @Override
             public int getType() {
                 return PROPERTY_CHANGED;
@@ -179,7 +176,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        queue.add(new ItemEvent(before.getName()) {
+        queue.addEvent(new ItemEvent(before.getName()) {
             @Override
             public int getType() {
                 return PROPERTY_REMOVED;
@@ -189,7 +186,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void nodeAdded(String name, NodeState after) {
-        queue.add(new NodeEvent(name, after, afterReferenceable) {
+        queue.addEvent(new NodeEvent(name, after, afterReferenceable) {
             @Override
             public int getType() {
                 return NODE_ADDED;
@@ -199,7 +196,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void nodeDeleted(String name, NodeState before) {
-        queue.add(new NodeEvent(name, before, beforeReferenceable) {
+        queue.addEvent(new NodeEvent(name, before, beforeReferenceable) {
             @Override
             public int getType() {
                 return NODE_REMOVED;
@@ -210,7 +207,7 @@ class QueueingHandler implements ChangeHandler {
     @Override
     public void nodeMoved(
             final String sourcePath, String name, NodeState moved) {
-        queue.add(new NodeEvent(name, moved, afterReferenceable) {
+        queue.addEvent(new NodeEvent(name, moved, afterReferenceable) {
             @Override
             public int getType() {
                 return NODE_MOVED;
@@ -227,7 +224,7 @@ class QueueingHandler implements ChangeHandler {
     @Override
     public void nodeReordered(
             final String destName, final String name, NodeState reordered) {
-        queue.add(new NodeEvent(name, reordered, afterReferenceable) {
+        queue.addEvent(new NodeEvent(name, reordered, afterReferenceable) {
             @Override
             public int getType() {
                 return NODE_MOVED;
