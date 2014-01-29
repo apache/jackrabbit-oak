@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
  *     add operation on the move target.</li>
  *     <li>Removing a moved node is not reported as a move operation but as a remove operation
  *     from the source of the move.</li>
- *     <li>Moving a child node of a transiently moved node is not reported from the original
+ *     <li>Moving a child node of a transiently moved node is reported from the original
  *     source node, not from the intermediate one.</li>
  *     <li>Moving a node back and forth to its original location is not reported at all.</li>
  * </ul>
