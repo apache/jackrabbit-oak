@@ -30,11 +30,11 @@ import javax.jcr.observation.EventIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.EventGenerator;
+import org.apache.jackrabbit.oak.plugins.observation.EventHandler;
+import org.apache.jackrabbit.oak.plugins.observation.FilteredHandler;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter;
-import org.apache.jackrabbit.oak.plugins.observation.handler.ChangeHandler;
-import org.apache.jackrabbit.oak.plugins.observation.handler.FilteredHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -53,7 +53,7 @@ class EventQueue implements EventIterator {
             @Nonnull NamePathMapper mapper, CommitInfo info,
             @Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull String basePath, @Nonnull EventFilter filter) {
-        ChangeHandler handler = new QueueingHandler(
+        EventHandler handler = new QueueingHandler(
                 this, mapper, info, before, after);
         for (String name : PathUtils.elements(basePath)) {
             before = before.getChildNode(name);

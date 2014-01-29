@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.observation.handler.ChangeHandler;
+import org.apache.jackrabbit.oak.plugins.observation.EventHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableMap;
  * Change handler that generates JCR Event instances and places them
  * in an event queue.
  */
-class QueueingHandler implements ChangeHandler {
+class QueueingHandler implements EventHandler {
 
     /**
      * Dummy session identifier used to identify external commits.
@@ -149,7 +149,7 @@ class QueueingHandler implements ChangeHandler {
     //-----------------------------------------------------< ChangeHandler >--
 
     @Override
-    public ChangeHandler getChildHandler(
+    public EventHandler getChildHandler(
             String name, NodeState before, NodeState after) {
         return new QueueingHandler(this, name, before, after);
     }
