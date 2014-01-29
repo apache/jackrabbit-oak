@@ -170,7 +170,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
                     for (String name : attributes.keySet()) {
                         tc.setAttribute(name, attributes.get(name));
                     }
-                    updateSubject(tc, getAuthInfo(ti), null);
+                    sharedState.put(SHARED_KEY_ATTRIBUTES, attributes);
+                    updateSubject(tc, null, null);
                 } else {
                     // failed to create token -> fail commit()
                     log.debug("TokenProvider failed to create a login token for user " + userId);
@@ -236,19 +237,21 @@ public final class TokenLoginModule extends AbstractLoginModule {
      * @param tokenInfo The tokenInfo to retrieve attributes from.
      * @return The {@code AuthInfo} resulting from the successful login.
      */
-    @Nonnull
-    private AuthInfo getAuthInfo(TokenInfo tokenInfo) {
-        Map<String, Object> attributes = new HashMap<String, Object>();
-        if (tokenProvider != null && tokenInfo != null) {
+    @CheckForNull
+    private AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo) {
+        if (tokenInfo != null) {
+            Map<String, Object> attributes = new HashMap<String, Object>();
             Map<String, String> publicAttributes = tokenInfo.getPublicAttributes();
             for (String attrName : publicAttributes.keySet()) {
                 attributes.put(attrName, publicAttributes.get(attrName));
             }
+            return new AuthInfoImpl(tokenInfo.getUserId(), attributes, principals);
+        } else {
+            return null;
         }
-        return new AuthInfoImpl(userId, attributes, principals);
     }
 
-    private void updateSubject(@Nonnull TokenCredentials tc, @Nonnull AuthInfo authInfo,
+    private void updateSubject(@Nonnull TokenCredentials tc, @Nullable AuthInfo authInfo,
                                @Nullable Set<? extends Principal> principals) {
         if (!subject.isReadOnly()) {
             subject.getPublicCredentials().add(tc);
@@ -257,12 +260,9 @@ public final class TokenLoginModule extends AbstractLoginModule {
                 subject.getPrincipals().addAll(principals);
             }
 
-            // replace all existing auth-info
-            Set<AuthInfo> ais = subject.getPublicCredentials(AuthInfo.class);
-            if (!ais.isEmpty()) {
-                subject.getPublicCredentials().removeAll(ais);
+            if (authInfo != null) {
+                setAuthInfo(authInfo, subject);
             }
-            subject.getPublicCredentials().add(authInfo);
         }
     }
 }
