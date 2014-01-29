@@ -24,9 +24,13 @@ import static com.google.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -218,6 +222,20 @@ public class Segment {
         return data.remaining();
     }
 
+    /**
+     * Writes this segment to the given output stream.
+     *
+     * @param stream stream to which this segment will be written
+     * @throws IOException on an IO error
+     */
+    public void writeTo(OutputStream stream) throws IOException {
+        ByteBuffer buffer = data.duplicate();
+        WritableByteChannel channel = Channels.newChannel(stream);
+        while (buffer.hasRemaining()) {
+            channel.write(buffer);
+        }
+    }
+
     byte readByte(int offset) {
         return data.get(pos(offset, 1));
     }
@@ -240,12 +258,14 @@ public class Segment {
      * @param uuid segment identifier
      * @return identified segment
      */
+    @Nonnull
     Segment getSegment(UUID uuid) {
         if (equal(uuid, this.uuid)) {
             return this; // optimization for the common case (OAK-1031)
-        } else {
-            return store.readSegment(uuid);
         }
+        Segment segment = store.readSegment(uuid);
+        checkState(segment != null); // sanity check
+        return segment;
     }
 
     /**

@@ -16,15 +16,30 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import javax.annotation.Nullable;
 import java.util.UUID;
+
+import javax.annotation.CheckForNull;
 
 public interface SegmentStore {
 
     SegmentWriter getWriter();
 
+    /**
+     * Returns the named journal.
+     *
+     * @param name journal name
+     * @return named journal, or {@code null} if not found
+     */
+    @CheckForNull
     Journal getJournal(String name);
 
+    /**
+     * Reads the identified segment from this store.
+     *
+     * @param segmentId segment identifier
+     * @return identified segment, or {@code null} if not found
+     */
+    @CheckForNull
     Segment readSegment(UUID segmentId);
 
     /**
