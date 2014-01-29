@@ -44,15 +44,20 @@ public class RevisionTest {
     
     @Test
     public void difference() throws InterruptedException {
+        long t0 = Revision.getCurrentTimestamp();
         Revision r0 = Revision.newRevision(0);
         Revision r1 = Revision.newRevision(0);
-        long timestamp = Revision.getCurrentTimestamp();
-        assertTrue(Revision.getTimestampDifference(r1.getTimestamp(), r0.getTimestamp()) < 10);
-        assertTrue(Revision.getTimestampDifference(timestamp, r0.getTimestamp()) < 10);
-        Thread.sleep(2);
+        long t1 = Revision.getCurrentTimestamp();
+        // the difference must not be more than t1 - t0
+        assertTrue(Revision.getTimestampDifference(r1, r0) <= (t1 - t0));
+        // busy wait until we have a timestamp different from t1
+        long t2;
+        do {
+            t2 = Revision.getCurrentTimestamp();
+        } while (t1 == t2);
+
         Revision r2 = Revision.newRevision(0);
-        assertTrue(Revision.getTimestampDifference(r2.getTimestamp(), r0.getTimestamp()) > 0);
-        assertTrue(Revision.getTimestampDifference(r2.getTimestamp(), r0.getTimestamp()) < 20);
+        assertTrue(Revision.getTimestampDifference(r2, r1) > 0);
     }
     
     @Test

@@ -161,14 +161,15 @@ public class Revision {
     }
     
     /**
-     * Get the difference between two timestamps (a - b) in milliseconds.
+     * Get the timestamp difference between two revisions (r1 - r2) in
+     * milliseconds.
      * 
-     * @param a the first timestamp
-     * @param b the second timestamp
+     * @param r1 the first revision
+     * @param r2 the second revision
      * @return the difference in milliseconds
      */
-    public static long getTimestampDifference(long a, long b) {
-        return a - b;
+    public static long getTimestampDifference(Revision r1, Revision r2) {
+        return r1.getTimestamp() - r2.getTimestamp();
     }
     
     public static Revision fromString(String rev) {
