@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 
 import java.util.LinkedList;
 import java.util.Map;
@@ -28,9 +30,8 @@ import javax.jcr.observation.Event;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.handler.ChangeHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -49,19 +50,38 @@ class QueueingHandler implements ChangeHandler {
      */
     private static final String OAK_EXTERNAL = "oak:external";
 
+    private final QueueingHandler parent;
+
+    private final String name;
+
+    private String path = null; // initialized lazily
+
+    private String identifier = null; // initialized lazily
+
+    private final TypePredicate beforeReferenceable;
+
+    private final TypePredicate afterReferenceable;
+
     private final LinkedList<Event> queue;
 
     private final NamePathMapper mapper;
 
     private final CommitInfo info;
 
-    private final ImmutableTree before;
+    private final NodeState before;
 
-    private final ImmutableTree after;
+    private final NodeState after;
 
     QueueingHandler(
             LinkedList<Event> queue, NamePathMapper mapper, CommitInfo info,
             NodeState before, NodeState after) {
+        this.parent = null;
+        this.name = null;
+        this.path = "/";
+
+        this.beforeReferenceable = new TypePredicate(before, MIX_REFERENCEABLE);
+        this.afterReferenceable = new TypePredicate(after, MIX_REFERENCEABLE);
+
         this.queue = queue;
         this.mapper = mapper;
         if (info != null) {
@@ -72,19 +92,64 @@ class QueueingHandler implements ChangeHandler {
             this.info = new CommitInfo(OAK_EXTERNAL, null, null);
         }
 
-        this.before = new ImmutableTree(before);
-        this.after = new ImmutableTree(after);
+        this.before = before;
+        this.after = after;
     }
 
     private QueueingHandler(
             QueueingHandler parent,
             String name, NodeState before, NodeState after) {
+        this.parent = parent;
+        this.name = name;
+
+        this.beforeReferenceable = parent.beforeReferenceable;
+        this.afterReferenceable = parent.afterReferenceable;
+
         this.queue = parent.queue;
         this.mapper = parent.mapper;
         this.info = parent.info;
-        this.before = new ImmutableTree(parent.before, name, before);
-        this.after = new ImmutableTree(parent.after, name, after);
+
+        this.before = before;
+        this.after = after;
     }
+
+    private String getPath() {
+        if (path == null) { // implies parent != null
+            path = PathUtils.concat(parent.getPath(), name);
+        }
+        return path;
+    }
+
+    private String getIdentifier() {
+        if (identifier == null) { // implies after.exists()
+            String uuid = after.getString(JCR_UUID);
+            if (uuid != null && afterReferenceable.apply(after)) {
+                this.identifier = uuid;
+            } else if (!after.exists()) {
+                this.identifier = getBeforeIdentifier();
+            } else if (parent == null) {
+                this.identifier = "/";
+            } else {
+                return PathUtils.concat(parent.getIdentifier(), name);
+            }
+        }
+        return identifier;
+    }
+
+    private String getBeforeIdentifier() {
+        String uuid = before.getString(JCR_UUID);
+        if (uuid != null && beforeReferenceable.apply(before)) {
+            return uuid;
+        } else if (parent == null) {
+            return "/";
+        } else if (parent.identifier != null && !parent.after.exists()) {
+            return PathUtils.concat(parent.identifier, name);
+        } else {
+            return PathUtils.concat(parent.getBeforeIdentifier(), name);
+        }
+    }
+
+    //-----------------------------------------------------< ChangeHandler >--
 
     @Override
     public ChangeHandler getChildHandler(
@@ -94,7 +159,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void propertyAdded(PropertyState after) {
-        queue.add(new OakEvent(this.after, after.getName()) {
+        queue.add(new ItemEvent(after.getName()) {
             @Override
             public int getType() {
                 return PROPERTY_ADDED;
@@ -104,7 +169,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        queue.add(new OakEvent(this.after, after.getName()) {
+        queue.add(new ItemEvent(after.getName()) {
             @Override
             public int getType() {
                 return PROPERTY_CHANGED;
@@ -114,7 +179,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        queue.add(new OakEvent(this.before, before.getName()) {
+        queue.add(new ItemEvent(before.getName()) {
             @Override
             public int getType() {
                 return PROPERTY_REMOVED;
@@ -124,8 +189,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void nodeAdded(String name, NodeState after) {
-        ImmutableTree tree = new ImmutableTree(this.after, name, after);
-        queue.add(new OakEvent(tree, null) {
+        queue.add(new NodeEvent(name, after, afterReferenceable) {
             @Override
             public int getType() {
                 return NODE_ADDED;
@@ -135,8 +199,7 @@ class QueueingHandler implements ChangeHandler {
 
     @Override
     public void nodeDeleted(String name, NodeState before) {
-        ImmutableTree tree = new ImmutableTree(this.before, name, before);
-        queue.add(new OakEvent(tree, null) {
+        queue.add(new NodeEvent(name, before, beforeReferenceable) {
             @Override
             public int getType() {
                 return NODE_REMOVED;
@@ -147,8 +210,7 @@ class QueueingHandler implements ChangeHandler {
     @Override
     public void nodeMoved(
             final String sourcePath, String name, NodeState moved) {
-        final ImmutableTree tree = new ImmutableTree(this.after, name, moved);
-        queue.add(new OakEvent(tree, null) {
+        queue.add(new NodeEvent(name, moved, afterReferenceable) {
             @Override
             public int getType() {
                 return NODE_MOVED;
@@ -157,7 +219,7 @@ class QueueingHandler implements ChangeHandler {
             public Map<?, ?> getInfo() {
                 return ImmutableMap.of(
                         "srcAbsPath", mapper.getJcrPath(sourcePath),
-                        "destAbsPath", mapper.getJcrPath(tree.getPath()));
+                        "destAbsPath", getPath());
             }
         });
     }
@@ -165,8 +227,7 @@ class QueueingHandler implements ChangeHandler {
     @Override
     public void nodeReordered(
             final String destName, final String name, NodeState reordered) {
-        ImmutableTree tree = new ImmutableTree(after, name, reordered);
-        queue.add(new OakEvent(tree, null) {
+        queue.add(new NodeEvent(name, reordered, afterReferenceable) {
             @Override
             public int getType() {
                 return NODE_MOVED;
@@ -182,28 +243,53 @@ class QueueingHandler implements ChangeHandler {
 
     //-----------------------------------------------------------< private >--
 
-    private abstract class OakEvent implements JackrabbitEvent {
+    private abstract class NodeEvent extends ItemEvent {
 
-        private final ImmutableTree tree;
-        private final String name;
+        private final String uuid;
 
-        OakEvent(ImmutableTree tree, String name) {
-            this.tree = tree;
+        NodeEvent(String name, NodeState node, TypePredicate isReferenceable) {
+            super(name);
+            String uuid = node.getString(JCR_UUID);
+            if (uuid != null && isReferenceable.apply(node)) {
+                this.uuid = uuid;
+            } else {
+                this.uuid = null;
+            }
+        }
+
+        @Override
+        public String getIdentifier() {
+            if (uuid != null) {
+                return uuid;
+            } else if (getType() == NODE_REMOVED) {
+                return PathUtils.concat(
+                        QueueingHandler.this.getBeforeIdentifier(), name);
+            } else {
+                return PathUtils.concat(
+                        QueueingHandler.this.getIdentifier(), name);
+            }
+        }
+
+    }
+
+    private abstract class ItemEvent implements JackrabbitEvent {
+
+        protected final String name;
+
+        ItemEvent(String name) {
             this.name = name;
         }
 
         @Override
         public String getPath() {
-            String path = tree.getPath();
-            if (name != null) {
-                path = PathUtils.concat(path, name);
-            }
-            return mapper.getJcrPath(path);
+            return PathUtils.concat(
+                    mapper.getJcrPath(QueueingHandler.this.getPath()),
+                    mapper.getJcrName(name));
         }
 
         @Override
         public String getIdentifier() {
-            return IdentifierManager.getIdentifier(tree);
+            return QueueingHandler.this.getIdentifier();
         }
 
         @Override
@@ -237,8 +323,8 @@ class QueueingHandler implements ChangeHandler {
         public boolean equals(Object object) {
             if (this == object) {
                 return true;
-            } else if (object instanceof OakEvent) {
-                OakEvent that = (OakEvent) object;
+            } else if (object instanceof ItemEvent) {
+                ItemEvent that = (ItemEvent) object;
                 return getType() == that.getType()
                         && getPath().equals(that.getPath())
                         && getIdentifier().equals(that.getIdentifier())
