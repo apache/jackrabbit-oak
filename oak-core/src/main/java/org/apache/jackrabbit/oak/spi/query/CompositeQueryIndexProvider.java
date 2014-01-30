@@ -33,6 +33,16 @@ import com.google.common.collect.Lists;
  */
 public class CompositeQueryIndexProvider implements QueryIndexProvider {
 
+    private final List<QueryIndexProvider> providers;
+
+    private CompositeQueryIndexProvider(List<QueryIndexProvider> providers) {
+        this.providers = providers;
+    }
+
+    public CompositeQueryIndexProvider(QueryIndexProvider... providers) {
+        this(Arrays.asList(providers));
+    }
+
     @Nonnull
     public static QueryIndexProvider compose(
             @Nonnull Collection<QueryIndexProvider> providers) {
@@ -49,16 +59,6 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
             return new CompositeQueryIndexProvider(
                     ImmutableList.copyOf(providers));
         }
-    }
-
-    private final List<QueryIndexProvider> providers;
-
-    private CompositeQueryIndexProvider(List<QueryIndexProvider> providers) {
-        this.providers = providers;
-    }
-
-    public CompositeQueryIndexProvider(QueryIndexProvider... providers) {
-        this(Arrays.asList(providers));
     }
 
     @Override @Nonnull

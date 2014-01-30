@@ -23,7 +23,8 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
-# property type (value prefix) index
+explain select e.[jcr:path] from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) inner join [nt:base] as c on ischildnode(c, b) inner join [nt:base] as d on ischildnode(d, c) inner join [nt:base] as e on ischildnode(e, d) where name(a) = 'a' and isdescendantnode(a, '/b') and name(b) = 'c' and name(c) = 'd' and name(d) = 'e' and (e.[type] = '1' or e.[type] = '2' or e.[type] = '3' or e.[type] = '4')
+[nt:base] as [a] /* traverse "/b//*" where (name([a]) = cast('a' as string)) and (isdescendantnode([a], [/b])) */ inner join [nt:base] as [b] /* traverse "/path/from/the/join/selector/*" where name([b]) = cast('c' as string) */ on ischildnode([b], [a]) inner join [nt:base] as [c] /* traverse "/path/from/the/join/selector/*" where name([c]) = cast('d' as string) */ on ischildnode([c], [b]) inner join [nt:base] as [d] /* traverse "/path/from/the/join/selector/*" where name([d]) = cast('e' as string) */ on ischildnode([d], [c]) inner join [nt:base] as [e] /* traverse "/path/from/the/join/selector/*" where ([e].[type] is not null) and ([e].[type] in(cast('1' as string), cast('2' as string), cast('3' as string), cast('4' as string))) */ on ischildnode([e], [d])
 
 explain select excerpt(.) from [nt:resource] where contains(*, 'jackrabbit')
 [nt:resource] as [nt:resource] /* traverse "*" where contains([nt:resource].[*], cast('jackrabbit' as string)) */

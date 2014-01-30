@@ -52,9 +52,9 @@ public interface Filter {
     /**
      * Get the fulltext search conditions, if any.
      *
-     * @deprecated
      * @return the conditions (an empty collection if not used)
      */
+    @Deprecated
     Collection<String> getFulltextConditions();
     
     /**
@@ -199,7 +199,7 @@ public interface Filter {
                 }
                 buff.append(p.toString());
             }
-            buff.append(' ');
+            buff.append(')');
             return buff.toString();
         }
         
