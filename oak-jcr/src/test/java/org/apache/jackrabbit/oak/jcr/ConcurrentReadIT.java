@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -35,7 +36,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -47,7 +47,6 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    @Ignore("OAK-1370")  // FIXME OAK-1370
     @Test
     public void concurrentNodeIteration()
             throws RepositoryException, InterruptedException, ExecutionException {
@@ -71,6 +70,44 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
                             session.refresh(false);
                             NodeIterator children = testRoot.getNodes();
                             children.hasNext();
+                        }
+                        return null;
+                    }
+                }));
+            }
+
+            // Throws ExecutionException if any of the submitted task failed
+            Futures.allAsList(futures).get();
+            executorService.shutdown();
+            executorService.awaitTermination(1, TimeUnit.DAYS);
+        } finally {
+            session.logout();
+        }
+    }
+
+    @Test
+    public void concurrentPropertyIteration()
+            throws RepositoryException, InterruptedException, ExecutionException {
+        final Session session = createAdminSession();
+        try {
+            final Node testRoot = session.getRootNode().addNode("test-root");
+            for (int k = 0; k < 50; k++) {
+                testRoot.setProperty("p" + k, k);
+            }
+            session.save();
+
+            ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
+                    Executors.newCachedThreadPool());
+
+            List<ListenableFuture<?>> futures = Lists.newArrayList();
+            for (int k = 0; k < 20; k ++) {
+                futures.add(executorService.submit(new Callable<Void>() {
+                    @Override
+                    public Void call() throws Exception {
+                        for (int k = 0; k < 100000; k++) {
+                            session.refresh(false);
+                            PropertyIterator properties = testRoot.getProperties();
+                            properties.hasNext();
                         }
                         return null;
                     }
