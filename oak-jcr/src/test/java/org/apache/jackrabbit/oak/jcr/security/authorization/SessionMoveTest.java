@@ -543,9 +543,4 @@ public class SessionMoveTest extends AbstractMoveTest {
         destNode.remove();
         testSession.save();
     }
-
-    @Test
-    public void testMoveAndMoveSubTreeBack() throws Exception {
-        // TODO
-    }
 }
