@@ -138,18 +138,18 @@ public class Statement {
         
         // select ...
         buff.append("select ");
-        buff.append(new Expression.Property(columnSelector, QueryImpl.JCR_PATH).toString());
+        buff.append(new Expression.Property(columnSelector, QueryImpl.JCR_PATH, false).toString());
         if (selectors.size() > 1) {
             buff.append(" as ").append('[').append(QueryImpl.JCR_PATH).append(']');
         }
         buff.append(", ");
-        buff.append(new Expression.Property(columnSelector, QueryImpl.JCR_SCORE).toString());
+        buff.append(new Expression.Property(columnSelector, QueryImpl.JCR_SCORE, false).toString());
         if (selectors.size() > 1) {
             buff.append(" as ").append('[').append(QueryImpl.JCR_SCORE).append(']');
         }
         if (columnList.isEmpty()) {
             buff.append(", ");
-            buff.append(new Expression.Property(columnSelector, "*").toString());
+            buff.append(new Expression.Property(columnSelector, "*", false).toString());
         } else {
             for (int i = 0; i < columnList.size(); i++) {
                 buff.append(", ");

@@ -180,6 +180,10 @@ abstract class Expression {
             if (right == null) {
                 rightExpr = "";
             } else {
+                if (left != null && left instanceof Property && ((Property) left).implicitAsterisk) {
+                    throw new IllegalArgumentException(
+                            "Missing @ in front of the property name: " + left);
+                }
                 if (leftExprIsName && !"like".equals(operator)) {
                     // need to de-escape _x0020_ and so on
                     if (!(right instanceof Literal)) {
@@ -382,10 +386,12 @@ abstract class Expression {
     
         final Selector selector;
         final String name;
+        final boolean implicitAsterisk;
     
-        Property(Selector selector, String name) {
+        Property(Selector selector, String name, boolean implicitAsterisk) {
             this.selector = selector;
             this.name = name;
+            this.implicitAsterisk = implicitAsterisk;
         }
     
         @Override
