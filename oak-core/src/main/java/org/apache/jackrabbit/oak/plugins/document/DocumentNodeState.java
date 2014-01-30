@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -162,6 +163,24 @@ final class DocumentNodeState extends AbstractNodeState {
             return EmptyNodeState.MISSING_NODE;
         } else {
             return new DocumentNodeState(store, child);
+        }
+    }
+
+    @Override
+    public long getChildNodeCount(long max) {
+        if (node.hasNoChildren()) {
+            return 0;
+        }
+        if (max > DocumentNodeStore.NUM_CHILDREN_CACHE_LIMIT) {
+            // count all
+            return Iterators.size(new ChildNodeEntryIterator());
+        }
+        Node.Children c = store.getChildren(node, null, (int) max);
+        if (c.hasMore) {
+            return Long.MAX_VALUE;
+        } else {
+            // we know the exact value
+            return c.children.size();
         }
     }
 
