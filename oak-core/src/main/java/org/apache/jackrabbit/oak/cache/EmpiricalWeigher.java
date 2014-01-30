@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.cache;
-
 
 import com.google.common.cache.Weigher;
 
@@ -26,12 +24,12 @@ import com.google.common.cache.Weigher;
  * Determines the weight of object based on the memory taken by them. The memory estimates
  * are based on empirical data and not exact
  */
-public class EmpiricalWeigher implements Weigher<String, CacheValue> {
+public class EmpiricalWeigher implements Weigher<CacheValue, CacheValue> {
 
     @Override
-    public int weigh(String key, CacheValue value) {
+    public int weigh(CacheValue key, CacheValue value) {
         int size = 168;                 // overhead for each cache entry
-        size += 48 + key.length() * 2;  // string key
+        size += key.getMemory();        // key
         size += value.getMemory();      // value
         return size;
     }

@@ -17,10 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,10 +34,8 @@ import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -49,11 +43,8 @@ import org.apache.jackrabbit.oak.plugins.document.Node.Children;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A MicroKernel implementation that stores the data in a {@link DocumentStore}.
@@ -70,7 +61,7 @@ public class DocumentMK implements MicroKernel {
      * Enable the LIRS cache.
      */
     static final boolean LIRS_CACHE = Boolean.parseBoolean(
-            System.getProperty("oak.documentMK.lirsCache", "false"));
+            System.getProperty("oak.documentMK.lirsCache", "true"));
 
     /**
      * Enable fast diff operations.
@@ -453,7 +444,7 @@ public class DocumentMK implements MicroKernel {
         private int asyncDelay = 1000;
         private boolean timing;
         private boolean logging;
-        private Weigher<String, CacheValue> weigher = new EmpiricalWeigher();
+        private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
         private long nodeCacheSize;
         private long childrenCacheSize;
         private long diffCacheSize;
@@ -606,11 +597,11 @@ public class DocumentMK implements MicroKernel {
             return asyncDelay;
         }
 
-        public Weigher<String, CacheValue> getWeigher() {
+        public Weigher<CacheValue, CacheValue> getWeigher() {
             return weigher;
         }
 
-        public Builder withWeigher(Weigher<String, CacheValue> weigher) {
+        public Builder withWeigher(Weigher<CacheValue, CacheValue> weigher) {
             this.weigher = weigher;
             return this;
         }
@@ -684,7 +675,7 @@ public class DocumentMK implements MicroKernel {
             return new DocumentMK(this);
         }
         
-        public <V extends CacheValue> Cache<String, V> buildCache(long maxWeight) {
+        public <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(long maxWeight) {
             if (LIRS_CACHE) {
                 return CacheLIRS.newBuilder().weigher(weigher).
                         maximumWeight(maxWeight).recordStats().build();

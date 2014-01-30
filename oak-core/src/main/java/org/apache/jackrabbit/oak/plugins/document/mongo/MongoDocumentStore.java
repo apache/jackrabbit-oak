@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Splitter;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -52,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
+import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +93,7 @@ public class MongoDocumentStore implements DocumentStore {
      */
     private long timeSum;
     
-    private final Cache<String, NodeDocument> nodesCache;
+    private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
 
     /**
@@ -133,18 +135,18 @@ public class MongoDocumentStore implements DocumentStore {
                 builder.getDocumentCacheSize());
     }
 
-    private Cache<String , NodeDocument> createOffHeapCache(DocumentMK.Builder builder){
-        ForwardingListener<String , NodeDocument> listener = ForwardingListener.newInstance();
+    private Cache<CacheValue, NodeDocument> createOffHeapCache(DocumentMK.Builder builder){
+        ForwardingListener<CacheValue, NodeDocument> listener = ForwardingListener.newInstance();
 
-        Cache<String,NodeDocument> primaryCache = CacheBuilder.newBuilder()
+        Cache<CacheValue, NodeDocument> primaryCache = CacheBuilder.newBuilder()
                 .weigher(builder.getWeigher())
                 .maximumWeight(builder.getDocumentCacheSize())
                 .removalListener(listener)
                 .recordStats()
                 .build();
 
-        Cache<String,NodeDocument> cache =
-                new NodeDocOffHeapCache( primaryCache, listener, builder, this );
+        Cache<CacheValue, NodeDocument> cache =
+                new NodeDocOffHeapCache(primaryCache, listener, builder, this);
         return cache;
     }
     
@@ -182,7 +184,7 @@ public class MongoDocumentStore implements DocumentStore {
         if (collection == Collection.NODES) {
             Lock lock = getAndLock(key);
             try {
-                nodesCache.invalidate(key);
+                nodesCache.invalidate(new StringValue(key));
             } finally {
                 lock.unlock();
             }
@@ -202,10 +204,11 @@ public class MongoDocumentStore implements DocumentStore {
         if (collection != Collection.NODES) {
             return findUncached(collection, key);
         }
+        CacheValue cacheKey = new StringValue(key);
         NodeDocument doc;
         if (maxCacheAge > 0) {
             // first try without lock
-            doc = nodesCache.getIfPresent(key);
+            doc = nodesCache.getIfPresent(cacheKey);
             if (doc != null) {
                 if (maxCacheAge == Integer.MAX_VALUE ||
                         System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
@@ -223,7 +226,7 @@ public class MongoDocumentStore implements DocumentStore {
                     invalidateCache(collection, key);
                 }
                 while (true) {
-                    doc = nodesCache.get(key, new Callable<NodeDocument>() {
+                    doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
                         @Override
                         public NodeDocument call() throws Exception {
                             NodeDocument doc = (NodeDocument) findUncached(collection, key);
@@ -312,10 +315,11 @@ public class MongoDocumentStore implements DocumentStore {
                     doc.seal();
                     String id = doc.getId();
                     Lock lock = getAndLock(id);
+                    CacheValue cacheKey = new StringValue(id);
                     try {
                         // do not overwrite document in cache if the
                         // existing one in the cache is newer
-                        NodeDocument cached = nodesCache.getIfPresent(id);
+                        NodeDocument cached = nodesCache.getIfPresent(cacheKey);
                         if (cached != null && cached != NodeDocument.NULL) {
                             // check mod count
                             Number cachedModCount = cached.getModCount();
@@ -325,10 +329,10 @@ public class MongoDocumentStore implements DocumentStore {
                                         "Missing " + Document.MOD_COUNT);
                             }
                             if (modCount.longValue() > cachedModCount.longValue()) {
-                                nodesCache.put(id, (NodeDocument) doc);
+                                nodesCache.put(cacheKey, (NodeDocument) doc);
                             }
                         } else {
-                            nodesCache.put(id, (NodeDocument) doc);
+                            nodesCache.put(cacheKey, (NodeDocument) doc);
                         }
                     } finally {
                         lock.unlock();
@@ -374,7 +378,7 @@ public class MongoDocumentStore implements DocumentStore {
             T cachedDoc = null;
             if (collection == Collection.NODES) {
                 @SuppressWarnings("unchecked")
-                T doc = (T) nodesCache.getIfPresent(updateOp.getId());
+                T doc = (T) nodesCache.getIfPresent(new StringValue(updateOp.getId()));
                 cachedDoc = doc;
                 if (cachedDoc != null) {
                     modCount = cachedDoc.getModCount();
@@ -522,7 +526,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (collection == Collection.NODES) {
                 cachedDocs = Maps.newHashMap();
                 for (String key : keys) {
-                    cachedDocs.put(key, nodesCache.getIfPresent(key));
+                    cachedDocs.put(key, nodesCache.getIfPresent(new StringValue(key)));
                 }
             }
             try {
@@ -536,7 +540,7 @@ public class MongoDocumentStore implements DocumentStore {
                     try {
                         if (entry.getValue() == null) {
                             // make sure concurrently loaded document is invalidated
-                            nodesCache.invalidate(entry.getKey());
+                            nodesCache.invalidate(new StringValue(entry.getKey()));
                         } else {
                             applyToCache(Collection.NODES, entry.getValue(),
                                     updateOp.clone(entry.getKey()));
@@ -620,7 +624,7 @@ public class MongoDocumentStore implements DocumentStore {
         return cacheStats;
     }
 
-    Iterable<? extends Map.Entry<String, ? extends CachedNodeDocument>> getCacheEntries() {
+    Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
         if(nodesCache instanceof OffHeapCache){
             return Iterables.concat(nodesCache.asMap().entrySet(),
                     ((OffHeapCache)nodesCache).offHeapEntriesMap().entrySet());
@@ -633,7 +637,7 @@ public class MongoDocumentStore implements DocumentStore {
             return  ((OffHeapCache) nodesCache).getCachedDocument(id);
         }
 
-        return nodesCache.getIfPresent(id);
+        return nodesCache.getIfPresent(new StringValue(id));
     }
 
     private static void log(String message, Object... args) {
@@ -652,7 +656,7 @@ public class MongoDocumentStore implements DocumentStore {
             return null;
         }
         @SuppressWarnings("unchecked")
-        T doc = (T) nodesCache.getIfPresent(key);
+        T doc = (T) nodesCache.getIfPresent(new StringValue(key));
         return doc;
     }
 
@@ -677,7 +681,7 @@ public class MongoDocumentStore implements DocumentStore {
                 oldDoc.deepCopy(newDoc);
                 oldDoc.seal();
             }
-            String key = updateOp.getId();
+            CacheValue key = new StringValue(updateOp.getId());
             UpdateUtils.applyChanges(newDoc, updateOp, comparator);
             newDoc.seal();
 
@@ -726,8 +730,9 @@ public class MongoDocumentStore implements DocumentStore {
         // meantime. That is, use get() with a Callable,
         // which is only used when the document isn't there
         try {
+            CacheValue key = new StringValue(doc.getId());
             for (;;) {
-                NodeDocument cached = nodesCache.get(doc.getId(),
+                NodeDocument cached = nodesCache.get(key,
                         new Callable<NodeDocument>() {
                     @Override
                     public NodeDocument call() {
@@ -737,7 +742,7 @@ public class MongoDocumentStore implements DocumentStore {
                 if (cached != NodeDocument.NULL) {
                     return cached;
                 } else {
-                    nodesCache.invalidate(doc.getId());
+                    nodesCache.invalidate(key);
                 }
             }
         } catch (ExecutionException e) {

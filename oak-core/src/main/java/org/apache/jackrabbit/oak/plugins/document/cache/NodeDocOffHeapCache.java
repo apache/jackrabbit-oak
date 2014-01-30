@@ -60,21 +60,21 @@ import static com.google.common.cache.AbstractCache.SimpleStatsCounter;
 import static com.google.common.cache.AbstractCache.StatsCounter;
 
 public class NodeDocOffHeapCache
-        extends ForwardingCache.SimpleForwardingCache<String, NodeDocument>
+        extends ForwardingCache.SimpleForwardingCache<CacheValue, NodeDocument>
         implements Closeable, OffHeapCache {
     private final StatsCounter statsCounter = new SimpleStatsCounter();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final Cache<String, NodeDocReference> offHeapCache;
+    private final Cache<CacheValue, NodeDocReference> offHeapCache;
     private final CacheStats offHeapCacheStats;
 
     private final MemoryManagerService<NodeDocument> memoryManager;
 
     private final KryoSerializer serializer;
 
-    public NodeDocOffHeapCache(Cache<String, NodeDocument> delegate,
-                               ForwardingListener<String, NodeDocument> forwardingListener,
+    public NodeDocOffHeapCache(Cache<CacheValue, NodeDocument> delegate,
+                               ForwardingListener<CacheValue, NodeDocument> forwardingListener,
                                DocumentMK.Builder builder,
                                DocumentStore documentStore) {
         super(delegate);
@@ -116,7 +116,7 @@ public class NodeDocOffHeapCache
 
 
     @Override
-    public NodeDocument get(final String key, final Callable<? extends NodeDocument> valueLoader)
+    public NodeDocument get(final CacheValue key, final Callable<? extends NodeDocument> valueLoader)
             throws ExecutionException {
         return super.get(key, new Callable<NodeDocument>() {
             @Override
@@ -135,9 +135,9 @@ public class NodeDocOffHeapCache
     }
 
     @Override
-    public ImmutableMap<String, NodeDocument> getAllPresent(Iterable<?> keys) {
-        @SuppressWarnings("unchecked") List<String> list = Lists.newArrayList((Iterable<String>) keys);
-        ImmutableMap<String, NodeDocument> result = super.getAllPresent(list);
+    public ImmutableMap<CacheValue, NodeDocument> getAllPresent(Iterable<?> keys) {
+        @SuppressWarnings("unchecked") List<CacheValue> list = Lists.newArrayList((Iterable<CacheValue>) keys);
+        ImmutableMap<CacheValue, NodeDocument> result = super.getAllPresent(list);
 
         //All the requested keys found then no
         //need to check L2
@@ -146,8 +146,8 @@ public class NodeDocOffHeapCache
         }
 
         //Look up value from L2
-        Map<String, NodeDocument> r2 = Maps.newHashMap(result);
-        for (String key : list) {
+        Map<CacheValue, NodeDocument> r2 = Maps.newHashMap(result);
+        for (CacheValue key : list) {
             if (!result.containsKey(key)) {
                 NodeDocument val = retrieve(key, false);
                 if (val != null) {
@@ -183,7 +183,7 @@ public class NodeDocOffHeapCache
     }
 
     @Override
-    public Map<String, ? extends CachedNodeDocument> offHeapEntriesMap() {
+    public Map<CacheValue, ? extends CachedNodeDocument> offHeapEntriesMap() {
         return Collections.unmodifiableMap(offHeapCache.asMap());
     }
 
@@ -235,10 +235,10 @@ public class NodeDocOffHeapCache
         return result;
     }
 
-    private class PrimaryRemovalListener implements RemovalListener<String, NodeDocument> {
+    private class PrimaryRemovalListener implements RemovalListener<CacheValue, NodeDocument> {
 
         @Override
-        public void onRemoval(RemovalNotification<String, NodeDocument> n) {
+        public void onRemoval(RemovalNotification<CacheValue, NodeDocument> n) {
             //If removed explicitly then we clear from L2
             if (n.getCause() == RemovalCause.EXPLICIT
                     || n.getCause() == RemovalCause.REPLACED) {
@@ -250,15 +250,16 @@ public class NodeDocOffHeapCache
             if (n.getCause() == RemovalCause.SIZE) {
                 NodeDocument doc = n.getValue();
                 if (doc != NodeDocument.NULL) {
-                    offHeapCache.put(n.getKey(), new NodeDocReference(n.getKey(), doc));
+                    offHeapCache.put(n.getKey(),
+                            new NodeDocReference(n.getKey(), doc));
                 }
             }
         }
     }
 
-    private class SecondaryRemovalListener implements RemovalListener<String, NodeDocReference> {
+    private class SecondaryRemovalListener implements RemovalListener<CacheValue, NodeDocReference> {
         @Override
-        public void onRemoval(RemovalNotification<String, NodeDocReference> notification) {
+        public void onRemoval(RemovalNotification<CacheValue, NodeDocReference> notification) {
             NodeDocReference doc = notification.getValue();
             if (doc != null && doc.getPointer() != null) {
                 memoryManager.free(doc.getPointer());
@@ -271,9 +272,9 @@ public class NodeDocOffHeapCache
         private final long created;
         private final AtomicLong lastCheckTime;
         private final Pointer<NodeDocument> documentPointer;
-        private final String key;
+        private final CacheValue key;
 
-        public NodeDocReference(String key, NodeDocument doc) {
+        public NodeDocReference(CacheValue key, NodeDocument doc) {
             this.modCount = doc.getModCount();
             this.created = doc.getCreated();
             this.lastCheckTime = new AtomicLong(doc.getLastCheckTime());
