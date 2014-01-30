@@ -27,6 +27,20 @@ commit / + "testRoot": { }
 commit /testRoot + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
 commit /testRoot + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
 
+select [jcr:path] from [nt:base] as p where p.[testRoot/children/*/*] = '3'
+/
+
+select [jcr:path], p.[children/c1/*] from [nt:base] as p where p.[children/c1/*] is not null
+/testRoot, [1]
+
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([id] = '0' or [p0/id] = '0')
+/testRoot/parents, null, null
+/testRoot/parents/p0, null, null
+
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([id] = '0' or [*/id] = '0')
+/testRoot/parents, null, null
+/testRoot/parents/p0, null, null
+
 select c.[jcr:path], p.[jcr:path] from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
 /testRoot/children/c1, /testRoot/parents/p1
 /testRoot/children/c2, /testRoot/parents/p1

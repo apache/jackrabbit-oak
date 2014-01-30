@@ -23,6 +23,11 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# wildcards in relative property paths
+
+xpath2sql /jcr:root/etc/test//*[@size='M' or */@size='M']
+select [jcr:path], [jcr:score], * from [nt:base] as a where ([size] = 'M' or [*/size] = 'M') and isdescendantnode(a, '/etc/test') /* xpath: /jcr:root/etc/test//*[@size='M' or */@size='M'] */
+
 # union (complex)
 
 xpath2sql //*[((@jcr:primaryType = 'nt:unstructured') and (@resources = '/data' or @resolved = '/data'))]
@@ -197,7 +202,10 @@ xpath2sql /jcr:root/testroot/*[jcr:contains(., '"quick brown" -cat')]
 select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '"quick brown" -cat') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(., '"quick brown" -cat')] */
 
 xpath2sql //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by rep:principalName ascending
-select [jcr:path], [jcr:score], * from [rep:Authorizable] as a where contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**') or contains([profile/email/*], '**') or [rep:principalName/*] like '%%' or name(a) like '%%' order by [rep:principalName/*] /* xpath: //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by rep:principalName ascending */
+error: java.lang.IllegalArgumentException: Missing @ in front of the property name: [rep:principalName/*]
+
+xpath2sql //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(@rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by @rep:principalName ascending
+select [jcr:path], [jcr:score], * from [rep:Authorizable] as a where contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**') or contains([profile/email/*], '**') or [rep:principalName] like '%%' or name(a) like '%%' order by [rep:principalName] /* xpath: //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(@rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by @rep:principalName ascending */
 
 xpath2sql //*[@a=1 or @b=1]/sub[@c=1]
 select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) where (a.[a] = 1 or a.[b] = 1) and b.[c] = 1 and name(b) = 'sub' /* xpath: //*[@a=1 or @b=1]/sub[@c=1] */

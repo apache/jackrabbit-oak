@@ -279,7 +279,20 @@ public abstract class AbstractQueryTest {
                 buff.append(", ");
             }
             PropertyValue v = values[i];
-            buff.append(v == null ? "null" : v.getValue(Type.STRING));
+            if (v == null) {
+                buff.append("null");
+            } else if (v.isArray()) {
+                buff.append('[');
+                for (int j = 0; j < v.count(); j++) {
+                    buff.append(v.getValue(Type.STRING, j));
+                    if (j > 0) {
+                        buff.append(", ");
+                    }
+                }
+                buff.append(']');
+            } else {
+                buff.append(v.getValue(Type.STRING));
+            }
         }
         return buff.toString();
     }

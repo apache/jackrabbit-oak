@@ -176,7 +176,9 @@ public abstract class SourceImpl extends AstElement {
      * 
      * this creates a filter for the given query
      * 
+     * @param preparing whether this this the prepare phase
+     * @return a new filter
      */
-    abstract public Filter createFilter(boolean preparing);
+    public abstract Filter createFilter(boolean preparing);
 
 }
