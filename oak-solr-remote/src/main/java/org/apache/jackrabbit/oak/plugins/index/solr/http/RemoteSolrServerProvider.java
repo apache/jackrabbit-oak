@@ -53,22 +53,22 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private static final int DEFAULT_SHARDS_NO = 2;
     private static final int DEFAULT_REPLICATION_FACTOR = 2;
 
-    @Property(value = DEFAULT_HTTP_URL, name = "Solr HTTP URL")
+    @Property(value = DEFAULT_HTTP_URL, label = "Solr HTTP URL")
     private static final String SOLR_HTTP_URL = "solr.http.url";
 
-    @Property(value = DEFAULT_ZK_HOST, name = "ZooKeeper host")
+    @Property(value = DEFAULT_ZK_HOST, label = "ZooKeeper host")
     private static final String SOLR_ZK_HOST = "solr.zk.host";
 
-    @Property(value = DEFAULT_COLLECTION, name = "Solr collection")
+    @Property(value = DEFAULT_COLLECTION, label = "Solr collection")
     private static final String SOLR_COLLECTION = "solr.collection";
 
-    @Property(intValue = DEFAULT_SHARDS_NO, name = "No. of collection shards")
+    @Property(intValue = DEFAULT_SHARDS_NO, label = "No. of collection shards")
     private static final String SOLR_SHARDS_NO = "solr.shards.no";
 
-    @Property(intValue = DEFAULT_REPLICATION_FACTOR, name = "Replication factor")
+    @Property(intValue = DEFAULT_REPLICATION_FACTOR, label = "Replication factor")
     private static final String SOLR_REPLICATION_FACTOR = "solr.replication.factor";
 
-    @Property(value = "", name = "Solr configuration directory")
+    @Property(value = "", label = "Solr configuration directory")
     private static final String SOLR_CONF_DIR = "solr.conf.dir";
 
     private SolrServer solrServer;
