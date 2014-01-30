@@ -35,6 +35,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
+
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -92,9 +94,9 @@ abstract class CacheInvalidator {
         public InvalidationResult invalidateCache() {
             InvalidationResult result = new InvalidationResult();
             int size = 0;
-            for (Map.Entry<String, ? extends CachedNodeDocument> e : documentStore.getCacheEntries()) {
+            for (Map.Entry<CacheValue, ? extends CachedNodeDocument> e : documentStore.getCacheEntries()) {
                 size++;
-                documentStore.invalidateCache(Collection.NODES, e.getKey());
+                documentStore.invalidateCache(Collection.NODES, e.getKey().toString());
             }
             result.cacheSize = size;
             return result;
@@ -116,9 +118,9 @@ abstract class CacheInvalidator {
 
             int size  = 0;
             List<String> cachedKeys = new ArrayList<String>();
-            for (Map.Entry<String, ? extends CachedNodeDocument> e : documentStore.getCacheEntries()) {
+            for (Map.Entry<CacheValue, ? extends CachedNodeDocument> e : documentStore.getCacheEntries()) {
                 size++;
-                cachedKeys.add(e.getKey());
+                cachedKeys.add(e.getKey().toString());
             }
             result.cacheSize = size;
 
@@ -264,10 +266,10 @@ abstract class CacheInvalidator {
             return result;
         }
 
-        private TreeNode constructTreeFromPaths(Iterable<? extends Map.Entry<String, ? extends CachedNodeDocument>> entries,
+        private TreeNode constructTreeFromPaths(Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> entries,
                                                 InvalidationResult result) {
             TreeNode root = new TreeNode("");
-            for (Map.Entry<String, ? extends CachedNodeDocument> e : entries) {
+            for (Map.Entry<CacheValue, ? extends CachedNodeDocument> e : entries) {
                 TreeNode current = root;
 
                 //TODO Split documents are immutable hence no need to
@@ -275,7 +277,7 @@ abstract class CacheInvalidator {
                 //TODO Need to determine way to determine if the
                 //key is referring to a split document
 
-                String path = Utils.getPathFromId(e.getKey());
+                String path = Utils.getPathFromId(e.getKey().toString());
                 result.cacheSize++;
                 for (String name : PathUtils.elements(path)) {
                     current = current.child(name);

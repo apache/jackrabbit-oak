@@ -64,6 +64,7 @@ import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
@@ -207,29 +208,33 @@ public final class DocumentNodeStore
     /**
      * The node cache.
      *
-     * Key: path@rev, value: node
+     * Key: PathRev, value: Node
      */
-    private final Cache<String, Node> nodeCache;
+    private final Cache<CacheValue, Node> nodeCache;
     private final CacheStats nodeCacheStats;
 
     /**
      * Child node cache.
      *
-     * Key: start-name/path@rev, value: children
+     * Key: PathRev, value: Children
      */
-    private final Cache<String, Node.Children> nodeChildrenCache;
+    private final Cache<CacheValue, Node.Children> nodeChildrenCache;
     private final CacheStats nodeChildrenCacheStats;
 
     /**
      * Child doc cache.
+     *
+     * Key: StringValue, value: Children
      */
-    private final Cache<String, NodeDocument.Children> docChildrenCache;
+    private final Cache<CacheValue, NodeDocument.Children> docChildrenCache;
     private final CacheStats docChildrenCacheStats;
 
     /**
      * Diff cache.
+     *
+     * Key: PathRev, value: Diff
      */
-    private final Cache<String, Diff> diffCache;
+    private final Cache<CacheValue, Diff> diffCache;
     private final CacheStats diffCacheStats;
 
     /**
@@ -547,7 +552,7 @@ public final class DocumentNodeStore
     Node getNode(@Nonnull final String path, @Nonnull final Revision rev) {
         checkRevisionAge(checkNotNull(rev), checkNotNull(path));
         try {
-            String key = path + "@" + rev;
+            PathRev key = new PathRev(path, rev);
             Node node = nodeCache.get(key, new Callable<Node>() {
                 @Override
                 public Node call() throws Exception {
@@ -573,7 +578,7 @@ public final class DocumentNodeStore
         }
         final String path = checkNotNull(parent).getPath();
         final Revision readRevision = parent.getLastRevision();
-        String key = childNodeCacheKey(path, readRevision, name);
+        PathRev key = childNodeCacheKey(path, readRevision, name);
         Node.Children children;
         for (;;) {
             try {
@@ -674,8 +679,9 @@ public final class DocumentNodeStore
             // or more than 16k child docs are requested
             return store.query(Collection.NODES, from, to, limit);
         }
+        CacheValue key = new StringValue(path);
         // check cache
-        NodeDocument.Children c = docChildrenCache.getIfPresent(path);
+        NodeDocument.Children c = docChildrenCache.getIfPresent(key);
         if (c == null) {
             c = new NodeDocument.Children();
             List<NodeDocument> docs = store.query(Collection.NODES, from, to, limit);
@@ -684,7 +690,7 @@ public final class DocumentNodeStore
                 c.childNames.add(PathUtils.getName(p));
             }
             c.isComplete = docs.size() < limit;
-            docChildrenCache.put(path, c);
+            docChildrenCache.put(key, c);
             return docs;
         } else if (c.childNames.size() < limit && !c.isComplete) {
             // fetch more and update cache
@@ -700,7 +706,7 @@ public final class DocumentNodeStore
                 clone.childNames.add(PathUtils.getName(p));
             }
             clone.isComplete = docs.size() < remainingLimit;
-            docChildrenCache.put(path, clone);
+            docChildrenCache.put(key, clone);
             c = clone;
         }
         Iterable<NodeDocument> it = Iterables.transform(c.childNames, new Function<String, NodeDocument>() {
@@ -795,7 +801,7 @@ public final class DocumentNodeStore
                 }
             }
         }
-        String key = childNodeCacheKey(path, rev, null);
+        CacheValue key = childNodeCacheKey(path, rev, null);
         Node.Children c = nodeChildrenCache.getIfPresent(key);
         if (isNew || (!isDelete && c != null)) {
             Node.Children c2 = new Node.Children();
@@ -811,7 +817,8 @@ public final class DocumentNodeStore
             nodeChildrenCache.put(key, c2);
         }
         if (!added.isEmpty()) {
-            NodeDocument.Children docChildren = docChildrenCache.getIfPresent(path);
+            CacheValue docChildrenKey = new StringValue(path);
+            NodeDocument.Children docChildren = docChildrenCache.getIfPresent(docChildrenKey);
             if (docChildren != null) {
                 int currentSize = docChildren.childNames.size();
                 TreeSet<String> names = new TreeSet<String>(docChildren.childNames);
@@ -838,7 +845,7 @@ public final class DocumentNodeStore
                     docChildren = new NodeDocument.Children();
                     docChildren.isComplete = complete;
                     docChildren.childNames.addAll(names);
-                    docChildrenCache.put(path, docChildren);
+                    docChildrenCache.put(docChildrenKey, docChildren);
                 }
             }
         }
@@ -1052,8 +1059,9 @@ public final class DocumentNodeStore
      */
     String diff(final @Nonnull Node node,
                 final @Nonnull Node base) {
-        String key = checkNotNull(base).getLastRevision() + "-"
-                + checkNotNull(node).getLastRevision() + "-" + node.getPath();
+        PathRev key = new PathRev(
+                checkNotNull(node).getLastRevision() + "-" + node.getPath(),
+                checkNotNull(base).getLastRevision());
         try {
             return diffCache.get(key, new Callable<Diff>() {
                 @Override
@@ -1076,7 +1084,8 @@ public final class DocumentNodeStore
         if (fromRevisionId.equals(toRevisionId)) {
             return "";
         }
-        String key = fromRevisionId + "-" + toRevisionId + "-" + path;
+        PathRev key = new PathRev(toRevisionId + "-" + path,
+                Revision.fromString(fromRevisionId));
         try {
             return diffCache.get(key, new Callable<Diff>() {
                 @Override
@@ -1499,10 +1508,10 @@ public final class DocumentNodeStore
         }
     }
 
-    private static String childNodeCacheKey(@Nonnull String path,
+    private static PathRev childNodeCacheKey(@Nonnull String path,
                                             @Nonnull Revision readRevision,
                                             @Nullable String name) {
-        return (name == null ? "" : name) + path + "@" + readRevision;
+        return new PathRev((name == null ? "" : name) + path, readRevision);
     }
 
     private static DocumentRootBuilder asDocumentRootBuilder(NodeBuilder builder)

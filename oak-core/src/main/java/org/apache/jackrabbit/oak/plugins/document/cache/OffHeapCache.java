@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
 import java.util.Map;
@@ -25,6 +24,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 
@@ -34,9 +34,9 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
  * This interface is required to avoid direct dependency on DirectMemory
  * and Kryo classes
  */
-public interface OffHeapCache extends Cache<String, NodeDocument> {
+public interface OffHeapCache extends Cache<CacheValue, NodeDocument> {
 
-    Map<String, ? extends CachedNodeDocument> offHeapEntriesMap();
+    Map<CacheValue, ? extends CachedNodeDocument> offHeapEntriesMap();
 
     CacheStats getCacheStats();
 
