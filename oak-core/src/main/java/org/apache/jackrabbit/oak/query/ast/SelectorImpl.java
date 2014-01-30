@@ -265,6 +265,9 @@ public class SelectorImpl extends SourceImpl {
             FullTextExpression ft = queryConstraint.getFullTextConstraint(this);
             f.setFullTextConstraint(ft);
         }
+        if (selectorCondition != null) {
+            selectorCondition.restrict(f);
+        }
 
         return f;
     }
