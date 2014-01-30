@@ -18,22 +18,31 @@ package org.apache.jackrabbit.oak.namepath;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.getNamespaceURI;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 
 /**
  * Name mapper with local namespace mappings.
  */
 public abstract class LocalNameMapper extends GlobalNameMapper {
 
-    public LocalNameMapper(Tree tree) {
-        super(tree);
+    public LocalNameMapper(Root root) {
+        super(root);
     }
+
+    public LocalNameMapper(Map<String, String> namespaces) {
+        super(namespaces);
+    }
+
+    @Override @Nonnull
+    public abstract Map<String, String> getSessionLocalMappings();
 
     @Override @CheckForNull
     public String getJcrName(String oakName) {
@@ -46,11 +55,12 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
             int colon = oakName.indexOf(':');
             if (colon > 0) {
                 String oakPrefix = oakName.substring(0, colon);
-                String uri = getNamespaceURI(tree, oakPrefix);
-                if (uri == null) {
+                PropertyState mapping = namespaces.getProperty(oakPrefix);
+                if (mapping == null || mapping.getType() != STRING) {
                     throw new IllegalStateException(
                             "No namespace mapping found for " + oakName);
                 }
+                String uri = mapping.getValue(STRING);
 
                 for (Map.Entry<String, String> entry : local.entrySet()) {
                     if (uri.equals(entry.getValue())) {
@@ -95,18 +105,20 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
                 String uri = local.get(jcrPrefix);
                 if (uri != null) {
                     String oakPrefix = getOakPrefixOrNull(uri);
-                    if (jcrPrefix.equals(oakPrefix)) {
-                        return jcrName;
-                    } else if (oakPrefix != null) {
-                        return oakPrefix + jcrName.substring(colon);
-                    } else {
+                    if (oakPrefix == null) {
                         return null;
+                    } else if (jcrPrefix.equals(oakPrefix)) {
+                        return jcrName;
+                    } else {
+                        return oakPrefix + jcrName.substring(colon);
                     }
                 }
 
                 // Check that a global mapping is present and not remapped
-                uri = getNamespaceURI(tree, jcrPrefix);
-                if (uri == null || local.values().contains(uri)) {
+                PropertyState mapping = namespaces.getProperty(jcrPrefix);
+                if (mapping != null
+                        && mapping.getType() == STRING
+                        && local.values().contains(mapping.getValue(STRING))) {
                     return null;
                 }
             }

@@ -76,8 +76,8 @@ class BuiltInNodeTypes {
             }
         };
 
-        this.vf = new ValueFactoryImpl(root, new NamePathMapperImpl(
-                new GlobalNameMapper(root.getTree("/"))));
+        this.vf = new ValueFactoryImpl(
+                root, new NamePathMapperImpl(new GlobalNameMapper(root)));
     }
 
     /**

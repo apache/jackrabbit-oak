@@ -29,7 +29,7 @@ import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.TestGlobalNameMapper;
+
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.junit.Test;
@@ -129,7 +129,7 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testJcrToOakKeepIndexNoRemap() {
-        NameMapper mapper = new TestGlobalNameMapper(GLOBAL);
+        NameMapper mapper = new GlobalNameMapper(GLOBAL);
         NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
         assertEquals("/", npMapper.getOakPathKeepIndex("/"));

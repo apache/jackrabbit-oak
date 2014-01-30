@@ -21,9 +21,7 @@ package org.apache.jackrabbit.oak;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 
 /**
  * TestNameMapper... TODO
@@ -42,20 +40,8 @@ public final class TestNameMapper extends LocalNameMapper {
         this(Collections.singletonMap(TEST_PREFIX, TEST_URI), LOCAL_MAPPING);
     }
 
-    public TestNameMapper(Map<String, String> global) {
-        this(global, global);
-    }
-
     public TestNameMapper(Map<String, String> global, Map<String, String> local) {
-        this(Namespaces.setupTestNamespaces(global), local);
-    }
-
-    public TestNameMapper(TestNameMapper base, Map<String, String> local) {
-        this(base.tree, local);
-    }
-
-    public TestNameMapper(Tree tree, Map<String, String> local) {
-        super(tree);
+        super(global);
         this.local = local;
     }
 

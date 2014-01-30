@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.query;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -37,15 +37,15 @@ public class ExecutionContext {
      */
     private final NodeState baseState;
 
-    private final Tree rootTree;
+    private final Root root;
 
     private final QueryIndexProvider indexProvider;
 
     public ExecutionContext(
-            NodeState baseState, Tree rootTree,
+            NodeState baseState, Root root,
             QueryIndexProvider indexProvider) {
         this.baseState = baseState;
-        this.rootTree = rootTree;
+        this.root = root;
         this.indexProvider = indexProvider;
     }
 
@@ -61,15 +61,14 @@ public class ExecutionContext {
     }
 
     /**
-     * 
      * Used to create the actual query results from the indexed paths, needs to
      * be a secured version of a tree to take into account ACLs
      * 
-     * @return Root tree of the content tree against which the query runs.
+     * @return root of the content tree against which the query runs.
      */
     @Nonnull
-    public Tree getRootTree() {
-        return rootTree;
+    public Root getRoot() {
+        return root;
     }
 
     /**

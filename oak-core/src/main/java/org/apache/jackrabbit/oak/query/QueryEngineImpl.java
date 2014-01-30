@@ -97,7 +97,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         LOG.debug("Parsing {} statement: {}", language, statement);
 
         NamePathMapper mapper = new NamePathMapperImpl(
-                new LocalNameMapper(context.getRootTree()) {
+                new LocalNameMapper(context.getRoot()) {
                     @Override
                     public Map<String, String> getSessionLocalMappings() {
                         return mappings;

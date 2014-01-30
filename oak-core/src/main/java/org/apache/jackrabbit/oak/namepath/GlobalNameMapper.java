@@ -18,16 +18,29 @@ package org.apache.jackrabbit.oak.namepath;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.name.Namespaces;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.getNamespacePrefix;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NAMESPACES_PATH;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NSDATA;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_REP_UNSTRUCTURED;
 
 /**
  * Name mapper with no local prefix remappings. URI to prefix mappings
@@ -57,10 +70,32 @@ public class GlobalNameMapper implements NameMapper {
         }
     }
 
-    protected final Tree tree;
+    private static Tree setupNamespaces(Map<String, String> global) {
+        NodeBuilder namespaces = EmptyNodeState.EMPTY_NODE.builder();
+        namespaces.setProperty(JCR_PRIMARYTYPE, NT_REP_UNSTRUCTURED, NAME);
+        for (Entry<String, String> entry : global.entrySet()) {
+            namespaces.setProperty(
+                    Namespaces.escapePropertyKey(entry.getKey()),
+                    entry.getValue());
+        }
+        Namespaces.buildIndexNode(namespaces);
+        return new ImmutableTree(namespaces.getNodeState());
+    }
 
-    public GlobalNameMapper(Tree tree) {
-        this.tree = tree;
+    protected final Tree namespaces;
+    private final Tree nsdata;
+
+    public GlobalNameMapper(Root root) {
+        this(root.getTree(NAMESPACES_PATH));
+    }
+
+    public GlobalNameMapper(Map<String, String> namespaces) {
+        this(setupNamespaces(namespaces));
+    }
+
+    private GlobalNameMapper(Tree namespaces) {
+        this.namespaces = namespaces;
+        this.nsdata = namespaces.getChild(REP_NSDATA);
     }
 
     @Override @Nonnull
@@ -122,7 +157,11 @@ public class GlobalNameMapper implements NameMapper {
 
     @CheckForNull
     protected String getOakPrefixOrNull(String uri) {
-        return getNamespacePrefix(tree, uri);
+        PropertyState mapping = nsdata.getProperty(encodeUri(uri));
+        if (mapping != null && mapping.getType() == STRING) {
+            return mapping.getValue(STRING);
+        }
+        return null;
     }
 
 }

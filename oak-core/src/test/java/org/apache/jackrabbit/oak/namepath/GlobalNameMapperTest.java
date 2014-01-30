@@ -27,7 +27,6 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.TestGlobalNameMapper;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -41,7 +40,7 @@ public class GlobalNameMapperTest {
             "foo", "http://www.example.com/foo",
             "quu", "http://www.example.com/quu");
 
-    private NameMapper mapper = new TestGlobalNameMapper(NAMESPACES);
+    private NameMapper mapper = new GlobalNameMapper(NAMESPACES);
 
     @Test
     public void testEmptyName() throws RepositoryException {
