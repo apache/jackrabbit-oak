@@ -185,7 +185,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         // 'socialgraph_test_group' and isdescendantnode(a, '/home') /* xpath:
         // /jcr:root/home//*[id='socialgraph_test_group'] */
         assertQuery(
-                "/jcr:root/home//*[id='socialgraph_test_group']",
+                "/jcr:root/home//*[@id='socialgraph_test_group']",
                 "xpath",
                 ImmutableList
                         .of("/home/users/testing/socialgraph_test_user_4/social/relationships/friend/socialgraph_test_group"));
@@ -198,7 +198,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         // /jcr:root/home//social/relationships//*[id='socialgraph_test_group']
         // */
         assertQuery(
-                "/jcr:root/home//social/relationships//*[id='socialgraph_test_group']",
+                "/jcr:root/home//social/relationships//*[@id='socialgraph_test_group']",
                 "xpath",
                 ImmutableList
                         .of("/home/users/testing/socialgraph_test_user_4/social/relationships/friend/socialgraph_test_group"));
