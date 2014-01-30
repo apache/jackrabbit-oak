@@ -112,7 +112,9 @@ public final class ImmutableRoot implements Root {
         return new QueryEngineImpl() {
             @Override
             protected ExecutionContext getExecutionContext() {
-                return new ExecutionContext(rootTree.getNodeState(), rootTree, new PropertyIndexProvider());
+                return new ExecutionContext(
+                        rootTree.getNodeState(), ImmutableRoot.this,
+                        new PropertyIndexProvider());
             }
         };
     }

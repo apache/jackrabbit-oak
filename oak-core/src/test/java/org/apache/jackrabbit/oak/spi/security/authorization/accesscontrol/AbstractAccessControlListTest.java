@@ -24,14 +24,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.oak.TestGlobalNameMapper;
 import org.apache.jackrabbit.oak.TestNameMapper;
+import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
@@ -108,7 +109,8 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
 
     @Test
     public void testGetPath() {
-        NameMapper nameMapper = new TestGlobalNameMapper(Collections.singletonMap("jr", "http://jackrabbit.apache.org"));
+        NameMapper nameMapper = new GlobalNameMapper(
+                Collections.singletonMap("jr", "http://jackrabbit.apache.org"));
         NamePathMapper npMapper = new NamePathMapperImpl(nameMapper);
 
         // map of jcr-path to standard jcr-path

@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
@@ -80,6 +81,7 @@ public abstract class AbstractSecurityTest {
     public void before() throws Exception {
         Oak oak = new Oak()
                 .with(new InitialContent())
+                .with(new NamespaceEditorProvider())
                 .with(new ReferenceEditorProvider())
                 .with(new ReferenceIndexProvider())
                 .with(new PropertyIndexEditorProvider())

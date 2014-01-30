@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NAMESPACES_PATH;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,6 +27,7 @@ import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
@@ -108,16 +111,13 @@ public abstract class TargetImportHandler extends DefaultHandler {
     //--------------------------------------------------------
 
     public NamePathMapper currentNamePathMapper() {
-        return new NamePathMapperImpl(new LocalNameMapper(getNSReadTree()) {
+        Root root = sessionContext.getSessionDelegate().getRoot();
+        return new NamePathMapperImpl(new LocalNameMapper(root) {
             @Override
             public Map<String, String> getSessionLocalMappings() {
                 return documentPrefixMap;
             }
         });
-    }
-
-    private Tree getNSReadTree() {
-        return sessionContext.getSessionDelegate().getRoot().getTree("/");
     }
 
     private Map<String, String> createCurrentPrefixMap() {
@@ -166,12 +166,13 @@ public abstract class TargetImportHandler extends DefaultHandler {
                 repoPrefix = null;
             } else {
                 List<String> uris = documentContext.get(docPrefix);
+                Tree tree = sessionContext.getSessionDelegate().getRoot().getTree("/");
                 if (uris.isEmpty()) {
-                    namespaceUri = Namespaces.getNamespaceURI(getNSReadTree(), docPrefix);
+                    namespaceUri = Namespaces.getNamespaceURI(tree, docPrefix);
                     repoPrefix = docPrefix;
                 } else {
                     namespaceUri = uris.get(uris.size() - 1);
-                    repoPrefix = Namespaces.getNamespacePrefix(getNSReadTree(), namespaceUri);
+                    repoPrefix = Namespaces.getNamespacePrefix(tree, namespaceUri);
                 }
             }
         }

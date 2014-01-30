@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
@@ -46,6 +47,7 @@ import javax.jcr.security.Privilege;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -56,10 +58,11 @@ import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
+import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
@@ -98,7 +101,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     private Privilege[] testPrivileges;
     private Root testRoot;
 
-    private TestNameMapper nameMapper;
+    private NameMapper nameMapper;
     private NamePathMapper npMapper;
 
     private AccessControlManagerImpl acMgr;
@@ -110,7 +113,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         super.before();
 
         registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
-        nameMapper = new TestNameMapper(Namespaces.getNamespaceMap(root.getTree("/")));
+        nameMapper = new GlobalNameMapper(root);
         npMapper = new NamePathMapperImpl(nameMapper);
 
         acMgr = getAccessControlManager(npMapper);
@@ -158,11 +161,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     private AccessControlManagerImpl getTestAccessControlManager() throws Exception {
         return new AccessControlManagerImpl(getTestRoot(), getNamePathMapper(), getSecurityProvider());
-    }
-
-    private NamePathMapper getLocalNamePathMapper() {
-        NameMapper remapped = new TestNameMapper(nameMapper, TestNameMapper.LOCAL_MAPPING);
-        return new NamePathMapperImpl(remapped);
     }
 
     private ACL getApplicablePolicy(@Nullable String path) throws RepositoryException {
@@ -323,7 +321,15 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         testPaths.add('/' + TestNameMapper.TEST_LOCAL_PREFIX + ":testRoot");
         testPaths.add("/{" + TestNameMapper.TEST_URI + "}testRoot");
 
-        AccessControlManager acMgr = getAccessControlManager(getLocalNamePathMapper());
+        NameMapper remapped = new LocalNameMapper(root) {
+            @Override
+            public Map<String, String> getSessionLocalMappings() {
+                return TestNameMapper.LOCAL_MAPPING;
+            }
+        };
+
+        AccessControlManager acMgr =
+                getAccessControlManager(new NamePathMapperImpl(remapped));
         for (String path : testPaths) {
             Privilege[] supported = acMgr.getSupportedPrivileges(path);
 

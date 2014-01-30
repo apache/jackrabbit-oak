@@ -119,10 +119,10 @@ public class SessionContext implements NamePathMapper {
         sessionStats.setAttributes(attributes);
 
         this.namespaces = new SessionNamespaces(this);
-        LocalNameMapper nameMapper = new LocalNameMapper(delegate.getRoot().getTree("/")) {
+        LocalNameMapper nameMapper = new LocalNameMapper(delegate.getRoot()) {
             @Override
             public Map<String, String> getSessionLocalMappings() {
-                return namespaces.getSessionLocalMappings();
+                return SessionContext.this.namespaces.getSessionLocalMappings();
             }
         };
         this.namePathMapper = new NamePathMapperImpl(

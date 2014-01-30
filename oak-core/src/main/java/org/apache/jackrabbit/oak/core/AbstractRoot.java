@@ -334,7 +334,8 @@ public abstract class AbstractRoot implements Root {
                     provider = new UUIDDiffIndexProviderWrapper(
                             provider, getBaseState(), getRootState());
                 }
-                return new ExecutionContext(getBaseState(), rootTree, provider);
+                return new ExecutionContext(
+                        getBaseState(), AbstractRoot.this, provider);
             }
         };
     }

@@ -24,11 +24,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.Text;
@@ -197,7 +196,7 @@ public class Namespaces implements NamespaceConstants {
      * @param key property key
      * @return escaped property key
      */
-    static String escapePropertyKey(String key) {
+    public static String escapePropertyKey(String key) {
         if (key.equals("")) {
             return REP_EMPTY;
         } else {
@@ -226,7 +225,7 @@ public class Namespaces implements NamespaceConstants {
      * @param uri
      * @return encoded uri
      */
-    static String encodeUri(String uri) {
+    public static String encodeUri(String uri) {
         return Text.escapeIllegalJcrChars(uri);
     }
 
@@ -259,20 +258,6 @@ public class Namespaces implements NamespaceConstants {
 
         // TODO: Other name rules?
         return true;
-    }
-
-    // testing
-
-    public static Tree setupTestNamespaces(Map<String, String> global) {
-        NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
-        NodeBuilder namespaces = root.child(JCR_SYSTEM).child(REP_NAMESPACES);
-        namespaces.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_UNSTRUCTURED, NAME);
-        for (Entry<String, String> entry : global.entrySet()) {
-            namespaces.setProperty(escapePropertyKey(entry.getKey()),
-                    entry.getValue());
-        }
-        buildIndexNode(namespaces);
-        return new ImmutableTree(root.getNodeState());
     }
 
 }
