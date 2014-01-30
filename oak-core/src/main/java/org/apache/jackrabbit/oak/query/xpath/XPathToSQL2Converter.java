@@ -197,7 +197,7 @@ public class XPathToSQL2Converter {
             } else if (readIf("rep:excerpt")) {
                 rewindSelector();
                 readExcerpt();
-                Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt");
+                Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
                 statement.addSelectColumn(p);
             } else if (readIf("(")) {
                 rewindSelector();
@@ -207,7 +207,7 @@ public class XPathToSQL2Converter {
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:excerpt")) {
                         readExcerpt();
-                        Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt");
+                        Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
                         statement.addSelectColumn(p);
                     }
                 } while (readIf("|"));
@@ -535,7 +535,7 @@ public class XPathToSQL2Converter {
                 } else {
                     buff.append(readPathSegment());
                 }
-                return new Expression.Property(currentSelector, buff.toString());
+                return new Expression.Property(currentSelector, buff.toString(), false);
             } else {
                 break;
             }
@@ -556,7 +556,7 @@ public class XPathToSQL2Converter {
             } else {
                 buff.append("/*");
             }
-            return new Expression.Property(currentSelector, buff.toString());
+            return new Expression.Property(currentSelector, buff.toString(), true);
         }
         throw getSyntaxError();
     }
@@ -647,9 +647,9 @@ public class XPathToSQL2Converter {
 
     private Expression.Property readProperty() throws ParseException {
         if (readIf("*")) {
-            return new Expression.Property(currentSelector, "*");
+            return new Expression.Property(currentSelector, "*", false);
         }
-        return new Expression.Property(currentSelector, readPathSegment());
+        return new Expression.Property(currentSelector, readPathSegment(), false);
     }
     
     private void readExcerpt() throws ParseException {
