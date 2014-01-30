@@ -61,33 +61,37 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         Row row;
         String s;
         
-        String xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.) order by jcr:path descending";
+        String xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.) order by @jcr:path";
         
         q = qm.createQuery(xpath, "xpath");
         it = q.execute().getRows();
         row = it.nextRow();
+        String path = row.getPath();
         s = row.getValue("rep:excerpt(.)").getString();
-        assertTrue(s, s.indexOf("<strong>hello</strong> world") >= 0);
-        assertTrue(s, s.indexOf("description") >= 0);
+        assertTrue(path + ":" + s + " (1)", s.indexOf("<strong>hello</strong> world") >= 0);
+        assertTrue(path + ":" + s + " (2)", s.indexOf("description") >= 0);
         row = it.nextRow();
+        path = row.getPath();
         s = row.getValue("rep:excerpt(.)").getString();
         // TODO is this expected?
-        assertTrue(s, s.indexOf("Hello World") >= 0);
-        assertTrue(s, s.indexOf("Description") >= 0);
+        assertTrue(path + ":" + s + " (3)", s.indexOf("Hello World") >= 0);
+        assertTrue(path + ":" + s + " (4)", s.indexOf("Description") >= 0);
         
-        xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.) order by jcr:path descending";
+        xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.) order by @jcr:path";
 
         q = qm.createQuery(xpath, "xpath");
         it = q.execute().getRows();
         row = it.nextRow();
+        path = row.getPath();
         s = row.getValue("rep:excerpt(text)").getString();
-        assertTrue(s, s.indexOf("<strong>hello</strong> world") >= 0);
-        assertTrue(s, s.indexOf("description") < 0);
+        assertTrue(path + ":" + s + " (5)", s.indexOf("<strong>hello</strong> world") >= 0);
+        assertTrue(path + ":" + s + " (6)", s.indexOf("description") < 0);
         row = it.nextRow();
+        path = row.getPath();
         s = row.getValue("rep:excerpt(text)").getString();
         // TODO is this expected?
-        assertTrue(s, s.indexOf("Hello World") >= 0);
-        assertTrue(s, s.indexOf("Description") < 0);
+        assertTrue(path + ":" + s + " (7)", s.indexOf("Hello World") >= 0);
+        assertTrue(path + ":" + s + " (8)", s.indexOf("Description") < 0);
     }
     
     @Test
