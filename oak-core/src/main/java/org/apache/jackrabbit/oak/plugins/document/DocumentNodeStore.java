@@ -1572,7 +1572,8 @@ public final class DocumentNodeStore
 
         @Override
         public int getMemory() {
-            return diff.length() * 2;
+            return 16                               // shallow size
+                    + 40 + diff.length() * 2;       // diff string
         }
 
     }
