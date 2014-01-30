@@ -40,6 +40,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -53,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 /**
  * A selector within a query.
@@ -384,7 +386,20 @@ public class SelectorImpl extends SourceImpl {
         String pn = normalizePropertyName(propertyName);
         return currentOakProperty(pn);
     }
-    
+
+    /**
+     * The value for the given selector for the current node, filtered by
+     * property type.
+     * 
+     * @param propertyName the JCR (not normalized) property name
+     * @param propertyType only include properties of this type
+     * @return the property value (possibly null)
+     */
+    public PropertyValue currentProperty(String propertyName, int propertyType) {
+        String pn = normalizePropertyName(propertyName);
+        return currentOakProperty(pn, propertyType);
+    }
+
     /**
      * Get the property value. The property name may be relative. The special
      * property names "jcr:path", "jcr:score" and "rep:excerpt" are supported.
@@ -393,6 +408,24 @@ public class SelectorImpl extends SourceImpl {
      * @return the property value or null if not found
      */
     public PropertyValue currentOakProperty(String oakPropertyName) {
+        return currentOakProperty(oakPropertyName, null);
+    }
+
+    private PropertyValue currentOakProperty(String oakPropertyName, Integer propertyType) {
+        boolean asterisk = oakPropertyName.indexOf('*') >= 0;
+        if (asterisk) {
+            Tree t = currentTree();
+            ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
+            readOakProperties(list, t, oakPropertyName, propertyType);
+            if (list.size() == 0) {
+                return null;
+            }
+            ArrayList<String> strings = new ArrayList<String>();
+            for (PropertyValue p : list) {
+                Iterables.addAll(strings, p.getValue(Type.STRINGS));
+            }
+            return PropertyValues.newString(strings);                    
+        }
         boolean relative = oakPropertyName.indexOf('/') >= 0;
         Tree t = currentTree();
         if (relative) {
@@ -410,6 +443,11 @@ public class SelectorImpl extends SourceImpl {
             }
             oakPropertyName = PathUtils.getName(oakPropertyName);
         }
+        return currentOakProperty(t, oakPropertyName, propertyType);
+    }
+    
+    private PropertyValue currentOakProperty(Tree t, String oakPropertyName, Integer propertyType) {
+        PropertyValue result;
         if (t == null || !t.exists()) {
             return null;
         }
@@ -420,13 +458,59 @@ public class SelectorImpl extends SourceImpl {
                 // not a local path
                 return null;
             }
-            return PropertyValues.newString(local);
+            result = PropertyValues.newString(local);
         } else if (oakPropertyName.equals(QueryImpl.JCR_SCORE)) {
-            return currentRow.getValue(QueryImpl.JCR_SCORE);
+            result = currentRow.getValue(QueryImpl.JCR_SCORE);
         } else if (oakPropertyName.equals(QueryImpl.REP_EXCERPT)) {
-            return currentRow.getValue(QueryImpl.REP_EXCERPT);
+            result = currentRow.getValue(QueryImpl.REP_EXCERPT);
+        } else {
+            result = PropertyValues.create(t.getProperty(oakPropertyName));
         }
-        return PropertyValues.create(t.getProperty(oakPropertyName));
+        if (result == null) {
+            return null;
+        }
+        if (propertyType != null && result.getType().tag() != propertyType) {
+            return null;
+        }
+        return result;
+    }
+    
+    private void readOakProperties(ArrayList<PropertyValue> target, Tree t, String oakPropertyName, Integer propertyType) {
+        while (true) {
+            if (t == null || !t.exists()) {
+                return;
+            }
+            int slash = oakPropertyName.indexOf('/');
+            if (slash < 0) {
+                break;
+            }
+            String parent = oakPropertyName.substring(0, slash);
+            oakPropertyName = oakPropertyName.substring(slash + 1);
+            if (parent.equals("..")) {
+                t = t.isRoot() ? null : t.getParent();
+            } else if (parent.equals(".")) {
+                // same node
+            } else if (parent.equals("*")) {
+                for (Tree child : t.getChildren()) {
+                    readOakProperties(target, child, oakPropertyName, propertyType);
+                }
+            } else {
+                t = t.getChild(parent);
+            }
+        }
+        if (!"*".equals(oakPropertyName)) {
+            PropertyValue value = currentOakProperty(t, oakPropertyName, propertyType);
+            if (value != null) {
+                target.add(value);
+            }
+            return;
+        }
+          for (PropertyState p : t.getProperties()) {
+              if (propertyType == null || p.getType().tag() == propertyType) {
+                  PropertyValue v = PropertyValues.create(p);
+                  target.add(v);
+              }
+          }
     }
 
     @Override

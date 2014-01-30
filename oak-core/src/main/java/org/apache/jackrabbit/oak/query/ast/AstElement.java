@@ -52,9 +52,10 @@ abstract class AstElement {
     
     /**
      * Normalize the property name (including namespace remapping).
+     * Asterisks are kept.
      *
      * @param propertyName the property name to normalize
-     * @return the normalized property name
+     * @return the normalized (oak-) property name
      */
     protected String normalizePropertyName(String propertyName) {
         // TODO normalize the path (remove superfluous ".." and "." 
@@ -71,7 +72,23 @@ abstract class AstElement {
         }
         // relative properties
         String relativePath = PathUtils.getParentPath(propertyName);
-        relativePath = query.getOakPath(relativePath);
+        if (relativePath.indexOf('*') >= 0) {
+            StringBuilder buff = new StringBuilder();
+            for (String p : PathUtils.elements(relativePath)) {
+                if (!p.equals("*")) {
+                    p = query.getOakPath(p);
+                }
+                if (p.length() > 0) {
+                    if (buff.length() > 0) {
+                        buff.append('/');
+                    }
+                    buff.append(p);
+                }
+            }
+            relativePath = buff.toString();
+        } else {
+            relativePath = query.getOakPath(relativePath);
+        }
         propertyName = PathUtils.getName(propertyName);
         propertyName = normalizeNonRelativePropertyName(propertyName);
         return PathUtils.concat(relativePath, propertyName);
