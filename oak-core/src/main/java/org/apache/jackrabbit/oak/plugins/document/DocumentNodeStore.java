@@ -93,7 +93,7 @@ public final class DocumentNodeStore
     /**
      * Do not cache more than this number of children for a document.
      */
-    private static final int NUM_CHILDREN_CACHE_LIMIT = Integer.getInteger("oak.documentMK.childrenCacheLimit", 16 * 1024);
+    static final int NUM_CHILDREN_CACHE_LIMIT = Integer.getInteger("oak.documentMK.childrenCacheLimit", 16 * 1024);
 
     /**
      * When trying to access revisions that are older than this many
