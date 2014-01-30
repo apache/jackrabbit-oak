@@ -40,7 +40,7 @@ import org.osgi.service.component.ComponentContext;
 public class EmbeddedSolrProviderService implements SolrServerProvider,
         OakSolrConfigurationProvider {
 
-    @Property(value = "/oak:index/solrIdx", name = "configuration path", description = "path to node holding Solr configuration")
+    @Property(value = "/oak:index/solrIdx", label = "configuration path", description = "path to node holding Solr configuration")
     private static final String CONFIGURATION_PATH = "solr.configuration.node.path";
 
     @Reference

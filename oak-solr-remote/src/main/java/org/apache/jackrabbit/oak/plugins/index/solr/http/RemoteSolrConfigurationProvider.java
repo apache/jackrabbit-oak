@@ -43,16 +43,16 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
     private static final String DEFAULT_PARENT_FIELD = "path_anc";
     private static final String DEFAULT_PATH_FIELD = "path_exact";
 
-    @Property(value = DEFAULT_DESC_FIELD, name = "field for descendants search")
+    @Property(value = DEFAULT_DESC_FIELD, label = "field for descendants search")
     private static final String PATH_DESCENDANTS_FIELD = "path.desc.field";
 
-    @Property(value = DEFAULT_CHILD_FIELD, name = "field for children search")
+    @Property(value = DEFAULT_CHILD_FIELD, label = "field for children search")
     private static final String PATH_CHILDREN_FIELD = "path.child.field";
 
-    @Property(value = DEFAULT_PARENT_FIELD, name = "field for parent search")
+    @Property(value = DEFAULT_PARENT_FIELD, label = "field for parent search")
     private static final String PATH_PARENT_FIELD = "path.parent.field";
 
-    @Property(value = DEFAULT_PATH_FIELD, name = "field for path search")
+    @Property(value = DEFAULT_PATH_FIELD, label = "field for path search")
     private static final String PATH_EXACT_FIELD = "path.exact.field";
 
     private String pathChildrenFieldName;
