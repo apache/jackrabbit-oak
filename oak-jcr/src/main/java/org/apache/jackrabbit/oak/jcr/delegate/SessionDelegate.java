@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -90,6 +91,17 @@ public class SessionDelegate {
 
     public void refreshAtNextAccess() {
         refreshStrategy.refreshAtNextAccess();
+    }
+
+    /**
+     * Wrap the passed {@code iterator} in an iterator that synchronizes
+     * all access to the underlying session.
+     * @param iterator  iterator to synchronized
+     * @param <T>
+     * @return  synchronized iterator
+     */
+    public <T> Iterator<T> sync(Iterator<T> iterator) {
+        return new SynchronizedIterator<T>(iterator);
     }
 
     /**
@@ -463,4 +475,43 @@ public class SessionDelegate {
     private static RepositoryException newRepositoryException(CommitFailedException exception) {
         return exception.asRepositoryException();
     }
+
+    //------------------------------------------------------------< SynchronizedIterator >---
+
+    /**
+     * This iterator delegates to a backing iterator and synchronises
+     * all calls to the backing iterator on this {@code SessionDelegate}
+     * instance.
+     *
+     * @param <T>
+     */
+    private final class SynchronizedIterator<T> implements Iterator<T> {
+        private final Iterator<T> iterator;
+
+        SynchronizedIterator(Iterator<T> iterator) {
+            this.iterator = iterator;
+        }
+
+        @Override
+        public boolean hasNext() {
+            synchronized (SessionDelegate.this) {
+                return iterator.hasNext();
+            }
+        }
+
+        @Override
+        public T next() {
+            synchronized (SessionDelegate.this) {
+                return iterator.next();
+            }
+        }
+
+        @Override
+        public void remove() {
+            synchronized (SessionDelegate.this) {
+                iterator.remove();
+            }
+        }
+    }
+
 }

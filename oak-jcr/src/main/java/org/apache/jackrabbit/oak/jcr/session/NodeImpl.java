@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterators.transform;
 import static com.google.common.collect.Sets.newLinkedHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
@@ -760,7 +761,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         }
                 );
 
-                return new PropertyIteratorAdapter(properties.iterator());
+                return new PropertyIteratorAdapter(sessionDelegate.sync(properties.iterator()));
             }
         });
     }
@@ -1279,25 +1280,25 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
-        return Iterators.transform(
+        return sessionDelegate.sync(transform(
                 childNodes,
                 new Function<NodeDelegate, Node>() {
                     @Override
                     public Node apply(NodeDelegate nodeDelegate) {
                         return new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext);
                     }
-                });
+                }));
     }
 
     private Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
-        return Iterators.transform(
+        return sessionDelegate.sync(transform(
                 properties,
                 new Function<PropertyDelegate, Property>() {
                     @Override
                     public Property apply(PropertyDelegate propertyDelegate) {
                         return new PropertyImpl(propertyDelegate, sessionContext);
                     }
-                });
+                }));
     }
 
     private void checkValidWorkspace(String workspaceName)
