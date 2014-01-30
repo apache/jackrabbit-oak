@@ -231,6 +231,14 @@
       <optional>true</optional>
     </dependency>
 
+    <!-- Embedded (provided) dependency to json-simple  -->
+    <dependency>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1</version>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- JCR and Jackrabbit dependencies -->
     <dependency>
       <groupId>javax.jcr</groupId>
@@ -308,12 +316,6 @@
       <artifactId>apacheds-server-unit</artifactId>
       <version>1.5.5</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
-      <version>1.1</version>
-      <!--<scope>test</scope> temporarily changed the scope for OAK-1266-->
     </dependency>
   </dependencies>
 </project>
