@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * MoveTrackerTest... TODO
@@ -49,8 +48,8 @@ public class MoveTrackerTest {
         mt.addMove("/a", "/b");
         mt.addMove("/c", "/d");
 
-        assertEquals("/a", mt.getOriginalSourcePath("/b"));
-        assertEquals("/c", mt.getOriginalSourcePath("/d"));
+        assertEquals("/a", mt.getSourcePath("/b"));
+        assertEquals("/c", mt.getSourcePath("/d"));
         assertEquals("/b", mt.getDestPath("/a"));
         assertEquals("/d", mt.getDestPath("/c"));
     }
@@ -66,8 +65,8 @@ public class MoveTrackerTest {
         mt1.addMove("/a/b", "/c");
         mt1.addMove("/a", "/d");
 
-        assertEquals("/a/b", mt1.getOriginalSourcePath("/c"));
-        assertEquals("/a", mt1.getOriginalSourcePath("/d"));
+        assertEquals("/a/b", mt1.getSourcePath("/c"));
+        assertEquals("/a", mt1.getSourcePath("/d"));
         assertEquals("/c", mt1.getDestPath("/a/b"));
         assertEquals("/d", mt1.getDestPath("/a"));
     }
@@ -83,8 +82,8 @@ public class MoveTrackerTest {
         mt2.addMove("/a/b", "/c");
         mt2.addMove("/a", "/c/d");
 
-        assertEquals("/a/b", mt2.getOriginalSourcePath("/c"));
-        assertEquals("/a", mt2.getOriginalSourcePath("/c/d"));
+        assertEquals("/a/b", mt2.getSourcePath("/c"));
+        assertEquals("/a", mt2.getSourcePath("/c/d"));
         assertEquals("/c", mt2.getDestPath("/a/b"));
         assertEquals("/c/d", mt2.getDestPath("/a"));
     }
@@ -100,8 +99,8 @@ public class MoveTrackerTest {
         mt3.addMove("/a", "/b");
         mt3.addMove("/c", "/a");
 
-        assertEquals("/a", mt3.getOriginalSourcePath("/b"));
-        assertEquals("/c", mt3.getOriginalSourcePath("/a"));
+        assertEquals("/a", mt3.getSourcePath("/b"));
+        assertEquals("/c", mt3.getSourcePath("/a"));
         assertEquals("/b", mt3.getDestPath("/a"));
         assertEquals("/a", mt3.getDestPath("/c"));
     }
@@ -117,8 +116,8 @@ public class MoveTrackerTest {
         mt.addMove("/a", "/b");
         mt.addMove("/b/c", "/d");
 
-        assertEquals("/a", mt.getOriginalSourcePath("/b"));
-        assertEquals("/a/c", mt.getOriginalSourcePath("/d"));
+        assertEquals("/a", mt.getSourcePath("/b"));
+        assertEquals("/a/c", mt.getSourcePath("/d"));
         assertEquals("/b", mt.getDestPath("/a"));
         assertEquals("/d", mt.getDestPath("/a/c"));
     }
@@ -134,7 +133,7 @@ public class MoveTrackerTest {
         mt.addMove("/a", "/b");
         mt.addMove("/b", "/c");
 
-        assertEquals("/a", mt.getOriginalSourcePath("/c"));
+        assertEquals("/a", mt.getSourcePath("/c"));
         assertEquals("/c", mt.getDestPath("/a"));
     }
 
@@ -150,8 +149,8 @@ public class MoveTrackerTest {
         mt4.addMove("/a", "/b/c");
         mt4.addMove("/b", "/d");
 
-        assertEquals("/a", mt4.getOriginalSourcePath("/d/c"));
-        assertEquals("/b", mt4.getOriginalSourcePath("/d"));
+        assertEquals("/a", mt4.getSourcePath("/d/c"));
+        assertEquals("/b", mt4.getSourcePath("/d"));
         assertEquals("/d/c", mt4.getDestPath("/a"));
         assertEquals("/d", mt4.getDestPath("/b"));
     }
@@ -167,8 +166,8 @@ public class MoveTrackerTest {
         mt5.addMove("/a", "/b");
         mt5.addMove("/c", "/b/d");
 
-        assertEquals("/a", mt5.getOriginalSourcePath("/b"));
-        assertEquals("/c", mt5.getOriginalSourcePath("/b/d"));
+        assertEquals("/a", mt5.getSourcePath("/b"));
+        assertEquals("/c", mt5.getSourcePath("/b/d"));
         assertEquals("/b", mt5.getDestPath("/a"));
         assertEquals("/b/d", mt5.getDestPath("/c"));
     }
@@ -184,19 +183,17 @@ public class MoveTrackerTest {
         mt6.addMove("/a/b", "/b");
         mt6.addMove("/a", "/b/d");
 
-        assertEquals("/a/b", mt6.getOriginalSourcePath("/b"));
-        assertEquals("/a", mt6.getOriginalSourcePath("/b/d"));
+        assertEquals("/a/b", mt6.getSourcePath("/b"));
+        assertEquals("/a", mt6.getSourcePath("/b/d"));
         assertEquals("/b", mt6.getDestPath("/a/b"));
         assertEquals("/b/d", mt6.getDestPath("/a"));
     }
 
     @Test
     public void testNotEmpty() {
-        for (Tree.Status st : Tree.Status.values()) {
-            MoveTracker mt = new MoveTracker();
-            mt.addMove("/a/b/c", "/d/e/f", st);
-            assertFalse(mt.isEmpty());
-        }
+        MoveTracker mt = new MoveTracker();
+        mt.addMove("/a/b/c", "/d/e/f");
+        assertFalse(mt.isEmpty());
     }
 
     @Test
@@ -211,7 +208,7 @@ public class MoveTrackerTest {
             String dest = moves.get(src);
             mt.addMove(src, dest);
 
-            assertEquals(src, mt.getOriginalSourcePath(dest));
+            assertEquals(src, mt.getSourcePath(dest));
             assertEquals(dest, mt.getDestPath(src));
         }
     }
@@ -231,7 +228,7 @@ public class MoveTrackerTest {
 
         for (String src : m.keySet()) {
             String dest = m.get(src);
-            assertEquals(src, mt.getOriginalSourcePath(dest));
+            assertEquals(src, mt.getSourcePath(dest));
             assertEquals(dest, mt.getDestPath(src));
         }
     }
@@ -345,20 +342,11 @@ public class MoveTrackerTest {
             return this;
         }
 
-        MoveTest addMove(String src, String dst, String originalSrc, Tree.Status status) {
-            src2dest.put(src, dst);
-            dest2orig.put(dst, originalSrc);
-            orig2dest.put(originalSrc, dst);
-
-            mt.addMove(src, dst, status);
-            return this;
-        }
-
         void assertResult() {
             // map destination -> original path
             for (String dest : src2dest.values()) {
                 String expectedOrgSource = dest2orig.get(dest);
-                assertEquals(expectedOrgSource, mt.getOriginalSourcePath(dest));
+                assertEquals(expectedOrgSource, mt.getSourcePath(dest));
             }
 
             // map original path -> destination

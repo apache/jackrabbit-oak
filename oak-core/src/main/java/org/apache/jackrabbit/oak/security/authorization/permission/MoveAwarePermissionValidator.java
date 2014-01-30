@@ -127,7 +127,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
 
         private boolean processAdd(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
             // FIXME: respect and properly handle move-operations in the subtree
-            String sourcePath = moveTracker.getOriginalSourcePath(child.getPath());
+            String sourcePath = moveTracker.getSourcePath(child.getPath());
             if (sourcePath != null) {
                 ImmutableTree source = rootBefore.getTree(sourcePath);
                 if (source.exists()) {
