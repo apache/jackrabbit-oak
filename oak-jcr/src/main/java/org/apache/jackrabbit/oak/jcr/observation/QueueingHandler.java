@@ -25,76 +25,51 @@ import org.apache.jackrabbit.oak.plugins.observation.EventHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Change handler that generates JCR Event instances and places them
- * in an event queue.
+ * Event handler that uses the given {@link EventFactory} and tracked path
+ * and identifier information to translate change callbacks to corresponding
+ * JCR events that are then placed in the given {@link EventQueue}.
  */
 class QueueingHandler implements EventHandler {
-
-    private final QueueingHandler parent;
-
-    private final String name;
-
-    private final PathTracker pathTracker;
-
-    private final IdentifierTracker identifierTracker;
 
     private final EventQueue queue;
 
     private final EventFactory factory;
 
-    private final NodeState before;
+    private final PathTracker pathTracker;
 
-    private final NodeState after;
+    // need to track identifiers for both before and after trees,
+    // to get correct identifiers for events in removed subtrees
+    private final IdentifierTracker beforeIdentifierTracker;
+
+    private final IdentifierTracker identifierTracker;
 
     QueueingHandler(
             EventQueue queue, EventFactory factory,
             NodeState before, NodeState after) {
-        this.parent = null;
-        this.name = null;
-
+        this.queue = queue;
+        this.factory = factory;
         this.pathTracker = new PathTracker();
+        this.beforeIdentifierTracker = new IdentifierTracker(before);
         if (after.exists()) {
             this.identifierTracker = new IdentifierTracker(after);
         } else {
-            this.identifierTracker = new IdentifierTracker(before);
+            this.identifierTracker = beforeIdentifierTracker;
         }
-
-        this.queue = queue;
-        this.factory = factory;
-
-        this.before = before;
-        this.after = after;
     }
 
     private QueueingHandler(
             QueueingHandler parent,
             String name, NodeState before, NodeState after) {
-        this.parent = parent;
-        this.name = name;
-
+        this.queue = parent.queue;
+        this.factory = parent.factory;
         this.pathTracker = parent.pathTracker.getChildTracker(name);
+        this.beforeIdentifierTracker =
+                parent.beforeIdentifierTracker.getChildTracker(name, before);
         if (after.exists()) {
             this.identifierTracker =
                     parent.identifierTracker.getChildTracker(name, after);
         } else {
-            this.identifierTracker =
-                    parent.getBeforeIdentifierTracker().getChildTracker(name, before);
-        }
-
-        this.queue = parent.queue;
-        this.factory = parent.factory;
-
-        this.before = before;
-        this.after = after;
-    }
-
-    private IdentifierTracker getBeforeIdentifierTracker() {
-        if (!after.exists()) {
-            return identifierTracker;
-        } else if (parent != null) {
-            return parent.getBeforeIdentifierTracker().getChildTracker(name, before);
-        } else {
-            return new IdentifierTracker(before);
+            this.identifierTracker = beforeIdentifierTracker;
         }
     }
 
@@ -129,33 +104,37 @@ class QueueingHandler implements EventHandler {
 
     @Override
     public void nodeAdded(String name, NodeState after) {
+        IdentifierTracker tracker =
+                identifierTracker.getChildTracker(name, after);
         queue.addEvent(factory.nodeAdded(
-                pathTracker.getPath(), name,
-                identifierTracker.getChildTracker(name, after).getIdentifier()));
+                pathTracker.getPath(), name, tracker.getIdentifier()));
     }
 
     @Override
     public void nodeDeleted(String name, NodeState before) {
+        IdentifierTracker tracker =
+                beforeIdentifierTracker.getChildTracker(name, before);
         queue.addEvent(factory.nodeDeleted(
-                pathTracker.getPath(), name,
-                getBeforeIdentifierTracker().getChildTracker(name, before).getIdentifier()));
+                pathTracker.getPath(), name, tracker.getIdentifier()));
     }
 
     @Override
     public void nodeMoved(
             final String sourcePath, String name, NodeState moved) {
+        IdentifierTracker tracker =
+                identifierTracker.getChildTracker(name, moved);
         queue.addEvent(factory.nodeMoved(
-                pathTracker.getPath(), name,
-                identifierTracker.getChildTracker(name, moved).getIdentifier(),
+                pathTracker.getPath(), name, tracker.getIdentifier(),
                 sourcePath));
     }
 
     @Override
     public void nodeReordered(
             final String destName, final String name, NodeState reordered) {
+        IdentifierTracker tracker =
+                identifierTracker.getChildTracker(name, reordered);
         queue.addEvent(factory.nodeReordered(
-                pathTracker.getPath(), name,
-                identifierTracker.getChildTracker(name, reordered).getIdentifier(),
+                pathTracker.getPath(), name, tracker.getIdentifier(),
                 destName));
     }
 
