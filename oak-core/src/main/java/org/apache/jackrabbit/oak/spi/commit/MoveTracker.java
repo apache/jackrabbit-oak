@@ -25,7 +25,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.util.Text;
 
@@ -46,28 +45,21 @@ public class MoveTracker {
     }
 
     public void addMove(@Nonnull String sourcePath, @Nonnull String destPath) {
-        addMove(sourcePath, destPath, Tree.Status.EXISTING);
-    }
-
-
-    public void addMove(@Nonnull String sourcePath, @Nonnull String destPath, Tree.Status status) {
         // calculate original source path
         String originalSource = sourcePath;
         for (MoveEntry me : Lists.reverse(entries)) {
             if (Text.isDescendantOrEqual(me.destPath, sourcePath)) {
                 String relPath = PathUtils.relativize(me.destPath, sourcePath);
                 if (!relPath.isEmpty()) {
-                    originalSource = me.originalSourcePath + '/' + relPath;
+                    originalSource = me.sourcePath + '/' + relPath;
                 } else {
-                    originalSource = me.originalSourcePath;
+                    originalSource = me.sourcePath;
                 }
                 break;
             }
         }
 
-        MoveEntry moveEntry = new MoveEntry(sourcePath, destPath, status, originalSource);
-        // TODO: clean up entry list
-        entries.add(moveEntry);
+        entries.add(new MoveEntry(originalSource, destPath));
     }
 
     public boolean isEmpty() {
@@ -76,7 +68,7 @@ public class MoveTracker {
 
     @CheckForNull
     public String getSourcePath(String destPath) {
-        for (MoveEntry me : entries) {
+        for (MoveEntry me : Lists.reverse(entries)) {
             if (me.destPath.equals(destPath)) {
                 return me.sourcePath;
             }
@@ -85,19 +77,9 @@ public class MoveTracker {
     }
 
     @CheckForNull
-    public String getOriginalSourcePath(String destPath) {
+    public String getDestPath(String sourcePath) {
         for (MoveEntry me : Lists.reverse(entries)) {
-            if (me.destPath.equals(destPath)) {
-                return me.originalSourcePath;
-            }
-        }
-        return null;
-    }
-
-    @CheckForNull
-    public String getDestPath(String originalSource) {
-        for (MoveEntry me : Lists.reverse(entries)) {
-            if (me.originalSourcePath.equals(originalSource)) {
+            if (me.sourcePath.equals(sourcePath)) {
                 return me.destPath;
             }
         }
@@ -124,27 +106,19 @@ public class MoveTracker {
     private final class MoveEntry {
 
         private final String sourcePath;
-        private final String destPath;
-        private final Tree.Status status;
+        private String destPath;
 
-        private final String originalSourcePath;
-
-        private MoveEntry(@Nonnull String sourcePath, @Nonnull String destPath,
-                          @Nonnull Tree.Status status) {
-            this(sourcePath, destPath, status, sourcePath);
-        }
-
-        private MoveEntry(@Nonnull String sourcePath, @Nonnull String destPath,
-                          @Nonnull Tree.Status status,
-                          @Nonnull String originalSourcePath) {
+        private MoveEntry(@Nonnull String sourcePath,
+                          @Nonnull String destPath) {
             this.sourcePath = sourcePath;
             this.destPath = destPath;
-            this.status = status;
 
-            this.originalSourcePath = originalSourcePath;
-
-            parentSourcePaths.add(Text.getRelativeParent(originalSourcePath, 1));
+            parentSourcePaths.add(Text.getRelativeParent(sourcePath, 1));
             parentDestPaths.add(Text.getRelativeParent(destPath, 1));
+        }
+
+        private void updateDestPath(@Nonnull String destPath) {
+            this.destPath = destPath;
         }
     }
 }
