@@ -360,7 +360,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
         Session anonymousSession = getRepository().login(new GuestCredentials());
         QueryManager qm = anonymousSession.getWorkspace().getQueryManager();
-        Query q = qm.createQuery("/jcr:root/home//social/relationships/following//*[id='aaron.mcdonald@mailinator.com']", Query.XPATH);
+        Query q = qm.createQuery("/jcr:root/home//social/relationships/following//*[@id='aaron.mcdonald@mailinator.com']", Query.XPATH);
         QueryResult r = q.execute();
         RowIterator it = r.getRows();
         Assert.assertTrue(it.hasNext());
