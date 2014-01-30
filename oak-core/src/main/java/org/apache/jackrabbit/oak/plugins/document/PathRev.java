@@ -42,7 +42,7 @@ final public class PathRev implements CacheValue {
     @Override
     public int getMemory() {
         return 24                           // shallow size
-                + 40 * path.length() * 2    // path
+                + 40 + path.length() * 2    // path
                 + 32;                       // revision
     }
 
