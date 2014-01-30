@@ -37,7 +37,6 @@
 
   <modules>
     <module>oak-parent</module>
-    <module>oak-doc</module>
     <module>oak-commons</module>
     <module>oak-mk-api</module>
     <module>oak-mk</module>
