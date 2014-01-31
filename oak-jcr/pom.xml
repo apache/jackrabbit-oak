@@ -252,6 +252,12 @@
           <artifactId>bndlib</artifactId>
           <scope>provided</scope>
       </dependency>
+      <dependency>
+          <!-- somehow the 1.6.0_65 compiler crashes on osx without this. -->
+          <groupId>org.apache.felix</groupId>
+          <artifactId>org.apache.felix.scr.annotations</artifactId>
+          <scope>provided</scope>
+      </dependency>
 
     <dependency>
       <groupId>javax.jcr</groupId>
