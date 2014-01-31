@@ -93,16 +93,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
     private static Query parseQuery(
             String statement, String language, ExecutionContext context,
-            final Map<String, String> mappings) throws ParseException {
+            Map<String, String> mappings) throws ParseException {
         LOG.debug("Parsing {} statement: {}", language, statement);
 
         NamePathMapper mapper = new NamePathMapperImpl(
-                new LocalNameMapper(context.getRoot()) {
-                    @Override
-                    public Map<String, String> getSessionLocalMappings() {
-                        return mappings;
-                    }
-                });
+                new LocalNameMapper(context.getRoot(), mappings));
 
         NodeState types = context.getBaseState()
                 .getChildNode(JCR_SYSTEM)

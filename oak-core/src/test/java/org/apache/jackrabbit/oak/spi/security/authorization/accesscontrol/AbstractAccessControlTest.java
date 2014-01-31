@@ -26,7 +26,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -40,15 +39,10 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
     private PrivilegeBitsProvider bitsProvider;
 
     protected void registerNamespace(String prefix, String uri) throws Exception {
-        NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry() {
+        NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry(root) {
             @Override
             protected Root getWriteRoot() {
                 return root;
-            }
-
-            @Override
-            protected Tree getReadTree() {
-                return root.getTree("/");
             }
         };
         nsRegistry.registerNamespace(prefix, uri);

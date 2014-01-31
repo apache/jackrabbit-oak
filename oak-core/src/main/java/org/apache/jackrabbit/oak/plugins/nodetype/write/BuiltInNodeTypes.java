@@ -65,11 +65,7 @@ class BuiltInNodeTypes {
             }
         };
 
-        this.nsReg = new ReadWriteNamespaceRegistry() {
-            @Override
-            protected Tree getReadTree() {
-                return root.getTree("/");
-            }
+        this.nsReg = new ReadWriteNamespaceRegistry(root) {
             @Override
             protected Root getWriteRoot() {
                 return root;

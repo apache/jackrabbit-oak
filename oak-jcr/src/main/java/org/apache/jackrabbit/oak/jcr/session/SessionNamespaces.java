@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.toArray;
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_PREFIXES;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
@@ -27,10 +29,11 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
-import javax.jcr.NamespaceRegistry;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.util.XMLChar;
 
 import com.google.common.collect.Maps;
@@ -41,44 +44,20 @@ import com.google.common.collect.Maps;
  * re-mappings and takes a snapshot of the namespace registry when initialized
  * (see JCR 2.0 specification, section 3.5.1).
  */
-class SessionNamespaces {
+class SessionNamespaces extends LocalNameMapper {
 
-    /**
-     * Local namespace remappings. Prefixes as keys and namespace URIs as values.
-     * <p/>
-     * This map is only accessed from synchronized methods (see
-     * <a href="https://issues.apache.org/jira/browse/JCR-1793">JCR-1793</a>).
-     */
-    private final Map<String, String> namespaces;
-
-    /**
-     * A snapshot of the namespace registry when these SessionNamespaces
-     * are first accessed. Key: prefix, value: uri
-     */
-    private Map<String, String> snapshotPrefixUri;
-    
-    /**
-     * A snapshot of the namespace registry when these SessionNamespaces
-     * are first accessed. Key: uri, value: prefix
-     */
-    private Map<String, String> snapshotUriPrefix;
-
-
-    private final SessionContext sessionContext;
-
-    SessionNamespaces(@Nonnull SessionContext sessionContext) {
-        this.namespaces = Maps.newHashMap();
-        this.sessionContext = checkNotNull(sessionContext);
+    SessionNamespaces(@Nonnull Root root) {
+        super(root, Maps.<String, String>newHashMap());
     }
 
-    // The code below was initially copied from JCR Commons AbstractSession, but
-    // provides information the "hasRemappings" information
+    // The code below was initially copied from JCR Commons AbstractSession,
+    // but has since been radically modified
 
     /**
      * @see Session#setNamespacePrefix(String, String)
      */
-    void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
-        init();
+    synchronized void setNamespacePrefix(String prefix, String uri)
+            throws NamespaceException {
         if (prefix == null) {
             throw new IllegalArgumentException("Prefix must not be null");
         } else if (uri == null) {
@@ -97,153 +76,109 @@ class SessionNamespaces {
                     "Prefix is not a valid XML NCName: " + prefix);
         }
 
-        synchronized (namespaces) {
-            // Remove existing mapping for the given prefix
-            namespaces.remove(prefix);
+        // remove the possible existing mapping for the given prefix
+        local.remove(prefix);
 
-            // Remove existing mapping(s) for the given URI
-            Set<String> prefixes = new HashSet<String>();
-            for (Map.Entry<String, String> entry : namespaces.entrySet()) {
-                if (entry.getValue().equals(uri)) {
-                    prefixes.add(entry.getKey());
-                }
+        // remove the possible existing mapping(s) for the given URI
+        Set<String> prefixes = new HashSet<String>();
+        for (Map.Entry<String, String> entry : local.entrySet()) {
+            if (entry.getValue().equals(uri)) {
+                prefixes.add(entry.getKey());
             }
-            namespaces.keySet().removeAll(prefixes);
-
-            // Add the new mapping
-            namespaces.put(prefix, uri);
         }
+        local.keySet().removeAll(prefixes);
 
-        if (snapshotPrefixUri.containsKey(prefix)) {
-            // make sure we have a prefix in case an existing
-            // namespace uri is re-mapped
-            getNamespacePrefix(snapshotPrefixUri.get(prefix));
-        }
+        // add the new mapping
+        local.put(prefix, uri);
     }
 
     /**
      * @see Session#getNamespacePrefixes()
      */
-    String[] getNamespacePrefixes() throws RepositoryException {
-        init();
-        synchronized (namespaces) {
-            if (namespaces.isEmpty()) {
-                Set<String> prefixes = snapshotPrefixUri.keySet();
-                return prefixes.toArray(new String[prefixes.size()]);
+    synchronized String[] getNamespacePrefixes() {
+        // get registered namespace prefixes
+        Iterable<String> global = emptyList();
+        PropertyState property = nsdata.getProperty(REP_PREFIXES);
+        if (property != null && property.getType() == STRINGS) {
+            global = property.getValue(STRINGS);
+        }
+
+        // unless there are local remappings just use the registered ones
+        if (local.isEmpty()) {
+            return toArray(global, String.class);
+        }
+
+        Set<String> prefixes = newHashSet(global);
+
+        // remove the prefixes of the namespaces that have been remapped
+        for (String uri : local.values()) {
+            String prefix = getOakPrefixOrNull(uri);
+            if (prefix != null) {
+                prefixes.remove(prefix);
             }
         }
-        Set<String> uris = new HashSet<String>();
-        uris.addAll(snapshotPrefixUri.values());
-        synchronized (namespaces) {
-            // Add namespace uris only visible to session
-            uris.addAll(namespaces.values());
-        }
-        Set<String> prefixes = new HashSet<String>();
-        for (String uri : uris) {
-            prefixes.add(getNamespacePrefix(uri));
-        }
+
+        // add the prefixes in local remappings
+        prefixes.addAll(local.keySet());
+
         return prefixes.toArray(new String[prefixes.size()]);
     }
 
     /**
      * @see Session#getNamespaceURI(String)
      */
-    String getNamespaceURI(String prefix) throws RepositoryException {
-        init();
-        synchronized (namespaces) {
-            String uri = namespaces.get(prefix);
-
-            if (uri == null) {
-                // Not in local mappings, try snapshot ones
-                uri = snapshotPrefixUri.get(prefix);
-                if (uri == null) {
-                    // Not in snapshot mappings, try the global ones
-                    uri = getNamespaceRegistry().getURI(prefix);
-                    if (namespaces.containsValue(uri)) {
-                        // The global URI is locally mapped to some other prefix,
-                        // so there are no mappings for this prefix
-                        throw new NamespaceException("Namespace not found: " + prefix);
-                    }
-                }
+    synchronized String getNamespaceURI(String prefix)
+            throws NamespaceException {
+        // first check local remappings
+        String uri = local.get(prefix);
+        if (uri == null) {
+            // Not in snapshot mappings, try the global ones
+            uri = getOakURIOrNull(prefix);
+            if (uri == null || local.containsValue(uri)) {
+                // URI is either not registered or locally mapped to some
+                // other prefix, so there are no mappings for this prefix
+                throw new NamespaceException(
+                        "Unknown namespace prefix: " + prefix);
             }
-
-            return uri;
         }
+        return uri;
     }
 
     /**
      * @see Session#getNamespacePrefix(String)
      */
-    String getNamespacePrefix(String uri) throws RepositoryException {
-        init();
-        synchronized (namespaces) {
-            if (namespaces.size() > 0) {
-                for (Map.Entry<String, String> entry : namespaces.entrySet()) {
-                    if (entry.getValue().equals(uri)) {
-                        return entry.getKey();
-                    }
-                }
+    synchronized String getNamespacePrefix(String uri)
+            throws NamespaceException {
+        // first check local remappings
+        for (Map.Entry<String, String> entry : local.entrySet()) {
+            if (entry.getValue().equals(uri)) {
+                return entry.getKey();
             }
-
-            // try snapshot
-            String prefix = snapshotUriPrefix.get(uri);
-            if (prefix != null && !namespaces.containsKey(prefix)) {
-                return prefix;
-            }
-
-            // The following throws an exception if the URI is not found, that's OK
-            prefix = getNamespaceRegistry().getPrefix(uri);
-
-            // Generate a new prefix if the global mapping is already taken
-            String base = prefix;
-            for (int i = 2; namespaces.containsKey(prefix); i++) {
-                prefix = base + i;
-            }
-
-            if (!base.equals(prefix)) {
-                namespaces.put(prefix, uri);
-            }
-            return prefix;
         }
-    }
 
-    /**
-     * @return the session local namespaces that were remapped.
-     */
-    public Map<String, String> getSessionLocalMappings() {
-        synchronized (namespaces) {
-            if (namespaces.isEmpty()) {
-                return Collections.emptyMap();
-            }
-            return new HashMap<String, String>(namespaces);
+        // then try the global mappings
+        String prefix = getOakPrefixOrNull(uri);
+        if (prefix == null) {
+            throw new NamespaceException("Unknown namespace URI: " + uri);
         }
+
+        // Generate a new prefix if already locally mapped to something else
+        String base = prefix;
+        for (int i = 2; local.containsKey(prefix); i++) {
+            prefix = base + i;
+        }
+        if (base != prefix) {
+            local.put(prefix, uri);
+        }
+
+        return prefix;
     }
 
     /**
      * Clears the re-mapped namespaces map.
      */
-    void clear() {
-        synchronized (namespaces) {
-            namespaces.clear();
-        }
+    synchronized void clear() {
+        local.clear();
     }
 
-    private NamespaceRegistry getNamespaceRegistry() {
-        return sessionContext.getWorkspace().getNamespaceRegistry();
-    }
-
-    private void init() throws RepositoryException {
-        if (snapshotPrefixUri == null) {
-            NamespaceRegistry registry = getNamespaceRegistry();
-            Map<String, String> prefixUri = new HashMap<String, String>();
-            Map<String, String> uriPrefix = new HashMap<String, String>();
-            for (String prefix : registry.getPrefixes()) {
-                String uri = registry.getURI(prefix);
-                prefixUri.put(prefix, uri);
-                uriPrefix.put(uri, prefix);
-            }
-            snapshotPrefixUri = prefixUri;
-            snapshotUriPrefix = uriPrefix;
-        }
-    }
 }

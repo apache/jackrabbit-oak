@@ -28,19 +28,18 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NAMESPACES_PATH;
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NSDATA;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_PREFIXES;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_URIS;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_REP_UNSTRUCTURED;
 
 /**
  * Name mapper with no local prefix remappings. URI to prefix mappings
@@ -70,32 +69,31 @@ public class GlobalNameMapper implements NameMapper {
         }
     }
 
-    private static Tree setupNamespaces(Map<String, String> global) {
-        NodeBuilder namespaces = EmptyNodeState.EMPTY_NODE.builder();
-        namespaces.setProperty(JCR_PRIMARYTYPE, NT_REP_UNSTRUCTURED, NAME);
-        for (Entry<String, String> entry : global.entrySet()) {
-            namespaces.setProperty(
-                    Namespaces.escapePropertyKey(entry.getKey()),
-                    entry.getValue());
-        }
-        Namespaces.buildIndexNode(namespaces);
-        return new ImmutableTree(namespaces.getNodeState());
-    }
-
     protected final Tree namespaces;
-    private final Tree nsdata;
+    protected final Tree nsdata;
 
     public GlobalNameMapper(Root root) {
-        this(root.getTree(NAMESPACES_PATH));
-    }
-
-    public GlobalNameMapper(Map<String, String> namespaces) {
-        this(setupNamespaces(namespaces));
-    }
-
-    private GlobalNameMapper(Tree namespaces) {
-        this.namespaces = namespaces;
+        this.namespaces = root.getTree(NAMESPACES_PATH);
         this.nsdata = namespaces.getChild(REP_NSDATA);
+    }
+
+    public GlobalNameMapper(Map<String, String> mappings) {
+        NodeBuilder forward = EMPTY_NODE.builder();
+        NodeBuilder reverse = EMPTY_NODE.builder();
+
+        for (Entry<String, String> entry : mappings.entrySet()) {
+            String prefix = entry.getKey();
+            if (!prefix.isEmpty()) {
+                String uri = entry.getValue();
+                forward.setProperty(prefix, uri);
+                reverse.setProperty(encodeUri(uri), prefix);
+            }
+        }
+        reverse.setProperty(REP_PREFIXES, mappings.keySet(), STRINGS);
+        reverse.setProperty(REP_URIS, mappings.values(), STRINGS);
+
+        this.namespaces = new ImmutableTree(forward.getNodeState());
+        this.nsdata = new ImmutableTree(reverse.getNodeState());
     }
 
     @Override @Nonnull
@@ -117,8 +115,7 @@ public class GlobalNameMapper implements NameMapper {
         return jcrName;
     }
 
-    @Nonnull
-    @Override
+    @Override @Nonnull
     public String getOakName(@Nonnull String jcrName) throws RepositoryException {
         String oakName = getOakNameOrNull(jcrName);
         if (oakName == null) {
@@ -156,11 +153,30 @@ public class GlobalNameMapper implements NameMapper {
     }
 
     @CheckForNull
-    protected String getOakPrefixOrNull(String uri) {
+    protected synchronized String getOakPrefixOrNull(String uri) {
+        if (uri.isEmpty()) {
+            return uri;
+        }
+
         PropertyState mapping = nsdata.getProperty(encodeUri(uri));
         if (mapping != null && mapping.getType() == STRING) {
             return mapping.getValue(STRING);
         }
+
+        return null;
+    }
+
+    @CheckForNull
+    protected synchronized String getOakURIOrNull(String prefix) {
+        if (prefix.isEmpty()) {
+            return prefix;
+        }
+
+        PropertyState mapping = namespaces.getProperty(prefix);
+        if (mapping != null && mapping.getType() == STRING) {
+            return mapping.getValue(STRING);
+        }
+
         return null;
     }
 

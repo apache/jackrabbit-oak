@@ -16,12 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static com.google.common.collect.Iterables.toArray;
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
@@ -31,17 +38,25 @@ import org.apache.jackrabbit.oak.api.Tree;
  * implementation that supports also namespace modifications and that's thus
  * better suited for use in in implementing the full JCR API.
  */
-public abstract class ReadOnlyNamespaceRegistry
+public class ReadOnlyNamespaceRegistry
         implements NamespaceRegistry, NamespaceConstants {
 
-    /**
-     * Called by the {@link NamespaceRegistry} implementation methods
-     * to acquire a root {@link Tree} instance from which to read the
-     * namespace mappings (under {@code jcr:system/rep:namespaces}).
-     *
-     * @return root {@link Tree} for reading the namespace mappings
-     */
-    protected abstract Tree getReadTree();
+    protected final Tree namespaces;
+    protected final Tree nsdata;
+
+    public ReadOnlyNamespaceRegistry(Root root) {
+        this.namespaces = root.getTree(NAMESPACES_PATH);
+        this.nsdata = namespaces.getChild(REP_NSDATA);
+    }
+
+    private Iterable<String> getNSData(String name) {
+        PropertyState property = nsdata.getProperty(name);
+        if (property != null && property.getType() == STRINGS) {
+            return property.getValue(STRINGS);
+        } else {
+            return emptyList();
+        }
+    }
 
     //--------------------------------------------------< NamespaceRegistry >---
 
@@ -56,60 +71,44 @@ public abstract class ReadOnlyNamespaceRegistry
         throw new UnsupportedRepositoryOperationException();
     }
 
-    @Override
-    @Nonnull
-    public String[] getPrefixes() throws RepositoryException {
-        try {
-            return Namespaces.getNamespacePrefixes(getReadTree());
-        } catch (RuntimeException e) {
-            throw new RepositoryException(
-                    "Failed to retrieve registered namespace prefixes", e);
-        }
+    @Override @Nonnull
+    public String[] getPrefixes() {
+        return toArray(getNSData(REP_PREFIXES), String.class);
     }
 
-    @Override
-    @Nonnull
-    public String[] getURIs() throws RepositoryException {
-        try {
-            return Namespaces.getNamespaceURIs(getReadTree());
-        } catch (RuntimeException e) {
-            throw new RepositoryException(
-                    "Failed to retrieve registered namespace URIs", e);
-        }
+    @Override @Nonnull
+    public String[] getURIs() {
+        return toArray(getNSData(REP_URIS), String.class);
     }
 
-    @Override
-    @Nonnull
-    public String getURI(String prefix) throws RepositoryException {
-        try {
-            String uri = Namespaces.getNamespaceURI(getReadTree(), prefix);
-            if (uri == null) {
-                throw new NamespaceException(
-                        "No namespace registered for prefix " + prefix);
-            }
-            return uri;
-        } catch (RuntimeException e) {
-            throw new RepositoryException(
-                    "Failed to retrieve the namespace URI for prefix "
-                    + prefix, e);
+    @Override @Nonnull
+    public String getURI(String prefix) throws NamespaceException {
+        if (prefix.isEmpty()) {
+            return prefix; // the default empty namespace
         }
+
+        PropertyState property = namespaces.getProperty(prefix);
+        if (property != null && property.getType() == STRING) {
+            return property.getValue(STRING);
+        }
+
+        throw new NamespaceException(
+                "No namespace registered for prefix " + prefix);
     }
 
-    @Override
-    @Nonnull
-    public String getPrefix(String uri) throws RepositoryException {
-        try {
-            String prefix = Namespaces.getNamespacePrefix(getReadTree(), uri);
-            if (prefix == null) {
-                throw new NamespaceException(
-                        "No namespace prefix registered for URI " + uri);
-            }
-            return prefix;
-        } catch (RuntimeException e) {
-            throw new RepositoryException(
-                    "Failed to retrieve the namespace prefix for URI "
-                    + uri, e);
+    @Override @Nonnull
+    public String getPrefix(String uri) throws NamespaceException {
+        if (uri.isEmpty()) {
+            return uri; // the default empty namespace
         }
+
+        PropertyState property = nsdata.getProperty(Namespaces.encodeUri(uri));
+        if (property != null && property.getType() == STRING) {
+            return property.getValue(STRING);
+        }
+
+        throw new NamespaceException(
+                "No namespace prefix registered for URI " + uri);
     }
 
 }

@@ -206,17 +206,11 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NamespaceRegistry getNamespaceRegistry() {
-        return new ReadWriteNamespaceRegistry() {
-            @Override
-            protected Tree getReadTree() {
-                return sessionDelegate.getRoot().getTree("/");
-            }
-
+        return new ReadWriteNamespaceRegistry(sessionDelegate.getRoot()) {
             @Override
             protected Root getWriteRoot() {
                 return sessionDelegate.getContentSession().getLatestRoot();
             }
-
             @Override
             protected void refresh() throws RepositoryException {
                 getSession().refresh(true);

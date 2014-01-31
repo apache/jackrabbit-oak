@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.name;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,15 +29,15 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkState;
-import static javax.jcr.NamespaceRegistry.NAMESPACE_EMPTY;
+import static com.google.common.collect.Maps.newConcurrentMap;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_JCR;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_MIX;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_NT;
 import static javax.jcr.NamespaceRegistry.NAMESPACE_XML;
-import static javax.jcr.NamespaceRegistry.PREFIX_EMPTY;
 import static javax.jcr.NamespaceRegistry.PREFIX_JCR;
 import static javax.jcr.NamespaceRegistry.PREFIX_MIX;
 import static javax.jcr.NamespaceRegistry.PREFIX_NT;
@@ -47,11 +46,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.util.Text.escapeIllegalJcrChars;
 
 /**
  * Internal static utility class for managing the persisted namespace registry.
  */
 public class Namespaces implements NamespaceConstants {
+
+    /**
+     * Global cache of encoded URIs.
+     */
+    private static final Map<String, String> ENCODED_URIS = newConcurrentMap();
 
     private Namespaces() {
     }
@@ -70,7 +75,6 @@ public class Namespaces implements NamespaceConstants {
         namespaces.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_UNSTRUCTURED, NAME);
 
         // Standard namespace specified by JCR (default one not included)
-        namespaces.setProperty(escapePropertyKey(PREFIX_EMPTY), NAMESPACE_EMPTY);
         namespaces.setProperty(PREFIX_JCR, NAMESPACE_JCR);
         namespaces.setProperty(PREFIX_NT,  NAMESPACE_NT);
         namespaces.setProperty(PREFIX_MIX, NAMESPACE_MIX);
@@ -88,7 +92,7 @@ public class Namespaces implements NamespaceConstants {
         // first look for an existing mapping for the given URI
         for (PropertyState property : namespaces.getProperties()) {
             if (property.getType() == STRING) {
-                String prefix = unescapePropertyKey(property.getName());
+                String prefix = property.getName();
                 if (isValidPrefix(prefix)
                         && uri.equals(property.getValue(STRING))) {
                     return prefix;
@@ -99,27 +103,29 @@ public class Namespaces implements NamespaceConstants {
         // no existing mapping found for the URI, make sure prefix is unique
         String prefix = prefixHint;
         int iteration = 1;
-        while (namespaces.hasProperty(escapePropertyKey(prefix))) {
+        while (namespaces.hasProperty(prefix)) {
             prefix = prefixHint + ++iteration;
         }
 
         // add the new mapping with its unique prefix
-        namespaces.setProperty(escapePropertyKey(prefix), uri);
+        namespaces.setProperty(prefix, uri);
         return prefix;
     }
 
     public static void buildIndexNode(NodeBuilder namespaces) {
-        Set<String> prefixes = new HashSet<String>();
-        Set<String> uris = new HashSet<String>();
+        // initialize prefix and URI sets with the defaults namespace
+        // that's not stored along with the other mappings
+        Set<String> prefixes = newHashSet("");
+        Set<String> uris = newHashSet("");
         Map<String, String> reverse = new HashMap<String, String>();
 
         for (PropertyState property : namespaces.getProperties()) {
-            String prefix = unescapePropertyKey(property.getName());
+            String prefix = property.getName();
             if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
                 prefixes.add(prefix);
                 String uri = property.getValue(STRING);
                 uris.add(uri);
-                reverse.put(escapePropertyKey(uri), prefix);
+                reverse.put(uri, prefix);
             }
         }
 
@@ -137,13 +143,14 @@ public class Namespaces implements NamespaceConstants {
     }
 
     public static Map<String, String> getNamespaceMap(Tree root) {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = newHashMap();
+        map.put("", ""); // default namespace, not included in tree
 
         Tree namespaces = getNamespaceTree(root);
         for (PropertyState property : namespaces.getProperties()) {
             String prefix = property.getName();
             if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
-                map.put(unescapePropertyKey(prefix), property.getValue(STRING));
+                map.put(prefix, property.getValue(STRING));
             }
         }
 
@@ -162,12 +169,16 @@ public class Namespaces implements NamespaceConstants {
     }
 
     public static String getNamespacePrefix(Tree root, String uri) {
-        Tree namespaces = getNamespaceTree(root);
-        PropertyState ps = namespaces.getChild(REP_NSDATA)
-                .getProperty(encodeUri(escapePropertyKey(uri)));
+        if (uri.isEmpty()) {
+            return uri;
+        }
+
+        Tree nsdata = getNamespaceTree(root).getChild(REP_NSDATA);
+        PropertyState ps = nsdata.getProperty(encodeUri(uri));
         if (ps != null) {
             return ps.getValue(STRING);
         }
+
         return null;
     }
 
@@ -177,47 +188,21 @@ public class Namespaces implements NamespaceConstants {
     }
 
     public static String getNamespaceURI(Tree root, String prefix) {
+        if (prefix.isEmpty()) {
+            return prefix;
+        }
+
         if (isValidPrefix(prefix)) {
-            PropertyState property = getNamespaceTree(root).getProperty(
-                    escapePropertyKey(prefix));
-            if (property != null && STRING.equals(property.getType())) {
+            PropertyState property = getNamespaceTree(root).getProperty(prefix);
+            if (property != null && property.getType() == STRING) {
                 return property.getValue(STRING);
             }
         }
+
         return null;
     }
 
     // utils
-
-    /**
-     * Replaces an empty string with the special {@link #REP_EMPTY} value.
-     *
-     * @see #unescapePropertyKey(String)
-     * @param key property key
-     * @return escaped property key
-     */
-    public static String escapePropertyKey(String key) {
-        if (key.equals("")) {
-            return REP_EMPTY;
-        } else {
-            return key;
-        }
-    }
-
-    /**
-     * Converts the special {@link #REP_EMPTY} value back to an empty string.
-     *
-     * @see #escapePropertyKey(String)
-     * @param key property key
-     * @return escaped property key
-     */
-    static String unescapePropertyKey(String key) {
-        if (key.equals(REP_EMPTY)) {
-            return "";
-        } else {
-            return key;
-        }
-    }
 
     /**
      * encodes the uri value to be used as a property
@@ -226,7 +211,15 @@ public class Namespaces implements NamespaceConstants {
      * @return encoded uri
      */
     public static String encodeUri(String uri) {
-        return Text.escapeIllegalJcrChars(uri);
+        String encoded = ENCODED_URIS.get(uri);
+        if (encoded == null) {
+            encoded =  escapeIllegalJcrChars(uri);
+            if (ENCODED_URIS.size() > 1000) {
+                ENCODED_URIS.clear(); // prevents DoS attacks
+            }
+            ENCODED_URIS.put(uri, encoded);
+        }
+        return encoded;
     }
 
     static Set<String> safeGet(Tree tree, String name) {

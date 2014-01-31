@@ -30,7 +30,6 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.junit.Test;
 
@@ -50,7 +49,7 @@ public class NamePathMapperImplTest {
             "foo", "http://www.example.com/foo",
             "quu", "http://www.example.com/quu");
 
-    private final NameMapper mapper = new TestNameMapper(GLOBAL, LOCAL);
+    private final NameMapper mapper = new LocalNameMapper(GLOBAL, LOCAL);
 
     private NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
@@ -173,8 +172,8 @@ public class NamePathMapperImplTest {
 
         NamePathMapper[] mappers = {
                 npMapper,
-                new NamePathMapperImpl(
-                        new TestNameMapper(GLOBAL, Collections.<String, String>emptyMap()))
+                new NamePathMapperImpl(new LocalNameMapper(
+                        GLOBAL, Collections.<String, String>emptyMap()))
         };
 
         for (NamePathMapper mapper : mappers) {

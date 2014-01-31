@@ -104,6 +104,7 @@ import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
@@ -333,13 +334,13 @@ public class RepositoryUpgrade {
         Properties indexes  = loadProperties("/namespaces/ns_idx.properties");
 
         for (String prefixHint : registry.stringPropertyNames()) {
+            String prefix;
             String uri = registry.getProperty(prefixHint);
             if (".empty.key".equals(prefixHint)) {
-                prefixHint = "";
+                prefix = ""; // the default empty mapping is not stored
+            } else {
+                prefix = addCustomMapping(namespaces, uri, prefixHint);
             }
-
-            String prefix =
-                    Namespaces.addCustomMapping(namespaces, uri, prefixHint);
 
             String index = null;
             if (uri.isEmpty()) {

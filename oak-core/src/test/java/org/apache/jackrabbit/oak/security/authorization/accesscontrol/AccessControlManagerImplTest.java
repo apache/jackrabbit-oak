@@ -54,7 +54,6 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -81,6 +80,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -94,7 +94,11 @@ import static org.junit.Assert.fail;
  */
 public class AccessControlManagerImplTest extends AbstractAccessControlTest implements AccessControlConstants {
 
-    private final String testName = TestNameMapper.TEST_PREFIX + ":testRoot";
+    public static final String TEST_LOCAL_PREFIX = "test";
+    public static final String TEST_PREFIX = "jr";
+    public static final String TEST_URI = "http://jackrabbit.apache.org";
+
+    private final String testName = TEST_PREFIX + ":testRoot";
     private final String testPath = '/' + testName;
 
     private Principal testPrincipal;
@@ -112,7 +116,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void before() throws Exception {
         super.before();
 
-        registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
+        registerNamespace(TEST_PREFIX, TEST_URI);
         nameMapper = new GlobalNameMapper(root);
         npMapper = new NamePathMapperImpl(nameMapper);
 
@@ -318,15 +322,11 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager(root).getRegisteredPrivileges());
 
         List<String> testPaths = new ArrayList<String>();
-        testPaths.add('/' + TestNameMapper.TEST_LOCAL_PREFIX + ":testRoot");
-        testPaths.add("/{" + TestNameMapper.TEST_URI + "}testRoot");
+        testPaths.add('/' + TEST_LOCAL_PREFIX + ":testRoot");
+        testPaths.add("/{" + TEST_URI + "}testRoot");
 
-        NameMapper remapped = new LocalNameMapper(root) {
-            @Override
-            public Map<String, String> getSessionLocalMappings() {
-                return TestNameMapper.LOCAL_MAPPING;
-            }
-        };
+        NameMapper remapped = new LocalNameMapper(
+                root, singletonMap(TEST_LOCAL_PREFIX, TEST_URI));
 
         AccessControlManager acMgr =
                 getAccessControlManager(new NamePathMapperImpl(remapped));

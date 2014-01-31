@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NAMESPACES_PATH;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +25,6 @@ import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
@@ -111,13 +108,9 @@ public abstract class TargetImportHandler extends DefaultHandler {
     //--------------------------------------------------------
 
     public NamePathMapper currentNamePathMapper() {
-        Root root = sessionContext.getSessionDelegate().getRoot();
-        return new NamePathMapperImpl(new LocalNameMapper(root) {
-            @Override
-            public Map<String, String> getSessionLocalMappings() {
-                return documentPrefixMap;
-            }
-        });
+        return new NamePathMapperImpl(new LocalNameMapper(
+                sessionContext.getSessionDelegate().getRoot(),
+                documentPrefixMap));
     }
 
     private Map<String, String> createCurrentPrefixMap() {

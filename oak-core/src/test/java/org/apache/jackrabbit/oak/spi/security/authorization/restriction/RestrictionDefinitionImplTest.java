@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.junit.Before;
@@ -42,7 +41,7 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
     public void before() throws Exception {
         super.before();
 
-        name = TestNameMapper.TEST_PREFIX + ":defName";
+        name = "test:defName";
         definition = new RestrictionDefinitionImpl(name, Type.NAME, true);
     }
 

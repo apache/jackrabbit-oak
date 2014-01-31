@@ -31,26 +31,32 @@ import org.apache.jackrabbit.oak.api.Root;
 /**
  * Name mapper with local namespace mappings.
  */
-public abstract class LocalNameMapper extends GlobalNameMapper {
+public class LocalNameMapper extends GlobalNameMapper {
 
-    public LocalNameMapper(Root root) {
+    protected final Map<String, String> local;
+
+    public LocalNameMapper(Root root, Map<String, String> local) {
         super(root);
+        this.local = local;
     }
 
-    public LocalNameMapper(Map<String, String> namespaces) {
-        super(namespaces);
+    public LocalNameMapper(
+            Map<String, String> global, Map<String, String> local) {
+        super(global);
+        this.local = local;
     }
 
     @Override @Nonnull
-    public abstract Map<String, String> getSessionLocalMappings();
+    public synchronized Map<String, String> getSessionLocalMappings() {
+        return local;
+    }
 
     @Override @CheckForNull
-    public String getJcrName(String oakName) {
+    public synchronized String getJcrName(String oakName) {
         checkNotNull(oakName);
         checkArgument(!oakName.startsWith(":"), oakName); // hidden name
         checkArgument(!isExpandedName(oakName), oakName); // expanded name
 
-        Map<String, String> local = getSessionLocalMappings();
         if (!local.isEmpty()) {
             int colon = oakName.indexOf(':');
             if (colon > 0) {
@@ -90,14 +96,16 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
     }
 
     @Override @CheckForNull
-    public String getOakNameOrNull(String jcrName) {
+    public synchronized String getOakNameOrNull(String jcrName) {
         checkNotNull(jcrName);
 
         if (jcrName.startsWith("{")) {
-            return getOakNameFromExpanded(jcrName);
+            String oakName = getOakNameFromExpanded(jcrName);
+            if (oakName != jcrName) {
+                return oakName;
+            } // else not an expanded name, so fall through to local mapping
         }
 
-        Map<String, String> local = getSessionLocalMappings();
         if (!local.isEmpty()) {
             int colon = jcrName.indexOf(':');
             if (colon > 0) {
