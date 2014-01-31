@@ -110,7 +110,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      * can be sorted in the same order they were created. This in turn
      * makes accessing node type information more deterministic.
      */
-    private final Pattern DEFINITION_PATTERN = Pattern.compile(
+    private static final Pattern DEFINITION_PATTERN = Pattern.compile(
             "(" + JCR_PROPERTYDEFINITION + "|" + JCR_CHILDNODEDEFINITION
             + ")\\[([1-9][0-9]*)\\]");
 
