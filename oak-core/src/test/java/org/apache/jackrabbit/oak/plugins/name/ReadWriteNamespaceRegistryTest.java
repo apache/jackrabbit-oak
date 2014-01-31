@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
@@ -46,14 +45,15 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
     @Test
     public void testMappings() throws Exception {
         final ContentSession session = createContentSession();
-        NamespaceRegistry r = new ReadWriteNamespaceRegistry() {
-            @Override
-            protected Tree getReadTree() {
-                return session.getLatestRoot().getTree("/");
-            }
+        final Root root = session.getLatestRoot();
+        NamespaceRegistry r = new ReadWriteNamespaceRegistry(root) {
             @Override
             protected Root getWriteRoot() {
                 return session.getLatestRoot();
+            }
+            @Override
+            protected void refresh() {
+                root.refresh();
             }
         };
 

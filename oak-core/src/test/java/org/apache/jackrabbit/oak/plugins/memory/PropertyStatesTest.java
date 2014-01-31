@@ -25,9 +25,9 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.util.ISO8601;
@@ -38,9 +38,10 @@ import static org.junit.Assert.assertEquals;
 
 public class PropertyStatesTest {
 
-    private final NamePathMapperImpl namePathMapper = new NamePathMapperImpl(new TestNameMapper(
-        singletonMap("oak-prefix", TestNameMapper.TEST_URI),
-        singletonMap("jcr-prefix", TestNameMapper.TEST_URI) ));
+    private final NamePathMapperImpl namePathMapper =
+            new NamePathMapperImpl(new LocalNameMapper(
+                    singletonMap("oak-prefix", "http://jackrabbit.apache.org"),
+                    singletonMap("jcr-prefix", "http://jackrabbit.apache.org")));
 
     @Test
     public void namePropertyFromNameValue() throws RepositoryException {

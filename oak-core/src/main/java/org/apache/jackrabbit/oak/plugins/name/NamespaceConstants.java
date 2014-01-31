@@ -69,8 +69,6 @@ public interface NamespaceConstants {
             NAMESPACE_SV
     ));
 
-    String REP_EMPTY = "rep:empty";
-
     // index nodes for faster lookup
 
     String REP_NSDATA = "rep:nsdata";
