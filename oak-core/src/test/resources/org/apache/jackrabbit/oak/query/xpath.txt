@@ -23,6 +23,11 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# property names with missing @
+
+xpath2sql /jcr:root/test/*[@a='1' and b='2' and jcr:contains(c, '3') and jcr:contains(., '4') and jcr:contains(@d, '5')] order by e
+select [jcr:path], [jcr:score], * from [nt:base] as a where [a] = '1' and [b] = '2' and contains([c/*], '3') and contains(*, '4') and contains([d], '5') and ischildnode(a, '/test') order by [e] /* xpath: /jcr:root/test/*[@a='1' and b='2' and jcr:contains(c, '3') and jcr:contains(., '4') and jcr:contains(@d, '5')] order by e */
+
 # wildcards in relative property paths
 
 xpath2sql /jcr:root/etc/test//*[@size='M' or */@size='M']
@@ -202,7 +207,7 @@ xpath2sql /jcr:root/testroot/*[jcr:contains(., '"quick brown" -cat')]
 select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '"quick brown" -cat') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(., '"quick brown" -cat')] */
 
 xpath2sql //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by rep:principalName ascending
-error: java.lang.IllegalArgumentException: Missing @ in front of the property name: [rep:principalName/*]
+select [jcr:path], [jcr:score], * from [rep:Authorizable] as a where contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**') or contains([profile/email/*], '**') or [rep:principalName] like '%%' or name(a) like '%%' order by [rep:principalName] /* xpath: //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by rep:principalName ascending */
 
 xpath2sql //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(@rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by @rep:principalName ascending
 select [jcr:path], [jcr:score], * from [rep:Authorizable] as a where contains([profile/givenName/*], '**') or contains([profile/familyName/*], '**') or contains([profile/email/*], '**') or [rep:principalName] like '%%' or name(a) like '%%' order by [rep:principalName] /* xpath: //element(*,rep:Authorizable)[(((jcr:contains(profile/givenName,'**') or jcr:contains(profile/familyName,'**')) or jcr:contains(profile/email,'**')) or (jcr:like(@rep:principalName,'%%') or jcr:like(fn:name(.),'%%')))] order by @rep:principalName ascending */

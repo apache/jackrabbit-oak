@@ -180,10 +180,6 @@ abstract class Expression {
             if (right == null) {
                 rightExpr = "";
             } else {
-                if (left != null && left instanceof Property && ((Property) left).implicitAsterisk) {
-                    throw new IllegalArgumentException(
-                            "Missing @ in front of the property name: " + left);
-                }
                 if (leftExprIsName && !"like".equals(operator)) {
                     // need to de-escape _x0020_ and so on
                     if (!(right instanceof Literal)) {
@@ -275,8 +271,16 @@ abstract class Expression {
     
         @Override
         public String toString() {
-            StringBuilder buff = new StringBuilder("contains").
-                    append('(').append(left).append(", ").append(right).append(')');
+            StringBuilder buff = new StringBuilder("contains(");
+            Expression l = left;
+            if (l instanceof Property) {
+                Property p = (Property) l;
+                if (p.thereWasNoAt) {
+                    l = new Property(p.selector, p.name + "/*", true);
+                }
+            }
+            buff.append(l);
+            buff.append(", ").append(right).append(')');
             return buff.toString();
         }
     
@@ -386,12 +390,18 @@ abstract class Expression {
     
         final Selector selector;
         final String name;
-        final boolean implicitAsterisk;
+        
+        /**
+         * If there was no "@" character in front of the property name. If that
+         * was the case, then it is still considered a property, except for
+         * "contains(x, 'y')", where "x" is considered to be a node.
+         */
+        final boolean thereWasNoAt;
     
-        Property(Selector selector, String name, boolean implicitAsterisk) {
+        Property(Selector selector, String name, boolean thereWasNoAt) {
             this.selector = selector;
             this.name = name;
-            this.implicitAsterisk = implicitAsterisk;
+            this.thereWasNoAt = thereWasNoAt;
         }
     
         @Override
