@@ -78,7 +78,29 @@ as it was present in Jackrabbit 2.x (renaming just required the ability to modif
 the child collection of the parent node).
 
 ##### Move
-_TODO: permission evaluation with move is not yet implemented [OAK-710]_
+Due to the nature of the diff mechanism in Oak it is no longer possible to treat
+move operations the same way as it was implemented in Jackrabbit 2.x. The current
+permission evaluation attempts to provide a best-effort handling to achieve a
+similar behavior that it was present in Jackrabbit 2.x.
+
+The current implementation has the following limitations with respect to multiple
+move operations within a given set of transient operations:
+
+- Move operations that replace an node that has been moved away will not be
+detected as modification by the diff mechanism and regular permission checks for
+on the subtree will be performed.
+- Moving an ancestor of a node that has been moved will only detect the second
+move and will enforce regular permissions checks on the child that has been moved
+in a first step.
+
+For API consumers and applications running on Jackrabbit Oak this means that
+combinations of multiple moves can not always be properly resolved. Consequently
+permissions will be evaluated as if the modifications did not include move
+(in general being more restrictive): If the move leads to changes that are detected
+by the diff mechanism, regular permissions will be evaluated for all items that
+appear to be added, removed or modified, while a regular move operations just
+requires `REMOVE_NODE` permission on the source, `ADD_NODE` and `NODE_TYPE_MANAGEMENT`
+permissions at the destination.
 
 ##### Copy
 _TODO: permission evaluation with copy is not yet implemented [OAK-920]_
