@@ -24,8 +24,6 @@ import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -62,13 +60,6 @@ class SecureNodeState extends AbstractNodeState {
     SecureNodeState(@Nonnull NodeState state, @Nonnull TreePermission treePermission) {
         this.state = checkNotNull(state);
         this.treePermission = checkNotNull(treePermission);
-    }
-
-    SecureNodeState(@Nonnull NodeState root, @Nonnull PermissionProvider permissionProvider,
-                    @Nonnull Context acContext) {
-        this(root, permissionProvider.getTreePermission(
-                new ImmutableTree(root, new TreeTypeProviderImpl(acContext)),
-                TreePermission.EMPTY));
     }
 
     @Override

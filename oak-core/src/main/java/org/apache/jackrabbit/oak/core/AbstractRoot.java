@@ -68,7 +68,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
-public abstract class AbstractRoot implements Root {
+abstract class AbstractRoot implements Root {
 
     /**
      * The underlying store to which this root belongs
@@ -141,12 +141,12 @@ public abstract class AbstractRoot implements Root {
      * @param securityProvider the security configuration.
      * @param indexProvider    the query index provider.
      */
-    protected AbstractRoot(NodeStore store,
-            CommitHook hook,
-            String workspaceName,
-            Subject subject,
-            SecurityProvider securityProvider,
-            QueryIndexProvider indexProvider) {
+    AbstractRoot(NodeStore store,
+                 CommitHook hook,
+                 String workspaceName,
+                 Subject subject,
+                 SecurityProvider securityProvider,
+                 QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
         this.hook = checkNotNull(hook);
         this.workspaceName = checkNotNull(workspaceName);

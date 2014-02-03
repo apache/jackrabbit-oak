@@ -18,6 +18,22 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Collections;
+import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
+import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.util.PropertyBuilder;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -28,25 +44,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
-import java.util.Collections;
-import java.util.Set;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
-import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.util.PropertyBuilder;
-
-public class MutableTree extends AbstractTree {
+class MutableTree extends AbstractTree {
 
     /**
      * Underlying {@code Root} of this {@code Tree} instance
