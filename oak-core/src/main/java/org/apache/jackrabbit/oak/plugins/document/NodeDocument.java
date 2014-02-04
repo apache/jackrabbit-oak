@@ -770,6 +770,9 @@ public class NodeDocument extends Document implements CachedNodeDocument{
      */
     Iterable<NodeDocument> getPreviousDocs(@Nonnull final String property,
                                            @Nullable final Revision revision) {
+        if (getPreviousRanges().isEmpty()) {
+            return Collections.emptyList();
+        }
         return new PropertyHistory(store, this, property, revision);
     }
 

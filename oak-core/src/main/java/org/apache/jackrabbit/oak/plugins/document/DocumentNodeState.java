@@ -352,6 +352,7 @@ final class DocumentNodeState extends AbstractNodeState {
         private String previousName;
         private Iterator<ChildNodeEntry> current;
         private int fetchSize = INITIAL_FETCH_SIZE;
+        private int currentRemaining = fetchSize;
 
         ChildNodeEntryIterator() {
             fetchMore();
@@ -364,6 +365,9 @@ final class DocumentNodeState extends AbstractNodeState {
                     return false;
                 } else if (current.hasNext()) {
                     return true;
+                } else if (currentRemaining > 0) {
+                    // current returned less than fetchSize
+                    return false;
                 }
                 fetchMore();
             }
@@ -376,6 +380,7 @@ final class DocumentNodeState extends AbstractNodeState {
             }
             ChildNodeEntry entry = current.next();
             previousName = entry.getName();
+            currentRemaining--;
             return entry;
         }
 
@@ -387,6 +392,7 @@ final class DocumentNodeState extends AbstractNodeState {
         private void fetchMore() {
             Iterator<ChildNodeEntry> entries = getChildNodeEntries(
                     previousName, fetchSize).iterator();
+            currentRemaining = fetchSize;
             fetchSize = Math.min(fetchSize * 2, MAX_FETCH_SIZE);
             if (entries.hasNext()) {
                 current = entries;
