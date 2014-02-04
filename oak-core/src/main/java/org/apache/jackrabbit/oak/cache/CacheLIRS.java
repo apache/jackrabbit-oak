@@ -619,7 +619,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         int queue2Size;
 
         /**
-         * The map array. The size is always a power of 2.
+         * The map array. The size is always a power of 2. The bit mask that is
+         * applied to the key hash code to get the index in the map array. The
+         * mask is the length of the array minus one.
          */
         Entry<K, V>[] entries;
 
@@ -655,12 +657,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * The average memory used by one entry.
          */
         private int averageMemory;
-
-        /**
-         * The bit mask that is applied to the key hash code to get the index in the
-         * map array. The mask is the length of the array minus one.
-         */
-        private int mask;
 
         /**
          * The LIRS stack size.
@@ -722,8 +718,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             }
             // the array size is at most 2^31 elements
             int len = (int) Math.min(1L << 31, l);
-            // the bit mask has all bits set
-            mask = len - 1;
 
             // initialize the stack and queue heads
             stack = new Entry<K, V>();
@@ -733,8 +727,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             queue2 = new Entry<K, V>();
             queue2.queuePrev = queue2.queueNext = queue2;
 
-            // first set to null - avoiding out of memory
-            entries = null;
+            // first set to a small array, to avoiding out of memory
+            @SuppressWarnings("unchecked")
+            Entry<K, V>[] small = new Entry[1];
+            entries = small;
             @SuppressWarnings("unchecked")
             Entry<K, V>[] e = new Entry[len];
             entries = e;
@@ -920,6 +916,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
         synchronized void refresh(K key, int hash, CacheLoader<K, V> loader) throws ExecutionException {
+            if (loader == null) {
+                // no loader - no refresh
+                return;
+            }            
             V value;
             V old = get(key, hash);
             long start = System.nanoTime();
@@ -968,9 +968,11 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             e.key = key;
             e.value = value;
             e.memory = memory;
+            Entry<K, V>[] array = entries;
+            int mask = array.length - 1;
             int index = hash & mask;
-            e.mapNext = entries[index];
-            entries[index] = e;
+            e.mapNext = array[index];
+            array[index] = e;
             usedMemory += memory;
             if (usedMemory > maxMemory && mapSize > 0) {
                 // an old entry needs to be removed
@@ -990,13 +992,15 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * @param hash the hash
          */
         synchronized void invalidate(Object key, int hash) {
+            Entry<K, V>[] array = entries;
+            int mask = array.length - 1;            
             int index = hash & mask;
-            Entry<K, V> e = entries[index];
+            Entry<K, V> e = array[index];
             if (e == null) {
                 return;
             }
             if (e.key.equals(key)) {
-                entries[index] = e.mapNext;
+                array[index] = e.mapNext;
             } else {
                 Entry<K, V> last;
                 do {
@@ -1107,8 +1111,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * @return the entry (might be a non-resident)
          */
         Entry<K, V> find(Object key, int hash) {
+            Entry<K, V>[] array = entries;
+            int mask = array.length - 1;                
             int index = hash & mask;
-            Entry<K, V> e = entries[index];
+            Entry<K, V> e = array[index];
             while (e != null && !e.key.equals(key)) {
                 e = e.mapNext;
             }
