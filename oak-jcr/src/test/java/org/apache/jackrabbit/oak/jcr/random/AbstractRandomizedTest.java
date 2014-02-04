@@ -37,6 +37,8 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.junit.After;
 import org.junit.Before;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+
 
 /**
  * Base class for randomized tests.
@@ -86,8 +88,8 @@ public abstract class AbstractRandomizedTest {
             }
         }
 
-        jackrabbitRepository = null;
-        oakRepository = null;
+        jackrabbitRepository = dispose(jackrabbitRepository);
+        oakRepository = dispose(oakRepository);
     }
 
     protected Principal getTestPrincipal(@Nonnull JackrabbitSession session) throws RepositoryException {

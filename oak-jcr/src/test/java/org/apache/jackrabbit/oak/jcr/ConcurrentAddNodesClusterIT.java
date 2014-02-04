@@ -44,6 +44,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -58,6 +59,7 @@ public class ConcurrentAddNodesClusterIT {
     private static final String PROP_NAME = "testcount";
     private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
 
+    private List<Repository> repos = new ArrayList<Repository>();
     private List<DocumentMK> mks = new ArrayList<DocumentMK>();
     private List<Thread> workers = new ArrayList<Thread>();
 
@@ -74,6 +76,9 @@ public class ConcurrentAddNodesClusterIT {
 
     @After
     public void after() throws Exception {
+        for (Repository repo : repos) {
+            dispose(repo);
+        }
         for (DocumentMK mk : mks) {
             mk.dispose();
         }
@@ -93,6 +98,7 @@ public class ConcurrentAddNodesClusterIT {
         for (int i = 0; i < mks.size(); i++) {
             DocumentMK mk = mks.get(i);
             Repository repo = new Jcr(mk).createRepository();
+            repos.add(repo);
             workers.add(new Thread(new Worker(repo, exceptions), "Worker-" + (i + 1)));
         }
         for (Thread t : workers) {
@@ -119,7 +125,9 @@ public class ConcurrentAddNodesClusterIT {
         final DocumentMK mk1 = mks.get(0);
         final DocumentMK mk2 = mks.get(1);
         Repository r1 = new Jcr(mk1).createRepository();
+        repos.add(r1);
         Repository r2 = new Jcr(mk2).createRepository();
+        repos.add(r2);
 
         Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
         Session s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -152,8 +160,11 @@ public class ConcurrentAddNodesClusterIT {
         final DocumentMK mk2 = mks.get(1);
         final DocumentMK mk3 = mks.get(2);
         Repository r1 = new Jcr(mk1).createRepository();
+        repos.add(r1);
         Repository r2 = new Jcr(mk2).createRepository();
+        repos.add(r2);
         Repository r3 = new Jcr(mk3).createRepository();
+        repos.add(r3);
 
         Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
         Session s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -223,7 +234,9 @@ public class ConcurrentAddNodesClusterIT {
         final DocumentMK mk1 = mks.get(0);
         final DocumentMK mk2 = mks.get(1);
         Repository r1 = new Jcr(mk1).createRepository();
+        repos.add(r1);
         Repository r2 = new Jcr(mk2).createRepository();
+        repos.add(r2);
 
         Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
         Session s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));
