@@ -42,13 +42,12 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
 
     private final MoveContext moveCtx;
 
-    MoveAwarePermissionValidator(@Nonnull NodeState rootBefore,
-                                 @Nonnull NodeState rootAfter,
-                                 @Nonnull TreeTypeProvider typeProvider,
+    MoveAwarePermissionValidator(@Nonnull ImmutableTree rootBefore,
+                                 @Nonnull ImmutableTree rootAfter,
                                  @Nonnull PermissionProvider permissionProvider,
                                  @Nonnull PermissionValidatorProvider provider,
                                  @Nonnull MoveTracker moveTracker) {
-        super(rootBefore, rootAfter, typeProvider, permissionProvider, provider);
+        super(rootBefore, rootAfter, permissionProvider, provider);
         moveCtx = new MoveContext(moveTracker, rootBefore, rootAfter);
     }
 
@@ -114,8 +113,8 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         private final ImmutableRoot rootAfter;
 
         private MoveContext(@Nonnull MoveTracker moveTracker,
-                            @Nonnull NodeState before,
-                            @Nonnull NodeState after) {
+                            @Nonnull ImmutableTree before,
+                            @Nonnull ImmutableTree after) {
             this.moveTracker = moveTracker;
             rootBefore = new ImmutableRoot(before);
             rootAfter = new ImmutableRoot(after);

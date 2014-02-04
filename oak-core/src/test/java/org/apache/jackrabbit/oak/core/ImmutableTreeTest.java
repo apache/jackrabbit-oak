@@ -18,26 +18,29 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 
 public class ImmutableTreeTest extends OakBaseTest {
 
     private Root root;
+    private MutableTree mutableTree;
 
     public ImmutableTreeTest(NodeStoreFixture fixture) {
         super(fixture);
@@ -57,6 +60,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
         // Acquire a fresh new root to avoid problems from lingering state
         root = session.getLatestRoot();
+        mutableTree = (MutableTree) root.getTree("/");
     }
 
     @After
@@ -66,9 +70,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testGetPath() {
-        MutableTree tree = (MutableTree) root.getTree("/");
-
-        ImmutableTree immutable = new ImmutableTree(tree.getNodeState());
+        ImmutableTree immutable = new ImmutableTree(mutableTree.getNodeState());
         assertEquals("/", immutable.getPath());
 
         immutable = immutable.getChild("x");
@@ -83,7 +85,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testGetNodeState() {
-        ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
+        ImmutableTree tree = new ImmutableTree(mutableTree.getNodeState());
         assertNotNull(tree.getNodeState());
 
         for (Tree child : tree.getChildren()) {
@@ -94,7 +96,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testRoot() {
-        ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
+        ImmutableTree tree = new ImmutableTree(mutableTree.getNodeState());
         assertTrue(tree.isRoot());
         try {
             tree.getParent();
@@ -107,7 +109,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testGetParent() {
-        ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
+        ImmutableTree tree = new ImmutableTree(mutableTree.getNodeState());
         try {
             tree.getParent();
             fail();
@@ -154,5 +156,5 @@ public class ImmutableTreeTest extends OakBaseTest {
          
          tree = new ImmutableTree(t.getNodeState());
          assertSequence(tree.getChildren(), "node3", "node2", "node1");
-     }   
+    }
 }

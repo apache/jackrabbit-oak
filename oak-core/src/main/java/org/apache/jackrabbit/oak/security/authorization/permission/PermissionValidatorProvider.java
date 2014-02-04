@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -71,15 +71,15 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        TreeTypeProvider tp =
-                new TreeTypeProviderImpl(getAccessControlContext());
-        PermissionProvider pp = acConfig.getPermissionProvider(
-                new ImmutableRoot(before), workspaceName, principals);
+        TreeTypeProvider tp = new TreeTypeProviderImpl(getAccessControlContext());
+        PermissionProvider pp = acConfig.getPermissionProvider(new ImmutableRoot(before), workspaceName, principals);
 
+        ImmutableTree rootBefore = new ImmutableTree(before, tp);
+        ImmutableTree rootAfter = new ImmutableTree(after, tp);
         if (moveTracker.isEmpty()) {
-            return new PermissionValidator(before, after, tp, pp, this);
+            return new PermissionValidator(rootBefore, rootAfter, pp, this);
         } else {
-            return new MoveAwarePermissionValidator(before, after, tp, pp, this, moveTracker);
+            return new MoveAwarePermissionValidator(rootBefore, rootAfter, pp, this, moveTracker);
         }
     }
 

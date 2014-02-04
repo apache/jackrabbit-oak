@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
-import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_CREATEDBY;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_CREATED;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -32,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.AbstractTree;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
@@ -47,6 +41,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.ChildOrderDiff;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_CREATEDBY;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_CREATED;
 
 /**
  * Validator implementation that checks for sufficient permission for all
@@ -65,29 +66,27 @@ class PermissionValidator extends DefaultValidator {
 
     private final long permission;
 
-    PermissionValidator(@Nonnull NodeState rootBefore,
-                        @Nonnull NodeState rootAfter,
-                        @Nonnull TreeTypeProvider typeProvider,
+    PermissionValidator(@Nonnull ImmutableTree rootBefore,
+                        @Nonnull ImmutableTree rootAfter,
                         @Nonnull PermissionProvider permissionProvider,
                         @Nonnull PermissionValidatorProvider provider) {
-        this.parentBefore = new ImmutableTree(rootBefore, typeProvider);
-        this.parentAfter = new ImmutableTree(rootAfter, typeProvider);
+        this.parentBefore = rootBefore;
+        this.parentAfter = rootAfter;
         this.parentPermission = permissionProvider.getTreePermission(parentBefore, TreePermission.EMPTY);
 
         this.permissionProvider = permissionProvider;
         this.provider = provider;
 
-        this.isReferenceable = new TypePredicate(rootAfter, MIX_REFERENCEABLE);
-        this.isCreated = new TypePredicate(rootAfter, MIX_CREATED);
+        this.isReferenceable = new TypePredicate(rootAfter.getNodeState(), MIX_REFERENCEABLE);
+        this.isCreated = new TypePredicate(rootAfter.getNodeState(), MIX_CREATED);
 
         permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
     }
 
-    protected PermissionValidator(
-                        @Nullable ImmutableTree parentBefore,
-                        @Nullable ImmutableTree parentAfter,
-                        @Nullable TreePermission parentPermission,
-                        @Nonnull PermissionValidator parentValidator) {
+    protected PermissionValidator(@Nullable ImmutableTree parentBefore,
+                                  @Nullable ImmutableTree parentAfter,
+                                  @Nullable TreePermission parentPermission,
+                                  @Nonnull PermissionValidator parentValidator) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
         this.parentPermission = parentPermission;
