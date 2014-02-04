@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static junit.framework.Assert.fail;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
 import static org.junit.Assert.assertEquals;
@@ -324,6 +325,35 @@ public class RecordTest {
         }
         NodeState after = writer.writeNode(builder.getNodeState());
         assertEquals(builder.getNodeState(), after);
+    }
+
+    @Test
+    public void testMultiValuedBinaryPropertyAcrossSegments()
+            throws IOException {
+        // biggest possible inlined value record
+        byte[] data = new byte[Segment.MEDIUM_LIMIT - 1];
+        random.nextBytes(data);
+
+        // create enough copies of the value to fill a full segment
+        List<Blob> blobs = newArrayList();
+        while (blobs.size() * data.length < Segment.MAX_SEGMENT_SIZE) {
+            blobs.add(writer.writeStream(new ByteArrayInputStream(data)));
+        }
+
+        // write a simple node that'll now be stored in a separate segment
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty("test", blobs, BINARIES);
+        NodeState state = writer.writeNode(builder.getNodeState());
+
+        // all the blobs should still be accessible, even if they're
+        // referenced from another segment
+        for (Blob blob : state.getProperty("test").getValue(BINARIES)) {
+            try {
+                blob.getNewStream().close();
+            } catch (IllegalStateException e) {
+                fail("OAK-1374");
+            }
+        }
     }
 
 }
