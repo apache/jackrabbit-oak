@@ -677,11 +677,18 @@ public class DocumentMK implements MicroKernel {
         
         public <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(long maxWeight) {
             if (LIRS_CACHE) {
-                return CacheLIRS.newBuilder().weigher(weigher).
-                        maximumWeight(maxWeight).recordStats().build();
+                return CacheLIRS.newBuilder().
+                        weigher(weigher).
+                        averageWeight(2000).
+                        maximumWeight(maxWeight).
+                        recordStats().
+                        build();
             }
-            return CacheBuilder.newBuilder().weigher(weigher).
-                    maximumWeight(maxWeight).recordStats().build();
+            return CacheBuilder.newBuilder().
+                    weigher(weigher).
+                    maximumWeight(maxWeight).
+                    recordStats().
+                    build();
         }
     }
 
