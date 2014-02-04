@@ -51,6 +51,7 @@ public class BlobReferenceTest {
             set.remove(b.toString());
         }
         assertTrue(set.isEmpty());
+        s.dispose();
     }
     
     static InputStream randomStream(int seed, int size) {

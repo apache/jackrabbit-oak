@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.impl.command;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -51,15 +53,20 @@ public class ConcurrentWriteMultipleMkMongoTest extends
         String[] prefixes = new String[]{"a", "b", "c", "d", "e", "f"};
 
         ExecutorService executor = Executors.newFixedThreadPool(numberOfMks);
+        List<DocumentMK> mks = new ArrayList<DocumentMK>();
         for (int i = 0; i < numberOfMks; i++) {
             String diff = buildPyramidDiff("/", 0, numberOfChildren,
                     numberOfNodes, prefixes[i], new StringBuilder()).toString();
             DocumentMK mk = new DocumentMK.Builder().open();
+            mks.add(mk);
             GenericWriteTask task = new GenericWriteTask("mk-" + i, mk, diff, 10);
             executor.execute(task);
         }
         executor.shutdown();
         executor.awaitTermination(10, TimeUnit.MINUTES);
+        for (DocumentMK mk : mks) {
+            mk.dispose();
+        }
     }
 
     private StringBuilder buildPyramidDiff(String startingPoint,

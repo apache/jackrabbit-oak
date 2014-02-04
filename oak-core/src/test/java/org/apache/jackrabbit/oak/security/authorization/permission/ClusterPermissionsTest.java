@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,6 +62,8 @@ import static org.junit.Assert.assertTrue;
 
 public class ClusterPermissionsTest {
 
+    private DocumentMK mk1;
+    private DocumentMK mk2;
     private ContentRepository contentRepository1;
     private ContentRepository contentRepository2;
     private UserManager userManager1;
@@ -84,10 +87,10 @@ public class ClusterPermissionsTest {
 
         builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(1);
-        DocumentMK mk1 = builder.setClusterId(1).open();
+        mk1 = builder.setClusterId(1).open();
         builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(1);
-        DocumentMK mk2 = builder.setClusterId(2).open();
+        mk2 = builder.setClusterId(2).open();
 
         Oak oak = new Oak(mk1)
                 .with(new InitialContent())
@@ -117,6 +120,12 @@ public class ClusterPermissionsTest {
         root2 = adminSession2.getLatestRoot();
         userManager2 = securityProvider2.getConfiguration(UserConfiguration.class).getUserManager(root2, namePathMapper);
         aclMgr2 = securityProvider2.getConfiguration(AuthorizationConfiguration.class).getAccessControlManager(root2, namePathMapper);
+    }
+
+    @After
+    public void after() {
+        mk1.dispose();
+        mk2.dispose();
     }
 
     protected ConfigurationParameters getSecurityConfigParameters() {

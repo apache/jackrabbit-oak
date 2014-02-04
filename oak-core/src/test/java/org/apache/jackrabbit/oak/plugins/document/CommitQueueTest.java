@@ -103,6 +103,7 @@ public class CommitQueueTest {
         }
         running.set(false);
         observer.close();
+        store.dispose();
         for (Exception e : exceptions) {
             throw e;
         }
