@@ -211,6 +211,9 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             }
             previous = entry.getKey();
         }
+        mk1.dispose();
+        mk2.dispose();
+        mk3.dispose();
     }
 
     @Test // OAK-1233

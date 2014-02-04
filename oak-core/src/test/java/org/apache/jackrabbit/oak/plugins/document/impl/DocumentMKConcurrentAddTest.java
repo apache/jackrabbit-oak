@@ -25,7 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -40,23 +39,23 @@ import com.mongodb.DB;
  */
 public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
 
+    private static final int CACHE_SIZE = 8 * 1024 * 1024;
     private static final int NB_THREADS = 16;
 
-    private List<MongoConnection> connections = new ArrayList<MongoConnection>();
+    private List<DocumentMK> mks = new ArrayList<DocumentMK>();
 
-    private MicroKernel createMicroKernel() throws Exception {
+    private DocumentMK createMicroKernel() throws Exception {
         MongoConnection connection = MongoUtils.getConnection();
-        connections.add(connection);
         DB mongoDB = connection.getDB();
-        return new DocumentMK.Builder().setMongoDB(mongoDB).open();
+        return new DocumentMK.Builder().memoryCacheSize(CACHE_SIZE).setMongoDB(mongoDB).open();
     }
 
     @After
-    public void closeConnections() {
-        for (MongoConnection mc : connections) {
-            mc.close();
+    public void closeMKs() {
+        for (DocumentMK mk : mks) {
+            mk.dispose();
         }
-        connections.clear();
+        mks.clear();
     }
 
     /**
@@ -72,7 +71,8 @@ public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
         List<Callable<String>> cs = new LinkedList<Callable<String>>();
         for (int i = 0; i < NB_THREADS; i++) {
             // each callable has its own microkernel
-            final MicroKernel mk = createMicroKernel();
+            final DocumentMK mk = createMicroKernel();
+            mks.add(mk);
             // diff for adding one node and one child node
             final List<String> stmts = new LinkedList<String>();
             stmts.add("+\"node" + i + "\":{}");

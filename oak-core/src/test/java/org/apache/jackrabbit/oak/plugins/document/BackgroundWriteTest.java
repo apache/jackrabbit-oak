@@ -53,6 +53,7 @@ public class BackgroundWriteTest {
             pending.put(p, r);
         }
         mk.runBackgroundOperations();
+        mk.dispose();
     }
 
     private static final class TestStore extends MemoryDocumentStore {

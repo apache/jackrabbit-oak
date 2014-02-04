@@ -1606,6 +1606,9 @@ public final class DocumentNodeStore
                 if (nodeStore != null) {
                     nodeStore.runBackgroundOperations();
                     delay = nodeStore.getAsyncDelay();
+                } else {
+                    // node store not in use anymore
+                    break;
                 }
             }
         }
