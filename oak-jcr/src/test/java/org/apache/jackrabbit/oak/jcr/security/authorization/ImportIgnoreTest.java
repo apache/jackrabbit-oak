@@ -44,6 +44,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertEquals;
 
 public class ImportIgnoreTest {
@@ -100,7 +101,7 @@ public class ImportIgnoreTest {
             adminSession.refresh(false);
             adminSession.logout();
         }
-        repo = null;
+        repo = dispose(repo);
     }
 
     protected String getImportBehavior() {

@@ -52,6 +52,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertFalse;
 
 /**
@@ -137,7 +138,7 @@ public abstract class AbstractImportTest {
         } finally {
             if (getImportBehavior() != null) {
                 adminSession.logout();
-                repo = null;
+                repo = dispose(repo);
             }
         }
     }

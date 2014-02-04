@@ -113,4 +113,11 @@ public abstract class AbstractRepositoryTest {
         return new SimpleCredentials("admin", "admin".toCharArray());
     }
 
+    public static <R extends Repository> R dispose(R repository) {
+        if (repository instanceof JackrabbitRepository) {
+            ((JackrabbitRepository) repository).shutdown();
+        }
+        return null;
+    }
+
 }

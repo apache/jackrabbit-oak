@@ -30,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -41,6 +42,7 @@ public class ManyChildrenTest {
 //    NodeStoreFixture fixture = NodeStoreFixture.MONGO_MK;
 //    NodeStoreFixture fixture = NodeStoreFixture.SEGMENT_MK;
     
+    Repository repository;
     Session session;
     NodeStore nodeStore;
     
@@ -52,8 +54,8 @@ public class ManyChildrenTest {
         nodeStore = fixture.createNodeStore();
         
         if (nodeStore != null) {
-            Repository rep  = new Jcr(nodeStore).createRepository();
-            session = rep.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            repository = new Jcr(nodeStore).createRepository();
+            session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         }
     }
     
@@ -61,6 +63,7 @@ public class ManyChildrenTest {
     public void logout() {
         if (session != null) {
             session.logout();
+            repository = dispose(repository);
             fixture.dispose(nodeStore);
         }
     }

@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+
 /**
  * A base class for DocumentMK cluster tests.
  */
@@ -55,7 +57,8 @@ public class AbstractClusterTest {
             s2.logout();
             s2 = null;
         }
-        r1 = r2 = null;
+        r1 = dispose(r1);
+        r2 = dispose(r2);
         if (ns1 != null) {
             fixture.dispose(ns1);
         }

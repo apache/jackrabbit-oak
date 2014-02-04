@@ -42,6 +42,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+
 /**
  * Test privilege registration.
  */
@@ -74,7 +76,7 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
             super.tearDown();
         } finally {
             session.logout();
-            repository = null;
+            repository = dispose(repository);
             privilegeManager = null;
         }
     }
