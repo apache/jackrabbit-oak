@@ -1113,17 +1113,6 @@ public final class DocumentNodeStore
         }
     }
 
-    /**
-     * Returns the {@link Blob} with the given blobId.
-     *
-     * @param blobId the blobId of the blob.
-     * @return the blob.
-     */
-    @Nonnull
-    Blob getBlob(String blobId) {
-        return new DocumentBlob(blobStore, blobId);
-    }
-
     //------------------------< Observable >------------------------------------
 
     @Override
@@ -1170,6 +1159,18 @@ public final class DocumentNodeStore
             throw new IOException("Could not write blob", e);
         }
         return new DocumentBlob(blobStore, id);
+    }
+
+    /**
+     * Returns the {@link Blob} with the given blobId.
+     *
+     * @param blobId the blobId of the blob.
+     * @return the blob.
+     */
+    @Override
+    @Nonnull
+    public Blob getBlob(String blobId) {
+        return new DocumentBlob(blobStore, blobId);
     }
 
     @Nonnull

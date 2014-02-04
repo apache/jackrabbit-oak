@@ -37,7 +37,7 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Lists;
-
+import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -152,9 +152,14 @@ public class ValueFactoryImpl implements ValueFactory {
             if (value instanceof BinaryImpl) {
                 // No need to create the value again if we have it already underlying the binary
                 return ((BinaryImpl) value).getBinaryValue();
-            } else {
-                return createBinaryValue(value.getStream());
+            } else if (value instanceof ReferenceBinary) {
+                String reference = ((ReferenceBinary) value).getReference();
+                Blob blob = root.getBlob(reference);
+                if (blob != null) {
+                    return createBinaryValue(blob);
+                }
             }
+            return createBinaryValue(value.getStream());
         } catch (RepositoryException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         } catch (IOException e) {
@@ -278,7 +283,10 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     private ValueImpl createBinaryValue(InputStream value) throws IOException {
-        Blob blob = root.createBlob(value);
+        return createBinaryValue(root.createBlob(value));
+    }
+
+    private ValueImpl createBinaryValue(Blob blob) {
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
     }
 

@@ -189,6 +189,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return store.getWriter().writeStream(stream);
     }
 
+    @Override
+    public Blob getBlob(@Nonnull String reference) {
+        return store.readBlob(reference);
+    }
+
     @Override @Nonnull
     public String checkpoint(long lifetime) {
         checkArgument(lifetime > 0);

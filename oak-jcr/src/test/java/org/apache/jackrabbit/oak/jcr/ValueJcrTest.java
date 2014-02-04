@@ -21,7 +21,6 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.jackrabbit.core.value.BinaryValueTest;
 import org.apache.jackrabbit.core.value.PathTest;
-import org.apache.jackrabbit.core.value.ReferenceBinaryTest;
 
 public class ValueJcrTest extends TestCase {
 
@@ -34,7 +33,6 @@ public class ValueJcrTest extends TestCase {
 
         suite.addTestSuite(BinaryValueTest.class);
         suite.addTestSuite(PathTest.class);
-        suite.addTestSuite(ReferenceBinaryTest.class);
 
         return suite;
     }

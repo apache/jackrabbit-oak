@@ -124,6 +124,11 @@ public final class ImmutableRoot implements Root {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public Blob getBlob(@Nonnull String reference) {
+        return null;
+    }
+
     @Nonnull
     @Override
     public ContentSession getContentSession() {

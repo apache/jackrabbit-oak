@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.value;
 
+import static com.google.common.base.Objects.toStringHelper;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -23,6 +25,7 @@ import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
 
 /**
@@ -84,4 +87,22 @@ class BinaryImpl implements ReferenceBinary {
         return value.getBlob().getReference();
     }
 
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof ReferenceBinary) {
+            return Objects.equal(getReference(), ((ReferenceBinary) other).getReference());
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(getReference());
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this).addValue(value).toString();
+    }
 }

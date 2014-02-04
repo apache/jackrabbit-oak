@@ -18,10 +18,18 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.security.auth.Subject;
@@ -61,14 +69,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.LazyValue;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
-
-abstract class AbstractRoot implements Root {
+public abstract class AbstractRoot implements Root {
 
     /**
      * The underlying store to which this root belongs
@@ -344,6 +345,11 @@ abstract class AbstractRoot implements Root {
     public Blob createBlob(@Nonnull InputStream inputStream) throws IOException {
         checkLive();
         return store.createBlob(checkNotNull(inputStream));
+    }
+
+    @Override
+    public Blob getBlob(@Nonnull String reference) {
+        return store.getBlob(reference);
     }
 
     //-----------------------------------------------------------< internal >---

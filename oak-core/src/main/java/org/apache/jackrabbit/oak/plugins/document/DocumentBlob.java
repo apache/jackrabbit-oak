@@ -55,7 +55,7 @@ public class DocumentBlob implements Blob {
 
     @Override @CheckForNull
     public String getReference() {
-        return null;
+        return id;
     }
 
     //------------------------------------------------------------< Object >--

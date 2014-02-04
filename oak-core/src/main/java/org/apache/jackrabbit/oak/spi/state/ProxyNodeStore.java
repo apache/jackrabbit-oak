@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.state;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -53,6 +55,11 @@ public abstract class ProxyNodeStore implements NodeStore {
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
         return getNodeStore().createBlob(inputStream);
+    }
+
+    @Override
+    public Blob getBlob(@Nonnull String reference) {
+        return getNodeStore().getBlob(reference);
     }
 
     @Override
