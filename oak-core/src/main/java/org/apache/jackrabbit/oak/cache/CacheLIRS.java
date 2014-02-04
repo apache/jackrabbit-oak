@@ -1334,7 +1334,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             this.maxWeight = maxWeight;
             return this;
         }
-
+        
+        public Builder averageWeight(int averageWeight) {
+            this.averageWeight = averageWeight;
+            return this;
+        }
+        
         public Builder maximumSize(int maxSize) {
             this.maxWeight = maxSize;
             this.averageWeight = 1;
@@ -1351,7 +1356,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             Weigher<K, V> w = (Weigher<K, V>) weigher;
             return new CacheLIRS<K, V>(w, maxWeight, averageWeight, 16, 16, cacheLoader);
         }
-        
+
     }
 
     /**
