@@ -464,11 +464,6 @@ public class Segment {
         }
     }
 
-    SegmentBlob createBlob(int offset) {
-        RecordId id = new RecordId(uuid, offset);
-        return new SegmentBlob(this, id);
-    }
-
     long readBlobLength(int offset) {
         long high = readInt(offset + 2);
         long low = readInt(offset + 6);
