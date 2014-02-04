@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -68,8 +69,11 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
+import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -2042,6 +2046,26 @@ public class RepositoryTest extends AbstractRepositoryTest {
         session.save();
         node = session.getNode("/node");
         assertFalse(uuid.equals(node.getIdentifier()));
+    }
+
+    @Test
+    public void testReferenceBinary() throws RepositoryException {
+        ValueFactory valueFactory = getAdminSession().getValueFactory();
+        Binary binary = valueFactory.createBinary(new RandomInputStream(1, 256*1024));
+
+        String reference = binary instanceof ReferenceBinary
+            ? ((ReferenceBinary) binary).getReference()
+            : null;
+
+        assumeTrue(reference != null);
+        Session session = createAdminSession();
+        try {
+            valueFactory = session.getValueFactory();
+            assertEquals(binary, valueFactory.createValue(
+                    new SimpleReferenceBinary(reference)).getBinary());
+        } finally {
+            session.logout();
+        }
     }
 
     //------------------------------------------------------------< private >---

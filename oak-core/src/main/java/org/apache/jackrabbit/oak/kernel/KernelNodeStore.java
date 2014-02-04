@@ -37,6 +37,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -199,6 +200,16 @@ public class KernelNodeStore implements NodeStore, Observable {
             return new KernelBlob(blobId, kernel);
         } catch (MicroKernelException e) {
             throw new IOException(e);
+        }
+    }
+
+    @Override
+    public Blob getBlob(@Nonnull String reference) {
+        try {
+            kernel.getLength(reference);  // throws if reference doesn't resolve
+            return new KernelBlob(reference, kernel);
+        } catch (MicroKernelException e) {
+            return null;
         }
     }
 

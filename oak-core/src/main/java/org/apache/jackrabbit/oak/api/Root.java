@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.api;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -172,6 +173,15 @@ public interface Root {
      */
     @Nonnull
     Blob createBlob(@Nonnull InputStream stream) throws IOException;
+
+    /**
+     * Get a blob by its reference.
+     * @param reference  reference to the blob
+     * @return  blob or {@code null} if the reference does not resolve to a blob.
+     * @see Blob#getReference()
+     */
+    @CheckForNull
+    Blob getBlob(@Nonnull String reference);
 
     /**
      * Get the {@code ContentSession} from which this root was acquired

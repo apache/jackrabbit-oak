@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.io.ByteStreams;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -148,6 +149,11 @@ public class MemoryNodeStore implements NodeStore {
         finally {
             inputStream.close();
         }
+    }
+
+    @Override
+    public Blob getBlob(@Nonnull String reference) {
+        return null;
     }
 
     @Override @Nonnull

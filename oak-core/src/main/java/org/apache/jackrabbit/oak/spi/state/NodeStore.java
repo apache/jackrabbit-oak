@@ -93,7 +93,17 @@ public interface NodeStore {
      * @return  The {@code Blob} representing {@code inputStream}
      * @throws IOException  If an error occurs while reading from the stream
      */
+    @Nonnull
     Blob createBlob(InputStream inputStream) throws IOException;
+
+    /**
+     * Get a blob by its reference.
+     * @param reference  reference to the blob
+     * @return  blob or {@code null} if the reference does not resolve to a blob.
+     * @see Blob#getReference()
+     */
+    @CheckForNull
+    Blob getBlob(@Nonnull String reference);
 
     /**
      * Creates a new checkpoint of the latest root of the tree. The checkpoint
