@@ -65,6 +65,11 @@ public class KernelBlob extends AbstractBlob {
         return kernel.getLength(binaryID);
     }
 
+    @Override
+    public String getReference() {
+        return binaryID;
+    }
+
     /**
      * This implementation delegates back to the underlying {@code Microkernel}
      * if other is also of type {@code KernelBlob}.
