@@ -151,7 +151,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         if (tree.isRoot()) {
             return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_DEFAULT, TreePermission.EMPTY);
         }
-        int type = tree.getType();
+        int type = PermissionUtil.getType(tree, null);
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
                 // TODO: OAK-753 decide on where to filter out hidden items.
@@ -323,7 +323,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     }
 
     @Nonnull PrivilegeBits internalGetPrivileges(@Nullable ImmutableTree tree) {
-        int type = (tree == null) ? TreeTypeProvider.TYPE_DEFAULT : tree.getType();
+        int type = (tree == null) ? TreeTypeProvider.TYPE_DEFAULT : PermissionUtil.getType(tree, null);
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
                 return PrivilegeBits.EMPTY;

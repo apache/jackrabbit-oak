@@ -122,16 +122,6 @@ public final class ImmutableTree extends AbstractTree {
         this.typeProvider = typeProvider;
     }
 
-    public static ImmutableTree createFromRoot(@Nonnull Root root, @Nonnull TreeTypeProvider typeProvider) {
-        if (root instanceof AbstractRoot) {
-            return new ImmutableTree(((AbstractRoot) root).getBaseState(), typeProvider);
-        } else if (root instanceof ImmutableRoot) {
-            return ((ImmutableRoot) root).getTree("/");
-        } else {
-            throw new IllegalArgumentException("Unsupported Root implementation: " + root.getClass());
-        }
-    }
-
     @Override
     protected ImmutableTree createChild(String name) {
         return new ImmutableTree(this, name, state.getChildNode(name));

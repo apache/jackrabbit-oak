@@ -50,7 +50,13 @@ public final class ImmutableRoot implements Root {
     }
 
     public ImmutableRoot(@Nonnull Root root, @Nonnull TreeTypeProvider typeProvider) {
-        this(ImmutableTree.createFromRoot(root, typeProvider));
+        if (root instanceof AbstractRoot) {
+            rootTree = new ImmutableTree(((AbstractRoot) root).getBaseState(), typeProvider);
+        } else if (root instanceof ImmutableRoot) {
+            rootTree = ((ImmutableRoot) root).getTree("/");
+        } else {
+            throw new IllegalArgumentException("Unsupported Root implementation: " + root.getClass());
+        }
     }
 
     public ImmutableRoot(@Nonnull ImmutableTree rootTree) {
