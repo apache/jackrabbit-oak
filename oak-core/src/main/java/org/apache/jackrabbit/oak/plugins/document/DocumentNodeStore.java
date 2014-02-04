@@ -1323,7 +1323,7 @@ public final class DocumentNodeStore
     }
 
     void backgroundWrite() {
-        if (unsavedLastRevisions.getPaths().size() == 0) {
+        if (unsavedLastRevisions.getPaths().isEmpty()) {
             return;
         }
         ArrayList<String> paths = new ArrayList<String>(unsavedLastRevisions.getPaths());
@@ -1333,10 +1333,11 @@ public final class DocumentNodeStore
         UpdateOp updateOp = null;
         Revision lastRev = null;
         List<String> ids = new ArrayList<String>();
-        for (int i = 0; i < paths.size(); i++) {
+        for (int i = 0; i < paths.size(); ) {
             String p = paths.get(i);
             Revision r = unsavedLastRevisions.get(p);
             if (r == null) {
+                i++;
                 continue;
             }
             int size = ids.size();
@@ -1347,16 +1348,18 @@ public final class DocumentNodeStore
                 updateOp = commit.getUpdateOperationForNode(p);
                 lastRev = r;
                 ids.add(Utils.getIdFromPath(p));
+                i++;
             } else if (r.equals(lastRev)) {
                 // use multi update when possible
                 ids.add(Utils.getIdFromPath(p));
+                i++;
             }
             // call update if any of the following is true:
             // - this is the second-to-last or last path (update last path, the
             //   root document, individually)
             // - revision is not equal to last revision (size of ids didn't change)
             // - the update limit is reached
-            if (i + 2 >= paths.size()
+            if (i + 2 > paths.size()
                     || size == ids.size()
                     || ids.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
                 store.update(Collection.NODES, ids, updateOp);
