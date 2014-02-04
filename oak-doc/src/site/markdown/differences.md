@@ -177,6 +177,22 @@ bytes in the stream, or that the return value is zero only at the end of the
 stream. Neither assumption is correctly based on the `InputStream` API
 contract, so such client code needs to be fixed to avoid problems with Oak.
 
+Locking
+-------
+
+Oak does not support the strict locking semantics of Jackrabbit 2.x. Instead
+a "fuzzy locking" approach is used with lock information stored as normal
+content changes. If a `mix:lockable` node is marked as holding a lock, then
+the code treats it as locked, regardless of what other concurrent sessions
+that might see different versions of the node see or do. Similarly a lock token
+is simply the path of the locked node.
+
+This fuzzy locking should not be used or relied as a tool for synchronizing
+the actions of two clients that are expected to access the repository within
+a few seconds of each other. Instead this feature is mostly useful as a higher
+level tool, for example a human author could use a lock to mark a document as
+locked for a few hours or days during which other users will not be able to
+modify the document.
 
 Same name siblings
 ------------------
