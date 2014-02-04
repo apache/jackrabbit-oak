@@ -17,14 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -93,6 +98,9 @@ public class DocumentNodeStoreTest {
         root = store1.getRoot();
         // now node2 is visible
         assertTrue(root.hasChildNode("node2"));
+
+        store1.dispose();
+        store2.dispose();
     }
 
     @Test
@@ -114,5 +122,44 @@ public class DocumentNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, null);
         int numEntries = Iterables.size(store.getRoot().getChildNodeEntries());
         assertEquals(max - 1, numEntries);
+        store.dispose();
+    }
+
+    @Test
+    public void childNodeEntries() throws Exception {
+        final AtomicInteger counter = new AtomicInteger();
+        DocumentStore docStore = new MemoryDocumentStore() {
+            @Nonnull
+            @Override
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      int limit) {
+                counter.incrementAndGet();
+                return super.query(collection, fromKey, toKey, limit);
+            }
+        };
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setDocumentStore(docStore).getNodeStore();
+        NodeBuilder root = store.getRoot().builder();
+        for (int i = 0; i < 10; i++) {
+            root.child("node-" + i);
+        }
+        store.merge(root, EmptyHook.INSTANCE, null);
+        counter.set(0);
+        // the following should just make one call to DocumentStore.query()
+        for (ChildNodeEntry e : store.getRoot().getChildNodeEntries()) {
+            e.getNodeState();
+        }
+        assertEquals(1, counter.get());
+
+        counter.set(0);
+        // now the child node entries are cached and no call should happen
+        for (ChildNodeEntry e : store.getRoot().getChildNodeEntries()) {
+            e.getNodeState();
+        }
+        assertEquals(0, counter.get());
+
+        store.dispose();
     }
 }
