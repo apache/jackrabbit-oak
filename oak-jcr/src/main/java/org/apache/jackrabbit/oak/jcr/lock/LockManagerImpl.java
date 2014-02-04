@@ -68,7 +68,7 @@ public class LockManagerImpl implements LockManager {
                 @Override
                 protected String perform(NodeDelegate node)
                         throws LockException {
-                    if (node.holdsLock(false)) {
+                    if (node.holdsLock(false)) { // TODO: check ownership?
                         String token = node.getPath();
                         sessionContext.getOpenScopedLocks().add(token);
                         return null;

@@ -92,9 +92,24 @@ public final class LockImpl implements Lock {
                 String token = node.getPath();
                 if (context.getOpenScopedLocks().contains(token)) {
                     return token;
-                } else {
+                } else if (context.getSessionScopedLocks().contains(token)) {
+                    // Prevent session-scoped locks from exposing their
+                    // tokens to the session that holds the lock. However,
+                    // another session of the lock owner will be able to
+                    // acquire the lock token and thus release the lock.
                     return null;
                 }
+
+                String owner =
+                        context.getSessionDelegate().getAuthInfo().getUserID();
+                if (owner == null) {
+                    owner = "";
+                }
+                if (owner.equals(node.getLockOwner())) {
+                    return token;
+                }
+
+                return null;
             }
         });
     }
