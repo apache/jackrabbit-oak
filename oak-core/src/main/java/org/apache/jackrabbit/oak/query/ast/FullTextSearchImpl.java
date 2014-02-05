@@ -161,7 +161,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         // to avoid running out of memory if the node is large,
         // and because we might not implement all features
         // such as index aggregation
-        if (selector.index instanceof FulltextQueryIndex) {
+        if (selector.getIndex() instanceof FulltextQueryIndex) {
             // first verify if a property level condition exists and if that
             // condition checks out, this takes out some extra rows from the index
             // aggregation bits

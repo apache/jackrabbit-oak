@@ -25,6 +25,9 @@
 
 # property names with missing @
 
+xpath2sql /jcr:root/testroot//b/c/d/*[@jcr:uuid='1' or @jcr:uuid='2']
+select d.[jcr:path] as [jcr:path], d.[jcr:score] as [jcr:score], d.* from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) inner join [nt:base] as c on ischildnode(c, b) inner join [nt:base] as d on ischildnode(d, c) where name(a) = 'b' and isdescendantnode(a, '/testroot') and name(b) = 'c' and name(c) = 'd' and (d.[jcr:uuid] = '1' or d.[jcr:uuid] = '2') /* xpath: /jcr:root/testroot//b/c/d/*[@jcr:uuid='1' or @jcr:uuid='2'] */
+
 xpath2sql /jcr:root/test/*[@a='1' and b='2' and jcr:contains(c, '3') and jcr:contains(., '4') and jcr:contains(@d, '5')] order by e
 select [jcr:path], [jcr:score], * from [nt:base] as a where [a] = '1' and [b] = '2' and contains([c/*], '3') and contains(*, '4') and contains([d], '5') and ischildnode(a, '/test') order by [e] /* xpath: /jcr:root/test/*[@a='1' and b='2' and jcr:contains(c, '3') and jcr:contains(., '4') and jcr:contains(@d, '5')] order by e */
 

@@ -119,9 +119,14 @@ public class JoinImpl extends SourceImpl {
     }
 
     @Override
-    public void prepare() {
-        left.prepare();
-        right.prepare();
+    public double prepare() {
+        // the estimated cost is the cost of the left selector,
+        // plus twice the cost of the right selector (we expect
+        // two rows for the right selector for each node 
+        // on the left selector)
+        double cost = left.prepare();
+        cost += 2 * right.prepare();
+        return cost;
     }
 
     @Override

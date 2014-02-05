@@ -73,6 +73,8 @@ public interface Query {
      * @return the query plan
      */
     String getPlan();
+    
+    double getEstimatedCost();
 
     Tree getTree(String path);
 

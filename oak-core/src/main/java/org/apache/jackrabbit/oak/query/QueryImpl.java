@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.query.ast.SameNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -111,6 +112,8 @@ public class QueryImpl implements Query {
     private ExecutionContext context;
 
     private final NamePathMapper namePathMapper;
+    
+    private double estimatedCost;
 
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
             ColumnImpl[] columns, NamePathMapper mapper) {
@@ -421,7 +424,12 @@ public class QueryImpl implements Query {
     
     @Override
     public String getPlan() {
-        return source.getPlan(context.getBaseState());
+        return source.getPlan(context.getBaseState()); //  + " cost: " + estimatedCost;
+    }
+    
+    @Override
+    public double getEstimatedCost() {
+        return estimatedCost;
     }
 
     @Override
@@ -430,7 +438,7 @@ public class QueryImpl implements Query {
             return;
         }
         prepared = true;
-        source.prepare();
+        estimatedCost = source.prepare();
     }
  
     /**
@@ -593,12 +601,13 @@ public class QueryImpl implements Query {
         this.traversalFallback = traversal;
     }
 
-    public QueryIndex getBestIndex(Filter filter) {
-        return getBestIndex(context.getBaseState(), filter,
+    public SelectorExecutionPlan getBestSelectorExecutionPlan(FilterImpl filter) {
+        return getBestSelectorExecutionPlan(context.getBaseState(), filter,
                 context.getIndexProvider(), traversalFallback);
     }
 
-    private static QueryIndex getBestIndex(NodeState rootState, Filter filter,
+    private static SelectorExecutionPlan getBestSelectorExecutionPlan(
+            NodeState rootState, FilterImpl filter,
             QueryIndexProvider indexProvider, boolean traversalFallback) {
         QueryIndex best = null;
         if (LOG.isDebugEnabled()) {
@@ -619,8 +628,14 @@ public class QueryImpl implements Query {
 
         if (bestCost == Double.POSITIVE_INFINITY && traversalFallback) {
             best = new TraversingIndex();
+            bestCost = best.getCost(filter, rootState);
         }
-        return best;
+        SelectorExecutionPlan plan = new SelectorExecutionPlan();
+        plan.filter = filter;
+        plan.estimatedCost = bestCost;
+        plan.index = best;
+        plan.selector = filter.getSelector();
+        return plan;
     }
 
     @Override

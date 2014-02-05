@@ -43,11 +43,11 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
-import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -62,7 +62,7 @@ import com.google.common.collect.Iterables;
 public class SelectorImpl extends SourceImpl {
 
     // TODO possibly support using multiple indexes (using index intersection / index merge)
-    protected QueryIndex index;
+    protected SelectorExecutionPlan plan;
 
     /**
      * the node type associated with the {@link #nodeTypeName}
@@ -185,11 +185,11 @@ public class SelectorImpl extends SourceImpl {
     }
 
     public boolean isPrepared() {
-        return index != null;
+        return plan != null;
     }
 
     @Override
-    public void prepare() {
+    public double prepare() {
         if (queryConstraint != null) {
             queryConstraint.restrictPushDown(this);
         }
@@ -198,13 +198,14 @@ public class SelectorImpl extends SourceImpl {
                 c.restrictPushDown(this);
             }
         }
-        index = query.getBestIndex(createFilter(true));
+        plan = query.getBestSelectorExecutionPlan(createFilter(true));
+        return plan.estimatedCost;
     }
 
     @Override
     public void execute(NodeState rootState) {
-        if (index != null) {
-            cursor = index.query(createFilter(false), rootState);
+        if (plan.index != null) {
+            cursor = plan.index.query(createFilter(false), rootState);
         } else {
             cursor = Cursors.newPathCursor(new ArrayList<String>());
         }
@@ -215,8 +216,8 @@ public class SelectorImpl extends SourceImpl {
         StringBuilder buff = new StringBuilder();
         buff.append(toString());
         buff.append(" /* ");
-        if (index != null) {
-            buff.append(index.getPlan(createFilter(true), rootState));
+        if (getIndex() != null) {
+            buff.append(getIndex().getPlan(createFilter(true), rootState));
         } else {
             buff.append("no-index");
         }
@@ -234,7 +235,7 @@ public class SelectorImpl extends SourceImpl {
      * @return the filter
      */
     @Override
-    public Filter createFilter(boolean preparing) {
+    public FilterImpl createFilter(boolean preparing) {
         FilterImpl f = new FilterImpl(this, query.getStatement());
         f.setPreparing(preparing);
         if (joinCondition != null) {
@@ -561,6 +562,10 @@ public class SelectorImpl extends SourceImpl {
         if (joinCondition.isParent(this)) {
             isParent = true;
         }
+    }
+
+    QueryIndex getIndex() {
+        return plan == null ? null : plan.index;
     }
 
 }
