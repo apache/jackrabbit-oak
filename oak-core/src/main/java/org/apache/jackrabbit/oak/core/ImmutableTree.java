@@ -21,7 +21,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -61,23 +60,6 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()}</li>
  * </ul>
  *
- * <h3>TreeTypeProvider</h3>
- * For optimization purpose an Immutable tree will be associated with a
- * {@code TreeTypeProvider} that allows for fast detection of the following types
- * of Trees:
- *
- * <ul>
- *     <li>{@link TreeTypeProvider#TYPE_HIDDEN}: a hidden tree whose name starts with ":".
- *     Please note that the whole subtree of a hidden node is considered hidden.</li>
- *     <li>{@link TreeTypeProvider#TYPE_AC}: A tree that stores access control content
- *     and requires special access {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#READ_ACCESS_CONTROL permissions}.</li>
- *     <li>{@link TreeTypeProvider#TYPE_VERSION}: if a given tree is located within
- *     any of the version related stores defined by JSR 283. Depending on the
- *     permission evaluation implementation those items require special treatment.</li>
- *     <li>{@link TreeTypeProvider#TYPE_DEFAULT}: the default type for trees that don't
- *     match any of the upper types.</li>
- * </ul>
- *
  * <h3>Equality and hash code</h3>
  * In contrast to {@link MutableTree} the {@code ImmutableTree} implements
  * {@link Object#equals(Object)} and {@link Object#hashCode()}: Two {@code ImmutableTree}s
@@ -93,33 +75,21 @@ public final class ImmutableTree extends AbstractTree {
     private final NodeState state;
 
     private final ParentProvider parentProvider;
-    private final TreeTypeProvider typeProvider;
 
     private String path;
-    private int type = TreeTypeProvider.TYPE_NONE;
 
     public ImmutableTree(@Nonnull NodeState rootState) {
-        this(ParentProvider.ROOT_PROVIDER, "", rootState, TreeTypeProvider.EMPTY);
-    }
-
-    public ImmutableTree(@Nonnull NodeState rootState, @Nonnull TreeTypeProvider typeProvider) {
-        this(ParentProvider.ROOT_PROVIDER, "", rootState, typeProvider);
+        this(ParentProvider.ROOT_PROVIDER, "", rootState);
     }
 
     public ImmutableTree(@Nonnull ImmutableTree parent, @Nonnull String name, @Nonnull NodeState state) {
-        this(new DefaultParentProvider(parent), name, state, parent.typeProvider);
+        this(new DefaultParentProvider(parent), name, state);
     }
 
     public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name, @Nonnull NodeState state) {
-        this(parentProvider, name, state, TreeTypeProvider.EMPTY);
-    }
-
-    public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name,
-                         @Nonnull NodeState state, @Nonnull TreeTypeProvider typeProvider) {
         super(name, new ReadOnlyBuilder(state));
         this.state = state;
         this.parentProvider = parentProvider;
-        this.typeProvider = typeProvider;
     }
 
     @Override
@@ -238,15 +208,6 @@ public final class ImmutableTree extends AbstractTree {
     @Override
     public String toString() {
         return "ImmutableTree '" + getName() + "':" + state.toString();
-    }
-
-    //--------------------------------------------------------------------------
-
-    public int getType() {
-        if (type == TreeTypeProvider.TYPE_NONE) {
-            type = typeProvider.getType(this);
-        }
-        return type;
     }
 
     //--------------------------------------------------------------------------

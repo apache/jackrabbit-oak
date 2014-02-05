@@ -382,7 +382,7 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
                 || rootPermission != rootBuilder.treePermission) {
             NodeState base = builder.getBaseState();
             if (parent == null) {
-                ImmutableTree baseTree = new ImmutableTree(base, new TreeTypeProviderImpl(acContext));
+                ImmutableTree baseTree = new ImmutableTree(base);
                 treePermission = permissionProvider.get().getTreePermission(baseTree, TreePermission.EMPTY);
                 rootPermission = treePermission;
             } else {
