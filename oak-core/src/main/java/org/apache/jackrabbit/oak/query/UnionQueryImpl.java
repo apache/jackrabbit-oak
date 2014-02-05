@@ -106,6 +106,11 @@ public class UnionQueryImpl implements Query {
         left.prepare();
         right.prepare();
     }
+    
+    @Override
+    public double getEstimatedCost() {
+        return left.getEstimatedCost() + right.getEstimatedCost();
+    }
 
     @Override
     public List<String> getBindVariableNames() {

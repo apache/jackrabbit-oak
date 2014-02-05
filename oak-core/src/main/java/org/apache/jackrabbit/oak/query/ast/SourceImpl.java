@@ -151,9 +151,11 @@ public abstract class SourceImpl extends AstElement {
     /**
      * Prepare executing the query (recursively). This method will decide which
      * index to use.
+     * 
+     * @return the estimated cost
      */
-    public abstract void prepare();
-
+    public abstract double prepare();
+    
     /**
      * Execute the query. The current node is set to before the first row.
      *
