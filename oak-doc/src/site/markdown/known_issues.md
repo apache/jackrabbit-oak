@@ -56,10 +56,5 @@ Changes with respect to Jackrabbit-core are collected in [OAK-14]
           See [OAK-920](https://issues.apache.org/jira/browse/OAK-920)
 
 
-* Access Control Management and Permissions:
-    * Move operations are not properly handled wrt. permissions
-      See [OAK-710](https://issues.apache.org/jira/browse/OAK-710)
-
-
 In some cases Oak throws Runtime exceptions instead of a properly typed exception. We are working
 on correcting this. Please do not work around this by adapting catch clauses in your application.
