@@ -38,6 +38,10 @@ public class TraversingIndex implements QueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState rootState) {
+        if (filter.getFullTextConstraint() != null) {
+            // not an appropriate index for full-text search
+            return Double.POSITIVE_INFINITY;
+        }
         if (filter.isAlwaysFalse()) {
             return 0;
         }

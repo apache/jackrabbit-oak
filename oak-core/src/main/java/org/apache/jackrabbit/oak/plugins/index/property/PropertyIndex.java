@@ -122,7 +122,6 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
-        // TODO don't call getCost for such queries
         if (filter.getFullTextConstraint() != null) {
             // not an appropriate index for full-text search
             return Double.POSITIVE_INFINITY;

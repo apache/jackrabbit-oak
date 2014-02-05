@@ -99,7 +99,7 @@ public class QueryImpl implements Query {
      * is available. This is enabled by default and can be disabled for testing
      * purposes.
      */
-    private boolean traversalFallback = true;
+    private boolean traversalEnabled = true;
 
     private OrderingImpl[] orderings;
     private ColumnImpl[] columns;
@@ -424,7 +424,7 @@ public class QueryImpl implements Query {
     
     @Override
     public String getPlan() {
-        return source.getPlan(context.getBaseState()); //  + " cost: " + estimatedCost;
+        return source.getPlan(context.getBaseState());
     }
     
     @Override
@@ -597,18 +597,18 @@ public class QueryImpl implements Query {
     }
 
     @Override
-    public void setTraversalFallback(boolean traversal) {
-        this.traversalFallback = traversal;
+    public void setTraversalEnabled(boolean traversalEnabled) {
+        this.traversalEnabled = traversalEnabled;
     }
 
     public SelectorExecutionPlan getBestSelectorExecutionPlan(FilterImpl filter) {
         return getBestSelectorExecutionPlan(context.getBaseState(), filter,
-                context.getIndexProvider(), traversalFallback);
+                context.getIndexProvider(), traversalEnabled);
     }
 
     private static SelectorExecutionPlan getBestSelectorExecutionPlan(
             NodeState rootState, FilterImpl filter,
-            QueryIndexProvider indexProvider, boolean traversalFallback) {
+            QueryIndexProvider indexProvider, boolean traversalEnabled) {
         QueryIndex best = null;
         if (LOG.isDebugEnabled()) {
             LOG.debug("cost using filter " + filter);
@@ -626,9 +626,14 @@ public class QueryImpl implements Query {
             }
         }
 
-        if (bestCost == Double.POSITIVE_INFINITY && traversalFallback) {
-            best = new TraversingIndex();
-            bestCost = best.getCost(filter, rootState);
+
+        if (traversalEnabled) {
+            QueryIndex traversal = new TraversingIndex();
+            double cost = traversal.getCost(filter, rootState);
+            if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
+                bestCost = cost;
+                best = traversal;
+            }
         }
         SelectorExecutionPlan plan = new SelectorExecutionPlan();
         plan.filter = filter;

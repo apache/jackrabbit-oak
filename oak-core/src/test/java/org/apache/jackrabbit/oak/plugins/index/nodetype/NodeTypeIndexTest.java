@@ -85,15 +85,15 @@ public class NodeTypeIndexTest {
         FilterImpl filter;
 
         filter = createFilter(rootState, JcrConstants.NT_FOLDER);
-        assertEquals(2.0, index.getCost(filter, rootState), 0.0);
+        assertEquals(6.0, index.getCost(filter, rootState), 0.0);
         checkCursor(index.query(filter, rootState), "/folder-1", "/folder-2");
 
         filter = createFilter(rootState, JcrConstants.NT_FILE);
-        assertEquals(1.0, index.getCost(filter, rootState), 0.0);
+        assertEquals(5.0, index.getCost(filter, rootState), 0.0);
         checkCursor(index.query(filter, rootState), "/file-1");
 
         filter = createFilter(rootState, JcrConstants.NT_HIERARCHYNODE);
-        assertEquals(3.0, index.getCost(filter, rootState), 0.0);
+        assertEquals(7.0, index.getCost(filter, rootState), 0.0);
         checkCursor(index.query(filter, rootState), "/folder-1", "/folder-2", "/file-1");
     }
 

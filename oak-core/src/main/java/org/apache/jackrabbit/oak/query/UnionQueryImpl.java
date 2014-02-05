@@ -96,9 +96,9 @@ public class UnionQueryImpl implements Query {
     }
 
     @Override
-    public void setTraversalFallback(boolean traversal) {
-        left.setTraversalFallback(traversal);
-        right.setTraversalFallback(traversal);
+    public void setTraversalEnabled(boolean traversal) {
+        left.setTraversalEnabled(traversal);
+        right.setTraversalEnabled(traversal);
     }
 
     @Override

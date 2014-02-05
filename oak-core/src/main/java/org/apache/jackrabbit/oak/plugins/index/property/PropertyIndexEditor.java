@@ -113,7 +113,8 @@ class PropertyIndexEditor implements IndexEditor {
 
         // get property names
         PropertyState names = definition.getProperty(PROPERTY_NAMES);
-        if (names.count() == 1) { // OAK-1273: optimize for the common case
+        if (names.count() == 1) { 
+            // OAK-1273: optimize for the common case
             this.propertyNames = singleton(names.getValue(NAME, 0));
         } else {
             this.propertyNames = newHashSet(names.getValue(NAMES));
@@ -198,7 +199,9 @@ class PropertyIndexEditor implements IndexEditor {
 
     @Override
     public void enter(NodeState before, NodeState after) {
-        typeChanged = (typePredicate == null); // disables property name checks
+        // disables property name checks
+        typeChanged = typePredicate == null; 
+        
         beforeKeys = null;
         afterKeys = null;
     }
@@ -271,7 +274,7 @@ class PropertyIndexEditor implements IndexEditor {
         }
     }
 
-    private boolean isTypeProperty(String name) {
+    private static boolean isTypeProperty(String name) {
         return JCR_PRIMARYTYPE.equals(name) || JCR_MIXINTYPES.equals(name);
     }
 

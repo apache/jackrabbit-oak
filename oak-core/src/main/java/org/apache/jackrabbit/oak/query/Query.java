@@ -39,7 +39,7 @@ public interface Query {
 
     void bindValue(String key, PropertyValue value);
 
-    void setTraversalFallback(boolean traversal);
+    void setTraversalEnabled(boolean traversalEnabled);
 
     void prepare();
 

@@ -74,7 +74,7 @@ public class MultipleIndicesTest extends AbstractQueryTest {
         content.addChild("z").setProperty("pid", "bar");
         root.commit();
 
-        setTravesalFallback(false);
+        setTravesalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [cid] = 'foo'",
                 new ArrayList<String>());
 
@@ -86,7 +86,7 @@ public class MultipleIndicesTest extends AbstractQueryTest {
 
         assertQuery("select [jcr:path] from [nt:base] where [pid] = 'baz'",
                 ImmutableList.of("/content/y"));
-        setTravesalFallback(true);
+        setTravesalEnabled(true);
     }
 
     /**
@@ -106,7 +106,7 @@ public class MultipleIndicesTest extends AbstractQueryTest {
         t.addChild("node-3").setProperty("pid", ":");
         root.commit();
 
-        setTravesalFallback(false);
+        setTravesalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [pid] = 'value'",
                 ImmutableList.of("/node-1"));
         assertQuery("select [jcr:path] from [nt:base] where [pid] = ''",
@@ -114,6 +114,6 @@ public class MultipleIndicesTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where [pid] = ':'",
                 ImmutableList.of("/node-3"));
         
-        setTravesalFallback(true);
+        setTravesalEnabled(true);
     }
 }
