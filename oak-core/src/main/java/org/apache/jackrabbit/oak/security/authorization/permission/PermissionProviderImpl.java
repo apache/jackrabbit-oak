@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -63,7 +62,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         this.workspaceName = workspaceName;
         this.acConfig = acConfig;
 
-        immutableRoot = getImmutableRoot(root, acConfig);
+        immutableRoot = getImmutableRoot(root);
 
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
@@ -74,7 +73,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public void refresh() {
-        immutableRoot = getImmutableRoot(root, acConfig);
+        immutableRoot = getImmutableRoot(root);
         compiledPermissions.refresh(immutableRoot, workspaceName);
     }
 
@@ -141,7 +140,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         }
     }
 
-    private static ImmutableRoot getImmutableRoot(@Nonnull Root base, @Nonnull SecurityConfiguration acConfig) {
+    private static ImmutableRoot getImmutableRoot(@Nonnull Root base) {
         if (base instanceof ImmutableRoot) {
             return (ImmutableRoot) base;
         } else {
