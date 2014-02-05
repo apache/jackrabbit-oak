@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.util;
+package org.apache.jackrabbit.oak.plugins.tree;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -27,7 +27,7 @@ import static com.google.common.collect.Sets.newLinkedHashSet;
 
 /**
  * Helper class to handle modifications to the hidden
- * {@link org.apache.jackrabbit.oak.core.AbstractTree#OAK_CHILD_ORDER} property.
+ * {@link org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER} property.
  */
 public final class ChildOrderDiff {
 
@@ -35,7 +35,7 @@ public final class ChildOrderDiff {
 
     /**
      * Tests if there was any user-supplied reordering involved with the
-     * modification of the {@link org.apache.jackrabbit.oak.core.AbstractTree#OAK_CHILD_ORDER}
+     * modification of the {@link org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER}
      * property.
      *
      * @param before

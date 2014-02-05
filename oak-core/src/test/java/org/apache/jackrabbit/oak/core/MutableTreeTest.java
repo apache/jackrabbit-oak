@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -383,20 +384,20 @@ public class MutableTreeTest extends OakBaseTest {
     public void testSetOrderableChildrenSetsProperty() throws Exception {
         Tree tree = root.getTree("/").addChild("test");
         tree.setOrderableChildren(true);
-        assertTrue(((MutableTree) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertTrue(((MutableTree) tree).getNodeState().hasProperty(TreeConstants.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(false);
-        assertFalse(((MutableTree) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertFalse(((MutableTree) tree).getNodeState().hasProperty(TreeConstants.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(true);
         root.commit();
 
-        assertTrue(((MutableTree) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertTrue(((MutableTree) tree).getNodeState().hasProperty(TreeConstants.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(false);
         root.commit();
 
-        assertFalse(((MutableTree) tree).getNodeState().hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertFalse(((MutableTree) tree).getNodeState().hasProperty(TreeConstants.OAK_CHILD_ORDER));
     }
 
     @Test

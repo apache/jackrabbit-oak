@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
 import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
+import org.apache.jackrabbit.oak.plugins.tree.AbstractTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.PropertyBuilder;
 
@@ -174,7 +176,7 @@ class MutableTree extends AbstractTree {
             if (parent.hasOrderableChildren()) {
                 // FIXME (OAK-842) child order not updated when parent is not accessible
                 parent.nodeBuilder.setProperty(
-                        PropertyBuilder.copy(NAME, parent.nodeBuilder.getProperty(OAK_CHILD_ORDER))
+                        PropertyBuilder.copy(NAME, parent.nodeBuilder.getProperty(TreeConstants.OAK_CHILD_ORDER))
                                 .removeValue(name)
                                 .getPropertyState()
                 );
@@ -193,7 +195,7 @@ class MutableTree extends AbstractTree {
             nodeBuilder.setChildNode(name);
             if (hasOrderableChildren()) {
                 nodeBuilder.setProperty(
-                        PropertyBuilder.copy(NAME, nodeBuilder.getProperty(OAK_CHILD_ORDER))
+                        PropertyBuilder.copy(NAME, nodeBuilder.getProperty(TreeConstants.OAK_CHILD_ORDER))
                                 .addValue(name)
                                 .getPropertyState());
             }
@@ -208,7 +210,7 @@ class MutableTree extends AbstractTree {
         if (enable) {
             ensureChildOrderProperty();
         } else {
-            nodeBuilder.removeProperty(OAK_CHILD_ORDER);
+            nodeBuilder.removeProperty(TreeConstants.OAK_CHILD_ORDER);
         }
     }
 
@@ -255,7 +257,7 @@ class MutableTree extends AbstractTree {
         // concatenate head, this name and tail
         parent.nodeBuilder.setProperty(
                 MultiGenericPropertyState.nameProperty(
-                        OAK_CHILD_ORDER, Iterables.concat(head, Collections.singleton(getName()), tail))
+                        TreeConstants.OAK_CHILD_ORDER, Iterables.concat(head, Collections.singleton(getName()), tail))
         );
         root.updated();
         return true;
@@ -347,7 +349,7 @@ class MutableTree extends AbstractTree {
 
     /**
      * Update the child order with children that have been removed or added.
-     * Added children are appended to the end of the {@link #OAK_CHILD_ORDER}
+     * Added children are appended to the end of the {@link org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER}
      * property.
      */
     void updateChildOrder() {
@@ -363,7 +365,7 @@ class MutableTree extends AbstractTree {
         for (String name : nodeBuilder.getChildNodeNames()) {
             names.add(name);
         }
-        PropertyBuilder<String> builder = PropertyBuilder.array(NAME, OAK_CHILD_ORDER);
+        PropertyBuilder<String> builder = PropertyBuilder.array(NAME, TreeConstants.OAK_CHILD_ORDER);
         builder.setValues(names);
         nodeBuilder.setProperty(builder.getPropertyState());
     }
@@ -452,14 +454,14 @@ class MutableTree extends AbstractTree {
     }
 
     /**
-     * Ensures that the {@link #OAK_CHILD_ORDER} exists. This method will create
+     * Ensures that the {@link org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER} exists. This method will create
      * the property if it doesn't exist and initialize the value with the names
      * of the children as returned by {@link NodeBuilder#getChildNodeNames()}.
      */
     private void ensureChildOrderProperty() {
-        if (!nodeBuilder.hasProperty(OAK_CHILD_ORDER)) {
+        if (!nodeBuilder.hasProperty(TreeConstants.OAK_CHILD_ORDER)) {
             nodeBuilder.setProperty(
-                    MultiGenericPropertyState.nameProperty(OAK_CHILD_ORDER, nodeBuilder.getChildNodeNames()));
+                    MultiGenericPropertyState.nameProperty(TreeConstants.OAK_CHILD_ORDER, nodeBuilder.getChildNodeNames()));
         }
     }
 

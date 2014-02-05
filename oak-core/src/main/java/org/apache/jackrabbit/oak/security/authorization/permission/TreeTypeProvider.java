@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;

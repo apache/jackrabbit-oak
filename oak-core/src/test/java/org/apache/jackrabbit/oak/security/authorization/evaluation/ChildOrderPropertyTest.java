@@ -27,12 +27,12 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.AbstractTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Test for the hidden {@link AbstractTree#OAK_CHILD_ORDER} property
+ * Test for the hidden {@link org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER} property
  */
 public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
@@ -49,13 +49,13 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
     @Test
     public void testHasProperty() {
         Tree a = root.getTree("/a");
-        assertFalse(a.hasProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertFalse(a.hasProperty(TreeConstants.OAK_CHILD_ORDER));
     }
 
     @Test
     public void testGetProperty() {
         Tree a = root.getTree("/a");
-        assertNull(a.getProperty(AbstractTree.OAK_CHILD_ORDER));
+        assertNull(a.getProperty(TreeConstants.OAK_CHILD_ORDER));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
     @Test
     public void testGetPropertyStatus() {
         Tree a = root.getTree("/a");
-        assertNull(a.getPropertyStatus(AbstractTree.OAK_CHILD_ORDER));
+        assertNull(a.getPropertyStatus(TreeConstants.OAK_CHILD_ORDER));
     }
 
 }
