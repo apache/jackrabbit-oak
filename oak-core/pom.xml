@@ -85,7 +85,11 @@
               org.apache.jackrabbit.oak.spi.whiteboard,
               org.apache.jackrabbit.oak.spi.xml,
               org.apache.jackrabbit.oak.query.fulltext,
-              org.apache.jackrabbit.oak.security
+              org.apache.jackrabbit.oak.security,
+              <!-- for now also export the jaas login modules so that they can be instantiated via felix LoginModuleFactories -->
+              org.apache.jackrabbit.oak.security.authentication.token,
+              org.apache.jackrabbit.oak.security.authentication.user,
+              org.apache.jackrabbit.oak.security.authentication.ldap
             </Export-Package>
             <Jaas-ModuleClass>
               org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule,
