@@ -60,7 +60,7 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void query() throws Exception {
-        setTravesalFallback(false);
+        setTravesalEnabled(false);
 
         Tree t = root.getTree("/");
         child(t, "a", "nt:unstructured");
@@ -82,6 +82,6 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:folder] ", of("/c", "/d"));
         assertQuery("select [jcr:path] from [mix:language] ", of("/e", "/f"));
 
-        setTravesalFallback(true);
+        setTravesalEnabled(true);
     }
 }

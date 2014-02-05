@@ -264,8 +264,8 @@ public abstract class AbstractQueryTest {
         return paths;
     }
 
-    protected void setTravesalFallback(boolean traversal) {
-        ((QueryEngineImpl) qe).setTraversalFallback(traversal);
+    protected void setTravesalEnabled(boolean traversalEnabled) {
+        ((QueryEngineImpl) qe).setTraversalEnabled(traversalEnabled);
     }
 
     protected static String readRow(ResultRow row, boolean pathOnly) {

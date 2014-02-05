@@ -58,11 +58,10 @@ public abstract class QueryEngineImpl implements QueryEngine {
             JQOM);
 
     /**
-     * Whether fallback to the traversing index is supported if no other index
-     * is available. This is enabled by default and can be disabled for testing
-     * purposes.
+     * Whether node traversal is enabled. This is enabled by default, and can be
+     * disabled for testing purposes.
      */
-    private boolean traversalFallback = true;
+    private boolean traversalEnabled = true;
 
     /**
      * @return Execution context for a single query execution.
@@ -163,13 +162,13 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 q.bindValue(e.getKey(), e.getValue());
             }
         }
-        q.setTraversalFallback(traversalFallback);
+        q.setTraversalEnabled(traversalEnabled);
         q.prepare();
         return q.executeQuery();
     }
 
-    protected void setTraversalFallback(boolean traversal) {
-        this.traversalFallback = traversal;
+    protected void setTraversalEnabled(boolean traversalEnabled) {
+        this.traversalEnabled = traversalEnabled;
     }
 
 }

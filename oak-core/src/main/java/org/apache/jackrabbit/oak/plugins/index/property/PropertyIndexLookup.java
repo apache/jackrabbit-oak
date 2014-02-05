@@ -60,6 +60,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class PropertyIndexLookup {
 
+    /**
+     * The cost overhead to use the index in number of read operations.
+     */
+    private static final int COST_OVERHEAD = 2;
+    
+    /**
+     * The maximum cost when the index can be used.
+     */
     private static final int MAX_COST = 100;
 
     /** Index storage strategy */
@@ -122,7 +130,8 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
-        return getStrategy(indexMeta).count(indexMeta, encode(value), MAX_COST);
+        return COST_OVERHEAD + 
+                getStrategy(indexMeta).count(indexMeta, encode(value), MAX_COST);
     }
 
     /**
