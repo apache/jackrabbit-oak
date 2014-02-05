@@ -21,7 +21,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.AbstractTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -236,7 +236,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
 
     private static void addChild(NodeBuilder target, String name, NodeState state) {
         target.setChildNode(name, state);
-        PropertyState childOrder = target.getProperty(AbstractTree.OAK_CHILD_ORDER);
+        PropertyState childOrder = target.getProperty(TreeConstants.OAK_CHILD_ORDER);
         if (childOrder != null) {
             PropertyBuilder<String> builder = PropertyBuilder.copy(NAME, childOrder);
             builder.addValue(name);
@@ -246,7 +246,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
 
     private static void removeChild(NodeBuilder target, String name) {
         target.getChildNode(name).remove();
-        PropertyState childOrder = target.getProperty(AbstractTree.OAK_CHILD_ORDER);
+        PropertyState childOrder = target.getProperty(TreeConstants.OAK_CHILD_ORDER);
         if (childOrder != null) {
             PropertyBuilder<String> builder = PropertyBuilder.copy(NAME, childOrder);
             builder.removeValue(name);

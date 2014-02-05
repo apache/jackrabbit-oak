@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;

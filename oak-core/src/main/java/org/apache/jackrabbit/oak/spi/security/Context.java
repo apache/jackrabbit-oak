@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.util.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 
 /**
  * Context... TODO

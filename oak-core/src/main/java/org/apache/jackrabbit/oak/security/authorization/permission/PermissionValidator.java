@@ -24,11 +24,10 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.AbstractTree;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -38,7 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.util.ChildOrderDiff;
+import org.apache.jackrabbit.oak.plugins.tree.ChildOrderDiff;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -107,7 +106,7 @@ class PermissionValidator extends DefaultValidator {
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
         String name = after.getName();
-        if (!AbstractTree.OAK_CHILD_ORDER.equals(name)) {
+        if (!TreeConstants.OAK_CHILD_ORDER.equals(name)) {
             checkPermissions(parentAfter, after, Permissions.ADD_PROPERTY);
         }
     }
@@ -115,7 +114,7 @@ class PermissionValidator extends DefaultValidator {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         String name = after.getName();
-        if (AbstractTree.OAK_CHILD_ORDER.equals(name)) {
+        if (TreeConstants.OAK_CHILD_ORDER.equals(name)) {
             String childName = ChildOrderDiff.firstReordered(before, after);
             if (childName != null) {
                 checkPermissions(parentAfter, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
@@ -130,7 +129,7 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
-        if (!AbstractTree.OAK_CHILD_ORDER.equals(before.getName())) {
+        if (!TreeConstants.OAK_CHILD_ORDER.equals(before.getName())) {
             checkPermissions(parentBefore, before, Permissions.REMOVE_PROPERTY);
         }
     }

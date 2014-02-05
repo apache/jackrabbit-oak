@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.core;
+package org.apache.jackrabbit.oak.plugins.tree;
 
 import java.util.Iterator;
 import javax.annotation.Nonnull;
@@ -49,11 +49,6 @@ import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
  * and hides internal items.
  */
 public abstract class AbstractTree implements Tree {
-
-    /**
-     * Name of the internal property that contains the child order
-     */
-    public static final String OAK_CHILD_ORDER = ":childOrder";
 
     // TODO: make this configurable
     private static final String[] INTERNAL_NODE_NAMES = {
@@ -117,12 +112,12 @@ public abstract class AbstractTree implements Tree {
      *         {@code false} otherwise.
      */
     protected boolean hasOrderableChildren() {
-        return nodeBuilder.hasProperty(OAK_CHILD_ORDER);
+        return nodeBuilder.hasProperty(TreeConstants.OAK_CHILD_ORDER);
     }
 
     /**
      * Returns the list of child names considering its ordering
-     * when the {@link #OAK_CHILD_ORDER} property is set.
+     * when the {@link org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER} property is set.
      *
      * @return the list of child names.
      */
@@ -133,7 +128,7 @@ public abstract class AbstractTree implements Tree {
                 @Override
                 public Iterator<String> iterator() {
                     return new Iterator<String>() {
-                        final PropertyState childOrder = nodeBuilder.getProperty(OAK_CHILD_ORDER);
+                        final PropertyState childOrder = nodeBuilder.getProperty(TreeConstants.OAK_CHILD_ORDER);
                         int index;
 
                         @Override
@@ -158,7 +153,7 @@ public abstract class AbstractTree implements Tree {
         }
     }
 
-    //------------------------------------------------------------< Tree >---
+    //---------------------------------------------------------------< Tree >---
 
     @Override
     public String getName() {

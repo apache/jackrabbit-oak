@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.core;
+package org.apache.jackrabbit.oak.plugins.tree;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  * {@link #getName()} or {@link #getPath()} will just make use of the hierarchy that has been
  * create by that sequence. In order to create a disconnected individual tree in cases where
  * the hierarchy information is not (yet) need or known it is suggested to use
- * {@link #ImmutableTree(org.apache.jackrabbit.oak.core.ImmutableTree.ParentProvider, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
+ * {@link #ImmutableTree(ImmutableTree.ParentProvider, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
  * an specify an appropriate {@code ParentProvider} implementation.
  *
  * <h3>ParentProvider</h3>
@@ -61,7 +61,7 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  * </ul>
  *
  * <h3>Equality and hash code</h3>
- * In contrast to {@link MutableTree} the {@code ImmutableTree} implements
+ * In contrast to {@link org.apache.jackrabbit.oak.core.MutableTree} the {@code ImmutableTree} implements
  * {@link Object#equals(Object)} and {@link Object#hashCode()}: Two {@code ImmutableTree}s
  * are consider equal if their name and the underlying {@code NodeState}s are equal. Note
  * however, that according to the contract defined in {@code NodeState} these

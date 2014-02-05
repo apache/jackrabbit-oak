@@ -34,9 +34,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.AbstractTree;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -180,7 +180,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             throw accessViolation(3, "Invalid policy name " + policyTree.getName());
         }
 
-        if (!policyNode.hasProperty(AbstractTree.OAK_CHILD_ORDER)) {
+        if (!policyNode.hasProperty(TreeConstants.OAK_CHILD_ORDER)) {
             throw accessViolation(4, "Invalid policy node: Order of children is not stable.");
         }
 

@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.CompositeWorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.util.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 
 /**
  * Abstract base implementation for {@link SecurityConfiguration}s that can
