@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -104,7 +103,6 @@ public class ImmutableTreeTest extends OakBaseTest {
         }
         catch (IllegalStateException expected) { }
         assertEquals("", tree.getName());
-        assertEquals(TreeTypeProvider.TYPE_DEFAULT, tree.getType());
     }
 
     @Test
@@ -120,7 +118,7 @@ public class ImmutableTreeTest extends OakBaseTest {
         assertNotNull(child.getParent());
         assertEquals("/", child.getParent().getPath());
 
-        ImmutableTree disconnected = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, child.getName(), child.getNodeState(), TreeTypeProvider.EMPTY);
+        ImmutableTree disconnected = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, child.getName(), child.getNodeState());
         try {
             disconnected.getParent();
         } catch (UnsupportedOperationException e) {

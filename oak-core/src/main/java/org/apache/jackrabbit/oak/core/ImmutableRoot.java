@@ -49,9 +49,9 @@ public final class ImmutableRoot implements Root {
         this(new ImmutableTree(rootState));
     }
 
-    public ImmutableRoot(@Nonnull Root root, @Nonnull TreeTypeProvider typeProvider) {
+    public ImmutableRoot(@Nonnull Root root) {
         if (root instanceof AbstractRoot) {
-            rootTree = new ImmutableTree(((AbstractRoot) root).getBaseState(), typeProvider);
+            rootTree = new ImmutableTree(((AbstractRoot) root).getBaseState());
         } else if (root instanceof ImmutableRoot) {
             rootTree = ((ImmutableRoot) root).getTree("/");
         } else {

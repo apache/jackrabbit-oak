@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -64,7 +63,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     @Test
     public void testGetTreePermission() {
         for (String path : paths) {
-            ImmutableTree tree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTree(path);
+            ImmutableTree tree = new ImmutableRoot(root).getTree(path);
             assertTrue(tree.exists());
 
             assertSame(TreePermission.ALL, all.getTreePermission(tree, TreePermission.EMPTY));
@@ -77,7 +76,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     @Test
     public void testIsGranted() {
         for (String path : paths) {
-            ImmutableTree tree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTree(path);
+            ImmutableTree tree = new ImmutableRoot(root).getTree(path);
             assertTrue(tree.exists());
 
             assertTrue(all.isGranted(tree, null, Permissions.ALL));

@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.AbstractTree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;

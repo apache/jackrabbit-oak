@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -146,7 +145,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         if (base instanceof ImmutableRoot) {
             return (ImmutableRoot) base;
         } else {
-            return new ImmutableRoot(base, new TreeTypeProviderImpl(acConfig.getContext()));
+            return new ImmutableRoot(base);
         }
     }
 

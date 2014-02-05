@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -59,6 +58,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 
 import static com.google.common.collect.Iterators.concat;
+import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.*;
 
 /**
  * TODO: WIP
@@ -86,15 +86,18 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     private PrivilegeBitsProvider bitsProvider;
 
+    private final TreeTypeProvider typeProvider;
+
     private CompiledPermissionImpl(@Nonnull PermissionEntryCache.Local cache,
                                    @Nonnull Set<Principal> principals,
                                    @Nonnull ImmutableRoot root, @Nonnull String workspaceName,
                                    @Nonnull RestrictionProvider restrictionProvider,
-                                   @Nonnull Set<String> readPaths) {
+                                   @Nonnull AuthorizationConfiguration acConfig) {
         this.root = root;
         this.workspaceName = workspaceName;
 
         bitsProvider = new PrivilegeBitsProvider(root);
+        Set<String> readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
         readPolicy = (readPaths.isEmpty()) ? EmptyReadPolicy.INSTANCE : new DefaultReadPolicy(readPaths);
 
         // setup
@@ -111,6 +114,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         userStore = new PermissionEntryProviderImpl(store, cache, userNames);
         groupStore = new PermissionEntryProviderImpl(store, cache, groupNames);
+
+        typeProvider = new TreeTypeProvider(acConfig.getContext());
     }
 
     static CompiledPermissions create(@Nonnull ImmutableRoot root, @Nonnull String workspaceName,
@@ -121,8 +126,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         if (!permissionsTree.exists() || principals.isEmpty()) {
             return NoPermissions.getInstance();
         } else {
-            Set<String> readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
-            return new CompiledPermissionImpl(cache, principals, root, workspaceName, acConfig.getRestrictionProvider(), readPaths);
+            return new CompiledPermissionImpl(cache, principals, root, workspaceName, acConfig.getRestrictionProvider(), acConfig);
         }
     }
 
@@ -149,17 +153,18 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     @Override
     public TreePermission getTreePermission(@Nonnull ImmutableTree tree, @Nonnull TreePermission parentPermission) {
         if (tree.isRoot()) {
-            return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_DEFAULT, TreePermission.EMPTY);
+            return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_DEFAULT, EMPTY);
         }
-        int type = PermissionUtil.getType(tree, null);
+        int parentType = getParentType(parentPermission);
+        int type = typeProvider.getType(tree, parentType);
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
                 // TODO: OAK-753 decide on where to filter out hidden items.
-                return TreePermission.ALL;
+                return ALL;
             case TreeTypeProvider.TYPE_VERSION:
                 String ntName = TreeUtil.getPrimaryTypeName(tree);
                 if (ntName == null) {
-                    return TreePermission.EMPTY;
+                    return EMPTY;
                 }
                 if (VersionConstants.VERSION_STORE_NT_NAMES.contains(ntName) || VersionConstants.NT_ACTIVITY.equals(ntName)) {
                     return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_VERSION, parentPermission);
@@ -167,7 +172,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     ImmutableTree versionableTree = getVersionableTree(tree);
                     if (versionableTree == null) {
                         log.warn("Cannot retrieve versionable node for " + tree.getPath());
-                        return TreePermission.EMPTY;
+                        return EMPTY;
                     } else {
                         // TODO: may return wrong results in case of restrictions
                         // TODO that would match the path of the versionable node
@@ -181,7 +186,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     }
                 }
             case TreeTypeProvider.TYPE_INTERNAL:
-                return TreePermission.EMPTY;
+                return EMPTY;
             default:
                 return new TreePermissionImpl(tree, type, parentPermission);
         }
@@ -196,7 +201,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 trees.add(0, tree);
             }
         }
-        TreePermission pp = TreePermission.EMPTY;
+        TreePermission pp = EMPTY;
         for (ImmutableTree tr : trees) {
             pp = new TreePermissionImpl(tr, type, pp);
         }
@@ -205,7 +210,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     @Override
     public boolean isGranted(@Nonnull ImmutableTree tree, @Nullable PropertyState property, long permissions) {
-        int type = PermissionUtil.getType(tree, property);
+        int type = typeProvider.getType(tree);
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
                 // TODO: OAK-753 decide on where to filter out hidden items.
@@ -322,8 +327,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         return (allows | ~permissions) == -1;
     }
 
-    @Nonnull PrivilegeBits internalGetPrivileges(@Nullable ImmutableTree tree) {
-        int type = (tree == null) ? TreeTypeProvider.TYPE_DEFAULT : PermissionUtil.getType(tree, null);
+    @Nonnull
+    private PrivilegeBits internalGetPrivileges(@Nullable ImmutableTree tree) {
+        int type = (tree == null) ? TreeTypeProvider.TYPE_DEFAULT : typeProvider.getType(tree);
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
                 return PrivilegeBits.EMPTY;
@@ -416,12 +422,22 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         return versionStoreTree;
     }
 
+    private static int getParentType(@Nonnull TreePermission parentPermission) {
+        if (parentPermission instanceof TreePermissionImpl) {
+            return ((TreePermissionImpl) parentPermission).type;
+        } else if (parentPermission == TreePermission.EMPTY) {
+            return TreeTypeProvider.TYPE_DEFAULT;
+        } else {
+            throw new IllegalArgumentException("Illegal TreePermission implementation.");
+        }
+    }
+
     private final class TreePermissionImpl implements TreePermission {
 
         private final ImmutableTree tree;
         private final TreePermissionImpl parent;
 
-        private final boolean isAcTree;
+        private final int type;
         private final boolean readableTree;
 
         private Collection<PermissionEntry> userEntries;
@@ -438,7 +454,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 parent = null;
             }
             readableTree = readPolicy.isReadableTree(tree, parent);
-            isAcTree = (treeType == TreeTypeProvider.TYPE_AC);
+            type = treeType;
         }
 
         //-------------------------------------------------< TreePermission >---
@@ -450,6 +466,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         @Override
         public boolean canRead() {
+            boolean isAcTree = isAcTree();
             if (!isAcTree && readableTree) {
                 return true;
             }
@@ -476,6 +493,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         @Override
         public boolean canRead(@Nonnull PropertyState property) {
+            boolean isAcTree = isAcTree();
             if (!isAcTree && readableTree) {
                 return true;
             }
@@ -534,6 +552,10 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 groupEntries = groupStore.getEntries(tree);
             }
             return groupEntries.iterator();
+        }
+
+        private boolean isAcTree() {
+            return type == TreeTypeProvider.TYPE_AC;
         }
     }
 
