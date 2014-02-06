@@ -21,10 +21,16 @@ package org.apache.jackrabbit.oak.stats;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.jackrabbit.api.jmx.QueryStatManagerMBean;
+import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.stats.QueryStatImpl;
+import org.apache.jackrabbit.stats.RepositoryStatisticsImpl;
 import org.apache.jackrabbit.stats.jmx.QueryStatManager;
 
 /**
@@ -34,6 +40,7 @@ import org.apache.jackrabbit.stats.jmx.QueryStatManager;
  */
 public class StatisticManager {
     private final QueryStatImpl queryStat = new QueryStatImpl();
+    private final RepositoryStatisticsImpl repoStats;
     private final CompositeRegistration registration;
 
     /**
@@ -41,10 +48,13 @@ public class StatisticManager {
      * statistics with the passed {@code whiteboard}.
      * @param whiteboard   whiteboard for registering the individual statistics with
      */
-    public StatisticManager(Whiteboard whiteboard) {
+    public StatisticManager(Whiteboard whiteboard, ScheduledExecutorService executor) {
+        repoStats = new RepositoryStatisticsImpl(executor);
         registration = new CompositeRegistration(
-            registerMBean(whiteboard, QueryStatManagerMBean.class,
-                new QueryStatManager(queryStat), "QueryStats", QueryStatManagerMBean.NAME));
+            registerMBean(whiteboard, QueryStatManagerMBean.class, new QueryStatManager(queryStat),
+                    "QueryStats", "Oak Query Statistics"),
+            registerMBean(whiteboard, RepositoryStatsMBean.class, new RepositoryStats(repoStats),
+                    RepositoryStats.TYPE, "Oak Repository Statistics"));
     }
 
     /**
@@ -56,6 +66,16 @@ public class StatisticManager {
      */
     public void logQueryEvaluationTime(String language, String statement, long millis) {
         queryStat.logQuery(language, statement, millis);
+    }
+
+    /**
+     * Get the counter of the specified {@code type}.
+     * @param type  type of the counter
+     * @return  counter for the given {@code type}
+     * @see org.apache.jackrabbit.stats.RepositoryStatisticsImpl#getCounter(org.apache.jackrabbit.api.stats.RepositoryStatistics.Type)
+     */
+    public AtomicLong getCounter(Type type) {
+        return repoStats.getCounter(type);
     }
 
     /**
