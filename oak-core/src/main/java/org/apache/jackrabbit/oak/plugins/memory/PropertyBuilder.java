@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.util;
+package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -29,21 +29,6 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.DecimalPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiBooleanPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiDecimalPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiDoublePropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiLongPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 
 /**
  * {@code PropertyBuilder} for building in memory {@code PropertyState} instances.

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiLongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.junit.Assert;
 import org.junit.Test;

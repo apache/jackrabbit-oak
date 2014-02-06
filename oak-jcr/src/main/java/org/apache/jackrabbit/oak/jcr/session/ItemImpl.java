@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.apache.jackrabbit.oak.util.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

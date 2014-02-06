@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.ConflictType;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
