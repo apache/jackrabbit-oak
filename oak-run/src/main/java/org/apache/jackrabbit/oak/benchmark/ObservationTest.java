@@ -48,9 +48,9 @@ public class ObservationTest extends Benchmark {
     public static final int EVENT_TYPES = NODE_ADDED | NODE_REMOVED | NODE_MOVED |
             PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     private static final int EVENTS_PER_NODE = 2; // NODE_ADDED and PROPERTY_ADDED
-    private static final int SAVE_INTERVAL = 100;
+    private static final int SAVE_INTERVAL = Integer.getInteger("saveInterval", 100);
     private static final int OUTPUT_RESOLUTION = 100;
-    private static final int LISTENER_COUNT = 100;
+    private static final int LISTENER_COUNT = Integer.getInteger("listenerCount", 100);
 
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
