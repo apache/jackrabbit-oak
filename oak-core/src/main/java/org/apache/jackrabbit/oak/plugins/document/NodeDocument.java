@@ -33,6 +33,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -45,6 +47,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 
@@ -478,7 +482,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
             // first check local map, which contains most recent values
             Value value = getLatestValue(context, getLocalMap(key),
                     min, readRevision, validRevisions);
-            if (value == null) {
+            if (value == null && !getPreviousRanges().isEmpty()) {
                 // check complete revision history
                 value = getLatestValue(context, getValueMap(key),
                         min, readRevision, validRevisions);
@@ -575,7 +579,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
         // check local deleted map first
         Value value = getLatestValue(context, getLocalDeleted(),
                 null, maxRev, validRevisions);
-        if (value == null) {
+        if (value == null && !getPreviousRanges().isEmpty()) {
             // need to check complete map
             value = getLatestValue(context, getDeleted(),
                     null, maxRev, validRevisions);
@@ -761,19 +765,45 @@ public class NodeDocument extends Document implements CachedNodeDocument{
      * Returns previous {@link NodeDocument}, which include entries for the
      * property in the given revision.
      * If the <code>revision</code> is <code>null</code>, then all previous
-     * documents are returned. The returned documents are returned in descending
-     * revision order (newest first).
+     * documents with changes for the given property are returned. The returned
+     * documents are returned in descending revision order (newest first).
      *
      * @param property the name of a property.
      * @param revision the revision to match or <code>null</code>.
      * @return previous documents.
      */
+    @Nonnull
     Iterable<NodeDocument> getPreviousDocs(@Nonnull final String property,
                                            @Nullable final Revision revision) {
         if (getPreviousRanges().isEmpty()) {
             return Collections.emptyList();
         }
-        return new PropertyHistory(store, this, property, revision);
+        if (revision == null) {
+            return new PropertyHistory(store, this, property);
+        } else {
+            return filter(transform(getPreviousRanges().entrySet(),
+                    new Function<Map.Entry<Revision, Range>, NodeDocument>() {
+                @Override
+                public NodeDocument apply(Map.Entry<Revision, Range> input) {
+                    if (input.getValue().includes(revision)) {
+                        Revision r = input.getKey();
+                        String prevId = Utils.getPreviousIdFor(getId(), r);
+                        NodeDocument prev = store.find(Collection.NODES, prevId);
+                        if (prev != null) {
+                            return prev;
+                        } else {
+                            LOG.warn("Document with previous revisions not found: " + prevId);
+                        }
+                    }
+                    return null;
+                }
+            }), new Predicate<NodeDocument>() {
+                @Override
+                public boolean apply(@Nullable NodeDocument input) {
+                    return input != null && input.getValueMap(property).containsKey(revision);
+                }
+            });
+        }
     }
 
     /**
@@ -988,7 +1018,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
         if (value == null) {
             // check previous
             for (NodeDocument prev : getPreviousDocs(REVISIONS, revision)) {
-                value = prev.getLocalRevisions().get(revision);
+                value = prev.getCommitValue(revision);
                 if (value != null) {
                     break;
                 }
