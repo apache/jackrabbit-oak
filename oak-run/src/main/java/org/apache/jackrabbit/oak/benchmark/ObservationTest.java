@@ -72,28 +72,31 @@ public class ObservationTest extends Benchmark {
     }
 
     private void run(Repository repository) throws RepositoryException, ExecutionException, InterruptedException {
-        Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        Session session = createSession(repository);
         long t0 = System.currentTimeMillis();
         try {
-            observationThroughput(repository, session.getWorkspace().getObservationManager());
+            observationThroughput(repository);
         } finally {
             System.out.println("Time elapsed: " + (System.currentTimeMillis() - t0) + " ms");
             session.logout();
         }
     }
 
-    public void observationThroughput(final Repository repository, ObservationManager observationManager)
+    public void observationThroughput(final Repository repository)
             throws RepositoryException, InterruptedException, ExecutionException {
         long t = 0;
         final AtomicInteger eventCount = new AtomicInteger();
         final AtomicInteger nodeCount = new AtomicInteger();
 
+        Session[] sessions = new Session[LISTENER_COUNT];
         EventListener[] listeners = new Listener[LISTENER_COUNT];
 
         try {
             for (int k = 0; k < LISTENER_COUNT; k++) {
+                sessions[k] = createSession(repository);
                 listeners[k] = new Listener(eventCount);
-                observationManager.addEventListener(listeners[k], EVENT_TYPES, "/", true, null, null, false);
+                ObservationManager obsMgr = sessions[k].getWorkspace().getObservationManager();
+                obsMgr.addEventListener(listeners[k], EVENT_TYPES, "/", true, null, null, false);
             }
 
             Future<?> createNodes = Executors.newSingleThreadExecutor().submit(new Runnable() {
@@ -146,9 +149,15 @@ public class ObservationTest extends Benchmark {
             createNodes.get();
         } finally {
             for (int k = 0; k < LISTENER_COUNT; k++) {
-                observationManager.removeEventListener(listeners[k]);
+                sessions[k].getWorkspace().getObservationManager().removeEventListener(listeners[k]);
+                sessions[k].logout();
             }
         }
+    }
+
+    private static Session createSession(Repository repository)
+            throws RepositoryException {
+        return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
     private static class Listener implements EventListener {
