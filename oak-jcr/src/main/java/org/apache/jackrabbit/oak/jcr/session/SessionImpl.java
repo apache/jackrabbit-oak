@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static com.google.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.io.OutputStream;
 import java.security.AccessControlException;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -49,6 +51,7 @@ import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.commons.xml.DocumentViewExporter;
 import org.apache.jackrabbit.commons.xml.Exporter;
 import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
@@ -78,10 +81,14 @@ public class SessionImpl implements JackrabbitSession {
 
     private final SessionContext sessionContext;
     private final SessionDelegate sd;
+    private final AtomicLong sessionCounter;
 
     public SessionImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.sd = sessionContext.getSessionDelegate();
+        this.sessionCounter = sessionContext.getCounter(SESSION_COUNT);
+        sessionCounter.incrementAndGet();
+        sessionContext.getCounter(Type.SESSION_LOGIN_COUNTER).incrementAndGet();
     }
 
     static void checkIndexOnName(SessionContext sessionContext, String path) throws RepositoryException {
@@ -451,6 +458,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void logout() {
         if (sd.isAlive()) {
+            sessionCounter.decrementAndGet();
             safePerform(new SessionOperation<Void>() {
                 @Override
                 public Void perform() {

@@ -98,7 +98,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.securityProvider = checkNotNull(securityProvider);
         this.threadSaveCount = new ThreadLocal<Long>();
         this.descriptors = determineDescriptors();
-        this.statisticManager = new StatisticManager(whiteboard);
+        this.statisticManager = new StatisticManager(whiteboard, scheduledExecutor);
     }
 
     //---------------------------------------------------------< Repository >---
