@@ -20,8 +20,16 @@
 package org.apache.jackrabbit.oak.stats;
 
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.QUERY_COUNT;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.QUERY_DURATION;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_LOGIN_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_AVERAGE;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_AVERAGE;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
 
 import javax.management.openmbean.ArrayType;
 import javax.management.openmbean.CompositeData;
@@ -54,6 +62,51 @@ public class RepositoryStats implements RepositoryStatsMBean {
     @Override
     public CompositeData getSessionLogin() {
         return asCompositeData(SESSION_LOGIN_COUNTER);
+    }
+
+    @Override
+    public CompositeData getSessionReadCount() {
+        return asCompositeData(SESSION_READ_COUNTER);
+    }
+
+    @Override
+    public CompositeData getSessionReadDuration() {
+        return asCompositeData(SESSION_READ_DURATION);
+    }
+
+    @Override
+    public CompositeData getSessionReadAverage() {
+        return asCompositeData(SESSION_READ_AVERAGE);
+    }
+
+    @Override
+    public CompositeData getSessionWriteCount() {
+        return asCompositeData(SESSION_WRITE_COUNTER);
+    }
+
+    @Override
+    public CompositeData getSessionWriteDuration() {
+        return asCompositeData(SESSION_WRITE_DURATION);
+    }
+
+    @Override
+    public CompositeData getSessionWriteAverage() {
+        return asCompositeData(SESSION_WRITE_AVERAGE);
+    }
+
+    @Override
+    public CompositeData getQueryCount() {
+        return asCompositeData(QUERY_COUNT);
+    }
+
+    @Override
+    public CompositeData getQueryDuration() {
+        return asCompositeData(QUERY_DURATION);
+    }
+
+    @Override
+    public CompositeData getQueryAverage() {
+        return asCompositeData(Type.QUERY_AVERAGE);
     }
 
     public static final String[] ITEM_NAMES = new String[] {

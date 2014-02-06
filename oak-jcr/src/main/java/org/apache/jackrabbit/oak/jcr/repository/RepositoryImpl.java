@@ -235,7 +235,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private SessionDelegate createSessionDelegate(
             final RefreshStrategy refreshStrategy,
             final ContentSession contentSession) {
-        return new SessionDelegate(contentSession, refreshStrategy) {
+        return new SessionDelegate(contentSession, refreshStrategy, statisticManager) {
             // Defer session MBean registration to avoid cluttering the
             // JMX name space with short lived sessions
             ListenableScheduledFuture<Registration> registration = scheduledExecutor.schedule(

@@ -39,4 +39,49 @@ public interface RepositoryStatsMBean {
      * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_LOGIN_COUNTER
      */
     CompositeData getSessionLogin();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_COUNTER
+     */
+    CompositeData getSessionReadCount();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_DURATION
+     */
+    CompositeData getSessionReadDuration();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_AVERAGE
+     */
+    CompositeData getSessionReadAverage();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_WRITE_COUNTER
+     */
+    CompositeData getSessionWriteCount();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_READ_DURATION
+     */
+    CompositeData getSessionWriteDuration();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#SESSION_WRITE_AVERAGE
+     */
+    CompositeData getSessionWriteAverage();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_COUNT
+     */
+    CompositeData getQueryCount();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_DURATION
+     */
+    CompositeData getQueryDuration();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_AVERAGE
+     */
+    CompositeData getQueryAverage();
 }
