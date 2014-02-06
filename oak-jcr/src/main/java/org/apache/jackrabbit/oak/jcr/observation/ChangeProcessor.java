@@ -19,17 +19,21 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
 
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.observation.EventListener;
 
+import com.google.common.collect.ForwardingIterator;
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.Monitor.Guard;
-
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
@@ -46,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +71,8 @@ class ChangeProcessor implements Observer {
     private final ListenerTracker tracker;
     private final EventListener eventListener;
     private final AtomicReference<FilterProvider> filterProvider;
+    private final AtomicLong eventCount;
+    private final AtomicLong eventDuration;
 
     private Registration observerSubscription;
     private Registration mBeanSubscription;
@@ -75,13 +82,17 @@ class ChangeProcessor implements Observer {
             ContentSession contentSession,
             NamePathMapper namePathMapper,
             PermissionProvider permissionProvider,
-            ListenerTracker tracker, FilterProvider filter) {
+            ListenerTracker tracker,
+            FilterProvider filter,
+            StatisticManager statisticManager) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.permissionProvider = permissionProvider;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
         filterProvider = new AtomicReference<FilterProvider>(filter);
+        this.eventCount = statisticManager.getCounter(OBSERVATION_EVENT_COUNTER);
+        this.eventDuration = statisticManager.getCounter(OBSERVATION_EVENT_DURATION);
     }
 
     /**
@@ -163,7 +174,8 @@ class ChangeProcessor implements Observer {
                             Filters.all(userFilter, acFilter));
                     if (events.hasNext() && runningMonitor.enterIf(running)) {
                         try {
-                            eventListener.onEvent(new EventIteratorAdapter(events));
+                            eventListener.onEvent(
+                                    new EventIteratorAdapter(statisticProvider(events)));
                         } finally {
                             runningMonitor.leave();
                         }
@@ -174,6 +186,26 @@ class ChangeProcessor implements Observer {
             }
         }
         previousRoot = root;
+    }
+
+    private <T> Iterator<T> statisticProvider(final Iterator<T> events) {
+        return new ForwardingIterator<T>() {
+            @Override
+            protected Iterator<T> delegate() {
+                return events;
+            }
+
+            @Override
+            public T next() {
+                long t0 = System.nanoTime();
+                try {
+                    return super.next();
+                } finally {
+                    eventCount.incrementAndGet();
+                    eventDuration.addAndGet(System.nanoTime() - t0);
+                }
+            }
+        };
     }
 
     private static class RunningGuard extends Guard {
