@@ -20,6 +20,10 @@
 package org.apache.jackrabbit.oak.stats;
 
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_AVERAGE;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.QUERY_AVERAGE;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.QUERY_COUNT;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.QUERY_DURATION;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
@@ -106,7 +110,22 @@ public class RepositoryStats implements RepositoryStatsMBean {
 
     @Override
     public CompositeData getQueryAverage() {
-        return asCompositeData(Type.QUERY_AVERAGE);
+        return asCompositeData(QUERY_AVERAGE);
+    }
+
+    @Override
+    public CompositeData getObservationEventCount() {
+        return asCompositeData(OBSERVATION_EVENT_COUNTER);
+    }
+
+    @Override
+    public CompositeData getObservationEventDuration() {
+        return asCompositeData(OBSERVATION_EVENT_DURATION);
+    }
+
+    @Override
+    public CompositeData getObservationEventAverage() {
+        return asCompositeData(OBSERVATION_EVENT_AVERAGE);
     }
 
     public static final String[] ITEM_NAMES = new String[] {

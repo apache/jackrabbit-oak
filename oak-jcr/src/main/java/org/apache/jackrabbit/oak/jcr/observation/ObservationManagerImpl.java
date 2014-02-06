@@ -41,6 +41,7 @@ import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
@@ -50,6 +51,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -73,28 +75,29 @@ public class ObservationManagerImpl implements ObservationManager {
     private final PermissionProvider permissionProvider;
     private final NamePathMapper namePathMapper;
     private final Whiteboard whiteboard;
+    private final StatisticManager statisticManager;
 
     /**
      * Create a new instance based on a {@link ContentSession} that needs to implement
      * {@link Observable}.
      *
-     * @param sessionDelegate  session delegate of the session in whose context this observation manager
+     * @param sessionContext   session delegate of the session in whose context this observation manager
      *                         operates.
      * @param nodeTypeManager  node type manager for the content session
-     * @param namePathMapper   name path mapper for the content session
      * @param whiteboard
      * @throws IllegalArgumentException if {@code contentSession} doesn't implement {@code Observable}.
      */
     public ObservationManagerImpl(
-            SessionDelegate sessionDelegate, ReadOnlyNodeTypeManager nodeTypeManager,
+            SessionContext sessionContext, ReadOnlyNodeTypeManager nodeTypeManager,
             PermissionProvider permissionProvider,
-            NamePathMapper namePathMapper, Whiteboard whiteboard) {
+            Whiteboard whiteboard) {
 
-        this.sessionDelegate = sessionDelegate;
+        this.sessionDelegate = sessionContext.getSessionDelegate();
         this.ntMgr = nodeTypeManager;
         this.permissionProvider = permissionProvider;
-        this.namePathMapper = namePathMapper;
+        this.namePathMapper = sessionContext;
         this.whiteboard = whiteboard;
+        statisticManager = sessionContext.getStatisticManager();
     }
 
     public void dispose() {
@@ -117,7 +120,7 @@ public class ObservationManagerImpl implements ObservationManager {
             LOG.info(OBSERVATION,
                     "Registering event listener {} with filter {}", listener, filterProvider);
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
-                    permissionProvider, tracker, filterProvider);
+                    permissionProvider, tracker, filterProvider, statisticManager);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {

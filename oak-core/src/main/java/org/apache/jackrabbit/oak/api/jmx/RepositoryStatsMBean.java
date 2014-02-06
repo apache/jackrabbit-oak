@@ -84,4 +84,19 @@ public interface RepositoryStatsMBean {
      * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#QUERY_AVERAGE
      */
     CompositeData getQueryAverage();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_COUNTER
+     */
+    CompositeData getObservationEventCount();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_DURATION
+     */
+    CompositeData getObservationEventDuration();
+
+    /**
+     * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_AVERAGE
+     */
+    CompositeData getObservationEventAverage();
 }

@@ -262,10 +262,10 @@ public class SessionContext implements NamePathMapper {
     public ObservationManager getObservationManager() throws UnsupportedRepositoryOperationException {
         if (observationManager == null) {
             observationManager = new ObservationManagerImpl(
-                delegate,
+                this,
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
                 getPermissionProvider(),
-                namePathMapper, whiteboard);
+                whiteboard);
         }
         return observationManager;
     }
