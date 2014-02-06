@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import javax.jcr.Node;
@@ -78,5 +79,142 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String path = it.nextRow().getValue("path").getString();
         assertEquals("/testroot/node1", path);
         
+    }
+    
+    @Test
+    public void uuidIndex() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node testRootNode = session.getRootNode().addNode("testroot");
+        Node n = testRootNode.addNode("node");
+        n.addMixin("mix:referenceable");
+        session.save();
+
+        // this matches just one node (exact path),
+        // so it should use the TraversintIndex
+        String xpath = "/jcr:root/testroot/node[@jcr:uuid]";
+
+        Query q;
+        QueryResult result;
+        RowIterator it;
+
+        q = qm.createQuery("explain " + xpath, "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        String plan = it.nextRow().getValue("plan").getString();
+        assertEquals("[nt:base] as [a] /* traverse \"/testroot/node\" where " + 
+                "([a].[jcr:uuid] is not null) " + 
+                "and (issamenode([a], [/testroot/node])) */", plan);
+
+        // verify the result
+        q = qm.createQuery(xpath, "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        String path = it.nextRow().getPath();
+        assertEquals("/testroot/node", path);
+        assertFalse(it.hasNext());
+
+        // this potentially matches many nodes,
+        // so it should use the index on the UUID property
+        xpath = "/jcr:root/testroot/*[@jcr:uuid]";
+        
+        q = qm.createQuery("explain " + xpath, "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        plan = it.nextRow().getValue("plan").getString();
+        assertEquals("[nt:base] as [a] /* property jcr:uuid " + 
+                "where ([a].[jcr:uuid] is not null) " + 
+                "and (ischildnode([a], [/testroot])) */", plan);
+        
+    }
+    
+    @Test
+    @Ignore("OAK-1372")
+    public void pathAndPropertyRestrictions() throws Exception {
+        ; // TODO work in progress
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node testRootNode = session.getRootNode().addNode("testroot");
+        Node b = testRootNode.addNode("b");
+        Node c = b.addNode("c");
+        Node d = c.addNode("d");
+        Node e1 = d.addNode("e1");
+        e1.setProperty("type", "1");
+        Node e2 = d.addNode("e2");
+        e2.setProperty("type", "2");
+        Node e3 = d.addNode("e3");
+        e3.setProperty("type", "3");
+        session.save();
+       
+        String xpath = "/jcr:root/testroot//b/c/d/*[@jcr:uuid='1' or @jcr:uuid='2'] ";
+        String 
+        sql2 = 
+                "select d.[jcr:path] as [jcr:path], d.[jcr:score] as [jcr:score], d.* " + 
+                "from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) " + 
+                "inner join [nt:base] as c on ischildnode(c, b) " + 
+                "inner join [nt:base] as d on ischildnode(d, c) " + 
+                "where name(a) = 'b' " + 
+                "and isdescendantnode(a, '/testroot') " + 
+                "and name(b) = 'c' " + 
+                "and name(c) = 'd' " + 
+                "and (d.[jcr:uuid] = '1' or d.[jcr:uuid] = '2')";
+
+        sql2 = 
+                "select d.[jcr:path] as [jcr:path], d.[jcr:score] as [jcr:score], d.* " + 
+                "from [nt:base] as d " + 
+                "where (d.[jcr:uuid] = '1' or d.[jcr:uuid] = '2')";
+
+        sql2 = 
+                "select d.[jcr:path] as [jcr:path], d.[jcr:score] as [jcr:score], d.* " + 
+                "from [nt:base] as d " + 
+                "inner join [nt:base] as c on ischildnode(d, c) " + 
+                "inner join [nt:base] as b on ischildnode(c, b) " + 
+                "inner join [nt:base] as a on ischildnode(b, a) " + 
+                "where name(a) = 'b' " + 
+                "and isdescendantnode(a, '/testroot') " + 
+                "and name(b) = 'c' " + 
+                "and name(c) = 'd' " + 
+                "and (d.[jcr:uuid] = '1' or d.[jcr:uuid] = '2')";
+
+        Query q;
+        QueryResult result;
+        RowIterator it;
+        
+        q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        String plan = it.nextRow().getValue("plan").getString();
+        assertEquals("", plan);
+        
+        // [nt:base] as [a] /* traverse "/testroot//*" 
+        // where (name([a]) = cast('b' as string)) 
+        // and (isdescendantnode([a], [/testroot])) */ 
+        // inner join [nt:base] as [b] /* traverse 
+        // "/path/from/the/join/selector/*" where name([b]) = cast('c' as string) */ 
+        // on ischildnode([b], [a]) inner join [nt:base] as [c] 
+        // /* traverse "/path/from/the/join/selector/*"
+        // where name([c]) = cast('d' as string) */ on ischildnode([c], [b]) 
+        // inner join [nt:base] as [d] /* traverse "/path/from/the/join/selector/*" 
+        // where ([d].[type] is not null) and ([d].[type] in(cast('1' as string), cast('2' as string))) */ 
+        // on ischildnode([d], [c])
+        
+//        assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " + 
+//                "where [nt:base].[node2/node3/jcr:primaryType] is not null */", 
+//                plan);
+        
+        // verify the result
+        q = qm.createQuery(xpath, "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        String path = it.nextRow().getValue("path").getString();
+        assertEquals("/testroot/b/c/d/e1", path);
+        path = it.nextRow().getValue("path").getString();
+        assertEquals("/testroot/b/c/d/e2", path);
+        assertFalse(it.hasNext());
     }
 }
