@@ -39,7 +39,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Utility methods.
  */
 public class Utils {
-    
+
+    /**
+     * Approximate length of a Revision string.
+     */
+    private static final int REVISION_LENGTH =
+            new Revision(System.currentTimeMillis(), 0, 0).toString().length();
+
     /**
      * Make sure the name string does not contain unnecessary baggage (shared
      * strings).
@@ -214,7 +220,20 @@ public class Utils {
     }
 
     public static String getPreviousIdFor(String id, Revision r) {
-        return getIdFromPath("p" + PathUtils.concat(getPathFromId(id), r.toString()));
+        StringBuilder sb = new StringBuilder(id.length() + REVISION_LENGTH + 3);
+        int index = id.indexOf(':');
+        int depth = 0;
+        for (int i = 0; i < index; i++) {
+            depth *= 10;
+            depth += Character.digit(id.charAt(i), 10);
+        }
+        sb.append(depth + 1).append(":p");
+        sb.append(id, index + 1, id.length());
+        if (sb.charAt(sb.length() - 1) != '/') {
+            sb.append('/');
+        }
+        r.toStringBuilder(sb);
+        return sb.toString();
     }
 
     /**

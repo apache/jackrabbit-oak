@@ -200,10 +200,36 @@ public class Revision {
     
     @Override
     public String toString() {
-        return (branch ? "b" : "") + 'r' + Long.toHexString(timestamp) + '-' +
-                Integer.toHexString(counter) + '-' + Integer.toHexString(clusterId);
+        return toStringBuilder(new StringBuilder()).toString();
     }
-    
+
+    /**
+     * Appends the string representation of this revision to the given
+     * StringBuilder.
+     *
+     * @param sb a StringBuilder.
+     * @return the StringBuilder instance passed to this method.
+     */
+    public StringBuilder toStringBuilder(StringBuilder sb) {
+        if (branch) {
+            sb.append('b');
+        }
+        sb.append('r');
+        sb.append(Long.toHexString(timestamp)).append('-');
+        if (counter < 10) {
+            sb.append(counter);
+        } else {
+            sb.append(Integer.toHexString(counter));
+        }
+        sb.append('-');
+        if (clusterId < 10) {
+            sb.append(clusterId);
+        } else {
+            sb.append(Integer.toHexString(clusterId));
+        }
+        return sb;
+    }
+
     @SuppressWarnings("UnusedDeclaration")
     public String toReadableString() {
         StringBuilder buff = new StringBuilder();
@@ -305,7 +331,7 @@ public class Revision {
     public int getClusterId() {
         return clusterId;
     }
-    
+
     /**
      * Revision ranges allow to compare revisions ids of different cluster instances. A
      * range tells when a list of revisions from a certain cluster instance was seen by

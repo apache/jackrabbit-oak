@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
 import static java.util.AbstractMap.SimpleImmutableEntry;
 
 import java.util.Iterator;
@@ -28,9 +30,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -48,38 +48,22 @@ class PropertyHistory implements Iterable<NodeDocument> {
     private final DocumentStore store;
     private final NodeDocument main;
     private final String property;
-    private final Revision revision;
     private final String id;
 
     public PropertyHistory(@Nonnull DocumentStore store,
                            @Nonnull NodeDocument main,
-                           @Nonnull String property,
-                           @Nullable Revision revision) {
+                           @Nonnull String property) {
         this.store = checkNotNull(store);
         this.main = checkNotNull(main);
         this.property = checkNotNull(property);
-        this.revision = revision;
         this.id = main.getId();
     }
 
     @Override
     public Iterator<NodeDocument> iterator() {
-        Iterable<Map.Entry<Revision, Range>> ranges;
-        if (revision != null) {
-            ranges = Iterables.filter(
-                    main.getPreviousRanges().entrySet(),
-                    new Predicate<Map.Entry<Revision, Range>>() {
-                        @Override
-                        public boolean apply(Map.Entry<Revision, Range> input) {
-                            return input.getValue().includes(revision);
-                        }
-                    });
-        } else {
-            ranges = main.getPreviousRanges().entrySet();
-        }
-
-        Iterable<Map.Entry<Revision, NodeDocument>> docs = Iterables.transform(ranges,
-                new Function<Map.Entry<Revision, Range>, Map.Entry<Revision, NodeDocument>>() {
+        return ensureOrder(filter(
+                transform(main.getPreviousRanges().entrySet(),
+                        new Function<Map.Entry<Revision, Range>, Map.Entry<Revision, NodeDocument>>() {
             @Nullable
             @Override
             public Map.Entry<Revision, NodeDocument> apply(Map.Entry<Revision, Range> input) {
@@ -92,10 +76,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
                 }
                 return new SimpleImmutableEntry<Revision, NodeDocument>(r, prev);
             }
-        });
-
-        // filter out null docs and ensure order
-        return ensureOrder(Iterables.filter(docs, Predicates.notNull()));
+        }), Predicates.notNull()));
     }
 
     /**
@@ -174,7 +155,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
                     // check if the revision is actually in there
                     if (doc != null) {
                         Map<Revision, String> values = doc.getValueMap(property);
-                        if (!values.isEmpty() && (revision == null || values.containsKey(revision))) {
+                        if (!values.isEmpty()) {
                             // put into queue with first (highest) revision
                             // from value map
                             queue.put(values.keySet().iterator().next(), doc);
