@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.QUERY_COUNT;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.QUERY_DURATION;
+
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -55,6 +59,8 @@ public class QueryManagerImpl implements QueryManager {
     private final QueryObjectModelFactoryImpl qomFactory;
     private final QueryEngine queryEngine;
     private final HashSet<String> supportedQueryLanguages = new HashSet<String>();
+    private final AtomicLong queryCount;
+    private final AtomicLong queryDuration;
 
     public QueryManagerImpl(SessionContext sessionContext) {
         this.sessionDelegate = sessionContext.getSessionDelegate();
@@ -62,6 +68,8 @@ public class QueryManagerImpl implements QueryManager {
         qomFactory = new QueryObjectModelFactoryImpl(this, sessionContext);
         queryEngine = sessionDelegate.getQueryEngine();
         supportedQueryLanguages.addAll(queryEngine.getSupportedQueryLanguages());
+        queryCount = sessionContext.getCounter(QUERY_COUNT);
+        queryDuration = sessionContext.getCounter(QUERY_DURATION);
     }
 
     @Override
@@ -120,12 +128,15 @@ public class QueryManagerImpl implements QueryManager {
             long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
-            long t = System.nanoTime();
+            long t0 = System.nanoTime();
             Result r = queryEngine.executeQuery(
                     statement, language, limit, offset, bindMap,
                     sessionContext.getSessionLocalMappings());
+            queryCount.incrementAndGet();
+            long dt = (System.nanoTime() - t0) / 1000000;
+            queryDuration.addAndGet(dt);
             sessionContext.getStatisticManager()
-                    .logQueryEvaluationTime(language, statement, (System.nanoTime() - t) / 1000000);
+                    .logQueryEvaluationTime(language, statement, dt);
             return new QueryResultImpl(sessionContext, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
