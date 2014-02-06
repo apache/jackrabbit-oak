@@ -24,7 +24,7 @@ package org.apache.jackrabbit.oak.kernel;
  * {@link org.apache.jackrabbit.oak.spi.state.NodeBuilder} implementations to indicate
  * support for optimised move and copy operations.
  */
-public interface FastCopyMove {
+public interface FastMove {
 
     /**
      * Move the {@code source} builder to this builder with the
@@ -34,13 +34,4 @@ public interface FastCopyMove {
      * @return  {@code true} on success, {@code false} otherwise
      */
     boolean moveFrom(KernelNodeBuilder source, String newName);
-
-    /**
-     * Copy the {@code source} builder to this builder with the
-     * given new name
-     * @param source  source to copy to this builder
-     * @param newName  the new name
-     * @return  {@code true} on success, {@code false} otherwise
-     */
-    boolean copyFrom(KernelNodeBuilder source, String newName);
 }

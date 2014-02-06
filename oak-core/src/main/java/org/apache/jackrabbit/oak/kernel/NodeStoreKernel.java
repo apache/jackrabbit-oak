@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Maps.newConcurrentMap;
-import static com.google.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
@@ -31,7 +24,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -57,6 +49,13 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newLinkedList;
+import static com.google.common.collect.Maps.newConcurrentMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 /**
  * This is a simple {@link NodeStore}-based {@link MicroKernel} implementation.
@@ -217,15 +216,6 @@ public class NodeStoreKernel implements MicroKernel {
                 } else if (!getNode(builder, path).moveTo(
                         targetParent, targetName)) {
                     throw new MicroKernelException("Move failed");
-                }
-                break;
-            case '*':
-                tokenizer.read(':');
-                String copyTarget = tokenizer.readString();
-                if (!getNode(builder, path).copyTo(
-                        getNode(builder, getParentPath(copyTarget)),
-                        getName(copyTarget))) {
-                    throw new MicroKernelException("Copy failed");
                 }
                 break;
             default:

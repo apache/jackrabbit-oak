@@ -320,16 +320,6 @@ class MutableTree extends AbstractTree {
     }
 
     /**
-     * Copy this tree to the parent at {@code destParent} with the new name
-     * {@code newName}.
-     * @param newParent new parent for this tree
-     * @param newName   new name for this tree
-     */
-    boolean copyTo(MutableTree newParent, String newName) {
-        return nodeBuilder.copyTo(newParent.nodeBuilder, newName);
-    }
-
-    /**
      * Get a possibly non existing tree.
      * @param path the path to the tree
      * @return a {@link Tree} instance for the child at {@code path}.

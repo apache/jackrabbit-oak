@@ -204,28 +204,6 @@ abstract class AbstractRoot implements Root {
     }
 
     @Override
-    public boolean copy(String sourcePath, String destPath) {
-        checkLive();
-        MutableTree source = rootTree.getTree(sourcePath);
-        if (!source.exists()) {
-            return false;
-        }
-
-        String newName = getName(destPath);
-        MutableTree newParent = rootTree.getTree(getParentPath(destPath));
-        if (!newParent.exists() || newParent.hasChild(newName)) {
-            return false;
-        }
-
-        boolean success = source.copyTo(newParent, newName);
-        if (success) {
-            getTree(getParentPath(destPath)).updateChildOrder();
-            updated();
-        }
-        return success;
-    }
-
-    @Override
     public MutableTree getTree(@Nonnull String path) {
         checkLive();
         return rootTree.getTree(path);

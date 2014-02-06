@@ -28,7 +28,7 @@ import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.kernel.FastCopyMove;
+import org.apache.jackrabbit.oak.kernel.FastMove;
 import org.apache.jackrabbit.oak.kernel.KernelNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -48,7 +48,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
-class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
+class SecureNodeBuilder implements NodeBuilder, FastMove {
 
     /**
      * Root builder, or {@code this} for the root builder itself.
@@ -178,11 +178,6 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     @Override
     public boolean moveTo(NodeBuilder newParent, String newName) {
         return exists() && builder.moveTo(newParent, newName);
-    }
-
-    @Override
-    public boolean copyTo(NodeBuilder newParent, String newName) {
-        return exists() && builder.copyTo(newParent, newName);
     }
 
     @Override @CheckForNull
@@ -359,18 +354,6 @@ class SecureNodeBuilder implements NodeBuilder, FastCopyMove {
     @Override
     public boolean moveFrom(KernelNodeBuilder source, String newName) {
         return source.moveTo(builder, newName);
-    }
-
-    /**
-     * This implementation simply delegates back to {@code copyTo} method
-     * of {@code source} passing the underlying builder for {@code newParent}.
-     * @param source  source to move to this builder
-     * @param newName  the new name
-     * @return
-     */
-    @Override
-    public boolean copyFrom(KernelNodeBuilder source, String newName) {
-        return source.copyTo(builder, newName);
     }
 
     /**

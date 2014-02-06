@@ -19,27 +19,31 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.test.api.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * Delegate class for workspace operations.
@@ -69,14 +73,16 @@ public class WorkspaceDelegate {
         }
 
         // check parent of destination
-        String destParentPath = PathUtils.getParentPath(destPath);
-        Tree destParent = root.getTree(destParentPath);
+        Tree destParent = dest.getParent();
         if (!destParent.exists()) {
-            throw new PathNotFoundException(PathUtils.getParentPath(destPath));
+            throw new PathNotFoundException(destParent.getPath());
         }
 
         // check source exists
         Tree src = root.getTree(srcPath);
+        if (src.isRoot()) {
+            throw new RepositoryException("Cannot copy the root node");
+        }
         if (!src.exists()) {
             throw new PathNotFoundException(srcPath);
         }
@@ -84,7 +90,8 @@ public class WorkspaceDelegate {
         accessManager.checkPermissions(destPath, Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
 
         try {
-            new WorkspaceCopy(root, srcPath, destPath).perform();
+            Tree typeRoot = root.getTree(NODE_TYPES_PATH);
+            new WorkspaceCopy(src, destParent, Text.getName(destPath), typeRoot, sessionDelegate.getAuthInfo().getUserID()).perform();
             context.getSessionDelegate().commit(root);
             sessionDelegate.refresh(true);
         } catch (CommitFailedException e) {
@@ -94,41 +101,62 @@ public class WorkspaceDelegate {
 
     //---------------------------< internal >-----------------------------------
 
-    private class WorkspaceCopy {
+    private static final class WorkspaceCopy {
 
         private final Map<String, String> translated = Maps.newHashMap();
-        private final String srcPath;
-        private final String destPath;
-        private final Root currentRoot;
 
-        public WorkspaceCopy(Root currentRoot, String srcPath, String destPath) {
-            this.srcPath = checkNotNull(srcPath);
-            this.destPath = checkNotNull(destPath);
-            this.currentRoot = checkNotNull(currentRoot);
+        private final Tree src;
+        private final Tree destParent;
+        private final String destName;
+
+        private final Tree typeRoot;
+        private final String userId;
+
+        public WorkspaceCopy(@Nonnull Tree src, @Nonnull Tree destParent,
+                             @Nonnull String destName, @Nonnull Tree typeRoot,
+                             @Nonnull String userId) {
+            this.src = src;
+            this.destParent = destParent;
+            this.destName = destName;
+            this.typeRoot = typeRoot;
+            this.userId = userId;
         }
 
         public void perform() throws RepositoryException {
-            if (!currentRoot.copy(srcPath, destPath)) {
-                throw new RepositoryException("Cannot copy node at " + srcPath + " to " + destPath);
-            }
-            Tree src = currentRoot.getTree(srcPath);
-            Tree dest = currentRoot.getTree(destPath);
-            generateNewIdentifiers(dest);
-            updateReferences(src, dest);
+            copy(src, destParent, destName);
+            updateReferences(src, destParent.getChild(destName));
         }
 
-        public void generateNewIdentifiers(Tree t) throws RepositoryException {
-            if (t.hasProperty(JCR_UUID)) {
-                getNewId(t);
+        private void copy(@Nonnull Tree source, @Nonnull Tree destParent, @Nonnull String destName) throws RepositoryException {
+            String primaryType = TreeUtil.getPrimaryTypeName(source);
+            if (primaryType == null) {
+                primaryType = TreeUtil.getDefaultChildType(typeRoot, destParent, destName);
+                if (primaryType == null) {
+                    throw new ConstraintViolationException("Cannot determine default node type.");
+                }
             }
-            for (Tree c : t.getChildren()) {
-                generateNewIdentifiers(c);
+            Tree dest = TreeUtil.addChild(destParent, destName, primaryType, typeRoot, userId);
+            for (PropertyState property : source.getProperties()) {
+                String propName = property.getName();
+                if (JCR_UUID.equals(propName)) {
+                    String sourceId = property.getValue(Type.STRING);
+                    String newId = IdentifierManager.generateUUID();
+                    dest.setProperty(JCR_UUID, newId, Type.STRING);
+                    if (!translated.containsKey(sourceId)) {
+                        translated.put(sourceId, newId);
+                    }
+                } else if (!JCR_PRIMARYTYPE.equals(propName)) {
+                    dest.setProperty(property);
+                }
+            }
+            for (Tree child : source.getChildren()) {
+                copy(child, dest, child.getName());
             }
         }
 
         /**
          * Recursively updates references on the destination tree as defined by
-         * <code>Workspace.copy()</code>.
+         * {@code Workspace.copy()}.
          *
          * @param src  the source tree of the copy operation.
          * @param dest the unprocessed copy of the tree.
@@ -149,8 +177,7 @@ public class WorkspaceDelegate {
             }
         }
 
-        private void updateProperty(PropertyState prop, Tree dest)
-                throws RepositoryException {
+        private void updateProperty(PropertyState prop, Tree dest) {
             boolean multi = prop.isArray();
             boolean weak = prop.getType() == Type.WEAKREFERENCE
                     || prop.getType() == Type.WEAKREFERENCES;
@@ -183,31 +210,13 @@ public class WorkspaceDelegate {
             dest.setProperty(p);
         }
 
-        private void translateId(String id, List<String> ids)
-                throws RepositoryException {
+        private void translateId(String id, List<String> ids) {
             String newId = translated.get(id);
             if (newId != null) {
                 ids.add(newId);
             } else {
                 ids.add(id);
             }
-        }
-
-        private String getNewId(Tree t) throws RepositoryException {
-            PropertyState uuid = t.getProperty(JCR_UUID);
-            if (uuid == null) {
-                // not referenceable?
-                throw new RepositoryException(
-                        "Node is not referenceable: " + t.getPath());
-            }
-            String targetId = uuid.getValue(Type.STRING);
-            // new id needed?
-            if (!translated.containsKey(targetId)) {
-                String newId = IdentifierManager.generateUUID();
-                translated.put(targetId, newId);
-                t.setProperty(JCR_UUID, newId, Type.STRING);
-            }
-            return translated.get(targetId);
         }
     }
 

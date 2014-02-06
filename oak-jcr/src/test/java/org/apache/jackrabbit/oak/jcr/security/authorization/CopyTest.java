@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -79,7 +78,6 @@ public class CopyTest extends AbstractEvaluationTest {
         assertTrue(testSession.nodeExists(destPath));
     }
 
-    @Ignore("OAK-920") // FIXME
     @Test
     public void testCopyInvisibleSubTree() throws Exception {
         deny(childNPath, privilegesFromName(Privilege.JCR_READ));

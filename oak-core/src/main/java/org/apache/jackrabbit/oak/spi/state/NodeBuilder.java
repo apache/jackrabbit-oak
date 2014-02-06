@@ -257,14 +257,6 @@ public interface NodeBuilder {
     boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName);
 
     /**
-     * Copy this child to a new parent with a new name.
-     * @param newParent  builder for the new parent.
-     * @param newName  name of this child at the new parent
-     * @return  {@code true} on success, {@code false} otherwise
-     */
-    boolean copyTo(@Nonnull NodeBuilder newParent, @Nonnull String newName);
-
-    /**
      * Returns the current number of properties.
      *
      * @return number of properties

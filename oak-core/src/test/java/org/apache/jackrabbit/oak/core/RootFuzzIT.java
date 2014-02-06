@@ -18,15 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.AddNode;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.CopyNode;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.MoveNode;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveNode;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveProperty;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
-import static org.junit.Assert.assertEquals;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -48,6 +39,14 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.AddNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.MoveNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveProperty;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Fuzz test running random sequences of operations on {@link Tree}.
@@ -221,26 +220,6 @@ public class RootFuzzIT {
             }
         }
 
-        static class CopyNode extends Operation {
-            private final String source;
-            private final String destination;
-
-            CopyNode(String source, String destParent, String destName) {
-                this.source = source;
-                destination = PathUtils.concat(destParent, destName);
-            }
-
-            @Override
-            void apply(Root root) {
-                root.copy(source, destination);
-            }
-
-            @Override
-            public String toString() {
-                return '*' + source + ':' + destination;
-            }
-        }
-
         static class SetProperty extends Operation {
             private final String parentPath;
             private final String propertyName;
@@ -312,7 +291,7 @@ public class RootFuzzIT {
     private Operation createOperation() {
         Operation op;
         do {
-            switch (random.nextInt(11)) {
+            switch (random.nextInt(10)) {
                 case 0:
                 case 1:
                 case 2:
@@ -325,22 +304,18 @@ public class RootFuzzIT {
                     op = createMoveNode();
                     break;
                 case 5:
-                    // Too many copy ops make the test way slow
-                    op = random.nextInt(10) == 0 ? createCopyNode() : null;
-                    break;
-                case 6:
                     op = createAddProperty();
                     break;
-                case 7:
+                case 6:
                     op = createSetProperty();
                     break;
-                case 8:
+                case 7:
                     op = createRemoveProperty();
                     break;
-                case 9:
+                case 8:
                     op = new Save();
                     break;
-                case 10:
+                case 9:
                     op = new Rebase();
                     break;
                 default:
@@ -368,15 +343,6 @@ public class RootFuzzIT {
         return "/root".equals(source) || destParent.startsWith(source)
                 ? null
                 : new MoveNode(source, destParent, destName);
-    }
-
-    private Operation createCopyNode() {
-        String source = chooseNodePath();
-        String destParent = chooseNodePath();
-        String destName = createNodeName();
-        return "/root".equals(source)
-                ? null
-                : new CopyNode(source, destParent, destName);
     }
 
     private Operation createAddProperty() {

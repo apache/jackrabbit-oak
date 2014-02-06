@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
@@ -33,6 +26,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class MemoryNodeBuilderTest {
 
@@ -324,44 +324,6 @@ public class MemoryNodeBuilderTest {
         NodeBuilder rootBuilder = base.builder();
         assertTrue(rootBuilder.getChildNode("x").moveTo(rootBuilder.getChildNode("x"), "xx"));
         assertFalse(rootBuilder.hasChildNode("x"));
-    }
-
-    @Test
-    public void testCopy() {
-        NodeBuilder rootBuilder = base.builder();
-        assertTrue(rootBuilder.getChildNode("y").copyTo(rootBuilder.child("x"), "yy"));
-
-        NodeState newRoot = rootBuilder.getNodeState();
-        assertTrue(newRoot.hasChildNode("y"));
-        assertTrue(newRoot.hasChildNode("x"));
-        assertTrue(newRoot.getChildNode("x").hasChildNode("q"));
-        assertTrue(newRoot.getChildNode("x").hasChildNode("yy"));
-    }
-
-    @Test
-    public void testDuplicate() {
-        NodeBuilder rootBuilder = base.builder();
-        assertTrue(rootBuilder.getChildNode("y").copyTo(rootBuilder, "yy"));
-
-        NodeState newRoot = rootBuilder.getNodeState();
-        assertTrue(newRoot.hasChildNode("y"));
-        assertTrue(newRoot.hasChildNode("yy"));
-    }
-
-    @Test
-    public void testCopyToSelf() {
-        NodeBuilder rootBuilder = base.builder();
-        assertTrue(rootBuilder.getChildNode("y").copyTo(rootBuilder, "y"));
-    }
-
-    @Test
-    public void testCopyToDescendant() {
-        NodeBuilder rootBuilder = base.builder();
-        assertTrue(rootBuilder.getChildNode("x").copyTo(rootBuilder.getChildNode("x"), "xx"));
-
-        NodeState newRoot = rootBuilder.getNodeState();
-        assertTrue(rootBuilder.hasChildNode("x"));
-        assertTrue(rootBuilder.getChildNode("x").hasChildNode("xx"));
     }
 
     @Test

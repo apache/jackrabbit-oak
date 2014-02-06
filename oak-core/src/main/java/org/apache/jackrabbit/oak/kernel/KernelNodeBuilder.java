@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * This class refines move and copy operations by delegating
  * them to the underlying store if possible.
  * @see KernelRootBuilder
  */
-public class KernelNodeBuilder extends MemoryNodeBuilder implements FastCopyMove {
+public class KernelNodeBuilder extends MemoryNodeBuilder implements FastMove {
 
     private final KernelRootBuilder root;
 
@@ -72,32 +72,15 @@ public class KernelNodeBuilder extends MemoryNodeBuilder implements FastCopyMove
      */
     @Override
     public boolean moveTo(NodeBuilder newParent, String newName) {
-        if (newParent instanceof FastCopyMove) {
+        if (newParent instanceof FastMove) {
             checkNotNull(newParent);
             checkNotNull(newName);
             annotateSourcePath();
             boolean success = !isRoot() && exists() && !newParent.hasChildNode(newName) &&
-                    ((FastCopyMove) newParent).moveFrom(this, newName);
+                    ((FastMove) newParent).moveFrom(this, newName);
             return success;
         } else {
             return super.moveTo(newParent, newName);
-        }
-    }
-
-    /**
-     * If {@code newParent} is a {@link KernelNodeBuilder} this implementation
-     * purges all pending changes before applying the copy operation. This allows the
-     * underlying store to better optimise copy operations instead of just seeing
-     * them as an added node.
-     * If {@code newParent} is not a {@code KernelNodeBuilder} the implementation
-     * falls back to the super class.
-     */
-    @Override
-    public boolean copyTo(NodeBuilder newParent, String newName) {
-        if (newParent instanceof FastCopyMove) {
-            return ((FastCopyMove) newParent).copyFrom(this, newName);
-        } else {
-            return super.copyTo(newParent, newName);
         }
     }
 
@@ -106,13 +89,6 @@ public class KernelNodeBuilder extends MemoryNodeBuilder implements FastCopyMove
         String sourcePath = source.getPath();
         String destPath = PathUtils.concat(getPath(), newName);
         return root.move(sourcePath, destPath);
-    }
-
-    @Override
-    public boolean copyFrom(KernelNodeBuilder source, String newName) {
-        String sourcePath = source.getPath();
-        String destPath = PathUtils.concat(getPath(), newName);
-        return root.copy(sourcePath, destPath);
     }
 
 }

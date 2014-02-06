@@ -83,7 +83,6 @@ public final class ImmutableRoot implements Root {
         throw new UnsupportedOperationException();
     }
 
-    @Override
     public boolean copy(String sourcePath, String destPath) {
         throw new UnsupportedOperationException();
     }
