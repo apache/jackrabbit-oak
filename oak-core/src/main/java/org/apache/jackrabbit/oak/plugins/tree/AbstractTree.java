@@ -19,7 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.tree;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.size;
+import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
+import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
+import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
+
 import java.util.Iterator;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
@@ -31,16 +43,6 @@ import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.size;
-import static com.google.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
-import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
-import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 /**
  * {@code AbstractTree} provides default implementations for most
@@ -153,10 +155,6 @@ public abstract class AbstractTree implements Tree {
         }
     }
 
-    protected boolean internalExists() {
-        return !isHidden(name) && nodeBuilder.exists();
-    }
-
     //---------------------------------------------------------------< Tree >---
 
     @Override
@@ -200,7 +198,7 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public boolean exists() {
-        return internalExists();
+        return !isHidden(name) && nodeBuilder.exists();
     }
 
     @Override
@@ -275,17 +273,13 @@ public abstract class AbstractTree implements Tree {
     @Override
     public Iterable<Tree> getChildren() {
         Iterable<Tree> children = transform(getChildNames(),
-                new Function<String, Tree>() {
-                    @Override
-                    public Tree apply(String name) {
-                        return createChild(name);
-                    }
-                });
-        return filter(children, new Predicate<Tree>() {
-            @Override
-            public boolean apply(Tree child) {
-                return ((AbstractTree) child).internalExists();
-            }
-        });
+            new Function<String, Tree>() {
+                @Override
+                public Tree apply(String name) {
+                    AbstractTree child = createChild(name);
+                    return child.exists() ? child : null;
+                }
+            });
+        return filter(children, notNull());
     }
 }

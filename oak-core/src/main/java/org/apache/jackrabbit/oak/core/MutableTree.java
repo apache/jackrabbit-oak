@@ -18,8 +18,18 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.indexOf;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+
 import java.util.Collections;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -35,15 +45,6 @@ import org.apache.jackrabbit.oak.plugins.tree.AbstractTree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.PropertyBuilder;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.indexOf;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
 class MutableTree extends AbstractTree {
 
@@ -103,7 +104,7 @@ class MutableTree extends AbstractTree {
     @Override
     public boolean exists() {
         beforeRead();
-        return internalExists();
+        return super.exists();
     }
 
     @Override
@@ -413,7 +414,7 @@ class MutableTree extends AbstractTree {
      */
     private void beforeWrite() throws IllegalStateException {
         beforeRead();
-        if (!internalExists()) {
+        if (!super.exists()) {
             throw new IllegalStateException("This tree does not exist");
         }
     }
