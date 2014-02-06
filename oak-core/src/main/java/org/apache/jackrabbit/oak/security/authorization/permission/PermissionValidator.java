@@ -253,7 +253,6 @@ class PermissionValidator extends DefaultValidator {
                 && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT)) {
             perm = Permissions.USER_MANAGEMENT;
         } else {
-            // FIXME: OAK-710 (identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission)
             perm = defaultPermission;
         }
         return perm;
