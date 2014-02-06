@@ -41,7 +41,7 @@ public class OakDocumentRDBRepositoryStub extends RepositoryStub {
 
     protected static final String URL = System.getProperty("rdb.jdbc-url", ""); // such as: jdbc:h2:mem:oaknodes
 
-    protected static final String USERNAME = System.getProperty("rdb.jcbc-user", "sa");
+    protected static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
 
     protected static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
 
