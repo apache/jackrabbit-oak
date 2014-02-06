@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.15
+Release Notes -- Apache Jackrabbit Oak -- Version 0.16
 
 Introduction
 ------------
@@ -10,65 +10,64 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.15 is to alpha-level software. Use at your own risk.
+Jackrabbit Oak 0.16 is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.15
+Changes in Oak 0.16
 -------------------
 
 New Features
 
-  [OAK-50] Implement User Management
-  [OAK-411] Validator for node type management
-  [OAK-941] MBean to track sessions
-  [OAK-982] Expose indexing status and information via JMX
-  [OAK-1301] Path conditions not respected in XPath query
+  [OAK-541] Pluggable AccessControl
+  [OAK-754] Pluggable Security Setup
+  [OAK-1278] "stupid" SQL persistence of DocumentStore
+  [OAK-1279] "stupid" SQL persistence of BlobStore
 
 Improvements
 
-  [OAK-123] Data store improvements
-  [OAK-519] Migration of custom jr2.x privileges into OAK
-  [OAK-522] Pluggable User Management
-  [OAK-525] Pluggable Principal Management
-  [OAK-608] Pluggable Authentication
-  [OAK-791] UserManagement: Document changes wrt Jackrabbit 2
-  [OAK-890] Query: advanced fulltext search conditions
-  [OAK-1181] Review node type definition for oak:queryIndexDefinition
-  [OAK-1214] Create rep:Unstructured node type for repo internal content
-  [OAK-1292] Avoid async indexer commits when there are no changes to index
-  [OAK-1306] Reduce memory usage on MongoMK commit
-  [OAK-1307] Remove obsolete test dependency to H2 database
-  [OAK-1314] Use noChildren flag in MongoNodeState
-  [OAK-1319] Skip lock check on import for new item
-  [OAK-1324] Optimize node updates in the Lucene index
-  [OAK-1343] Performance issue with login()/getGroupMembership() with many users
+  [OAK-246] MicroKernelService should set metatype to true to easier configuration
+  [OAK-710] PermissionValidator: Backwards compatible permission evaluation for moving/renaming nodes
+  [OAK-834] Efficient copying of binaries across repositories
+  [OAK-891] Use DirectMemory as Level 2/Offheap cache
+  [OAK-924] Optimize namespace lookups
+  [OAK-1099] node creation noticeably slower with mongoMk compared to tarMk
+  [OAK-1275] Efficient MongoNodeState.getChildNodeEntries() for many child nodes
+  [OAK-1332] Large number of changes to the same node can fill observation queue
+  [OAK-1336] Query: use "union" for complex XPath queries that use "or"
+  [OAK-1352] Remove synchronization on MongoMK.diffImpl()
+  [OAK-1360] Rename o.a.j.o.plugins.mongomk to o.a.j.o.plugins.document
+  [OAK-1361] DocumentNodeState#compareAgainstBaseState too slow
+  [OAK-1366] Implement DocumentNodeState.getChildNodeCount(long)
+  [OAK-1367] Benchmark ObservationTest should register more than a single listener
+  [OAK-1373] Capture heap dump on OOME during tests
+  [OAK-1376] Upgrade Maven plugins
+  [OAK-1380] Restore from backup utility class
+  [OAK-1381] Avoid dependency to AbstractTree outside of oak.core package
+  [OAK-1386] Move tree type to permission implementation
 
 Bugs
 
-  [OAK-1094] CacheLIRS implementation incomplete
-  [OAK-1115] Remove of Subtree after Move is not subjected to permission validation
-  [OAK-1124] OAK-938 incomplete: session refresh must also be reflected on derived interfaces
-  [OAK-1180] oak nodetypes should have capital names
-  [OAK-1197] occasional test failure in org.apache.jackrabbit.oak.security.authorization.evaluation.MultipleSessionsACLStabilityTest.testAllowChild3
-  [OAK-1206] Consider renaming internal nodetypes and item names
-  [OAK-1223] Inconsistent entry filtering for ADD_NODE and REMOVE_NODE permission
-  [OAK-1233] IllegalStateException in MergeSortedIterators
-  [OAK-1247] Non-deterministic access control test failures
-  [OAK-1308] XPath queries with ISO9075 escaped properties don't work
-  [OAK-1311] Permission Cache causes non-deterministic access control test failures
-  [OAK-1313] Process does not exit after benchmark run
-  [OAK-1315] OSGiIT NPE parsing OsgiSecurityProvider.xml
-  [OAK-1316] AnnotatingConflictHandler does not set primary type of rep:ours nodes
-  [OAK-1318] EventIterator keeps references to already seen events
-  [OAK-1320] Inconsistent state in Mongo/KernelRootBuilder
-  [OAK-1321] Occasional ObservationTest failure: IllegalStateException
-  [OAK-1326] MongoNodeStoreService does not wire up MongoMK with Observer
-  [OAK-1330] Impersonation doesn't set Session attributes
-  [OAK-1334] TarFile initialized with wrong maxFileSize
-  [OAK-1345] Incorrect hasMore flag in nodeChildrenCache
-  [OAK-1346] Restore of OPV copy child node may fail
+  [OAK-825] Unnecessary performance overhead in MongoMK's calculation of keys for the nodeCache, nodeChildrenCache
+  [OAK-1215] Wildcards in relative property paths don't work in search expressions
+  [OAK-1285] QueryEngine#executeQuery takes NamePathMapper which is not part of oak-api
+  [OAK-1348] ACE merging not behaving correctly if not using managed principals
+  [OAK-1350] Inconsistent Principal Validation between API and Import behavior
+  [OAK-1354] Valid Query for mixin Type in JCR 2.x fails in Oak
+  [OAK-1358] Oak should only create one default executor
+  [OAK-1359] BlobStore implementation improvements
+  [OAK-1362] Add package-info.java files instead of using the project version for the package exports
+  [OAK-1363] TokenLoginModule does not set userId on auth info
+  [OAK-1364] CacheLIRS concurrency issue
+  [OAK-1365] RevisionTest.difference() fails occasionally
+  [OAK-1369] XPath queries: compatibility for missing @ in front of property names
+  [OAK-1371] SolrServerProvider OSGi properties should use label instead of name
+  [OAK-1374] Async indexer fails on the SegmentMK
+  [OAK-1377] Consolidate OsgiSecurityProvider and SecurityProviderImpl
+  [OAK-1382] Tests in oak-core and oak-jcr may run out of memory
+  [OAK-1383] Reduce memory usage of the cache
+  [OAK-1384] Background write does not update all _lastRev
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 0.14 release.
+all the changes included up to the Apache Jackrabbit Oak 0.15 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
