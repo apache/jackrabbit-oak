@@ -46,6 +46,7 @@ import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.LogOnce;
@@ -87,6 +88,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final ThreadLocal<Long> threadSaveCount;
     private final ListeningScheduledExecutorService scheduledExecutor =
             MoreExecutors.listeningDecorator(Executors.newSingleThreadScheduledExecutor());
+    private final StatisticManager statisticManager;
 
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
                           @Nonnull Whiteboard whiteboard,
@@ -96,6 +98,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.securityProvider = checkNotNull(securityProvider);
         this.threadSaveCount = new ThreadLocal<Long>();
         this.descriptors = determineDescriptors();
+        this.statisticManager = new StatisticManager(whiteboard);
     }
 
     //---------------------------------------------------------< Repository >---
@@ -222,7 +225,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             SessionDelegate sessionDelegate = createSessionDelegate(refreshStrategy, contentSession);
             SessionContext context = createSessionContext(
-                    securityProvider, createAttributes(refreshInterval), sessionDelegate);
+                    statisticManager, securityProvider, createAttributes(refreshInterval), sessionDelegate);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -261,6 +264,7 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     @Override
     public void shutdown() {
+        statisticManager.dispose();
         scheduledExecutor.shutdown();
     }
 
@@ -274,9 +278,9 @@ public class RepositoryImpl implements JackrabbitRepository {
      * @return session context
      */
     protected SessionContext createSessionContext(
-            SecurityProvider securityProvider, Map<String, Object> attributes,
-            SessionDelegate delegate) {
-        return new SessionContext(this, securityProvider, whiteboard, attributes, delegate);
+            StatisticManager statisticManager, SecurityProvider securityProvider,
+            Map<String, Object> attributes, SessionDelegate delegate) {
+        return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes, delegate);
     }
 
     /**

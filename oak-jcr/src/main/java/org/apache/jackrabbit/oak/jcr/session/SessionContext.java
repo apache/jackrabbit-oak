@@ -42,6 +42,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -79,6 +80,7 @@ public class SessionContext implements NamePathMapper {
     private static final Logger log = LoggerFactory.getLogger(SessionContext.class);
 
     private final Repository repository;
+    private final StatisticManager statisticManager;
     private final SecurityProvider securityProvider;
     private final Whiteboard whiteboard;
     private final Map<String, Object> attributes;
@@ -106,10 +108,11 @@ public class SessionContext implements NamePathMapper {
     private final Set<String> sessionScopedLocks = newHashSet();
 
     public SessionContext(
-            @Nonnull Repository repository, @Nonnull SecurityProvider securityProvider,
-            @Nonnull Whiteboard whiteboard, @Nonnull Map<String, Object> attributes,
-            @Nonnull final SessionDelegate delegate) {
+            @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
+            @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
+            @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate) {
         this.repository = checkNotNull(repository);
+        this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
         this.whiteboard = checkNotNull(whiteboard);
         this.attributes = checkNotNull(attributes);
@@ -165,6 +168,11 @@ public class SessionContext implements NamePathMapper {
     }
 
     @Nonnull
+    public StatisticManager getStatisticManager() {
+        return statisticManager;
+    }
+
+    @Nonnull
     public Repository getRepository() {
         return repository;
     }
@@ -178,6 +186,7 @@ public class SessionContext implements NamePathMapper {
         return namespaces;
     }
 
+    @Override
     @Nonnull
     public Map<String, String> getSessionLocalMappings() {
         return namespaces.getSessionLocalMappings();
