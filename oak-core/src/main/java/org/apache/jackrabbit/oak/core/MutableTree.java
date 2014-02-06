@@ -44,7 +44,6 @@ import static com.google.common.collect.Iterables.indexOf;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 class MutableTree extends AbstractTree {
 
@@ -104,7 +103,7 @@ class MutableTree extends AbstractTree {
     @Override
     public boolean exists() {
         beforeRead();
-        return isVisible();
+        return internalExists();
     }
 
     @Override
@@ -174,7 +173,6 @@ class MutableTree extends AbstractTree {
         if (parent != null && parent.hasChild(name)) {
             nodeBuilder.remove();
             if (parent.hasOrderableChildren()) {
-                // FIXME (OAK-842) child order not updated when parent is not accessible
                 parent.nodeBuilder.setProperty(
                         PropertyBuilder.copy(NAME, parent.nodeBuilder.getProperty(TreeConstants.OAK_CHILD_ORDER))
                                 .removeValue(name)
@@ -425,19 +423,9 @@ class MutableTree extends AbstractTree {
      */
     private void beforeWrite() throws IllegalStateException {
         beforeRead();
-        if (!isVisible()) {
+        if (!internalExists()) {
             throw new IllegalStateException("This tree does not exist");
         }
-    }
-
-    /**
-     * Internal method for checking whether this node exists and is visible
-     * (i.e. not hidden).
-     *
-     * @return {@code true} if the node is visible, {@code false} if not
-     */
-    private boolean isVisible() {
-        return !isHidden(name) && nodeBuilder.exists();
     }
 
     private boolean applyPendingMoves() {

@@ -153,6 +153,10 @@ public abstract class AbstractTree implements Tree {
         }
     }
 
+    protected boolean internalExists() {
+        return !isHidden(name) && nodeBuilder.exists();
+    }
+
     //---------------------------------------------------------------< Tree >---
 
     @Override
@@ -196,7 +200,7 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public boolean exists() {
-        return !isHidden(name) && nodeBuilder.exists();
+        return internalExists();
     }
 
     @Override
@@ -270,18 +274,18 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public Iterable<Tree> getChildren() {
-        return transform(
-                filter(getChildNames(), new Predicate<String>() {
-                    @Override
-                    public boolean apply(String name) {
-                        return !isHidden(name);
-                    }
-                }),
+        Iterable<Tree> children = transform(getChildNames(),
                 new Function<String, Tree>() {
                     @Override
                     public Tree apply(String name) {
                         return createChild(name);
                     }
                 });
+        return filter(children, new Predicate<Tree>() {
+            @Override
+            public boolean apply(Tree child) {
+                return ((AbstractTree) child).internalExists();
+            }
+        });
     }
 }

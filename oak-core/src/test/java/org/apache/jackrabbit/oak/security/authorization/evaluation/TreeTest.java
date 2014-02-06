@@ -32,6 +32,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TreeTest extends AbstractOakCoreTest {
 
@@ -106,6 +107,31 @@ public class TreeTest extends AbstractOakCoreTest {
             assertEquals(
                     root.getTree(path).getChildrenCount(Long.MAX_VALUE),
                     testRoot.getTree(path).getChildrenCount(Long.MAX_VALUE));
+        }
+    }
+
+    @Test
+    public void testGetChildren() throws Exception {
+        for (Tree t : testRoot.getTree("/a").getChildren()) {
+            if (!"b".equals(t.getName())) {
+                fail("Child " + t.getName() + " should not be accessible.");
+            }
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-842">OAK-842</a>
+     */
+    @Test
+    public void testOrderableChildren() throws Exception {
+        Tree a = root.getTree("/a");
+        a.setOrderableChildren(true);
+
+        testRoot.refresh();
+        for (Tree t : testRoot.getTree("/a").getChildren()) {
+            if (!"b".equals(t.getName())) {
+                fail("Child " + t.getName() + " should not be accessible.");
+            }
         }
     }
 
