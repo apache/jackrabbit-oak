@@ -57,6 +57,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -1244,13 +1245,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertArrayEquals(testPrivileges, privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES)));
         assertFalse(ace.hasChild(REP_RESTRICTIONS));
 
-        NodeUtil ace2 = new NodeUtil(children.next());
-        assertEquals(NT_REP_DENY_ACE, ace2.getPrimaryNodeTypeName());
-        assertEquals(EveryonePrincipal.NAME, ace2.getString(REP_PRINCIPAL_NAME, null));
-        assertArrayEquals(testPrivileges, privilegesFromNames(ace2.getNames(REP_PRIVILEGES)));
+        Tree ace2 = children.next();
+        assertEquals(NT_REP_DENY_ACE, TreeUtil.getPrimaryTypeName(ace2));
+        assertEquals(EveryonePrincipal.NAME, ace2.getProperty(REP_PRINCIPAL_NAME).getValue(Type.STRING));
+        Privilege[] privs = privilegesFromNames(TreeUtil.getNames(ace2, REP_PRIVILEGES));
+        assertArrayEquals(testPrivileges, privs);
         assertTrue(ace2.hasChild(REP_RESTRICTIONS));
-        NodeUtil restr = ace2.getChild(REP_RESTRICTIONS);
-        assertEquals("*/something", restr.getString(REP_GLOB, null));
+        Tree restr = ace2.getChild(REP_RESTRICTIONS);
+        assertEquals("*/something", restr.getProperty(REP_GLOB).getValue(Type.STRING));
     }
 
     @Test

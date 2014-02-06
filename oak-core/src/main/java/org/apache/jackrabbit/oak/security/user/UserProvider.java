@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -279,12 +280,13 @@ class UserProvider extends AuthorizableBaseProvider {
         // test for colliding folder child node.
         while (folder.hasChild(nodeName)) {
             NodeUtil colliding = folder.getChild(nodeName);
-            if (colliding.hasPrimaryNodeTypeName(NT_REP_AUTHORIZABLE_FOLDER)) {
+            String primaryType = TreeUtil.getPrimaryTypeName(colliding.getTree());
+            if (NT_REP_AUTHORIZABLE_FOLDER.equals(primaryType)) {
                 log.debug("Existing folder node collides with user/group to be created. Expanding path by: " + colliding.getName());
                 folder = colliding;
             } else {
                 String msg = "Failed to create authorizable with id '" + authorizableId + "' : " +
-                        "Detected conflicting node of unexpected node type '" + colliding.getPrimaryNodeTypeName() + "'.";
+                        "Detected conflicting node of unexpected node type '" + primaryType + "'.";
                 log.error(msg);
                 throw new ConstraintViolationException(msg);
             }
