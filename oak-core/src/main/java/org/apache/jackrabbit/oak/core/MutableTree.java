@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.tree.AbstractTree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.util.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 
 class MutableTree extends AbstractTree {
 
