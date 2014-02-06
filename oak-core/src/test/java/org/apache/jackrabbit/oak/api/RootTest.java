@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
-
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 
 /**
  * Contains tests related to {@link Root}
@@ -45,27 +45,6 @@ public class RootTest extends OakBaseTest {
     @After
     public void tearDown() {
         repository = null;
-    }
-
-    @Test
-    public void copyOrderableNodes() throws Exception {
-        ContentSession s = repository.login(null, null);
-        try {
-            Root r = s.getLatestRoot();
-            Tree t = r.getTree("/");
-            Tree c = t.addChild("c");
-            c.addChild("node1").orderBefore(null);
-            c.addChild("node2");
-            t.addChild("node3");
-            r.commit();
-
-            r.copy("/node3", "/c/node3");
-            assertSequence(c.getChildren(), "node1", "node2", "node3");
-            r.commit();
-            assertSequence(c.getChildren(), "node1", "node2", "node3");
-        } finally {
-            s.close();
-        }
     }
 
     @Test

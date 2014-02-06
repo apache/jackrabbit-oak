@@ -116,11 +116,6 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean copyTo(NodeBuilder newParent, String newName) {
-        throw unsupported();
-    }
-
-    @Override
     public long getPropertyCount() {
         return state.getPropertyCount();
     }

@@ -119,7 +119,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion2  <!-- OAK-168 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.VersionManagementTest#testRemoveVersion3  <!-- OAK-168 -->
 
-      org.apache.jackrabbit.oak.jcr.security.authorization.CopyTest#testCopyInvisibleSubTree         <!-- OAK-920 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveSubTreeBack4     <!-- OAK-710 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveDestParent2      <!-- OAK-710 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveDestParent4      <!-- OAK-710 -->

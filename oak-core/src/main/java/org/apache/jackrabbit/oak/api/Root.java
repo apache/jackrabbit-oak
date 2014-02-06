@@ -64,26 +64,6 @@ public interface Root {
     boolean move(String sourcePath, String destPath);
 
     /**
-     * Copy the child located at {@code sourcePath} to a child at {@code destPath}.
-     * Both paths must be absolute and resolve to a child located in this root.<br>
-     *
-     * This method does nothing an returns {@code false} if
-     * <ul>
-     *     <li>The tree at {@code sourcePath} does exist or is not accessible,</li>
-     *     <li>the parent of the tree at {@code destinationPath} does not exist or is not accessible,</li>
-     *     <li>a tree already exists at {@code destinationPath}.</li>
-     * </ul>
-     * If a tree at {@code destinationPath} exists but is not accessible to the
-     * editing content session this method succeeds but a subsequent
-     * {@link #commit()} will detect the violation and fail.
-     *
-     * @param sourcePath source path
-     * @param destPath destination path
-     * @return  {@code true} on success, {@code false} otherwise.
-     */
-    boolean copy(String sourcePath, String destPath);
-
-    /**
      * Retrieve the possible non existing {@code Tree} at the given absolute {@code path}.
      * The path must resolve to a tree in this root.
      *

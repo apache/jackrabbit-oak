@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * This implementation tracks the number of pending changes and purges them to
  * a private branch of the underlying store if a certain threshold is met.
  */
-class KernelRootBuilder extends MemoryNodeBuilder implements FastCopyMove {
+class KernelRootBuilder extends MemoryNodeBuilder implements FastMove {
 
     /**
      * Number of content updates that need to happen before the updates
@@ -100,12 +100,6 @@ class KernelRootBuilder extends MemoryNodeBuilder implements FastCopyMove {
     public boolean moveFrom(KernelNodeBuilder source, String newName) {
         String sourcePath = source.getPath();
         return move(sourcePath, '/' + newName);
-    }
-
-    @Override
-    public boolean copyFrom(KernelNodeBuilder source, String newName) {
-        String sourcePath = source.getPath();
-        return copy(sourcePath, '/' + newName);
     }
 
     //------------------------------------------------------------< internal >---
