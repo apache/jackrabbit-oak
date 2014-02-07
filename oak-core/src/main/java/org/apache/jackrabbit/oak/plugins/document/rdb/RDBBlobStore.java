@@ -30,6 +30,8 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RDBBlobStore extends AbstractBlobStore {
 
@@ -81,19 +83,37 @@ public class RDBBlobStore extends AbstractBlobStore {
         }
     }
 
+    private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStore.class);
+
     private Connection connection;
 
     private void initialize(Connection con) throws Exception {
         con.setAutoCommit(false);
 
-        Statement stmt = con.createStatement();
-        stmt.execute("create table if not exists datastore_meta" + "(id varchar primary key, level int, lastMod bigint)");
-        stmt.execute("create table if not exists datastore_data" + "(id varchar primary key, data binary)");
-        stmt.close();
-
-        con.commit();
+        try {
+            createTables(con, "binary");
+        } catch (SQLException ex) {
+            con.rollback();
+            LOG.debug("failed to create tables, retrying after getting DB metadata", ex);
+            // try to query database meta info for binary type
+            String btype = RDBMeta.findBinaryType(con.getMetaData());
+            if (btype == null) {
+                String message = "Could not determine binary type for " + RDBMeta.getDataBaseName(con.getMetaData());
+                LOG.error(message);
+                throw new Exception(message);
+            }
+            createTables(con, btype);
+        }
 
         this.connection = con;
+    }
+
+    private void createTables(Connection con, String binaryType) throws SQLException {
+        Statement stmt = con.createStatement();
+        stmt.execute("create table if not exists datastore_meta (id varchar primary key, level int, lastMod bigint)");
+        stmt.execute("create table if not exists datastore_data (id varchar primary key, data " + binaryType + ")");
+        stmt.close();
+        con.commit();
     }
 
     private long minLastModified;
@@ -106,7 +126,7 @@ public class RDBBlobStore extends AbstractBlobStore {
             throw new IOException(e);
         }
     }
-    
+
     private void storeBlockInDatabase(byte[] digest, int level, byte[] data) throws SQLException {
         try {
             String id = StringUtils.convertBytesToHex(digest);
@@ -222,7 +242,7 @@ public class RDBBlobStore extends AbstractBlobStore {
             throw new IOException(e);
         }
     }
-        
+
     private int sweepFromDatabase() throws SQLException {
         try {
             int count = 0;
