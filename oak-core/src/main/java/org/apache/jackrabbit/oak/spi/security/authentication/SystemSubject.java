@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import java.security.Principal;
 import java.util.Collections;
+import java.util.Set;
+
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 
 /**
@@ -34,6 +38,9 @@ public final class SystemSubject {
     private SystemSubject() {}
 
     private static Subject createSystemSubject() {
-        return new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
+        // TODO: workaround for OAK-1404
+        Set<? extends Principal> principals = Collections.singleton(SystemPrincipal.INSTANCE);
+        AuthInfo info = new AuthInfoImpl("system", null, principals);
+        return new Subject(true, principals, Collections.singleton(info), Collections.<Object>emptySet());
     }
 }
