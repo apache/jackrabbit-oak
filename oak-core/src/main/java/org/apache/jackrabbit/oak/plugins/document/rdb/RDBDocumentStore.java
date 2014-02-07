@@ -65,7 +65,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     /**
-     * Creates a {@linkplain RDBDocumentStore} instance using the provided {@link DataSource}.
+     * Creates a {@linkplain RDBDocumentStore} instance using the provided
+     * {@link DataSource}.
      */
     public RDBDocumentStore(DataSource ds) {
         try {
@@ -385,6 +386,11 @@ public class RDBDocumentStore implements DocumentStore {
             connection.commit();
             return success;
         } catch (SQLException ex) {
+            try {
+                connection.rollback();
+            } catch (SQLException e) {
+                // TODO
+            }
             throw new MicroKernelException(ex);
         }
     }
@@ -398,6 +404,11 @@ public class RDBDocumentStore implements DocumentStore {
             dbInsert(connection, tableName, document.getId(), modified, modcount, data);
             connection.commit();
         } catch (SQLException ex) {
+            try {
+                connection.rollback();
+            } catch (SQLException e) {
+                // TODO
+            }
             throw new MicroKernelException(ex);
         }
     }
