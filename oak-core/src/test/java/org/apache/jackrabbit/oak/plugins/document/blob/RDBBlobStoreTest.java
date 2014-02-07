@@ -34,6 +34,8 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     public void tearDown() throws Exception {
         super.tearDown();
-        blobStore.dispose();
+        if (blobStore != null) {
+            blobStore.dispose();
+        }
     }
 }
