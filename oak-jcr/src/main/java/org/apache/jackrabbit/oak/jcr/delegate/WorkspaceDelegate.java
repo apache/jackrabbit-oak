@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.util.TreeUtil;
-import org.apache.jackrabbit.test.api.util.Text;
+import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
