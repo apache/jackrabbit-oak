@@ -38,7 +38,6 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
-import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
@@ -48,7 +47,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.apache.jackrabbit.oak.util.TODO;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -64,14 +62,14 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public Node setActivity(Node activity) throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        throw new UnsupportedRepositoryOperationException("OAK-827: Activities not implemented.");
     }
 
     @Override
     public void restoreByLabel(
             String absPath, String versionLabel, boolean removeExisting)
             throws RepositoryException {
-        TODO.unimplemented().doNothing();
+        throw new UnsupportedRepositoryOperationException("OAK-168: Restore of by label not implemented.");
     }
 
     @Override
@@ -158,8 +156,7 @@ public class VersionManagerImpl implements VersionManager {
             UnsupportedRepositoryOperationException, VersionException,
             LockException, InvalidItemStateException, RepositoryException {
         if (versions.length > 1) {
-            // TODO: implement restore of multiple versions
-            TODO.unimplemented().doNothing(); // TODO: RETURN
+            throw new UnsupportedRepositoryOperationException("OAK-168: Restore of multiple versions not implemented.");
         }
         final Version version = versions[0];
         VersionHistory history = (VersionHistory) version.getParent();
@@ -221,7 +218,7 @@ public class VersionManagerImpl implements VersionManager {
     @Override
     public void removeActivity(Node activityNode)
             throws RepositoryException {
-        TODO.unimplemented().doNothing();
+        throw new UnsupportedRepositoryOperationException("OAK-827: Activities not implemented.");
     }
 
     @Override
@@ -229,19 +226,19 @@ public class VersionManagerImpl implements VersionManager {
             String absPath, String srcWorkspace,
             boolean bestEffort, boolean isShallow)
             throws RepositoryException {
-        return TODO.unimplemented().returnValue(NodeIteratorAdapter.EMPTY);
+        throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
     @Override
     public NodeIterator merge(
             String absPath, String srcWorkspace, boolean bestEffort)
             throws RepositoryException {
-        return TODO.unimplemented().returnValue(NodeIteratorAdapter.EMPTY);
+        throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
     @Override
     public NodeIterator merge(Node activityNode) throws RepositoryException {
-        return TODO.unimplemented().returnValue(NodeIteratorAdapter.EMPTY);
+        throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
     private String getOakPathOrThrowNotFound(String absPath) throws PathNotFoundException {
@@ -296,23 +293,23 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public Node getActivity() throws RepositoryException {
-        return null;//TODO.unimplemented().returnValue(null);
+        throw new UnsupportedRepositoryOperationException("OAK-827: Activities not implemented.");
     }
 
     @Override
     public void doneMerge(String absPath, Version version)
             throws RepositoryException {
-        TODO.unimplemented().doNothing();
+        throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
     @Override
     public Node createConfiguration(String absPath) throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        throw new UnsupportedRepositoryOperationException("OAK-1403: Configurations not implemented.");
     }
 
     @Override
     public Node createActivity(String title) throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        throw new UnsupportedRepositoryOperationException("OAK-827: Activities not implemented.");
     }
 
     @Override
@@ -358,9 +355,8 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     @Override
-    public void cancelMerge(String absPath, Version version)
-            throws RepositoryException {
-        TODO.unimplemented().doNothing();
+    public void cancelMerge(String absPath, Version version) throws RepositoryException {
+        throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
     //----------------------------< internal >----------------------------------
