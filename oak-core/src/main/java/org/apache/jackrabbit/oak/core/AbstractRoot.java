@@ -29,7 +29,6 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -40,15 +39,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.FailingValidator;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
-import org.apache.jackrabbit.oak.spi.commit.SubtreeExcludingValidator;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -63,7 +57,6 @@ import org.apache.jackrabbit.oak.util.LazyValue;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
@@ -232,17 +225,18 @@ abstract class AbstractRoot implements Root {
 
     @Override
     public void commit() throws CommitFailedException {
-        commit(null, null);
+        commit(null, "/");
     }
 
     @Override
-    public void commit(@Nullable String message, @Nullable String path)
+    public void commit(@Nullable String message, @Nonnull String path)
             throws CommitFailedException {
         checkLive();
         ContentSession session = getContentSession();
         CommitInfo info = new CommitInfo(
-                session.toString(), session.getAuthInfo().getUserID(), message);
-        store.merge(builder, getCommitHook(path), info);
+                session.toString(), session.getAuthInfo().getUserID(),
+                message, path);
+        store.merge(builder, getCommitHook(), info);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
@@ -253,27 +247,13 @@ abstract class AbstractRoot implements Root {
 
     /**
      * Combine the globally defined commit hook(s) and the hooks and validators defined by the
-     * various security related configurations. In addition a commit hook is added to check
-     * that the {@code path} to commit contains all unpersisted changes and to fail the
-     * commit otherwise.
+     * various security related configurations.
      *
-     * @param path path to commit
      * @return A commit hook combining repository global commit hook(s) with the pluggable hooks
      *         defined with the security modules and the padded {@code hooks}.
      */
-    private CommitHook getCommitHook(@Nullable final String path) {
+    private CommitHook getCommitHook() {
         List<CommitHook> hooks = newArrayList();
-
-        if (path != null) {
-            hooks.add(new EditorHook(new EditorProvider() {
-                @Override
-                public Editor getRootEditor(
-                        NodeState before, NodeState after,
-                        NodeBuilder builder, CommitInfo info) {
-                    return new ItemSaveValidator(path);
-                }
-            }));
-        }
 
         hooks.add(hook);
 
@@ -435,54 +415,6 @@ abstract class AbstractRoot implements Root {
             return source == null
                     ? "NIL"
                     : '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
-        }
-    }
-
-    //------------------------------------------------------------< ItemSaveValidator >---
-
-    /**
-     * This validator checks that all changes are contained within the subtree
-     * rooted at a given path.
-     */
-    private static class ItemSaveValidator extends SubtreeExcludingValidator {
-
-        /**
-         * Name of the property whose {@link #propertyChanged(org.apache.jackrabbit.oak.api.PropertyState, org.apache.jackrabbit.oak.api.PropertyState)} to
-         * ignore or {@code null} if no property should be ignored.
-         */
-        private final String ignorePropertyChange;
-
-        /**
-         * Create a new validator that only throws a {@link CommitFailedException} whenever
-         * there are changes not contained in the subtree rooted at {@code path}.
-         * @param path
-         */
-        public ItemSaveValidator(String path) {
-            this(new FailingValidator(CommitFailedException.UNSUPPORTED, 0,
-                    "Failed to save subtree at " + path + ". There are " +
-                            "transient modifications outside that subtree."),
-                    newArrayList(elements(path)));
-        }
-
-        private ItemSaveValidator(Validator validator, List<String> path) {
-            super(validator, path);
-            // Ignore property changes if this is the head of the path.
-            // This allows for calling save on a changed property.
-            ignorePropertyChange = path.size() == 1 ? path.get(0) : null;
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after)
-                throws CommitFailedException {
-            if (!before.getName().equals(ignorePropertyChange)) {
-                super.propertyChanged(before, after);
-            }
-        }
-
-        @Override
-        protected SubtreeExcludingValidator createValidator(
-                Validator validator, final List<String> path) {
-            return new ItemSaveValidator(validator, path);
         }
     }
 

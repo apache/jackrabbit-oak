@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.itemsave.ItemSaveValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
@@ -67,6 +68,7 @@ public class Jcr {
 
         with(new SecurityProviderImpl());
 
+        with(new ItemSaveValidatorProvider());
         with(new NameValidatorProvider());
         with(new NamespaceEditorProvider());
         with(new TypeEditorProvider());

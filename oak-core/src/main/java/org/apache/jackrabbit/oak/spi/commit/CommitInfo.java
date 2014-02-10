@@ -49,6 +49,8 @@ public final class CommitInfo {
 
     private final long date = System.currentTimeMillis();
 
+    private final String path;
+
     /**
      * Creates a commit info for the given session and user.
      *
@@ -56,10 +58,19 @@ public final class CommitInfo {
      * @param userId The user id.
      * @param message message attached to this commit, or {@code null}
      */
-    public CommitInfo(@Nonnull String sessionId, @Nullable String userId, @Nullable String message) {
+    public CommitInfo(
+            @Nonnull String sessionId, @Nullable String userId,
+            @Nullable String message) {
+        this(sessionId, userId, message, "/");
+    }
+
+    public CommitInfo(
+            @Nonnull String sessionId, @Nullable String userId,
+            @Nullable String message, @Nonnull String path) {
         this.sessionId = checkNotNull(sessionId);
         this.userId = (userId == null) ? OAK_UNKNOWN : userId;
         this.message = message;
+        this.path = checkNotNull(path);
     }
 
     /**
@@ -93,6 +104,10 @@ public final class CommitInfo {
         return date;
     }
 
+    public String getPath() {
+        return path;
+    }
+
     //------------------------------------------------------------< Object >--
 
     @Override
@@ -104,7 +119,8 @@ public final class CommitInfo {
             return sessionId.equals(that.sessionId)
                     && userId.equals(that.userId)
                     && Objects.equal(this.message, that.message)
-                    && this.date == that.date;
+                    && this.date == that.date
+                    && path.equals(that.path);
         } else {
             return false;
         }
@@ -112,7 +128,7 @@ public final class CommitInfo {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(sessionId, userId, message, date);
+        return Objects.hashCode(sessionId, userId, message, date, path);
     }
 
     @Override
@@ -122,6 +138,7 @@ public final class CommitInfo {
                 .add("userId", userId)
                 .add("userData", message)
                 .add("date", date)
+                .add("path", path)
                 .toString();
     }
 
