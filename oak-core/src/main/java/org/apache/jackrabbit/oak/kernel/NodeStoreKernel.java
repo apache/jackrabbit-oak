@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -218,9 +219,25 @@ public class NodeStoreKernel implements MicroKernel {
                     throw new MicroKernelException("Move failed");
                 }
                 break;
+            case '*':
+                tokenizer.read(':');
+                String copyTarget = tokenizer.readString();
+                String copyTargetPath = getParentPath(copyTarget);
+                String copyTargetName = getName(copyTarget);
+
+                NodeState copySource = getNode(builder, path).getNodeState();
+                NodeBuilder copyTargetParent = getNode(builder, copyTargetPath);
+                if (copySource.exists()
+                        && !copyTargetParent.hasChildNode(copyTargetName)) {
+                    copyTargetParent.setChildNode(copyTargetName, copySource);
+                } else {
+                    throw new MicroKernelException("Copy failed");
+                }
+                break;
             default:
                 throw new MicroKernelException(
-                        "Unexpected token: " + tokenizer.getEscapedToken());
+                        "Unexpected token " + (char) token
+                        + " in " + jsonDiff);
             }
             token = tokenizer.read();
         }
