@@ -1,20 +1,20 @@
-/*************************************************************************
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * ADOBE CONFIDENTIAL
- * ___________________
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Copyright ${today.year} Adobe Systems Incorporated
- *  All Rights Reserved.
- *
- * NOTICE:  All information contained herein is, and remains
- * the property of Adobe Systems Incorporated and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Adobe Systems Incorporated and its
- * suppliers and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Adobe Systems Incorporated.
- **************************************************************************/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Map;
@@ -47,8 +47,9 @@ public class SyncConfig {
             return expirationTime;
         }
 
-        public void setExpirationTime(long expirationTime) {
+        public Authorizable setExpirationTime(long expirationTime) {
             this.expirationTime = expirationTime;
+            return this;
         }
 
         /**
@@ -59,8 +60,9 @@ public class SyncConfig {
             return autoMembership;
         }
 
-        public void setAutoMembership(Set<String> autoMembership) {
+        public Authorizable setAutoMembership(Set<String> autoMembership) {
             this.autoMembership = autoMembership;
+            return this;
         }
 
         /**
@@ -83,8 +85,9 @@ public class SyncConfig {
             return propertyMapping;
         }
 
-        public void setPropertyMapping(Map<String, String> propertyMapping) {
+        public Authorizable setPropertyMapping(Map<String, String> propertyMapping) {
             this.propertyMapping = propertyMapping;
+            return this;
         }
 
         /**
@@ -96,8 +99,9 @@ public class SyncConfig {
             return pathPrefix;
         }
 
-        public void setPathPrefix(String pathPrefix) {
+        public Authorizable setPathPrefix(String pathPrefix) {
             this.pathPrefix = pathPrefix;
+            return this;
         }
     }
 
@@ -123,8 +127,9 @@ public class SyncConfig {
             return membershipExpirationTime;
         }
 
-        public void setMembershipExpirationTime(long membershipExpirationTime) {
+        public User setMembershipExpirationTime(long membershipExpirationTime) {
             this.membershipExpirationTime = membershipExpirationTime;
+            return this;
         }
 
         /**
@@ -137,8 +142,9 @@ public class SyncConfig {
             return groupNestingDepth;
         }
 
-        public void setGroupNestingDepth(long groupNestingDepth) {
+        public User setGroupNestingDepth(long groupNestingDepth) {
             this.groupNestingDepth = groupNestingDepth;
+            return this;
         }
 
     }

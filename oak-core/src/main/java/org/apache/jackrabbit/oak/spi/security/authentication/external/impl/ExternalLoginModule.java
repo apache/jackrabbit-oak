@@ -133,13 +133,11 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
 
         try {
-            ExternalUser externalUser = idp.authenticate(credentials);
+            externalUser = idp.authenticate(credentials);
             if (externalUser != null) {
-                log.debug("Adding Credentials to shared state.");
                 //noinspection unchecked
                 sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
 
-                log.debug("Adding login name to shared state.");
                 //noinspection unchecked
                 sharedState.put(SHARED_KEY_LOGIN_NAME, externalUser.getId());
 
@@ -224,7 +222,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
     @Override
     protected void clearState() {
         super.clearState();
-        idp = null;
         externalUser = null;
     }
 }

@@ -1,20 +1,19 @@
-/*************************************************************************
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * ADOBE CONFIDENTIAL
- * ___________________
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Copyright ${today.year} Adobe Systems Incorporated
- *  All Rights Reserved.
- *
- * NOTICE:  All information contained herein is, and remains
- * the property of Adobe Systems Incorporated and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Adobe Systems Incorporated and its
- * suppliers and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Adobe Systems Incorporated.
- **************************************************************************/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.io.IOException;
@@ -35,6 +34,7 @@ import org.apache.directory.api.ldap.model.message.SearchRequest;
 import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
 import org.apache.directory.api.ldap.model.message.SearchResultEntry;
 import org.apache.directory.api.ldap.model.message.SearchScope;
+import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.felix.scr.annotations.Activate;
@@ -92,7 +92,6 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     private void activate(Map<String, Object> properties) {
         ConfigurationParameters cfg = ConfigurationParameters.of(properties);
         config = LdapProviderConfig.of(cfg);
-        log.error("***** activate {}: {}", this, properties);
     }
 
     @Nonnull
@@ -177,7 +176,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         req.setScope(SearchScope.SUBTREE);
         req.addAttributes("*");
         req.setTimeLimit(config.getSearchTimeout());
-        req.setBase(idConfig.getBaseDN());
+        req.setBase(new Dn(idConfig.getBaseDN()));
         req.setFilter(searchFilter);
 
         log.debug("Searching entries below {} with {}", idConfig.getBaseDN(), searchFilter);
@@ -234,7 +233,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
 
     private LdapConnection connect() throws ExternalIdentityException {
         try {
-            LdapConnection connection = new LdapNetworkConnection(config.getHost(), config.getPort(), config.isUseSSL());
+            LdapConnection connection = new LdapNetworkConnection(config.getHostname(), config.getPort(), config.useSSL());
             if (config.getBindDN().length() > 0) {
                 connection.bind(config.getBindDN(), config.getBindPassword());
             } else {
