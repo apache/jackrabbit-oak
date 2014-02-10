@@ -14,12 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-// for now also export this package so that the jaas login modules so that they can be instantiated via a felix LoginModuleFactory
-// todo: find better solution
-@Version("0.16")
-@Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.security.authentication.ldap;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 
-import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
+public class LdapUser extends LdapIdentity implements ExternalUser {
+
+    private final String pwd;
+
+    public LdapUser(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String pwd) {
+        super(provider, ref, id);
+        this.pwd = pwd;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getPassword() {
+        return pwd;
+    }
+
+}

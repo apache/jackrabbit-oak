@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncMode;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;

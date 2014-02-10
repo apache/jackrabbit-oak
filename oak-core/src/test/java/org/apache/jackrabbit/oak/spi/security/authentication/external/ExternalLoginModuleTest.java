@@ -28,6 +28,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

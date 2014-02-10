@@ -15,7 +15,7 @@
  * is strictly forbidden unless prior written permission is obtained
  * from Adobe Systems Incorporated.
  **************************************************************************/
-package org.apache.jackrabbit.oak.security.authentication.ldap;
+package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.io.IOException;
 import java.util.Map;
@@ -37,6 +37,11 @@ import org.apache.directory.api.ldap.model.message.SearchResultEntry;
 import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -49,7 +54,14 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code LdapIdentityProvider} implements an external identity provider that reads users and groups from an ldap
  * source.
+ *
+ * Please refer to {@link LdapProviderConfig} for configuration options.
  */
+@Component(
+        // note that the metatype information is generated from LdapProviderConfig
+        policy = ConfigurationPolicy.REQUIRE
+)
+@Service
 public class LdapIdentityProvider implements ExternalIdentityProvider {
 
     /**
@@ -57,13 +69,36 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
      */
     private static final Logger log = LoggerFactory.getLogger(LdapIdentityProvider.class);
 
-
+    /**
+     * internal configuration
+     */
     private LdapProviderConfig config;
+
+    /**
+     * Default constructor for OSGi
+     */
+    public LdapIdentityProvider() {
+    }
+
+    /**
+     * Constructor for non-OSGi cases.
+     * @param config the configuration
+     */
+    public LdapIdentityProvider(LdapProviderConfig config) {
+        this.config = config;
+    }
+
+    @Activate
+    private void activate(Map<String, Object> properties) {
+        ConfigurationParameters cfg = ConfigurationParameters.of(properties);
+        config = LdapProviderConfig.of(cfg);
+        log.error("***** activate {}: {}", this, properties);
+    }
 
     @Nonnull
     @Override
     public String getName() {
-        return "ldap";
+        return config.getName();
     }
 
     @Override
@@ -199,9 +234,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
 
     private LdapConnection connect() throws ExternalIdentityException {
         try {
-            LdapConnection connection = new LdapNetworkConnection(config.getHost(), config.getPort(), config.isSecure());
-            if (config.getAuthDn().length() > 0) {
-                connection.bind(config.getAuthDn(), config.getAuthPw());
+            LdapConnection connection = new LdapNetworkConnection(config.getHost(), config.getPort(), config.isUseSSL());
+            if (config.getBindDN().length() > 0) {
+                connection.bind(config.getBindDN(), config.getBindPassword());
             } else {
                 connection.bind();
             }
