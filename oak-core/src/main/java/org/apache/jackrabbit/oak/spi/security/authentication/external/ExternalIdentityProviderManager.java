@@ -14,18 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.ldap;
+package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.security.auth.login.LoginException;
 
-public interface LdapSearch {
+/**
+ * The external identity provider management.
+ *
+ * The default manager is registered as OSGi service and can also be retrieved via
+ * {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider#getConfiguration(Class)}
+ */
+public interface ExternalIdentityProviderManager {
 
-    boolean findUser(@Nonnull LdapUser user);
-
-    @Nonnull
-    Set<LdapGroup> findGroups(@Nonnull LdapUser user);
-
-    boolean authenticate(@Nonnull LdapUser user) throws LoginException;
+    /**
+     * Returns the registered identity provider with the given name.
+     * @param name the provider name
+     * @return the registered provider or {@code null}
+     */
+    @CheckForNull
+    ExternalIdentityProvider getProvider(@Nonnull String name);
 }

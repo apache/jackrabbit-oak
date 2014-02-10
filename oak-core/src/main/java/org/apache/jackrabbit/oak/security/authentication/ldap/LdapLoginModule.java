@@ -41,14 +41,14 @@ public final class LdapLoginModule extends ExternalLoginModule {
     private LdapUser ldapUser;
     private boolean success;
 
-    private LdapSearch search;
+//    private LdapSearch search;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
         super.initialize(subject, callbackHandler, sharedState, options);
         //TODO
-        search = new JndiLdapSearch(new LdapSettings(options));
+//        search = new JndiLdapSearch(new LdapProviderConfig(options));
     }
 
     @Override
@@ -73,16 +73,16 @@ public final class LdapLoginModule extends ExternalLoginModule {
     @Override
     public boolean login() throws LoginException {
         ldapUser = getExternalUser();
-        if (ldapUser != null && search.findUser(ldapUser)) {
-            if (search.authenticate(ldapUser)) {
-                success = true;
-                log.debug("Adding Credentials to shared state.");
-                sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
-
-                log.debug("Adding login name to shared state.");
-                sharedState.put(SHARED_KEY_LOGIN_NAME, ldapUser.getId());
-            }
-        }
+//        if (ldapUser != null && search.findUser(ldapUser)) {
+//            if (search.authenticate(ldapUser)) {
+//                success = true;
+//                log.debug("Adding Credentials to shared state.");
+//                sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
+//
+//                log.debug("Adding login name to shared state.");
+//                sharedState.put(SHARED_KEY_LOGIN_NAME, ldapUser.getId());
+//            }
+//        }
         return success;
     }
 
@@ -93,23 +93,21 @@ public final class LdapLoginModule extends ExternalLoginModule {
         success = false;
         credentials = null;
         ldapUser = null;
-        search = null;
+//        search = null;
     }
 
     //------------------------------------------------< ExternalLoginModule >---
-    @Override
     protected boolean loginSucceeded() {
         return success;
     }
 
-    @Override
     protected LdapUser getExternalUser() {
         if (ldapUser == null) {
             credentials = getCredentials();
             if (credentials instanceof SimpleCredentials) {
                 String uid = ((SimpleCredentials) credentials).getUserID();
                 char[] pwd = ((SimpleCredentials) credentials).getPassword();
-                return new LdapUser(uid, new String(pwd), search);
+//                return new LdapUser(uid, new String(pwd), search);
             }
         }
         return ldapUser;

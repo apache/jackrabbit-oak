@@ -139,7 +139,7 @@ public class DefaultSyncHandler implements SyncHandler {
         }
     }
 
-    private void syncAuthorizable(ExternalUser externalUser, Authorizable authorizable) throws RepositoryException, SyncException {
+    private void syncAuthorizable(ExternalIdentity externalUser, Authorizable authorizable) throws RepositoryException, SyncException {
         for (ExternalGroup externalGroup : externalUser.getGroups()) {
             String groupId = externalGroup.getId();
             Group group;
