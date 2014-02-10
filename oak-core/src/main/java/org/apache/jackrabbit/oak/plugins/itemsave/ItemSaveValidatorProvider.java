@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.itemsave;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -35,7 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 @Service(EditorProvider.class)
 public class ItemSaveValidatorProvider extends ValidatorProvider {
 
-    @Override
+    @Override  @CheckForNull
     protected Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
         String path = info.getPath();
