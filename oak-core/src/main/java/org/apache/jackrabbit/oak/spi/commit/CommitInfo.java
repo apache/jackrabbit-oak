@@ -104,6 +104,17 @@ public final class CommitInfo {
         return date;
     }
 
+    /**
+     * Returns the base path of this commit. All changes within this commit
+     * are expected to be located within the returned path. By default this
+     * is the root path, but a particular commit can declare a more specific
+     * base path to indicate that only changes within that subtree should
+     * be considered. Note that this value is purely informational and its
+     * interpretation depends on the kinds of commit hooks and observers
+     * present on the system.
+     *
+     * @return base path of this commit
+     */
     public String getPath() {
         return path;
     }
