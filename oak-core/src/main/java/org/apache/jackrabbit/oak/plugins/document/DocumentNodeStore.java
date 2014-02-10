@@ -232,9 +232,9 @@ public final class DocumentNodeStore
     /**
      * Diff cache.
      *
-     * Key: PathRev, value: Diff
+     * Key: PathRev, value: StringValue
      */
-    private final Cache<CacheValue, Diff> diffCache;
+    private final Cache<CacheValue, StringValue> diffCache;
     private final CacheStats diffCacheStats;
 
     /**
@@ -316,7 +316,8 @@ public final class DocumentNodeStore
             Node n = new Node("/", head);
             commit.addNode(n);
             commit.applyToDocumentStore();
-            commit.applyToCache(false);
+            // use dummy Revision as before
+            commit.applyToCache(new Revision(0, 0, clusterId), false);
             setHeadRevision(commit.getRevision());
             // make sure _lastRev is written back to store
             backgroundWrite();
@@ -453,7 +454,7 @@ public final class DocumentNodeStore
 
     void done(@Nonnull Commit c, boolean isBranch, @Nullable CommitInfo info) {
         try {
-            commitQueue.done(c.getRevision(), isBranch, info);
+            commitQueue.done(c, isBranch, info);
         } finally {
             backgroundOperationLock.readLock().unlock();
         }
@@ -618,7 +619,6 @@ public final class DocumentNodeStore
         // this gives us a chance to detect whether there are more
         // child nodes than requested.
         int rawLimit = (int) Math.min(Integer.MAX_VALUE, ((long) limit) + 1);
-        Set<Revision> validRevisions = new HashSet<Revision>();
         for (;;) {
             c.children.clear();
             docs = readChildDocs(path, name, rawLimit);
@@ -626,10 +626,11 @@ public final class DocumentNodeStore
             for (NodeDocument doc : docs) {
                 numReturned++;
                 // filter out deleted children
-                if (doc.isDeleted(this, rev, validRevisions)) {
+                String p = Utils.getPathFromId(doc.getId());
+                Node child = getNode(p, rev);
+                if (child == null) {
                     continue;
                 }
-                String p = Utils.getPathFromId(doc.getId());
                 if (c.children.size() < limit) {
                     // add to children until limit is reached
                     c.children.add(p);
@@ -767,7 +768,8 @@ public final class DocumentNodeStore
     /**
      * Apply the changes of a node to the cache.
      *
-     * @param rev the revision
+     * @param rev the commit revision
+     * @param before the revision right before the commit.
      * @param path the path
      * @param isNew whether this is a new node
      * @param isDelete whether the node is deleted
@@ -775,12 +777,13 @@ public final class DocumentNodeStore
      * @param isBranchCommit whether this is from a branch commit
      * @param added the list of added child nodes
      * @param removed the list of removed child nodes
+     * @param changed the list of changed child nodes.
      *
      */
-    public void applyChanges(Revision rev, String path,
+    public void applyChanges(Revision rev, Revision before, String path,
                              boolean isNew, boolean isDelete, boolean pendingLastRev,
-                             boolean isBranchCommit, ArrayList<String> added,
-                             ArrayList<String> removed) {
+                             boolean isBranchCommit, List<String> added,
+                             List<String> removed, List<String> changed) {
         UnsavedModifications unsaved = unsavedLastRevisions;
         if (isBranchCommit) {
             Revision branchRev = rev.asBranchRevision();
@@ -788,34 +791,34 @@ public final class DocumentNodeStore
         }
         if (isBranchCommit || pendingLastRev) {
             // write back _lastRev with background thread
-            Revision prev = unsaved.put(path, rev);
-            if (prev != null) {
-                if (isRevisionNewer(prev, rev)) {
-                    // revert
-                    unsaved.put(path, prev);
-                    String msg = String.format("Attempt to update " +
-                            "unsavedLastRevision for %s with %s, which is " +
-                            "older than current %s.",
-                            path, rev, prev);
-                    throw new MicroKernelException(msg);
-                }
-            }
+            unsaved.put(path, rev);
         }
-        CacheValue key = childNodeCacheKey(path, rev, null);
-        Node.Children c = nodeChildrenCache.getIfPresent(key);
-        if (isNew || (!isDelete && c != null)) {
-            Node.Children c2 = new Node.Children();
-            TreeSet<String> set = new TreeSet<String>();
-            if (c != null) {
-                set.addAll(c.children);
-            }
+        if (isNew) {
+            CacheValue key = childNodeCacheKey(path, rev, null);
+            Node.Children c = new Node.Children();
+            TreeSet<String> set = new TreeSet<String>(added);
             set.removeAll(removed);
-            for (String name : added) {
-                set.add(Utils.unshareString(name));
+            for (String p : added) {
+                set.add(Utils.unshareString(p));
             }
-            c2.children.addAll(set);
-            nodeChildrenCache.put(key, c2);
+            c.children.addAll(set);
+            nodeChildrenCache.put(key, c);
+        } else if (!isDelete) {
+            // update diff cache for modified nodes
+            PathRev key = diffCacheKey(path, before, rev);
+            JsopWriter w = new JsopStream();
+            for (String p : added) {
+                w.tag('+').key(p).object().endObject().newline();
+            }
+            for (String p : removed) {
+                w.tag('-').value(p).newline();
+            }
+            for (String p : changed) {
+                w.tag('^').key(p).object().endObject().newline();
+            }
+            diffCache.put(key, new StringValue(w.toString()));
         }
+        // update docChildrenCache
         if (!added.isEmpty()) {
             CacheValue docChildrenKey = new StringValue(path);
             NodeDocument.Children docChildren = docChildrenCache.getIfPresent(docChildrenKey);
@@ -1050,25 +1053,24 @@ public final class DocumentNodeStore
     }
 
     /**
-     * Compares the given {@code state} against the {@code base} state and
-     * reports the differences as a json diff string.
+     * Compares the given {@code node} against the {@code base} state and
+     * reports the differences on the children as a json diff string. This
+     * method does not report any property changes between the two nodes.
      *
-     * @param node the state to compare.
-     * @param base the base state to compare against.
+     * @param node the node to compare.
+     * @param base the base node to compare against.
      * @return the json diff.
      */
-    String diff(final @Nonnull Node node,
-                final @Nonnull Node base) {
-        PathRev key = new PathRev(
-                checkNotNull(node).getLastRevision() + "-" + node.getPath(),
-                checkNotNull(base).getLastRevision());
+    String diffChildren(final @Nonnull Node node, final @Nonnull Node base) {
+        PathRev key = diffCacheKey(node.getPath(),
+                base.getLastRevision(), node.getLastRevision());
         try {
-            return diffCache.get(key, new Callable<Diff>() {
+            return diffCache.get(key, new Callable<StringValue>() {
                 @Override
-                public Diff call() throws Exception {
-                    return new Diff(diffImpl(base, node));
+                public StringValue call() throws Exception {
+                    return new StringValue(diffImpl(base, node));
                 }
-            }).diff;
+            }).toString();
         } catch (ExecutionException e) {
             if (e.getCause() instanceof MicroKernelException) {
                 throw (MicroKernelException) e.getCause();
@@ -1084,26 +1086,27 @@ public final class DocumentNodeStore
         if (fromRevisionId.equals(toRevisionId)) {
             return "";
         }
-        PathRev key = new PathRev(toRevisionId + "-" + path,
-                Revision.fromString(fromRevisionId));
+        Revision fromRev = Revision.fromString(fromRevisionId);
+        Revision toRev = Revision.fromString(toRevisionId);
+        final Node from = getNode(path, fromRev);
+        final Node to = getNode(path, toRev);
+        if (from == null || to == null) {
+            // TODO implement correct behavior if the node does't/didn't exist
+            String msg = String.format("Diff is only supported if the node exists in both cases. " +
+                    "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
+                    path, fromRev, from != null, toRev, to != null);
+            throw new MicroKernelException(msg);
+        }
+        PathRev key = diffCacheKey(path, fromRev, toRev);
         try {
-            return diffCache.get(key, new Callable<Diff>() {
+            JsopWriter writer = new JsopStream();
+            diffProperties(from, to, writer);
+            return writer.toString() + diffCache.get(key, new Callable<StringValue>() {
                 @Override
-                public Diff call() throws Exception {
-                    Revision fromRev = Revision.fromString(fromRevisionId);
-                    Revision toRev = Revision.fromString(toRevisionId);
-                    Node from = getNode(path, fromRev);
-                    Node to = getNode(path, toRev);
-                    if (from == null || to == null) {
-                        // TODO implement correct behavior if the node does't/didn't exist
-                        String msg = String.format("Diff is only supported if the node exists in both cases. " +
-                                "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
-                                path, fromRev, from != null, toRev, to != null);
-                        throw new MicroKernelException(msg);
-                    }
-                    return new Diff(diffImpl(from, to));
+                public StringValue call() throws Exception {
+                    return new StringValue(diffImpl(from, to));
                 }
-            }).diff;
+            });
         } catch (ExecutionException e) {
             if (e.getCause() instanceof MicroKernelException) {
                 throw (MicroKernelException) e.getCause();
@@ -1238,6 +1241,7 @@ public final class DocumentNodeStore
             try {
                 backgroundWrite();
                 backgroundRead();
+                dispatcher.contentChanged(getRoot(), null);
             } finally {
                 writeLock.unlock();
             }
@@ -1284,7 +1288,7 @@ public final class DocumentNodeStore
 
                     // the latest revisions of the current cluster node
                     // happened before the latest revisions of other cluster nodes
-                    revisionComparator.add(Revision.newRevision(clusterId), headSeen);
+                    revisionComparator.add(newRevision(), headSeen);
                 }
                 hasNewRevisions = true;
                 lastKnownRevision.put(machineId, r);
@@ -1296,7 +1300,7 @@ public final class DocumentNodeStore
             // TODO only invalidate affected items
             docChildrenCache.invalidateAll();
             // the head revision is after other revisions
-            setHeadRevision(Revision.newRevision(clusterId));
+            setHeadRevision(newRevision());
         }
         revisionComparator.purge(Revision.getCurrentTimestamp() - REMEMBER_REVISION_ORDER_MILLIS);
     }
@@ -1375,15 +1379,13 @@ public final class DocumentNodeStore
 
     //-----------------------------< internal >---------------------------------
 
-    private String diffImpl(Node from, Node to)
-            throws MicroKernelException {
-        JsopWriter w = new JsopStream();
-        for (String p : from.getPropertyNames()) {
+    private static void diffProperties(Node from, Node to, JsopWriter w) {
+        for (String name : from.getPropertyNames()) {
             // changed or removed properties
-            String fromValue = from.getProperty(p);
-            String toValue = to.getProperty(p);
+            String fromValue = from.getProperty(name);
+            String toValue = to.getProperty(name);
             if (!fromValue.equals(toValue)) {
-                w.tag('^').key(p);
+                w.tag('^').key(PathUtils.concat(from.getPath(), name));
                 if (toValue == null) {
                     w.value(null);
                 } else {
@@ -1391,12 +1393,19 @@ public final class DocumentNodeStore
                 }
             }
         }
-        for (String p : to.getPropertyNames()) {
+        for (String name : to.getPropertyNames()) {
             // added properties
-            if (from.getProperty(p) == null) {
-                w.tag('^').key(p).encodedValue(to.getProperty(p)).newline();
+            if (from.getProperty(name) == null) {
+                w.tag('^').key(PathUtils.concat(from.getPath(), name))
+                        .encodedValue(to.getProperty(name)).newline();
             }
         }
+    }
+
+    private String diffImpl(Node from, Node to)
+            throws MicroKernelException {
+        JsopWriter w = new JsopStream();
+        diffProperties(from, to, w);
         // TODO this does not work well for large child node lists
         // use a document store index instead
         int max = MANY_CHILDREN_THRESHOLD;
@@ -1513,9 +1522,15 @@ public final class DocumentNodeStore
     }
 
     private static PathRev childNodeCacheKey(@Nonnull String path,
-                                            @Nonnull Revision readRevision,
-                                            @Nullable String name) {
+                                             @Nonnull Revision readRevision,
+                                             @Nullable String name) {
         return new PathRev((name == null ? "" : name) + path, readRevision);
+    }
+
+    private static PathRev diffCacheKey(@Nonnull String path,
+                                        @Nonnull Revision from,
+                                        @Nonnull Revision to) {
+        return new PathRev(from + path, to);
     }
 
     private static DocumentRootBuilder asDocumentRootBuilder(NodeBuilder builder)
@@ -1561,25 +1576,6 @@ public final class DocumentNodeStore
                         ((headRevision.getTimestamp() - r.getTimestamp()) / 1000) + " seconds old");
             }
         }
-    }
-
-    /**
-     * A (cached) result of the diff operation.
-     */
-    private static class Diff implements CacheValue {
-
-        final String diff;
-
-        Diff(String diff) {
-            this.diff = diff;
-        }
-
-        @Override
-        public int getMemory() {
-            return 16                               // shallow size
-                    + 40 + diff.length() * 2;       // diff string
-        }
-
     }
 
     /**

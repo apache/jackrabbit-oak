@@ -153,7 +153,6 @@ public class Commit {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             applyToDocumentStore();
-            applyToCache(false);
         }
     }
 
@@ -161,7 +160,6 @@ public class Commit {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             applyToDocumentStore(baseRevision);
-            applyToCache(true);
         }
     }
 
@@ -442,18 +440,15 @@ public class Commit {
     }
 
     /**
-     * Apply the changes to the DocumentMK (to update the cache).
+     * Apply the changes to the DocumentNodeStore (to update the cache).
      * 
+     * @param before the revision right before this commit.
      * @param isBranchCommit whether this is a commit to a branch
      */
-    public void applyToCache(boolean isBranchCommit) {
+    public void applyToCache(Revision before, boolean isBranchCommit) {
         HashMap<String, ArrayList<String>> nodesWithChangedChildren = new HashMap<String, ArrayList<String>>();
-        ArrayList<String> addOrRemove = new ArrayList<String>();
-        addOrRemove.addAll(addedNodes);
-        addOrRemove.addAll(removedNodes);
-        for (String p : addOrRemove) {
+        for (String p : modifiedNodes) {
             if (PathUtils.denotesRoot(p)) {
-                // special case: root node was added
                 continue;
             }
             String parent = PathUtils.getParentPath(p);
@@ -464,16 +459,22 @@ public class Commit {
             }
             list.add(p);
         }
+        List<String> added = new ArrayList<String>();
+        List<String> removed = new ArrayList<String>();
+        List<String> changed = new ArrayList<String>();
         for (String path : modifiedNodes) {
-            ArrayList<String> added = new ArrayList<String>();
-            ArrayList<String> removed = new ArrayList<String>();
-            ArrayList<String> changed = nodesWithChangedChildren.get(path);
-            if (changed != null) {
-                for (String s : changed) {
+            added.clear();
+            removed.clear();
+            changed.clear();
+            ArrayList<String> changes = nodesWithChangedChildren.get(path);
+            if (changes != null) {
+                for (String s : changes) {
                     if (addedNodes.contains(s)) {
                         added.add(s);
                     } else if (removedNodes.contains(s)) {
                         removed.add(s);
+                    } else {
+                        changed.add(s);
                     }
                 }
             }
@@ -482,7 +483,8 @@ public class Commit {
             boolean pendingLastRev = op == null
                     || !NodeDocument.hasLastRev(op, revision.getClusterId());
             boolean isDelete = op != null && op.isDelete();
-            nodeStore.applyChanges(revision, path, isNew, isDelete, pendingLastRev, isBranchCommit, added, removed);
+            nodeStore.applyChanges(revision, before, path, isNew, isDelete,
+                    pendingLastRev, isBranchCommit, added, removed, changed);
         }
     }
 

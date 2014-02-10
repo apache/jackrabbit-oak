@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,19 +43,17 @@ public class CommitQueueTest {
     @Test
     public void concurrentCommits() throws Exception {
         final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
-        ChangeDispatcher dispatcher = new ChangeDispatcher(store.getRoot());
         AtomicBoolean running = new AtomicBoolean(true);
-        final CommitQueue queue = new CommitQueue(store, dispatcher);
         final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
 
-        Closeable observer = dispatcher.addObserver(new Observer() {
+        Closeable observer = store.addObserver(new Observer() {
             private Revision before = new Revision(0, 0, store.getClusterId());
 
             @Override
             public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
                 DocumentNodeState after = (DocumentNodeState) root;
                 Revision r = after.getRevision();
-//                System.out.println("seen: " + r);
+                System.out.println("seen: " + r);
                 if (r.compareRevisionTime(before) < 0) {
                     exceptions.add(new Exception(
                             "Inconsistent revision sequence. Before: " +
@@ -75,7 +72,7 @@ public class CommitQueueTest {
                 public void run() {
                     try {
                         for (int i = 0; i < COMMITS_PER_WRITER; i++) {
-                            Revision rev = queue.createRevision();
+                            Commit commit = store.newCommit(null);
                             try {
                                 Thread.sleep(0, random.nextInt(1000));
                             } catch (InterruptedException e) {
@@ -83,10 +80,10 @@ public class CommitQueueTest {
                             }
                             if (random.nextInt(5) == 0) {
                                 // cancel 20% of the commits
-                                queue.canceled(rev);
+                                store.canceled(commit);
                             } else {
                                 boolean isBranch = random.nextInt(5) == 0;
-                                queue.done(rev, isBranch, null);
+                                store.done(commit, isBranch, null);
                             }
                         }
                     } catch (Exception e) {

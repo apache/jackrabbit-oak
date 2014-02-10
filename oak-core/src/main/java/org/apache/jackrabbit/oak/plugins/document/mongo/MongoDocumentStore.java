@@ -131,7 +131,7 @@ public class MongoDocumentStore implements DocumentStore {
             nodesCache = builder.buildCache(builder.getDocumentCacheSize());
         }
 
-        cacheStats = new CacheStats(nodesCache, "MongoMk-Documents", builder.getWeigher(),
+        cacheStats = new CacheStats(nodesCache, "DocumentMk-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
     }
 
