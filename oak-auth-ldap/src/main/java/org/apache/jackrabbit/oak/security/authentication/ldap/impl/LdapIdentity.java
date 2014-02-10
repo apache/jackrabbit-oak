@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +25,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 
 /**
  * Implements an identity that is provided by the {@link LdapIdentityProvider}.
@@ -65,6 +64,16 @@ public abstract class LdapIdentity implements ExternalIdentity {
     }
 
     /**
+     * Returns the DN as principal name.
+     * @return the DN
+     */
+    @Nonnull
+    @Override
+    public String getPrincipalName() {
+        return ref.getId();
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -78,7 +87,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
     @Nonnull
     @Override
     public Iterable<? extends ExternalGroup> getGroups() {
-        return null;
+        return Collections.emptyList();
     }
 
     /**
@@ -90,13 +99,12 @@ public abstract class LdapIdentity implements ExternalIdentity {
         return properties;
     }
 
-    private Principal principal;
     @Override
-    public Principal getPrincipal() {
-        if (principal == null) {
-            principal = new PrincipalImpl(getId());
-        }
-        return principal;
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("LdapIdentity{");
+        sb.append("ref=").append(ref);
+        sb.append(", id='").append(id).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
-
 }

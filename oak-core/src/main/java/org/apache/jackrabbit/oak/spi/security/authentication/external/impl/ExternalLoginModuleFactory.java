@@ -79,14 +79,6 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
     )
     public static final String PARAM_SYNC_HANDLER_NAME = ExternalLoginModule.PARAM_SYNC_HANDLER_NAME;
 
-    @Property(
-            value = "default",
-            label = "Sync Mode",
-            // TODO!!!
-            description = "a comma separated list of sync modes. allowed values: 'user','group','default','update'"
-    )
-    public static final String PARAM_SYNC_MODE = ExternalLoginModule.PARAM_SYNC_MODE;
-
     /**
      * default configuration for the login modules
      */

@@ -20,21 +20,39 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 
 /**
- * SyncHandler is used to sync users and groups from an external source an {@link ExternalUserProvider}.
- * One sync task always operates within a {@link SyncContext} and is associated with a {@link SyncConfig}.
+ * SyncHandler is used to sync users and groups from an {@link ExternalIdentityProvider}.
+ * The synchronization performed within the scope of a {@link SyncContext} which is acquired during the
+ * {@link #createContext(ExternalIdentityProvider, org.apache.jackrabbit.api.security.user.UserManager, org.apache.jackrabbit.oak.api.Root)} call.
  *
- * todo:
- * - cleanup expired authorizables ?
+ * The exact configuration is managed by the sync handler instance. The system may contain several sync handler
+ * implementations with different configurations. those are managed by the {@link SyncManager}.
  *
+ * @see org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext
+ * @see org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager
  */
 public interface SyncHandler {
 
-    boolean initialize(@Nonnull UserManager userManager, @Nonnull Root root,
-                       @Nonnull SyncMode mode,
-                       @Nonnull ConfigurationParameters options) throws SyncException;
+    /**
+     * Returns the name of this sync handler.
+     * @return sync handler name
+     */
+    @Nonnull
+    String getName();
 
-    boolean sync(@Nonnull ExternalUser externalUser) throws SyncException;
+    /**
+     * Initializes a sync context which is used to start the sync operations.
+     *
+     * @param idp the external identity provider used for syncing
+     * @param userManager user manager for managing authorizables
+     * @param root root of the current tree
+     * @return the sync context
+     * @throws SyncException if an error occurs
+     */
+    @Nonnull
+    SyncContext createContext(@Nonnull ExternalIdentityProvider idp,
+                              @Nonnull UserManager userManager,
+                              @Nonnull Root root) throws SyncException;
+
 }

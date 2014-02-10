@@ -42,12 +42,11 @@
                         <Import-Package>
                             !antlr.*,
                             !org.dom4j.*,
-                            !org.apache.mina.*,
                             !org.xmlpull.v1,
                             *
                         </Import-Package>
                         <Embed-Dependency>
-                            api-all,commons-pool,commons-lang
+                            api-all,commons-pool,commons-lang,mina-core
                         </Embed-Dependency>
                     </instructions>
                 </configuration>
@@ -90,6 +89,13 @@
             <version>2.6</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.mina</groupId>
+            <artifactId>mina-core</artifactId>
+            <version>2.0.7</version>
+            <scope>provided</scope>
+        </dependency>
+
 
         <!-- Optional OSGi dependencies, used only when running within OSGi -->
         <dependency>

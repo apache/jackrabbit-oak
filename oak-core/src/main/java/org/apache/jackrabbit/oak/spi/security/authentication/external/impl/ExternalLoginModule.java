@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
@@ -32,14 +31,14 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncMode;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,11 +48,6 @@ import org.slf4j.LoggerFactory;
 public class ExternalLoginModule extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModule.class);
-
-    public static final SyncMode DEFAULT_SYNC_MODE = SyncMode.DEFAULT_SYNC;
-
-    private static final String PARAM_SYNC_HANDLER = "syncHandler";
-    private static final String DEFAULT_SYNC_HANDLER = DefaultSyncHandler.class.getName();
 
     /**
      * Name of the parameter that configures the name of the external identity provider.
@@ -66,11 +60,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
     public static final String PARAM_SYNC_HANDLER_NAME = "sync.handlerName";
 
     /**
-     * Name of the parameter that configures the synchronization mode.
-     */
-    public static final String PARAM_SYNC_MODE = "sync.mode";
-
-    /**
      * internal configuration when invoked from a factory rather than jaas
      */
     private ConfigurationParameters osgiConfig;
@@ -79,6 +68,11 @@ public class ExternalLoginModule extends AbstractLoginModule {
      * The external identity provider as specified by the {@link #PARAM_IDP_NAME}
      */
     private ExternalIdentityProvider idp;
+
+    /**
+     * The configured sync handler as specified by the {@link #PARAM_SYNC_HANDLER_NAME}
+     */
+    private SyncHandler syncHandler;
 
     /**
      * The external user as resolved in the login call.
@@ -118,23 +112,38 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 log.error("No IDP found with name {}. Will not be used for login.", idpName);
             }
         }
+
+        String syncHandlerName = options.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
+        if (syncHandlerName.length() == 0) {
+            log.error("External login module needs SyncHandler name. Will not be used for login.");
+        } else {
+            SyncManager syncMgr = getSecurityProvider().getConfiguration(SyncManager.class);
+            syncHandler = syncMgr.getSyncHandler(syncHandlerName);
+            if (syncHandler == null) {
+                log.error("No SyncHandler found with name {}. Will not be used for login.", idpName);
+            }
+        }
     }
 
     @Override
     public boolean login() throws LoginException {
-        if (idp == null) {
+        if (idp == null || syncHandler == null) {
             return false;
         }
 
         Credentials credentials = getCredentials();
         if (credentials == null) {
-            log.info("No credentials found for external login module. ignoring.");
+            log.debug("No credentials found for external login module. ignoring.");
             return false;
         }
 
         try {
             externalUser = idp.authenticate(credentials);
             if (externalUser != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("IDP {} returned valid user {}", idp.getName(), externalUser);
+                }
+
                 //noinspection unchecked
                 sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
 
@@ -142,11 +151,24 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 sharedState.put(SHARED_KEY_LOGIN_NAME, externalUser.getId());
 
                 return true;
+            } else {
+                if (log.isDebugEnabled()) {
+                    if (credentials instanceof SimpleCredentials) {
+                        log.debug("IDP {} returned null for simple creds of {}", idp.getName(), ((SimpleCredentials) credentials).getUserID());
+                    } else {
+                        log.debug("IDP {} returned null for {}", idp.getName(), credentials);
+                    }
+                }
             }
         } catch (ExternalIdentityException e) {
             log.error("Error while authenticating credentials {} with {}: {}", new Object[]{
                     credentials, idp.getName(), e.toString()});
             return false;
+        } catch (LoginException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("IDP {} throws login exception for {}", idp.getName(), credentials);
+            }
+            throw e;
         }
         return false;
     }
@@ -165,56 +187,28 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     @Override
     public boolean commit() throws LoginException {
-        if (externalUser == null) {
+        if (externalUser == null || syncHandler == null) {
             return false;
         }
 
+        SyncContext context = null;
         try {
-            SyncHandler handler = getSyncHandler();
             Root root = getRoot();
             UserManager userManager = getUserManager();
             if (root == null || userManager == null) {
                 throw new LoginException("Cannot synchronize user.");
             }
-            Object smValue = options.getConfigValue(PARAM_SYNC_MODE, null, null);
-            SyncMode syncMode;
-            if (smValue == null) {
-                syncMode = DEFAULT_SYNC_MODE;
-            } else {
-                syncMode = SyncMode.fromObject(smValue);
-            }
-            if (externalUser != null && handler.initialize(userManager, root, syncMode, options)) {
-                handler.sync(externalUser);
-                root.commit();
-                return true;
-            } else {
-                log.warn("Failed to initialize sync handler.");
-                return false;
-            }
+            context = syncHandler.createContext(idp, userManager, root);
+            context.sync(externalUser);
+            root.commit();
+            return true;
         } catch (SyncException e) {
             throw new LoginException("User synchronization failed: " + e);
         } catch (CommitFailedException e) {
             throw new LoginException("User synchronization failed: " + e);
-        }
-    }
-
-    @Nonnull
-    protected SyncHandler getSyncHandler() throws SyncException {
-        Object syncHandler = options.getConfigValue(PARAM_SYNC_HANDLER, null, null);
-        if (syncHandler == null) {
-            return new DefaultSyncHandler();
-        } else if (syncHandler instanceof SyncHandler) {
-            return (SyncHandler) syncHandler;
-        } else {
-            try {
-                Object sh = Class.forName(syncHandler.toString()).newInstance();
-                if (sh instanceof SyncHandler) {
-                    return (SyncHandler) sh;
-                } else {
-                    throw new SyncException("Invalid SyncHandler configuration: " + sh);
-                }
-            } catch (Exception e) {
-                throw new SyncException("Error while getting SyncHandler:", e);
+        } finally {
+            if (context != null) {
+                context.close();
             }
         }
     }

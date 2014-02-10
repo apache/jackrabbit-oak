@@ -43,8 +43,10 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -115,6 +117,9 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Reference
     private ExternalIdentityProviderManager identityProviderManager;
 
+    @Reference
+    private SyncManager syncManager;
+
     /**
      * Default constructor used in OSGi environments.
      */
@@ -136,6 +141,7 @@ public class SecurityProviderImpl implements SecurityProvider {
         privilegeConfiguration = new PrivilegeConfigurationImpl();
         tokenConfiguration = new TokenConfigurationImpl(this);
         identityProviderManager = new ExternalIDPManagerImpl();
+        syncManager = new SyncManagerImpl();
     }
 
     @Nonnull
@@ -184,6 +190,8 @@ public class SecurityProviderImpl implements SecurityProvider {
             return (T) tokenConfiguration;
         } else if (ExternalIdentityProviderManager.class == configClass) {
             return (T) identityProviderManager;
+        } else if (SyncManager.class == configClass) {
+            return (T) syncManager;
         } else {
             throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
         }

@@ -102,7 +102,7 @@ public class TestLoginModule extends ExternalLoginModule {
         }
 
         @Override
-        public Principal getPrincipal() {
+        public Principal getPrincipalName() {
             return new PrincipalImpl(userId);
         }
 

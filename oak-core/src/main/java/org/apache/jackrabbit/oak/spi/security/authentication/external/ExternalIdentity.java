@@ -44,6 +44,14 @@ public interface ExternalIdentity {
     String getId();
 
     /**
+     * Returns the principal name of this identity. This usually corresponds to
+     * {@link org.apache.jackrabbit.api.security.user.Authorizable#getPrincipal()}.{@link java.security.Principal#getName()}
+     * @return the principal name
+     */
+    @Nonnull
+    String getPrincipalName();
+
+    /**
      * Returns the desired intermediate relative path of the authorizable to be created. For example, one could map
      * an external hierarchy into the local users and groups hierarchy.
      *
@@ -65,8 +73,5 @@ public interface ExternalIdentity {
      */
     @Nonnull
     Map<String, ?> getProperties();
-
-    // todo: really?
-    Principal getPrincipal();
 
 }
