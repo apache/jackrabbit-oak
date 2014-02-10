@@ -16,32 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import java.security.Principal;
-import java.util.Map;
-import java.util.Set;
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
- * ExternalUser... TODO
+ * ExternalUser defines a user provided by an external system.
  */
-public interface ExternalUser {
+public interface ExternalUser extends ExternalIdentity {
 
-    @Nonnull
-    String getId();
-
+    /**
+     * Returns the plaintext password of this user if available. This is usually only the case when the
+     * external user is accessible during a login call.
+     *
+     * @return the password.
+     */
     @CheckForNull
     String getPassword();
-
-    @Nonnull
-    Principal getPrincipal();
-
-    @Nonnull
-    String getPath();
-
-    @Nonnull
-    Set<? extends ExternalGroup> getGroups();
-
-    @Nonnull
-    Map<String, ?> getProperties();
 }

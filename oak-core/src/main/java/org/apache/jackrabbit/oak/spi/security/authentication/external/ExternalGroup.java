@@ -17,7 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 /**
- * ExternalGroup... TODO
+ * ExternalGroup defines a group that is provided by an external system.
  */
-public interface ExternalGroup extends ExternalUser {
+public interface ExternalGroup extends ExternalIdentity {
+
 }

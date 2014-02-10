@@ -17,89 +17,28 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
 import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import javax.annotation.CheckForNull;
+
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 
-public class LdapUser implements ExternalUser {
+public class LdapUser extends LdapIdentity implements ExternalUser {
 
-    private final String uid;
     private final String pwd;
-    private final LdapSearch search;
 
-    private String path;
-    private String dn;
-    private Principal principal;
-    private Set<LdapGroup> groups;
-    private Map<String, ?> properties = new HashMap<String, Object>();
-
-    public LdapUser(@Nonnull String uid, @Nullable String pwd, @Nonnull LdapSearch search) {
-        this.uid = uid;
+    public LdapUser(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String pwd) {
+        super(provider, ref, id);
         this.pwd = pwd;
-        this.search = search;
     }
 
-    //-------------------------------------------------------< ExternalUser >---
-    @Override
-    public String getId() {
-        return uid;
-    }
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getPassword() {
-        return null;
-    }
-
-    public String getLdapPassword() {
         return pwd;
     }
 
-    @Override
-    public Principal getPrincipal() {
-        if (principal == null) {
-            principal = new PrincipalImpl(uid);
-        }
-        return principal;
-    }
-
-    @Override
-    public String getPath() {
-        //TODO also support splitdn mode
-        if (path == null) {
-            path = getDN();
-        }
-        return path;
-    }
-
-    @Override
-    public Set<LdapGroup> getGroups() {
-        if (groups == null) {
-            groups = search.findGroups(this);
-        }
-        return groups;
-    }
-
-    @Override
-    public Map<String, ?> getProperties() {
-        return properties;
-    }
-
-    //--------------------------------------------------------------------------
-
-    void setProperties(Map<String, ?> properties) {
-        this.properties = properties;
-    }
-
-    String getDN() {
-        return dn;
-    }
-
-    void setDN(String dn) {
-        this.dn = dn;
-    }
 }

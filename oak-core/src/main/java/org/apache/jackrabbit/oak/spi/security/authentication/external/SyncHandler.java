@@ -23,7 +23,12 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 
 /**
- * SyncHandler... TODO
+ * SyncHandler is used to sync users and groups from an external source an {@link ExternalUserProvider}.
+ * One sync task always operates within a {@link SyncContext} and is associated with a {@link SyncConfig}.
+ *
+ * todo:
+ * - cleanup expired authorizables ?
+ *
  */
 public interface SyncHandler {
 

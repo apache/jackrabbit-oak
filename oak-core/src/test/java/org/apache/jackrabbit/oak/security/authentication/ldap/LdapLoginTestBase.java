@@ -100,16 +100,16 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
             createLdapFixture();
         }
 
-        options.put(LdapSettings.KEY_HOST, "127.0.0.1");
-        options.put(LdapSettings.KEY_PORT, String.valueOf(LDAP_SERVER.getPort()));
-        options.put(LdapSettings.KEY_AUTHDN, ServerDNConstants.ADMIN_SYSTEM_DN);
-        options.put(LdapSettings.KEY_AUTHPW, InternalLdapServer.ADMIN_PW);
-        options.put(LdapSettings.KEY_USERROOT, ServerDNConstants.USERS_SYSTEM_DN);
-        options.put(LdapSettings.KEY_GROUPROOT, ServerDNConstants.GROUPS_SYSTEM_DN);
-        options.put(LdapSettings.KEY_AUTOCREATEUSER + USER_ATTR, USER_PROP);
-        options.put(LdapSettings.KEY_AUTOCREATEGROUP + InternalLdapServer.GROUP_MEMBER_ATTR, GROUP_PROP);
-        options.put(LdapSettings.KEY_GROUPFILTER, "(objectclass=" + InternalLdapServer.GROUP_CLASS_ATTR + ')');
-        options.put(LdapSettings.KEY_GROUPMEMBERSHIPATTRIBUTE, InternalLdapServer.GROUP_MEMBER_ATTR);
+        options.put(LdapProviderConfig.KEY_HOST, "127.0.0.1");
+        options.put(LdapProviderConfig.KEY_PORT, String.valueOf(LDAP_SERVER.getPort()));
+        options.put(LdapProviderConfig.KEY_AUTHDN, ServerDNConstants.ADMIN_SYSTEM_DN);
+        options.put(LdapProviderConfig.KEY_AUTHPW, InternalLdapServer.ADMIN_PW);
+        options.put(LdapProviderConfig.KEY_USERROOT, ServerDNConstants.USERS_SYSTEM_DN);
+        options.put(LdapProviderConfig.KEY_GROUPROOT, ServerDNConstants.GROUPS_SYSTEM_DN);
+        options.put(LdapProviderConfig.KEY_AUTOCREATEUSER + USER_ATTR, USER_PROP);
+        options.put(LdapProviderConfig.KEY_AUTOCREATEGROUP + InternalLdapServer.GROUP_MEMBER_ATTR, GROUP_PROP);
+        options.put(LdapProviderConfig.KEY_GROUPFILTER, "(objectclass=" + InternalLdapServer.GROUP_CLASS_ATTR + ')');
+        options.put(LdapProviderConfig.KEY_GROUPMEMBERSHIPATTRIBUTE, InternalLdapServer.GROUP_MEMBER_ATTR);
         options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
 
         UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);

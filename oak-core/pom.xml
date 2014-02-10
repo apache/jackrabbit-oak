@@ -103,7 +103,8 @@
             </DynamicImport-Package>
             <Embed-Dependency>
               org.apache.sling.commons.osgi;inline=org/apache/sling/commons/osgi/PropertiesUtil.class,
-              json-simple;inline=true
+              json-simple;inline=true,
+              api-all
             </Embed-Dependency>
           </instructions>
         </configuration>
@@ -168,6 +169,12 @@
       <artifactId>org.osgi.compendium</artifactId>
       <scope>provided</scope>
     </dependency>
+      <dependency>
+          <groupId>org.apache.felix</groupId>
+          <artifactId>org.apache.felix.jaas</artifactId>
+          <version>0.0.1-R1560269</version>
+          <scope>provided</scope>
+      </dependency>
 
     <!-- Classes from this jar are inlined via Embed-Dependency tag as
     we do not want to depend on Sling jar in OSGi env-->
@@ -304,6 +311,13 @@
       <version>0.2</version>
       <optional>true</optional>
     </dependency>
+
+      <dependency>
+          <groupId>org.apache.directory.api</groupId>
+          <artifactId>api-all</artifactId>
+          <version>1.0.0-M20</version>
+          <scope>provided</scope>
+      </dependency>
 
     <!-- Test Dependencies -->
     <dependency>
