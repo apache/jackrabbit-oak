@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -41,9 +42,10 @@ class UserValidatorProvider extends ValidatorProvider {
     }
 
     //--------------------------------------------------< ValidatorProvider >---
-    @Nonnull
-    @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
+
+    @Override @Nonnull
+    public Validator getRootValidator(
+            NodeState before, NodeState after, CommitInfo info) {
         membershipProvider = new MembershipProvider(new ImmutableRoot(after), config);
         return new UserValidator(new ImmutableTree(before), new ImmutableTree(after), this);
     }

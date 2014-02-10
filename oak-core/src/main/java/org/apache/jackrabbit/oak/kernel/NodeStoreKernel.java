@@ -32,6 +32,7 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -67,7 +69,7 @@ public class NodeStoreKernel implements MicroKernel {
             new EditorHook(new ValidatorProvider() {
                 @Override
                 protected Validator getRootValidator(
-                        NodeState before, NodeState after) {
+                        NodeState before, NodeState after, CommitInfo info) {
                     return new DefaultValidator() {
                         @Override
                         public Validator childNodeAdded(
@@ -471,7 +473,9 @@ public class NodeStoreKernel implements MicroKernel {
             revision = new Revision(revision, builder.getNodeState(), message);
         } else {
             try {
-                NodeState newRoot = store.merge(builder, CONFLICT_HOOK, null);
+                CommitInfo info =
+                        new CommitInfo(CommitInfo.OAK_UNKNOWN, null, message);
+                NodeState newRoot = store.merge(builder, CONFLICT_HOOK, info);
                 if (!newRoot.equals(head.root)) {
                     revision = new Revision(head, newRoot, message);
                     head = revision;
@@ -506,8 +510,10 @@ public class NodeStoreKernel implements MicroKernel {
         }
 
         try {
+            CommitInfo info =
+                    new CommitInfo(CommitInfo.OAK_UNKNOWN, null, message);
             NodeState newRoot =
-                    store.merge(revision.branch, CONFLICT_HOOK, null);
+                    store.merge(revision.branch, CONFLICT_HOOK, info);
             if (!newRoot.equals(head.root)) {
                 head = new Revision(head, newRoot, message);
                 revisions.put(head.id, head);

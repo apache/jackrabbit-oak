@@ -40,7 +40,8 @@ public class CompositeEditorProvider implements EditorProvider {
         new EditorProvider() {
             @Override @CheckForNull
             public Editor getRootEditor(
-                    NodeState before, NodeState after, NodeBuilder builder) {
+                    NodeState before, NodeState after,
+                    NodeBuilder builder, CommitInfo info) {
                 return null;
             }
         };
@@ -72,11 +73,11 @@ public class CompositeEditorProvider implements EditorProvider {
 
     @Override @CheckForNull
     public Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder)
-            throws CommitFailedException {
+            NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info) throws CommitFailedException {
         List<Editor> list = Lists.newArrayListWithCapacity(providers.size());
         for (EditorProvider provider : providers) {
-            Editor editor = provider.getRootEditor(before, after, builder);
+            Editor editor = provider.getRootEditor(before, after, builder, info);
             if (editor != null) {
                 list.add(editor);
             }

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.FailingValidator;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -34,7 +35,8 @@ public class PermissionStoreValidatorProvider extends ValidatorProvider implemen
 
     @Nonnull
     @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
+    public Validator getRootValidator(
+            NodeState before, NodeState after, CommitInfo info) {
         FailingValidator validator = new FailingValidator(
                 "Constraint", 41, "Attempt to modify permission store.");
         return new SubtreeValidator(validator, JCR_SYSTEM, REP_PERMISSION_STORE);

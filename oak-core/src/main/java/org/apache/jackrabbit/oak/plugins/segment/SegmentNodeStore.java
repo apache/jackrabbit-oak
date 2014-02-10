@@ -251,13 +251,13 @@ public class SegmentNodeStore implements NodeStore, Observable {
         private final CommitInfo info;
 
         Commit(@Nonnull SegmentNodeBuilder builder,
-                @Nonnull CommitHook hook, @Nullable CommitInfo info) {
+                @Nonnull CommitHook hook, @Nonnull CommitInfo info) {
             checkNotNull(builder);
             this.before = builder.getBaseState();
             this.after = builder.getNodeState();
 
             this.hook = checkNotNull(hook);
-            this.info = info;
+            this.info = checkNotNull(info);
         }
 
         private boolean setHead(SegmentNodeBuilder builder) {
@@ -280,7 +280,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
             SegmentNodeBuilder builder = state.builder();
             if (fastEquals(before, state.getChildNode(ROOT))) {
                 // use a shortcut when there are no external changes
-                builder.setChildNode(ROOT, hook.processCommit(before, after));
+                builder.setChildNode(
+                        ROOT, hook.processCommit(before, after, info));
             } else {
                 // there were some external changes, so do the full rebase
                 ConflictAnnotatingRebaseDiff diff =
@@ -289,7 +290,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 // apply commit hooks on the rebased changes
                 builder.setChildNode(ROOT, hook.processCommit(
                         builder.getBaseState().getChildNode(ROOT),
-                        builder.getNodeState().getChildNode(ROOT)));
+                        builder.getNodeState().getChildNode(ROOT),
+                        info));
             }
             return builder;
         }

@@ -267,7 +267,9 @@ abstract class AbstractRoot implements Root {
         if (path != null) {
             hooks.add(new EditorHook(new EditorProvider() {
                 @Override
-                public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder) {
+                public Editor getRootEditor(
+                        NodeState before, NodeState after,
+                        NodeBuilder builder, CommitInfo info) {
                     return new ItemSaveValidator(path);
                 }
             }));

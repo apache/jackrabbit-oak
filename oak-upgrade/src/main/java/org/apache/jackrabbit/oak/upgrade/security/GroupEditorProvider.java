@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade.security;
 
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -26,7 +27,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class GroupEditorProvider implements EditorProvider {
 
     @Override
-    public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder) {
+    public Editor getRootEditor(
+            NodeState before, NodeState after,
+            NodeBuilder builder, CommitInfo info) {
         return new GroupEditor(builder);
     }
 }

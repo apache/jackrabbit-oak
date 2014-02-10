@@ -135,7 +135,7 @@ public class KernelNodeStoreBranch extends
 
     @Nonnull
     @Override
-    public NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
+    public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException {
         mergeLock.lock();
         try {

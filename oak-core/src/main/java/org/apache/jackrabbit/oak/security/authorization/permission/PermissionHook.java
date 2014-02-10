@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -105,7 +106,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
     @Nonnull
     @Override
-    public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
+    public NodeState processCommit(
+            NodeState before, NodeState after, CommitInfo info)
+            throws CommitFailedException {
         NodeBuilder rootAfter = after.builder();
 
         permissionRoot = getPermissionRoot(rootAfter);

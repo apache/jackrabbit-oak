@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -68,7 +69,7 @@ public class FileStoreRestore {
         NodeState after = store.getRoot();
         NodeBuilder builder = after.builder();
         source.compareAgainstBaseState(after, new ApplyDiff(builder));
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.debug("Restore finished in {} ms.", System.currentTimeMillis() - s);
     }
 

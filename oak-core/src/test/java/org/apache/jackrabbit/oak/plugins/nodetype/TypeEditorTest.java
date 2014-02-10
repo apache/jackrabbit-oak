@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.replay;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,17 +45,17 @@ public class TypeEditorTest {
         NodeState before = builder.getNodeState();
         builder.child(":hidden");
         NodeState after = builder.getNodeState();
-        hook.processCommit(before, after);
+        hook.processCommit(before, after, CommitInfo.EMPTY);
 
         before = after;
         builder.child(":hidden").setProperty("prop", "value");
         after = builder.getNodeState();
-        hook.processCommit(before, after);
+        hook.processCommit(before, after, CommitInfo.EMPTY);
 
         before = after;
         builder.getChildNode(":hidden").remove();
         after = builder.getNodeState();
-        hook.processCommit(before, after);
+        hook.processCommit(before, after, CommitInfo.EMPTY);
     }
 
     @Test

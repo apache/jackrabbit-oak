@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -49,7 +50,8 @@ public class AccessControlValidatorProvider extends ValidatorProvider {
     //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
     @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
+    public Validator getRootValidator(
+            NodeState before, NodeState after, CommitInfo info) {
         ImmutableTree rootAfter = new ImmutableTree(after);
 
         RestrictionProvider restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();

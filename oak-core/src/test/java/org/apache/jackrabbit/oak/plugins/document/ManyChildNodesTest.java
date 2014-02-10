@@ -22,6 +22,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -48,7 +49,7 @@ public class ManyChildNodesTest {
         for (int i = 0; i < DocumentNodeState.MAX_FETCH_SIZE * 2; i++) {
             builder.child("c-" + i);
         }
-        ns.merge(builder, EmptyHook.INSTANCE, null);
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store.queries.clear();
         // must fetch in batches
         for (ChildNodeEntry entry : ns.getRoot().getChildNodeEntries()) {

@@ -52,8 +52,7 @@ public interface NodeStore {
      *
      * @param builder  the builder whose changes to apply
      * @param commitHook the commit hook to apply while merging changes
-     * @param info commit info associated with this merge operation,
-     *             or {@code null} if no local commit information is available
+     * @param info commit info associated with this merge operation
      * @return the node state resulting from the merge.
      * @throws CommitFailedException if the merge failed
      * @throws IllegalArgumentException if the builder is not acquired
@@ -62,7 +61,7 @@ public interface NodeStore {
     @Nonnull
     NodeState merge(
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nullable CommitInfo info) throws CommitFailedException;
+            @Nonnull CommitInfo info) throws CommitFailedException;
 
     /**
      * Rebase the changes in the passed {@code builder} on top of the current root state.

@@ -67,14 +67,13 @@ public interface NodeStoreBranch {
      * the current head revision followed by a fast forward merge.
      *
      * @param hook the commit hook to apply while merging changes
-     * @param info commit info associated with this merge operation,
-     *             or {@code null} if no local commit information is available
+     * @param info commit info associated with this merge operation
      * @return the node state resulting from the merge.
      * @throws CommitFailedException if the merge failed
      * @throws IllegalStateException if the branch is already merged
      */
     @Nonnull
-    NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
+    NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException;
 
     /**

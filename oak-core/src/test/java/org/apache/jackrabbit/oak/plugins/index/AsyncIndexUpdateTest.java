@@ -28,9 +28,11 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -78,7 +80,7 @@ public class AsyncIndexUpdateTest {
         builder.child("testRoot").setProperty("foo", "abc");
 
         // merge it back in
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
@@ -121,7 +123,7 @@ public class AsyncIndexUpdateTest {
         builder.child("testSecond").setProperty("bar", "ghi");
 
         // merge it back in
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
@@ -173,7 +175,7 @@ public class AsyncIndexUpdateTest {
                 .setProperty("foo", "xyz");
 
         // merge it back in
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();

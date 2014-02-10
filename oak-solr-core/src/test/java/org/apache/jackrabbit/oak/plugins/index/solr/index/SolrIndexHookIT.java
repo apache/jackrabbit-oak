@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -54,7 +55,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         builder.child("newnode").setProperty("prop", "val");
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = hook.processCommit(before, after);
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
         FilterImpl filter = new FilterImpl(null, null);
@@ -83,7 +84,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = hook.processCommit(before, after);
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
         FilterImpl filter = new FilterImpl(null, null);
@@ -117,7 +118,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
 
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = hook.processCommit(before, after);
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
         FilterImpl filter = new FilterImpl(null, null);

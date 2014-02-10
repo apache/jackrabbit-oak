@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -105,7 +106,7 @@ public class FileStoreBackupTest {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test-backup");
         builder.child("root"); // make sure we don't backup the super-root
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static void compare(NodeStore store, File destination)
@@ -134,7 +135,7 @@ public class FileStoreBackupTest {
         c1.setProperty("blob", blob);
         NodeBuilder c2 = builder.child("test-backup2");
         c2.setProperty("blob", blob);
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         FileStoreBackup.backup(store, destination);
         compare(store, destination);

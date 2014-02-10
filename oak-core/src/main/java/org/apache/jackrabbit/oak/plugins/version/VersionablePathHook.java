@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.plugins.version;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,6 +32,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -52,7 +55,9 @@ public class VersionablePathHook implements CommitHook {
 
     @Nonnull
     @Override
-    public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
+    public NodeState processCommit(
+            NodeState before, NodeState after, CommitInfo info)
+            throws CommitFailedException {
         NodeBuilder rootBuilder = after.builder();
         NodeBuilder vsRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(NodeTypeConstants.JCR_VERSIONSTORAGE);
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(vsRoot, rootBuilder);

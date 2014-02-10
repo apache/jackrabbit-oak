@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -207,11 +208,13 @@ public class MemoryNodeStore implements NodeStore {
 
         @Override
         public NodeState merge(
-                @Nonnull CommitHook hook, @Nullable CommitInfo info)
+                @Nonnull CommitHook hook, @Nonnull CommitInfo info)
                 throws CommitFailedException {
+            checkNotNull(hook);
+            checkNotNull(info);
             // TODO: rebase();
             checkNotMerged();
-            NodeState merged = ModifiedNodeState.squeeze(checkNotNull(hook).processCommit(base, root));
+            NodeState merged = squeeze(hook.processCommit(base, root, info));
             store.root.set(merged);
             root = null; // Mark as merged
             return merged;

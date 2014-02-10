@@ -20,6 +20,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -33,7 +34,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class ConflictValidatorProvider extends ValidatorProvider {
 
     @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
+    public Validator getRootValidator(
+            NodeState before, NodeState after, CommitInfo info) {
         Tree rootAfter = new ImmutableTree(after);
         return new ConflictValidator(rootAfter);
     }

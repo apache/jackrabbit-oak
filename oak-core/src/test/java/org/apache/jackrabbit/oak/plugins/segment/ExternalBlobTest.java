@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -50,13 +51,13 @@ public class ExternalBlobTest {
         if (!state.exists()) {
             NodeBuilder builder = nodeStore.getRoot().builder();
             builder.child("hello");
-            nodeStore.merge(builder, EmptyHook.INSTANCE, null);
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
         Blob blob = getFileBlob();
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.getChildNode("hello").setProperty("world", blob);
-        nodeStore.merge(builder, EmptyHook.INSTANCE, null);
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         state = nodeStore.getRoot().getChildNode("hello");
         blob = state.getProperty("world").getValue(Type.BINARY);

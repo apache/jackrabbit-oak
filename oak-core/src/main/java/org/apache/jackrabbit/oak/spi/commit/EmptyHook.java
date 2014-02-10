@@ -42,7 +42,8 @@ public class EmptyHook implements CommitHook {
     public static final CommitHook INSTANCE = new EmptyHook();
 
     @Override
-    public NodeState processCommit(NodeState before, NodeState after)
+    public NodeState processCommit(
+            NodeState before, NodeState after, CommitInfo info)
             throws CommitFailedException {
         return after;
     }

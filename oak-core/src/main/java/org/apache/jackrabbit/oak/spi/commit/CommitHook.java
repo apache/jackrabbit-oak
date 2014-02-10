@@ -45,11 +45,12 @@ public interface CommitHook {
      *
      * @param before content tree before the commit
      * @param after content tree prepared for the commit
+     * @param info metadata associated with this commit
      * @return content tree to be committed
      * @throws CommitFailedException if the commit should be rejected
      */
     @Nonnull
-    NodeState processCommit(NodeState before, NodeState after)
+    NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
         throws CommitFailedException;
 
 }

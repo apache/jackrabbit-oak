@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -299,7 +300,7 @@ public class RepositoryUpgrade {
                             new IndexUpdateProvider(new CompositeIndexEditorProvider(
                                     new ReferenceEditorProvider(),
                                     new PropertyIndexEditorProvider())))));
-            target.merge(builder, hook, null);
+            target.merge(builder, hook, CommitInfo.EMPTY);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }

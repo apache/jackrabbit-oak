@@ -24,6 +24,7 @@ import static junit.framework.Assert.assertTrue;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -49,7 +50,7 @@ public class LargeKernelNodeStateTest {
             builder.child("x" + i);
         }
 
-        state = store.merge(builder, EmptyHook.INSTANCE, null);
+        state = store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     @After

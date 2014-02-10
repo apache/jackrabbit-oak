@@ -21,6 +21,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -38,7 +39,9 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
 
     @Nonnull
     @Override
-    public NodeState processCommit(NodeState before, NodeState after) throws CommitFailedException {
+    public NodeState processCommit(
+            NodeState before, NodeState after, CommitInfo info)
+            throws CommitFailedException {
         NodeBuilder builder = after.builder();
         after.compareAgainstBaseState(before, new PrivilegeDiff(null, null, builder));
         return builder.getNodeState();
