@@ -18,24 +18,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -47,7 +48,11 @@ import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+import com.google.common.base.Strings;
+import com.mongodb.DB;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientURI;
 
 /**
  * The OSGi service to start/stop a DocumentNodeStore instance.
@@ -112,14 +117,16 @@ public class DocumentNodeStoreService {
         int offHeapCache = PropertiesUtil.toInteger(prop(config, PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
         int cacheSize = PropertiesUtil.toInteger(prop(config, PROP_CACHE), DEFAULT_CACHE);
         boolean useMK = PropertiesUtil.toBoolean(config.get(PROP_USE_MK), false);
+        String blobStoreType = PropertiesUtil.toString(config.get(BlobStoreConfiguration.PROP_BLOB_STORE_PROVIDER),
+                BlobStoreConfiguration.DEFAULT_BLOB_STORE_PROVIDER);
 
         MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
-        MongoClientURI mongoURI = new MongoClientURI(uri,builder);
+        MongoClientURI mongoURI = new MongoClientURI(uri, builder);
 
-        if(logger.isInfoEnabled()){
+        if (logger.isInfoEnabled()){
             // Take care around not logging the uri directly as it
             // might contain passwords
-            String type = useMK ? "MK" : "NodeStore" ;
+            String type = useMK ? "MK" : "NodeStore";
             logger.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}",
                     new Object[] {type, mongoURI.getHosts(), db, cacheSize, offHeapCache});
             logger.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
@@ -128,11 +135,25 @@ public class DocumentNodeStoreService {
         MongoClient client = new MongoClient(mongoURI);
         DB mongoDB = client.getDB(db);
 
-        mk = new DocumentMK.Builder()
-                .memoryCacheSize(cacheSize * MB)
-                .offHeapCacheSize(offHeapCache * MB)
-                .setMongoDB(mongoDB)
-                .open();
+        // Check if any valid external BlobStore is defined.
+        // If not then use the default which is MongoBlobStore
+        BlobStore blobStore = null;
+        if (Strings.isNullOrEmpty(blobStoreType)) {
+            blobStore = BlobStoreHelper.create(
+                    BlobStoreConfiguration.newInstance().
+                            loadFromContextOrMap(config, context))
+                    .orNull();
+        }
+
+        DocumentMK.Builder mkBuilder = 
+                new DocumentMK.Builder().
+                memoryCacheSize(cacheSize * MB).
+                offHeapCacheSize(offHeapCache * MB).
+                setMongoDB(mongoDB);
+        if (blobStore != null) {
+            mkBuilder.setBlobStore(blobStore);
+        }
+        mk = mkBuilder.open();
 
         logger.info("Connected to database {}", mongoDB);
 
@@ -154,13 +175,13 @@ public class DocumentNodeStoreService {
     }
 
     private Object prop(Map<String, ?> config, String propName){
-        return prop(config,propName,PREFIX + propName);
+        return prop(config, propName, PREFIX + propName);
     }
 
     private Object prop(Map<String, ?> config, String propName, String fwkPropName){
         //Prefer framework property first
         Object value = bundleContext.getProperty(fwkPropName);
-        if(value != null){
+        if (value != null) {
             return value;
         }
 
@@ -170,7 +191,7 @@ public class DocumentNodeStoreService {
 
     @Deactivate
     protected void deactivate() {
-        if(observerTracker != null){
+        if (observerTracker != null) {
             observerTracker.stop();
         }
 

@@ -333,6 +333,12 @@
         <artifactId>logback-classic</artifactId>
         <version>${logback.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.jclouds.provider</groupId>
+        <artifactId>aws-s3</artifactId>
+        <version>1.7.0</version>
+      </dependency>
+      
     </dependencies>
   </dependencyManagement>
 
