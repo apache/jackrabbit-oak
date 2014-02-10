@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -74,7 +75,7 @@ public class HiddenNodeTest {
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden").setProperty("property", "value");
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         session.refresh(false);
         Version v1 = vMgr.checkpoint("/test");

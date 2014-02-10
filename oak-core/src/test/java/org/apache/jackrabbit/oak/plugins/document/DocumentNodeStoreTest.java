@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -62,7 +63,7 @@ public class DocumentNodeStoreTest {
 
         NodeBuilder builder = store2.getRoot().builder();
         builder.child("node2");
-        store2.merge(builder, EmptyHook.INSTANCE, null);
+        store2.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         // force update of _lastRevs
         store2.runBackgroundOperations();
 
@@ -71,7 +72,8 @@ public class DocumentNodeStoreTest {
 
         builder = store1.getRoot().builder();
         builder.child("node1");
-        NodeState root = store1.merge(builder, EmptyHook.INSTANCE, null);
+        NodeState root =
+                store1.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         semaphore.acquireUninterruptibly();
         Thread t = new Thread(new Runnable() {
@@ -114,12 +116,12 @@ public class DocumentNodeStoreTest {
             children.add(name);
             builder.child(name);
         }
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         builder = store.getRoot().builder();
         String name = new ArrayList<String>(children).get(
                 KernelNodeState.MAX_CHILD_NODE_NAMES / 2);
         builder.child(name).remove();
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         int numEntries = Iterables.size(store.getRoot().getChildNodeEntries());
         assertEquals(max - 1, numEntries);
         store.dispose();
@@ -145,7 +147,7 @@ public class DocumentNodeStoreTest {
         for (int i = 0; i < 10; i++) {
             root.child("node-" + i);
         }
-        store.merge(root, EmptyHook.INSTANCE, null);
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         counter.set(0);
         // the following should just make one call to DocumentStore.query()
         for (ChildNodeEntry e : store.getRoot().getChildNodeEntries()) {

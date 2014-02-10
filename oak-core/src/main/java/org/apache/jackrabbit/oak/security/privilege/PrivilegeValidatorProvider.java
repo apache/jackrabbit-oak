@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -37,7 +38,8 @@ class PrivilegeValidatorProvider extends ValidatorProvider {
 
     @Nonnull
     @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
+    public Validator getRootValidator(
+            NodeState before, NodeState after, CommitInfo info) {
         return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after)),
                 JCR_SYSTEM, REP_PRIVILEGES);
     }

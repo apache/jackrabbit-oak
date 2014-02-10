@@ -36,18 +36,20 @@ public abstract class ValidatorProvider implements EditorProvider {
      *
      * @param before original root state
      * @param after  modified root state
+     * @param info   metadata about this commit
      * @return validator for checking the modifications
      */
     @Nonnull
     protected abstract Validator getRootValidator(
-            NodeState before, NodeState after);
+            NodeState before, NodeState after, CommitInfo info);
 
     //----------------------------------------------------< EditorProvider >--
 
     @Override @Nonnull
     public final Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder) {
-        return getRootValidator(before, after);
+            NodeState before, NodeState after,
+            NodeBuilder builder, CommitInfo info) {
+        return getRootValidator(before, after, info);
     }
 
 }

@@ -34,6 +34,13 @@ public final class CommitInfo {
 
     public static final String OAK_UNKNOWN = "oak:unknown";
 
+    /**
+     * Empty commit information object. Used as a dummy object when no
+     * metadata is known (or needed) about a commit.
+     */
+    public static final CommitInfo EMPTY =
+            new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN, null);
+
     private final String sessionId;
 
     private final String userId;

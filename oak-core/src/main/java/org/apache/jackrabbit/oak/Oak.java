@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
@@ -389,7 +390,8 @@ public class Oak {
         return with(new EditorProvider() {
             @Override @Nonnull
             public Editor getRootEditor(
-                    NodeState before, NodeState after, NodeBuilder builder) {
+                    NodeState before, NodeState after,
+                    NodeBuilder builder, CommitInfo info) {
                 return editor;
             }
         });

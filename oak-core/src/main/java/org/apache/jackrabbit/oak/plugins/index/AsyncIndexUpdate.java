@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
-import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_INIT;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
 
 import java.util.Calendar;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -147,8 +147,9 @@ public class AsyncIndexUpdate implements Runnable {
             try {
                 store.merge(builder, new CommitHook() {
                     @Override @Nonnull
-                    public NodeState processCommit(NodeState before,
-                            NodeState after) throws CommitFailedException {
+                    public NodeState processCommit(
+                            NodeState before, NodeState after, CommitInfo info)
+                            throws CommitFailedException {
                         // check for concurrent updates by this async task
                         PropertyState stateAfterRebase = before
                                 .getChildNode(ASYNC).getProperty(name);
@@ -159,7 +160,7 @@ public class AsyncIndexUpdate implements Runnable {
                             throw CONCURRENT_UPDATE;
                         }
                     }
-                }, null);
+                }, CommitInfo.EMPTY);
             } catch (CommitFailedException e) {
                 if (e != CONCURRENT_UPDATE) {
                     exception = e;
@@ -184,7 +185,7 @@ public class AsyncIndexUpdate implements Runnable {
             AsyncIndexStats stats) throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
         preAsyncRunStatus(builder, stats);
-        store.merge(builder, EmptyHook.INSTANCE, null);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static boolean isAlreadyRunning(NodeStore store) {

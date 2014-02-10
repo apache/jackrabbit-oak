@@ -40,12 +40,12 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -77,7 +77,7 @@ public class PropertyIndexTest {
         }
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
@@ -138,7 +138,7 @@ public class PropertyIndexTest {
             c.setProperty("foo", "azerty");
         }
         NodeState after = builder.getNodeState();
-        NodeState indexed = HOOK.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
@@ -172,7 +172,7 @@ public class PropertyIndexTest {
         }
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
@@ -220,7 +220,7 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        NodeState indexed = HOOK.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
@@ -268,7 +268,7 @@ public class PropertyIndexTest {
                 .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         FilterImpl f = createFilter(indexed, NT_UNSTRUCTURED);
 
@@ -324,7 +324,7 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        NodeState indexed = HOOK.processCommit(before, after);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
 
@@ -357,7 +357,7 @@ public class PropertyIndexTest {
                 Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        HOOK.processCommit(before, after); // should throw
+        HOOK.processCommit(before, after, CommitInfo.EMPTY); // should throw
     }
 
     @Test
@@ -376,7 +376,7 @@ public class PropertyIndexTest {
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
-        HOOK.processCommit(before, after); // should not throw
+        HOOK.processCommit(before, after, CommitInfo.EMPTY); // should not throw
     }
 
     @Test(expected = CommitFailedException.class)
@@ -395,7 +395,7 @@ public class PropertyIndexTest {
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
-        HOOK.processCommit(before, after); // should throw
+        HOOK.processCommit(before, after, CommitInfo.EMPTY); // should throw
     }
 
     @Test
@@ -415,7 +415,7 @@ public class PropertyIndexTest {
         builder.getChildNode("b").remove();
         NodeState after = builder.getNodeState();
 
-        HOOK.processCommit(before, after); // should not throw
+        HOOK.processCommit(before, after, CommitInfo.EMPTY); // should not throw
     }
 
 }

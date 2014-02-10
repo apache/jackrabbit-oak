@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -44,10 +45,11 @@ public class WhiteboardEditorProvider
     @Override
     @CheckForNull
     public Editor getRootEditor(
-            NodeState before, NodeState after, NodeBuilder builder)
-            throws CommitFailedException {
+            NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info) throws CommitFailedException {
         EditorProvider provider =
                 CompositeEditorProvider.compose(getServices());
-        return provider.getRootEditor(before, after, builder);
+        return provider.getRootEditor(before, after, builder, info);
     }
+
 }

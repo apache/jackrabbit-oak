@@ -52,11 +52,12 @@ public class CompositeHook implements CommitHook {
     }
 
     @Override
-    public NodeState processCommit(NodeState before, NodeState after)
+    public NodeState processCommit(
+            NodeState before, NodeState after, CommitInfo info)
             throws CommitFailedException {
         NodeState newState = after;
         for (CommitHook hook : hooks) {
-            newState = hook.processCommit(before, newState);
+            newState = hook.processCommit(before, newState, info);
         }
         return newState;
     }

@@ -43,12 +43,14 @@ public class EditorHook implements CommitHook {
 
     @Override @Nonnull
     public NodeState processCommit(
-            @Nonnull NodeState before, @Nonnull NodeState after)
-            throws CommitFailedException {
+            @Nonnull NodeState before, @Nonnull NodeState after,
+            @Nonnull CommitInfo info) throws CommitFailedException {
         checkNotNull(before);
         checkNotNull(after);
+        checkNotNull(info);
+
         NodeBuilder builder = after.builder();
-        Editor editor = provider.getRootEditor(before, after, builder);
+        Editor editor = provider.getRootEditor(before, after, builder, info);
         CommitFailedException exception =
                 EditorDiff.process(editor, before, after);
         if (exception == null) {

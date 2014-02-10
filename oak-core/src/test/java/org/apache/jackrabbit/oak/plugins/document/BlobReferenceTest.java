@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public class BlobReferenceTest {
             set.add(b.toString());
             a.child("c" + i).setProperty("x", b);
         }
-        s.merge(a, EmptyHook.INSTANCE, null);
+        s.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         Iterator<Blob> it = s.getReferencedBlobsIterator();
         while (it.hasNext()) {
             Blob b = it.next();

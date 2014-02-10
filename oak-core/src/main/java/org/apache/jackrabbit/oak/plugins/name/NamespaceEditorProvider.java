@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAME
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
@@ -38,8 +39,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class NamespaceEditorProvider implements EditorProvider {
 
     @Override
-    public Editor getRootEditor(NodeState before, NodeState after,
-            NodeBuilder builder) throws CommitFailedException {
+    public Editor getRootEditor(
+            NodeState before, NodeState after, NodeBuilder builder,
+            CommitInfo info) throws CommitFailedException {
         return new SubtreeEditor(new NamespaceEditor(before, builder), JCR_SYSTEM, REP_NAMESPACES);
     }
 

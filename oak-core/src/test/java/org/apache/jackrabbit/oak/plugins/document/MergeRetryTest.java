@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -43,10 +44,9 @@ public class MergeRetryTest {
     private static final CommitHook HOOK = new EditorHook(new EditorProvider() {
         @CheckForNull
         @Override
-        public Editor getRootEditor(NodeState before,
-                                    NodeState after,
-                                    final NodeBuilder builder)
-                throws CommitFailedException {
+        public Editor getRootEditor(
+                NodeState before, NodeState after, final NodeBuilder builder,
+                CommitInfo info) throws CommitFailedException {
             return new DefaultEditor() {
                 @Override
                 public void enter(NodeState before, NodeState after)
@@ -80,8 +80,8 @@ public class MergeRetryTest {
             NodeBuilder builder2 = ns2.getRoot().builder();
             builder2.child("qux");
 
-            ns1.merge(builder1, HOOK, null);
-            ns2.merge(builder2, HOOK, null);
+            ns1.merge(builder1, HOOK, CommitInfo.EMPTY);
+            ns2.merge(builder2, HOOK, CommitInfo.EMPTY);
         } finally {
             mk1.dispose();
             mk2.dispose();
@@ -109,8 +109,8 @@ public class MergeRetryTest {
             NodeBuilder builder2 = ns2.getRoot().builder();
             createTree(builder2.child("qux"), 2);
 
-            ns1.merge(builder1, HOOK, null);
-            ns2.merge(builder2, HOOK, null);
+            ns1.merge(builder1, HOOK, CommitInfo.EMPTY);
+            ns2.merge(builder2, HOOK, CommitInfo.EMPTY);
         } finally {
             mk1.dispose();
             mk2.dispose();

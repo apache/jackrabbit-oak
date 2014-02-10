@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -259,7 +258,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
     @Nonnull
     @Override
-    public NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
+    public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException {
         CommitFailedException ex = null;
         for (long backoff = 100; backoff < maximumBackoff; backoff *= 2) {
@@ -272,7 +271,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                 }
             }
             try {
-                return branchState.merge(checkNotNull(hook), info);
+                return branchState.merge(checkNotNull(hook), checkNotNull(info));
             } catch (CommitFailedException e) {
                 ex = e;
                 // only retry on merge failures. these may be caused by
@@ -353,7 +352,8 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
          *          indicate the cause of the exception.
          */
         @Nonnull
-        abstract NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
+        abstract NodeState merge(
+                @Nonnull CommitHook hook, @Nonnull CommitInfo info)
                 throws CommitFailedException;
     }
 
@@ -397,7 +397,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, CommitInfo info) {
+        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info) {
             branchState = new Merged(base);
             return base;
         }
@@ -456,12 +456,14 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, CommitInfo info)
+        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
                 throws CommitFailedException {
+            checkNotNull(hook);
+            checkNotNull(info);
             try {
                 rebase();
                 dispatcher.contentChanged(base, null);
-                NodeState toCommit = checkNotNull(hook).processCommit(base, head);
+                NodeState toCommit = hook.processCommit(base, head, info);
                 try {
                     NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
                     dispatcher.contentChanged(newHead, info);
@@ -543,12 +545,12 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, CommitInfo info)
+        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
                 throws CommitFailedException {
             try {
                 rebase();
                 dispatcher.contentChanged(base, null);
-                NodeState toCommit = checkNotNull(hook).processCommit(base, head);
+                NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
                 N newRoot = AbstractNodeStoreBranch.this.persist(toCommit, head, info);
                 boolean success = false;
                 try {
@@ -612,7 +614,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, CommitInfo info) {
+        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info) {
             throw new IllegalStateException("Branch has already been merged");
         }
     }
@@ -659,7 +661,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
          */
         @Nonnull
         @Override
-        NodeState merge(@Nonnull CommitHook hook, @Nullable CommitInfo info)
+        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
                 throws CommitFailedException {
             throw ex;
         }

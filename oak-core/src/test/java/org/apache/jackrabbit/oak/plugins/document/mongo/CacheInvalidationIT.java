@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.google.common.collect.Iterables;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -72,7 +74,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         final int totalPaths = paths.length + 1; //1 extra for root
         NodeBuilder root = getRoot(c1).builder();
         createTree(root,paths);
-        c1.merge(root, EmptyHook.INSTANCE, null);
+        c1.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertEquals(totalPaths, Iterables.size(ds(c1).getCacheEntries()));
 
@@ -86,7 +88,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
         NodeBuilder b2 = getRoot(c2).builder();
         builder(b2,"/a/d").setProperty("foo", "bar");
-        c2.merge(b2, EmptyHook.INSTANCE, null);
+        c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Push pending changes at /a
         c2.runBackgroundOperations();
@@ -106,7 +108,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
         NodeBuilder b2 = getRoot(c2).builder();
         builder(b2,"/a/c").setProperty("foo", "bar");
-        c2.merge(b2, EmptyHook.INSTANCE, null);
+        c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Push pending changes at /a
         c2.runBackgroundOperations();
@@ -137,7 +139,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
         NodeBuilder b2 = getRoot(c2).builder();
         builder(b2,"/a/c").setProperty("foo", "bar");
-        c2.merge(b2, EmptyHook.INSTANCE, null);
+        c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Push pending changes at /a
         c2.runBackgroundOperations();
