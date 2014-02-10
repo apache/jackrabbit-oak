@@ -226,7 +226,7 @@ final class DocumentNodeState extends AbstractNodeState {
                         return true;
                     } else if (getChildNodeCount(LOCAL_DIFF_THRESHOLD) > LOCAL_DIFF_THRESHOLD) {
                         // use DocumentNodeStore compare when there are many children
-                        return dispatch(store.diff(this.node, mBase.node), mBase, diff);
+                        return dispatch(store.diffChildren(this.node, mBase.node), mBase, diff);
                     }
                 }
             }
@@ -240,11 +240,11 @@ final class DocumentNodeState extends AbstractNodeState {
     private boolean dispatch(@Nonnull String jsonDiff,
                              @Nonnull DocumentNodeState base,
                              @Nonnull NodeStateDiff diff) {
-        if (jsonDiff.trim().isEmpty()) {
-            return true;
-        }
         if (!AbstractNodeState.comparePropertiesAgainstBaseState(this, base, diff)) {
             return false;
+        }
+        if (jsonDiff.trim().isEmpty()) {
+            return true;
         }
         JsopTokenizer t = new JsopTokenizer(jsonDiff);
         boolean continueComparison = true;

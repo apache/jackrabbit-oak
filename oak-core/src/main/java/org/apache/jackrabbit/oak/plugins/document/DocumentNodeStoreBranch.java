@@ -125,8 +125,8 @@ public class DocumentNodeStoreBranch
      * @return the result state.
      */
     private DocumentNodeState persist(Changes op,
-                                   DocumentNodeState base,
-                                   CommitInfo info) {
+                                      DocumentNodeState base,
+                                      CommitInfo info) {
         boolean success = false;
         Commit c = store.newCommit(base.getRevision());
         Revision rev;

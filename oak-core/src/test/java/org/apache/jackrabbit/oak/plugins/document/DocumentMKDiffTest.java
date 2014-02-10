@@ -37,8 +37,8 @@ public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
         String rev2 = mk.commit("/", "^\"node1/node2/prop1\":\"val1 new\" ^\"node1/node2/prop2\":null", null, null);
 
         String diff = mk.diff(rev1, rev2, "/node1/node2", 0);
-        assertTrue(diff.contains("^\"prop2\":null"));
-        assertTrue(diff.contains("^\"prop1\":\"val1 new\""));
+        assertTrue(diff.contains("^\"/node1/node2/prop2\":null"));
+        assertTrue(diff.contains("^\"/node1/node2/prop1\":\"val1 new\""));
     }
 
     @Test
@@ -196,7 +196,7 @@ public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
         assertTrue(reverseDiff.length() > 0);
 
         // Commit the reverseDiff and check property is gone.
-        mk.commit("/level1", reverseDiff, null, null);
+        mk.commit("", reverseDiff, null, null);
         assertTrue(mk.nodeExists("/level1", null));
         obj = parseJSONObject(mk.getNodes("/level1", null, 0, 0, -1, null));
         assertPropertyNotExists(obj, "prop1");
@@ -221,7 +221,7 @@ public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
         assertTrue(reverseDiff.length() > 0);
 
         // Commit the reverseDiff and check property is added back.
-        mk.commit("/level1", reverseDiff, null, null);
+        mk.commit("", reverseDiff, null, null);
         obj = parseJSONObject(mk.getNodes("/level1", null, 0, 0, -1, null));
         assertPropertyExists(obj, "prop1");
     }
@@ -244,7 +244,7 @@ public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
         assertTrue(reverseDiff.length() > 0);
 
         // Commit the reverseDiff and check property is set back.
-        mk.commit("/level1", reverseDiff, null, null);
+        mk.commit("", reverseDiff, null, null);
         obj = parseJSONObject(mk.getNodes("/level1", null, 0, 0, -1, null));
         assertPropertyValue(obj, "prop1", "value1");
     }

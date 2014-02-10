@@ -74,12 +74,13 @@ class CommitQueue {
         return revs;
     }
 
-    void done(@Nonnull Revision rev, boolean isBranch, @Nullable CommitInfo info) {
-        checkNotNull(rev);
+    void done(@Nonnull Commit commit, boolean isBranch, @Nullable CommitInfo info) {
+        checkNotNull(commit);
         if (isBranch) {
-            removeCommit(rev);
+            commit.applyToCache(commit.getBaseRevision(), true);
+            removeCommit(commit.getRevision());
         } else {
-            afterTrunkCommit(rev, info);
+            afterTrunkCommit(commit, info);
         }
     }
 
@@ -101,8 +102,10 @@ class CommitQueue {
         }
     }
 
-    private void afterTrunkCommit(Revision rev, CommitInfo info) {
+    private void afterTrunkCommit(@Nonnull Commit commit,
+                                  @Nullable CommitInfo info) {
         assert !commits.isEmpty();
+        Revision rev = commit.getRevision();
 
         boolean isHead;
         Entry commitEntry;
@@ -120,16 +123,12 @@ class CommitQueue {
                 LOG.debug("removed {}, head is now {}", rev, commits.isEmpty() ? null : commits.firstKey());
                 // remember before revision
                 Revision before = store.getHeadRevision();
+                // apply changes to cache based on before revision
+                commit.applyToCache(before, false);
                 // update head revision
                 store.setHeadRevision(rev);
                 NodeState root = store.getRoot();
-                // TODO: correct?
-                dispatcher.contentChanged(store.getRoot(before), null);
-                try {
-                    dispatcher.contentChanged(root, info);
-                } finally {
-                    dispatcher.contentChanged(root, null);
-                }
+                dispatcher.contentChanged(root, info);
             } finally {
                 // notify next if there is any
                 notifyHead();
