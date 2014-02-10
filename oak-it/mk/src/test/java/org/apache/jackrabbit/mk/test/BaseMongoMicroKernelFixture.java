@@ -39,7 +39,7 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
 
     private MongoConnection mongoConnection = null;
 
-    private MongoConnection getMongoConnection() throws Exception {
+    protected MongoConnection getMongoConnection() throws Exception {
         if (mongoConnection == null) {
             mongoConnection = new MongoConnection(HOST, PORT, DB);
         }
@@ -93,7 +93,7 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
 
     protected abstract BlobStore getBlobStore(DB db);
 
-    private static void dropCollections(DB db) {
+    protected void dropCollections(DB db) {
         db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
         db.getCollection(Collection.NODES.toString()).drop();
     }

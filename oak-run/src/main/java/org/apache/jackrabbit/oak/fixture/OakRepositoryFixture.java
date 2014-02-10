@@ -23,13 +23,18 @@ import javax.jcr.Repository;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreHelper;
+import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -84,9 +89,25 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
     public static RepositoryFixture getMongo(
             final String host, final int port, final String database,
             final boolean dropDBAfterTest, final long cacheSize) {
+
         return new OakRepositoryFixture("Oak-Mongo") {
             private String dbName = database != null ? database : unique;
             private DocumentMK[] kernels;
+            private BlobStore blobStore;
+
+            private BlobStore getBlobStore() {
+                BlobStoreConfiguration config =
+                        BlobStoreConfiguration.newInstance().loadFromSystemProps();
+                try {
+                    blobStore =
+                            BlobStoreHelper.create(config).orNull();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                return blobStore;
+            }
+
             @Override
             protected Repository[] internalSetUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
@@ -94,14 +115,20 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 for (int i = 0; i < cluster.length; i++) {
                     MongoConnection mongo =
                             new MongoConnection(host, port, dbName);
-                    kernels[i] = new DocumentMK.Builder().
+                    BlobStore blobStore = getBlobStore();
+                    DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                             setMongoDB(mongo.getDB()).
-                            setClusterId(i).setLogging(false).open();
+                            setClusterId(i).setLogging(false);
+                    if (blobStore != null) {
+                            mkBuilder.setBlobStore(blobStore);
+                    }
+                    kernels[i] = mkBuilder.open();
                     Oak oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
                     cluster[i] = new Jcr(oak).createRepository();
                 }
                 return cluster;
             }
+
             @Override
             public void tearDownCluster() {
                 super.tearDownCluster();
@@ -114,6 +141,13 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                                 new MongoConnection(host, port, dbName);
                         mongo.getDB().dropDatabase();
                         mongo.close();
+                        if (blobStore instanceof CloudBlobStore) {
+                            ((CloudBlobStore) blobStore).deleteBucket();
+                        } else if (blobStore instanceof DataStoreBlobStore) {
+                            ((DataStoreBlobStore) blobStore).clearInUse();
+                            ((DataStoreBlobStore) blobStore).deleteAllOlderThan(
+                                    System.currentTimeMillis() + 10000000);
+                        }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -125,9 +159,25 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
     public static RepositoryFixture getMongoNS(
             final String host, final int port, final String database,
             final boolean dropDBAfterTest, final long cacheSize) {
+
         return new OakRepositoryFixture("Oak-MongoNS") {
             private String dbName = database != null ? database : unique;
             private DocumentNodeStore[] stores;
+            private BlobStore blobStore;
+
+            private BlobStore getBlobStore() {
+                BlobStoreConfiguration config =
+                        BlobStoreConfiguration.newInstance().loadFromSystemProps();
+                try {
+                    blobStore =
+                            BlobStoreHelper.create(config).orNull();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                return blobStore;
+            }
+
             @Override
             protected Repository[] internalSetUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
@@ -135,15 +185,22 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 for (int i = 0; i < cluster.length; i++) {
                     MongoConnection mongo =
                             new MongoConnection(host, port, dbName);
-                    stores[i] = new DocumentMK.Builder().
+                    BlobStore blobStore = getBlobStore();
+                    DocumentMK.Builder mkBuilder =
+                            new DocumentMK.Builder().
                             setMongoDB(mongo.getDB()).
                             memoryCacheSize(cacheSize).
-                            setClusterId(i).setLogging(false).getNodeStore();
+                            setClusterId(i).setLogging(false);
+                    if (blobStore != null) {
+                        mkBuilder.setBlobStore(blobStore);
+                    }
+                    stores[i] = mkBuilder.getNodeStore();             
                     Oak oak = new Oak(stores[i]);
                     cluster[i] = new Jcr(oak).createRepository();
                 }
                 return cluster;
             }
+
             @Override
             public void tearDownCluster() {
                 super.tearDownCluster();
@@ -156,6 +213,13 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                                 new MongoConnection(host, port, dbName);
                         mongo.getDB().dropDatabase();
                         mongo.close();
+                        if (blobStore instanceof CloudBlobStore) {
+                            ((CloudBlobStore) blobStore).deleteBucket();
+                        } else if (blobStore instanceof DataStoreBlobStore) {
+                            ((DataStoreBlobStore) blobStore).clearInUse();
+                            ((DataStoreBlobStore) blobStore).deleteAllOlderThan(
+                                    System.currentTimeMillis() + 10000000);
+                        }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
