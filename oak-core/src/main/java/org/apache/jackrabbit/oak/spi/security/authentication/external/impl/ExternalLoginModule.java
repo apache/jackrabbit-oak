@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication.external;
+package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Collections;
 import java.util.Map;
@@ -26,31 +26,27 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
-import javax.security.auth.spi.LoginModule;
 
-import org.apache.felix.jaas.LoginModuleFactory;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.DefaultSyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * ExternalLoginModule implements a LoginModule that uses and external identity provider for login.
- *
- * Note: This is an attempt to combine a login module implementation with a LoginModuleFactory for the Felix JAAS
- * support. This allows to configure the login module normally via jaas config, but also via OSGi config.
  */
-@Component(metatype = true, policy = ConfigurationPolicy.REQUIRE, configurationFactory = true)
-@Service
-public class ExternalLoginModule extends AbstractLoginModule implements LoginModuleFactory {
+public class ExternalLoginModule extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModule.class);
 
@@ -59,61 +55,24 @@ public class ExternalLoginModule extends AbstractLoginModule implements LoginMod
     private static final String PARAM_SYNC_HANDLER = "syncHandler";
     private static final String DEFAULT_SYNC_HANDLER = DefaultSyncHandler.class.getName();
 
-    @Property(
-            intValue = 900,
-            label = "JAAS Ranking",
-            description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
-                    "in a descending order (i.e. higher value ranked configurations come first)."
-    )
-    public static final String JAAS_RANKING = LoginModuleFactory.JAAS_RANKING;
-
-    @Property(
-            value = "SUFFICIENT",
-            label = "JAAS Control Flag",
-            description = "Property specifying whether or not a LoginModule is REQUIRED, REQUISITE, SUFFICIENT or " +
-                    "OPTIONAL.Refer to the JAAS configuration documentation for more details around the meaning of " +
-                    "these flags."
-    )
-    public static final String JAAS_CONTROL_FLAG = LoginModuleFactory.JAAS_CONTROL_FLAG;
-
-    @Property(
-            label = "JAAS Realm",
-            description = "The realm name (or application name) against which the LoginModule  is be registered. If no " +
-                    "realm name is provided then LoginModule is registered with a default realm as configured in " +
-                    "the Felix JAAS configuration."
-    )
-    public static final String JAAS_REALM_NAME = LoginModuleFactory.JAAS_REALM_NAME;
-
     /**
      * Name of the parameter that configures the name of the external identity provider.
      */
-    @Property(
-            label = "Identity Provider Name",
-            description = "Name of the identity provider (for example: 'ldap')."
-    )
     public static final String PARAM_IDP_NAME = "idp.name";
 
     /**
      * Name of the parameter that configures the name of the synchronization handler.
      */
-    @Property(
-            value = "default",
-            label = "Sync Handler Name",
-            description = "Name of the sync handler."
-    )
     public static final String PARAM_SYNC_HANDLER_NAME = "sync.handlerName";
 
     /**
      * Name of the parameter that configures the synchronization mode.
      */
-    @Property(
-            value = "default",
-            label = "Sync Mode",
-            // TODO!!!
-            description = "a comma separated list of sync modes. allowed values: 'user','group','default','update'"
-    )
     public static final String PARAM_SYNC_MODE = "sync.mode";
 
+    /**
+     * internal configuration when invoked from a factory rather than jaas
+     */
     private ConfigurationParameters osgiConfig;
 
     /**
@@ -130,22 +89,6 @@ public class ExternalLoginModule extends AbstractLoginModule implements LoginMod
      * Default constructor for the OSGIi LoginModuleFactory case and the default non-OSGi JAAS case.
      */
     public ExternalLoginModule() {
-    }
-
-    /**
-     * Activates the LoginModuleFactory service (not the LoginModule)
-     * @param properties the OSGi config
-     */
-    @Activate
-    protected void activate(Map<String, Object> properties) {
-        // only remember the properties here. the real initialization happens later
-        osgiConfig = ConfigurationParameters.of(properties);
-    }
-
-    @Override
-    public LoginModule createLoginModule() {
-        log.error("*** creating new login module. config: {}", osgiConfig);
-        return new ExternalLoginModule(osgiConfig);
     }
 
     /**

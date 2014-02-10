@@ -92,8 +92,7 @@
             <Jaas-ModuleClass>
               org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule,
               org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl,
-              org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule,
-              org.apache.jackrabbit.oak.security.authentication.ldap.LdapLoginModule
+              org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule
             </Jaas-ModuleClass>
             <Bundle-Activator>
               org.apache.jackrabbit.oak.osgi.Activator
@@ -103,8 +102,7 @@
             </DynamicImport-Package>
             <Embed-Dependency>
               org.apache.sling.commons.osgi;inline=org/apache/sling/commons/osgi/PropertiesUtil.class,
-              json-simple;inline=true,
-              api-all
+              json-simple;inline=true
             </Embed-Dependency>
           </instructions>
         </configuration>
@@ -311,13 +309,6 @@
       <version>0.2</version>
       <optional>true</optional>
     </dependency>
-
-      <dependency>
-          <groupId>org.apache.directory.api</groupId>
-          <artifactId>api-all</artifactId>
-          <version>1.0.0-M20</version>
-          <scope>provided</scope>
-      </dependency>
 
     <!-- Test Dependencies -->
     <dependency>
