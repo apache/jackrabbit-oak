@@ -92,4 +92,13 @@ public class ExternalIdentityRef {
             );
         }
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("ExternalIdentityRef{");
+        sb.append("id='").append(id).append('\'');
+        sb.append(", providerName='").append(providerName).append('\'');
+        sb.append('}');
+        return sb.toString();
+    }
 }

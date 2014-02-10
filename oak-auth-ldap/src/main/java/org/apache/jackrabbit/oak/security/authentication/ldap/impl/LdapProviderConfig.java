@@ -204,6 +204,21 @@ public class LdapProviderConfig {
     public static final String PARAM_USER_EXTRA_FILTER = "user.extraFilter";
 
     /**
+     * @see Identity#makeDnPath()
+     */
+    public static final boolean PARAM_USER_MAKE_DN_PATH_DEFAULT = false;
+
+    /**
+     * @see Identity#makeDnPath()
+     */
+    @Property(
+            label = "User DN paths",
+            description = "Controls if the DN should be used for calculating a portion of the intermediate path.",
+            boolValue = PARAM_USER_MAKE_DN_PATH_DEFAULT
+    )
+    public static final String PARAM_USER_MAKE_DN_PATH = "user.makeDnPath";
+
+    /**
      * @see Identity#getBaseDN()
      */
     public static final String PARAM_GROUP_BASE_DN_DEFAULT = "ou=groups,o=example,dc=com";
@@ -266,6 +281,21 @@ public class LdapProviderConfig {
     public static final String PARAM_GROUP_EXTRA_FILTER = "group.extraFilter";
 
     /**
+     * @see Identity#makeDnPath()
+     */
+    public static final boolean PARAM_GROUP_MAKE_DN_PATH_DEFAULT = false;
+
+    /**
+     * @see Identity#makeDnPath()
+     */
+    @Property(
+            label = "Group DN paths",
+            description = "Controls if the DN should be used for calculating a portion of the intermediate path.",
+            boolValue = PARAM_GROUP_MAKE_DN_PATH_DEFAULT
+    )
+    public static final String PARAM_GROUP_MAKE_DN_PATH = "group.makeDnPath";
+
+    /**
      * @see #getGroupMemberAttribute()
      */
     public static final String PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT = "uniquemember";
@@ -294,6 +324,8 @@ public class LdapProviderConfig {
         private String extraFilter;
 
         private String filterTemplate;
+
+        private boolean makeDnPath;
 
         /**
          * Configures the base DN for searches of this kind of identity
@@ -385,6 +417,27 @@ public class LdapProviderConfig {
         public Identity setExtraFilter(@Nullable String extraFilter) {
             this.extraFilter = extraFilter;
             filterTemplate = null;
+            return this;
+        }
+
+
+        /**
+         * Configures if the identities DN should be used to generate a portion of the authorizables intermediate path.
+         * @return {@code true} if the DN is used a intermediate path.
+         */
+        public boolean makeDnPath() {
+            return makeDnPath;
+        }
+
+        /**
+         * Sets the intermediate path flag.
+         * @param makeDnPath {@code true} to use the DN as intermediate path
+         * @return {@code this}
+         * @see #makeDnPath()
+         */
+        @Nonnull
+        public Identity setMakeDnPath(boolean makeDnPath) {
+            this.makeDnPath = makeDnPath;
             return this;
         }
 
@@ -491,13 +544,15 @@ public class LdapProviderConfig {
                 .setBaseDN(params.getConfigValue(PARAM_USER_BASE_DN, PARAM_USER_BASE_DN))
                 .setIdAttribute(params.getConfigValue(PARAM_USER_ID_ATTRIBUTE, PARAM_USER_ID_ATTRIBUTE_DEFAULT))
                 .setExtraFilter(params.getConfigValue(PARAM_USER_EXTRA_FILTER, PARAM_USER_EXTRA_FILTER_DEFAULT))
-                .setObjectClasses(params.getConfigValue(PARAM_USER_OBJECTCLASS, PARAM_USER_OBJECTCLASS_DEFAULT));
+                .setObjectClasses(params.getConfigValue(PARAM_USER_OBJECTCLASS, PARAM_USER_OBJECTCLASS_DEFAULT))
+                .setMakeDnPath(params.getConfigValue(PARAM_USER_MAKE_DN_PATH, PARAM_USER_MAKE_DN_PATH_DEFAULT));
 
         cfg.getGroupConfig()
                 .setBaseDN(params.getConfigValue(PARAM_GROUP_BASE_DN, PARAM_GROUP_BASE_DN))
                 .setIdAttribute(params.getConfigValue(PARAM_GROUP_NAME_ATTRIBUTE, PARAM_GROUP_NAME_ATTRIBUTE_DEFAULT))
                 .setExtraFilter(params.getConfigValue(PARAM_GROUP_EXTRA_FILTER, PARAM_GROUP_EXTRA_FILTER_DEFAULT))
-                .setObjectClasses(params.getConfigValue(PARAM_GROUP_OBJECTCLASS, PARAM_GROUP_OBJECTCLASS_DEFAULT));
+                .setObjectClasses(params.getConfigValue(PARAM_GROUP_OBJECTCLASS, PARAM_GROUP_OBJECTCLASS_DEFAULT))
+                .setMakeDnPath(params.getConfigValue(PARAM_GROUP_MAKE_DN_PATH, PARAM_GROUP_MAKE_DN_PATH_DEFAULT));
 
         return cfg;
     }
