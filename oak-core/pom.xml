@@ -58,6 +58,7 @@
               org.apache.jackrabbit.oak.plugins.index.nodetype,
               org.apache.jackrabbit.oak.plugins.index.property,
               org.apache.jackrabbit.oak.plugins.index.reference,
+              org.apache.jackrabbit.oak.plugins.itemsave,
               org.apache.jackrabbit.oak.plugins.memory,
               org.apache.jackrabbit.oak.plugins.name,
               org.apache.jackrabbit.oak.plugins.nodetype,

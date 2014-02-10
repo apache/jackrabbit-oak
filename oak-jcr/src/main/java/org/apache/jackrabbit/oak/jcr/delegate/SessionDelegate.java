@@ -250,7 +250,7 @@ public class SessionDelegate {
      * @throws CommitFailedException if the commit failed
      */
     public void commit(Root root) throws CommitFailedException {
-        root.commit(userData, null);
+        root.commit(userData, "/");
     }
 
     public void checkProtectedNode(String path) throws RepositoryException {
