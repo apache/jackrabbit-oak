@@ -37,6 +37,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
@@ -83,12 +84,12 @@
             <artifactId>org.osgi.compendium</artifactId>
             <scope>provided</scope>
         </dependency>
-        <dependency>
+        <!--<dependency>
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.jaas</artifactId>
             <version>0.0.1-R1560269</version>
             <scope>provided</scope>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>biz.aQute.bnd</groupId>
