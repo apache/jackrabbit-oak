@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,16 +45,23 @@ import org.slf4j.LoggerFactory;
  * </ul>
  *
  */
-@Component()
+@Component
 @Service({AuthenticationConfiguration.class, SecurityConfiguration.class})
 public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);
 
+    /**
+     * Constructor for OSGi
+     */
     public AuthenticationConfigurationImpl() {
         super();
     }
 
+    /**
+     * Constructor for non-OSGi
+     * @param securityProvider
+     */
     public AuthenticationConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider);
     }
@@ -107,6 +116,14 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
             log.debug("No login configuration available for {}; using default", appName);
             loginConfig = ConfigurationUtil.getDefaultConfiguration(getParameters());
         }
-        return new LoginContextProviderImpl(appName, loginConfig, contentRepository, getSecurityProvider());
+        // todo: temporary workaround
+        SecurityProvider provider = getSecurityProvider();
+        Whiteboard whiteboard = null;
+        if (provider instanceof WhiteboardAware) {
+            whiteboard = ((WhiteboardAware) provider).getWhiteboard();
+        } else {
+            log.warn("Unable to obtain whiteboard from SecurityProvider");
+        }
+        return new LoginContextProviderImpl(appName, loginConfig, contentRepository, getSecurityProvider(), whiteboard);
     }
 }

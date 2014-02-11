@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.WhiteboardCallback;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
  * Default implementation of the {@link CallbackHandler} interface. It currently
@@ -47,14 +49,17 @@ class CallbackHandlerImpl implements CallbackHandler {
     private final String workspaceName;
     private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
+    private final Whiteboard whiteboard;
 
     CallbackHandlerImpl(Credentials credentials, String workspaceName,
                         ContentRepository contentRepository,
-                        SecurityProvider securityProvider) {
+                        SecurityProvider securityProvider,
+                        Whiteboard whiteboard) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.contentRepository = contentRepository;
         this.securityProvider = securityProvider;
+        this.whiteboard = whiteboard;
     }
 
     //----------------------------------------------------< CallbackHandler >---
@@ -72,6 +77,8 @@ class CallbackHandlerImpl implements CallbackHandler {
                 repositoryCallback.setContentRepository(contentRepository);
                 repositoryCallback.setSecurityProvider(securityProvider);
                 repositoryCallback.setWorkspaceName(workspaceName);
+            } else if (callback instanceof WhiteboardCallback) {
+                ((WhiteboardCallback) callback).setWhiteboard(whiteboard);
             } else {
                 throw new UnsupportedCallbackException(callback);
             }

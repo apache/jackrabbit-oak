@@ -111,7 +111,11 @@ public class ExternalLoginModule extends AbstractLoginModule {
             options = ConfigurationParameters.of(osgiConfig, options);
         }
 
-        Whiteboard whiteboard = getSecurityProvider().getConfiguration(Whiteboard.class);
+        Whiteboard whiteboard = getWhiteboard();
+        if (whiteboard == null) {
+            log.error("External login module needs whiteboard. Will not be used for login.");
+            return;
+        }
 
         String idpName = options.getConfigValue(PARAM_IDP_NAME, "");
         if (idpName.length() == 0) {
