@@ -57,11 +57,11 @@ public abstract class AbstractRepositoryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
         Object[][] fixtures = new Object[][] {
-                {NodeStoreFixture.MK_IMPL},
-                {NodeStoreFixture.MONGO_MK},
-                {NodeStoreFixture.MONGO_NS},
+//                {NodeStoreFixture.MK_IMPL},
+//                {NodeStoreFixture.MONGO_MK},
+//                {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},
-                {NodeStoreFixture.MONGO_JDBC},
+//                {NodeStoreFixture.MONGO_JDBC},
         };
         return Arrays.asList(fixtures);
     }

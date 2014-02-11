@@ -22,32 +22,23 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.UUID;
 
+import com.mongodb.DB;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import com.mongodb.DB;
 
 /**
  * NodeStore fixture for parametrized tests.
  */
 public abstract class NodeStoreFixture {
 
-    public static final NodeStoreFixture SEGMENT_MK = new NodeStoreFixture() {
-        @Override
-        public NodeStore createNodeStore() {
-            return new SegmentNodeStore(new MemoryStore());
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-        }
-    };
+    public static final NodeStoreFixture SEGMENT_MK = new SegmentFixture();
 
     public static final NodeStoreFixture MONGO_MK = new NodeStoreFixture() {
         @Override
@@ -119,32 +110,7 @@ public abstract class NodeStoreFixture {
     };
     
     public static NodeStoreFixture createMongoFixture(final String uri) {
-        return new NodeStoreFixture() {
-            @Override
-            public NodeStore createNodeStore() {
-                return new DocumentMK.Builder().getNodeStore();
-            }
-            
-            @Override
-            public NodeStore createNodeStore(int clusterNodeId) {
-                MongoConnection connection;
-                try {
-                    connection = new MongoConnection(uri);
-                    DB mongoDB = connection.getDB();
-                    return new DocumentMK.Builder()
-                                    .setMongoDB(mongoDB).getNodeStore();
-                } catch (Exception e) {
-                    return null;
-                }
-            }
-
-            @Override
-            public void dispose(NodeStore nodeStore) {
-                if (nodeStore instanceof DocumentNodeStore) {
-                    ((DocumentNodeStore) nodeStore).dispose();
-                }
-            }
-        };
+        return new DocumentFixture(uri);
     }
 
     /**
@@ -168,6 +134,10 @@ public abstract class NodeStoreFixture {
 
     public abstract void dispose(NodeStore nodeStore);
 
+    public boolean isAvailable() {
+        return true;
+    }
+
     private static class CloseableNodeStore
             extends KernelNodeStore implements Closeable {
 
@@ -181,6 +151,92 @@ public abstract class NodeStoreFixture {
         @Override
         public void close() throws IOException {
             kernel.dispose();
+        }
+    }
+
+    public static class SegmentFixture extends NodeStoreFixture {
+        private final SegmentStore store;
+
+        public SegmentFixture() {
+            this(null);
+        }
+
+        public SegmentFixture(SegmentStore store) {
+            this.store = store;
+        }
+
+        @Override
+        public NodeStore createNodeStore() {
+            return new SegmentNodeStore(store == null ? new MemoryStore() : store);
+        }
+
+        @Override
+        public void dispose(NodeStore nodeStore) {
+        }
+    }
+
+    public static class DocumentFixture extends NodeStoreFixture {
+        public static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
+
+        private final String uri;
+        private final boolean inMemory;
+
+        public DocumentFixture(String uri, boolean inMemory) {
+            this.uri = uri;
+            this.inMemory = inMemory;
+        }
+
+        public DocumentFixture(String uri) {
+            this(uri, true);
+        }
+
+        public DocumentFixture() {
+            this(DEFAULT_URI, false);
+        }
+
+        private static NodeStore createNodeStore(String uri) {
+            MongoConnection connection;
+            try {
+                connection = new MongoConnection(uri);
+                DB mongoDB = connection.getDB();
+                return new DocumentMK.Builder()
+                        .setMongoDB(mongoDB).getNodeStore();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        @Override
+        public NodeStore createNodeStore() {
+            if (inMemory) {
+                return new DocumentMK.Builder().getNodeStore();
+            } else {
+                return createNodeStore(uri);
+            }
+        }
+
+        @Override
+        public NodeStore createNodeStore(int clusterNodeId) {
+            return createNodeStore(uri);
+        }
+
+        @Override
+        public boolean isAvailable() {
+            // FIXME is there a better way to check whether MongoDB is available?
+            NodeStore nodeStore = createNodeStore(uri);
+            if (nodeStore == null) {
+                return false;
+            } else {
+                dispose(nodeStore);
+                return true;
+            }
+        }
+
+        @Override
+        public void dispose(NodeStore nodeStore) {
+            if (nodeStore instanceof DocumentNodeStore) {
+                ((DocumentNodeStore) nodeStore).dispose();
+            }
         }
     }
 }
