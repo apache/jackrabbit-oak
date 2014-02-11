@@ -305,7 +305,9 @@ public class LargeOperationIT {
                 executionTimes.add(t);
                 LOG.info("{} pending events took {} ns/event to process", scale, t);
             } finally {
-                observer.dispose();
+                try {
+                    observer.dispose();
+                } catch (Exception ignore) {}
             }
         }
         List<Double> quotients = quotients(executionTimes);
