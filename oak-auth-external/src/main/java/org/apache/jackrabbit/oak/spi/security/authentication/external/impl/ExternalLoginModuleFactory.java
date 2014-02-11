@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 public class ExternalLoginModuleFactory implements LoginModuleFactory {
 
     @Property(
-            intValue = 900,
+            intValue = 150,
             label = "JAAS Ranking",
             description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
                     "in a descending order (i.e. higher value ranked configurations come first)."
