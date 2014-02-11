@@ -1,5 +1,5 @@
-Oak LDAP Authentication Support
-===============================
+Oak External Authentication Support
+===================================
 
 License
 -------

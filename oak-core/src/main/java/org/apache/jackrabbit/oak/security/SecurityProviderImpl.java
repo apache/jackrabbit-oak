@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -44,10 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -146,10 +141,6 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     @Override
     public void setWhiteboard(@Nonnull Whiteboard whiteboard) {
         this.whiteboard = whiteboard;
-
-        // register non-OSGi managers
-        whiteboard.register(SyncManager.class, new SyncManagerImpl(whiteboard), Collections.emptyMap());
-        whiteboard.register(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard), Collections.emptyMap());
     }
 
     @Override
