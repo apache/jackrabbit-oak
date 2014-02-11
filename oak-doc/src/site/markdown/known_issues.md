@@ -46,14 +46,6 @@ Changes with respect to Jackrabbit-core are collected in [OAK-14]
       See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
     * Workspace Management (creating/deleting workspaces) is not implemented yet
       See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
-    * `Workspace#copy()` is not properly implemented
-      See [OAK-917](https://issues.apache.org/jira/browse/OAK-917) and sub tasks
-        * copy of versionable nodes does not create new version history
-          See [OAK-918](https://issues.apache.org/jira/browse/OAK-918)
-        * copy of locked nodes does not remove the lock
-          See [OAK-919](https://issues.apache.org/jira/browse/OAK-919)
-        * copy of trees with limited read access
-          See [OAK-920](https://issues.apache.org/jira/browse/OAK-920)
 
 
 In some cases Oak throws Runtime exceptions instead of a properly typed exception. We are working
