@@ -110,7 +110,12 @@ that they are not copied to the local repository and can be invalidated easier a
 actual user synchronization. It has the disadvantage, that users won't be able to login, if the 3rd party system is
 offline.
 
-The alternative is to cache the passwords in the repository together with the synced user. this has the advantage that the 3rd party system can be offline and users will still be able to login. It has the disadvantage that password are copied to the local system and stored with the users in a encrypted form. this might be a security concern and might not comply with security policies. Another disadvantage to this approach is that it only works for simple password based credentials.
+The alternative is to cache the passwords in the repository together with the synced user.
+this has the advantage that the 3rd party system can be offline and users will
+still be able to login. It has the following disadvantages:
+
+- password are copied to the local system and stored with the users in a encrypted form. This might be a security concern and might not comply with security policies.
+- it only works for simple password based credentials.
 
 ### Behavior of the External Login Module
 
