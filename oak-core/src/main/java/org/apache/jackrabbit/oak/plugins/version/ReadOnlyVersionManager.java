@@ -168,16 +168,6 @@ public abstract class ReadOnlyVersionManager {
     }
 
     //----------------------------< internal >----------------------------------
-
-    @Nonnull
-    private static String getRelativePath(@Nonnull String absJcrPath) {
-        checkArgument(checkNotNull(absJcrPath).startsWith("/"),
-                "Path is not absolute: " + absJcrPath);
-        String relPath = absJcrPath.substring(1);
-        checkArgument(!relPath.startsWith("/"), "Invalid path: " + absJcrPath);
-        return relPath;
-    }
-
     /**
      * @return an identifier manager that is able to resolve identifiers of
      *         nodes in the version storage.
