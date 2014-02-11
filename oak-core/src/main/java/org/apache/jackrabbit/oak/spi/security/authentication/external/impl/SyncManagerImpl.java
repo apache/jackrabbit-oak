@@ -22,43 +22,62 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.osgi.service.component.ComponentContext;
 
 /**
  * {@code SyncManagerImpl} is used to manage registered sync handlers. This class automatically
  * tracks the SyncHandlers that are registered via OSGi but can also be used in non-OSGi environments by manually
  * adding and removing the handlers.
  */
-@Component
+@Component(immediate = true)
 @Service
-public class SyncManagerImpl implements SyncManager {
+public class SyncManagerImpl extends AbstractServiceTracker<SyncHandler> implements SyncManager {
 
-    @Reference(
-            name = "syncHandler",
-            bind = "addHandler",
-            unbind = "removeHandler",
-            referenceInterface = SyncHandler.class,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-            policy = ReferencePolicy.DYNAMIC
-    )
-    final private Map<String, SyncHandler> handlers = new ConcurrentHashMap<String, SyncHandler>();
-
-    public void addHandler(SyncHandler handler, final Map<String, Object> props) {
-        handlers.put(handler.getName(), handler);
+    /**
+     * Default constructor used by OSGi
+     */
+    public SyncManagerImpl() {
+        super(SyncHandler.class);
     }
 
-    public void removeHandler(SyncHandler handler, final Map<String, Object> props) {
-        handlers.remove(handler.getName());
+    /**
+     * Constructor used by non OSGi
+     * @param whiteboard the whiteboard
+     */
+    public SyncManagerImpl(Whiteboard whiteboard) {
+        super(SyncHandler.class);
+        start(whiteboard);
+    }
+
+    @Activate
+    private void activate(ComponentContext ctx) {
+        start(new OsgiWhiteboard(ctx.getBundleContext()));
+    }
+
+    @Deactivate
+    private void deactivate() {
+        stop();
     }
 
     @Override
     public SyncHandler getSyncHandler(@Nonnull String name) {
-        return handlers.get(name);
+        for (SyncHandler handler: getServices()) {
+            if (name.equals(handler.getName())) {
+                return handler;
+            }
+        }
+        return null;
     }
 }

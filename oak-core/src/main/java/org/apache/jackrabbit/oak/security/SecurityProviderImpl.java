@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,9 +44,9 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
@@ -57,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardRestrictionProvider;
@@ -114,16 +116,12 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     private ConfigurationParameters configuration;
 
-    @Reference
-    private ExternalIdentityProviderManager identityProviderManager;
-
-    @Reference
-    private SyncManager syncManager;
+    private Whiteboard whiteboard = new DefaultWhiteboard();
 
     /**
      * Default constructor used in OSGi environments.
      */
-    public SecurityProviderImpl() {
+    protected SecurityProviderImpl() {
         this(ConfigurationParameters.EMPTY);
     }
 
@@ -140,8 +138,10 @@ public class SecurityProviderImpl implements SecurityProvider {
         principalConfiguration = new PrincipalConfigurationImpl(this);
         privilegeConfiguration = new PrivilegeConfigurationImpl();
         tokenConfiguration = new TokenConfigurationImpl(this);
-        identityProviderManager = new ExternalIDPManagerImpl();
-        syncManager = new SyncManagerImpl();
+
+        // register non-OSGi managers
+        whiteboard.register(SyncManager.class, new SyncManagerImpl(whiteboard), Collections.emptyMap());
+        whiteboard.register(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard), Collections.emptyMap());
     }
 
     @Nonnull
@@ -188,10 +188,8 @@ public class SecurityProviderImpl implements SecurityProvider {
             return (T) privilegeConfiguration;
         } else if (TokenConfiguration.class == configClass) {
             return (T) tokenConfiguration;
-        } else if (ExternalIdentityProviderManager.class == configClass) {
-            return (T) identityProviderManager;
-        } else if (SyncManager.class == configClass) {
-            return (T) syncManager;
+        } else if (Whiteboard.class == configClass) {
+            return (T) whiteboard;
         } else {
             throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
         }
@@ -199,7 +197,7 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     @Activate
     protected void activate(ComponentContext context) throws Exception {
-        Whiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        whiteboard = new OsgiWhiteboard(context.getBundleContext());
         authorizableActionProvider.start(whiteboard);
         restrictionProvider.start(whiteboard);
     }

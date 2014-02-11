@@ -21,19 +21,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncMode;
+import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
+import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -52,7 +54,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public abstract class LdapLoginTestBase extends AbstractSecurityTest {
+public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
 
     protected static final InternalLdapServer LDAP_SERVER = new InternalLdapServer();
 
@@ -75,6 +77,8 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
     protected final HashMap<String, Object> options = new HashMap<String, Object>();
 
     protected UserManager userManager;
+
+    protected LdapIdentityProvider idp;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -99,18 +103,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
             LDAP_SERVER.setUp();
             createLdapFixture();
         }
-
-        options.put(LdapProviderConfig.KEY_HOST, "127.0.0.1");
-        options.put(LdapProviderConfig.KEY_PORT, String.valueOf(LDAP_SERVER.getPort()));
-        options.put(LdapProviderConfig.KEY_AUTHDN, ServerDNConstants.ADMIN_SYSTEM_DN);
-        options.put(LdapProviderConfig.KEY_AUTHPW, InternalLdapServer.ADMIN_PW);
-        options.put(LdapProviderConfig.KEY_USERROOT, ServerDNConstants.USERS_SYSTEM_DN);
-        options.put(LdapProviderConfig.KEY_GROUPROOT, ServerDNConstants.GROUPS_SYSTEM_DN);
-        options.put(LdapProviderConfig.KEY_AUTOCREATEUSER + USER_ATTR, USER_PROP);
-        options.put(LdapProviderConfig.KEY_AUTOCREATEGROUP + InternalLdapServer.GROUP_MEMBER_ATTR, GROUP_PROP);
-        options.put(LdapProviderConfig.KEY_GROUPFILTER, "(objectclass=" + InternalLdapServer.GROUP_CLASS_ATTR + ')');
-        options.put(LdapProviderConfig.KEY_GROUPMEMBERSHIPATTRIBUTE, InternalLdapServer.GROUP_MEMBER_ATTR);
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
 
         UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
         userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
@@ -141,6 +133,26 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
         }
     }
 
+    @Override
+    protected ExternalIdentityProvider createIDP() {
+        LdapProviderConfig cfg = new LdapProviderConfig()
+                .setName("ldap")
+                .setHostname("127.0.0.1")
+                .setPort(LDAP_SERVER.getPort())
+                .setBindDN(ServerDNConstants.ADMIN_SYSTEM_DN)
+                .setBindPassword(InternalLdapServer.ADMIN_PW)
+                .setGroupMemberAttribute(InternalLdapServer.GROUP_MEMBER_ATTR);
+
+        cfg.getUserConfig()
+                .setBaseDN(ServerDNConstants.USERS_SYSTEM_DN)
+                .setObjectClasses("inetOrgPerson");
+        cfg.getGroupConfig()
+                .setBaseDN(ServerDNConstants.GROUPS_SYSTEM_DN)
+                .setObjectClasses(InternalLdapServer.GROUP_CLASS_ATTR);
+
+        return new LdapIdentityProvider(cfg);
+    }
+
     @Test
     public void testLoginFailed() throws Exception {
         try {
@@ -156,8 +168,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testSyncCreateUser() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
-
         ContentSession cs = null;
         try {
             cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
@@ -180,9 +190,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testSyncCreateGroup() throws Exception {
-
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_GROUP);
-
         ContentSession cs = null;
         try {
             cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
@@ -190,78 +197,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
             root.refresh();
             assertNull(userManager.getAuthorizable(USER_ID));
             assertNull(userManager.getAuthorizable(GROUP_DN));
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
-    }
-
-    @Test
-    public void testSyncCreateUserAndGroups() throws Exception {
-
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.CREATE_USER, SyncMode.CREATE_GROUP});
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
-
-            root.refresh();
-            Authorizable user = userManager.getAuthorizable(USER_ID);
-            assertNotNull(user);
-            assertTrue(user.hasProperty(USER_PROP));
-            Authorizable group = userManager.getAuthorizable(GROUP_DN);
-            assertTrue(group.hasProperty(GROUP_PROP));
-            assertNotNull(group);
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
-    }
-
-    @Test
-    public void testNoSync() throws Exception {
-
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, "");
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
-
-            root.refresh();
-            assertNull(userManager.getAuthorizable(USER_ID));
-            assertNull(userManager.getAuthorizable(GROUP_DN));
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
-    }
-
-    @Test
-    public void testDefaultSync() throws Exception {
-
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, null);
-
-        // create user upfront in order to test update mode
-        userManager.createUser(USER_ID, null);
-        root.commit();
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
-
-            root.refresh();
-            Authorizable user = userManager.getAuthorizable(USER_ID);
-            assertNotNull(user);
-            assertTrue(user.hasProperty(USER_PROP));
-            Authorizable group = userManager.getAuthorizable(GROUP_DN);
-            assertTrue(group.hasProperty(GROUP_PROP));
-            assertNotNull(group);
         } finally {
             if (cs != null) {
                 cs.close();
@@ -272,9 +207,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testSyncUpdate() throws Exception {
-
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.UPDATE);
-
         // create user upfront in order to test update mode
         userManager.createUser(USER_ID, null);
         root.commit();
@@ -288,34 +220,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
             assertNotNull(user);
             assertTrue(user.hasProperty(USER_PROP));
             assertNull(userManager.getAuthorizable(GROUP_DN));
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
-    }
-
-    @Test
-    public void testSyncUpdateAndGroups() throws Exception {
-
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.UPDATE, SyncMode.CREATE_GROUP});
-
-        // create user upfront in order to test update mode
-        userManager.createUser(USER_ID, null);
-        root.commit();
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
-
-            root.refresh();
-            Authorizable user = userManager.getAuthorizable(USER_ID);
-            assertNotNull(user);
-            assertTrue(user.hasProperty(USER_PROP));
-            Authorizable group = userManager.getAuthorizable(GROUP_DN);
-            assertTrue(group.hasProperty(GROUP_PROP));
-            assertNotNull(group);
         } finally {
             if (cs != null) {
                 cs.close();
@@ -345,8 +249,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testPrincipalsFromAuthInfo() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
-
         ContentSession cs = null;
         try {
             SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PWD.toCharArray());
@@ -370,8 +272,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testPrincipalsFromAuthInfo2() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.CREATE_USER, SyncMode.CREATE_GROUP});
-
         ContentSession cs = null;
         try {
             SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PWD.toCharArray());
@@ -395,8 +295,6 @@ public abstract class LdapLoginTestBase extends AbstractSecurityTest {
 
     @Test
     public void testReLogin() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
-
         ContentSession cs = null;
         try {
             cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));

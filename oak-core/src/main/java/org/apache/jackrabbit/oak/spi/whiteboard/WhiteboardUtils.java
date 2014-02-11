@@ -19,14 +19,25 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 
 public class WhiteboardUtils {
@@ -73,5 +84,84 @@ public class WhiteboardUtils {
         return checkNotNull(whiteboard)
                 .register(Observer.class, checkNotNull(observer), emptyMap());
     }
+
+    /**
+     * Returns the currently available services from the whiteboard of the tracked type.
+     *
+     * Note that the underlying tracker is closed automatically.
+     *
+     * @param wb the whiteboard
+     * @param type the service type
+     * @return a list of services
+     */
+    @Nonnull
+    public static <T> List<T> getServices(@Nonnull Whiteboard wb, @Nonnull Class<T> type) {
+        return getServices(wb, type, null);
+    }
+
+    /**
+     * Returns the one of the currently available services from the whiteboard of the tracked type.
+     *
+     * Note that the underlying tracker is closed automatically.
+     *
+     * @return one service or {@code null}
+     */
+    @CheckForNull
+    public static <T> T getService(@Nonnull Whiteboard wb, @Nonnull Class<T> type) {
+        return getService(wb, type, null);
+    }
+
+    /**
+     * Returns the currently available services from the whiteboard of the tracked type. If {@code predicate} is
+     * not {@code null} the returned list is limited to the ones that match the predicate.
+     *
+     * Note that the underlying tracker is stopped automatically after the services are returned.
+     *
+     * @param wb the whiteboard
+     * @param type the service type
+     * @param predicate filtering predicate or {@code null}
+     * @return a list of services
+     */
+    @Nonnull
+    public static <T> List<T> getServices(@Nonnull Whiteboard wb, @Nonnull Class<T> type, @Nullable Predicate<T> predicate) {
+        Tracker<T> tracker = wb.track(type);
+        try {
+            if (predicate == null) {
+                return tracker.getServices();
+            } else {
+                return ImmutableList.copyOf(Iterables.filter(tracker.getServices(), predicate));
+            }
+        } finally {
+            tracker.stop();
+        }
+    }
+
+    /**
+     * Returns the one of the currently available services from the whiteboard of the tracked type. If {@code predicate} is
+     * not {@code null} only a service that match the predicate is returned.
+     *
+     * Note that the underlying tracker is closed automatically.
+     *
+     * @param wb the whiteboard
+     * @param type the service type
+     * @param predicate filtering predicate or {@code null}
+     * @return one service or {@code null}
+     */
+    @CheckForNull
+    public static <T> T getService(@Nonnull Whiteboard wb, @Nonnull Class<T> type, @Nullable Predicate<T> predicate) {
+        Tracker<T> tracker = wb.track(type);
+        try {
+            for (T service : tracker.getServices()) {
+                if (predicate == null || predicate.apply(service)) {
+                    return service;
+                }
+            }
+            return null;
+        } finally {
+            tracker.stop();
+        }
+
+    }
+
 
 }

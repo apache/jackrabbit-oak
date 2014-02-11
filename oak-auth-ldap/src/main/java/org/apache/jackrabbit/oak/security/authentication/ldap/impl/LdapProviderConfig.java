@@ -573,9 +573,19 @@ public class LdapProviderConfig {
 
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
 
-    private final Identity userConfig = new Identity();
+    private final Identity userConfig = new Identity()
+            .setBaseDN(PARAM_USER_BASE_DN_DEFAULT)
+            .setExtraFilter(PARAM_USER_EXTRA_FILTER_DEFAULT)
+            .setIdAttribute(PARAM_USER_ID_ATTRIBUTE_DEFAULT)
+            .setMakeDnPath(PARAM_USER_MAKE_DN_PATH_DEFAULT)
+            .setObjectClasses(PARAM_USER_OBJECTCLASS_DEFAULT);
 
-    private final Identity groupConfig = new Identity();
+    private final Identity groupConfig = new Identity()
+            .setBaseDN(PARAM_GROUP_BASE_DN_DEFAULT)
+            .setExtraFilter(PARAM_GROUP_EXTRA_FILTER_DEFAULT)
+            .setIdAttribute(PARAM_GROUP_NAME_ATTRIBUTE_DEFAULT)
+            .setMakeDnPath(PARAM_GROUP_MAKE_DN_PATH_DEFAULT)
+            .setObjectClasses(PARAM_GROUP_OBJECTCLASS_DEFAULT);
 
     /**
      * Returns the name of this provider configuration.

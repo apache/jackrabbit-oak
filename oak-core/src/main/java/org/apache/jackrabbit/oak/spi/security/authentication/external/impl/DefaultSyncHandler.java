@@ -44,7 +44,9 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
@@ -151,6 +153,8 @@ public class DefaultSyncHandler implements SyncHandler {
                 }
             } catch (RepositoryException e) {
                 throw new SyncException(e);
+            } catch (ExternalIdentityException e) {
+                throw new SyncException(e);
             }
         }
 
@@ -172,7 +176,8 @@ public class DefaultSyncHandler implements SyncHandler {
         }
 
         @CheckForNull
-        private User createUser(ExternalUser externalUser) throws RepositoryException, SyncException {
+        private User createUser(ExternalUser externalUser)
+                throws RepositoryException, SyncException, ExternalIdentityException {
             String password = externalUser.getPassword(); // todo: make configurable
             Principal principal = new PrincipalImpl(externalUser.getPrincipalName());
             User user = userManager.createUser(
@@ -186,7 +191,8 @@ public class DefaultSyncHandler implements SyncHandler {
         }
 
         @CheckForNull
-        private Group createGroup(ExternalGroup externalGroup) throws RepositoryException, SyncException {
+        private Group createGroup(ExternalGroup externalGroup)
+                throws RepositoryException, SyncException, ExternalIdentityException {
             Principal principal = new PrincipalImpl(externalGroup.getPrincipalName());
             Group group = userManager.createGroup(
                     externalGroup.getId(),
@@ -196,25 +202,31 @@ public class DefaultSyncHandler implements SyncHandler {
             return group;
         }
 
-        private void updateUser(ExternalUser externalUser, User user) throws RepositoryException, SyncException {
+        private void updateUser(ExternalUser externalUser, User user)
+                throws RepositoryException, SyncException, ExternalIdentityException {
             syncAuthorizable(externalUser, user);
         }
 
-        private void syncAuthorizable(ExternalIdentity externalUser, Authorizable authorizable) throws RepositoryException, SyncException {
-            for (ExternalGroup externalGroup : externalUser.getGroups()) {
-                String groupId = externalGroup.getId();
-                Group group;
-                Authorizable a = userManager.getAuthorizable(groupId);
-                if (a == null) {
-                    group = createGroup(externalGroup);
-                } else {
-                    group = (a.isGroup()) ? (Group) a : null;
-                }
+        private void syncAuthorizable(ExternalIdentity externalUser, Authorizable authorizable)
+                throws RepositoryException, SyncException, ExternalIdentityException {
+            for (ExternalIdentityRef externalGroupRef : externalUser.getGroups()) {
+                ExternalIdentity id = idp.getIdentity(externalGroupRef);
+                if (id instanceof ExternalGroup) {
+                    ExternalGroup externalGroup = (ExternalGroup) id;
+                    String groupId = externalGroup.getId();
+                    Group group;
+                    Authorizable a = userManager.getAuthorizable(groupId);
+                    if (a == null) {
+                        group = createGroup(externalGroup);
+                    } else {
+                        group = (a.isGroup()) ? (Group) a : null;
+                    }
 
-                if (group != null) {
-                    group.addMember(authorizable);
-                } else {
-                    log.debug("No such group " + groupId + "; Ignoring group membership.");
+                    if (group != null) {
+                        group.addMember(authorizable);
+                    } else {
+                        log.debug("No such group " + groupId + "; Ignoring group membership.");
+                    }
                 }
             }
 

@@ -86,7 +86,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
      */
     @Nonnull
     @Override
-    public Iterable<? extends ExternalGroup> getGroups() {
+    public Iterable<? extends ExternalIdentityRef> getGroups() {
         return Collections.emptyList();
     }
 
