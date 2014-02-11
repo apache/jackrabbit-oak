@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -114,6 +115,9 @@ public class Cursors {
         
     }
 
+    /**
+     * This class allows to iterate over the parent nodes of the wrapped cursor.
+     */
     private static class AncestorCursor extends PathCursor {
 
         public AncestorCursor(Cursor cursor, int level) {
@@ -161,6 +165,7 @@ public class Cursors {
 
                     @Override
                     public boolean apply(@Nullable String input) {
+                        FilterIterators.checkMemoryLimit(known.size());
                         // Set.add returns true for new entries
                         return known.add(input);
                     }
@@ -289,6 +294,7 @@ public class Cursors {
 
                     readCount++;
                     if (readCount % 1000 == 0) {
+                        FilterIterators.checkReadLimit(readCount);
                         LOG.warn("Traversed " + readCount + " nodes with filter " + filter + "; consider creating an index or changing the query");
                     }
 
