@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -33,7 +34,7 @@ import org.apache.jackrabbit.mk.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RDBBlobStore extends AbstractBlobStore {
+public class RDBBlobStore extends AbstractBlobStore implements Closeable {
 
     /**
      * Creates a {@linkplain RDBBlobStore} instance using an embedded H2
@@ -74,7 +75,8 @@ public class RDBBlobStore extends AbstractBlobStore {
         }
     }
 
-    public void dispose() {
+    @Override
+    public void close() {
         try {
             this.connection.close();
             this.connection = null;

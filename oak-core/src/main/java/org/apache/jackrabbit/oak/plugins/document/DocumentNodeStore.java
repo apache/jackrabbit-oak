@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.BlobSerializer;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
@@ -352,11 +351,16 @@ public final class DocumentNodeStore
                 clusterNodeInfo.dispose();
             }
             store.dispose();
-            if (blobStore instanceof RDBBlobStore) {
-                // maybe this should be an interface
-                ((RDBBlobStore) blobStore).dispose();
-            }
             LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
+
+            if (blobStore instanceof Closeable) {
+                try {
+                    ((Closeable) blobStore).close();
+                }
+                catch (IOException ex) {
+                    LOG.debug("Error closing blob store " + blobStore, ex);
+                }
+            }
         }
     }
 
