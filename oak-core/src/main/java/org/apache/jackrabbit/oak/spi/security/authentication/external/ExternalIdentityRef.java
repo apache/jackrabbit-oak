@@ -101,4 +101,21 @@ public class ExternalIdentityRef {
         sb.append('}');
         return sb.toString();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ExternalIdentityRef that = (ExternalIdentityRef) o;
+
+        if (!string.equals(that.string)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return string.hashCode();
+    }
 }

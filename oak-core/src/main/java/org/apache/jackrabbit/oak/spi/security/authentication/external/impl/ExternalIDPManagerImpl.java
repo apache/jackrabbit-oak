@@ -16,48 +16,61 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.osgi.service.component.ComponentContext;
 
 /**
  * {@code ExternalIDPManagerImpl} is used to manage registered external identity provider. This class automatically
  * tracks the IDPs that are registered via OSGi but can also be used in non-OSGi environments by manually adding and
  * removing the providers.
  */
-@Component
+@Component(immediate = true)
 @Service
-public class ExternalIDPManagerImpl implements ExternalIdentityProviderManager {
+public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdentityProvider> implements ExternalIdentityProviderManager {
 
-    @Reference(
-            name = "idpProvider",
-            bind = "addProvider",
-            unbind = "removeProvider",
-            referenceInterface = ExternalIdentityProvider.class,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-            policy = ReferencePolicy.DYNAMIC
-    )
-    final private Map<String, ExternalIdentityProvider> providers = new ConcurrentHashMap<String, ExternalIdentityProvider>();
-
-    public void addProvider(ExternalIdentityProvider provider, final Map<String, Object> props) {
-        providers.put(provider.getName(), provider);
+    /**
+     * Default constructor used by OSGi
+     */
+    public ExternalIDPManagerImpl() {
+        super(ExternalIdentityProvider.class);
     }
 
-    public void removeProvider(ExternalIdentityProvider provider, final Map<String, Object> props) {
-        providers.remove(provider.getName());
+    /**
+     * Constructor used by non OSGi
+     * @param whiteboard the whiteboard
+     */
+    public ExternalIDPManagerImpl(Whiteboard whiteboard) {
+        super(ExternalIdentityProvider.class);
+        start(whiteboard);
+    }
+
+    @Activate
+    private void activate(ComponentContext ctx) {
+        start(new OsgiWhiteboard(ctx.getBundleContext()));
+    }
+
+    @Deactivate
+    private void deactivate() {
+        stop();
     }
 
     @Override
     public ExternalIdentityProvider getProvider(@Nonnull String name) {
-        return providers.get(name);
+        for (ExternalIdentityProvider provider: getServices()) {
+            if (name.equals(provider.getName())) {
+                return provider;
+            }
+        }
+        return null;
     }
 }

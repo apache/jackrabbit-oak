@@ -65,7 +65,7 @@ public interface ExternalIdentity {
      * @return the declared groups
      */
     @Nonnull
-    Iterable<? extends ExternalGroup> getGroups();
+    Iterable<? extends ExternalIdentityRef> getGroups();
 
     /**
      * Returns a map of properties of this external identity.

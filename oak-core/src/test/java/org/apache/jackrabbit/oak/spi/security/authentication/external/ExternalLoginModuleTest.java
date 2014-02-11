@@ -17,20 +17,16 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
@@ -41,45 +37,29 @@ import static org.junit.Assert.fail;
 /**
  * ExternalLoginModuleTest...
  */
-public class ExternalLoginModuleTest extends AbstractSecurityTest {
+public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
 
     protected final HashMap<String, Object> options = new HashMap<String, Object>();
 
-    private String userId;
-    private Set<String> ids = new HashSet<String>();
-
-    private UserManager userManager;
+    private String userId = "testUser";
 
     @Before
     public void before() throws Exception {
         super.before();
-
-        userId = TestLoginModule.externalUser.getId();
-        ids.add(userId);
-        for (ExternalGroup group : TestLoginModule.externalGroups) {
-            ids.add(group.getId());
-        }
-        userManager = getUserManager(root);
     }
 
     @After
     public void after() throws Exception {
-        try {
-            for (String id : ids) {
-                Authorizable a = userManager.getAuthorizable(id);
-                if (a != null) {
-                    a.remove();
-                }
-            }
-            root.commit();
-        } finally {
-            root.refresh();
-            super.after();
-        }
+        super.after();
+    }
+
+    protected ExternalIdentityProvider createIDP() {
+        return new TestIdentityProvider();
     }
 
     @Test
     public void testLoginFailed() throws Exception {
+        UserManager userManager = getUserManager(root);
         try {
             ContentSession cs = login(new SimpleCredentials("unknown", new char[0]));
             cs.close();
@@ -93,23 +73,20 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testSyncCreateUser() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_USER);
-
+        UserManager userManager = getUserManager(root);
         ContentSession cs = null;
         try {
+            assertNull(userManager.getAuthorizable(userId));
+
             cs = login(new SimpleCredentials(userId, new char[0]));
 
             root.refresh();
-            for (String id : ids) {
-                if (id.equals(userId)) {
-                    Authorizable a = userManager.getAuthorizable(id);
-                    assertNotNull(a);
-                    for (String prop : TestLoginModule.externalUser.getProperties().keySet()) {
-                        assertTrue(a.hasProperty(prop));
-                    }
-                } else {
-                    assertNull(userManager.getAuthorizable(id));
-                }
+
+            Authorizable a = userManager.getAuthorizable(userId);
+            assertNotNull(a);
+            ExternalUser user = idp.getUser(userId);
+            for (String prop : user.getProperties().keySet()) {
+                assertTrue(a.hasProperty(prop));
             }
         } finally {
             if (cs != null) {
@@ -120,59 +97,30 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
     }
 
     @Test
+    @Ignore("group sync not implemented yet")
     public void testSyncCreateGroup() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.CREATE_GROUP);
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(userId, new char[0]));
-
-            root.refresh();
-            for (String id : ids) {
-                assertNull(userManager.getAuthorizable(id));
-            }
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
-    }
-
-    @Test
-    public void testSyncCreateUserAndGroups() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.CREATE_USER, SyncMode.CREATE_GROUP});
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(userId, new char[0]));
-
-            root.refresh();
-            for (String id : ids) {
-                if (id.equals(userId)) {
-                    Authorizable a = userManager.getAuthorizable(id);
-                    assertNotNull(a);
-                    for (String prop : TestLoginModule.externalUser.getProperties().keySet()) {
-                        assertTrue(a.hasProperty(prop));
-                    }
-                } else {
-                    assertNotNull(userManager.getAuthorizable(id));
-                }
-            }
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
+//        UserManager userManager = getUserManager(root);
+//        ContentSession cs = null;
+//        try {
+//            cs = login(new SimpleCredentials(userId, new char[0]));
+//
+//            root.refresh();
+//            for (String id : ids) {
+//                assertNull(userManager.getAuthorizable(id));
+//            }
+//        } finally {
+//            if (cs != null) {
+//                cs.close();
+//            }
+//            options.clear();
+//        }
     }
 
     @Test
     public void testSyncUpdate() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.UPDATE);
-
         // create user upfront in order to test update mode
-        ExternalUser externalUser = TestLoginModule.externalUser;
+        UserManager userManager = getUserManager(root);
+        ExternalUser externalUser = idp.getUser(userId);
         Authorizable user = userManager.createUser(externalUser.getId(), externalUser.getPassword());
         root.commit();
 
@@ -181,16 +129,11 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
             cs = login(new SimpleCredentials(userId, new char[0]));
 
             root.refresh();
-            for (String id : ids) {
-                if (id.equals(userId)) {
-                    Authorizable a = userManager.getAuthorizable(id);
-                    assertNotNull(a);
-                    for (String prop : TestLoginModule.externalUser.getProperties().keySet()) {
-                        assertTrue(a.hasProperty(prop));
-                    }
-                } else {
-                    assertNull(userManager.getAuthorizable(id));
-                }
+
+            Authorizable a = userManager.getAuthorizable(userId);
+            assertNotNull(a);
+            for (String prop : externalUser.getProperties().keySet()) {
+                assertTrue(a.hasProperty(prop));
             }
         } finally {
             if (cs != null) {
@@ -200,97 +143,4 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         }
     }
 
-    @Test
-    public void testSyncUpdateAndGroups() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.UPDATE, SyncMode.CREATE_GROUP});
-
-        // create user upfront in order to test update mode
-        ExternalUser externalUser = TestLoginModule.externalUser;
-        Authorizable user = userManager.createUser(externalUser.getId(), externalUser.getPassword());
-        root.commit();
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(userId, new char[0]));
-
-            root.refresh();
-            for (String id : ids) {
-                if (id.equals(userId)) {
-                    Authorizable a = userManager.getAuthorizable(id);
-                    assertNotNull(a);
-                    for (String prop : TestLoginModule.externalUser.getProperties().keySet()) {
-                        assertTrue(a.hasProperty(prop));
-                    }
-                } else {
-                    assertNotNull(userManager.getAuthorizable(id));
-                }
-            }
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
-    }
-
-    @Test
-    public void testDefaultSync() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, null);
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(userId, new char[0]));
-
-            root.refresh();
-            for (String id : ids) {
-                if (id.equals(userId)) {
-                    Authorizable a = userManager.getAuthorizable(id);
-                    assertNotNull(a);
-                    for (String prop : TestLoginModule.externalUser.getProperties().keySet()) {
-                        assertTrue(a.hasProperty(prop));
-                    }
-                } else {
-                    assertNotNull(userManager.getAuthorizable(id));
-                }
-            }
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
-    }
-
-    @Test
-    public void testNoSync() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, "");
-
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(userId, new char[0]));
-
-            root.refresh();
-            for (String id : ids) {
-                assertNull(userManager.getAuthorizable(id));
-            }
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-            options.clear();
-        }
-    }
-
-    protected Configuration getConfiguration() {
-        return new Configuration() {
-            @Override
-            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-                AppConfigurationEntry entry = new AppConfigurationEntry(
-                        TestLoginModule.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        options);
-                return new AppConfigurationEntry[]{entry};
-            }
-        };
-    }
 }

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authentication.ldap;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.junit.Ignore;
 
 @Ignore //ignore for the moment because "mvn test" runs into PermGen memory issues
@@ -31,7 +32,7 @@ public class LdapLoginStandaloneTest extends LdapLoginTestBase {
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 return new AppConfigurationEntry[]{
                         new AppConfigurationEntry(
-                                LdapLoginModule.class.getName(),
+                                ExternalLoginModule.class.getName(),
                                 AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
                                 options)
                 };

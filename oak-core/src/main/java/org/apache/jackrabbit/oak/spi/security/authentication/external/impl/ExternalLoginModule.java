@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
@@ -39,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContex
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +84,11 @@ public class ExternalLoginModule extends AbstractLoginModule {
     private ExternalUser externalUser;
 
     /**
+     * Login credentials
+     */
+    private Credentials credentials;
+
+    /**
      * Default constructor for the OSGIi LoginModuleFactory case and the default non-OSGi JAAS case.
      */
     public ExternalLoginModule() {
@@ -102,14 +111,20 @@ public class ExternalLoginModule extends AbstractLoginModule {
             options = ConfigurationParameters.of(osgiConfig, options);
         }
 
+        Whiteboard whiteboard = getSecurityProvider().getConfiguration(Whiteboard.class);
+
         String idpName = options.getConfigValue(PARAM_IDP_NAME, "");
         if (idpName.length() == 0) {
             log.error("External login module needs IPD name. Will not be used for login.");
         } else {
-            ExternalIdentityProviderManager idpMgr = getSecurityProvider().getConfiguration(ExternalIdentityProviderManager.class);
-            idp = idpMgr.getProvider(idpName);
-            if (idp == null) {
-                log.error("No IDP found with name {}. Will not be used for login.", idpName);
+            ExternalIdentityProviderManager idpMgr = WhiteboardUtils.getService(whiteboard, ExternalIdentityProviderManager.class);
+            if (idpMgr == null) {
+                log.error("External login module needs IDPManager. Will not be used for login.");
+            } else {
+                idp = idpMgr.getProvider(idpName);
+                if (idp == null) {
+                    log.error("No IDP found with name {}. Will not be used for login.", idpName);
+                }
             }
         }
 
@@ -117,10 +132,14 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (syncHandlerName.length() == 0) {
             log.error("External login module needs SyncHandler name. Will not be used for login.");
         } else {
-            SyncManager syncMgr = getSecurityProvider().getConfiguration(SyncManager.class);
-            syncHandler = syncMgr.getSyncHandler(syncHandlerName);
-            if (syncHandler == null) {
-                log.error("No SyncHandler found with name {}. Will not be used for login.", idpName);
+            SyncManager syncMgr = WhiteboardUtils.getService(whiteboard, SyncManager.class);
+            if (syncMgr == null) {
+                log.error("External login module needs SyncManager. Will not be used for login.");
+            } else {
+                syncHandler = syncMgr.getSyncHandler(syncHandlerName);
+                if (syncHandler == null) {
+                    log.error("No SyncHandler found with name {}. Will not be used for login.", syncHandlerName);
+                }
             }
         }
     }
@@ -131,7 +150,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             return false;
         }
 
-        Credentials credentials = getCredentials();
+        credentials = getCredentials();
         if (credentials == null) {
             log.debug("No credentials found for external login module. ignoring.");
             return false;
@@ -201,7 +220,19 @@ public class ExternalLoginModule extends AbstractLoginModule {
             context = syncHandler.createContext(idp, userManager, root);
             context.sync(externalUser);
             root.commit();
-            return true;
+
+            Set<? extends Principal> principals = getPrincipals(externalUser.getId());
+            if (!principals.isEmpty()) {
+                if (!subject.isReadOnly()) {
+                    subject.getPrincipals().addAll(principals);
+                    subject.getPublicCredentials().add(credentials);
+                    setAuthInfo(new AuthInfoImpl(externalUser.getId(), null, principals), subject);
+                } else {
+                    log.debug("Could not add information to read only subject {}", subject);
+                }
+                return true;
+            }
+            return false;
         } catch (SyncException e) {
             throw new LoginException("User synchronization failed: " + e);
         } catch (CommitFailedException e) {
@@ -217,5 +248,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
     protected void clearState() {
         super.clearState();
         externalUser = null;
+        credentials = null;
     }
 }
