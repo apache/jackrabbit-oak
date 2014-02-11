@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static com.google.common.collect.Lists.newArrayList;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -61,6 +59,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.junit.After;
 import org.junit.Before;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * AbstractOakTest is the base class for oak test execution.
