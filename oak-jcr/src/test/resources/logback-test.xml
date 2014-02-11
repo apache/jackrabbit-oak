@@ -32,6 +32,7 @@
     <logger name="org.apache.jackrabbit.test.api" level="DEBUG"/>
     <logger name="com.mongodb.tcp" level="ERROR"/>
     <logger name="org.apache.jackrabbit.oak.jcr.operations" level="INFO"/>
+    <logger name="org.apache.jackrabbit.oak.security.authentication" level="WARN"/>
 
     <root level="INFO">
         <!--
