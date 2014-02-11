@@ -16,25 +16,35 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 /**
  * Keeps track of when nodes where last modified. To be persisted later by
  * a background thread.
  */
 class UnsavedModifications {
+
+    /**
+     * The maximum number of document to update at once in a multi update.
+     */
+    static final int BACKGROUND_MULTI_UPDATE_LIMIT = 10000;
 
     private final ConcurrentHashMap<String, Revision> map = new ConcurrentHashMap<String, Revision>();
 
@@ -74,11 +84,6 @@ class UnsavedModifications {
     @CheckForNull
     public Revision get(String path) {
         return map.get(path);
-    }
-
-    @CheckForNull
-    public Revision remove(String path) {
-        return map.remove(path);
     }
 
     @Nonnull
@@ -125,6 +130,65 @@ class UnsavedModifications {
                     return input.getKey();
                 }
             });
+        }
+    }
+
+    /**
+     * Persist the pending changes to _lastRev to the given store. This method
+     * does not guarantee consistency when there are concurrent updates on
+     * this instance through {@link #put(String, Revision)}. The caller must
+     * use proper synchronization to ensure no paths are added while this method
+     * is called.
+     *
+     * @param store the document node store.
+     */
+    public void persist(@Nonnull DocumentNodeStore store) {
+        checkNotNull(store);
+
+        ArrayList<String> paths = new ArrayList<String>(getPaths());
+        // sort by depth (high depth first), then path
+        Collections.sort(paths, PathComparator.INSTANCE);
+
+        UpdateOp updateOp = null;
+        Revision lastRev = null;
+        List<String> ids = new ArrayList<String>();
+        for (int i = 0; i < paths.size(); ) {
+            String p = paths.get(i);
+            Revision r = map.get(p);
+            if (r == null) {
+                i++;
+                continue;
+            }
+            int size = ids.size();
+            if (updateOp == null) {
+                // create UpdateOp
+                Commit commit = new Commit(store, null, r);
+                commit.touchNode(p);
+                updateOp = commit.getUpdateOperationForNode(p);
+                lastRev = r;
+                ids.add(Utils.getIdFromPath(p));
+                i++;
+            } else if (r.equals(lastRev)) {
+                // use multi update when possible
+                ids.add(Utils.getIdFromPath(p));
+                i++;
+            }
+            // call update if any of the following is true:
+            // - this is the second-to-last or last path (update last path, the
+            //   root document, individually)
+            // - revision is not equal to last revision (size of ids didn't change)
+            // - the update limit is reached
+            if (i + 2 > paths.size()
+                    || size == ids.size()
+                    || ids.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
+                store.getDocumentStore().update(NODES, ids, updateOp);
+                for (String id : ids) {
+                    map.remove(Utils.getPathFromId(id));
+                }
+                ids.clear();
+                updateOp = null;
+                lastRev = null;
+            }
         }
     }
 }
