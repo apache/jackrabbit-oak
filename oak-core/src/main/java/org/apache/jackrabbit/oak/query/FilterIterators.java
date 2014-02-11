@@ -25,7 +25,52 @@ import java.util.NoSuchElementException;
  * or distinct.
  */
 public class FilterIterators {
+
+    /**
+     * How many nodes a query may read at most into memory, for "order by" and
+     * "distinct" queries. If this limit is exceeded, the query throws an
+     * exception.
+     */
+    public static final int QUERY_LIMIT_IN_MEMORY = 
+            Integer.getInteger("oak.queryLimitInMemory", 10000);
+
+    /**
+     * How many nodes a query may read at most (raw read operations, including
+     * skipped nodes). If this limit is exceeded, the query throws an exception.
+     */
+    public static final int QUERY_LIMIT_READS = 
+            Integer.getInteger("oak.queryLimitReads", 100000);
     
+    /**
+     * Verify the number of in-memory nodes is below the limit.
+     * 
+     * @param count the number of nodes
+     * @throws UnsupportedOperationException if the limit was exceeded
+     */
+    public static void checkMemoryLimit(long count) {
+        if (count > QUERY_LIMIT_IN_MEMORY) {
+            throw new UnsupportedOperationException(
+                    "The query read more than " + 
+                            QUERY_LIMIT_IN_MEMORY + " nodes in memory. " + 
+                            "To avoid running out of memory, processing was stopped.");
+        }
+    }
+    
+    /**
+     * Verify the number of node read operations is below the limit.
+     * 
+     * @param count the number of read operations
+     * @throws UnsupportedOperationException if the limit was exceeded
+     */
+    public static void checkReadLimit(long count) {
+        if (count > QUERY_LIMIT_READS) {
+            throw new UnsupportedOperationException(
+                    "The query read or traversed more than " + 
+                            QUERY_LIMIT_READS + " nodes. " + 
+                            "To avoid affecting other tasks, processing was stopped.");
+        }
+    }
+
     public static <K> Iterator<K> newCombinedFilter(
             Iterator<K> it, boolean distinct, long limit, long offset, 
             Comparator<K> orderBy) {
@@ -90,6 +135,7 @@ public class FilterIterators {
             while (source.hasNext()) {
                 current = source.next();
                 if (distinctSet.add(current)) {
+                    checkMemoryLimit(distinctSet.size());
                     return;
                 }
             }
@@ -153,6 +199,7 @@ public class FilterIterators {
             while (source.hasNext()) {
                 K x = source.next();
                 list.add(x);
+                checkMemoryLimit(list.size());
                 // from time to time, sort and truncate
                 // this should results in O(n*log(2*keep)) operations,
                 // which is close to the optimum O(n*log(keep))

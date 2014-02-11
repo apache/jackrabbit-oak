@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -268,6 +269,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
                     readCount++;
                     if (readCount % 1000 == 0) {
+                        FilterIterators.checkReadLimit(readCount);
                         LOG.warn("Traversed " + readCount + " nodes using index " + indexName + " with filter " + filter);
                     }
 
