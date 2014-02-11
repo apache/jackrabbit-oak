@@ -46,9 +46,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.Credential
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.UserManagerCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.WhiteboardCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -167,6 +169,8 @@ public abstract class AbstractLoginModule implements LoginModule {
     protected ConfigurationParameters options;
 
     private SecurityProvider securityProvider;
+
+    private Whiteboard whiteboard;
 
     private ContentSession systemSession;
     private Root root;
@@ -323,13 +327,34 @@ public abstract class AbstractLoginModule implements LoginModule {
             try {
                 callbackHandler.handle(new Callback[]{rcb});
                 securityProvider = rcb.getSecurityProvider();
-            } catch (UnsupportedCallbackException e) {
-                log.debug(e.getMessage());
-            } catch (IOException e) {
-                log.debug(e.getMessage());
+            } catch (Exception e) {
+                log.debug("Unable to retrieve the SecurityProvider via callback", e);
             }
         }
         return securityProvider;
+    }
+
+    /**
+     * Tries to obtain the {@code Whiteboard} object from the callback
+     * handler using a new WhiteboardCallback and keeps the value as
+     * private field. If the callback handler isn't able to handle the
+     * WhiteboardCallback this method returns {@code null}.
+     *
+     * @return The {@code Whiteboard} associated with this
+     *         {@code LoginModule} or {@code null}.
+     */
+    @CheckForNull
+    protected Whiteboard getWhiteboard() {
+        if (whiteboard == null && callbackHandler != null) {
+            WhiteboardCallback cb = new WhiteboardCallback();
+            try {
+                callbackHandler.handle(new Callback[]{cb});
+                whiteboard = cb.getWhiteboard();
+            } catch (Exception e) {
+                log.debug("Unable to retrieve the Whiteboard via callback", e);
+            }
+        }
+        return whiteboard;
     }
 
     /**

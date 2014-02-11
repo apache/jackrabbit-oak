@@ -192,8 +192,6 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             return (T) privilegeConfiguration;
         } else if (TokenConfiguration.class == configClass) {
             return (T) tokenConfiguration;
-        } else if (Whiteboard.class == configClass) {
-            return (T) whiteboard;
         } else {
             throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
         }
