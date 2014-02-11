@@ -83,7 +83,16 @@ public class RDBBlobStore extends AbstractBlobStore {
         }
     }
 
+    @Override
+    public void finalize() {
+        if (this.connection != null && this.callStack != null) {
+            LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
+        }
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStore.class);
+
+    private Exception callStack;
 
     private Connection connection;
 
@@ -106,6 +115,7 @@ public class RDBBlobStore extends AbstractBlobStore {
         }
 
         this.connection = con;
+        this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBBlobStore creation") : null;
     }
 
     private void createTables(Connection con, String binaryType) throws SQLException {

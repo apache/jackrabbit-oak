@@ -170,6 +170,8 @@ public class RDBDocumentStore implements DocumentStore {
 
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
+    private Exception callStack;
+
     private Connection connection;
 
     private void initialize(Connection con) throws Exception {
@@ -183,6 +185,14 @@ public class RDBDocumentStore implements DocumentStore {
         con.commit();
 
         this.connection = con;
+        this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
+    }
+
+    @Override
+    public void finalize() {
+        if (this.connection != null && this.callStack != null) {
+            LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
+        }
     }
 
     @CheckForNull
