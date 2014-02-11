@@ -77,6 +77,12 @@ select [jcr:path] from [nt:base] where [jcr:uuid] is not null
 /test
 /test/a
 
+select [jcr:path] from [nt:base] where [jcr:uuid] = '123' union select [jcr:path] from [nt:base] where [jcr:uuid] = '312' union select [jcr:path] from [nt:base] where [jcr:uuid] = '231'
+/test/a
+
+select [jcr:path] from [nt:base] where [jcr:uuid] = '123' union select [jcr:path] from [nt:base] where [jcr:uuid] = '312'
+/test/a
+
 select [jcr:path] from [nt:base] where [jcr:uuid] = 'xyz'
 /test
 
