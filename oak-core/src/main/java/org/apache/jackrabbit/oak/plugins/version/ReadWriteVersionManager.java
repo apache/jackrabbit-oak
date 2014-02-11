@@ -63,6 +63,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.JCR_COPIED_FROM;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_PATH;
 
@@ -133,6 +134,11 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 node.setProperty(JCR_PRIMARYTYPE, nt, Type.NAME);
             }
         }
+        PropertyState copiedFrom = versionable.getProperty(VersionConstants.HIDDEN_COPY_SOURCE);
+        if (copiedFrom != null) {
+            node.setProperty(JCR_COPIED_FROM, copiedFrom.getValue(Type.STRING), Type.WEAKREFERENCE);
+        }
+
         // use jcr:rootVersion node to detect if we need to initialize the
         // version history
         if (!node.hasChildNode(JCR_ROOTVERSION)) {

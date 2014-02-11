@@ -17,20 +17,25 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
+import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionIterator;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CopyTest extends AbstractRepositoryTest {
 
@@ -105,15 +110,12 @@ public class CopyTest extends AbstractRepositoryTest {
         assertFalse(childCopy.getUUID().equals(testNode.getNode("source/node/child").getUUID()));
     }
 
-    @Ignore("OAK-918") // FIXME
     @Test
     public void testCopyVersionableNode() throws Exception {
         Session session = getAdminSession();
         Node toCopy = session.getNode(TEST_PATH + "/source/node");
         toCopy.addMixin(JcrConstants.MIX_VERSIONABLE);
         session.save();
-
-        Version baseV = toCopy.getBaseVersion();
 
         session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
 
@@ -123,15 +125,70 @@ public class CopyTest extends AbstractRepositoryTest {
         Node copy = testNode.getNode("target/copied");
 
         assertTrue(copy.isNodeType(JcrConstants.MIX_VERSIONABLE));
-        VersionHistory copiedVh = copy.getVersionHistory();
         assertFalse(copy.getVersionHistory().isSame(toCopy.getVersionHistory()));
+    }
+
+    @Test
+    public void testCopyVersionableNodeClearsVersions() throws Exception {
+        Session session = getAdminSession();
+        Node toCopy = session.getNode(TEST_PATH + "/source/node");
+        toCopy.addMixin(JcrConstants.MIX_VERSIONABLE);
+        session.save();
+
+        Version v1 = toCopy.checkin();
+        toCopy.checkout();
+        Version v2 = toCopy.checkin();
+        toCopy.checkout();
+
+        session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
+
+        Node copy = testNode.getNode("target/copied");
+
+        VersionHistory vh = copy.getVersionHistory();
+        Version rootV = vh.getRootVersion();
+
+        assertEquals(0, rootV.getSuccessors().length);
+        VersionIterator vItr = vh.getAllVersions();
+        while (vItr.hasNext()) {
+            if (!rootV.isSame(vItr.nextVersion())) {
+                fail("Unexpected version in version history of copied node.");
+            }
+        }
+        try {
+            vh.getVersion(v1.getName());
+            fail("Unexpected version in version history of copied node.");
+        } catch (VersionException e) {
+            // success
+        }
+        try {
+            vh.getVersion(v2.getName());
+            fail("Unexpected version in version history of copied node.");
+        } catch (VersionException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testCopyVersionableNodeCreatesJcrCopiedFrom() throws Exception {
+        Session session = getAdminSession();
+        Node toCopy = session.getNode(TEST_PATH + "/source/node");
+        toCopy.addMixin(JcrConstants.MIX_VERSIONABLE);
+        session.save();
+
+        Version baseV = toCopy.getBaseVersion();
+
+        session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
+
+        Node copy = testNode.getNode("target/copied");
+        VersionHistory copiedVh = copy.getVersionHistory();
 
         assertTrue(copiedVh.hasProperty(VersionConstants.JCR_COPIED_FROM));
-        Node copiedFrom = copiedVh.getProperty(VersionConstants.JCR_COPIED_FROM).getNode();
+        Property prop = copiedVh.getProperty(VersionConstants.JCR_COPIED_FROM);
+        assertEquals(PropertyType.WEAKREFERENCE, prop.getType());
+        Node copiedFrom = prop.getNode();
         assertTrue(baseV.isSame(copiedFrom));
     }
 
-    @Ignore("OAK-919") // FIXME
     @Test
     public void testCopyLockedNode() throws Exception {
         Session session = getAdminSession();

@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -34,13 +35,16 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
@@ -138,16 +142,26 @@ public class WorkspaceDelegate {
             Tree dest = TreeUtil.addChild(destParent, destName, primaryType, typeRoot, userId);
             for (PropertyState property : source.getProperties()) {
                 String propName = property.getName();
-                if (JCR_UUID.equals(propName)) {
+                if (JCR_MIXINTYPES.equals(propName)) {
+                    for (String mixin : property.getValue(Type.NAMES)) {
+                        TreeUtil.addMixin(dest, mixin, typeRoot, userId);
+                    }
+                } else if (JCR_UUID.equals(propName)) {
                     String sourceId = property.getValue(Type.STRING);
                     String newId = IdentifierManager.generateUUID();
                     dest.setProperty(JCR_UUID, newId, Type.STRING);
                     if (!translated.containsKey(sourceId)) {
                         translated.put(sourceId, newId);
                     }
-                } else if (!JCR_PRIMARYTYPE.equals(propName)) {
+                } else if (!JCR_PRIMARYTYPE.equals(propName)
+                        && !VersionConstants.VERSION_PROPERTY_NAMES.contains(propName)
+                        && !LockConstants.LOCK_PROPERTY_NAMES.contains(propName)) {
                     dest.setProperty(property);
                 }
+            }
+            if (TreeUtil.isNodeType(source, JcrConstants.MIX_VERSIONABLE, typeRoot)) {
+                String sourceBaseVersionId = source.getProperty(JcrConstants.JCR_BASEVERSION).getValue(Type.STRING);
+                dest.setProperty(VersionConstants.HIDDEN_COPY_SOURCE, sourceBaseVersionId, Type.PATH);
             }
             for (Tree child : source.getChildren()) {
                 copy(child, dest, child.getName());
@@ -164,17 +178,20 @@ public class WorkspaceDelegate {
         private void updateReferences(Tree src, Tree dest)
                 throws RepositoryException {
             for (PropertyState prop : src.getProperties()) {
-                Type<?> type = prop.getType();
-                if (type == Type.REFERENCE
-                        || type == Type.REFERENCES
-                        || type == Type.WEAKREFERENCE
-                        || type == Type.WEAKREFERENCES) {
+                if (isReferenceType(prop) && !VersionConstants.VERSION_PROPERTY_NAMES.contains(prop.getName()))
                     updateProperty(prop, dest);
-                }
             }
             for (Tree child : src.getChildren()) {
                 updateReferences(child, dest.getChild(child.getName()));
             }
+        }
+
+        private boolean isReferenceType(PropertyState property) {
+            Type<?> type = property.getType();
+            return (type == Type.REFERENCE
+                    || type == Type.REFERENCES
+                    || type == Type.WEAKREFERENCE
+                    || type == Type.WEAKREFERENCES);
         }
 
         private void updateProperty(PropertyState prop, Tree dest) {
