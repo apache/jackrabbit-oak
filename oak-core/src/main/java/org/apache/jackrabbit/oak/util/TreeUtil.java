@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.util.ISO8601;
 
+import static com.google.common.collect.Iterables.contains;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
@@ -65,6 +66,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_L
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 /**
  * Utility providing common operations for the {@code Tree} that are not provided
@@ -390,5 +392,30 @@ public final class TreeUtil {
             }
         }
         return null;
+    }
+
+    public static boolean isNodeType(Tree tree, String typeName, Tree typeRoot) {
+        String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
+        if (typeName.equals(primaryName)) {
+            return true;
+        } else if (primaryName != null) {
+            Tree type = typeRoot.getChild(primaryName);
+            if (contains(getNames(type, REP_SUPERTYPES), typeName)) {
+                return true;
+            }
+        }
+
+        for (String mixinName : getNames(tree, JCR_MIXINTYPES)) {
+            if (typeName.equals(mixinName)) {
+                return true;
+            } else {
+                Tree type = typeRoot.getChild(mixinName);
+                if (contains(getNames(type, REP_SUPERTYPES), typeName)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

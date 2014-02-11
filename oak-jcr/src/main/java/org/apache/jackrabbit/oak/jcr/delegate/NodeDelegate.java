@@ -562,30 +562,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     private boolean isNodeType(Tree tree, String typeName, Root root) {
-        Tree typeRoot = root.getTree(NODE_TYPES_PATH);
-
-        String primaryName = TreeUtil.getName(tree, JCR_PRIMARYTYPE);
-        if (typeName.equals(primaryName)) {
-            return true;
-        } else if (primaryName != null) {
-            Tree type = typeRoot.getChild(primaryName);
-            if (contains(getNames(type, REP_SUPERTYPES), typeName)) {
-                return true;
-            }
-        }
-
-        for (String mixinName : getNames(tree, JCR_MIXINTYPES)) {
-            if (typeName.equals(mixinName)) {
-                return true;
-            } else {
-                Tree type = typeRoot.getChild(mixinName);
-                if (contains(getNames(type, REP_SUPERTYPES), typeName)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return TreeUtil.isNodeType(tree, typeName, root.getTree(NODE_TYPES_PATH));
     }
 
     private Tree findMatchingPropertyDefinition(
