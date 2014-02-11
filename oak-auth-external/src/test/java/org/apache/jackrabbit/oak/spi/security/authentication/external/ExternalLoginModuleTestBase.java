@@ -29,9 +29,12 @@ import javax.security.auth.login.Configuration;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
@@ -64,7 +67,6 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
         }
         idp = createIDP();
 
-        whiteboard = getSecurityProvider().getConfiguration(Whiteboard.class);
         testIdpReg = whiteboard.register(ExternalIdentityProvider.class, idp, Collections.<String, Object>emptyMap());
 
         options.put(ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, "default");
@@ -100,6 +102,18 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
             root.refresh();
             super.after();
         }
+    }
+
+    @Override
+    protected Oak withEditors(Oak oak) {
+        super.withEditors(oak);
+
+        // register non-OSGi managers
+        whiteboard = oak.getWhiteboard();
+        whiteboard.register(SyncManager.class, new SyncManagerImpl(whiteboard), Collections.emptyMap());
+        whiteboard.register(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard), Collections.emptyMap());
+
+        return oak;
     }
 
     protected abstract ExternalIdentityProvider createIDP();
