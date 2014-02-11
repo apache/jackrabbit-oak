@@ -24,6 +24,41 @@ work but probably be very slow.
 
 Query Indices are defined under the `oak:index` node.
 
+### Compatibility
+
+The query parser is now generally more strict about invalid syntax.
+The following query used to work in Jackrabbit 2.x, but not in Oak,
+because multiple way to quote the path are used at the same time:
+
+    SELECT * FROM [nt:base] AS s 
+    WHERE ISDESCENDANTNODE(s, ["/libs/sling/config"])
+    
+Instead, the query now needs to be:
+
+    SELECT * FROM [nt:base] AS s 
+    WHERE ISDESCENDANTNODE(s, [/libs/sling/config])
+    
+### Slow Queries and Read Limits
+
+Slow queries are logged as follows:
+
+    *WARN* Traversed 1000 nodes with filter Filter(query=select ...)
+    consider creating an index or changing the query
+
+If this is the case, an index might need to be created, or the condition 
+of the query might need to be changed to take advantage of an existing index.
+
+If a query reads more than 10 thousand nodes in memory, then the query is cancelled
+with an UnsupportedOperationException saying that 
+"The query read more than 10000 nodes in memory. To avoid running out of memory, processing was stopped."
+As a workaround, this limit can be changed using the system property "oak.queryLimitInMemory".
+
+If a query traversed more than 100 thousand nodes (for example because there is no index
+at all and the whole repository is traversed), then the query is cancelled
+with an UnsupportedOperationException saying that 
+"The query read or traversed more than 10000 nodes. To avoid affecting other tasks, processing was stopped.".
+As a workaround, this limit can be changed using the system property "oak.queryLimitReads".
+
 ### XPath to SQL2 Transformation
 
 To support the XPath query language, such queries are internally converted to SQL2. 
@@ -40,20 +75,6 @@ Every conversion is logged in `debug` level under the
         and @lock.created < xs:dateTime('2013-09-02T15:44:05.920+02:00')] */
 
 _Each transformed SQL2 query contains the original XPath query as a comment._
-
-### Compatibility
-
-The query parser is now generally more strict about invalid syntax.
-The following query used to work in Jackrabbit 2.x, but not in Oak,
-because multiple way to quote the path are used at the same time:
-
-    SELECT * FROM [nt:base] AS s 
-    WHERE ISDESCENDANTNODE(s, ["/libs/sling/config"])
-    
-Instead, the query now needs to be:
-
-    SELECT * FROM [nt:base] AS s 
-    WHERE ISDESCENDANTNODE(s, [/libs/sling/config])
 
 ### Query Processing
 
@@ -176,6 +197,4 @@ The returned value is between 1 (very fast; lookup of a unique node) and the est
 The returned value is supposed to be an estimate and doesn't have to be very accurate. Please note this method is called on each index whenever a query is run, so the method should be reasonably fast (not read any data itself, or at least not read too much data).
 
 If an index implementation can not query the data, it has to return `Double.POSITIVE_INFINITY`.
-
-TODO Traversal warnings
 
