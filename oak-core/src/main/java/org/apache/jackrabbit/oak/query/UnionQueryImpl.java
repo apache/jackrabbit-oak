@@ -44,7 +44,7 @@ public class UnionQueryImpl implements Query {
     private OrderingImpl[] orderings;
     private boolean explain;
     private boolean measure;
-    private long limit;
+    private long limit = Long.MAX_VALUE;
     private long offset;
     private long size = -1;
     
@@ -82,6 +82,8 @@ public class UnionQueryImpl implements Query {
     @Override
     public void setLimit(long limit) {
         this.limit = limit;
+        left.setLimit(limit);
+        right.setLimit(limit);
     }
 
     @Override
