@@ -45,8 +45,10 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
+import org.apache.jackrabbit.oak.jcr.session.WorkspaceImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
@@ -78,15 +80,15 @@ public class ImporterImpl implements Importer {
     /**
      * There are two IdentifierManagers used.
      *
-     * baseStateIdManager - Associated with the initial root on which
-     *   no modifications are performed
+     * 1) currentStateIdManager - Associated with current root on which all import
+     *    operations are being performed
      *
-     * currentStateIdManager - Associated with current root on which all import
-     *   operations are being performed
-     *
+     * 2) baseStateIdManager - Associated with the initial root on which
+     *    no modifications are performed
      */
-    private final IdentifierManager baseStateIdManager;
     private final IdentifierManager currentStateIdManager;
+    private final IdentifierManager baseStateIdManager;
+
     private final EffectiveNodeTypeProvider effectiveNodeTypeProvider;
     private final DefinitionProvider definitionProvider;
 
@@ -117,7 +119,6 @@ public class ImporterImpl implements Importer {
      * @param sessionContext The context of the editing session
      * @param root The write {@code Root}, which in case of a workspace import
      * is different from the {@code Root} associated with the editing session.
-     * @param initialRoot
      * @param uuidBehavior The uuid behavior
      * @param isWorkspaceImport {@code true} if this is a workspace import,
      * {@code false} otherwise.
@@ -127,7 +128,6 @@ public class ImporterImpl implements Importer {
     public ImporterImpl(String absPath,
                         SessionContext sessionContext,
                         Root root,
-                        Root initialRoot,
                         int uuidBehavior,
                         boolean isWorkspaceImport) throws RepositoryException {
         if (!PathUtils.isAbsolute(absPath)) {
@@ -138,34 +138,35 @@ public class ImporterImpl implements Importer {
             throw new RepositoryException("Invalid name or path: " + absPath);
         }
 
-        if (isWorkspaceImport && sessionContext.getSessionDelegate().hasPendingChanges()) {
+        SessionDelegate sd = sessionContext.getSessionDelegate();
+        if (isWorkspaceImport && sd.hasPendingChanges()) {
             throw new RepositoryException("Pending changes on session. Cannot run workspace import.");
         }
 
         this.uuidBehavior = uuidBehavior;
-        userID = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
+        userID = sd.getAuthInfo().getUserID();
 
         importTargetTree = root.getTree(absPath);
         if (!importTargetTree.exists()) {
             throw new PathNotFoundException(absPath);
         }
 
-        // TODO: review usage of write-root and object obtained from session-context (OAK-931)
-        VersionManager vMgr = sessionContext.getWorkspace().getVersionManager();
+        WorkspaceImpl wsp = sessionContext.getWorkspace();
+        VersionManager vMgr = wsp.getVersionManager();
         if (!vMgr.isCheckedOut(absPath)) {
             throw new VersionException("Target node is checked in.");
         }
-        if (importTargetTree.getStatus() != Tree.Status.NEW
-                && sessionContext.getWorkspace().getLockManager().isLocked(absPath)) {
+        if (importTargetTree.getStatus() != Tree.Status.NEW && wsp.getLockManager().isLocked(absPath)) {
             throw new LockException("Target node is locked.");
         }
+        effectiveNodeTypeProvider = wsp.getNodeTypeManager();
+        definitionProvider = wsp.getNodeTypeManager();
         ntTypesRoot = root.getTree(NODE_TYPES_PATH);
+
         accessManager = sessionContext.getAccessManager();
-        baseStateIdManager = new IdentifierManager(initialRoot);
+
         currentStateIdManager = new IdentifierManager(root);
-        effectiveNodeTypeProvider = sessionContext.getWorkspace().getNodeTypeManager();
-        definitionProvider = sessionContext.getWorkspace().getNodeTypeManager();
-        // TODO: end
+        baseStateIdManager = new IdentifierManager(sd.getContentSession().getLatestRoot());
 
         refTracker = new ReferenceChangeTracker();
 
