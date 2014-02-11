@@ -586,9 +586,11 @@ public interface MicroKernel {
 
     /**
      * Reads up to {@code length} bytes of data from the specified blob into
-     * the given array of bytes.  An attempt is made to read as many as
-     * {@code length} bytes, but a smaller number may be read.
-     * The number of bytes actually read is returned as an integer.
+     * the given array of bytes where the actual number of bytes read is
+     * {@code min(length, max(0, blobLength - pos))}.
+     * <p>
+     * If the returned value is smaller than {@code length}, no more data is available.
+     * This method never returns negative values.
      *
      * @param blobId blob identifier
      * @param pos    the offset within the blob
@@ -596,9 +598,7 @@ public interface MicroKernel {
      * @param off    the start offset in array {@code buff}
      *               at which the data is written.
      * @param length the maximum number of bytes to read
-     * @return the total number of bytes read into the buffer, or
-     *         {@code -1} if there is no more data because the end of
-     *         the blob content has been reached.
+     * @return the total number of bytes read into the buffer.
      * @throws MicroKernelException if the specified blob does not exist or if another error occurs
      */
     int /* count */ read(String blobId, long pos, byte[] buff, int off, int length)
