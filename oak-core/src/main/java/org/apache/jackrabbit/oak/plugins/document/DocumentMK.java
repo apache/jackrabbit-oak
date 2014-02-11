@@ -89,7 +89,7 @@ public class DocumentMK implements MicroKernel {
     }
 
     void backgroundRead() {
-        nodeStore.backgroundRead();
+        nodeStore.backgroundRead(true);
     }
 
     void backgroundWrite() {

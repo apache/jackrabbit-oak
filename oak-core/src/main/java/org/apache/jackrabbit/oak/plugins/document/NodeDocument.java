@@ -547,22 +547,6 @@ public class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
-     * Returns <code>true</code> if this node is considered deleted at the
-     * given <code>readRevision</code>.
-     *
-     * @param context the revision context.
-     * @param readRevision the read revision.
-     * @param validRevisions the set of revisions already checked against
-     *                       <code>readRevision</code> and considered valid.
-     * @return <code>true</code> if deleted, <code>false</code> otherwise.
-     */
-    public boolean isDeleted(RevisionContext context,
-                             Revision readRevision,
-                             Set<Revision> validRevisions) {
-        return getLiveRevision(context, readRevision, validRevisions) == null;
-    }
-
-    /**
      * Get the earliest (oldest) revision where the node was alive at or before
      * the provided revision, if the node was alive at the given revision.
      * 

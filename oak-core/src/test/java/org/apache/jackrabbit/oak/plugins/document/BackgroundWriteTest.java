@@ -35,7 +35,7 @@ public class BackgroundWriteTest {
                 new TestStore()).setAsyncDelay(0).open();
         List<String> paths = new ArrayList<String>();
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; paths.size() < DocumentNodeStore.BACKGROUND_MULTI_UPDATE_LIMIT * 2; i++) {
+        for (int i = 0; paths.size() < UnsavedModifications.BACKGROUND_MULTI_UPDATE_LIMIT * 2; i++) {
             String child = "node-" + i;
             sb.append("+\"").append(child).append("\":{}");
             for (int j = 0; j < 1000; j++) {
@@ -62,7 +62,7 @@ public class BackgroundWriteTest {
         public <T extends Document> void update(Collection<T> collection,
                                                 List<String> keys,
                                                 UpdateOp updateOp) {
-            assertTrue(keys.size() <= DocumentNodeStore.BACKGROUND_MULTI_UPDATE_LIMIT);
+            assertTrue(keys.size() <= UnsavedModifications.BACKGROUND_MULTI_UPDATE_LIMIT);
             super.update(collection, keys, updateOp);
         }
     }
