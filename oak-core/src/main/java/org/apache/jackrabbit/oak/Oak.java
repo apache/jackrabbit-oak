@@ -83,6 +83,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -400,6 +401,9 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = checkNotNull(securityProvider);
+        if (securityProvider instanceof WhiteboardAware) {
+            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
+        }
         for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
             RepositoryInitializer ri = sc.getRepositoryInitializer();
             if (ri != RepositoryInitializer.DEFAULT) {
@@ -444,6 +448,10 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull Whiteboard whiteboard) {
         this.whiteboard = checkNotNull(whiteboard);
+        if (securityProvider instanceof WhiteboardAware) {
+            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
+        }
+
         return this;
     }
 
