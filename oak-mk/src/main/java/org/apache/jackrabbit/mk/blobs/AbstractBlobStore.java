@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
-import org.apache.jackrabbit.mk.util.Cache;
-import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mk.util.StringUtils;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -29,12 +25,19 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.jackrabbit.mk.util.Cache;
+import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.mk.util.StringUtils;
 
 /**
  * An abstract data store that splits the binaries in relatively small blocks,
@@ -318,7 +321,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
         }
     }
 
-    private byte[] readBlock(byte[] digest, long pos) {
+    byte[] readBlock(byte[] digest, long pos) {
         BlockId id = new BlockId(digest, pos);
         return cache.get(id).data;
     }
@@ -421,6 +424,11 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
         }
     }
 
+    @Override
+    public Iterator<String> resolveChunks(String blobId) throws IOException {
+        return new ChunkIterator(blobId);
+    }
+    
     /**
      * A block id. Blocks are small enough to fit in memory, so they can be
      * cached.
@@ -493,4 +501,80 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
 
     }
 
+    class ChunkIterator implements Iterator<String> {
+        
+        private final static int BATCH = 2048;
+        private final ArrayDeque<String> queue;
+        private final ArrayDeque<ByteArrayInputStream> streamsStack;
+
+        public ChunkIterator(String blobId) {
+            byte[] id = StringUtils.convertHexToBytes(blobId);
+            ByteArrayInputStream idStream = new ByteArrayInputStream(id);
+            queue = new ArrayDeque<String>(BATCH);
+            streamsStack = new ArrayDeque<ByteArrayInputStream>();
+            streamsStack.push(idStream);
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (!queue.isEmpty()) {
+                return true;
+            }
+            try {
+                while ((queue.size() < BATCH)
+                        && (streamsStack.peekFirst() != null)) {
+                    ByteArrayInputStream idStream = streamsStack.peekFirst();
+
+                    int type = idStream.read();
+                    if (type == -1) {
+                        streamsStack.pop();
+                    } else if (type == TYPE_DATA) {
+                        int len = IOUtils.readVarInt(idStream);
+                        IOUtils.skipFully(idStream, len);
+                    } else if (type == TYPE_HASH) {
+                        int level = IOUtils.readVarInt(idStream);
+                        // totalLength
+                        IOUtils.readVarLong(idStream);
+                        if (level > 0) {
+                            // block length (ignored)
+                            IOUtils.readVarLong(idStream);
+                        }
+                        byte[] digest = new byte[IOUtils.readVarInt(idStream)];
+                        IOUtils.readFully(idStream, digest, 0, digest.length);
+                        if (level > 0) {
+                            queue.add(StringUtils.convertBytesToHex(digest));
+                            byte[] block = readBlock(digest, 0);
+                            idStream = new ByteArrayInputStream(block);
+                            streamsStack.push(idStream);
+                        } else {
+                            queue.add(StringUtils.convertBytesToHex(digest));
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            // Check now if ids available
+            if (!queue.isEmpty()) {
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public String next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No data");
+            } 
+            return queue.remove();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("Remove not supported");
+        }
+    }
 }

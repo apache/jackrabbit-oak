@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mk.util.StringUtils;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,6 +26,19 @@ import java.io.OutputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
+
+import javax.annotation.Nullable;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.FluentIterable;
+import com.google.common.io.Files;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.mk.util.StringUtils;
 
 /**
  * A file blob store.
@@ -36,6 +46,7 @@ import java.security.NoSuchAlgorithmException;
 public class FileBlobStore extends AbstractBlobStore {
 
     private static final String OLD_SUFFIX = "_old";
+    private static final String FILE_SUFFIX = ".dat";
 
     private final File baseDir;
     private final byte[] buffer = new byte[16 * 1024];
@@ -117,7 +128,7 @@ public class FileBlobStore extends AbstractBlobStore {
         if (old) {
             sub2 += OLD_SUFFIX;
         }
-        return new File(new File(new File(baseDir, sub1), sub2), id + ".dat");
+        return new File(new File(new File(baseDir, sub1), sub2), id + FILE_SUFFIX);
     }
 
     @Override
@@ -207,4 +218,45 @@ public class FileBlobStore extends AbstractBlobStore {
         return count;
     }
 
+    @Override
+    public boolean deleteChunk(String chunkId) throws Exception {
+        byte[] digest = StringUtils.convertHexToBytes(chunkId);
+        File f = getFile(digest, false);
+        if (!f.exists()) {
+            File old = getFile(digest, true);
+            f.getParentFile().mkdir();
+            old.renameTo(f);
+            f = getFile(digest, false);
+        }
+        f.delete();
+        return mark;
+    }
+
+    @Override
+    public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
+        FluentIterable<File> iterable = Files.fileTreeTraverser().postOrderTraversal(baseDir);
+        final Iterator<File> iter =
+                iterable.filter(new Predicate<File>() {
+                    // Ignore the directories and files newer than maxLastModifiedTime if specified
+                    @Override
+                    public boolean apply(@Nullable File input) {
+                        if (!input.isDirectory() && (
+                                (maxLastModifiedTime == 0 || maxLastModifiedTime == -1) ||
+                                FileUtils.isFileOlder(input, maxLastModifiedTime))) {
+                            return true;
+                        }
+                        return false;
+                    }
+                }).iterator();
+        return new AbstractIterator<String>() {
+            @Override
+            protected String computeNext() {
+                if (iter.hasNext()) {
+                    File file = iter.next();
+                    return FilenameUtils.removeExtension(file.getName());
+                }
+                return endOfData();
+            }
+        };
+    }
 }

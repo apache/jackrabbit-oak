@@ -26,13 +26,19 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import junit.framework.TestCase;
+
+import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.util.IOUtilsTest;
+import org.junit.Test;
 
 /**
  * Tests a BlobStore implementation.
@@ -44,8 +50,10 @@ public abstract class AbstractBlobStoreTest extends TestCase {
     /**
      * Should be overridden by subclasses to set the {@link #store} variable.
      */
+    @Override
     public abstract void setUp() throws Exception;
 
+    @Override
     public void tearDown() throws Exception {
         store = null;
     }
@@ -93,9 +101,11 @@ public abstract class AbstractBlobStoreTest extends TestCase {
     public void testCloseStream() throws Exception {
         final AtomicBoolean closed = new AtomicBoolean();
         InputStream in = new InputStream() {
+            @Override
             public void close() {
                 closed.set(true);
             }
+            @Override
             public int read() throws IOException {
                 return -1;
             }
@@ -107,9 +117,11 @@ public abstract class AbstractBlobStoreTest extends TestCase {
     public void testExceptionWhileReading() throws Exception {
         final AtomicBoolean closed = new AtomicBoolean();
         InputStream in = new InputStream() {
+            @Override
             public void close() {
                 closed.set(true);
             }
+            @Override
             public int read() throws IOException {
                 throw new RuntimeException("abc");
             }
@@ -335,4 +347,52 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         list.add(file.getAbsolutePath());
     }
 
+    @Test
+    public void testList() throws Exception {
+        Set<String> ids = createArtifacts();
+
+        Iterator<String> iter = store.getAllChunkIds(0);
+        while (iter.hasNext()) {
+            ids.remove(iter.next());
+        }
+
+        assertTrue(ids.isEmpty());
+    }
+
+    @Test
+    public void testDelete() throws Exception {
+        Set<String> ids = createArtifacts();
+
+        for (String id : ids) {
+            store.deleteChunk(id);
+        }
+
+        Iterator<String> iter = store.getAllChunkIds(0);
+        Set<String> ret = Sets.newHashSet();
+        while (iter.hasNext()) {
+            ret.add(iter.next());
+        }
+
+        assertTrue(ret.isEmpty());
+    }
+
+    private Set<String> createArtifacts() throws Exception {
+        Set<String> ids = Sets.newHashSet();
+        int number = 10;
+        for (int i = 0; i < number; i++) {
+            String id = store.writeBlob(randomStream(i, 4160));
+            Iterator<String> iter = store.resolveChunks(id.toString());
+            while (iter.hasNext()) {
+                ids.add(iter.next());
+            }
+        }
+        return ids;
+    }
+
+    static InputStream randomStream(int seed, int size) {
+        Random r = new Random(seed);
+        byte[] data = new byte[size];
+        r.nextBytes(data);
+        return new ByteArrayInputStream(data);
+    }
 }

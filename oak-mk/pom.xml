@@ -119,6 +119,13 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- apache commons dependencies -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>1.4</version>
+    </dependency>
+
     <!--Test Dependencies-->
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
@@ -134,12 +141,6 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <version>1.4</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

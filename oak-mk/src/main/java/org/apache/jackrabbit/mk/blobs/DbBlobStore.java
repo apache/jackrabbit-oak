@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
-import org.apache.jackrabbit.mk.util.StringUtils;
-import org.h2.jdbcx.JdbcConnectionPool;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,6 +23,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Iterator;
+
+import com.google.common.collect.AbstractIterator;
+
+import org.apache.jackrabbit.mk.util.StringUtils;
+import org.h2.jdbcx.JdbcConnectionPool;
 
 /**
  * A database blob store.
@@ -210,4 +213,68 @@ public class DbBlobStore extends AbstractBlobStore {
         return count;
     }
 
+    @Override
+    public boolean deleteChunk(String chunkId) throws Exception {
+        Connection conn = cp.getConnection();
+        try {
+            PreparedStatement prep = conn
+                    .prepareStatement("delete from datastore_meta where id = ?");
+            ;;;
+            // TODO  and lastMod <= ?
+            ;;;
+            PreparedStatement prepData = conn
+                    .prepareStatement("delete from datastore_data where id = ?");
+            prep.setString(1, chunkId);
+            prep.execute();
+            prepData.setString(1, chunkId);
+            prepData.execute();
+
+            prep.close();
+            prepData.close();
+        } finally {
+            conn.commit();
+            conn.close();
+        }
+
+        return true;
+    }
+
+    @Override
+    public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
+        final Connection conn = cp.getConnection();
+        PreparedStatement prep = null;
+
+        if ((maxLastModifiedTime != 0) && (maxLastModifiedTime != -1)) {
+            prep = conn.prepareStatement(
+                    "select id from datastore_meta where lastMod <= ?");
+            prep.setLong(1, maxLastModifiedTime);
+        } else {
+            prep = conn.prepareStatement(
+                    "select id from datastore_meta");
+        }
+
+        final ResultSet rs = prep.executeQuery();
+
+        return new AbstractIterator<String>() {
+            @Override
+            protected String computeNext() {
+                try {
+                    if (rs.next()) {
+                        return rs.getString(1);
+                    }
+                    conn.close();
+                } catch (SQLException e) {
+                    try {
+                        if ((conn != null) && !conn.isClosed()) {
+                            conn.close();
+                        }
+                    } catch (Exception e2) {
+                        // ignore
+                    }
+                    throw new RuntimeException(e);
+                }
+                return endOfData();
+            }
+        };
+    }
 }
