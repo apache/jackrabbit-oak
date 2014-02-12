@@ -47,6 +47,13 @@ public abstract class AbstractBlob implements Blob {
     }
 
     public static boolean equal(Blob a, Blob b) {
+        // shortcut: first compare lengths if known in advance
+        long al = a.length();
+        long bl = b.length();
+        if (al != -1 && bl != -1 && al != bl) {
+            return false; // blobs not equal, given known and non-equal lengths
+        }
+
         try {
             return ByteStreams.equal(supplier(a), supplier(b));
         } catch (IOException e) {
