@@ -159,7 +159,7 @@ public class Template {
         return childName;
     }
 
-    PropertyState getProperty(
+    SegmentPropertyState getProperty(
             Segment segment, RecordId recordId, int index) {
         checkElementIndex(index, properties.length);
         segment = checkNotNull(segment).getSegment(checkNotNull(recordId));
