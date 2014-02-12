@@ -32,6 +32,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
@@ -736,6 +737,11 @@ public class SegmentWriter {
         return writeValueRecord(length, writeList(blockIds));
     }
 
+    private RecordId writeProperty(PropertyState state) {
+        Map<String, RecordId> previousValues = emptyMap();
+        return writeProperty(state, previousValues);
+    }
+
     private RecordId writeProperty(
             PropertyState state, Map<String, RecordId> previousValues) {
         Type<?> type = state.getType();
@@ -869,18 +875,20 @@ public class SegmentWriter {
         }
 
         SegmentNodeState before = null;
+        Template beforeTemplate = null;
         ModifiedNodeState after = null;
         if (state instanceof ModifiedNodeState) {
             after = (ModifiedNodeState) state;
             NodeState base = after.getBaseState();
             if (store.isInstance(base, SegmentNodeState.class)) {
                 before = (SegmentNodeState) base;
+                beforeTemplate = before.getTemplate();
             }
         }
 
         Template template = new Template(state);
         RecordId templateId;
-        if (before != null && template.equals(before.getTemplate())) {
+        if (before != null && template.equals(beforeTemplate)) {
             templateId = before.getTemplateId();
         } else {
             templateId = writeTemplate(template);
@@ -934,20 +942,26 @@ public class SegmentWriter {
 
             if (store.isInstance(property, SegmentPropertyState.class)) {
                 ids.add(((SegmentPropertyState) property).getRecordId());
+            } else if (!store.isInstance(before, SegmentNodeState.class)) {
+                ids.add(writeProperty(property));
             } else {
-                Map<String, RecordId> previousValues = emptyMap();
-                if (before != null) {
-                    // reuse previously stored property values, if possible
-                    PropertyState beforeProperty = before.getProperty(name);
-                    if (store.isInstance(beforeProperty, SegmentPropertyState.class)
-                            && beforeProperty.isArray()
-                            && beforeProperty.getType() != Type.BINARIES) {
-                        SegmentPropertyState segmentProperty =
-                                (SegmentPropertyState) beforeProperty;
-                        previousValues = segmentProperty.getValueRecords();
+                // reuse previously stored property, if possible
+                PropertyTemplate bt = beforeTemplate.getPropertyTemplate(name);
+                if (bt == null) {
+                    ids.add(writeProperty(property)); // new property
+                } else {
+                    SegmentPropertyState bp = beforeTemplate.getProperty(
+                            before.getSegment(), before.getRecordId(),
+                            bt.getIndex());
+                    if (property.equals(bp)) {
+                        ids.add(bp.getRecordId()); // no changes
+                    } else if (bp.isArray() && bp.getType() != BINARIES) {
+                        // reuse entries from the previous list
+                        ids.add(writeProperty(property, bp.getValueRecords()));
+                    } else {
+                        ids.add(writeProperty(property));
                     }
                 }
-                ids.add(writeProperty(property, previousValues));
             }
         }
 
