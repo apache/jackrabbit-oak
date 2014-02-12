@@ -16,15 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.concurrent.locks.ReadWriteLock;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
 /**
  * Implementation of a DocumentMK based node store branch.
@@ -32,9 +36,16 @@ import static com.google.common.base.Preconditions.checkState;
 public class DocumentNodeStoreBranch
         extends AbstractNodeStoreBranch<DocumentNodeStore, DocumentNodeState> {
 
+    /** Lock for coordinating concurrent merge operations */
+    private final ReadWriteLock mergeLock;
+
     public DocumentNodeStoreBranch(DocumentNodeStore store,
-                                   DocumentNodeState base) {
-        super(store, new ChangeDispatcher(store.getRoot()), base);
+                                   DocumentNodeState base,
+                                   ReadWriteLock mergeLock) {
+        // maximum back off is twice the async delay, but at least 2 seconds.
+        super(store, new ChangeDispatcher(store.getRoot()), mergeLock.readLock(),
+                base, Math.max(store.getAsyncDelay(), 1000) * 2);
+        this.mergeLock = mergeLock;
     }
 
     @Override
@@ -114,7 +125,28 @@ public class DocumentNodeStoreBranch
         }, base, null);
     }
 
-    //------------------------------< internal >--------------------------------
+    @Nonnull
+    @Override
+    public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+            throws CommitFailedException {
+        try {
+            return super.merge(hook, info);
+        } catch (CommitFailedException e) {
+            if (!e.isOfType(MERGE)) {
+                throw e;
+            }
+        }
+        // retry with exclusive lock, blocking other
+        // concurrent writes
+        mergeLock.writeLock().lock();
+        try {
+            return super.merge(hook, info);
+        } finally {
+            mergeLock.writeLock().unlock();
+        }
+    }
+
+//------------------------------< internal >--------------------------------
 
     /**
      * Persist some changes on top of the given base state.

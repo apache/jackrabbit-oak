@@ -58,10 +58,10 @@ public abstract class AbstractRepositoryTest {
     public static Collection<Object[]> fixtures() {
         Object[][] fixtures = new Object[][] {
                 {NodeStoreFixture.MK_IMPL},
-                {NodeStoreFixture.MONGO_MK},
-                {NodeStoreFixture.MONGO_NS},
+                {NodeStoreFixture.DOCUMENT_MK},
+                {NodeStoreFixture.DOCUMENT_NS},
                 {NodeStoreFixture.SEGMENT_MK},
-                {NodeStoreFixture.MONGO_JDBC},
+                {NodeStoreFixture.DOCUMENT_JDBC},
         };
         return Arrays.asList(fixtures);
     }

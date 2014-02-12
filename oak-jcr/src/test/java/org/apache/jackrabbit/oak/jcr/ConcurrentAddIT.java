@@ -20,11 +20,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -35,7 +37,7 @@ import static org.junit.Assert.fail;
 
 /**
  * <code>ConcurrentAddIT</code> adds nodes with multiple sessions in separate
- * locations of the repository.
+ * locations of the repository and under the same parent.
  */
 public class ConcurrentAddIT extends AbstractRepositoryTest {
 
@@ -74,11 +76,40 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
         }
     }
 
+    @Test @SuppressWarnings("unchecked")
+    public void addNodesSameParent() throws Exception {
+        // takes too long with RDBDocumentStore
+        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);
+        List<Exception> exceptions = Collections.synchronizedList(
+                new ArrayList<Exception>());
+        // use nt:unstructured to force conflicts on :childOrder property
+        Node test = getAdminSession().getRootNode().addNode("test", "nt:unstructured");
+        List<Thread> worker = new ArrayList<Thread>();
+        for (int i = 0; i < NUM_WORKERS; i++) {
+            worker.add(new Thread(new Worker(
+                    createAdminSession(), test.getPath(), exceptions)));
+        }
+        getAdminSession().save();
+        for (Thread t : worker) {
+            t.start();
+        }
+        for (Thread t : worker) {
+            t.join();
+        }
+        for (Exception e : exceptions) {
+            fail(e.toString());
+        }
+        getAdminSession().refresh(false);
+        assertEquals(NODES_PER_WORKER * NUM_WORKERS, Iterators.size(test.getNodes()));
+    }
+
     private static final class Worker implements Runnable {
 
+        private static final AtomicInteger WORKER_ID = new AtomicInteger();
         private final Session s;
         private final String path;
         private final List<Exception> exceptions;
+        private final String id = "worker-" + WORKER_ID.incrementAndGet();
 
         Worker(Session s, String path, List<Exception> exceptions) {
             this.s = s;
@@ -92,7 +123,7 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
                 s.refresh(false);
                 Node n = s.getNode(path);
                 for (int i = 0; i < NODES_PER_WORKER; i++) {
-                    n.addNode("node" + i);
+                    n.addNode(id + "-node-" + i);
                     s.save();
                 }
             } catch (RepositoryException e) {

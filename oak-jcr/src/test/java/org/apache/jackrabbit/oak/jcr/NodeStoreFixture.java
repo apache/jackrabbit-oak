@@ -40,7 +40,7 @@ public abstract class NodeStoreFixture {
 
     public static final NodeStoreFixture SEGMENT_MK = new SegmentFixture();
 
-    public static final NodeStoreFixture MONGO_MK = new NodeStoreFixture() {
+    public static final NodeStoreFixture DOCUMENT_MK = new NodeStoreFixture() {
         @Override
         public NodeStore createNodeStore() {
             return new CloseableNodeStore(new DocumentMK.Builder().open());
@@ -72,9 +72,9 @@ public abstract class NodeStoreFixture {
         }
     };
 
-    public static final NodeStoreFixture MONGO_NS = createMongoFixture("mongodb://localhost:27017/oak");
+    public static final NodeStoreFixture DOCUMENT_NS = createDocumentFixture("mongodb://localhost:27017/oak");
 
-    public static final NodeStoreFixture MONGO_JDBC = new NodeStoreFixture() {
+    public static final NodeStoreFixture DOCUMENT_JDBC = new NodeStoreFixture() {
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
@@ -109,7 +109,7 @@ public abstract class NodeStoreFixture {
         }
     };
     
-    public static NodeStoreFixture createMongoFixture(final String uri) {
+    public static NodeStoreFixture createDocumentFixture(final String uri) {
         return new DocumentFixture(uri);
     }
 
