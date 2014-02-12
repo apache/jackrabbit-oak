@@ -28,9 +28,9 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
  */
 public class SelectorExecutionPlan {
     
-    public Filter filter;
-    
     public SelectorImpl selector;
+    
+    public Filter filter;
     
     public double estimatedCost;
     

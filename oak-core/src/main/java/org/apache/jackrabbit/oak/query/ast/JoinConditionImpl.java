@@ -13,6 +13,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
 /**
@@ -60,5 +62,13 @@ public abstract class JoinConditionImpl extends AstElement {
      * @return true if the source is the parent
      */
     public abstract boolean isParent(SourceImpl source);
+    
+    /**
+     * Whether the join condition can be evaluated if the given selectors are able to retrieve data.
+     * 
+     * @param available the available selectors
+     * @return true if the condition can be evaluated
+     */
+    public abstract boolean canEvaluate(Set<SourceImpl> available);
 
 }
