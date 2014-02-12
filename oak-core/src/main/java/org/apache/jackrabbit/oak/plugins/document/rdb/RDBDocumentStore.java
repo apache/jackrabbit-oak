@@ -204,7 +204,6 @@ public class RDBDocumentStore implements DocumentStore {
                 UpdateUtils.applyChanges(doc, update, comparator);
                 insertDocument(collection, doc);
             }
-            // FIXME to be atomic
             return true;
         } catch (MicroKernelException ex) {
             return false;
