@@ -92,6 +92,12 @@ public class NamePathMapperImpl implements NamePathMapper {
         if ("/".equals(oakPath)) {
             // avoid the need to special case the root path later on
             return "/";
+        } else if (oakPath.isEmpty()) {
+            // empty path: map to "."
+            return ".";
+        } else if (getSessionLocalMappings().isEmpty()) {
+            // no local namespace mappings
+            return oakPath;
         }
 
         PathListener listener = new PathListener() {
@@ -119,11 +125,6 @@ public class NamePathMapperImpl implements NamePathMapper {
         };
 
         JcrPathParser.parse(oakPath, listener);
-
-        // empty path: map to "."
-        if (listener.elements.isEmpty()) {
-            return ".";
-        }
 
         StringBuilder jcrPath = new StringBuilder();
         for (String element : listener.elements) {
